@@ -1,0 +1,66 @@
+import { create } from 'zustand';
+
+import { persisted } from './persist';
+
+export type Appearance = 'Scuro' | 'Chiaro' | 'Sistema';
+export type Language = 'Italiano' | 'English' | 'Deutsch' | 'Français';
+
+export const navCatalog: Record<string, string> = {
+  home: 'Home', ai: 'AI', lifenetwork: 'Network', lifefinance: 'Finance', profile: 'Profilo', lifehealth: 'LifeHealth',
+  lifenotes: 'LifeNotes', lifetravel: 'LifeTravel', lifedrive: 'LifeDrive', lifetask: 'LifeTask', lifepointsPage: 'LifePoints',
+  plan: 'Plan', settings: 'Settings',
+};
+
+type Device = { name: string; detail: string; current: boolean };
+
+type AppState = {
+  onboarded: boolean;
+  demo: boolean;
+  account: { name: string; email: string };
+  appearance: Appearance;
+  language: Language;
+  timeFormat: '24h' | '12h';
+  notif: { push: boolean; calendar: boolean; finance: boolean; health: boolean; digest: boolean; email: boolean };
+  security: { twofa: boolean; lock: boolean };
+  accessibility: { textLg: boolean; reduceMotion: boolean; highContrast: boolean };
+  navItems: string[];
+  pageVisits: Record<string, number>;
+  dismissedNav: string[];
+  workHours: { start: string; end: string };
+  devices: Device[];
+  integrations: Record<string, boolean>;
+  privacy: Record<string, boolean>;
+  dataLocal: Record<string, boolean>;
+  set: (patch: Partial<AppState>) => void;
+  trackVisit: (p: string) => void;
+  reset: () => void;
+};
+
+const initial = {
+  onboarded: false,
+  demo: false,
+  account: { name: '', email: '' },
+  appearance: 'Scuro' as Appearance,
+  language: 'Italiano' as Language,
+  timeFormat: '24h' as const,
+  notif: { push: false, calendar: true, finance: true, health: false, digest: false, email: false },
+  security: { twofa: false, lock: false },
+  accessibility: { textLg: false, reduceMotion: false, highContrast: false },
+  navItems: ['home', 'ai', 'lifenetwork', 'lifefinance', 'profile'],
+  pageVisits: {} as Record<string, number>,
+  dismissedNav: [] as string[],
+  workHours: { start: '09:00', end: '18:00' },
+  devices: [{ name: 'Questo dispositivo', detail: 'Sessione attuale', current: true }] as Device[],
+  integrations: { Calendario: true, Health: false, Email: false, Wearable: false, 'Smart Home': false } as Record<string, boolean>,
+  privacy: { 'AI Memory': true, 'Dati salute': false, 'Dati finanziari': false, Posizione: false } as Record<string, boolean>,
+  dataLocal: {} as Record<string, boolean>,
+};
+
+export const useApp = create<AppState>()(
+  persisted<AppState>('app', (set) => ({
+    ...initial,
+    set: (patch) => set(patch),
+    trackVisit: (p) => set((s) => (navCatalog[p] ? { pageVisits: { ...s.pageVisits, [p]: (s.pageVisits[p] || 0) + 1 } } : s)),
+    reset: () => set({ ...initial }),
+  })),
+);

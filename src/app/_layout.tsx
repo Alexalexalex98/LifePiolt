@@ -2,46 +2,53 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { View } from 'react-native';
 
+import { ToastHost } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { useStore } from '@/store';
+import { useApp } from '@/store/app';
+import { useFin } from '@/store/finance';
+import { useHealth } from '@/store/health';
+import { useLife } from '@/store/life';
+import { useTravel } from '@/store/travel';
 
 SplashScreen.preventAutoHideAsync();
 
+const stores = [useApp, useLife, useHealth, useFin, useTravel];
+const allHydrated = () => stores.every((s) => s.persist.hasHydrated());
+
 export default function RootLayout() {
   const t = useTheme();
-  const mode = useStore((s) => s.theme);
-  const onboarded = useStore((s) => s.onboarded);
-  const [hydrated, setHydrated] = useState(useStore.persist.hasHydrated());
+  const onboarded = useApp((s) => s.onboarded);
+  const [ready, setReady] = useState(allHydrated());
 
   useEffect(() => {
-    const unsub = useStore.persist.onFinishHydration(() => setHydrated(true));
-    return unsub;
+    const check = () => { if (allHydrated()) setReady(true); };
+    const unsubs = stores.map((s) => s.persist.onFinishHydration(check));
+    check();
+    return () => unsubs.forEach((u) => u());
   }, []);
 
   useEffect(() => {
-    if (hydrated) SplashScreen.hideAsync();
-  }, [hydrated]);
+    if (!ready) return;
+    useFin.getState().rollMonth();
+    SplashScreen.hideAsync();
+  }, [ready]);
 
-  if (!hydrated) return null;
+  if (!ready) return null;
 
   return (
-    <>
-      <StatusBar style={mode === 'light' ? 'dark' : 'light'} />
+    <View style={{ flex: 1, backgroundColor: t.bg }}>
+      <StatusBar style={t.bg === '#eef1f6' ? 'dark' : 'light'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
         <Stack.Protected guard={!onboarded}>
           <Stack.Screen name="onboarding" />
         </Stack.Protected>
         <Stack.Protected guard={onboarded}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="notes" />
-          <Stack.Screen name="note/[id]" />
-          <Stack.Screen name="health" />
-          <Stack.Screen name="finance" />
-          <Stack.Screen name="settings" />
-          <Stack.Screen name="legal/[doc]" />
         </Stack.Protected>
       </Stack>
-    </>
+      <ToastHost />
+    </View>
   );
 }
