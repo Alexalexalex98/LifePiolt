@@ -19,7 +19,7 @@ export default function CommunityProfile() {
     <Page id="communityProfile" title={c.name} back>
       <Card>
         <Body small muted style={{ marginBottom: 10 }}>{c.topic} · {c.members.length} membri · {c.openPosting ? 'tutti possono pubblicare' : 'solo il proprietario pubblica'}</Body>
-        <Btn small ghost={joined} title={joined ? 'Iscritto ✓ · esci' : 'Iscriviti'} onPress={() => {
+        <Btn small ghost={joined} title={joined ? 'Iscritto · esci' : 'Iscriviti'} onPress={() => {
           net.patch({ communities: net.communities.map((x) => (x.id === c.id ? { ...x, members: joined ? x.members.filter((m) => m !== me) : [...x.members, me] } : x)) });
           toast(joined ? 'Hai lasciato ' + c.name : 'Iscritto a ' + c.name);
         }} />

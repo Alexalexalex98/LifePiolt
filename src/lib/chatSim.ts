@@ -1,6 +1,6 @@
 import { useChat } from '@/store/chat';
 
-const replies = ['Perfetto, grazie!', 'Ricevuto 👍', 'Ci penso e ti scrivo dopo.', 'Ottima idea!', 'Ok, ci sentiamo domani.', 'Fantastico 🙌', 'Va bene per me.', 'Dammi un attimo e ti rispondo.'];
+const replies = ['Perfetto, grazie!', 'Ricevuto', 'Ci penso e ti scrivo dopo.', 'Ottima idea!', 'Ok, ci sentiamo domani.', 'Fantastico!', 'Va bene per me.', 'Dammi un attimo e ti rispondo.'];
 
 /**
  * Solo modalità demo: simula consegna/lettura e una risposta, perché senza server di messaggistica

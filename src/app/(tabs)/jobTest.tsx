@@ -11,6 +11,7 @@ import type { Answer, TestResult } from '@/lib/hiring';
 import { useApp } from '@/store/app';
 import { jobQuestions, practiceQuestions, useJobs } from '@/store/jobs';
 import { toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 const fmt = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.max(0, s) % 60).padStart(2, '0')}`;
 
@@ -80,7 +81,7 @@ export default function JobTest() {
           <Card>
             <Body bold>Cosa vede chi assume</Body>
             <Body small muted style={{ marginTop: 4 }}>• I tuoi punteggi per ogni competenza richiesta e l’indice di affidabilità (con le sue componenti).{'\n'}• I tempi di risposta e le tue risposte alle domande aperte.{'\n'}• {job.blind ? 'Il tuo nome e la tua foto restano nascosti finché non ti invitano.' : 'Il tuo nome e la tua foto.'}{'\n'}Non vengono richiesti scuola, età, foto o curriculum.</Body>
-            <Pressable onPress={() => setConsent(!consent)} style={{ paddingVertical: 12 }}><Text style={{ color: t.text }}>{consent ? '☑' : '☐'} Accetto che questi dati siano visibili a {job.owner}</Text></Pressable>
+            <Pressable onPress={() => setConsent(!consent)} style={{ paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}><Icon name={consent ? 'checksquare' : 'square'} size={20} color={consent ? t.accent : t.muted} /><Text style={{ color: t.text, flex: 1 }}>Accetto che questi dati siano visibili a {job.owner}</Text></Pressable>
           </Card>
         )}
         <Btn title="Inizia" disabled={!!job && !consent} onPress={() => { qStart.current = Date.now(); setStage('run'); }} />
@@ -112,7 +113,7 @@ export default function JobTest() {
     <Page id="jobTest" title={title} noTop>
       <Row style={{ marginBottom: 8 }}>
         <Body small muted>Domanda {i + 1} di {questions.length}</Body>
-        <Text style={{ color: left < 60 ? t.danger : t.text, fontWeight: '800' }}>⏱ {fmt(left)}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Icon name="timer" size={16} color={left < 60 ? t.danger : t.text} /><Text style={{ color: left < 60 ? t.danger : t.text, fontWeight: '800' }}>{fmt(left)}</Text></View>
       </Row>
       <View style={{ height: 4, borderRadius: 2, backgroundColor: t.item, marginBottom: 14 }}><View style={{ height: 4, borderRadius: 2, width: `${((i) / questions.length) * 100}%`, backgroundColor: t.accent }} /></View>
       <ScrollView keyboardShouldPersistTaps="handled">

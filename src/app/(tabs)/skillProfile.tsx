@@ -4,7 +4,7 @@ import { View } from 'react-native';
 
 import { SkillRow, TrustCard } from '@/components/jobs';
 import { UserAvatar } from '@/components/network';
-import { Body, Btn, Card, Item, Page, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Card, Item, Page, Row, Sheet, IL } from '@/components/ui';
 import { skills } from '@/data/skillBank';
 import { useTheme } from '@/hooks/use-theme';
 import { go } from '@/lib/nav';
@@ -48,11 +48,11 @@ export default function SkillProfile() {
         <>
           <Body bold style={{ marginTop: 6, marginBottom: 8 }}>Verifica le tue competenze</Body>
           <Card>
-            {[...skills, { id: 'atteggiamento', label: 'Atteggiamento (affidabilità, onestà, collaborazione)', icon: '🧭', desc: '9 scenari di lavoro reale.' }].map((s, i, arr) => {
+            {[...skills, { id: 'atteggiamento', label: 'Atteggiamento (affidabilità, onestà, collaborazione)', icon: 'compass', desc: '9 scenari di lavoro reale.' }].map((s, i, arr) => {
               const wait = days(s.id);
               return (
                 <Item key={s.id} last={i === arr.length - 1} onPress={() => (wait > 0 ? toast(`Potrai ripetere questa prova tra ${wait} ${wait === 1 ? 'giorno' : 'giorni'}`) : go('jobTest', { skill: s.id }))}>
-                  <Row><View style={{ flex: 1 }}><Body>{s.icon} {s.label}</Body><Body small muted>{wait > 0 ? `Ripetibile tra ${wait} gg` : s.desc}</Body></View><Body color={wait > 0 ? t.muted : t.accent}>{wait > 0 ? '⏳' : 'Inizia ›'}</Body></Row>
+                  <Row><View style={{ flex: 1 }}><IL icon={s.icon}>{s.label}</IL><Body small muted>{wait > 0 ? `Ripetibile tra ${wait} gg` : s.desc}</Body></View><Body color={wait > 0 ? t.muted : t.accent}>{wait > 0 ? 'In attesa' : 'Inizia'}</Body></Row>
                 </Item>
               );
             })}

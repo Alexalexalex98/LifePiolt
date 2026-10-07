@@ -3,12 +3,13 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { UserAvatar } from '@/components/network';
-import { Body, Btn, Input, Item, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Input, Item, Row, Sheet, IL } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { useApp } from '@/store/app';
 import { peoplePool } from '@/lib/network';
-import { DELETE_ALL_WINDOW, EDIT_WINDOW, EMOJIS, dmId, fmtClock, previewOf, useChat, type ChatMessage } from '@/store/chat';
+import { DELETE_ALL_WINDOW, EDIT_WINDOW, REACTIONS, dmId, reactionIcon, fmtClock, previewOf, useChat, type ChatMessage } from '@/store/chat';
 import { toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 const dt = (ts: number) => { const d = new Date(ts); return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${fmtClock(ts)}`; };
 
@@ -22,29 +23,29 @@ export function MessageActions({ m, me, onClose, onAction }: { m: ChatMessage | 
   const starred = !!m.starredBy?.includes(me);
   const canEdit = mine && m.kind === 'text' && !m.deletedForAll && Date.now() - m.ts < EDIT_WINDOW;
   const copyable = !!m.text && !m.deletedForAll;
-  const row = (label: string, a: Action, show = true) => show ? <Item key={a} onPress={() => onAction(a)}><Body>{label}</Body></Item> : null;
+  const row = (label: string, a: Action, icon: string, show = true) => show ? <Item key={a} onPress={() => onAction(a)}><IL icon={icon}>{label}</IL></Item> : null;
   return (
     <Sheet visible title="Messaggio" onClose={onClose}>
       {!m.deletedForAll && (
         <Row style={{ justifyContent: 'space-between', marginBottom: 10 }} gap={4}>
-          {EMOJIS.map((e) => (
-            <Pressable key={e} onPress={() => onAction('react', e)} style={{ padding: 6, borderRadius: 20, backgroundColor: m.reactions?.[me] === e ? t.chip : 'transparent' }} accessibilityLabel={`Reagisci ${e}`}><Text style={{ fontSize: 28 }}>{e}</Text></Pressable>
+          {REACTIONS.map((e) => (
+            <Pressable key={e} onPress={() => onAction('react', e)} style={{ padding: 9, borderRadius: 22, backgroundColor: reactionIcon(m.reactions?.[me] ?? '') === e ? t.chip : 'transparent' }} accessibilityLabel={`Reagisci ${e}`}><Icon name={e} size={26} color={e === 'heart' ? '#ff5d7a' : t.text} fill={e === 'heart' && reactionIcon(m.reactions?.[me] ?? '') === 'heart' ? '#ff5d7a' : 'none'} /></Pressable>
           ))}
         </Row>
       )}
       <Body small muted numberOfLines={2} style={{ marginBottom: 6 }}>{previewOf(m)}</Body>
-      {!m.deletedForAll && row('↩︎ Rispondi', 'reply')}
-      {!m.deletedForAll && row(`✦ Chiedi a ${name}`, 'theia')}
-      {copyable && row('✓ Trasforma in task', 'task')}
-      {copyable && row('📅 Aggiungi al piano di oggi', 'event')}
-      {copyable && row('📝 Salva in una nota', 'note')}
-      {row('⧉ Copia', 'copy', copyable)}
-      {!m.deletedForAll && row('↪ Inoltra', 'forward')}
-      {!m.deletedForAll && row(starred ? '★ Togli da importanti' : '☆ Segna come importante', 'star')}
-      {row('✎ Modifica', 'edit', canEdit)}
-      {mine && !m.deletedForAll && row('ⓘ Info messaggio', 'info')}
-      {row('☑ Seleziona', 'select')}
-      <Item last onPress={() => onAction('delete')}><Body color={t.danger}>🗑 Elimina</Body></Item>
+      {!m.deletedForAll && row('Rispondi', 'reply', 'reply')}
+      {!m.deletedForAll && row(`Chiedi a ${name}`, 'theia', 'sparkle')}
+      {copyable && row('Trasforma in task', 'task', 'checksquare')}
+      {copyable && row('Aggiungi al piano di oggi', 'event', 'calendar')}
+      {copyable && row('Salva in una nota', 'note', 'note')}
+      {row('Copia', 'copy', 'copy', copyable)}
+      {!m.deletedForAll && row('Inoltra', 'forward', 'forward')}
+      {!m.deletedForAll && row(starred ? 'Togli da importanti' : 'Segna come importante', 'star', 'star')}
+      {row('Modifica', 'edit', 'edit', canEdit)}
+      {mine && !m.deletedForAll && row('Info messaggio', 'info', 'info')}
+      {row('Seleziona', 'select', 'checksquare')}
+      <Item last onPress={() => onAction('delete')}><IL icon="trash" color={t.danger}>Elimina</IL></Item>
     </Sheet>
   );
 }
@@ -99,7 +100,7 @@ export function PickChatsSheet({ visible, title, me, onClose, onPick, exclude }:
       <Input placeholder="Cerca…" value={q} onChangeText={setQ} />
       {rows.map((r) => (
         <Item key={r.id} onPress={() => setSel(sel.includes(r.id) ? sel.filter((x) => x !== r.id) : [...sel, r.id])}>
-          <Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}>{r.group ? <Text style={{ fontSize: 22 }}>👥</Text> : <UserAvatar name={r.name} size={28} />}<Body>{r.name}</Body></Row>{sel.includes(r.id) ? <Text style={{ color: t.accent, fontSize: 18 }}>✓</Text> : null}</Row>
+          <Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}>{r.group ? <Icon name="users" size={24} color={t.text} /> : <UserAvatar name={r.name} size={28} />}<Body>{r.name}</Body></Row>{sel.includes(r.id) ? <Icon name="check" size={18} color={t.accent} stroke={2.6} /> : null}</Row>
         </Item>
       ))}
       <Btn style={{ marginTop: 12 }} title={sel.length ? `Invia a ${sel.length}` : 'Seleziona almeno una chat'} disabled={!sel.length} onPress={() => {

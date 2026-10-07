@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { Body, Btn, Card, H, Item, Link, Page, Pill, Row, Sheet, Toggle } from '@/components/ui';
+import { Body, Btn, Card, H, Item, Link, Page, Pill, Row, Sheet, Toggle, XBtn, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, monthNames } from '@/lib/format';
 import { areaColors, Icon } from '@/lib/icons';
@@ -63,7 +63,7 @@ export default function LifeTravel() {
         {tv.saved.length === 0 ? <Body small muted>Nessun itinerario salvato ancora.</Body> : tv.saved.map((it, i) => (
           <Item key={it.id} last={i === tv.saved.length - 1}>
             <Row><View style={{ flex: 1 }}><Body bold>{it.city}</Body><Body small muted>{it.hotel} · {it.days} notti · {it.month}</Body></View><Body bold>{formatCHF(it.tripTotal)} CHF</Body>
-              <Link danger onPress={() => { const rem = tv.del(it.id); if (rem) showUndoToast('Itinerario rimosso', () => tv.restore(rem)); }}>×</Link></Row>
+              <XBtn onPress={() => { const rem = tv.del(it.id); if (rem) showUndoToast('Itinerario rimosso', () => tv.restore(rem)); }} /></Row>
           </Item>
         ))}
       </Card>
@@ -113,19 +113,19 @@ export default function LifeTravel() {
         const sc = o.score, scColor = sc >= 80 ? t.positive : sc >= 55 ? t.warn : t.muted;
         return (
           <Card key={h.name} onPress={() => { tv.set({ hotelIdx: o.i }); toast('Hotel selezionato: ' + h.name); }} style={sel ? { borderColor: t.text } : undefined}>
-            {rank === 0 && <View style={{ position: 'absolute', top: 14, left: 14, zIndex: 1, backgroundColor: t.text, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: t.bg, fontSize: 10, fontWeight: '700' }}>★ Top scelta per te</Text></View>}
+            {rank === 0 && <View style={{ position: 'absolute', top: 14, left: 14, zIndex: 1, backgroundColor: t.text, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: t.bg, fontSize: 10, fontWeight: '700' }}>Top scelta per te</Text></View>}
             <LinearGradient colors={[tierColor + '40', '#11161f']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 88, borderRadius: 14 }} />
             <Row style={{ marginTop: 10 }}><Body bold>{h.name}</Body><View style={{ backgroundColor: tierColor + '22', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}><Text style={{ color: tierColor, fontSize: 12 }}>{tierLabel}</Text></View></Row>
-            <Body small muted style={{ marginVertical: 4 }}>★ {h.rating} ({h.reviews} recensioni) · {h.distance} km dal centro</Body>
+            <Body small muted style={{ marginVertical: 4 }}>{h.rating}/5 ({h.reviews} recensioni) · {h.distance} km dal centro</Body>
             <View style={{ alignSelf: 'flex-start', backgroundColor: scColor + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: scColor, fontSize: 10, fontWeight: '700' }}>{sc}% in linea col tuo viaggio</Text></View>
-            <Row style={{ marginTop: 8 }}><Body bold>{price} CHF <Text style={{ color: t.muted, fontSize: 13, fontWeight: '400' }}>/ notte</Text></Body><Btn small ghost={!sel} title={sel ? 'Selezionato ✓' : 'Seleziona'} onPress={() => { tv.set({ hotelIdx: o.i }); toast('Hotel selezionato: ' + h.name); }} /></Row>
+            <Row style={{ marginTop: 8 }}><Body bold>{price} CHF <Text style={{ color: t.muted, fontSize: 13, fontWeight: '400' }}>/ notte</Text></Body><Btn small ghost={!sel} title={sel ? 'Selezionato' : 'Seleziona'} onPress={() => { tv.set({ hotelIdx: o.i }); toast('Hotel selezionato: ' + h.name); }} /></Row>
           </Card>
         );
       })}
       <Body small muted style={{ marginVertical: 12 }}>LifePilot adatta hotel e attività al tuo profilo di viaggio, alla stagione e ai tuoi interessi, invece di mostrarti solo un elenco filtrabile a mano. Hotel, prezzi e voli sono simulati.</Body>
 
       <Sheet visible={view === 'city'} title="Scegli la destinazione" onClose={() => setView(null)}>
-        {destinations.map((c, i) => <Item key={c.id} last={i === destinations.length - 1} onPress={() => { tv.set({ city: c.id }); setView(null); }}><Row><Body>{c.name}</Body>{c.id === tv.city ? <Body small color={t.positive}>Selezionata ✓</Body> : <Body muted>›</Body>}</Row></Item>)}
+        {destinations.map((c, i) => <Item key={c.id} last={i === destinations.length - 1} onPress={() => { tv.set({ city: c.id }); setView(null); }}><Row><Body>{c.name}</Body>{c.id === tv.city ? <Body small color={t.positive}>Selezionata</Body> : <Chev />}</Row></Item>)}
       </Sheet>
       <Sheet visible={view === 'date'} title="Quando vuoi partire?" onClose={() => setView(null)}>
         {Array.from({ length: 12 }, (_, off) => {

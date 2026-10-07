@@ -54,7 +54,7 @@ export default function UserProfile() {
         <Row style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: t.item, paddingTop: 14, alignSelf: 'stretch' }} gap={0}>
           <View style={{ flex: 1, alignItems: 'center' }}><Body bold>{followers}</Body><Body small muted>Follower</Body></View>
           <View style={{ flex: 1, alignItems: 'center', borderLeftWidth: 1, borderLeftColor: t.item }}><Row gap={2}><Body bold>{formatCHF(receivedLPFor(name))}</Body><LpTag size={13} /></Row><Body small muted>LP ricevuti</Body></View>
-          <Pressable style={{ flex: 1, alignItems: 'center', borderLeftWidth: 1, borderLeftColor: t.item }} onPress={() => openSheet('rating', { name })}><Body bold>{r.avg ? `★ ${r.avg} (${r.count})` : 'Nessun voto'}</Body><Body small muted>Voto</Body></Pressable>
+          <Pressable style={{ flex: 1, alignItems: 'center', borderLeftWidth: 1, borderLeftColor: t.item }} onPress={() => openSheet('rating', { name })}><Body bold>{r.avg ? `${r.avg}/5 (${r.count})` : 'Nessun voto'}</Body><Body small muted>Voto</Body></Pressable>
         </Row>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
           {isMe ? (

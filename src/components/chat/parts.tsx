@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/use-theme';
 import { fmtDur, urlRe, type ChatMessage, type MsgStatus } from '@/store/chat';
 import { fmtSize } from '@/lib/chatMedia';
+import { Icon } from '@/lib/icons';
 
 export function useChatColors() {
   const t = useTheme();
@@ -30,9 +31,15 @@ export const fontPx = (s: 'S' | 'M' | 'L') => (s === 'S' ? 14 : s === 'L' ? 18 :
 
 export function Ticks({ status, size = 13 }: { status: MsgStatus; size?: number }) {
   const c = useChatColors();
-  if (status === 'sending') return <Text style={{ color: c.meta, fontSize: size }}>🕓</Text>;
+  if (status === 'sending') return <Icon name="clock" size={size} color={c.meta} />;
   const double = status === 'delivered' || status === 'read';
-  return <Text style={{ color: status === 'read' ? c.read : c.meta, fontSize: size, fontWeight: '700', letterSpacing: -2 }}>{double ? '✓✓' : '✓'}</Text>;
+  const col = status === 'read' ? c.read : c.meta;
+  return (
+    <View style={{ flexDirection: 'row', width: double ? size + 6 : size, height: size }}>
+      <Icon name="check" size={size} color={col} stroke={2.6} />
+      {double && <View style={{ position: 'absolute', left: 6 }}><Icon name="check" size={size} color={col} stroke={2.6} /></View>}
+    </View>
+  );
 }
 
 export const senderColor = (name: string) => `hsl(${Math.abs([...name].reduce((h, ch) => ((h << 5) - h + ch.charCodeAt(0)) | 0, 0)) % 360},60%,62%)`;
@@ -75,7 +82,7 @@ export function VoiceBubble({ m, mine }: { m: ChatMessage; mine: boolean }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 210 }}>
       <Pressable onPress={() => void toggle()} hitSlop={8} accessibilityLabel={st.playing ? 'Pausa' : 'Riproduci'}>
-        <Text style={{ fontSize: 24, color: c.meta }}>{st.playing ? '❚❚' : '▶'}</Text>
+        <Icon name={st.playing ? 'pause' : 'play'} size={24} color={c.meta} fill={c.meta} />
       </Pressable>
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', height: 28, gap: 2 }}>
@@ -103,7 +110,7 @@ export function MediaThumb({ m, onOpen, onLongPress }: { m: ChatMessage; onOpen:
         <Image source={{ uri: m.media?.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         {m.kind === 'video' && (
           <View style={{ ...absoluteFill, alignItems: 'center', justifyContent: 'center' }}>
-            <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#000a', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 20 }}>▶</Text></View>
+            <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#000a', alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={20} color="#fff" fill="#fff" /></View>
             {m.media?.durationMs ? <Text style={{ position: 'absolute', left: 8, bottom: 6, color: '#fff', fontSize: 11 }}>{fmtDur(m.media.durationMs)}</Text> : null}
           </View>
         )}
@@ -141,9 +148,9 @@ export function MediaViewer({ items, index, onClose, onDelete }: { items: ChatMe
             </View>
           )}
         />
-        <Pressable onPress={onClose} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, left: 16 }} accessibilityLabel="Chiudi"><Text style={{ color: '#fff', fontSize: 28 }}>✕</Text></Pressable>
+        <Pressable onPress={onClose} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, left: 16 }} accessibilityLabel="Chiudi"><Icon name="x" size={28} color="#fff" /></Pressable>
         <Text style={{ position: 'absolute', top: insets.top + 16, alignSelf: 'center', color: '#fff', fontSize: 13 }}>{cur + 1} / {items.length}</Text>
-        {onDelete && items[cur] && <Pressable onPress={() => onDelete(items[cur])} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, right: 16 }} accessibilityLabel="Elimina"><Text style={{ color: '#fff', fontSize: 24 }}>🗑</Text></Pressable>}
+        {onDelete && items[cur] && <Pressable onPress={() => onDelete(items[cur])} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, right: 16 }} accessibilityLabel="Elimina"><Icon name="trash" size={24} color="#fff" /></Pressable>}
       </View>
     </Modal>
   );
@@ -168,7 +175,7 @@ export function LocationCard({ m, onLongPress }: { m: ChatMessage; onLongPress?:
   const l = m.location!;
   return (
     <Pressable onPress={() => void Linking.openURL(`https://maps.google.com/?q=${l.lat},${l.lng}`)} onLongPress={onLongPress} delayLongPress={280} style={{ minWidth: 210 }}>
-      <View style={{ height: 96, borderRadius: 10, backgroundColor: c.light ? '#cfe3d4' : '#1e3b34', alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 34 }}>📍</Text></View>
+      <View style={{ height: 96, borderRadius: 10, backgroundColor: c.light ? '#cfe3d4' : '#1e3b34', alignItems: 'center', justifyContent: 'center' }}><Icon name="location" size={36} color={c.light ? '#2f6b45' : '#7be0b0'} /></View>
       <Text style={{ color: c.theirsText, fontSize: 14, marginTop: 6 }}>{l.label ?? 'Posizione condivisa'}</Text>
       <Text style={{ color: c.meta, fontSize: 11 }}>{l.lat.toFixed(5)}, {l.lng.toFixed(5)} · tocca per aprire la mappa</Text>
     </Pressable>
@@ -179,7 +186,7 @@ export function ContactCard({ m }: { m: ChatMessage }) {
   const c = useChatColors();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 200 }}>
-      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.quoteBg, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 20 }}>👤</Text></View>
+      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.quoteBg, alignItems: 'center', justifyContent: 'center' }}><Icon name="contact" size={22} color={c.theirsText} /></View>
       <View style={{ flex: 1 }}>
         <Text style={{ color: c.theirsText, fontSize: 15, fontWeight: '600' }}>{m.contact?.name}</Text>
         {m.contact?.phone ? <Text style={{ color: c.meta, fontSize: 12 }}>{m.contact.phone}</Text> : null}
@@ -194,7 +201,7 @@ export function PollCard({ m, me, onVote }: { m: ChatMessage; me: string; onVote
   const total = p.options.reduce((s, o) => s + o.votes.length, 0);
   return (
     <View style={{ minWidth: 230 }}>
-      <Text style={{ color: c.theirsText, fontSize: 15, fontWeight: '700' }}>📊 {p.q}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}><Icon name="poll" size={17} color={c.theirsText} /><Text style={{ color: c.theirsText, fontSize: 15, fontWeight: '700', flex: 1 }}>{p.q}</Text></View>
       <Text style={{ color: c.meta, fontSize: 11, marginBottom: 6 }}>{p.multi ? 'Seleziona una o più opzioni' : 'Seleziona un’opzione'}</Text>
       {p.options.map((o) => {
         const mineVote = o.votes.includes(me);
@@ -202,7 +209,7 @@ export function PollCard({ m, me, onVote }: { m: ChatMessage; me: string; onVote
         return (
           <Pressable key={o.id} onPress={() => onVote(o.id)} style={{ marginBottom: 8 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ color: c.theirsText, fontSize: 14 }}>{mineVote ? '☑ ' : '☐ '}{o.t}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}><Icon name={mineVote ? 'checksquare' : 'square'} size={17} color={mineVote ? c.read : c.meta} /><Text style={{ color: c.theirsText, fontSize: 14, flex: 1 }}>{o.t}</Text></View>
               <Text style={{ color: c.meta, fontSize: 13 }}>{o.votes.length}</Text>
             </View>
             <View style={{ height: 4, borderRadius: 2, backgroundColor: c.quoteBg, marginTop: 3 }}><View style={{ height: 4, borderRadius: 2, width: `${pct * 100}%`, backgroundColor: c.read }} /></View>

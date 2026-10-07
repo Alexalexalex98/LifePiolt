@@ -200,7 +200,7 @@ export async function syncAppleHealth(days = 60): Promise<SyncResult> {
       ok: true, counts,
       message: total
         ? `Sincronizzato: ${steps.length} giorni di passi, ${sleep.length} notti di sonno, ${hrv.length} misure HRV, ${w.length} allenamenti.`
-        : 'Nessun dato letto. Apri Impostazioni → Salute → Accesso ai dati e app → LifePilot e attiva le categorie.',
+        : 'Nessun dato letto. Apri Impostazioni > Salute > Accesso ai dati e app > LifePilot e attiva le categorie.',
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -213,7 +213,7 @@ export async function connectAppleHealth(): Promise<SyncResult> {
   const st = await hkState();
   if (st !== 'ready') return syncAppleHealth(); // restituisce il messaggio giusto
   const granted = await requestAppleHealth();
-  if (!granted) return { ok: false, message: 'Permesso non concesso. Puoi attivarlo da Impostazioni → Salute.' };
+  if (!granted) return { ok: false, message: 'Permesso non concesso. Puoi attivarlo da Impostazioni > Salute.' };
   return syncAppleHealth(90);
 }
 

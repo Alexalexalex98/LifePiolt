@@ -35,14 +35,19 @@ function seedChats(me: string) {
   add(a, 'Marco T.', 'Ciao! Ho visto la tua idea AURA, fantastica.', 3 * DAY);
   add(a, me, 'Grazie mille! Sto lavorando al prototipo hardware in questi giorni.', 3 * DAY - 600000);
   add(a, 'Marco T.', 'Fammi sapere se cerchi beta tester, mi piacerebbe provarlo.', 2 * DAY + 3600000);
+  // Marco condivide cose utili per lavorare insieme (agenda, task, proposta di orari)
+  const dk = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  add(a, 'Marco T.', '', 5 * 3600000, { kind: 'agenda', agenda: { title: 'I miei impegni di domani', range: 'domani', items: [{ day: dk(1), time: '09:30', title: 'Riunione con il fornitore' }, { day: dk(1), time: '14:00', title: 'Prova prototipo AURA' }, { day: dk(1), time: '17:30', title: 'Chiamata investitori' }] } });
+  add(a, 'Marco T.', '', 3 * 3600000, { kind: 'tasks', taskList: { title: 'Da preparare per i beta tester', items: [{ t: 'Scrivere le istruzioni d’uso', done: true }, { t: 'Preparare il modulo di feedback', done: false }, { t: 'Spedire i 5 prototipi', done: false }] } });
+  add(a, 'Marco T.', '', 2 * 3600000, { kind: 'slots', slots: { title: 'Call su AURA', durationMin: 30, options: [{ id: 's1', day: dk(2), time: '10:00', votes: ['Marco T.'] }, { id: 's2', day: dk(2), time: '15:30', votes: ['Marco T.'] }, { id: 's3', day: dk(3), time: '11:00', votes: [] }] } });
   const b = dm('Giulia M.', Date.now() - 5 * DAY);
   add(b, 'Giulia M.', 'Ci vediamo per la corsa di domenica?', 3 * 3600000);
   const g = 'g:demo-run';
   chats[g] = { id: g, type: 'group', name: 'Corsa della domenica', members: [me, 'Giulia M.', 'Tommaso V.', 'Federica L.'], admins: [me], lastRead: Date.now() - DAY, createdAt: Date.now() - 9 * DAY, pinned: true };
   add(g, 'system', `${me} ha creato il gruppo "Corsa della domenica"`, 9 * DAY, { kind: 'system', from: 'system' });
   add(g, 'Tommaso V.', 'Ritrovo alle 8:00 al lago?', 26 * 3600000);
-  add(g, me, 'Per me va benissimo 👍', 25 * 3600000, { status: 'read', reactions: { 'Tommaso V.': '👍' } });
-  add(g, 'Federica L.', 'Io porto le barrette energetiche 🍫', 2 * 3600000);
+  add(g, me, 'Per me va benissimo', 25 * 3600000, { status: 'read', reactions: { 'Tommaso V.': 'like' } });
+  add(g, 'Federica L.', 'Io porto le barrette energetiche', 2 * 3600000);
   useChat.setState({ chats, messages });
 }
 

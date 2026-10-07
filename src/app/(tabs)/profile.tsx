@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { UserAvatar } from '@/components/network';
 
-import { Body, Btn, Card, H, Item, Metric, Page, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Card, H, Item, Metric, Page, Row, Sheet, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { go } from '@/lib/nav';
 import { computeScores } from '@/lib/scores';
@@ -32,7 +32,7 @@ export default function Profile() {
             <H>{account.name}</H>
             <Body small muted>Il tuo profilo LifeNetwork · post, follower, voti, biglietto da visita</Body>
           </View>
-          <Body muted>›</Body>
+          <Chev />
         </Row>
       </Card>
       <Card onPress={() => go('life')}>

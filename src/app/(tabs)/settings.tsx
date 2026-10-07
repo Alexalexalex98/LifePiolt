@@ -5,7 +5,7 @@ import { Alert, Pressable, Share, Text, View } from 'react-native';
 
 import { navLabelFor } from '@/components/NavBar';
 import { WorkHoursSheet } from '@/components/plan';
-import { Body, Btn, Card, H, Input, Item, Link, Page, Pill, Row, Select, Sheet, Toggle } from '@/components/ui';
+import { Body, Btn, Card, H, Input, Item, Link, Page, Pill, Row, Select, Sheet, Toggle, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { translate, useSectionNames, useT } from '@/lib/i18n';
 import { areaColors, Icon } from '@/lib/icons';
@@ -85,7 +85,7 @@ export default function Settings() {
                   <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: c + '22', alignItems: 'center', justifyContent: 'center' }}><Icon name={id} size={15} color={c} stroke={2} /></View>
                   <Body>{navLabelFor(id, app.language)}</Body>
                 </Row>
-                <Text style={{ color: checked ? t.positive : t.muted, fontSize: 20 }}>{checked ? '●' : '○'}</Text>
+                <Icon name={checked ? 'checksquare' : 'circle'} size={22} color={checked ? t.positive : t.muted} />
               </Row>
             </Item>
           );
@@ -176,7 +176,7 @@ export default function Settings() {
       <Card>
         <H>{tr('stHelpTitle')}</H>
         {([['help', tr('stHelpCenter')], ['contact', tr('stContactUs')], ['terms', tr('stTerms')], ['privacy', 'Informativa privacy']] as const).map(([k, label], i, a) => (
-          <Item key={k} last={i === a.length - 1} onPress={() => setInfo(k)}><Row><Body>{label}</Body><Body muted>›</Body></Row></Item>
+          <Item key={k} last={i === a.length - 1} onPress={() => setInfo(k)}><Row><Body>{label}</Body><Chev /></Row></Item>
         ))}
       </Card>
 

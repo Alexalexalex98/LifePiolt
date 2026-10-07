@@ -63,14 +63,14 @@ export function StockFlow({ flow, setFlow }: { flow: Flow; setFlow: (f: Flow) =>
       <>
         <Body small muted>{stock.name}</Body>
         <Metric big>{stock.price.toFixed(2)} USD</Metric>
-        <Body small color={color} style={{ marginBottom: 8 }}>{up ? '▲' : '▼'} {Math.abs(stock.changeAbs).toFixed(2)} ({up ? '+' : ''}{stock.changePct.toFixed(2)}%) oggi</Body>
+        <Body small color={color} style={{ marginBottom: 8 }}>{up ? '+' : '-'}{Math.abs(stock.changeAbs).toFixed(2)} ({up ? '+' : ''}{stock.changePct.toFixed(2)}%) oggi</Body>
         <LineChart data={slice} padL={10} color={rangeUp ? t.positive : t.danger} fmt={(n) => n.toFixed(0)} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 }}>{ranges.map((r, i) => <Pill key={r.n} label={r.n} on={i === rangeIdx} onPress={() => setRangeIdx(i)} />)}</View>
         <Row style={{ marginTop: 16 }}>
           <Btn small style={{ flex: 1 }} tone="sell" title="Vendi" onPress={() => startTrade(stock, 'sell')} />
           <Btn small style={{ flex: 1 }} tone="buy" title="Acquista" onPress={() => startTrade(stock, 'buy')} />
         </Row>
-        <Btn small ghost style={{ marginTop: 8 }} title={`↻ Imposta piano di risparmio${plan ? ` · attivo ${formatCHF(plan.amount)} CHF/${plan.freq === 'mensile' ? 'mese' : 'sett.'}` : ''}`}
+        <Btn small ghost style={{ marginTop: 8 }} icon="repeat" title={`Imposta piano di risparmio${plan ? ` · attivo ${formatCHF(plan.amount)} CHF/${plan.freq === 'mensile' ? 'mese' : 'sett.'}` : ''}`}
           onPress={() => { setSpAmount(plan ? String(plan.amount) : ''); setSpFreq(plan?.freq === 'settimanale' ? 'Settimanale' : 'Mensile'); setFlow({ view: 'plan', symbol: stock.symbol }); }} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 16 }}>
           <Cell l="APERTURA" v={stock.open.toFixed(2)} /><Cell l="MAX 52 SETT." v={stock.high52.toFixed(2)} />

@@ -54,7 +54,7 @@ function TopBar({ page }: { page: string }) {
           <Icon name="bell" size={19} color={t.text} /><Badge n={badges.notif} bg="#ff5d5d" />
         </Pressable>
         <Pressable style={s.menuBtn} onPress={() => setMenu(true)} accessibilityLabel="Menu">
-          <Text style={{ color: t.text, fontSize: 19 }}>☰</Text>
+          <Icon name="menu" size={21} color={t.text} />
         </Pressable>
       </View>
     </View>
@@ -73,7 +73,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
       {!noTop && <TopBar page={id} />}
       {back && (
         <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Indietro">
-          <Text style={{ color: t.muted, fontSize: 13, marginTop: 10 }}>← Indietro</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10 }}><Icon name="arrow-left" size={14} color={t.muted} /><Text style={{ color: t.muted, fontSize: 13 }}>Indietro</Text></View>
         </Pressable>
       )}
       {title && (
@@ -120,6 +120,30 @@ export function Body({ children, muted, small, bold, color, style, onPress, numb
   );
 }
 
+/** Riga con icona SVG + testo (al posto delle emoji). */
+export function IL({ icon, children, color, small, bold, muted }: { icon: string; children: ReactNode; color?: string; small?: boolean; bold?: boolean; muted?: boolean }) {
+  const t = useTheme();
+  const c = color ?? (muted ? t.muted : t.text);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
+      <Icon name={icon} size={small ? 16 : 19} color={c} stroke={1.9} />
+      <Body small={small} bold={bold} color={c} style={{ flexShrink: 1 }}>{children}</Body>
+    </View>
+  );
+}
+
+/** Freccia "vai" a destra (al posto del carattere ›). */
+export function Chev({ color }: { color?: string }) {
+  const t = useTheme();
+  return <Icon name="chevron-right" size={16} color={color ?? t.muted} stroke={2} />;
+}
+
+/** Pulsante "rimuovi" con icona X (al posto del carattere ×). */
+export function XBtn({ onPress, label = 'Rimuovi', color }: { onPress: () => void; label?: string; color?: string }) {
+  const t = useTheme();
+  return <Pressable onPress={onPress} hitSlop={10} accessibilityRole="button" accessibilityLabel={label}><Icon name="x" size={17} color={color ?? t.danger} stroke={2.1} /></Pressable>;
+}
+
 export function Tag({ children }: { children: ReactNode }) {
   const t = useTheme();
   return <Text style={{ color: t.muted, fontSize: 11, letterSpacing: 0.8, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 }}>{children}</Text>;
@@ -147,8 +171,8 @@ export function Item({ children, style, onPress, last }: { children: ReactNode; 
   return onPress ? <Pressable onPress={onPress} style={({ pressed }) => [st, pressed && { opacity: 0.6 }]}>{children}</Pressable> : <View style={st}>{children}</View>;
 }
 
-export function Btn({ title, onPress, ghost, small, danger, disabled, style, tone }: {
-  title: string; onPress: () => void; ghost?: boolean; small?: boolean; danger?: boolean; disabled?: boolean; style?: StyleProp<ViewStyle>; tone?: 'buy' | 'sell';
+export function Btn({ title, onPress, ghost, small, danger, disabled, style, tone, icon }: {
+  title: string; icon?: string; onPress: () => void; ghost?: boolean; small?: boolean; danger?: boolean; disabled?: boolean; style?: StyleProp<ViewStyle>; tone?: 'buy' | 'sell';
 }) {
   const t = useTheme();
   let bg = t.text, fg = t.onText, border: string | undefined;
@@ -167,16 +191,22 @@ export function Btn({ title, onPress, ghost, small, danger, disabled, style, ton
         (pressed || disabled) && { opacity: disabled ? 0.4 : 0.6 },
         style,
       ]}>
-      <Text style={{ color: fg, fontWeight: '700', fontSize: small ? 12 : 15 }}>{title}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        {icon ? <Icon name={icon} size={small ? 14 : 17} color={fg} stroke={2.1} /> : null}
+        {title ? <Text style={{ color: fg, fontWeight: '700', fontSize: small ? 12 : 15 }}>{title}</Text> : null}
+      </View>
     </Pressable>
   );
 }
 
-export function Pill({ label, on, onPress, off, color }: { label: string; on?: boolean; onPress?: () => void; off?: boolean; color?: string }) {
+export function Pill({ label, on, onPress, off, color, icon }: { label: string; icon?: string; on?: boolean; onPress?: () => void; off?: boolean; color?: string }) {
   const t = useTheme();
   return (
     <Pressable onPress={off ? undefined : onPress} style={[s.pill, { backgroundColor: on ? t.text : t.chip, opacity: off ? 0.4 : 1 }]}>
-      <Text style={{ color: on ? t.bg : (color ?? t.text), fontSize: 12, fontWeight: on ? '700' : '500' }}>{label}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+        {icon ? <Icon name={icon} size={13} color={on ? t.bg : (color ?? t.text)} stroke={2} /> : null}
+        <Text style={{ color: on ? t.bg : (color ?? t.text), fontSize: 12, fontWeight: on ? '700' : '500' }}>{label}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -296,7 +326,7 @@ export function Select({ value, options, onChange, title }: { value: string; opt
       <Sheet visible={open} title={title ?? 'Scegli'} onClose={() => setOpen(false)}>
         {options.map((o, i) => (
           <Item key={o} last={i === options.length - 1} onPress={() => { onChange(o); setOpen(false); }}>
-            <Row><Body>{o}</Body>{o === value ? <Text style={{ color: t.positive }}>✓</Text> : null}</Row>
+            <Row><Body>{o}</Body>{o === value ? <Icon name="check" size={17} color={t.positive} stroke={2.4} /> : null}</Row>
           </Item>
         ))}
       </Sheet>

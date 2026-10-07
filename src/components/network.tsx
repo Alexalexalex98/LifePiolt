@@ -60,7 +60,7 @@ export function MediaBlock({ media, seed }: { media?: 'photo' | 'video' | null; 
   const g = gradientFor(seed);
   return (
     <LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14, marginVertical: 8, alignItems: 'center', justifyContent: 'center' }}>
-      {media === 'video' && <Text style={{ fontSize: 26, color: '#fff' }}>▶</Text>}
+      {media === 'video' && <Icon name="play" size={28} color="#fff" fill="#fff" />}
     </LinearGradient>
   );
 }
@@ -88,7 +88,7 @@ export function PostCard({ post, likeKey }: { post: { author: string; text: stri
           <Body bold style={{ fontSize: 14 }}>{post.author}</Body>
           {post.tag ? <Text style={{ color: t.muted, fontSize: 11 }}>{post.tag}</Text> : null}
         </Pressable>
-        <Pressable onPress={() => openSheet('postMenu', { author: post.author, tag: post.tag })} hitSlop={10}><Text style={{ color: t.text, fontSize: 16 }}>⋯</Text></Pressable>
+        <Pressable onPress={() => openSheet('postMenu', { author: post.author, tag: post.tag })} hitSlop={10}><Icon name="more-h" size={20} color={t.text} /></Pressable>
       </Row>
       <Body small style={{ marginBottom: 2 }}>{post.text}</Body>
       <MediaBlock media={post.media} seed={post.author + post.text} />
@@ -120,7 +120,7 @@ export function IdeaCard({ idea }: { idea: Idea }) {
         <Pressable style={{ flex: 1 }} onPress={() => go('ideaProfile', { id: String(idea.id) })}><Body bold style={{ fontSize: 17 }}>{idea.title}</Body></Pressable>
         <Row gap={6}>
           <Badge label={`${score}/100`} color={color} onPress={() => openSheet('scoreExpl', { id: idea.id })} />
-          <Pressable onPress={() => openSheet('ideaMenu', { author: idea.author })} hitSlop={10}><Text style={{ color: t.text, fontSize: 16 }}>⋯</Text></Pressable>
+          <Pressable onPress={() => openSheet('ideaMenu', { author: idea.author })} hitSlop={10}><Icon name="more-h" size={20} color={t.text} /></Pressable>
         </Row>
       </Row>
       {dup && <Body small color="#ffb84f" style={{ marginVertical: 4 }}>Simile a "{dup.title}" di {dup.author}, creata prima</Body>}

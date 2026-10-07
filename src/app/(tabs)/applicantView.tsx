@@ -95,7 +95,7 @@ export default function ApplicantView() {
       )}
 
       <Row style={{ marginTop: 14, flexWrap: 'wrap' }} gap={8}>
-        <Btn small ghost={app.status !== 'shortlist'} title={app.status === 'shortlist' ? '★ Nei preferiti' : '☆ Preferiti'} onPress={() => useJobs.getState().setStatus(app.id, app.status === 'shortlist' ? 'submitted' : 'shortlist')} />
+        <Btn small ghost={app.status !== 'shortlist'} icon="star" title={app.status === 'shortlist' ? 'Nei preferiti' : 'Preferiti'} onPress={() => useJobs.getState().setStatus(app.id, app.status === 'shortlist' ? 'submitted' : 'shortlist')} />
         <Btn small title="Invita al colloquio" onPress={() => setInvite(true)} disabled={app.status === 'invited'} />
         <Btn small ghost danger title="Non selezionare" onPress={() => setReject(true)} disabled={app.status === 'rejected'} />
       </Row>

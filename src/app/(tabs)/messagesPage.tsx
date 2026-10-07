@@ -3,12 +3,13 @@ import { Pressable, Text, View } from 'react-native';
 
 import { PickPeopleSheet } from '@/components/chat/NewChat';
 import { UserAvatar } from '@/components/network';
-import { Body, Btn, Empty, Input, Item, Page, Pill, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Empty, Input, Item, Page, Pill, Row, Sheet, IL } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { isMuted, listTime, previewOf, unreadCount, useChat, visibleMsgs, type Chat } from '@/store/chat';
 import { toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 const FILTERS = ['Tutte', 'Non lette', 'Gruppi'] as const;
 
@@ -53,22 +54,22 @@ export default function MessagesPage() {
     <Page id="messagesPage" title={sel.length ? `${sel.length} selezionate` : archived ? 'Archiviate' : 'Messaggi'}
       right={<Row gap={8}>
         {archived && <Pressable onPress={() => setArchived(false)}><Text style={{ color: t.accent }}>Chiudi</Text></Pressable>}
-        <Pressable onPress={() => go('chatSettings')} hitSlop={8} accessibilityLabel="Impostazioni chat"><Text style={{ color: t.text, fontSize: 20 }}>⚙︎</Text></Pressable>
+        <Pressable onPress={() => go('chatSettings')} hitSlop={8} accessibilityLabel="Impostazioni chat"><Icon name="gear" size={21} color={t.text} /></Pressable>
       </Row>}>
       {sel.length > 0 ? (
         <Row style={{ flexWrap: 'wrap', marginBottom: 8 }} gap={6}>
-          <Pill label={allPinned ? 'Rimuovi fissa' : '📌 Fissa'} onPress={() => apply((c) => ({ pinned: !allPinned && !c.pinned }))} />
-          <Pill label={allMuted ? '🔔 Riattiva' : '🔕 Silenzia'} onPress={() => apply(() => ({ mutedUntil: allMuted ? undefined : Date.now() + 365 * 86400000 }))} />
-          <Pill label={allArchived ? 'Ripristina' : '🗄 Archivia'} onPress={() => apply(() => ({ archived: !allArchived }))} />
+          <Pill icon="pin" label={allPinned ? 'Rimuovi fissa' : 'Fissa'} onPress={() => apply((c) => ({ pinned: !allPinned && !c.pinned }))} />
+          <Pill icon={allMuted ? 'bell' : 'bell-off'} label={allMuted ? 'Riattiva' : 'Silenzia'} onPress={() => apply(() => ({ mutedUntil: allMuted ? undefined : Date.now() + 365 * 86400000 }))} />
+          <Pill icon="archive" label={allArchived ? 'Ripristina' : 'Archivia'} onPress={() => apply(() => ({ archived: !allArchived }))} />
           <Pill label="Segna da leggere" onPress={() => apply(() => ({ markedUnread: true }))} />
-          <Pill label="🗑 Elimina" onPress={() => setConfirmDel(true)} />
+          <Pill icon="trash" label="Elimina" onPress={() => setConfirmDel(true)} />
           <Pill label="Annulla" off onPress={() => setSel([])} />
         </Row>
       ) : (
         <>
           <Input placeholder="Cerca chat e messaggi" value={q} onChangeText={setQ} />
           {!archived && <Row style={{ justifyContent: 'flex-start', marginBottom: 8 }} gap={6}>{FILTERS.map((f) => <Pill key={f} label={f} on={filter === f} onPress={() => setFilter(f)} />)}</Row>}
-          {!archived && archivedCount > 0 && !q && <Item onPress={() => setArchived(true)}><Row><Body>🗄 Archiviate</Body><Body muted>{archivedCount}</Body></Row></Item>}
+          {!archived && archivedCount > 0 && !q && <Item onPress={() => setArchived(true)}><Row><IL icon="archive">Archiviate</IL><Body muted>{archivedCount}</Body></Row></Item>}
         </>
       )}
 
@@ -81,7 +82,7 @@ export default function MessagesPage() {
           <Pressable key={c.id} onPress={() => open(c)} onLongPress={() => setSel(sel.includes(c.id) ? sel : [...sel, c.id])} delayLongPress={300}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 6, borderRadius: 14, backgroundColor: sel.includes(c.id) ? t.chip : 'transparent' }}
             accessibilityLabel={`${c.name}${unread ? ', non letto' : ''}`}>
-            {c.type === 'group' ? <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 22 }}>👥</Text></View> : <UserAvatar name={c.name} size={48} />}
+            {c.type === 'group' ? <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Icon name="users" size={24} color={t.text} /></View> : <UserAvatar name={c.name} size={48} />}
             <View style={{ flex: 1 }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Text numberOfLines={1} style={{ color: t.text, fontSize: 16, fontWeight: unread ? '800' : '600', flex: 1 }}>{c.name}</Text>
@@ -90,11 +91,11 @@ export default function MessagesPage() {
               <Row style={{ justifyContent: 'space-between' }} gap={6}>
                 <Text numberOfLines={1} style={{ color: t.muted, fontSize: 14, flex: 1, fontWeight: unread ? '700' : '400' }}>
                   {c.draft && !q ? <Text style={{ color: '#e5484d' }}>Bozza: </Text> : null}
-                  {!c.draft && mineLast && last && !last.deletedForAll ? <Text style={{ color: last.status === 'read' ? '#34b7f1' : t.muted }}>{last.status === 'sent' ? '✓ ' : '✓✓ '}</Text> : null}
+                  {!c.draft && mineLast && last && !last.deletedForAll ? <Text style={{ color: last.status === 'read' ? t.accent : t.muted }}>{last.status === 'sent' ? 'Inviato · ' : 'Consegnato · '}</Text> : null}
                   {!c.draft && c.type === 'group' && last && !mineLast && last.kind !== 'system' ? `${last.from}: ` : ''}{preview}
                 </Text>
-                {muted && <Text style={{ fontSize: 12 }}>🔕</Text>}
-                {c.pinned && <Text style={{ fontSize: 12 }}>📌</Text>}
+                {muted && <Icon name="bell-off" size={13} color={t.muted} />}
+                {c.pinned && <Icon name="pin" size={13} color={t.muted} />}
                 {unread && <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: muted ? t.muted : t.accent, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.onText, fontSize: 11, fontWeight: '800' }}>{u > 0 ? u : ''}</Text></View>}
               </Row>
             </View>

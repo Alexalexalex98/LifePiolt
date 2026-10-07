@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { DaySheet, MonthCalendar, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet, monthTitle } from '@/components/plan';
-import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Progress, Row, Sheet, Toggle } from '@/components/ui';
+import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Progress, Row, Sheet, Toggle, XBtn } from '@/components/ui';
 import { formatCHF, monthNames } from '@/lib/format';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
@@ -66,7 +66,7 @@ export default function Plan() {
                 <Body bold>{v.dest}</Body>
                 <Body small muted>{v.month} · {v.days} giorni · {v.hotel} · {formatCHF(v.price * v.days + (v.flight || 0) * 2)} CHF stimati</Body>
               </View>
-              <Link danger onPress={() => { delVacation(v.id); toast('Vacanza rimossa'); }}>×</Link>
+              <XBtn onPress={() => { delVacation(v.id); toast('Vacanza rimossa'); }} />
             </Row>
           </Item>
         ))}
@@ -86,7 +86,7 @@ export default function Plan() {
             <Row><Body bold>{g.t}</Body><Body small muted>{g.p}%</Body></Row>
             <Progress value={g.p} />
             <Row style={{ marginTop: 8 }}>
-              <Link onPress={() => { const p = bumpGoal(g.id); if (p === 100) toast('Obiettivo completato 🎉'); }}>+5% progresso</Link>
+              <Link onPress={() => { const p = bumpGoal(g.id); if (p === 100) toast('Obiettivo completato'); }}>+5% progresso</Link>
               <Link danger onPress={() => { delGoal(g.id); toast('Obiettivo rimosso'); }}>rimuovi</Link>
             </Row>
           </Item>

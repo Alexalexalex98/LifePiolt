@@ -60,12 +60,12 @@ export default function LifeChat() {
       />
       <Row style={{ paddingTop: 10, paddingBottom: 6, alignItems: 'flex-start' }}>
         <Input flex={1} placeholder="Chiedi qualsiasi cosa…" value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" style={{ marginBottom: 0 }} />
-        <Btn title="↑" onPress={send} disabled={busy || !text.trim()} />
+        <Btn title="" icon="arrow-up" onPress={send} disabled={busy || !text.trim()} />
       </Row>
       <Sheet visible={picker} title="Argomento" onClose={() => setPicker(false)}>
         {categories.map((c, i) => (
           <Item key={c} last={i === categories.length - 1} onPress={() => { setCat(c); setPicker(false); }}>
-            <Row><Body>{c}</Body>{c === activeCat ? <Text style={{ color: t.positive }}>✓</Text> : null}</Row>
+            <Row><Body>{c}</Body>{c === activeCat ? <Icon name="check" size={17} color={t.positive} stroke={2.4} /> : null}</Row>
           </Item>
         ))}
       </Sheet>

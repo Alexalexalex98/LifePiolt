@@ -6,7 +6,7 @@ import { Linking, Pressable, Share, Text, View } from 'react-native';
 import { PickPeopleSheet } from '@/components/chat/NewChat';
 import { MediaViewer, wallpapers } from '@/components/chat/parts';
 import { UserAvatar } from '@/components/network';
-import { Body, Btn, Card, Item, Page, Row, Sheet, TabRow } from '@/components/ui';
+import { Body, Btn, Card, Item, Page, Row, Sheet, TabRow, IL } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { fmtSize } from '@/lib/chatMedia';
 import { go, goBack } from '@/lib/nav';
@@ -14,6 +14,7 @@ import { useApp } from '@/store/app';
 import { dayLabel, fmtClock, isMuted, previewOf, urlRe, useChat, visibleMsgs } from '@/store/chat';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 const DISAPPEAR: [string, number][] = [['Disattivati', 0], ['24 ore', 86400], ['7 giorni', 7 * 86400], ['90 giorni', 90 * 86400]];
 
@@ -53,7 +54,7 @@ export default function ChatInfo() {
   return (
     <Page id="chatInfo" back>
       <View style={{ alignItems: 'center', marginVertical: 14 }}>
-        {isGroup ? <View style={{ width: 92, height: 92, borderRadius: 46, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 42 }}>👥</Text></View> : <UserAvatar name={chat.name} size={92} />}
+        {isGroup ? <View style={{ width: 92, height: 92, borderRadius: 46, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Icon name="users" size={44} color={t.text} /></View> : <UserAvatar name={chat.name} size={92} />}
         <Text style={{ color: t.text, fontSize: 24, fontWeight: '800', marginTop: 10 }}>{chat.name}</Text>
         <Body small muted>{isGroup ? `Gruppo · ${chat.members.length} partecipanti` : 'Contatto'}</Body>
         {!isGroup && <Btn small ghost style={{ marginTop: 10 }} title="Vedi profilo" onPress={() => go('userProfile', { name: chat.name })} />}
@@ -67,13 +68,13 @@ export default function ChatInfo() {
             {media.map((m, i) => (
               <Pressable key={m.id} onPress={() => setViewer(i)} style={{ width: '32.5%', aspectRatio: 1, borderRadius: 6, overflow: 'hidden', backgroundColor: t.item }}>
                 <Image source={{ uri: m.media?.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-                {m.kind === 'video' && <Text style={{ position: 'absolute', right: 4, bottom: 2, color: '#fff' }}>▶</Text>}
+                {m.kind === 'video' && <View style={{ position: 'absolute', right: 4, bottom: 4 }}><Icon name="play" size={14} color="#fff" fill="#fff" /></View>}
               </Pressable>
             ))}
           </View>
         ))}
         {tab === 'Documenti' && (docs.length === 0 ? <Body small muted>Nessun documento condiviso.</Body> : docs.map((m, i) => (
-          <Item key={m.id} last={i === docs.length - 1} onPress={() => m.media?.uri && void Linking.openURL(m.media.uri).catch(() => undefined)}><Row><Body numberOfLines={1} style={{ flex: 1 }}>📄 {m.media?.name}</Body><Body small muted>{fmtSize(m.media?.size)}</Body></Row></Item>
+          <Item key={m.id} last={i === docs.length - 1} onPress={() => m.media?.uri && void Linking.openURL(m.media.uri).catch(() => undefined)}><Row><IL icon="file">{m.media?.name}</IL><Body small muted>{fmtSize(m.media?.size)}</Body></Row></Item>
         )))}
         {tab === 'Link' && (links.length === 0 ? <Body small muted>Nessun link condiviso.</Body> : links.map((l, i) => (
           <Item key={i} last={i === links.length - 1} onPress={() => void Linking.openURL(/^https?:/i.test(l.u) ? l.u : `https://${l.u}`)}><Body numberOfLines={1} color="#34a0f1">{l.u}</Body></Item>
@@ -81,12 +82,12 @@ export default function ChatInfo() {
       </Card>
 
       <Card>
-        <Item onPress={() => go('starredPage', { id })}><Row><Body>★ Messaggi preferiti</Body><Body muted>{starred.length} ›</Body></Row></Item>
-        <Item onPress={() => setSheet('mute')}><Row><Body>🔕 Silenzia notifiche</Body><Body muted>{muted ? 'Sì' : 'No'} ›</Body></Row></Item>
-        <Item onPress={() => setSheet('disappear')}><Row><Body>⏳ Messaggi a tempo</Body><Body muted>{dis} ›</Body></Row></Item>
-        <Item onPress={() => setSheet('wall')}><Row><Body>🎨 Sfondo chat</Body><Body muted>{wallpapers[chat.wallpaper ?? 'default']?.label} ›</Body></Row></Item>
-        <Item onPress={() => st().patchChat(id, { pinned: !chat.pinned })}><Row><Body>📌 Fissa in alto</Body><Body muted>{chat.pinned ? 'Sì' : 'No'}</Body></Row></Item>
-        <Item last onPress={() => { st().patchChat(id, { archived: !chat.archived }); toast(chat.archived ? 'Chat ripristinata' : 'Chat archiviata'); }}><Row><Body>🗄 Archivia chat</Body><Body muted>{chat.archived ? 'Sì' : 'No'}</Body></Row></Item>
+        <Item onPress={() => go('starredPage', { id })}><Row><IL icon="star">Messaggi importanti</IL><Body muted>{starred.length}</Body></Row></Item>
+        <Item onPress={() => setSheet('mute')}><Row><IL icon="bell-off">Silenzia notifiche</IL><Body muted>{muted ? 'Sì' : 'No'}</Body></Row></Item>
+        <Item onPress={() => setSheet('disappear')}><Row><IL icon="timer">Messaggi a tempo</IL><Body muted>{dis}</Body></Row></Item>
+        <Item onPress={() => setSheet('wall')}><Row><IL icon="image">Sfondo chat</IL><Body muted>{wallpapers[chat.wallpaper ?? 'default']?.label}</Body></Row></Item>
+        <Item onPress={() => st().patchChat(id, { pinned: !chat.pinned })}><Row><IL icon="pin">Fissa in alto</IL><Body muted>{chat.pinned ? 'Sì' : 'No'}</Body></Row></Item>
+        <Item last onPress={() => { st().patchChat(id, { archived: !chat.archived }); toast(chat.archived ? 'Chat ripristinata' : 'Chat archiviata'); }}><Row><IL icon="archive">Archivia chat</IL><Body muted>{chat.archived ? 'Sì' : 'No'}</Body></Row></Item>
       </Card>
 
       {isGroup && (
@@ -101,7 +102,7 @@ export default function ChatInfo() {
       )}
 
       <Card>
-        <Item onPress={exportChat}><Body>⬆︎ Esporta chat</Body></Item>
+        <Item onPress={exportChat}><IL icon="share">Esporta chat</IL></Item>
         {!isGroup && <Item onPress={() => { st().block(chat.name, !isBlocked); toast(isBlocked ? `${chat.name} sbloccato` : `${chat.name} bloccato`); }}><Body color={t.danger}>{isBlocked ? `Sblocca ${chat.name}` : `Blocca ${chat.name}`}</Body></Item>}
         <Item onPress={() => { useNet.getState().report(chat.name); toast('Segnalazione inviata, verrà valutata'); }}><Body color={t.danger}>Segnala {isGroup ? 'gruppo' : chat.name}</Body></Item>
         <Item last={!isGroup} onPress={() => setSheet('clear')}><Body color={t.danger}>Svuota chat</Body></Item>
@@ -118,10 +119,10 @@ export default function ChatInfo() {
       </Sheet>
       <Sheet visible={sheet === 'disappear'} title="Messaggi a tempo" onClose={() => setSheet(null)}>
         <Body small muted style={{ marginBottom: 8 }}>I nuovi messaggi di questa chat vengono eliminati dopo il tempo scelto. Non riguarda i messaggi già inviati.</Body>
-        {DISAPPEAR.map(([l, s]) => <Item key={l} onPress={() => { st().setDisappearing(id, s, me); setSheet(null); }}><Row><Body>{l}</Body>{(chat.disappearingSec ?? 0) === s ? <Text style={{ color: t.accent }}>✓</Text> : null}</Row></Item>)}
+        {DISAPPEAR.map(([l, s]) => <Item key={l} onPress={() => { st().setDisappearing(id, s, me); setSheet(null); }}><Row><Body>{l}</Body>{(chat.disappearingSec ?? 0) === s ? <Icon name="check" size={17} color={t.accent} stroke={2.5} /> : null}</Row></Item>)}
       </Sheet>
       <Sheet visible={sheet === 'wall'} title="Sfondo chat" onClose={() => setSheet(null)}>
-        {Object.entries(wallpapers).map(([k, w]) => <Item key={k} onPress={() => { st().patchChat(id, { wallpaper: k }); setSheet(null); }}><Row><Row style={{ justifyContent: 'flex-start' }} gap={10}><View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: w.dark, borderWidth: 1, borderColor: t.border }} /><Body>{w.label}</Body></Row>{(chat.wallpaper ?? 'default') === k ? <Text style={{ color: t.accent }}>✓</Text> : null}</Row></Item>)}
+        {Object.entries(wallpapers).map(([k, w]) => <Item key={k} onPress={() => { st().patchChat(id, { wallpaper: k }); setSheet(null); }}><Row><Row style={{ justifyContent: 'flex-start' }} gap={10}><View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: w.dark, borderWidth: 1, borderColor: t.border }} /><Body>{w.label}</Body></Row>{(chat.wallpaper ?? 'default') === k ? <Icon name="check" size={17} color={t.accent} stroke={2.5} /> : null}</Row></Item>)}
       </Sheet>
       <Sheet visible={sheet === 'clear'} title="Svuotare la chat?" onClose={() => setSheet(null)}>
         <Item onPress={() => { st().clearChat(id, false); setSheet(null); toast('Chat svuotata'); }}><Body color={t.danger}>Svuota tutto</Body></Item>

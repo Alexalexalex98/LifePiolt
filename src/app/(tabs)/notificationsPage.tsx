@@ -49,7 +49,7 @@ export default function Notifications() {
                 toast('Aggiunta al calendario in Plan');
               }} />
             )}
-            {n.type === 'booking' && n.addedToCalendar && <Body small color={t.positive} style={{ marginTop: 8 }}>✓ Aggiunta al calendario</Body>}
+            {n.type === 'booking' && n.addedToCalendar && <Body small color={t.positive} style={{ marginTop: 8 }}>Aggiunta al calendario</Body>}
           </Card>
         );
       })}

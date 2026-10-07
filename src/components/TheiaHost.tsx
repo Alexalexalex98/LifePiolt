@@ -13,6 +13,7 @@ import { useChat } from '@/store/chat';
 import { useLife } from '@/store/life';
 import { useTheia, askTheiaAbout } from '@/store/theia';
 import { toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 type Turn = { q: string; a?: TheiaAnswer; err?: boolean };
 
@@ -81,7 +82,7 @@ export function TheiaHost() {
       </ScrollView>
       <Row style={{ alignItems: 'flex-start', marginTop: 4 }}>
         <Input flex={1} placeholder="Scrivi una domanda…" value={q} onChangeText={setQ} onSubmitEditing={() => ask(q)} returnKeyType="send" style={{ marginBottom: 0 }} />
-        <Btn title="↑" onPress={() => ask(q)} disabled={!q.trim() || busy} />
+        <Btn title="" icon="arrow-up" onPress={() => ask(q)} disabled={!q.trim() || busy} />
       </Row>
     </Sheet>
   );
@@ -120,7 +121,7 @@ export function TheiaFab() {
       onPress={shot} onLongPress={clip} delayLongPress={350}
       accessibilityLabel={`Chiedi a ${name}: tocca per analizzare la schermata, tieni premuto per il testo copiato`}
       style={{ position: 'absolute', right: 12, bottom: insets.bottom + 150, width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: 0.92, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, elevation: 6 }}>
-      <Text style={{ fontSize: 20 }}>✦</Text>
+      <Icon name="sparkle" size={22} color={t.onText} />
     </Pressable>
   );
 }

@@ -4,11 +4,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { Image, Pressable, Share, Text, View } from 'react-native';
 
-import { Body, Btn, Card, Empty, Input, Item, Link, Page, Row, Seg, Sheet, TabRow } from '@/components/ui';
+import { Body, Btn, Card, Empty, Input, Item, Link, Page, Row, Seg, Sheet, TabRow, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { weekdayShortDate } from '@/lib/format';
 import { detectFileFolder, driveFolderColors, useLife, type DriveFile } from '@/store/life';
 import { toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 const fileFolders = ['Documenti', 'Ricevute', 'Salute', 'Business', 'Altro'];
 const gradients: [string, string][] = [['#3a2a5c', '#171224'], ['#1f3b2c', '#131c17'], ['#3a2a1a', '#221a10'], ['#2a1f45', '#181128'], ['#1a2f3a', '#111c22'], ['#3a1f2c', '#22131a']];
@@ -102,7 +103,7 @@ export default function LifeDrive() {
                         </View>
                       </Pressable>
                       <View style={{ backgroundColor: color + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color, fontSize: 10, fontWeight: '700' }}>{f.folder}</Text></View>
-                      <Link danger onPress={() => setDel(f)}>×</Link>
+                      <XBtn onPress={() => setDel(f)} />
                     </Row>
                   </Item>
                 );
@@ -118,7 +119,7 @@ export default function LifeDrive() {
             {preview.folder === 'Foto' ? (
               preview.uri ? <Image source={{ uri: preview.uri }} style={{ width: '100%', aspectRatio: 1, borderRadius: 16, marginBottom: 14 }} /> : <LinearGradient colors={gradients[drive.indexOf(preview) % gradients.length]} style={{ width: '100%', aspectRatio: 1, borderRadius: 16, marginBottom: 14 }} />
             ) : (
-              <View style={{ paddingVertical: 36, alignItems: 'center', backgroundColor: t.input, borderRadius: 16, marginBottom: 14 }}><Text style={{ fontSize: 38 }}>📄</Text></View>
+              <View style={{ paddingVertical: 36, alignItems: 'center', backgroundColor: t.input, borderRadius: 16, marginBottom: 14 }}><Icon name="file" size={40} color={t.muted} /></View>
             )}
             <Body small muted>{preview.folder} · {preview.s} · {preview.date}</Body>
             <Btn small ghost style={{ marginTop: 14 }} title="Condividi" onPress={() => Share.share({ message: `File: ${preview.n}`, url: preview.uri })} />

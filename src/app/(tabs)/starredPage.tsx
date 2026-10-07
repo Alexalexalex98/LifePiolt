@@ -16,8 +16,8 @@ export default function Starred() {
     .flatMap((k) => (messages[k] ?? []).filter((m) => m.starredBy?.includes(me) && !m.deletedForAll && !m.hiddenFor?.includes(me)))
     .sort((a, b) => b.ts - a.ts), [messages, id, me]);
   return (
-    <Page id="starredPage" back title="Messaggi preferiti">
-      {rows.length === 0 ? <Empty text="Nessun messaggio preferito. Tieni premuto un messaggio e scegli ★." /> : rows.map((m) => (
+    <Page id="starredPage" back title="Messaggi importanti">
+      {rows.length === 0 ? <Empty text="Nessun messaggio importante. Tieni premuto un messaggio e scegli Segna come importante." /> : rows.map((m) => (
         <Card key={m.id} onPress={() => go('conversationPage', { id: m.chatId, jump: m.id })}>
           <Row><Body small bold>{m.from === me ? 'Tu' : m.from} · {chats[m.chatId]?.name}</Body><Body small muted>{dayLabel(m.ts)} {fmtClock(m.ts)}</Body></Row>
           <Body style={{ marginTop: 4 }}>{previewOf(m)}</Body>

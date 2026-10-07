@@ -1,7 +1,9 @@
 import { memo, useRef } from 'react';
 import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
 
-import { fmtClock, previewOf, type ChatMessage } from '@/store/chat';
+import { Icon } from '@/lib/icons';
+import { fmtClock, previewOf, reactionIcon, type ChatMessage } from '@/store/chat';
+import { AgendaCard, NoteCard, SlotsCard, TasksCard } from './cards';
 import { ContactCard, FileCard, LinkText, LocationCard, MediaThumb, PollCard, Ticks, VoiceBubble, senderColor, useChatColors } from './parts';
 
 type Props = {
@@ -43,22 +45,26 @@ export const Bubble = memo(function Bubble(p: Props) {
   const bg = mine ? c.mine : c.theirs;
   const fg = mine ? c.mineText : c.theirsText;
   const reactions = Object.values(m.reactions ?? {});
-  const reactionCounts = reactions.reduce<Record<string, number>>((a, e) => ({ ...a, [e]: (a[e] ?? 0) + 1 }), {});
+  const reactionCounts = reactions.reduce<Record<string, number>>((a, e) => ({ ...a, [reactionIcon(e)]: (a[reactionIcon(e)] ?? 0) + 1 }), {});
   const mediaOnly = (m.kind === 'image' || m.kind === 'video') && !m.text;
 
   let body: React.ReactNode;
   if (m.deletedForAll) {
-    body = <Text style={{ color: c.meta, fontSize: p.fontSize, fontStyle: 'italic' }}>🚫 {mine ? 'Hai eliminato questo messaggio' : 'Questo messaggio è stato eliminato'}</Text>;
+    body = <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icon name="block" size={15} color={c.meta} /><Text style={{ color: c.meta, fontSize: p.fontSize, fontStyle: 'italic' }}>{mine ? 'Hai eliminato questo messaggio' : 'Questo messaggio è stato eliminato'}</Text></View>;
   } else {
     body = (
       <>
-        {m.forwarded && <Text style={{ color: c.meta, fontSize: 11, fontStyle: 'italic', marginBottom: 2 }}>↪ Inoltrato</Text>}
+        {m.forwarded && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 }}><Icon name="forward" size={12} color={c.meta} /><Text style={{ color: c.meta, fontSize: 11, fontStyle: 'italic' }}>Inoltrato</Text></View>}
         {(m.kind === 'image' || m.kind === 'video') && <MediaThumb m={m} onOpen={p.onOpenMedia} onLongPress={p.onLongPress} />}
         {m.kind === 'audio' && <VoiceBubble m={m} mine={mine} />}
         {m.kind === 'file' && <FileCard m={m} onLongPress={p.onLongPress} />}
         {m.kind === 'location' && <LocationCard m={m} onLongPress={p.onLongPress} />}
         {m.kind === 'contact' && <ContactCard m={m} />}
         {m.kind === 'poll' && <PollCard m={m} me={p.me} onVote={p.onVote} />}
+        {m.kind === 'agenda' && m.agenda && <AgendaCard m={m} me={p.me} chatId={m.chatId} />}
+        {m.kind === 'tasks' && m.taskList && <TasksCard m={m} me={p.me} chatId={m.chatId} />}
+        {m.kind === 'note' && m.noteShare && <NoteCard m={m} me={p.me} chatId={m.chatId} />}
+        {m.kind === 'slots' && m.slots && <SlotsCard m={m} me={p.me} chatId={m.chatId} />}
         {!!m.text && m.kind !== 'poll' && m.kind !== 'audio' ? <View style={{ marginTop: m.kind === 'text' ? 0 : 6 }}><LinkText text={m.text} color={fg} size={p.fontSize} /></View> : null}
       </>
     );
@@ -66,8 +72,8 @@ export const Bubble = memo(function Bubble(p: Props) {
 
   const meta = (
     <View style={{ flexDirection: 'row', alignSelf: 'flex-end', alignItems: 'center', gap: 3, marginTop: 2 }}>
-      {p.starred && <Text style={{ fontSize: 10, color: c.meta }}>★</Text>}
-      {m.expiresAt ? <Text style={{ fontSize: 10, color: c.meta }}>⏳</Text> : null}
+      {p.starred && <Icon name="star" size={11} color={c.meta} fill={c.meta} />}
+      {m.expiresAt ? <Icon name="timer" size={11} color={c.meta} /> : null}
       {m.edited && !m.deletedForAll ? <Text style={{ fontSize: 11, color: c.meta }}>modificato</Text> : null}
       <Text style={{ fontSize: 11, color: c.meta }}>{fmtClock(m.ts)}</Text>
       {mine && !m.deletedForAll && <Ticks status={m.status} />}
@@ -90,7 +96,7 @@ export const Bubble = memo(function Bubble(p: Props) {
             {mediaOnly ? <View style={{ position: 'absolute', right: 8, bottom: 6, backgroundColor: '#0007', borderRadius: 8, paddingHorizontal: 5, flexDirection: 'row', gap: 3 }}><Text style={{ color: '#fff', fontSize: 11 }}>{fmtClock(m.ts)}</Text>{mine && <Ticks status={m.status} />}</View> : meta}
             {reactions.length > 0 && (
               <Pressable onPress={() => p.onReact(m)} style={{ position: 'absolute', bottom: -12, [mine ? 'right' : 'left']: 8, flexDirection: 'row', backgroundColor: c.theirs, borderRadius: 12, paddingHorizontal: 6, paddingVertical: 1, borderWidth: 1, borderColor: c.quoteBg }}>
-                {Object.entries(reactionCounts).map(([e, n]) => <Text key={e} style={{ fontSize: 13 }}>{e}{n > 1 ? n : ''}</Text>)}
+                {Object.entries(reactionCounts).map(([e, n]) => <View key={e} style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginHorizontal: 2 }}><Icon name={reactionIcon(e)} size={13} color={reactionIcon(e) === 'heart' ? '#ff5d7a' : c.meta} fill={reactionIcon(e) === 'heart' ? '#ff5d7a' : 'none'} />{n > 1 ? <Text style={{ fontSize: 11, color: c.meta }}>{n}</Text> : null}</View>)}
               </Pressable>
             )}
           </View>

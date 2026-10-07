@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { SkillRow, scoreTone } from '@/components/jobs';
-import { Body, Btn, Card, Empty, Row, Seg } from '@/components/ui';
+import { Body, Btn, Card, Empty, Row, Seg, Chev } from '@/components/ui';
 import { skillLabel } from '@/data/skillBank';
 import { useTheme } from '@/hooks/use-theme';
 import { fitOfPerson, statusLabel } from '@/lib/jobFit';
@@ -29,7 +29,7 @@ export function JobsHub() {
       <Card>
         <Row>
           <Body bold>Il tuo profilo competenze</Body>
-          <Text style={{ color: t.accent, fontWeight: '700' }} onPress={() => go('skillProfile')}>Apri ›</Text>
+          <Text style={{ color: t.accent, fontWeight: '700' }} onPress={() => go('skillProfile')}>Apri</Text>
         </Row>
         {top.length === 0 ? <Body small muted style={{ marginTop: 6 }}>Nessun curriculum: qui ti presenti con ciò che sai fare. Fai una prova di 5 minuti per verificare la prima competenza.</Body> : (
           <View style={{ marginTop: 8 }}>{top.map(([sk, r]) => <SkillRow key={sk} skill={sk} value={r.score} />)}</View>
@@ -73,7 +73,7 @@ export function JobsHub() {
           {mine.length === 0 ? <Card><Empty text="Cerchi persone? Pubblica un’offerta, scegli cosa devono saper fare e ricevi candidati già misurati." /></Card> : mine.map((j) => {
             const n = apps.filter((a) => a.jobId === j.id).length;
             const pend = apps.filter((a) => a.jobId === j.id && a.result.pending.length).length;
-            return <Card key={j.id} onPress={() => go('jobDetail', { id: j.id })}><Row><View style={{ flex: 1 }}><Body bold>{j.title}</Body><Body small muted>{n} {n === 1 ? 'candidato' : 'candidati'}{pend ? ` · ${pend} da valutare` : ''}{j.status === 'closed' ? ' · chiusa' : ''}</Body></View><Body muted>›</Body></Row></Card>;
+            return <Card key={j.id} onPress={() => go('jobDetail', { id: j.id })}><Row><View style={{ flex: 1 }}><Body bold>{j.title}</Body><Body small muted>{n} {n === 1 ? 'candidato' : 'candidati'}{pend ? ` · ${pend} da valutare` : ''}{j.status === 'closed' ? ' · chiusa' : ''}</Body></View><Chev /></Row></Card>;
           })}
         </>
       )}

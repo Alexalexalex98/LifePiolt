@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { Body, Btn, Card, Input, Page, Pill, Row, Seg, Sheet, Toggle } from '@/components/ui';
+import { Body, Btn, Card, Input, Page, Pill, Row, Seg, Sheet, Toggle, IL } from '@/components/ui';
 import { bank, skills, skillLabel, type Question } from '@/data/skillBank';
 import { useTheme } from '@/hooks/use-theme';
 import { uid } from '@/lib/format';
@@ -11,6 +11,7 @@ import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { useJobs, type JobKind } from '@/store/jobs';
 import { toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 function Stepper({ value, onChange, min, max, step = 1, suffix = '' }: { value: number; onChange: (v: number) => void; min: number; max: number; step?: number; suffix?: string }) {
   const t = useTheme();
@@ -69,7 +70,7 @@ export default function JobEdit() {
         return (
           <Card key={s.id} style={{ marginVertical: 4 }}>
             <Pressable onPress={() => setSel((x) => { const n = { ...x }; if (on) delete n[s.id]; else n[s.id] = { weight: 3, min: 60 }; return n; })}>
-              <Row><View style={{ flex: 1 }}><Body bold>{on ? '☑' : '☐'} {s.icon} {s.label}</Body><Body small muted>{s.desc}</Body></View></Row>
+              <Row><View style={{ flex: 1 }}><IL icon={on ? 'checksquare' : 'square'} bold>{s.label}</IL><Body small muted>{s.desc}</Body></View></Row>
             </Pressable>
             {on && (
               <View style={{ marginTop: 8 }}>
@@ -84,7 +85,7 @@ export default function JobEdit() {
 
       <Body bold style={{ marginTop: 12, marginBottom: 6 }}>Le tue domande</Body>
       <Body small muted style={{ marginBottom: 6 }}>Aggiungi una prova pratica tua (es. “scrivi la risposta a questo cliente”). Le domande aperte le valuti tu.</Body>
-      {custom.map((q) => <Card key={q.id} style={{ marginVertical: 3 }}><Row><Body small style={{ flex: 1 }} numberOfLines={2}>{q.kind === 'open' ? '✍️' : q.kind === 'number' ? '🔢' : '☑'} {q.prompt}</Body><Pressable onPress={() => setCustom(custom.filter((x) => x.id !== q.id))}><Text style={{ color: t.danger }}>Rimuovi</Text></Pressable></Row></Card>)}
+      {custom.map((q) => <Card key={q.id} style={{ marginVertical: 3 }}><Row><Body small style={{ flex: 1 }} numberOfLines={2}>{q.prompt}</Body><Pressable onPress={() => setCustom(custom.filter((x) => x.id !== q.id))}><Text style={{ color: t.danger }}>Rimuovi</Text></Pressable></Row></Card>)}
       <Btn small ghost title="+ Aggiungi domanda" onPress={() => setQSheet(true)} />
 
       <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Regole</Body>
@@ -134,7 +135,7 @@ function QuestionSheet({ visible, onClose, onAdd }: { visible: boolean; onClose:
       {kind === 'Numero' && <Input keyboardType="numeric" placeholder="Risposta esatta" value={answer} onChangeText={setAnswer} />}
       {kind === 'Scelta' && opts.map((o, i) => (
         <Row key={i} style={{ alignItems: 'flex-start' }}>
-          <Pressable onPress={() => setCorrect(i)} style={{ paddingTop: 14 }}><Text style={{ color: correct === i ? t.positive : t.muted, fontSize: 18 }}>{correct === i ? '◉' : '○'}</Text></Pressable>
+          <Pressable onPress={() => setCorrect(i)} style={{ paddingTop: 14 }}><Icon name={correct === i ? 'checksquare' : 'circle'} size={20} color={correct === i ? t.positive : t.muted} /></Pressable>
           <Input flex={1} placeholder={`Opzione ${i + 1}${correct === i ? ' (corretta)' : ''}`} value={o} onChangeText={(v) => setOpts(opts.map((x, j) => (j === i ? v : x)))} />
         </Row>
       ))}

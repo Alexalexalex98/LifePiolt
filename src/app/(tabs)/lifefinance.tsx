@@ -3,10 +3,10 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Donut, LineChart, Spark } from '@/components/charts';
 import { FinTabs } from '@/components/FinTabs';
-import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Pill, Row, Select, Sheet, Tag, Toggle } from '@/components/ui';
+import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Pill, Row, Select, Sheet, Tag, Toggle, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, shortDate } from '@/lib/format';
-import { areaColors } from '@/lib/icons';
+import { areaColors, Icon } from '@/lib/icons';
 import { savingsRatePct } from '@/lib/scores';
 import { avgRecentNet, defaultBudget, emergencyByMonth, monthEnd, monthNet, useFin } from '@/store/finance';
 import { toast } from '@/store/toast';
@@ -91,7 +91,7 @@ export default function LifeFinance() {
 
       {f.insights.length > 0 && (
         <Card>
-          <Row style={{ alignItems: 'flex-start' }}><Text style={{ fontSize: 20 }}>⚠️</Text><Body style={{ flex: 1 }}>Puoi aumentare il risparmio del <Text style={{ fontWeight: '700' }}>12%</Text> riducendo le spese non essenziali.</Body></Row>
+          <Row style={{ alignItems: 'flex-start' }}><Icon name="alert" size={20} color={t.warn} /><Body style={{ flex: 1 }}>Puoi aumentare il risparmio del <Text style={{ fontWeight: '700' }}>12%</Text> riducendo le spese non essenziali.</Body></Row>
           <Btn small ghost style={{ marginTop: 10 }} title="Come?" onPress={() => setTips(true)} />
         </Card>
       )}
@@ -100,7 +100,7 @@ export default function LifeFinance() {
         <H>Consigli di LifeFinance</H>
         {f.insights.length === 0 && <Empty text="Nessun consiglio per ora: arriveranno quando ci saranno abbastanza movimenti." />}
         {f.insights.map((i) => i.dismissed ? (
-          <Item key={i.id}><Row><Body small muted style={{ textDecorationLine: 'line-through' }}>{i.title}</Body><Text style={{ color: t.positive, fontSize: 13 }}>gestito ✓ <Text style={{ textDecorationLine: 'underline' }} onPress={() => { f.dismissInsight(i.id, false); toast('Ripristinato'); }}>annulla</Text></Text></Row></Item>
+          <Item key={i.id}><Row><Body small muted style={{ textDecorationLine: 'line-through' }}>{i.title}</Body><Text style={{ color: t.positive, fontSize: 13 }}>gestito <Text style={{ textDecorationLine: 'underline' }} onPress={() => { f.dismissInsight(i.id, false); toast('Ripristinato'); }}>annulla</Text></Text></Row></Item>
         ) : (
           <Item key={i.id}>
             <Body bold>{i.title}</Body>
@@ -149,7 +149,7 @@ export default function LifeFinance() {
         <Row><H>Bollette e abbonamenti</H><Btn small ghost title="+ Aggiungi" onPress={() => setBillSheet(true)} /></Row>
         {f.bills.length === 0 ? <Body small muted>Nessuna bolletta ricorrente ancora.</Body> : f.bills.map((b, i) => (
           <Item key={b.id} last={i === f.bills.length - 1}>
-            <Row><View style={{ flex: 1 }}><Body>{b.name}</Body><Body small muted>{b.freq === 'monthly' ? 'ogni mese' : 'ogni anno'}</Body></View><Body bold>{formatCHF(b.amount)} CHF</Body><Link danger onPress={() => { f.delBill(b.id); toast('Rimossa'); }}>×</Link></Row>
+            <Row><View style={{ flex: 1 }}><Body>{b.name}</Body><Body small muted>{b.freq === 'monthly' ? 'ogni mese' : 'ogni anno'}</Body></View><Body bold>{formatCHF(b.amount)} CHF</Body><XBtn onPress={() => { f.delBill(b.id); toast('Rimossa'); }} /></Row>
           </Item>
         ))}
         {f.bills.length > 0 && <Body small muted style={{ marginTop: 10 }}>Totale equivalente mensile: {formatCHF(Math.round(monthlyBills))} CHF</Body>}
@@ -189,9 +189,9 @@ export default function LifeFinance() {
           return (
             <>
               <Row>
-                <Btn small ghost disabled={hist >= f.months.length - 1} title="← precedente" onPress={() => setHist(hist + 1)} />
+                <Btn small ghost disabled={hist >= f.months.length - 1} icon="arrow-left" title="precedente" onPress={() => setHist(hist + 1)} />
                 <Body small bold>{m.label}</Body>
-                <Btn small ghost disabled={hist <= 0} title="successivo →" onPress={() => setHist(hist - 1)} />
+                <Btn small ghost disabled={hist <= 0} icon="arrow-right" title="successivo" onPress={() => setHist(hist - 1)} />
               </Row>
               <Item><Row><Body muted>Saldo iniziale</Body><Body bold>{m.start.toFixed(2)} CHF</Body></Row></Item>
               {m.movements.map((mv, mi) => (
@@ -199,7 +199,7 @@ export default function LifeFinance() {
                   <Row>
                     <Body style={{ flex: 1 }}>{mv.date} · {mv.label}</Body>
                     <Body bold color={mv.amount > 0 ? t.positive : t.danger}>{mv.amount > 0 ? '+' : ''}{mv.amount.toFixed(2)} CHF</Body>
-                    {!m.locked && <Link danger onPress={() => { f.delMovement(hist, mi); toast('Movimento rimosso'); }}>×</Link>}
+                    {!m.locked && <XBtn onPress={() => { f.delMovement(hist, mi); toast('Movimento rimosso'); }} />}
                   </Row>
                 </Item>
               ))}

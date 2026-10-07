@@ -5,10 +5,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Bubble } from '@/components/chat/Bubble';
 import { Composer } from '@/components/chat/Composer';
+import type { SharePayload } from '@/components/chat/ShareSheets';
 import { MediaViewer, fontPx, useChatColors, wallColor } from '@/components/chat/parts';
 import { DeleteSheet, InfoSheet, MessageActions, PickChatsSheet, copyText, type Action } from '@/components/chat/sheets';
 import { UserAvatar } from '@/components/network';
-import { Body, Item, Sheet } from '@/components/ui';
+import { Body, Item, Sheet, IL } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import type { Picked } from '@/lib/chatMedia';
 import { simulateDelivery } from '@/lib/chatSim';
@@ -19,6 +20,7 @@ import { askTheiaAbout } from '@/store/theia';
 import { dayKey } from '@/lib/format';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 type Row = { type: 'day'; key: string; label: string } | { type: 'unread'; key: string; n: number } | { type: 'msg'; key: string; m: ChatMessage; showSender: boolean };
 
@@ -125,6 +127,7 @@ export default function Conversation() {
     setReplyTo(undefined); afterSend(mid);
   }
   function sendPoll(poll: Poll) { afterSend(st().send(id, me, { kind: 'poll', poll })); }
+  function sendShare(m: SharePayload) { afterSend(st().send(id, me, { ...m, replyTo: replyTo?.id })); setReplyTo(undefined); }
 
   /* ---- azioni ---- */
   function onAction(a: Action, emoji?: string) {
@@ -191,37 +194,37 @@ export default function Conversation() {
       <View style={{ paddingTop: insets.top + 6, paddingBottom: 8, paddingHorizontal: 10, backgroundColor: t.card, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderBottomColor: t.border }}>
         {selected.length ? (
           <>
-            <Pressable onPress={exitSel} hitSlop={10}><Text style={{ color: t.text, fontSize: 22 }}>✕</Text></Pressable>
+            <Pressable onPress={exitSel} hitSlop={10}><Icon name="x" size={22} color={t.text} /></Pressable>
             <Text style={{ flex: 1, color: t.text, fontSize: 18, fontWeight: '700' }}>{selected.length}</Text>
-            {selected.length === 1 && <Pressable onPress={() => { setReplyTo(selMsgs[0]); exitSel(); }} hitSlop={8} accessibilityLabel="Rispondi"><Text style={{ fontSize: 20, color: t.text }}>↩︎</Text></Pressable>}
-            <Pressable onPress={() => { toast(st().toggleStar(id, selected, me) ? 'Aggiunti ai preferiti' : 'Rimossi dai preferiti'); exitSel(); }} hitSlop={8} accessibilityLabel="Preferito"><Text style={{ fontSize: 20, color: t.text }}>☆</Text></Pressable>
+            {selected.length === 1 && <Pressable onPress={() => { setReplyTo(selMsgs[0]); exitSel(); }} hitSlop={8} accessibilityLabel="Rispondi"><Icon name="reply" size={21} color={t.text} /></Pressable>}
+            <Pressable onPress={() => { toast(st().toggleStar(id, selected, me) ? 'Segnati come importanti' : 'Tolti dagli importanti'); exitSel(); }} hitSlop={8} accessibilityLabel="Importante"><Icon name="star" size={21} color={t.text} /></Pressable>
             <Pressable onPress={() => { const txt = selMsgs.map((m) => m.text).filter(Boolean).join('\n'); if (txt) copyText({ ...selMsgs[0], text: txt }); exitSel(); }} hitSlop={8} accessibilityLabel="Copia"><Text style={{ fontSize: 20, color: t.text }}>⧉</Text></Pressable>
-            <Pressable onPress={() => askAbout(selMsgs)} hitSlop={8} accessibilityLabel="Chiedi a Theia"><Text style={{ fontSize: 20, color: t.text }}>✦</Text></Pressable>
-            <Pressable onPress={() => setForwarding(selMsgs)} hitSlop={8} accessibilityLabel="Inoltra"><Text style={{ fontSize: 20, color: t.text }}>↪</Text></Pressable>
-            <Pressable onPress={() => setDeleting(selMsgs)} hitSlop={8} accessibilityLabel="Elimina"><Text style={{ fontSize: 20, color: t.danger }}>🗑</Text></Pressable>
+            <Pressable onPress={() => askAbout(selMsgs)} hitSlop={8} accessibilityLabel="Chiedi a Theia"><Icon name="sparkle" size={21} color={t.text} /></Pressable>
+            <Pressable onPress={() => setForwarding(selMsgs)} hitSlop={8} accessibilityLabel="Inoltra"><Icon name="forward" size={21} color={t.text} /></Pressable>
+            <Pressable onPress={() => setDeleting(selMsgs)} hitSlop={8} accessibilityLabel="Elimina"><Icon name="trash" size={21} color={t.danger} /></Pressable>
           </>
         ) : search != null ? (
           <>
-            <Pressable onPress={() => setSearch(null)} hitSlop={10}><Text style={{ color: t.text, fontSize: 22 }}>←</Text></Pressable>
+            <Pressable onPress={() => setSearch(null)} hitSlop={10}><Icon name="arrow-left" size={22} color={t.text} /></Pressable>
             <TextInput autoFocus value={search} onChangeText={setSearch} placeholder="Cerca nella chat…" placeholderTextColor={t.muted} style={{ flex: 1, color: t.text, fontSize: 16, paddingVertical: 6 }} />
             <Text style={{ color: t.muted, fontSize: 12 }}>{rows.filter((r) => r.type === 'msg').length}</Text>
           </>
         ) : (
           <>
-            <Pressable onPress={goBack} hitSlop={10} accessibilityLabel="Indietro"><Text style={{ color: t.text, fontSize: 24 }}>←</Text></Pressable>
+            <Pressable onPress={goBack} hitSlop={10} accessibilityLabel="Indietro"><Icon name="arrow-left" size={24} color={t.text} /></Pressable>
             <Pressable onPress={() => go('chatInfo', { id })} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              {chat.type === 'group' ? <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 17 }}>👥</Text></View> : <UserAvatar name={title} size={38} />}
+              {chat.type === 'group' ? <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Icon name="users" size={19} color={t.text} /></View> : <UserAvatar name={title} size={38} />}
               <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={{ color: t.text, fontSize: 17, fontWeight: '700' }}>{title}</Text>
                 <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12 }}>{chat.type === 'group' ? chat.members.join(', ') : 'tocca per le info'}</Text>
               </View>
             </Pressable>
-            <Pressable onPress={() => setMenu(true)} hitSlop={10} accessibilityLabel="Menu"><Text style={{ color: t.text, fontSize: 22 }}>⋮</Text></Pressable>
+            <Pressable onPress={() => setMenu(true)} hitSlop={10} accessibilityLabel="Menu"><Icon name="more" size={22} color={t.text} /></Pressable>
           </>
         )}
       </View>
 
-      {chat.disappearingSec ? <View style={{ backgroundColor: c.quoteBg, paddingVertical: 4 }}><Text style={{ color: c.meta, fontSize: 12, textAlign: 'center' }}>⏳ I messaggi scompaiono dopo {chat.disappearingSec >= 86400 * 30 ? '90 giorni' : chat.disappearingSec >= 86400 * 7 ? '7 giorni' : '24 ore'}</Text></View> : null}
+      {chat.disappearingSec ? <View style={{ backgroundColor: c.quoteBg, paddingVertical: 4 }}><Text style={{ color: c.meta, fontSize: 12, textAlign: 'center' }}>I messaggi scompaiono dopo {chat.disappearingSec >= 86400 * 30 ? '90 giorni' : chat.disappearingSec >= 86400 * 7 ? '7 giorni' : '24 ore'}</Text></View> : null}
 
       <FlatList
         ref={list}
@@ -241,7 +244,7 @@ export default function Conversation() {
           me={me} draft={draft} enterSends={settings.enterSends} fontSize={font}
           replyTo={replyTo} editing={editing}
           disabledReason={isBlocked ? `Hai bloccato ${peer}. Sbloccalo dalle info per scrivere.` : left ? 'Non sei più un membro di questo gruppo.' : undefined}
-          onDraft={setDraft} onSendText={sendText} onSendPicked={sendPicked} onSendVoice={sendVoice} onSendPoll={sendPoll}
+          onDraft={setDraft} onSendText={sendText} onSendPicked={sendPicked} onSendVoice={sendVoice} onSendPoll={sendPoll} onSendShare={sendShare}
           onCancelContext={() => { setReplyTo(undefined); if (editing) { setEditing(undefined); setDraft(''); } }}
         />
       </View>
@@ -257,12 +260,12 @@ export default function Conversation() {
       <MediaViewer items={mediaItems} index={viewer} onClose={() => setViewer(null)} onDelete={(m) => { setViewer(null); setTimeout(() => setDeleting([m]), 350); }} />
 
       <Sheet visible={menu} title={title} onClose={() => setMenu(false)}>
-        <Item onPress={() => { setMenu(false); go('chatInfo', { id }); }}><Body>ⓘ Info {chat.type === 'group' ? 'gruppo' : 'contatto'}</Body></Item>
-        <Item onPress={() => { setMenu(false); setSearch(''); }}><Body>🔍 Cerca</Body></Item>
-        <Item onPress={() => { setMenu(false); setSelected([msgs[msgs.length - 1]?.id].filter(Boolean) as string[]); }}><Body>☑ Seleziona messaggi</Body></Item>
-        <Item onPress={() => { setMenu(false); go('starredPage', { id }); }}><Body>★ Messaggi preferiti</Body></Item>
-        <Item onPress={() => { setMenu(false); st().patchChat(id, { mutedUntil: st().chats[id]?.mutedUntil && st().chats[id].mutedUntil! > Date.now() ? undefined : Date.now() + 8 * 3600000 }); toast('Notifiche aggiornate'); }}><Body>🔕 Silenzia / riattiva (8 ore)</Body></Item>
-        <Item last onPress={() => { setMenu(false); go('chatSettings'); }}><Body>⚙︎ Impostazioni chat</Body></Item>
+        <Item onPress={() => { setMenu(false); go('chatInfo', { id }); }}><IL icon="info">Info {chat.type === 'group' ? 'gruppo' : 'contatto'}</IL></Item>
+        <Item onPress={() => { setMenu(false); setSearch(''); }}><IL icon="search">Cerca</IL></Item>
+        <Item onPress={() => { setMenu(false); setSelected([msgs[msgs.length - 1]?.id].filter(Boolean) as string[]); }}><IL icon="checksquare">Seleziona messaggi</IL></Item>
+        <Item onPress={() => { setMenu(false); go('starredPage', { id }); }}><IL icon="star">Messaggi importanti</IL></Item>
+        <Item onPress={() => { setMenu(false); st().patchChat(id, { mutedUntil: st().chats[id]?.mutedUntil && st().chats[id].mutedUntil! > Date.now() ? undefined : Date.now() + 8 * 3600000 }); toast('Notifiche aggiornate'); }}><IL icon="bell-off">Silenzia / riattiva (8 ore)</IL></Item>
+        <Item last onPress={() => { setMenu(false); go('chatSettings'); }}><IL icon="gear">Impostazioni chat</IL></Item>
       </Sheet>
     </KeyboardAvoidingView>
   );

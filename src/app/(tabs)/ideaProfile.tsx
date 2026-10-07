@@ -9,6 +9,7 @@ import { formatCHF } from '@/lib/format';
 import { go } from '@/lib/nav';
 import { rateIdea, scoreColor } from '@/lib/network';
 import { useNet } from '@/store/network';
+import { Icon } from '@/lib/icons';
 
 export default function IdeaProfile() {
   const t = useTheme();
@@ -23,7 +24,7 @@ export default function IdeaProfile() {
     <Page id="ideaProfile" title={idea.title} back right={<Btn small ghost title="Condividi" onPress={() => Share.share({ message: 'Guarda questa idea su LifePilot: ' + idea.title })} />}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 14, marginHorizontal: -3 }}>
         {tiles.map((g, i) => <View key={i} style={{ width: '33.33%', padding: 3 }}><LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14 }} /></View>)}
-        <View style={{ width: '33.33%', padding: 3 }}><LinearGradient colors={gv} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 26 }}>▶</Text></LinearGradient></View>
+        <View style={{ width: '33.33%', padding: 3 }}><LinearGradient colors={gv} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={26} color="#fff" fill="#fff" /></LinearGradient></View>
       </View>
       <Card><Row><Body small muted>Punteggio AI</Body><Badge label={`${score}/100`} color={scoreColor(score)} onPress={() => openSheet('scoreExpl', { id: idea.id })} /></Row></Card>
       <Card><H>Descrizione</H><Body small>{idea.desc}</Body></Card>
@@ -31,7 +32,7 @@ export default function IdeaProfile() {
       <Card>
         <Row><Body small muted>LP raccolti</Body><Row gap={2}><Body bold>{formatCHF(idea.raised)}</Body><LpTag size={14} /><Body bold> · obiettivo {formatCHF(idea.target || 500)}</Body><LpTag size={14} /></Row></Row>
         <Progress value={pct} />
-        <Row style={{ marginTop: 6 }}>{[25, 50, 75, 100].map((m) => <Body key={m} small color={pct >= m ? t.positive : t.muted} style={{ flex: 1, textAlign: 'center' }}>{pct >= m ? '✓' : '○'} {m}%</Body>)}</Row>
+        <Row style={{ marginTop: 6 }}>{[25, 50, 75, 100].map((m) => <Body key={m} small color={pct >= m ? t.positive : t.muted} style={{ flex: 1, textAlign: 'center' }}>{m}%</Body>)}</Row>
         <Btn style={{ marginTop: 14 }} title="Contribuisci con LifePoints" onPress={() => contribute(idea)} />
       </Card>
     </Page>

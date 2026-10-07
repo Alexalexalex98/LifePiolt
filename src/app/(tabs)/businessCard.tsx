@@ -55,7 +55,7 @@ export default function BusinessCard() {
             {cells.map((on, i) => <View key={i} style={{ width: '10%', height: '10%', backgroundColor: on ? '#f4f6f8' : 'transparent' }} />)}
           </View>
         </Pressable>
-        <Text onPress={() => openSheet('cv', { name })} style={{ color: '#c9b6ff', fontSize: 13, marginTop: 10 }}>Tocca per il CV completo →</Text>
+        <Text onPress={() => openSheet('cv', { name })} style={{ color: '#c9b6ff', fontSize: 13, marginTop: 10 }}>Tocca per il CV completo</Text>
         <Body small muted style={{ marginTop: 6, textAlign: 'center' }}>Il QR è illustrativo: la versione con codice davvero scansionabile richiede un profilo online.</Body>
       </Card>
       {isMe && (

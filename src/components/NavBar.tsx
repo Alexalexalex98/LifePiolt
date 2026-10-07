@@ -2,7 +2,7 @@ import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Body, Btn, Card, Row, Sheet, Item } from '@/components/ui';
+import { Body, Btn, Card, Row, Sheet, Item, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { translate, sectionNamesFor } from '@/lib/i18n';
 import { Icon, areaColors } from '@/lib/icons';
@@ -97,7 +97,7 @@ export function MenuSheet() {
                       <Icon name={id} size={17} color={color} stroke={1.9} />
                     </View>
                     <Text style={{ color: t.text, fontWeight: '500', flex: 1 }}>{label}</Text>
-                    <Text style={{ color: t.muted }}>›</Text>
+                    <Chev />
                   </Row>
                 </Item>
               );

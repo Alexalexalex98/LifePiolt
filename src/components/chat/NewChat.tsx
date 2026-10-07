@@ -9,6 +9,7 @@ import { peoplePool } from '@/lib/network';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 /** Nuova chat: scegli una persona oppure crea un gruppo. */
 export function PickPeopleSheet({ visible, onClose, addTo }: { visible: boolean; onClose: () => void; addTo?: { chatId: string; existing: string[] } }) {
@@ -24,7 +25,7 @@ export function PickPeopleSheet({ visible, onClose, addTo }: { visible: boolean;
 
   return (
     <Sheet visible={visible} title={addTo ? 'Aggiungi partecipanti' : group ? 'Nuovo gruppo' : 'Nuova chat'} onClose={done}>
-      {!addTo && !group && <Item onPress={() => setGroup(true)}><Row style={{ justifyContent: 'flex-start' }} gap={10}><Text style={{ fontSize: 22 }}>👥</Text><Body bold>Nuovo gruppo</Body></Row></Item>}
+      {!addTo && !group && <Item onPress={() => setGroup(true)}><Row style={{ justifyContent: 'flex-start' }} gap={10}><Icon name="users" size={22} color={t.text} /><Body bold>Nuovo gruppo</Body></Row></Item>}
       {group && !addTo && <Input placeholder="Nome del gruppo" value={name} onChangeText={setName} />}
       <Input placeholder="Cerca una persona…" value={q} onChangeText={setQ} />
       {sel.length > 0 && <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>{sel.map((n) => <Pill key={n} on label={n} onPress={() => setSel(sel.filter((x) => x !== n))} />)}</View>}
@@ -33,7 +34,7 @@ export function PickPeopleSheet({ visible, onClose, addTo }: { visible: boolean;
           if (!group) { const id = useChat.getState().ensureDm(n, me); done(); go('conversationPage', { id }); return; }
           setSel(sel.includes(n) ? sel.filter((x) => x !== n) : [...sel, n]);
         }}>
-          <Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}><UserAvatar name={n} size={30} /><Body>{n}</Body></Row>{sel.includes(n) ? <Text style={{ color: t.accent, fontSize: 18 }}>✓</Text> : null}</Row>
+          <Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}><UserAvatar name={n} size={30} /><Body>{n}</Body></Row>{sel.includes(n) ? <Icon name="check" size={18} color={t.accent} stroke={2.5} /> : null}</Row>
         </Item>
       ))}
       {group && (

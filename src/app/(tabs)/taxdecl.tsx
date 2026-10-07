@@ -7,6 +7,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { monthNames } from '@/lib/format';
 import { useFin } from '@/store/finance';
 import { toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 export default function TaxDecl() {
   const t = useTheme();
@@ -55,7 +56,7 @@ export default function TaxDecl() {
               const checked = !!tax.docs[it.key];
               return (
                 <Pressable key={it.key} onPress={() => toggleTaxDoc(it.key, !checked)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: t.item }} accessibilityRole="checkbox" accessibilityState={{ checked }}>
-                  <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: checked ? t.positive : t.muted, backgroundColor: checked ? t.positive : 'transparent', alignItems: 'center', justifyContent: 'center' }}>{checked && <Text style={{ color: t.bg, fontWeight: '800', fontSize: 13 }}>✓</Text>}</View>
+                  <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: checked ? t.positive : t.muted, backgroundColor: checked ? t.positive : 'transparent', alignItems: 'center', justifyContent: 'center' }}>{checked && <Icon name="check" size={14} color={t.bg} stroke={3} />}</View>
                   <Body style={{ flex: 1, textDecorationLine: checked ? 'line-through' : 'none', opacity: checked ? 0.45 : 1 }}>{it.label}</Body>
                 </Pressable>
               );
@@ -73,7 +74,7 @@ export default function TaxDecl() {
         <Body>Situazione: {tax.married ? 'coniugato/a' : 'non coniugato/a'}{tax.children ? ', con figli a carico' : ''}.</Body>
         <Body style={{ marginTop: 8 }}>Documenti caricati: <Text style={{ fontWeight: '700' }}>{done}/{total}</Text>.</Body>
         <Body small muted style={{ marginTop: 8 }}>LifePilot prepara qui un riepilogo dei documenti raccolti per la dichiarazione fiscale svizzera. Un file compilato e conforme al tuo Cantone richiede l'integrazione con i moduli ufficiali (es. eTax) e la verifica di un fiduciario: non viene ancora generato.</Body>
-        {done < total ? <Body small color={t.warn} style={{ marginTop: 8 }}>Mancano ancora {total - done} documenti per una dichiarazione completa.</Body> : <Body small color={t.positive} style={{ marginTop: 8 }}>Tutti i documenti risultano caricati ✓</Body>}
+        {done < total ? <Body small color={t.warn} style={{ marginTop: 8 }}>Mancano ancora {total - done} documenti per una dichiarazione completa.</Body> : <Body small color={t.positive} style={{ marginTop: 8 }}>Tutti i documenti risultano caricati</Body>}
       </Sheet>
     </Page>
   );

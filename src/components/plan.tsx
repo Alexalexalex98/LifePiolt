@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { Body, Btn, Card, Empty, H, Input, Item, Link, Pill, Row, Select, Sheet, Toggle } from '@/components/ui';
+import { Body, Btn, Card, Empty, H, Input, Item, Link, Pill, Row, Select, Sheet, Toggle, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { dayKey, minutesToTime, monthNames, pad2, timeToMinutes } from '@/lib/format';
 import { Icon } from '@/lib/icons';
@@ -28,7 +28,7 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
           <Body style={{ flex: 1, textDecorationLine: dc === task.subtasks.length ? 'line-through' : 'none', opacity: dc === task.subtasks.length ? 0.45 : 1 }}>{task.t}</Body>
           <Row gap={8}>
             <Body small muted>{dc}/{task.subtasks.length} · {totalH}h</Body>
-            <Link danger onPress={remove}>×</Link>
+            <XBtn onPress={remove} />
           </Row>
         </Row>
       </Item>
@@ -39,14 +39,14 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
       <Row>
         <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }} onPress={() => { const n = toggleTask(task.id, !task.done); if (n) toast(n); }} accessibilityRole="checkbox" accessibilityState={{ checked: !!task.done }}>
           <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: task.done ? t.positive : t.muted, backgroundColor: task.done ? t.positive : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-            {task.done && <Text style={{ color: t.bg, fontWeight: '800', fontSize: 13 }}>✓</Text>}
+            {task.done && <Icon name="check" size={14} color={t.bg} stroke={3} />}
           </View>
           <Body style={{ flex: 1, textDecorationLine: task.done ? 'line-through' : 'none', opacity: task.done ? 0.45 : 1 }}>
             {task.t}
-            {task.recurring && task.recurring !== 'none' ? <Text style={{ color: t.muted, fontSize: 12 }}>{'  ↻ '}{task.recurring === 'daily' ? 'ogni giorno' : 'ogni settimana'}</Text> : null}
+            {task.recurring && task.recurring !== 'none' ? <Text style={{ color: t.muted, fontSize: 12 }}>{'  · '}{task.recurring === 'daily' ? 'ogni giorno' : 'ogni settimana'}</Text> : null}
           </Body>
         </Pressable>
-        <Btn small ghost title="×" onPress={remove} />
+        <Btn small ghost title="" icon="x" onPress={remove} />
       </Row>
     </Item>
   );
@@ -82,7 +82,7 @@ export function SmartTaskSheet({ visible, onClose }: { visible: boolean; onClose
           <Body small muted>"{draft.t}" scomposto in {draft.subtasks.length} passaggi più piccoli. Se un passaggio è ancora troppo grande, tocca "Scomponi ulteriormente".</Body>
           {draft.subtasks.map((s, i) => (
             <Item key={i}>
-              <Row><Body style={{ flex: 1 }}>{s.t}</Body><Link danger onPress={() => upd((d) => ({ ...d, subtasks: d.subtasks.filter((_, j) => j !== i) }))}>×</Link></Row>
+              <Row><Body style={{ flex: 1 }}>{s.t}</Body><XBtn onPress={() => upd((d) => ({ ...d, subtasks: d.subtasks.filter((_, j) => j !== i) }))} /></Row>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                 <Input keyboardType="decimal-pad" defaultValue={String(s.h)} style={{ width: 64, padding: 7, marginBottom: 0 }} onChangeText={(v) => upd((d) => ({ ...d, subtasks: d.subtasks.map((x, j) => (j === i ? { ...x, h: parseFloat(v.replace(',', '.')) || 0 } : x)) }))} />
                 <Body small muted>h</Body>
@@ -106,6 +106,7 @@ export function SmartTaskSheet({ visible, onClose }: { visible: boolean; onClose
 
 /* ---------- dettaglio task scomposto ---------- */
 export function TaskBreakdownSheet({ taskId, onClose }: { taskId: string | null; onClose: () => void }) {
+  const t = useTheme();
   const task = useLife((s) => s.tasks.find((x) => x.id === taskId));
   const { toggleSubtask, expandSubtask, scheduleBreakdown } = useLife();
   const wh = useApp((s) => s.workHours);
@@ -120,7 +121,7 @@ export function TaskBreakdownSheet({ taskId, onClose }: { taskId: string | null;
           {subs.map((s, i) => (
             <Item key={i}>
               <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} onPress={() => toggleSubtask(task.id, i, !s.done)}>
-                <Text style={{ fontSize: 18 }}>{s.done ? '☑' : '☐'}</Text>
+                <Icon name={s.done ? 'checksquare' : 'square'} size={20} color={s.done ? t.positive : t.muted} />
                 <Body style={{ flex: 1, textDecorationLine: s.done ? 'line-through' : 'none', opacity: s.done ? 0.45 : 1 }}>{s.t}</Body>
               </Pressable>
               <Row style={{ marginTop: 4 }}>
@@ -216,7 +217,7 @@ export function PlanDaySheet({ visible, onClose }: { visible: boolean; onClose: 
         <>
           <Body small muted style={{ marginTop: 16, marginBottom: 6 }}>Bozza di oggi</Body>
           {draft.slice().sort((a, b) => a.time.localeCompare(b.time)).map((it, i) => (
-            <Item key={i}><Row><Body>{it.time} · {it.label}</Body><Link danger onPress={() => setDraft(draft.filter((x) => x !== it))}>×</Link></Row></Item>
+            <Item key={i}><Row><Body>{it.time} · {it.label}</Body><XBtn onPress={() => setDraft(draft.filter((x) => x !== it))} /></Row></Item>
           ))}
           <Btn style={{ marginTop: 14 }} title="Applica piano" onPress={() => { addEvents(dayKey(), draft.map((d) => ({ time: d.time, title: d.label }))); toast('Piano applicato al calendario di oggi'); close(); }} />
         </>

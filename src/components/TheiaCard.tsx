@@ -9,6 +9,7 @@ import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { useLife } from '@/store/life';
 import { useTheia, askTheiaAbout } from '@/store/theia';
+import { Icon } from '@/lib/icons';
 
 /** "Theia per te": ciò che probabilmente ti serve adesso, con il motivo. */
 export function TheiaCard() {
@@ -25,7 +26,7 @@ export function TheiaCard() {
   return (
     <Card style={{ marginTop: 10 }}>
       <Row>
-        <Text style={{ color: t.text, fontSize: 16, fontWeight: '800' }}>✦ {name} per te</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}><Icon name="sparkle" size={18} color={t.accent} /><Text style={{ color: t.text, fontSize: 16, fontWeight: '800' }}>{name} per te</Text></View>
         <Pressable onPress={() => askTheiaAbout({ source: 'home' })} hitSlop={8}><Text style={{ color: t.accent, fontWeight: '700' }}>Chiedi</Text></Pressable>
       </Row>
       {list.length === 0 ? <Body small muted style={{ marginTop: 6 }}>Per ora non vedo nulla di urgente. Più usi l'app, più imparo cosa ti serve e quando.</Body> : list.slice(0, 3).map((s) => (
@@ -36,7 +37,7 @@ export function TheiaCard() {
               <Body small muted style={{ marginTop: 2 }}>{s.detail}</Body>
               {why === s.id && <Body small color={t.accent} style={{ marginTop: 4 }}>Perché lo vedi: {s.why}</Body>}
             </View>
-            <Pressable onPress={() => dismiss(s.id)} hitSlop={10}><Text style={{ color: t.muted, fontSize: 16 }}>✕</Text></Pressable>
+            <Pressable onPress={() => dismiss(s.id)} hitSlop={10}><Icon name="x" size={17} color={t.muted} /></Pressable>
           </Row>
           <Row style={{ justifyContent: 'flex-start', marginTop: 6 }} gap={8}>
             {s.page && <Btn small title={s.cta} onPress={() => go(s.page!, s.params)} />}

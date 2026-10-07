@@ -27,7 +27,7 @@ export default function NoteEdit() {
         <Btn ghost title="Condividi" onPress={() => Share.share({ message: text })} />
         {existing && <Btn ghost danger title="Elimina" onPress={() => { const r = delNote(existing.id); go('lifenotes'); if (r) showUndoToast('Nota eliminata', () => restoreNote(r.note, r.idx)); }} />}
       </View>
-      <Btn small ghost style={{ marginTop: 8 }} title={sel.end > sel.start ? `✦ Chiedi a ${name} sul testo selezionato` : `✦ Chiedi a ${name} su questa nota`} onPress={() => { const part = sel.end > sel.start ? text.slice(sel.start, sel.end) : text; if (!part.trim()) { toast('Scrivi o seleziona del testo'); return; } askTheiaAbout({ text: part, source: 'note', label: sel.end > sel.start ? 'Testo selezionato' : 'Nota' }); }} />
+      <Btn small ghost style={{ marginTop: 8 }} icon="sparkle" title={sel.end > sel.start ? `Chiedi a ${name} sul testo selezionato` : `Chiedi a ${name} su questa nota`} onPress={() => { const part = sel.end > sel.start ? text.slice(sel.start, sel.end) : text; if (!part.trim()) { toast('Scrivi o seleziona del testo'); return; } askTheiaAbout({ text: part, source: 'note', label: sel.end > sel.start ? 'Testo selezionato' : 'Nota' }); }} />
       {existing && <Btn small ghost style={{ marginTop: 8 }} title="Riassumi con AI" onPress={() => setSummary(true)} />}
       <Sheet visible={summary} title="Sintesi AI" onClose={() => setSummary(false)}>
         <Body small muted>Sintesi di anteprima (il riassunto con un modello AI reale richiede il collegamento al server):</Body>

@@ -15,6 +15,7 @@ import { useApp } from '@/store/app';
 import { moodOptions, useHealth } from '@/store/health';
 import { shortDate } from '@/lib/format';
 import { toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 const order: Record<Domain, string[]> = {
   salute: ['sleep', 'steps', 'hrv', 'hr', 'exercise', 'energy', 'weight', 'vo2', 'spo2'],
@@ -101,8 +102,9 @@ export default function Dashboard() {
                 const flat = Math.abs(lifeDelta) < 2;
                 const c = flat ? t.muted : lifeDelta > 0 ? t.positive : t.danger;
                 return (
-                  <View style={{ marginBottom: 10, backgroundColor: c + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}>
-                    <Text style={{ color: c, fontSize: 12, fontWeight: '700' }}>{flat ? '▬ stabile' : lifeDelta > 0 ? `▲ +${lifeDelta}` : `▼ ${lifeDelta}`} vs 7 gg prima</Text>
+                  <View style={{ marginBottom: 10, backgroundColor: c + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Icon name={flat ? 'minus' : lifeDelta > 0 ? 'trend-up' : 'trend-down'} size={13} color={c} stroke={2.3} />
+                    <Text style={{ color: c, fontSize: 12, fontWeight: '700' }}>{flat ? 'stabile' : lifeDelta > 0 ? `+${lifeDelta}` : `${lifeDelta}`} vs 7 gg prima</Text>
                   </View>
                 );
               })()}

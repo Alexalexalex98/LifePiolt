@@ -10,8 +10,19 @@ import { uid } from '@/lib/format';
 import { fmtDur, previewOf, type ChatMessage, type Poll } from '@/store/chat';
 import { toast } from '@/store/toast';
 import { senderColor, useChatColors } from './parts';
+import { AgendaSheet, DriveSheet, NoteSheet, SlotsSheet, TasksSheet, type SharePayload } from './ShareSheets';
+import { Icon } from '@/lib/icons';
+import { useNet } from '@/store/network';
+import { useApp } from '@/store/app';
 
-const EMOJI = '😀 😃 😄 😁 😆 😅 😂 🤣 🙂 😉 😊 😍 🥰 😘 😎 🤔 😐 😴 😢 😭 😡 🤯 😱 🤗 🙏 👍 👎 👏 🙌 💪 🤝 👀 🔥 ❤️ 💔 💯 ✨ 🎉 🎂 ☕ 🍕 🍺 ⚽ 🏃 🚗 ✈️ 🏠 💼 📅 ✅ ❌ ⭐ 🌞 🌙 ☔'.split(' ');
+/** Il mio biglietto da visita come contatto: solo i campi che ho scelto di mostrare. */
+function myCardContact() {
+  const card = useNet.getState().myCard;
+  const name = useApp.getState().account.name;
+  const bits = [card.showProfession && card.profession, card.showPhone && card.phone, card.showEmail && card.email].filter(Boolean) as string[];
+  return { name, phone: bits.join(' · ') || undefined };
+}
+
 
 type Props = {
   me: string;
@@ -26,6 +37,7 @@ type Props = {
   onSendPicked: (p: Picked, caption?: string) => void;
   onSendVoice: (uri: string, durationMs: number, waveform: number[]) => void;
   onSendPoll: (p: Poll) => void;
+  onSendShare: (m: SharePayload) => void;
   onCancelContext: () => void;
 };
 
@@ -33,7 +45,7 @@ export function Composer(p: Props) {
   const t = useTheme();
   const c = useChatColors();
   const [attach, setAttach] = useState(false);
-  const [emoji, setEmoji] = useState(false);
+  const [share, setShare] = useState<null | 'agenda' | 'tasks' | 'note' | 'slots' | 'drive'>(null);
   const [poll, setPoll] = useState(false);
   const [preview, setPreview] = useState<Picked[] | null>(null);
   const [caption, setCaption] = useState('');
@@ -124,12 +136,11 @@ export function Composer(p: Props) {
             <Text style={{ color: senderColor(ctx.from), fontWeight: '700', fontSize: 12 }}>{p.editing ? 'Modifica messaggio' : ctx.from === p.me ? 'Tu' : ctx.from}</Text>
             <Text numberOfLines={1} style={{ color: t.muted, fontSize: 13 }}>{previewOf(ctx)}</Text>
           </View>
-          <Pressable onPress={p.onCancelContext} hitSlop={10}><Text style={{ color: t.muted, fontSize: 18 }}>✕</Text></Pressable>
+          <Pressable onPress={p.onCancelContext} hitSlop={10}><Icon name="x" size={18} color={t.muted} /></Pressable>
         </View>
       )}
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', padding: 8, gap: 6 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end', backgroundColor: t.input, borderRadius: 22, borderWidth: 1, borderColor: t.inputBorder, paddingHorizontal: 10 }}>
-          <Pressable onPress={() => setEmoji(true)} hitSlop={6} style={{ paddingVertical: 9 }} accessibilityLabel="Emoji"><Text style={{ fontSize: 22 }}>🙂</Text></Pressable>
           <TextInput
             ref={inputRef}
             value={p.draft}
@@ -142,11 +153,11 @@ export function Composer(p: Props) {
             returnKeyType={p.enterSends ? 'send' : 'default'}
             style={{ flex: 1, color: t.text, fontSize: p.fontSize, maxHeight: 120, paddingHorizontal: 8, paddingTop: 9, paddingBottom: 9 }}
           />
-          {!p.editing && <Pressable onPress={() => setAttach(true)} hitSlop={6} style={{ paddingVertical: 9 }} accessibilityLabel="Allega"><Text style={{ fontSize: 22 }}>📎</Text></Pressable>}
-          {!p.editing && !has && <Pressable onPress={() => run(takePhoto)} hitSlop={6} style={{ paddingVertical: 9, paddingLeft: 8 }} accessibilityLabel="Fotocamera"><Text style={{ fontSize: 22 }}>📷</Text></Pressable>}
+          {!p.editing && <Pressable onPress={() => setAttach(true)} hitSlop={6} style={{ paddingVertical: 10, paddingLeft: 6 }} accessibilityLabel="Allega"><Icon name="paperclip" size={22} color={t.muted} /></Pressable>}
+          {!p.editing && !has && <Pressable onPress={() => run(takePhoto)} hitSlop={6} style={{ paddingVertical: 10, paddingLeft: 10 }} accessibilityLabel="Fotocamera"><Icon name="camera" size={22} color={t.muted} /></Pressable>}
         </View>
         {has && rec === 'off' ? (
-          <Pressable onPress={sendText} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={p.editing ? 'Salva modifica' : 'Invia'}><Text style={{ color: t.onText, fontSize: 18 }}>{p.editing ? '✓' : '➤'}</Text></Pressable>
+          <Pressable onPress={sendText} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={p.editing ? 'Salva modifica' : 'Invia'}><Icon name={p.editing ? 'check' : 'send'} size={20} color={t.onText} stroke={2.2} /></Pressable>
         ) : (
           <Pressable
             onPress={() => { if (mode.current === 'lock') void sendRec(); else if (rec === 'off') { mode.current = 'lock'; void startRec().then((ok) => { if (!ok) mode.current = 'none'; }); } }}
@@ -157,40 +168,51 @@ export function Composer(p: Props) {
             onPressOut={() => { if (mode.current !== 'hold') return; void (startP.current ?? Promise.resolve(false)).then((ok) => { if (!ok) return; if (slideCancel.current) void cancelRec(); else void sendRec(); }); }}
             style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: rec === 'off' ? t.accent : willCancel ? '#e5484d' : t.accent, alignItems: 'center', justifyContent: 'center', transform: [{ scale: rec !== 'off' && mode.current === 'hold' ? 1.35 : 1 }] }}
             accessibilityLabel={rec === 'off' ? 'Messaggio vocale: tocca o tieni premuto' : 'Invia vocale'}>
-            <Text style={{ fontSize: 20, color: t.onText }}>{rec === 'off' ? '🎤' : '➤'}</Text>
+            <Icon name={rec === 'off' ? 'mic' : 'send'} size={21} color={t.onText} stroke={2.1} />
           </Pressable>
         )}
         {rec !== 'off' && (
           <View style={{ position: 'absolute', left: 8, right: 58, top: 8, bottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, backgroundColor: t.input, borderRadius: 22, borderWidth: 1, borderColor: t.inputBorder }}>
-            <Text style={{ color: rec === 'on' ? '#e5484d' : t.muted, fontSize: 15, fontWeight: '700', width: 52 }}>● {fmtDur(ms)}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, width: 62 }}><View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: rec === 'on' ? '#e5484d' : t.muted }} /><Text style={{ color: rec === 'on' ? '#e5484d' : t.muted, fontSize: 15, fontWeight: '700' }}>{fmtDur(ms)}</Text></View>
             {mode.current === 'hold'
-              ? <Text style={{ flex: 1, color: willCancel ? '#e5484d' : t.muted, fontSize: 13 }}>{willCancel ? 'Rilascia per annullare' : '‹ Scorri per annullare'}</Text>
+              ? <Text style={{ flex: 1, color: willCancel ? '#e5484d' : t.muted, fontSize: 13 }}>{willCancel ? 'Rilascia per annullare' : 'Scorri a sinistra per annullare'}</Text>
               : <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, height: 28 }}>{live.map((l, i) => <View key={i} style={{ flex: 1, height: Math.max(3, ((l + 60) / 60) * 26), borderRadius: 2, backgroundColor: t.muted }} />)}</View>}
-            {mode.current === 'lock' && <Pressable onPress={pauseRec} hitSlop={10} accessibilityLabel={rec === 'on' ? 'Pausa' : 'Riprendi'}><Text style={{ fontSize: 20, color: t.text }}>{rec === 'on' ? '⏸' : '⏺'}</Text></Pressable>}
-            {mode.current === 'lock' && <Pressable onPress={cancelRec} hitSlop={10} accessibilityLabel="Annulla registrazione"><Text style={{ fontSize: 20 }}>🗑️</Text></Pressable>}
+            {mode.current === 'lock' && <Pressable onPress={pauseRec} hitSlop={10} accessibilityLabel={rec === 'on' ? 'Pausa' : 'Riprendi'}><Icon name={rec === 'on' ? 'pause' : 'mic'} size={20} color={t.text} fill={rec === 'on' ? t.text : 'none'} /></Pressable>}
+            {mode.current === 'lock' && <Pressable onPress={cancelRec} hitSlop={10} accessibilityLabel="Annulla registrazione"><Icon name="trash" size={20} color={t.danger} /></Pressable>}
           </View>
         )}
       </View>
 
-      <Sheet visible={emoji} title="Emoji" onClose={() => setEmoji(false)}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-          {EMOJI.map((e) => <Pressable key={e} onPress={() => p.onDraft(p.draft + e)} style={{ width: '12.5%', alignItems: 'center', paddingVertical: 8 }}><Text style={{ fontSize: 26 }}>{e}</Text></Pressable>)}
-        </View>
-      </Sheet>
-
-      <Sheet visible={attach} title="Allega" onClose={() => setAttach(false)}>
+      <Sheet visible={attach} title="Condividi" onClose={() => setAttach(false)}>
+        <Body small muted style={{ marginBottom: 4 }}>Dal telefono</Body>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
           {([
-            ['📄', 'Documento', () => run(pickDocument), '#7f66ff'],
-            ['📷', 'Fotocamera', () => run(takePhoto), '#e5484d'],
-            ['🖼️', 'Galleria', () => run(pickFromGallery), '#bf59cf'],
-            ['📍', 'Posizione', () => run(currentLocation), '#1fa855'],
-            ['👤', 'Contatto', () => run(pickContact), '#009de2'],
-            ['📊', 'Sondaggio', () => { setAttach(false); setPoll(true); }, '#e8a317'],
-          ] as [string, string, () => void, string][]).map(([ic, label, fn, col]) => (
-            <Pressable key={label} onPress={fn} style={{ width: '33.3%', alignItems: 'center', paddingVertical: 14 }} accessibilityLabel={label}>
-              <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: col, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 24 }}>{ic}</Text></View>
-              <Text style={{ color: t.text, fontSize: 13, marginTop: 6 }}>{label}</Text>
+            ['file', 'Documento', () => run(pickDocument)],
+            ['camera', 'Fotocamera', () => run(takePhoto)],
+            ['image', 'Foto e video', () => run(pickFromGallery)],
+            ['location', 'Posizione', () => run(currentLocation)],
+            ['contact', 'Contatto', () => run(pickContact)],
+            ['briefcase', 'Il mio biglietto', () => { setAttach(false); p.onSendShare({ kind: 'contact', contact: myCardContact() }); }],
+          ] as [string, string, () => void][]).map(([ic, label, fn]) => (
+            <Pressable key={label} onPress={fn} style={{ width: '33.3%', alignItems: 'center', paddingVertical: 12 }} accessibilityLabel={label}>
+              <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name={ic} size={23} color={t.accent} stroke={1.9} /></View>
+              <Text style={{ color: t.text, fontSize: 12, marginTop: 6, textAlign: 'center' }}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Body small muted style={{ marginTop: 6, marginBottom: 4 }}>Per lavorare insieme</Body>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+          {([
+            ['calendar', 'I miei impegni', () => { setAttach(false); setShare('agenda'); }],
+            ['tasks', 'Task', () => { setAttach(false); setShare('tasks'); }],
+            ['clock', 'Proponi orari', () => { setAttach(false); setShare('slots'); }],
+            ['poll', 'Sondaggio', () => { setAttach(false); setPoll(true); }],
+            ['note', 'Nota', () => { setAttach(false); setShare('note'); }],
+            ['file', 'Da LifeDrive', () => { setAttach(false); setShare('drive'); }],
+          ] as [string, string, () => void][]).map(([ic, label, fn]) => (
+            <Pressable key={label} onPress={fn} style={{ width: '33.3%', alignItems: 'center', paddingVertical: 12 }} accessibilityLabel={label}>
+              <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}><Icon name={ic} size={23} color={t.onText} stroke={1.9} /></View>
+              <Text style={{ color: t.text, fontSize: 12, marginTop: 6, textAlign: 'center' }}>{label}</Text>
             </Pressable>
           ))}
         </View>
@@ -201,8 +223,8 @@ export function Composer(p: Props) {
           {preview?.map((x, i) => (
             <View key={i} style={{ marginRight: 8, width: 120, height: 120, borderRadius: 10, backgroundColor: t.item, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
               <Image source={{ uri: x.media?.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-              {x.kind === 'video' && <Text style={{ position: 'absolute', color: '#fff', fontSize: 26 }}>▶</Text>}
-              <Pressable onPress={() => { const next = (preview ?? []).filter((_, j) => j !== i); setPreview(next.length ? next : null); }} hitSlop={8} accessibilityLabel="Rimuovi" style={{ position: 'absolute', top: 4, right: 4, width: 26, height: 26, borderRadius: 13, backgroundColor: '#000c', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 14 }}>✕</Text></Pressable>
+              {x.kind === 'video' && <View style={{ position: 'absolute' }}><Icon name="play" size={28} color="#fff" fill="#fff" /></View>}
+              <Pressable onPress={() => { const next = (preview ?? []).filter((_, j) => j !== i); setPreview(next.length ? next : null); }} hitSlop={8} accessibilityLabel="Rimuovi" style={{ position: 'absolute', top: 4, right: 4, width: 26, height: 26, borderRadius: 13, backgroundColor: '#000c', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={14} color="#fff" stroke={2.4} /></Pressable>
             </View>
           ))}
         </ScrollView>
@@ -211,6 +233,11 @@ export function Composer(p: Props) {
         <Btn title="Invia" onPress={() => { preview?.forEach((x, i) => p.onSendPicked(x, i === 0 ? caption.trim() || undefined : undefined)); setPreview(null); }} />
       </Sheet>
 
+      <AgendaSheet visible={share === 'agenda'} onClose={() => setShare(null)} onSend={p.onSendShare} />
+      <TasksSheet visible={share === 'tasks'} onClose={() => setShare(null)} onSend={p.onSendShare} />
+      <NoteSheet visible={share === 'note'} onClose={() => setShare(null)} onSend={p.onSendShare} />
+      <SlotsSheet visible={share === 'slots'} onClose={() => setShare(null)} onSend={p.onSendShare} />
+      <DriveSheet visible={share === 'drive'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <PollSheet visible={poll} onClose={() => setPoll(false)} onCreate={(pl) => { setPoll(false); p.onSendPoll(pl); }} />
     </View>
   );
@@ -225,8 +252,8 @@ function PollSheet({ visible, onClose, onCreate }: { visible: boolean; onClose: 
     <Sheet visible={visible} title="Nuovo sondaggio" onClose={onClose}>
       <Input placeholder="Domanda" value={q} onChangeText={setQ} />
       {opts.map((o, i) => <Input key={i} placeholder={`Opzione ${i + 1}`} value={o} onChangeText={(v) => setOpts(opts.map((x, j) => (j === i ? v : x)))} />)}
-      {opts.length < 8 && <Btn small ghost title="+ Aggiungi opzione" onPress={() => setOpts([...opts, ''])} />}
-      <Pressable onPress={() => setMulti(!multi)} style={{ paddingVertical: 12 }}><Text style={{ color: t.text }}>{multi ? '☑' : '☐'} Consenti più risposte</Text></Pressable>
+      {opts.length < 8 && <Btn small ghost icon="plus" title="Aggiungi opzione" onPress={() => setOpts([...opts, ''])} />}
+      <Pressable onPress={() => setMulti(!multi)} style={{ paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}><Icon name={multi ? 'checksquare' : 'square'} size={20} color={multi ? t.accent : t.muted} /><Text style={{ color: t.text }}>Consenti più risposte</Text></Pressable>
       <Btn title="Invia sondaggio" onPress={() => {
         const options = opts.map((x) => x.trim()).filter(Boolean);
         if (!q.trim() || options.length < 2) { toast('Scrivi la domanda e almeno 2 opzioni'); return; }

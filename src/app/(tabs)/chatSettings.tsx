@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 
 import { wallpapers } from '@/components/chat/parts';
-import { Body, Card, Item, Page, Pill, Row, Seg, Toggle } from '@/components/ui';
+import { Body, Card, Item, Page, Pill, Row, Seg, Toggle, IL } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { go } from '@/lib/nav';
 import { useChat } from '@/store/chat';
@@ -37,8 +37,8 @@ export default function ChatSettings() {
       </Card>
       <Card>
         <Body bold>Archivio</Body>
-        <Item onPress={() => go('starredPage')}><Body>★ Tutti i messaggi preferiti</Body></Item>
-        <Item last onPress={() => go('messagesPage')}><Body>🗄 Chat archiviate</Body></Item>
+        <Item onPress={() => go('starredPage')}><IL icon="star">Tutti i messaggi importanti</IL></Item>
+        <Item last onPress={() => go('messagesPage')}><IL icon="archive">Chat archiviate</IL></Item>
       </Card>
       <Card>
         <Body bold>Contatti bloccati</Body>

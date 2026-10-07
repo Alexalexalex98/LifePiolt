@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, Share, Text, View } from 'react-native';
 
 import { IdeaCard, LpTag, UserAvatar, doContribute, openPurchaseConfirm, openSheet, useNetSheet } from '@/components/network';
-import { Body, Btn, Empty, Input, Item, Link, Pill, Progress, Row, Select, Sheet, Toggle, Metric } from '@/components/ui';
+import { Body, Btn, Empty, Input, Item, Link, Pill, Progress, Row, Select, Sheet, Toggle, Metric, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, weekdayShortDate } from '@/lib/format';
 import { goBack, go } from '@/lib/nav';
@@ -10,6 +10,7 @@ import { convertAmount, cryptoRates, isVoteReasonRelevant, peoplePool, rateIdeaD
 import { useApp } from '@/store/app';
 import { newId, topicList, useNet } from '@/store/network';
 import { showUndoToast, toast } from '@/store/toast';
+import { Icon } from '@/lib/icons';
 
 /** Un'unica Sheet che mostra la vista richiesta dal social (evita modali annidate). */
 export function NetSheetHost() {
@@ -114,7 +115,7 @@ export function NetSheetHost() {
                 bookings: [{ id: String(newId()), provider: pr.name, role: pr.role, slot: s, price: pr.price }, ...net.bookings],
               });
               close(); toast(`Sessione prenotata con ${pr.name} · ${s}`);
-            }}><Row><Body>{s}</Body><Body muted>›</Body></Row></Item>
+            }}><Row><Body>{s}</Body><Chev /></Row></Item>
           ))}
         </>
       );
@@ -126,9 +127,9 @@ export function NetSheetHost() {
       const r = ratingFor(p.name);
       body = !r.count ? <Empty text="Nessun voto ancora." /> : (
         <>
-          <Metric big>{r.avg} ★</Metric>
+          <Metric big>{r.avg}/5</Metric>
           <Body small muted style={{ marginBottom: 10 }}>{r.count} voti totali</Body>
-          {[5, 4, 3, 2, 1].map((s) => { const n = r.counts[s] || 0; return <Item key={s}><Row><Body>{s} ★</Body><Body small muted>{n}</Body></Row><Progress value={r.count ? Math.round((n / r.count) * 100) : 0} /></Item>; })}
+          {[5, 4, 3, 2, 1].map((s) => { const n = r.counts[s] || 0; return <Item key={s}><Row><Body>{s} stelle</Body><Body small muted>{n}</Body></Row><Progress value={r.count ? Math.round((n / r.count) * 100) : 0} /></Item>; })}
         </>
       );
       break;
@@ -174,7 +175,7 @@ export function NetSheetHost() {
       title = 'Scegli carta';
       body = (
         <>
-          {net.cards.map((c) => <Item key={c.id} onPress={() => { net.patch({ defaultCard: c.id }); openSheet('topup'); }}><Row><View><Body>{c.brand} ···· {c.last4}</Body><Body small muted>{c.holder} · scad. {c.expiry}</Body></View>{c.id === net.defaultCard ? <Text style={{ color: t.positive }}>✓</Text> : null}</Row></Item>)}
+          {net.cards.map((c) => <Item key={c.id} onPress={() => { net.patch({ defaultCard: c.id }); openSheet('topup'); }}><Row><View><Body>{c.brand} ···· {c.last4}</Body><Body small muted>{c.holder} · scad. {c.expiry}</Body></View>{c.id === net.defaultCard ? <Icon name="check" size={17} color={t.positive} stroke={2.4} /> : null}</Row></Item>)}
           <Btn small ghost style={{ marginTop: 10 }} title="+ Aggiungi nuova carta" onPress={() => openSheet('addCard')} />
         </>
       );
@@ -357,7 +358,7 @@ function VoteView({ name }: { name: string }) {
   return (
     <>
       <Body small muted>Il voto resta aggregato (si vede la media e la distribuzione, non chi ha votato). Il motivo che scrivi qui viene controllato prima di pubblicare il voto: deve essere pertinente, non un riempitivo.</Body>
-      <Row style={{ justifyContent: 'center', marginVertical: 16 }} gap={12}>{[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setStars(n)}><Text style={{ fontSize: 28, color: t.text }}>{n <= stars ? '★' : '☆'}</Text></Pressable>)}</Row>
+      <Row style={{ justifyContent: 'center', marginVertical: 16 }} gap={12}>{[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setStars(n)}><Icon name="star" size={32} color={t.text} fill={n <= stars ? t.text : 'none'} /></Pressable>)}</Row>
       <Input multiline style={{ minHeight: 70 }} placeholder="Perché dai questo voto? (obbligatorio)" value={reason} onChangeText={setReason} />
       <Btn title="Invia voto" onPress={() => {
         if (!stars) { toast('Seleziona da 1 a 5 stelle'); return; }
@@ -396,7 +397,7 @@ function EditProfileView() {
   const [bio, setBio] = useState(net.bio);
   return (
     <>
-      <Body small muted style={{ marginBottom: 8 }}>Nome e cognome si modificano da Settings → Account.</Body>
+      <Body small muted style={{ marginBottom: 8 }}>Nome e cognome si modificano da Settings, sezione Account.</Body>
       <Input multiline style={{ minHeight: 70 }} placeholder="Una riga su di te…" value={bio} onChangeText={setBio} />
       <Btn title="Salva" onPress={() => { net.patch({ bio: bio.trim() }); close(); toast('Profilo aggiornato'); }} />
     </>
@@ -443,7 +444,7 @@ function TopUpView() {
       <Select title="Valuta" value={cur} options={['CHF', 'EUR', 'USD', 'GBP', 'BTC', 'ETH']} onChange={(v) => net.patch({ payCurrency: v })} />
       {note ? <Body small muted style={{ marginBottom: 12 }}>{note}</Body> : null}
       <Body small muted style={{ marginBottom: 6 }}>Carta di pagamento</Body>
-      {card ? <Item onPress={() => openSheet('cardPicker')}><Row><View><Body>{card.brand} ···· {card.last4}</Body><Body small muted>{card.holder} · scad. {card.expiry}</Body></View><Body muted>Cambia ›</Body></Row></Item> : <Btn small ghost title="+ Aggiungi carta" onPress={() => openSheet('addCard')} />}
+      {card ? <Item onPress={() => openSheet('cardPicker')}><Row><View><Body>{card.brand} ···· {card.last4}</Body><Body small muted>{card.holder} · scad. {card.expiry}</Body></View><Body muted>Cambia</Body></Row></Item> : <Btn small ghost title="+ Aggiungi carta" onPress={() => openSheet('addCard')} />}
       <Btn style={{ marginTop: 12 }} disabled={!card} title="Carica" onPress={() => {
         if (!a || a <= 0) { toast('Inserisci un importo valido'); return; }
         if (!card) { toast('Aggiungi prima una carta'); return; }

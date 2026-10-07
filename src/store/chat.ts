@@ -3,10 +3,15 @@ import { create } from 'zustand';
 import { uid } from '@/lib/format';
 import { persisted } from './persist';
 
-export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'contact' | 'poll' | 'system';
+export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'contact' | 'poll' | 'agenda' | 'tasks' | 'note' | 'slots' | 'system';
 export type MsgStatus = 'sending' | 'sent' | 'delivered' | 'read';
 
 export type Media = { uri: string; w?: number; h?: number; mime?: string; name?: string; size?: number; durationMs?: number; waveform?: number[] };
+export type AgendaShare = { title: string; range: string; items: { day: string; time: string; title: string }[] };
+export type TaskShare = { title: string; items: { t: string; done: boolean }[] };
+export type NoteShare = { title: string; text: string };
+/** Proposta di orari per un incontro: chi riceve vota gli orari che gli vanno bene. */
+export type SlotsShare = { title: string; durationMin: number; options: { id: string; day: string; time: string; votes: string[] }[]; confirmed?: string };
 export type Poll = { q: string; multi: boolean; options: { id: string; t: string; votes: string[] }[] };
 
 export type ChatMessage = {
@@ -28,6 +33,12 @@ export type ChatMessage = {
   location?: { lat: number; lng: number; label?: string };
   contact?: { name: string; phone?: string };
   poll?: Poll;
+  agenda?: AgendaShare;
+  taskList?: TaskShare;
+  noteShare?: NoteShare;
+  slots?: SlotsShare;
+  /** persone che hanno importato la scheda (agenda/task/nota) nel proprio piano */
+  importedBy?: string[];
   expiresAt?: number;
   viewOnce?: boolean;
   played?: boolean;
@@ -64,7 +75,10 @@ export type ChatSettings = {
 export const DAY = 86400000;
 export const EDIT_WINDOW = 15 * 60 * 1000;
 export const DELETE_ALL_WINDOW = 2 * 24 * 3600 * 1000;
-export const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+/** Reazioni: icone SVG (id) invece di emoji. */
+export const REACTIONS = ['like', 'heart', 'smile', 'wow', 'sad', 'check'] as const;
+const legacy: Record<string, string> = { '\u{1F44D}': 'like', '\u2764\uFE0F': 'heart', '\u2764': 'heart', '\u{1F602}': 'smile', '\u{1F62E}': 'wow', '\u{1F622}': 'sad', '\u{1F64F}': 'check' };
+export const reactionIcon = (r: string) => (legacy[r] ?? r);
 
 export const dmId = (name: string) => `dm:${name}`;
 export const groupChatId = (id: string | number) => `g:${id}`;
@@ -93,6 +107,9 @@ type ChatState = {
   toggleStar: (id: string, mids: string[], me: string) => boolean;
   forward: (toIds: string[], msgs: ChatMessage[], me: string) => void;
   votePoll: (id: string, mid: string, optId: string, me: string) => void;
+  voteSlot: (id: string, mid: string, optId: string, me: string) => void;
+  confirmSlot: (id: string, mid: string, optId: string, me: string) => void;
+  markImported: (id: string, mid: string, me: string) => void;
   addMembers: (id: string, names: string[], me: string) => void;
   removeMember: (id: string, name: string, me: string) => void;
   leaveGroup: (id: string, me: string) => void;
@@ -163,7 +180,7 @@ export const useChat = create<ChatState>()(
     },
     patchMsg: (id, mid, p) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (m.id === mid ? { ...m, ...p } : m)) } })),
     deleteForMe: (id, mids, me) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (mids.includes(m.id) ? { ...m, hiddenFor: [...(m.hiddenFor ?? []), me] } : m)) } })),
-    deleteForAll: (id, mid) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (m.id === mid ? { ...m, deletedForAll: true, text: undefined, media: undefined, location: undefined, contact: undefined, poll: undefined, reactions: undefined, starredBy: undefined } : m)) } })),
+    deleteForAll: (id, mid) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (m.id === mid ? { ...m, deletedForAll: true, text: undefined, media: undefined, location: undefined, contact: undefined, poll: undefined, agenda: undefined, taskList: undefined, noteShare: undefined, slots: undefined, reactions: undefined, starredBy: undefined } : m)) } })),
     editMsg: (id, mid, text) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (m.id === mid ? { ...m, text, edited: true } : m)) } })),
     react: (id, mid, me, emoji) => set((s) => ({
       messages: {
@@ -171,7 +188,7 @@ export const useChat = create<ChatState>()(
         [id]: (s.messages[id] ?? []).map((m) => {
           if (m.id !== mid) return m;
           const r = { ...(m.reactions ?? {}) };
-          if (!emoji || r[me] === emoji) delete r[me]; else r[me] = emoji;
+          if (!emoji || (r[me] && reactionIcon(r[me]) === emoji)) delete r[me]; else r[me] = emoji;
           return { ...m, reactions: r };
         }),
       },
@@ -194,7 +211,7 @@ export const useChat = create<ChatState>()(
     forward: (toIds, msgs, me) => {
       toIds.forEach((to) => {
         msgs.forEach((m) => {
-          get().send(to, me, { kind: m.kind, text: m.text, media: m.media, location: m.location, contact: m.contact, poll: m.poll ? { ...m.poll, options: m.poll.options.map((o) => ({ ...o, votes: [] })) } : undefined, forwarded: true });
+          get().send(to, me, { kind: m.kind, text: m.text, media: m.media, location: m.location, contact: m.contact, poll: m.poll ? { ...m.poll, options: m.poll.options.map((o) => ({ ...o, votes: [] })) } : undefined, agenda: m.agenda, taskList: m.taskList, noteShare: m.noteShare, slots: m.slots ? { ...m.slots, confirmed: undefined, options: m.slots.options.map((o) => ({ ...o, votes: [] })) } : undefined, forwarded: true });
         });
       });
     },
@@ -212,6 +229,18 @@ export const useChat = create<ChatState>()(
         }),
       },
     })),
+    voteSlot: (id, mid, optId, me) => set((s) => ({
+      messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (m.id !== mid || !m.slots ? m : { ...m, slots: { ...m.slots, options: m.slots.options.map((o) => (o.id === optId ? { ...o, votes: o.votes.includes(me) ? o.votes.filter((v) => v !== me) : [...o.votes, me] } : o)) } })) },
+    })),
+    confirmSlot: (id, mid, optId, me) => set((s) => {
+      const list = s.messages[id] ?? [];
+      const m = list.find((x) => x.id === mid);
+      const o = m?.slots?.options.find((x) => x.id === optId);
+      if (!m || !o) return s;
+      const note = sys(id, `${me} ha confermato "${m.slots!.title}": ${o.day} alle ${o.time}`);
+      return { messages: { ...s.messages, [id]: [...list.map((x) => (x.id === mid ? { ...x, slots: { ...x.slots!, confirmed: optId } } : x)), note] } };
+    }),
+    markImported: (id, mid, me) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (m.id === mid ? { ...m, importedBy: [...new Set([...(m.importedBy ?? []), me])] } : m)) } })),
     addMembers: (id, names, me) => set((s) => {
       const c = s.chats[id]; if (!c) return s;
       const add = names.filter((n) => !c.members.includes(n));
@@ -279,13 +308,17 @@ export function totalUnread(me: string): number {
 export function previewOf(m: ChatMessage): string {
   if (m.deletedForAll) return 'Questo messaggio è stato eliminato';
   switch (m.kind) {
-    case 'image': return '📷 ' + (m.text || 'Foto');
-    case 'video': return '🎥 ' + (m.text || 'Video');
-    case 'audio': return '🎤 Messaggio vocale ' + fmtDur(m.media?.durationMs ?? 0);
-    case 'file': return '📄 ' + (m.media?.name ?? 'Documento');
-    case 'location': return '📍 Posizione';
-    case 'contact': return '👤 ' + (m.contact?.name ?? 'Contatto');
-    case 'poll': return '📊 ' + (m.poll?.q ?? 'Sondaggio');
+    case 'image': return m.text || 'Foto';
+    case 'video': return m.text || 'Video';
+    case 'audio': return 'Messaggio vocale ' + fmtDur(m.media?.durationMs ?? 0);
+    case 'file': return m.media?.name ?? 'Documento';
+    case 'location': return 'Posizione';
+    case 'contact': return m.contact?.name ?? 'Contatto';
+    case 'poll': return m.poll?.q ?? 'Sondaggio';
+    case 'agenda': return 'Agenda: ' + (m.agenda?.title ?? 'impegni');
+    case 'tasks': return 'Task: ' + (m.taskList?.title ?? 'elenco');
+    case 'note': return 'Nota: ' + (m.noteShare?.title ?? '');
+    case 'slots': return 'Proposta orari: ' + (m.slots?.title ?? '');
     default: return m.text ?? '';
   }
 }

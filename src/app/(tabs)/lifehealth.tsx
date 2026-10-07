@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { Flame, LineChart } from '@/components/charts';
-import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Progress, Row, SectionLabel, Sheet, Tag } from '@/components/ui';
+import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Progress, Row, SectionLabel, Sheet, Tag, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { avg } from '@/lib/format';
-import { areaColors } from '@/lib/icons';
+import { areaColors, Icon } from '@/lib/icons';
 import { computeScores } from '@/lib/scores';
 import { healthMeta, last, moodOptions, streakOf, useHealth, type Metric as M } from '@/store/health';
 import { toast } from '@/store/toast';
@@ -105,7 +105,7 @@ export default function LifeHealth() {
         {[{ label: "10'000 passi al giorno", done: (steps ?? 0) >= 10000, streak: stepsStreak }, { label: 'Dormi almeno 7 ore', done: (sleep ?? 0) >= 7, streak: sleepStreak }].map((it, i) => (
           <Item key={i} last={i === 1}>
             <Row>
-              <Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={8}><Text style={{ color: it.done ? t.positive : t.muted, fontSize: 15 }}>{it.done ? '✓' : '○'}</Text><Body small>{it.label}</Body></Row>
+              <Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={8}><Icon name={it.done ? 'checksquare' : 'circle'} size={17} color={it.done ? t.positive : t.muted} /><Body small>{it.label}</Body></Row>
               {it.streak ? <Flame streak={it.streak} size={26} /> : null}
             </Row>
           </Item>
@@ -126,7 +126,7 @@ export default function LifeHealth() {
         <Row><H>Allenamenti</H><Btn small ghost title="+ Registra" onPress={() => open('workout')} /></Row>
         {h.workouts.length === 0 ? <Empty text="Nessun allenamento registrato: il primo passo conta più di quanto pensi." /> : h.workouts.map((w, i) => (
           <Item key={w.id} last={i === h.workouts.length - 1}>
-            <Row><View style={{ flex: 1 }}><Body bold>{w.type}</Body><Body small muted>{w.date} · {w.duration} min</Body></View><Body small muted>{w.calories} kcal</Body><Link danger onPress={() => { h.delWorkout(w.id); toast('Allenamento eliminato'); }}>×</Link></Row>
+            <Row><View style={{ flex: 1 }}><Body bold>{w.type}</Body><Body small muted>{w.date} · {w.duration} min</Body></View><Body small muted>{w.calories} kcal</Body><XBtn onPress={() => { h.delWorkout(w.id); toast('Allenamento eliminato'); }} /></Row>
           </Item>
         ))}
       </Card>
@@ -155,7 +155,7 @@ export default function LifeHealth() {
         <Item><Row><Body muted>Minuti stimati questa settimana (wearable)</Body><Body bold>{Math.round(series.mindful.slice(-7).reduce((a, b) => a + b, 0))} min</Body></Row></Item>
         {h.mindSessions.length === 0 ? <Empty text="Nessuna sessione registrata." /> : h.mindSessions.map((s, i) => (
           <Item key={s.id} last={i === h.mindSessions.length - 1}>
-            <Row><View style={{ flex: 1 }}><Body bold>{s.type}</Body><Body small muted>{s.date}</Body></View><Body small muted>{s.duration} min</Body><Link danger onPress={() => { h.delMind(s.id); toast('Sessione eliminata'); }}>×</Link></Row>
+            <Row><View style={{ flex: 1 }}><Body bold>{s.type}</Body><Body small muted>{s.date}</Body></View><Body small muted>{s.duration} min</Body><XBtn onPress={() => { h.delMind(s.id); toast('Sessione eliminata'); }} /></Row>
           </Item>
         ))}
       </Card>

@@ -4,7 +4,7 @@ import { Text, View } from 'react-native';
 import { Inbox } from '@/components/Inbox';
 import { JobsHub } from '@/components/JobsHub';
 import { IdeaCard, LpTag, MediaBlock, PostCard, Badge, openPurchaseConfirm, openSheet, UserAvatar } from '@/components/network';
-import { Body, Btn, Card, Empty, H, Input, Page, Row, Seg, TabRow, Item } from '@/components/ui';
+import { Body, Btn, Card, Empty, H, Input, Page, Row, Seg, TabRow, Item, Chev } from '@/components/ui';
 import { useT } from '@/lib/i18n';
 import { formatCHF } from '@/lib/format';
 import { go } from '@/lib/nav';
@@ -80,7 +80,7 @@ export default function LifeNetwork() {
       <Input placeholder="Cerca persone su LifeNetwork…" value={people} onChangeText={setPeople} />
       {q.length >= 2 && (
         <Card>{matches.length === 0 ? <Empty text="Nessuna persona trovata." /> : matches.map((n, i) => (
-          <Item key={n} last={i === matches.length - 1} onPress={() => go('userProfile', { name: n })}><Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}><UserAvatar name={n} size={28} /><Body>{n}</Body></Row><Body muted>›</Body></Row></Item>
+          <Item key={n} last={i === matches.length - 1} onPress={() => go('userProfile', { name: n })}><Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}><UserAvatar name={n} size={28} /><Body>{n}</Body></Row><Chev /></Row></Item>
         ))}</Card>
       )}
       <TabRow options={tabs.map(tabLabel)} value={tabLabel(prefs.lnTab)} onChange={(v) => setPref('lnTab', tabs.find((x) => tabLabel(x) === v) ?? 'Home')} />
@@ -117,7 +117,7 @@ export default function LifeNetwork() {
                         <Body bold onPress={() => go('communityProfile', { id: String(c.id) })}>{c.name}</Body>
                         <Body small muted>{c.topic} · {c.members.length} membri · {c.openPosting ? 'tutti possono pubblicare' : 'solo il proprietario pubblica'}</Body>
                       </View>
-                      <Btn small ghost={joined} title={joined ? 'Iscritto ✓' : 'Iscriviti'} onPress={() => {
+                      <Btn small ghost={joined} title={joined ? 'Iscritto' : 'Iscriviti'} onPress={() => {
                         net.patch({ communities: net.communities.map((x) => (x.id === c.id ? { ...x, members: joined ? x.members.filter((m) => m !== me) : [...x.members, me] } : x)) });
                         toast(joined ? 'Hai lasciato ' + c.name : 'Iscritto a ' + c.name);
                       }} />
@@ -153,7 +153,7 @@ export default function LifeNetwork() {
               {net.providers.length === 0 && <Card><Empty text="Ancora nessun professionista in elenco." /></Card>}
               {net.providers.map((p, i) => (
                 <Card key={p.name}>
-                  <Row><View style={{ flex: 1 }}><Body bold>{p.name}</Body><Body small muted>{p.role} · ★ {p.rating} · {p.slots.length} slot liberi</Body></View><Badge label={p.tag} color="#8fa4ff" /></Row>
+                  <Row><View style={{ flex: 1 }}><Body bold>{p.name}</Body><Body small muted>{p.role} · {p.rating}/5 · {p.slots.length} slot liberi</Body></View><Badge label={p.tag} color="#8fa4ff" /></Row>
                   <MediaBlock media={p.media} seed={p.name + p.role} />
                   <Row style={{ marginTop: 10 }}>
                     <Row gap={2}><Body bold>{p.price}</Body><LpTag size={13} /><Body bold> / sessione</Body></Row>

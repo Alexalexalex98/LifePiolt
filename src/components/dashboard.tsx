@@ -6,6 +6,7 @@ import { useTheme } from '@/hooks/use-theme';
 import type { Palette } from '@/constants/theme';
 import { metricInfo } from '@/data/metricInfo';
 import { fmtVal, type Analysis, type Insight, type Status } from '@/lib/analytics';
+import { Icon } from '@/lib/icons';
 
 export const statusColor = (t: Palette, s: Status | Insight['severity']) =>
   s === 'good' ? t.positive : s === 'warn' ? t.warn : s === 'bad' ? t.danger : t.muted;
@@ -29,10 +30,11 @@ export function DeltaChip({ a }: { a: Analysis }) {
   if (a.deltaPct == null) return null;
   const st = deltaStatus(a);
   const c = statusColor(t, st);
-  const arrow = Math.abs(a.deltaPct) < 2 ? '▬' : a.deltaPct > 0 ? '▲' : '▼';
+  const arrow = Math.abs(a.deltaPct) < 2 ? 'minus' : a.deltaPct > 0 ? 'trend-up' : 'trend-down';
   return (
-    <View style={{ backgroundColor: c + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}>
-      <Text style={{ color: c, fontSize: 11, fontWeight: '700' }}>{arrow} {a.deltaPct > 0 ? '+' : ''}{Math.round(a.deltaPct)}%</Text>
+    <View style={{ backgroundColor: c + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+      <Icon name={arrow} size={12} color={c} stroke={2.4} />
+      <Text style={{ color: c, fontSize: 11, fontWeight: '700' }}>{a.deltaPct > 0 ? '+' : ''}{Math.round(a.deltaPct)}%</Text>
     </View>
   );
 }
@@ -61,7 +63,7 @@ export function KpiCard({ a, onPress }: { a: Analysis; onPress: () => void }) {
       {metricInfo[d.id] && <Text style={{ color: c, fontSize: 11, marginTop: 4, fontWeight: '600' }} numberOfLines={2}>Ottimale: {metricInfo[d.id].optimal}</Text>}
       <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }} numberOfLines={2}>
         {fc ? `Prev. ${d.period === 'day' ? '7 gg' : '3 mesi'}: ${fmtVal(fc.end, d)}` : `${a.n} ${d.period === 'day' ? 'giorni' : 'mesi'} di dati`}
-        {a.significant ? `  ${a.trend === 'up' ? '↗' : '↘'}` : ''}
+        {a.significant ? (a.trend === 'up' ? '  in crescita' : '  in calo') : ''}
       </Text>
     </Card>
   );
@@ -70,17 +72,17 @@ export function KpiCard({ a, onPress }: { a: Analysis; onPress: () => void }) {
 export function InsightCard({ i, onPress }: { i: Insight; onPress?: () => void }) {
   const t = useTheme();
   const c = statusColor(t, i.severity);
-  const glyph = i.severity === 'good' ? '✓' : i.severity === 'info' ? 'i' : '!';
+  const glyph = i.severity === 'good' ? 'check' : i.severity === 'info' ? 'info' : 'alert';
   return (
     <Card onPress={onPress} style={{ borderLeftWidth: 3, borderLeftColor: c }}>
       <Row style={{ alignItems: 'flex-start' }}>
         <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: c + '25', alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: c, fontWeight: '800', fontSize: 13 }}>{glyph}</Text>
+          <Icon name={glyph} size={14} color={c} stroke={2.4} />
         </View>
         <View style={{ flex: 1 }}>
           <Body bold>{i.title}</Body>
           <Body small muted style={{ marginTop: 3 }}>{i.detail}</Body>
-          {i.action ? <Body small color={c} style={{ marginTop: 6 }}>→ {i.action}</Body> : null}
+          {i.action ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 }}><Icon name="arrow-right" size={13} color={c} /><Body small color={c} style={{ flex: 1 }}>{i.action}</Body></View> : null}
         </View>
       </Row>
     </Card>
@@ -202,7 +204,7 @@ function Explain({ a, part }: { a: Analysis; part: 'top' | 'rest' }) {
           {info.improve.map((x, i) => <Body key={i} small style={{ marginBottom: 3 }}>{i + 1}. {x}</Body>)}
         </Sect>
       )}
-      {info.caution && <Body small muted style={{ marginTop: 10 }}>⚠ {info.caution}</Body>}
+      {info.caution && <View style={{ flexDirection: 'row', gap: 6, marginTop: 10 }}><Icon name="alert" size={14} color={t.muted} /><Body small muted style={{ flex: 1 }}>{info.caution}</Body></View>}
     </View>
   );
 }

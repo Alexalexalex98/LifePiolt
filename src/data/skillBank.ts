@@ -24,12 +24,12 @@ export type Question = {
 export type Trait = 'affidabilita' | 'onesta' | 'collaborazione';
 
 export const skills: { id: string; label: string; icon: string; desc: string }[] = [
-  { id: 'vendite', label: 'Vendite e negoziazione', icon: '🤝', desc: 'Capire il cliente, gestire obiezioni e prezzo.' },
-  { id: 'analisi', label: 'Analisi dei numeri', icon: '📊', desc: 'Percentuali, medie, lettura di dati e margini.' },
-  { id: 'scrittura', label: 'Comunicazione scritta', icon: '✍️', desc: 'Email chiare, tono giusto, sintesi.' },
-  { id: 'problem', label: 'Problem solving e logica', icon: '🧩', desc: 'Ragionamento, sequenze, priorità tecniche.' },
-  { id: 'clienti', label: 'Assistenza clienti', icon: '🎧', desc: 'Empatia, soluzioni, gestione dei reclami.' },
-  { id: 'organizzazione', label: 'Organizzazione e priorità', icon: '🗂️', desc: 'Gestire tempo, scadenze e imprevisti.' },
+  { id: 'vendite', label: 'Vendite e negoziazione', icon: 'users', desc: 'Capire il cliente, gestire obiezioni e prezzo.' },
+  { id: 'analisi', label: 'Analisi dei numeri', icon: 'chart', desc: 'Percentuali, medie, lettura di dati e margini.' },
+  { id: 'scrittura', label: 'Comunicazione scritta', icon: 'edit', desc: 'Email chiare, tono giusto, sintesi.' },
+  { id: 'problem', label: 'Problem solving e logica', icon: 'puzzle', desc: 'Ragionamento, sequenze, priorità tecniche.' },
+  { id: 'clienti', label: 'Assistenza clienti', icon: 'headphones', desc: 'Empatia, soluzioni, gestione dei reclami.' },
+  { id: 'organizzazione', label: 'Organizzazione e priorità', icon: 'tasks', desc: 'Gestire tempo, scadenze e imprevisti.' },
 ];
 export const skillLabel = (id: string) => skills.find((s) => s.id === id)?.label ?? id;
 
