@@ -7,28 +7,49 @@ import { buildAgenda, buildTasks, dayLabelOf, myConflicts, noteShareOf, type Age
 import { dayKey, pad2, uid } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { notePreview, noteTitle } from '@/lib/notes';
-import type { ChatMessage } from '@/store/chat';
+import { useApp } from '@/store/app';
+import type { AgendaMode, ChatMessage } from '@/store/chat';
 import { taskIsDone, useLife } from '@/store/life';
 import { toast } from '@/store/toast';
 
 export type SharePayload = Partial<ChatMessage> & { kind: ChatMessage['kind'] };
 type Common = { visible: boolean; onClose: () => void; onSend: (m: SharePayload) => void };
 
+const modeInfo: Record<AgendaMode, { label: string; hint: string }> = {
+  dettagli: { label: 'Con dettagli', hint: 'Chi riceve vede titolo, giorno e ora di ogni impegno e può aggiungerli al proprio piano.' },
+  occupato: { label: 'Solo occupato', hint: 'Chi riceve vede quando sei occupato e quando sei libero, ma non cosa stai facendo: i titoli non vengono inviati.' },
+  liberi: { label: 'Solo slot liberi', hint: 'Chi riceve vede soltanto quando sei libero e può proporti un orario. Impegni e titoli restano nascosti: non vengono inviati.' },
+};
+
 export function AgendaSheet({ visible, onClose, onSend }: Common) {
+  const t = useTheme();
   const events = useLife((s) => s.events);
-  const [range, setRange] = useState<AgendaRange>('oggi');
-  const preview = visible ? buildAgenda(range) : null;
+  const wh = useApp((s) => s.workHours);
+  const [range, setRange] = useState<AgendaRange>('7 giorni');
+  const [mode, setMode] = useState<AgendaMode>('liberi');
+  const [minSlot, setMinSlot] = useState(30);
+  const [weekend, setWeekend] = useState(false);
+  const preview = visible ? buildAgenda(range, mode, { minSlot, weekend }) : null;
   void events;
+  const list = mode === 'dettagli'
+    ? preview?.items.map((it) => ({ day: it.day, key: it.time, text: `${it.time}  ${it.title}` }))
+    : [...(preview?.busy ?? []).map((b) => ({ day: b.day, key: b.from, text: `occupato ${b.from}–${b.to}` })), ...(preview?.free ?? []).map((f) => ({ day: f.day, key: f.from, text: `libero ${f.from}–${f.to}` }))].sort((a, b) => (a.day + a.key).localeCompare(b.day + b.key));
   return (
-    <Sheet visible={visible} title="Condividi i tuoi impegni" onClose={onClose}>
-      <Row style={{ justifyContent: 'flex-start', marginBottom: 8 }} gap={6}>{(['oggi', 'domani', '7 giorni'] as AgendaRange[]).map((r) => <Pill key={r} label={r === 'oggi' ? 'Oggi' : r === 'domani' ? 'Domani' : 'Prossimi 7 giorni'} on={range === r} onPress={() => setRange(r)} />)}</Row>
-      {preview ? (
+    <Sheet visible={visible} title="Condividi la tua agenda" onClose={onClose}>
+      <Body small muted style={{ marginBottom: 6 }}>Cosa vuoi far vedere?</Body>
+      <Row style={{ justifyContent: 'flex-start', marginBottom: 6, flexWrap: 'wrap' }} gap={6}>{(Object.keys(modeInfo) as AgendaMode[]).map((m) => <Pill key={m} icon={m === 'dettagli' ? 'calendar' : m === 'occupato' ? 'eye' : 'clock'} label={modeInfo[m].label} on={mode === m} onPress={() => setMode(m)} />)}</Row>
+      <View style={{ backgroundColor: t.accent + '1f', borderRadius: 12, padding: 10, marginBottom: 10 }}><Body small>{modeInfo[mode].hint}</Body></View>
+      <Row style={{ justifyContent: 'flex-start', marginBottom: 8, flexWrap: 'wrap' }} gap={6}>{(['oggi', 'domani', '7 giorni'] as AgendaRange[]).map((r) => <Pill key={r} label={r === 'oggi' ? 'Oggi' : r === 'domani' ? 'Domani' : 'Prossimi 7 giorni'} on={range === r} onPress={() => setRange(r)} />)}</Row>
+      {mode !== 'dettagli' && (
         <>
-          {preview.items.slice(0, 12).map((it, i) => <Item key={i} last={i === Math.min(preview.items.length, 12) - 1}><Row><Body small bold style={{ width: 88 }}>{dayLabelOf(it.day)} {it.time}</Body><Body small style={{ flex: 1 }} numberOfLines={1}>{it.title}</Body></Row></Item>)}
-          <Body small muted style={{ marginTop: 8 }}>Chi riceve vede solo titolo, giorno e ora, e può aggiungerli al proprio piano. Non condividi note né dettagli privati.</Body>
-          <Btn style={{ marginTop: 10 }} icon="send" title="Invia" onPress={() => { onSend({ kind: 'agenda', agenda: preview }); onClose(); }} />
+          <Body small muted style={{ marginBottom: 4 }}>Slot liberi di almeno · orario di lavoro {wh.start}–{wh.end}</Body>
+          <Row style={{ justifyContent: 'flex-start', marginBottom: 8 }} gap={6}>{[30, 60, 90].map((m) => <Pill key={m} label={`${m} min`} on={minSlot === m} onPress={() => setMinSlot(m)} />)}{range === '7 giorni' && <Pill label="Includi weekend" on={weekend} onPress={() => setWeekend(!weekend)} />}</Row>
         </>
-      ) : <Body small muted>Nessun impegno in questo periodo.</Body>}
+      )}
+      <Body small bold style={{ marginTop: 4, marginBottom: 2 }}>Anteprima di ciò che verrà inviato</Body>
+      {list && list.length ? list.slice(0, 10).map((it, i, arr) => <Item key={i} last={i === arr.length - 1}><Row><Body small bold style={{ width: 84 }}>{dayLabelOf(it.day)}</Body><Body small style={{ flex: 1 }} numberOfLines={1}>{it.text}</Body></Row></Item>) : <Body small muted>{mode === 'dettagli' ? 'Nessun impegno in questo periodo.' : 'Nessuno slot libero in questo periodo.'}</Body>}
+      {list && list.length > 10 && <Body small muted>…e altri {list.length - 10}</Body>}
+      {preview && (mode === 'dettagli' || !!preview.free?.length) && <Btn style={{ marginTop: 12 }} icon="send" title="Invia" onPress={() => { onSend({ kind: 'agenda', agenda: preview }); onClose(); }} />}
     </Sheet>
   );
 }

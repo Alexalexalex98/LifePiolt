@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, PanResponder, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { captureScreen } from 'react-native-view-shot';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -95,6 +95,14 @@ export function TheiaFab() {
   const open = useTheia((s) => s.open);
   const name = useApp((s) => s.assistantName);
   const [hidden, setHidden] = useState(false);
+  // il pulsante si può trascinare dove non copre il contenuto
+  const pos = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const pan = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) + Math.abs(g.dy) > 8,
+    onPanResponderGrant: () => { pos.extractOffset(); },
+    onPanResponderMove: Animated.event([null, { dx: pos.x, dy: pos.y }], { useNativeDriver: false }),
+    onPanResponderRelease: () => { pos.flattenOffset(); },
+  })).current;
   if (open) return null;
 
   async function shot() {
@@ -117,11 +125,13 @@ export function TheiaFab() {
 
   if (hidden) return null;
   return (
-    <Pressable
-      onPress={shot} onLongPress={clip} delayLongPress={350}
-      accessibilityLabel={`Chiedi a ${name}: tocca per analizzare la schermata, tieni premuto per il testo copiato`}
-      style={{ position: 'absolute', right: 12, bottom: insets.bottom + 150, width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: 0.92, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, elevation: 6 }}>
-      <Icon name="sparkle" size={22} color={t.onText} />
-    </Pressable>
+    <Animated.View {...pan.panHandlers} style={{ position: 'absolute', right: 12, bottom: insets.bottom + 150, transform: pos.getTranslateTransform() }}>
+      <Pressable
+        onPress={shot} onLongPress={clip} delayLongPress={350}
+        accessibilityLabel={`Chiedi a ${name}: tocca per analizzare la schermata, tieni premuto per il testo copiato. Trascinalo per spostarlo`}
+        style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: 0.92, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, elevation: 6 }}>
+        <Icon name="sparkle" size={22} color={t.onText} />
+      </Pressable>
+    </Animated.View>
   );
 }

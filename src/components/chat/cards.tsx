@@ -32,7 +32,54 @@ function Action({ icon, label, onPress, done }: { icon: string; label: string; o
   );
 }
 
-export function AgendaCard({ m, me, chatId }: { m: ChatMessage; me: string; chatId: string }) {
+function AvailabilityCard({ m, me, chatId }: { m: ChatMessage; me: string; chatId: string }) {
+  const c = useChatColors();
+  const t = useTheme();
+  useLife((s) => s.events);
+  const a = m.agenda!;
+  const mine = m.from === me;
+  const days = [...new Set([...(a.free ?? []).map((f) => f.day), ...(a.busy ?? []).map((b) => b.day)])].sort();
+  const propose = (day: string, from: string) => {
+    useChat.getState().send(chatId, me, { kind: 'slots', slots: { title: 'Incontro', durationMin: a.hours?.minSlot ?? 30, options: [{ id: `p${day}${from}`, day, time: from, votes: [me] }] }, replyTo: m.id });
+    toast(`Proposto ${dayLabelOf(day)} alle ${from}`);
+  };
+  return (
+    <View style={{ minWidth: 250 }}>
+      <Head icon={a.mode === 'liberi' ? 'clock' : 'eye'} title={a.title} sub={a.mode === 'liberi' ? 'Solo slot liberi: gli impegni sono nascosti' : 'Impegni nascosti: vedi solo occupato e libero'} />
+      {days.length === 0 && <Text style={{ color: c.meta, fontSize: 13 }}>Nessuno slot libero in questo periodo.</Text>}
+      {days.map((d) => {
+        const free = (a.free ?? []).filter((f) => f.day === d);
+        const busy = (a.busy ?? []).filter((b) => b.day === d);
+        return (
+          <View key={d} style={{ marginTop: 6 }}>
+            <Text style={{ color: c.meta, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginBottom: 3 }}>{dayLabelOf(d)}</Text>
+            {busy.map((b, i) => (
+              <View key={'b' + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3, opacity: 0.8 }}>
+                <Icon name="minus" size={13} color={c.meta} />
+                <Text style={{ color: c.meta, fontSize: 13 }}>Occupato {b.from}–{b.to}</Text>
+              </View>
+            ))}
+            {free.map((f, i) => {
+              const both = !mine && myConflicts(d, f.from, a.hours?.minSlot ?? 30).length === 0;
+              return (
+                <Pressable key={'f' + i} onPress={() => !mine && propose(d, f.from)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5, paddingHorizontal: 8, marginVertical: 2, borderRadius: 10, backgroundColor: t.positive + '1f' }}>
+                  <Icon name="check" size={14} color={t.positive} stroke={2.4} />
+                  <Text style={{ color: c.theirsText, fontSize: 14, fontWeight: '700', flex: 1 }}>Libero {f.from}–{f.to}</Text>
+                  {!mine && both && <Text style={{ color: t.positive, fontSize: 11, fontWeight: '700' }}>anche tu</Text>}
+                  {!mine && <Text style={{ color: t.accent, fontSize: 11, fontWeight: '800' }}>Proponi</Text>}
+                </Pressable>
+              );
+            })}
+          </View>
+        );
+      })}
+      {a.hours && <Text style={{ color: c.meta, fontSize: 11, marginTop: 8 }}>Orario di lavoro {a.hours.from}–{a.hours.to} · slot da almeno {a.hours.minSlot} min</Text>}
+      {mine && <Text style={{ color: c.meta, fontSize: 11, marginTop: 4 }}>I titoli dei tuoi impegni non sono stati inviati.</Text>}
+    </View>
+  );
+}
+
+function DetailCard({ m, me, chatId }: { m: ChatMessage; me: string; chatId: string }) {
   const c = useChatColors();
   const t = useTheme();
   useLife((s) => s.events);
@@ -61,6 +108,11 @@ export function AgendaCard({ m, me, chatId }: { m: ChatMessage; me: string; chat
       {!mine && <Action icon="plus" label={imported ? 'Aggiunta al tuo piano' : 'Aggiungi al mio piano'} done={imported} onPress={() => { const n = importAgenda(a, m.from); useChat.getState().markImported(chatId, m.id, me); toast(n ? `${n} impegni aggiunti al tuo piano` : 'Erano già nel tuo piano'); }} />}
     </View>
   );
+}
+
+export function AgendaCard(props: { m: ChatMessage; me: string; chatId: string }) {
+  const mode = props.m.agenda?.mode;
+  return mode === 'liberi' || mode === 'occupato' ? <AvailabilityCard {...props} /> : <DetailCard {...props} />;
 }
 
 export function TasksCard({ m, me, chatId }: { m: ChatMessage; me: string; chatId: string }) {

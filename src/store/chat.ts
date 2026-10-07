@@ -7,7 +7,16 @@ export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location'
 export type MsgStatus = 'sending' | 'sent' | 'delivered' | 'read';
 
 export type Media = { uri: string; w?: number; h?: number; mime?: string; name?: string; size?: number; durationMs?: number; waveform?: number[] };
-export type AgendaShare = { title: string; range: string; items: { day: string; time: string; title: string }[] };
+export type AgendaMode = 'dettagli' | 'occupato' | 'liberi';
+/** Agenda condivisa. In modalità 'occupato' e 'liberi' NON contiene i titoli degli impegni: solo intervalli di orario. */
+export type AgendaShare = {
+  title: string; range: string; mode?: AgendaMode;
+  items: { day: string; time: string; title: string }[];
+  busy?: { day: string; from: string; to: string }[];
+  free?: { day: string; from: string; to: string }[];
+  /** orario di lavoro e durata minima usati per calcolare gli slot (mostrati a chi riceve) */
+  hours?: { from: string; to: string; minSlot: number };
+};
 export type TaskShare = { title: string; items: { t: string; done: boolean }[] };
 export type NoteShare = { title: string; text: string };
 /** Proposta di orari per un incontro: chi riceve vota gli orari che gli vanno bene. */
@@ -315,7 +324,7 @@ export function previewOf(m: ChatMessage): string {
     case 'location': return 'Posizione';
     case 'contact': return m.contact?.name ?? 'Contatto';
     case 'poll': return m.poll?.q ?? 'Sondaggio';
-    case 'agenda': return 'Agenda: ' + (m.agenda?.title ?? 'impegni');
+    case 'agenda': return m.agenda?.mode === 'liberi' ? 'Disponibilità: slot liberi' : m.agenda?.mode === 'occupato' ? 'Disponibilità: occupato/libero' : 'Agenda: ' + (m.agenda?.title ?? 'impegni');
     case 'tasks': return 'Task: ' + (m.taskList?.title ?? 'elenco');
     case 'note': return 'Nota: ' + (m.noteShare?.title ?? '');
     case 'slots': return 'Proposta orari: ' + (m.slots?.title ?? '');

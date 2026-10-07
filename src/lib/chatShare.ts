@@ -1,6 +1,8 @@
 import { dayKey, pad2 } from '@/lib/format';
 import { noteTitle } from '@/lib/notes';
-import type { AgendaShare, ChatMessage, SlotsShare, TaskShare } from '@/store/chat';
+import { busyBlocks, fmtMin, freeSlots } from '@/lib/availability';
+import { useApp } from '@/store/app';
+import type { AgendaMode, AgendaShare, ChatMessage, SlotsShare, TaskShare } from '@/store/chat';
 import { taskIsDone, useLife } from '@/store/life';
 
 const wd = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
@@ -13,13 +15,33 @@ const addDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n
 
 export type AgendaRange = 'oggi' | 'domani' | '7 giorni';
 
-/** I tuoi impegni nel periodo scelto, ordinati. */
-export function buildAgenda(range: AgendaRange): AgendaShare | null {
-  const days = range === 'oggi' ? [addDays(0)] : range === 'domani' ? [addDays(1)] : Array.from({ length: 7 }, (_, i) => addDays(i));
+/**
+ * I tuoi impegni nel periodo scelto.
+ * - 'dettagli': titolo, giorno e ora
+ * - 'occupato': solo i blocchi in cui sei occupato (nessun titolo)
+ * - 'liberi': solo gli slot liberi nell'orario di lavoro (nessun titolo, nessun blocco occupato)
+ */
+export function buildAgenda(range: AgendaRange, mode: AgendaMode = 'dettagli', opts: { ws?: string; we?: string; minSlot?: number; weekend?: boolean } = {}): AgendaShare | null {
+  let days = range === 'oggi' ? [addDays(0)] : range === 'domani' ? [addDays(1)] : Array.from({ length: 7 }, (_, i) => addDays(i));
+  // la disponibilità di lavoro salta il weekend, salvo richiesta esplicita
+  if (mode !== 'dettagli' && !opts.weekend && range === '7 giorni') days = days.filter((d) => { const w = new Date(d + 'T00:00:00').getDay(); return w !== 0 && w !== 6; });
   const ev = useLife.getState().events;
-  const items = days.flatMap((d) => (ev[d] ?? []).map((e) => ({ day: d, time: e.time, title: e.title }))).sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time));
-  if (!items.length) return null;
-  return { title: range === 'oggi' ? 'I miei impegni di oggi' : range === 'domani' ? 'I miei impegni di domani' : 'I miei impegni della settimana', range, items };
+  const wh = useApp.getState().workHours;
+  const ws = opts.ws ?? wh.start, we = opts.we ?? wh.end, minSlot = opts.minSlot ?? 30;
+  const rangeTitle = range === 'oggi' ? 'di oggi' : range === 'domani' ? 'di domani' : 'della settimana';
+  if (mode === 'dettagli') {
+    const items = days.flatMap((d) => (ev[d] ?? []).map((e) => ({ day: d, time: e.time, title: e.title }))).sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time));
+    if (!items.length) return null;
+    return { title: `I miei impegni ${rangeTitle}`, range, mode, items };
+  }
+  const nowMin = new Date().getHours() * 60 + Math.ceil(new Date().getMinutes() / 15) * 15;
+  const busy: NonNullable<AgendaShare['busy']> = [], free: NonNullable<AgendaShare['free']> = [];
+  days.forEach((d) => {
+    const events = ev[d] ?? [];
+    busyBlocks(events).forEach((b) => busy.push({ day: d, from: fmtMin(b.from), to: fmtMin(b.to) }));
+    freeSlots(events, ws, we, minSlot, 60, d === addDays(0) ? nowMin : 0).forEach((f) => free.push({ day: d, from: fmtMin(f.from), to: fmtMin(f.to) }));
+  });
+  return { title: mode === 'liberi' ? `Quando sono libero ${rangeTitle}` : `La mia disponibilità ${rangeTitle}`, range, mode, items: [], busy: mode === 'occupato' ? busy : undefined, free, hours: { from: ws, to: we, minSlot } };
 }
 
 export function buildTasks(ids: string[]): TaskShare | null {
