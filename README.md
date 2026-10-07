@@ -23,6 +23,15 @@ Al primo avvio si sceglie "Inizia da zero" oppure "Esplora con dati demo" (i dat
 Tutti i dati restano sul dispositivo (AsyncStorage). Struttura: `src/store` (stato per area), `src/app/(tabs)` (schermate),
 `src/components` (UI e schede), `src/lib` (logica), `src/data` (dati demo e traduzioni).
 
+## Dashboard e analisi dati
+
+La Home è una dashboard di analisi: `src/lib/analytics.ts` (motore puro e testato: `npm test`) calcola statistica
+descrittiva, trend con significatività, previsioni a 7 giorni / 3 mesi con fascia di incertezza, anomalie robuste,
+correlazioni corrette per confronti multipli e insight in italiano; `src/lib/analyticsData.ts` raccoglie le serie
+da salute, finanza, umore, task e obiettivi. Le previsioni sono stime statistiche semplici, non promesse.
+
+**Apple Health / Apple Watch**: vedi `docs/APPLE_HEALTH.md` (serve una build nativa, non funziona in Expo Go).
+
 ## Prima di pubblicare sugli store
 
 Parti ancora simulate o da completare:
@@ -32,7 +41,7 @@ Parti ancora simulate o da completare:
 - **Portafoglio/azioni**: dati e ordini simulati. Un servizio reale richiede un broker partner con licenza. Valuta di toglierlo dalla v1.
 - **LifeNetwork**: senza backend i contenuti degli altri utenti esistono solo nei dati demo. Per UGC gli store richiedono
   moderazione, segnalazione e blocco, politica contenuti e cancellazione account (anche lato server).
-- **Salute**: il collegamento a Apple Health/Fitbit/Garmin è di prova. Per dati reali servono HealthKit / Health Connect.
+- **Salute**: Apple Health è collegato con HealthKit (solo build nativa, da provare su iPhone). Android/Health Connect, Fitbit e Garmin non sono ancora collegati.
 - **QR del biglietto**: illustrativo (non scansionabile).
 - **Testi legali** (privacy, termini): sono bozze in Settings, serve una privacy policy pubblica su un URL.
 - **Icona e splash**: sono ancora quelle di esempio di Expo. Servono un'icona 1024×1024 (senza trasparenza) e uno splash definitivi in `assets/images/`.

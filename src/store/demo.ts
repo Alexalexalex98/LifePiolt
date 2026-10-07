@@ -1,8 +1,8 @@
 import seed from '@/data/network-seed.json';
-import { demoAutomations, demoBills, demoDrive, demoEvents, demoGoals, demoHealth, demoInsights, demoMonths, demoNotes, demoTasks } from '@/data/seed';
+import { demoAutomations, demoBills, demoDoneTasks, demoDrive, demoEvents, demoGoals, demoHealth, demoInsights, demoMonths, demoNotes, demoTasks } from '@/data/seed';
 import { shortDate } from '@/lib/format';
 import { defaultBudget, defaultCategories, defaultWatchlist, useFin } from './finance';
-import { useHealth } from './health';
+import { ensureDates, useHealth } from './health';
 import { useLife } from './life';
 import { useNet } from './network';
 import { useTravel } from './travel';
@@ -19,9 +19,12 @@ function personalise<T>(data: T, me: string): T {
 
 /** Carica i dati d'esempio del prototipo in tutti gli store. */
 export function applyDemo(me: string, email = '') {
-  useLife.setState({ tasks: demoTasks(), goals: demoGoals(), automations: demoAutomations(), notes: demoNotes(), drive: demoDrive(), events: demoEvents() });
+  useLife.setState({ tasks: [...demoTasks(), ...demoDoneTasks()], goals: demoGoals(), automations: demoAutomations(), notes: demoNotes(), drive: demoDrive(), events: demoEvents() });
   const h = demoHealth();
-  useHealth.setState({ series: h.series, workouts: h.workouts, mindSessions: h.mindSessions, moods: h.moods });
+  const series = { ...useHealth.getState().series, ...h.series };
+  const dates = { ...useHealth.getState().dates };
+  (Object.keys(h.series) as (keyof typeof h.series)[]).forEach((k) => { dates[k] = ensureDates(h.series[k], undefined); });
+  useHealth.setState({ series, dates, sources: Object.fromEntries(Object.keys(h.series).map((k) => [k, 'demo'])), workouts: h.workouts, mindSessions: h.mindSessions, moods: h.moods });
   const months = demoMonths();
   useFin.setState({
     months, insights: demoInsights(), savingsPct: 6.5, bills: demoBills(), cash: 5000, stocks: defaultWatchlist(true),

@@ -1,243 +1,245 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { LifeScoreSheet } from '@/components/scoreSheet';
+import { TrendChart } from '@/components/charts';
+import { InsightCard, KpiCard, MetricSheet, deltaStatus, scoreStatus, statusColor } from '@/components/dashboard';
 import { PlanDaySheet } from '@/components/plan';
-import { Bars, Flame, Spark } from '@/components/charts';
-import { Body, Btn, Card, Empty, H, Item, Metric, Page, Progress, Row, SectionLabel, Sheet, Tag } from '@/components/ui';
+import { Body, Btn, Card, H, Item, Page, Row, SectionLabel, Tag } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { dayKey, formatCHF, shortDate } from '@/lib/format';
-import { Icon } from '@/lib/icons';
+import { attainment, fmtVal, type Analysis, type Domain } from '@/lib/analytics';
+import { domainLabel, useDashboard } from '@/lib/analyticsData';
 import { go } from '@/lib/nav';
-import { notePreview, noteTitle } from '@/lib/notes';
-import { computeScores } from '@/lib/scores';
+import { applyDemo } from '@/store/demo';
 import { useApp } from '@/store/app';
-import { monthEnd, monthNet, holdings, useFin } from '@/store/finance';
-import { last, moodOptions, streakOf, useHealth } from '@/store/health';
-import { taskIsDone, useLife } from '@/store/life';
+import { moodOptions, useHealth } from '@/store/health';
+import { shortDate } from '@/lib/format';
 import { toast } from '@/store/toast';
-import { LpTag, UserAvatar } from '@/components/network';
-import { donationStreak, followerCountFor } from '@/lib/network';
-import { useNet } from '@/store/network';
-import { weekdayShortDate } from '@/lib/format';
 
-const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+const order: Record<Domain, string[]> = {
+  salute: ['sleep', 'steps', 'hrv', 'hr', 'exercise', 'energy', 'weight', 'vo2', 'spo2'],
+  mente: ['stress', 'mood', 'mindful'],
+  finanza: ['balance', 'savings', 'spending', 'dailyspend'],
+  crescita: ['tasks'],
+};
 
-export default function Home() {
+export default function Dashboard() {
   const t = useTheme();
-  const name = useApp((s) => s.account.name);
-  const life = useLife();
-  const health = useHealth();
-  const fin = useFin();
-  const [scoreSheet, setScoreSheet] = useState(false);
-  const [planSheet, setPlanSheet] = useState(false);
-  const [insight, setInsight] = useState(false);
-  const ns = useNet();
-  const demo = useApp((a) => a.demo);
-  const lpStreak = donationStreak();
-  const donatedToday = ns.dailyPoint.lastGiven === weekdayShortDate();
-  const topIdea = ns.ideas.slice().sort((a, b) => b.raised / (b.target || 500) - a.raised / (a.target || 500))[0];
-  const topPct = topIdea ? Math.round((topIdea.raised / (topIdea.target || 500)) * 100) : 0;
-  const topPosts = [
-    ...ns.posts.filter((p) => !ns.mutedAuthors.includes(p.author) && !(p.tag && ns.mutedTopics.includes(p.tag))).map((p) => ({ author: p.author, text: p.text, likes: p.likes })),
-    ...ns.communities.filter((c) => c.members.includes(name)).flatMap((c) => c.posts.filter((p) => !ns.mutedAuthors.includes(p.author)).map((p) => ({ author: p.author, text: p.text, likes: p.likes }))),
-  ].sort((a, b) => (ns.following.includes(b.author) ? 1 : 0) - (ns.following.includes(a.author) ? 1 : 0) || b.likes - a.likes).slice(0, 3);
+  const dash = useDashboard();
+  const account = useApp((s) => s.account);
+  const lastSync = useHealth((s) => s.lastSync);
+  const wearable = useHealth((s) => s.wearable);
+  const moods = useHealth((s) => s.moods);
+  const logMood = useHealth((s) => s.logMood);
+  const [open, setOpen] = useState<Analysis | null>(null);
+  const [plan, setPlan] = useState(false);
+  const [moreInsights, setMoreInsights] = useState(false);
 
-  const now = new Date();
-  const h = now.getHours();
-  const greet = h < 12 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera';
-  const sc = computeScores();
+  const { scores, list, insights, corrs, lifeSeries, lifeForecast, lifeDelta } = dash;
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Buongiorno' : hour < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  const total = scores.total;
+  const verdict = total == null ? 'Nessun dato da analizzare' : total >= 80 ? 'Ottima condizione' : total >= 65 ? 'Buona, con margini di miglioramento' : total >= 50 ? 'Da migliorare' : 'Richiede attenzione';
+  const tc = statusColor(t, scoreStatus(total));
+  const moodToday = moods[0]?.day === dash.today || moods[0]?.date === shortDate();
 
-  const todayEvents = (life.events[dayKey()] || []).slice().sort((a, b) => a.time.localeCompare(b.time));
-  const activeCount = life.tasks.filter((x) => !taskIsDone(x)).length;
-  const doneCount = life.tasks.length - activeCount;
-  const lateGoals = life.goals.filter((g) => g.p < 50).length;
-  const topGoal = life.goals.slice().sort((a, b) => b.p - a.p)[0];
+  // punti di forza e punti deboli (aderenza all'obiettivo)
+  const scored = list
+    .map((a) => ({ a, s: attainment(a.def, a.def.period === 'day' ? a.avg7 : a.latest.v) }))
+    .filter((x): x is { a: Analysis; s: number } => x.s != null && !x.a.def.id.startsWith('goal:'));
+  const strengths = scored.slice().sort((x, y) => y.s - x.s).filter((x) => x.s >= 85).slice(0, 2);
+  const weak = scored.slice().sort((x, y) => x.s - y.s).filter((x) => x.s < 80).slice(0, 2);
 
-  const sleep = last(health.series.sleep), steps = last(health.series.steps);
-  const stepsStreak = streakOf(health.series.steps, (v) => v >= 10000);
-  const sleepStreak = streakOf(health.series.sleep, (v) => v >= 7);
-  const moodToday = health.moods[0]?.date === shortDate();
+  const byDomain = (d: Domain) => {
+    const items = list.filter((a) => a.def.domain === d);
+    const idx = (a: Analysis) => { const k = order[d].indexOf(a.def.id); return k < 0 ? 99 : k; };
+    return items.sort((a, b) => idx(a) - idx(b)).slice(0, d === 'salute' ? 8 : 6);
+  };
+  const openMetric = (id?: string) => { const a = id ? dash.byId[id] : null; if (a) setOpen(a); };
 
-  const cur = fin.months[0];
-  const net = cur ? monthNet(cur) : 0;
-  const endsChrono = fin.months.slice().reverse().map(monthEnd);
-  const topCat = fin.categories.slice().sort((a, b) => b.p - a.p)[0];
-  const hold = holdings(fin.stocks);
-  const invested = hold.reduce((s, x) => s + x.shares * x.avgCost, 0);
-  const value = hold.reduce((s, x) => s + x.shares * x.price, 0);
-  const plPct = invested ? ((value - invested) / invested) * 100 : 0;
-  const topHold = hold.slice().sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))[0];
-  const lastVac = life.vacations[0];
-  const lastNote = life.notes[life.notes.length - 1];
-  const lastFile = life.drive[life.drive.length - 1];
-  const stepsLast7 = health.series.steps.slice(-7);
+  const srcNames: Record<string, string> = { apple: 'Apple Health', manuale: 'Manuale', demo: 'Demo', stimato: 'Stimato' };
 
-  const Streak = ({ label, streak, done, to }: { label: string; streak: number; done: boolean; to: string }) => (
-    <Pressable onPress={() => go(to)} style={{ width: 92, alignItems: 'center', backgroundColor: t.tile, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 6 }}>
-      <Flame streak={streak} size={40} />
-      <Body small muted style={{ marginTop: 4 }}>{label}</Body>
-      {!done && <Body small color={t.danger} style={{ marginTop: 3 }}>a rischio</Body>}
-    </Pressable>
-  );
+  /* ---------- nessun dato ---------- */
+  if (list.length === 0) {
+    return (
+      <Page id="index">
+        <Text style={{ color: t.text, fontSize: 28, fontWeight: '800', marginTop: 18 }}>{greet}, {account.name}</Text>
+        <Card style={{ marginTop: 14 }}>
+          <H>La Dashboard analizza i tuoi dati</H>
+          <Body muted>Appena arrivano dati, qui compaiono punteggi, trend, previsioni, anomalie e correlazioni. Per iniziare:</Body>
+          <View style={{ gap: 8, marginTop: 12 }}>
+            <Btn title="Collega Apple Health e Apple Watch" onPress={() => go('lifehealth')} />
+            <Btn ghost title="Registra i dati a mano" onPress={() => go('lifehealth')} />
+            <Btn ghost title="Esplora con dati demo" onPress={() => { applyDemo(account.name, account.email); useApp.getState().set({ demo: true }); toast('Dati demo caricati'); }} />
+          </View>
+        </Card>
+      </Page>
+    );
+  }
 
   return (
     <Page id="index">
-      <View style={{ paddingTop: 22, paddingBottom: 10 }}>
-        <Body muted>{dayNames[now.getDay()]}</Body>
-        <Text style={{ color: t.text, fontSize: 30, fontWeight: '800', marginVertical: 4, letterSpacing: -0.3 }}>{greet}, {name}</Text>
-        <Row>
-          <Pressable onPress={() => setScoreSheet(true)}>
-            <Text style={{ color: t.text, fontSize: 46, fontWeight: '800' }}>{sc.total ?? '—'}<Text style={{ color: t.muted, fontSize: 16, fontWeight: '400' }}> /100</Text></Text>
-            <Body small>Life Score · tocca per il dettaglio</Body>
-          </Pressable>
-          <Btn title="Parla con AI" onPress={() => go('ai')} />
-        </Row>
+      <View style={{ paddingTop: 14 }}>
+        <Text style={{ color: t.muted, fontSize: 13 }}>{greet}, {account.name}</Text>
+        <Text style={{ color: t.muted, fontSize: 11, marginTop: 2 }}>
+          {dash.dataDays} giorni di dati · {wearable.connected && lastSync ? `Apple Health sincronizzato ${new Date(lastSync).toLocaleTimeString('it-CH', { hour: '2-digit', minute: '2-digit' })}` : 'aggiornato in tempo reale'}
+        </Text>
       </View>
 
-      <Card accent={t.border}>
-        <H>I tuoi streak</H>
-        <Body small muted style={{ marginBottom: 12 }}>Fai qualcosa ogni giorno per non spegnere la fiamma.</Body>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <Streak label="LP donato" streak={lpStreak} done={donatedToday} to="lifepointsPage" />
-          <Streak label="10k passi" streak={stepsStreak} done={(steps ?? 0) >= 10000} to="lifehealth" />
-          <Streak label="Sonno 7h+" streak={sleepStreak} done={(sleep ?? 0) >= 7} to="lifehealth" />
-        </View>
+      {/* ---------- 1. punteggio generale ---------- */}
+      <Card style={{ marginTop: 10, padding: 18 }}>
+        <Row style={{ alignItems: 'flex-start' }}>
+          <View style={{ flex: 1 }}>
+            <Tag>Life Score</Tag>
+            <Row style={{ justifyContent: 'flex-start', alignItems: 'flex-end' }} gap={8}>
+              <Text style={{ color: tc, fontSize: 56, fontWeight: '800', lineHeight: 60 }}>{total ?? '—'}</Text>
+              <Text style={{ color: t.muted, fontSize: 14, marginBottom: 8 }}>/100</Text>
+              {lifeDelta != null && (() => {
+                const flat = Math.abs(lifeDelta) < 2;
+                const c = flat ? t.muted : lifeDelta > 0 ? t.positive : t.danger;
+                return (
+                  <View style={{ marginBottom: 10, backgroundColor: c + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}>
+                    <Text style={{ color: c, fontSize: 12, fontWeight: '700' }}>{flat ? '▬ stabile' : lifeDelta > 0 ? `▲ +${lifeDelta}` : `▼ ${lifeDelta}`} vs 7 gg prima</Text>
+                  </View>
+                );
+              })()}
+            </Row>
+            <Text style={{ color: tc, fontSize: 14, fontWeight: '700' }}>{verdict}</Text>
+          </View>
+        </Row>
+        {lifeSeries.length >= 3 && (
+          <View style={{ marginTop: 10 }}>
+            <TrendChart pts={lifeSeries} forecast={lifeForecast} color={tc} h={80} />
+            <Body small muted style={{ marginTop: 4 }}>
+              {lifeForecast ? `Previsione tra 7 giorni: ${Math.round(lifeForecast.end)} (probabile ${Math.round(lifeForecast.endLo)}–${Math.round(lifeForecast.endHi)}) · ${lifeForecast.confidence === 'alta' ? 'affidabilità alta' : lifeForecast.confidence === 'media' ? 'affidabilità media' : 'affidabilità bassa'}` : 'Servono almeno 7 giorni di dati per la previsione.'}
+            </Body>
+          </View>
+        )}
+        <Row style={{ marginTop: 14 }} gap={8}>
+          {(['salute', 'mente', 'finanza', 'crescita'] as Domain[]).map((d) => {
+            const v = scores[d]; const c = statusColor(t, scoreStatus(v));
+            return (
+              <View key={d} style={{ flex: 1, backgroundColor: t.tile, borderRadius: 14, padding: 10, alignItems: 'center' }}>
+                <Text style={{ color: t.muted, fontSize: 10, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' }}>{domainLabel[d]}</Text>
+                <Text style={{ color: c, fontSize: 22, fontWeight: '800' }}>{v ?? '—'}</Text>
+                <View style={{ height: 3, alignSelf: 'stretch', borderRadius: 2, backgroundColor: t.border, marginTop: 2 }}><View style={{ width: `${v ?? 0}%`, height: 3, borderRadius: 2, backgroundColor: c }} /></View>
+              </View>
+            );
+          })}
+        </Row>
       </Card>
 
+      {/* ---------- 2. cosa conta adesso ---------- */}
+      <SectionLabel>Cosa conta adesso</SectionLabel>
+      {insights.length === 0 ? (
+        <Card><Body muted>Per ora nessun segnale da evidenziare: sei in linea con i tuoi obiettivi e le tue abitudini.</Body></Card>
+      ) : insights.slice(0, 3).map((i) => <InsightCard key={i.id} i={i} onPress={i.metricId ? () => openMetric(i.metricId) : undefined} />)}
+      {insights.length > 3 && (
+        <>
+          {moreInsights && insights.slice(3).map((i) => <InsightCard key={i.id} i={i} onPress={i.metricId ? () => openMetric(i.metricId) : undefined} />)}
+          <Btn small ghost title={moreInsights ? 'Mostra meno' : `Altri ${insights.length - 3} segnali`} onPress={() => setMoreInsights(!moreInsights)} />
+        </>
+      )}
+
+      {/* ---------- 3. punti di forza / debolezza ---------- */}
+      {(strengths.length > 0 || weak.length > 0) && (
+        <Row style={{ alignItems: 'stretch', marginTop: 10 }} gap={10}>
+          <Card style={{ flex: 1, marginVertical: 0 }}>
+            <Text style={{ color: t.positive, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>PUNTI DI FORZA</Text>
+            {strengths.length === 0 ? <Body small muted>Ancora nessuno sopra l'obiettivo.</Body> : strengths.map((x) => <Pressable key={x.a.def.id} onPress={() => setOpen(x.a)}><Body small bold>{x.a.def.label}</Body><Body small muted>{fmtVal(x.a.def.period === 'day' ? x.a.avg7 : x.a.latest.v, x.a.def)}</Body></Pressable>)}
+          </Card>
+          <Card style={{ flex: 1, marginVertical: 0 }}>
+            <Text style={{ color: t.warn, fontSize: 11, fontWeight: '700', marginBottom: 6 }}>DA MIGLIORARE</Text>
+            {weak.length === 0 ? <Body small muted>Tutto sopra l'80% dell'obiettivo.</Body> : weak.map((x) => <Pressable key={x.a.def.id} onPress={() => setOpen(x.a)}><Body small bold>{x.a.def.label}</Body><Body small muted>{fmtVal(x.a.def.period === 'day' ? x.a.avg7 : x.a.latest.v, x.a.def)} · {x.s}% dell'obiettivo</Body></Pressable>)}
+          </Card>
+        </Row>
+      )}
+
+      {/* ---------- 4. indicatori per area ---------- */}
+      {(['salute', 'mente', 'finanza', 'crescita'] as Domain[]).map((d) => {
+        const items = byDomain(d);
+        if (!items.length) return null;
+        return (
+          <View key={d}>
+            <SectionLabel>{domainLabel[d]} · indicatori e previsioni</SectionLabel>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              {items.map((a) => <KpiCard key={a.def.id} a={a} onPress={() => setOpen(a)} />)}
+            </View>
+          </View>
+        );
+      })}
+      {list.some((a) => a.def.id.startsWith('goal:')) && (
+        <Card>
+          <H>Avanzamento obiettivi</H>
+          {list.filter((a) => a.def.id.startsWith('goal:')).map((a, i, arr) => (
+            <Item key={a.def.id} last={i === arr.length - 1} onPress={() => setOpen(a)}>
+              <Row><Body style={{ flex: 1 }}>{a.def.label}</Body><Body bold>{Math.round(a.value)}%</Body></Row>
+              <Body small muted>{a.significant ? `${a.slopePctWeek > 0 ? '+' : ''}${(a.slope * 7).toFixed(1)} punti a settimana` : 'ritmo stabile'}{a.forecast ? ` · a questo ritmo ${Math.round(Math.min(100, a.forecast.end))}% tra 7 giorni` : ''}</Body>
+            </Item>
+          ))}
+        </Card>
+      )}
+
+      {/* ---------- 5. correlazioni ---------- */}
+      {corrs.length > 0 && (
+        <>
+          <SectionLabel>Cosa influenza cosa</SectionLabel>
+          <Card>
+            {corrs.map((c, i) => (
+              <Item key={`${c.a.id}${c.b.id}${c.lag}`} last={i === corrs.length - 1}>
+                <Body small>{c.sentence}</Body>
+                <Row style={{ marginTop: 6 }} gap={8}>
+                  <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: t.border, overflow: 'hidden' }}>
+                    <View style={{ width: `${Math.round(Math.abs(c.r) * 100)}%`, height: 6, backgroundColor: c.r > 0 ? t.positive : t.warn }} />
+                  </View>
+                  <Body small muted>r = {c.r.toFixed(2)} · {c.n} gg</Body>
+                </Row>
+              </Item>
+            ))}
+            <Body small muted style={{ marginTop: 8 }}>Legami statistici verificati con una soglia severa (correzione per confronti multipli). Indicano un'associazione, non una causa.</Body>
+          </Card>
+        </>
+      )}
+
+      {/* ---------- 6. qualità dei dati ---------- */}
+      <SectionLabel>Affidabilità dell'analisi</SectionLabel>
+      <Card>
+        <Row><Body small muted>Giorni con dati</Body><Body small bold>{dash.dataDays}</Body></Row>
+        <Row style={{ marginTop: 6 }}><Body small muted>Indicatori analizzati</Body><Body small bold>{list.length}</Body></Row>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 6 }}>
+          {Object.entries(dash.sources).map(([k, n]) => (
+            <View key={k} style={{ backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}><Text style={{ color: t.text, fontSize: 12 }}>{srcNames[k] ?? k} · {n}</Text></View>
+          ))}
+        </View>
+        <Body small muted style={{ marginTop: 10 }}>
+          {dash.dataDays < 14 ? 'Con meno di 14 giorni di dati le previsioni sono molto incerte: più dati = analisi migliori. ' : ''}
+          Le previsioni sono stime statistiche della tendenza recente, non promesse. Non sono consigli medici o finanziari.
+        </Body>
+        {!(wearable.connected && wearable.device === 'Apple Health') && <Btn small ghost style={{ marginTop: 10 }} title="Collega Apple Health per dati automatici" onPress={() => go('lifehealth')} />}
+      </Card>
+
+      {/* ---------- 7. azioni rapide per inserire dati ---------- */}
+      <SectionLabel>Aggiungi dati</SectionLabel>
       {!moodToday && (
         <Card>
-          <H>Come ti senti oggi?</H>
-          <Body small muted style={{ marginBottom: 12 }}>Un tocco e via, niente di obbligatorio.</Body>
+          <Body bold style={{ marginBottom: 8 }}>Come ti senti oggi?</Body>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {moodOptions.map(([m, c]) => (
-              <Pressable key={m} onPress={() => { health.logMood(m); toast('Umore registrato: ' + m); }} style={{ width: '31%', alignItems: 'center', paddingVertical: 13, borderRadius: 14, backgroundColor: t.tile, borderWidth: 1, borderColor: t.navBorder }}>
-                <View style={{ width: 11, height: 11, borderRadius: 6, backgroundColor: c, marginBottom: 7 }} />
-                <Body small>{m}</Body>
+              <Pressable key={m} onPress={() => { logMood(m); toast('Umore registrato: ' + m); }} style={{ width: '31%', alignItems: 'center', paddingVertical: 11, borderRadius: 14, backgroundColor: t.tile, borderWidth: 1, borderColor: t.navBorder }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c, marginBottom: 6 }} /><Body small>{m}</Body>
               </Pressable>
             ))}
           </View>
         </Card>
       )}
-
-      <SectionLabel>Oggi</SectionLabel>
-      <Card>
-        <Tag>✦ BRIEFING AI</Tag>
-        <H>{activeCount === 0 && todayEvents.length === 0 ? 'Giornata libera.' : 'Proteggi il focus.'}</H>
-        <Body muted style={{ marginBottom: 10 }}>
-          {activeCount} priorità aperte, {lateGoals} obiettivi sotto il 50% e {todayEvents.length} impegni in calendario oggi. Posso riorganizzare il resto della giornata.
-        </Body>
-        <Btn title="Pianifica la giornata" onPress={() => setPlanSheet(true)} />
-      </Card>
-
-      {topGoal && (
-        <Card>
-          <Row><H>Focus principale</H><Body muted>{topGoal.p}%</Body></Row>
-          <Body bold>{topGoal.t}</Body>
-          <Progress value={topGoal.p} />
-          <Body small muted style={{ marginTop: 8 }}>Prossima azione: {life.tasks.find((x) => !taskIsDone(x))?.t ?? 'definisci un task in Plan'}.</Body>
-        </Card>
-      )}
-
-      <Card>
-        <Row><H>Oggi</H><Btn small ghost title="Apri" onPress={() => go('plan')} /></Row>
-        {todayEvents.length === 0 ? <Empty text="Giornata libera: goditela, o pianificaci qualcosa di bello." /> : todayEvents.map((e, i) => <Item key={i} last={i === todayEvents.length - 1}><Body>{e.time} · {e.title}</Body></Item>)}
-      </Card>
-
-      <Card onPress={() => go('lifetask')} style={{ padding: 14 }}>
-        <Tag>TASK</Tag>
-        <Metric>{activeCount}</Metric>
-        <Body small muted>{activeCount ? `${activeCount} task da fare · ${doneCount} completati` : life.tasks.length ? 'Tutto fatto, bel lavoro' : 'Nessun task ancora'}</Body>
-      </Card>
-
-      {ns.bookings.length > 0 && (
-        <Card>
-          <H>I tuoi appuntamenti</H>
-          {ns.bookings.map((b, i) => (
-            <Item key={b.id} last={i === ns.bookings.length - 1}><Row><View style={{ flex: 1 }}><Body bold>{b.provider}</Body><Body small muted>{b.role} · {b.slot}</Body></View><Btn small ghost title="×" onPress={() => { ns.patch({ bookings: ns.bookings.filter((x) => x.id !== b.id) }); toast('Appuntamento rimosso'); }} /></Row></Item>
-          ))}
-        </Card>
-      )}
-
-      <SectionLabel>Salute e abitudini</SectionLabel>
-      <Card onPress={() => go('lifehealth')}>
-        <Tag>SALUTE</Tag>
-        <Metric>{sc.health ?? '—'}</Metric>
-        {stepsLast7.length > 1 && <View style={{ marginVertical: 6 }}><Bars data={stepsLast7} color={t.border} hi={t.text} height={34} /></View>}
-        <Body small muted>{sleep != null ? `Sonno ${Math.floor(sleep)}h ${Math.round((sleep % 1) * 60)}m` : 'Registra i tuoi dati in LifeHealth'}</Body>
-      </Card>
-
-      <SectionLabel>Vita sociale e finanze</SectionLabel>
-      <Row style={{ alignItems: 'stretch' }} gap={10}>
-        <Card style={{ flex: 1 }} onPress={() => go('portfolio')}>
-          <Tag>PORTAFOGLIO</Tag>
-          <Metric color={hold.length ? (plPct >= 0 ? t.positive : t.danger) : t.text}>{hold.length ? `${plPct >= 0 ? '+' : ''}${plPct.toFixed(1)}%` : '—'}</Metric>
-          {topHold && <Spark data={topHold.history.slice(-16)} w={120} h={34} pad={3} color={plPct >= 0 ? t.positive : t.danger} />}
-          <Body small muted>{topHold ? `${topHold.symbol} ${topHold.changePct >= 0 ? '+' : ''}${topHold.changePct.toFixed(2)}% oggi` : 'Nessuna posizione aperta'}</Body>
-        </Card>
-        <Card style={{ flex: 1 }} onPress={() => go('lifefinance')}>
-          <Tag>FINANZE</Tag>
-          <Metric>{net >= 0 ? '+' : ''}{formatCHF(net)}</Metric>
-          {endsChrono.length > 1 && <Spark data={endsChrono} w={120} h={34} color={net >= 0 ? t.positive : t.danger} />}
-          <Body small muted>Saldo {formatCHF(cur ? monthEnd(cur) : 0)} CHF{topCat ? ` · più speso: ${topCat.n}` : ''}</Body>
-        </Card>
+      <Row gap={8}>
+        <Btn small ghost style={{ flex: 1 }} title="Registra salute" onPress={() => go('lifehealth')} />
+        <Btn small ghost style={{ flex: 1 }} title="Movimenti" onPress={() => go('lifefinance')} />
+        <Btn small ghost style={{ flex: 1 }} title="Pianifica oggi" onPress={() => setPlan(true)} />
       </Row>
 
-      <Card accent="#c9b6ff" onPress={() => go('lifenetwork')} style={{ padding: 20 }}>
-        <Tag>✦ LIFENETWORK</Tag>
-        <Row>
-          <View style={{ flex: 1 }}><Body bold style={{ fontSize: 16 }}>{topIdea ? topIdea.title : 'Nessuna idea ancora'}</Body><Body small muted>{topIdea ? "idea più vicina all'obiettivo" : 'Pubblica la tua prima idea'}</Body></View>
-          <Text style={{ color: '#c9b6ff', fontSize: 24, fontWeight: '700' }}>{topIdea ? `${topPct}%` : '—'}</Text>
-        </Row>
-        {topIdea && <Progress value={Math.min(100, topPct)} color="#c9b6ff" />}
-        <Row style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: t.item, paddingTop: 10 }} gap={0}>
-          <View style={{ flex: 1, alignItems: 'center' }}><Body bold>{followerCountFor(name, name, demo)}</Body><Body small muted>Follower</Body></View>
-          <View style={{ flex: 1, alignItems: 'center', borderLeftWidth: 1, borderLeftColor: t.item }}><Row gap={2}><Body bold>{formatCHF(ns.lifePoints)}</Body><LpTag size={13} /></Row><Body small muted>Saldo</Body></View>
-          <View style={{ flex: 1, alignItems: 'center', borderLeftWidth: 1, borderLeftColor: t.item }}><Body bold>{donatedToday ? '✓ donato' : 'da donare'}</Body><Body small muted>LP oggi</Body></View>
-        </Row>
-        <Body small muted style={{ marginTop: 12, marginBottom: 6, borderTopWidth: 1, borderTopColor: t.item, paddingTop: 10 }}>Per te</Body>
-        {topPosts.length === 0 ? <Body small muted>Nessun post ancora da mostrarti.</Body> : topPosts.map((p, i) => (
-          <Pressable key={i} onPress={() => go('userProfile', { name: p.author })} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 }}>
-            <UserAvatar name={p.author} size={26} />
-            <Body small numberOfLines={1} style={{ flex: 1 }}><Text style={{ fontWeight: '700' }}>{p.author}</Text> {p.text}</Body>
-            <Body small muted>♥ {p.likes}</Body>
-          </Pressable>
-        ))}
-      </Card>
-
-      <SectionLabel>Altri strumenti</SectionLabel>
-      <Row style={{ alignItems: 'stretch' }} gap={10}>
-        <Card style={{ flex: 1 }} onPress={() => go('lifetravel')}>
-          <Tag>TRAVEL</Tag>
-          <Metric>{lastVac ? lastVac.dest : '—'}</Metric>
-          <Body small muted>{lastVac ? `${lastVac.month} · ${lastVac.days} giorni` : 'Nessuna vacanza pianificata'}</Body>
-        </Card>
-        <Card style={{ flex: 1 }} onPress={() => go('lifenotes')}>
-          <Tag>NOTES</Tag>
-          <Body bold numberOfLines={2}>{lastNote ? noteTitle(lastNote.text) : '—'}</Body>
-          <Body small muted>{lastNote ? `${lastNote.date} · ${life.notes.length} note salvate` : 'Nessuna nota ancora'}</Body>
-        </Card>
-      </Row>
-      <Card onPress={() => go('lifedrive')}>
-        <Tag>DRIVE</Tag>
-        <Metric>{life.drive.length}</Metric>
-        <Body small muted numberOfLines={1}>{lastFile ? `ultimo: ${lastFile.n}` : 'Nessun file salvato'}</Body>
-      </Card>
-      <Card onPress={() => setInsight(true)}>
-        <Tag>✦ INSIGHT LAB</Tag>
-        <H>LifePilot ha notato</H>
-        <Body muted>Nei giorni in cui inizi il lavoro importante prima delle 11:00 completi più attività prioritarie.</Body>
-      </Card>
-
-      <LifeScoreSheet visible={scoreSheet} onClose={() => setScoreSheet(false)} />
-      <PlanDaySheet visible={planSheet} onClose={() => setPlanSheet(false)} />
-      <Sheet visible={insight} title="Insight Lab" onClose={() => setInsight(false)}>
-        <Body muted>Nei giorni in cui inizi il lavoro importante prima delle 11:00 completi più attività prioritarie.</Body>
-        <Item><Row><Body>Correlazione</Body><Body bold>Alta</Body></Row></Item>
-        <Item last><Row><Body>Basata su</Body><Body bold>14 giorni di dati</Body></Row></Item>
-        <Body small muted style={{ marginTop: 10 }}>Esempio dimostrativo: gli insight reali richiedono abbastanza dati nel tempo.</Body>
-      </Sheet>
+      <MetricSheet a={open} onClose={() => setOpen(null)} />
+      <PlanDaySheet visible={plan} onClose={() => setPlan(false)} />
     </Page>
   );
 }
-void Icon; void notePreview;
+void deltaStatus;

@@ -9,6 +9,7 @@ import { areaColors } from '@/lib/icons';
 import { computeScores } from '@/lib/scores';
 import { healthMeta, last, moodOptions, streakOf, useHealth, type Metric as M } from '@/store/health';
 import { toast } from '@/store/toast';
+import { connectAppleHealth, syncAppleHealth } from '@/lib/healthkit';
 
 const fmtSleep = (h: number) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`;
 const stressLabel = (v: number) => (v < 30 ? 'Basso' : v < 60 ? 'Medio' : 'Alto');
@@ -25,6 +26,15 @@ export default function LifeHealth() {
   const [f2, setF2] = useState('');
   const [today, setToday] = useState<Record<string, string>>({});
   const color = areaColors.lifehealth;
+  const [busy, setBusy] = useState(false);
+  const [hkMsg, setHkMsg] = useState('');
+  const [hkOk, setHkOk] = useState(false);
+  async function runSync(connect: boolean) {
+    setBusy(true);
+    const r = connect ? await connectAppleHealth() : await syncAppleHealth(60);
+    setBusy(false); setHkMsg(r.message); setHkOk(r.ok);
+    toast(r.message);
+  }
 
   const sleep = last(series.sleep), hr = last(series.hr), steps = last(series.steps), weight = last(series.weight);
   const stress = last(series.stress), hrv = last(series.hrv), mindful = last(series.mindful);
@@ -46,19 +56,22 @@ export default function LifeHealth() {
   return (
     <Page id="lifehealth" title="LifeHealth" back>
       <Card>
-        <H>Dispositivo collegato</H>
-        {h.wearable.connected ? (
+        <H>Apple Health e Apple Watch</H>
+        {h.wearable.connected && h.wearable.device === 'Apple Health' ? (
           <>
-            <Row><Body>Connesso a <Text style={{ fontWeight: '700' }}>{h.wearable.device}</Text></Body><Link onPress={() => { h.connect(null); toast('Dispositivo disconnesso'); }}>Disconnetti</Link></Row>
-            <Body small muted style={{ marginTop: 8 }}>Collegamento di prova: i dati reali dal dispositivo arriveranno con l'integrazione nativa. Nel frattempo puoi inserirli a mano.</Body>
+            <Row><Body>Collegato a <Text style={{ fontWeight: '700' }}>Apple Health</Text></Body><Link onPress={() => { h.connect(null); toast('Apple Health scollegato'); }}>Disconnetti</Link></Row>
+            <Body small muted style={{ marginTop: 6 }}>{h.lastSync ? `Ultima sincronizzazione: ${new Date(h.lastSync).toLocaleString('it-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'Non ancora sincronizzato.'} I dati dell'Apple Watch arrivano qui tramite l'app Salute.</Body>
+            {h.syncError ? <Body small color={t.danger} style={{ marginTop: 6 }}>Ultimo errore: {h.syncError}</Body> : null}
+            <Btn small ghost style={{ marginTop: 10 }} disabled={busy} title={busy ? 'Sincronizzo…' : 'Sincronizza ora'} onPress={() => runSync(false)} />
           </>
         ) : (
           <>
-            <Body small muted style={{ marginBottom: 10 }}>Collega un dispositivo per portare qui i tuoi dati reali.</Body>
-            <Row>{['Apple Health', 'Fitbit', 'Garmin'].map((d) => <Btn key={d} small ghost style={{ flex: 1 }} title={d} onPress={() => { h.connect(d); toast(`Connesso a ${d} (di prova)`); }} />)}</Row>
+            <Body small muted style={{ marginBottom: 10 }}>Collega Apple Health per portare qui passi, sonno, battito a riposo, HRV, peso, allenamenti e altro, anche quelli registrati dall'Apple Watch. I dati restano sul tuo iPhone.</Body>
+            <Btn title={busy ? 'Collego…' : 'Collega Apple Health'} disabled={busy} onPress={() => runSync(true)} />
+            {hkMsg ? <Body small color={hkOk ? t.positive : t.warn} style={{ marginTop: 8 }}>{hkMsg}</Body> : null}
           </>
         )}
-        <Btn small ghost style={{ marginTop: 10 }} title="Registra i dati di oggi" onPress={() => { setToday({}); setSheet('today'); }} />
+        <Btn small ghost style={{ marginTop: 10 }} title="Registra i dati di oggi a mano" onPress={() => { setToday({}); setSheet('today'); }} />
       </Card>
 
       <Card accent={color}>
@@ -70,6 +83,18 @@ export default function LifeHealth() {
           <Tile label="PESO" value={weight != null ? `${weight.toFixed(1)} kg` : '–'} onPress={() => setTrend('weight')} />
         </View>
       </Card>
+
+      {(series.energy.length > 0 || series.exercise.length > 0 || series.vo2.length > 0 || series.spo2.length > 0) && (
+        <Card>
+          <H>Altri dati da Apple Watch</H>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            {series.energy.length > 0 && <Tile label="ENERGIA ATTIVA" value={`${Math.round(last(series.energy)!)} kcal`} onPress={() => setTrend('energy')} />}
+            {series.exercise.length > 0 && <Tile label="ESERCIZIO" value={`${Math.round(last(series.exercise)!)} min`} onPress={() => setTrend('exercise')} />}
+            {series.vo2.length > 0 && <Tile label="VO₂ MAX" value={`${last(series.vo2)!.toFixed(1)}`} onPress={() => setTrend('vo2')} />}
+            {series.spo2.length > 0 && <Tile label="OSSIGENO" value={`${Math.round(last(series.spo2)!)}%`} onPress={() => setTrend('spo2')} />}
+          </View>
+        </Card>
+      )}
 
       <Card>
         <H>Obiettivi giornalieri</H>

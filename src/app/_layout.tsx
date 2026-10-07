@@ -2,7 +2,9 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
+
+import { autoSyncIfConnected } from '@/lib/healthkit';
 
 import { ToastHost } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -34,6 +36,9 @@ export default function RootLayout() {
     if (!ready) return;
     useFin.getState().rollMonth();
     SplashScreen.hideAsync();
+    void autoSyncIfConnected();
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
+    return () => sub.remove();
   }, [ready]);
 
   if (!ready) return null;

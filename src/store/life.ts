@@ -3,9 +3,9 @@ import { create } from 'zustand';
 import { dayKey, minutesToTime, timeToMinutes, uid, weekdayShortDate } from '@/lib/format';
 import { persisted } from './persist';
 
-export type Subtask = { t: string; h: number; done: boolean; type: 'lavoro' | 'piacere' };
-export type Task = { id: string; t: string; done?: boolean; recurring?: 'none' | 'daily' | 'weekly'; subtasks?: Subtask[] };
-export type Goal = { id: string; t: string; p: number };
+export type Subtask = { t: string; h: number; done: boolean; type: 'lavoro' | 'piacere'; doneAt?: string };
+export type Task = { id: string; t: string; done?: boolean; doneAt?: string; recurring?: 'none' | 'daily' | 'weekly'; subtasks?: Subtask[] };
+export type Goal = { id: string; t: string; p: number; hist?: { d: string; p: number }[] };
 export type Automation = { id: string; t: string; on: boolean };
 export type Note = { id: string; text: string; date: string };
 export type DriveFile = { id: string; n: string; s: string; folder: string; date: string; uri?: string };
@@ -100,7 +100,7 @@ export const useLife = create<LifeState>()(
     toggleTask: (id, v) => {
       let note: string | null = null;
       set((s) => {
-        const tasks = s.tasks.map((t) => (t.id === id ? { ...t, done: v } : t));
+        const tasks = s.tasks.map((t) => (t.id === id ? { ...t, done: v, doneAt: v ? dayKey() : undefined } : t));
         const cur = s.tasks.find((t) => t.id === id);
         if (v && cur?.recurring && cur.recurring !== 'none') {
           tasks.push({ id: uid(), t: cur.t, done: false, recurring: cur.recurring });
@@ -118,7 +118,7 @@ export const useLife = create<LifeState>()(
     restoreTask: (t, idx) => set((s) => { const a = s.tasks.slice(); a.splice(idx, 0, t); return { tasks: a }; }),
     patchTask: (id, patch) => set((s) => ({ tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
     toggleSubtask: (id, si, v) =>
-      set((s) => ({ tasks: s.tasks.map((t) => (t.id === id && t.subtasks ? { ...t, subtasks: t.subtasks.map((x, i) => (i === si ? { ...x, done: v } : x)) } : t)) })),
+      set((s) => ({ tasks: s.tasks.map((t) => (t.id === id && t.subtasks ? { ...t, subtasks: t.subtasks.map((x, i) => (i === si ? { ...x, done: v, doneAt: v ? dayKey() : undefined } : x)) } : t)) })),
     expandSubtask: (id, si, steps) =>
       set((s) => ({
         tasks: s.tasks.map((t) => {
@@ -148,10 +148,10 @@ export const useLife = create<LifeState>()(
       return { scheduled, skipped };
     },
 
-    addGoal: (t) => set((s) => ({ goals: [...s.goals, { id: uid(), t, p: 0 }] })),
+    addGoal: (t) => set((s) => ({ goals: [...s.goals, { id: uid(), t, p: 0, hist: [{ d: dayKey(), p: 0 }] }] })),
     bumpGoal: (id) => {
       let p = 0;
-      set((s) => ({ goals: s.goals.map((g) => { if (g.id !== id) return g; p = Math.min(100, g.p + 5); return { ...g, p }; }) }));
+      set((s) => ({ goals: s.goals.map((g) => { if (g.id !== id) return g; p = Math.min(100, g.p + 5); const today = dayKey(); const hist = (g.hist ?? []).filter((h) => h.d !== today); return { ...g, p, hist: [...hist, { d: today, p }].slice(-120) }; }) }));
       return p;
     },
     delGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),

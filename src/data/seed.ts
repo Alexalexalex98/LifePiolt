@@ -4,13 +4,22 @@ import type { FinMonth, Insight, Bill } from '@/store/finance';
 
 /** Dati d'esempio presi dal prototipo, usati solo se l'utente sceglie "Inizia con dati demo". */
 
+const daysAgoKey = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return dayKey(d); };
+const doneCounts = [0, 2, 1, 3, 0, 1, 2, 4, 1, 2, 3, 2, 0, 1, 3, 2, 4, 1, 3, 2, 3, 4]; // andamento in crescita
+export const demoDoneTasks = (): Task[] => {
+  const out: Task[] = [];
+  const names = ['Rispondere alle email', 'Chiamata con il fornitore', 'Revisione budget', 'Allenamento', 'Studio tedesco', 'Preparare la riunione', 'Aggiornare la roadmap', 'Pagare le fatture', 'Sistemare le note', 'Pianificare la settimana'];
+  doneCounts.forEach((c, i) => { for (let k = 0; k < c; k++) out.push({ id: uid(), t: names[out.length % names.length], done: true, doneAt: daysAgoKey(doneCounts.length - 1 - i) }); });
+  return out;
+};
 export const demoTasks = (): Task[] => [
   { id: uid(), t: 'Completare architettura prodotto', done: false },
   { id: uid(), t: 'Review dashboard', done: false },
   { id: uid(), t: '30 min di studio', done: false },
 ];
+const goalHist = (end: number, start: number) => Array.from({ length: 15 }, (_, i) => ({ d: daysAgoKey(14 - i), p: Math.round(start + ((end - start) * i) / 14) }));
 export const demoGoals = (): Goal[] => [
-  { id: uid(), t: 'LifePilot MVP', p: 70 }, { id: uid(), t: 'Tedesco C1', p: 72 }, { id: uid(), t: 'Fitness 4× settimana', p: 75 },
+  { id: uid(), t: 'LifePilot MVP', p: 70, hist: goalHist(70, 52) }, { id: uid(), t: 'Tedesco C1', p: 72, hist: goalHist(72, 70) }, { id: uid(), t: 'Fitness 4× settimana', p: 75, hist: goalHist(75, 60) },
 ];
 export const demoAutomations = (): Automation[] => [
   { id: uid(), t: 'Briefing ogni mattina', on: true }, { id: uid(), t: 'Review settimanale', on: true },

@@ -109,3 +109,41 @@ import { Text } from 'react-native';
 function SvgLabel({ text, size }: { text: string; size: number }) {
   return <Text style={{ color: '#0e1219', fontWeight: '800', fontSize: size }}>{text}</Text>;
 }
+
+
+/** Storico (linea piena) + previsione (tratteggiata) + fascia di incertezza all'80% + linea dell'obiettivo. */
+export function TrendChart({ pts, forecast, color, h = 70, target, range, showLabels }: {
+  pts: { d: string; v: number }[];
+  forecast?: { pts: { d: string; v: number }[]; lo: number[]; hi: number[] } | null;
+  color: string; h?: number; target?: number; range?: [number, number]; showLabels?: boolean;
+}) {
+  if (pts.length < 2) return null;
+  const w = 300, padX = 4, padY = 6;
+  const hist = pts.slice(-30);
+  const fc = forecast?.pts ?? [];
+  const all = [...hist.map((p) => p.v), ...fc.map((p) => p.v), ...(forecast?.lo ?? []), ...(forecast?.hi ?? [])];
+  if (target != null) all.push(target);
+  if (range) all.push(range[0], range[1]);
+  const max = Math.max(...all), min = Math.min(...all), span = max - min || 1;
+  const n = hist.length + fc.length;
+  const X = (i: number) => padX + ((w - 2 * padX) * i) / Math.max(1, n - 1);
+  const Y = (v: number) => padY + (1 - (v - min) / span) * (h - 2 * padY);
+  const line = hist.map((p, i) => `${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ');
+  const base = hist.length - 1;
+  const fcLine = fc.length ? [`${X(base).toFixed(1)},${Y(hist[base].v).toFixed(1)}`, ...fc.map((p, i) => `${X(base + 1 + i).toFixed(1)},${Y(p.v).toFixed(1)}`)].join(' ') : '';
+  const band = fc.length && forecast
+    ? [`${X(base).toFixed(1)},${Y(hist[base].v).toFixed(1)}`, ...forecast.hi.map((v, i) => `${X(base + 1 + i).toFixed(1)},${Y(v).toFixed(1)}`), ...forecast.lo.map((v, i) => `${X(base + fc.length - i).toFixed(1)},${Y(v).toFixed(1)}`)].join(' ')
+    : '';
+  return (
+    <Svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h}>
+      {range && <Polygon points={`${padX},${Y(range[1])} ${w - padX},${Y(range[1])} ${w - padX},${Y(range[0])} ${padX},${Y(range[0])}`} fill={color} opacity={0.08} />}
+      {target != null && <Line x1={padX} y1={Y(target)} x2={w - padX} y2={Y(target)} stroke={color} strokeWidth={1} strokeDasharray="3 4" opacity={0.5} />}
+      {band ? <Polygon points={band} fill={color} opacity={0.16} /> : null}
+      <Polyline points={line} fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+      {fcLine ? <Polyline points={fcLine} fill="none" stroke={color} strokeWidth={2.2} strokeDasharray="5 4" strokeLinecap="round" opacity={0.9} /> : null}
+      <Circle cx={X(base)} cy={Y(hist[base].v)} r={3.4} fill={color} />
+      {fc.length ? <Circle cx={X(n - 1)} cy={Y(fc[fc.length - 1].v)} r={3} fill="none" stroke={color} strokeWidth={1.6} /> : null}
+      {showLabels && fc.length ? <SvgText x={X(base) + 4} y={h - 1} fontSize={8} fill={color} opacity={0.8}>oggi</SvgText> : null}
+    </Svg>
+  );
+}
