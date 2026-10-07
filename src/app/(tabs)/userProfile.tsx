@@ -61,6 +61,7 @@ export default function UserProfile() {
             <>
               <Btn small ghost title="Modifica profilo" onPress={() => openSheet('editProfile')} />
               <Btn small ghost title={`Seguiti (${net.following.length})`} onPress={() => openSheet('following')} />
+              <Btn small ghost title="Competenze" onPress={() => go('skillProfile', { name })} />
               <Btn small ghost title="Biglietto" onPress={() => go('businessCard', { name })} />
               {followers >= 30 && (net.clubs[name] ? <Btn small ghost title="LifeClub" onPress={() => openSheet('clubManage')} /> : <Btn small title="Crea LifeClub" onPress={() => openSheet('createClub')} />)}
             </>
@@ -69,6 +70,7 @@ export default function UserProfile() {
               <Btn small ghost={fol} title={fol ? 'Già seguito' : 'Segui'} onPress={() => { const f = net.toggleFollow(name); toast(f ? 'Ora segui ' + name : 'Non segui più ' + name); }} />
               <Btn small ghost title="Messaggio" onPress={() => go('conversationPage', { id: useChat.getState().ensureDm(name, me) })} />
               <Btn small ghost title="Vota" onPress={() => openSheet('vote', { name })} />
+              <Btn small ghost title="Competenze" onPress={() => go('skillProfile', { name })} />
               <Btn small ghost title="Biglietto" onPress={() => go('businessCard', { name })} />
               {net.clubs[name] && <Btn small ghost title={`LifeClub · ${net.clubs[name].fee} LP`} onPress={() => joinClub(name)} />}
             </>

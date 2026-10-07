@@ -3,7 +3,9 @@ import { demoAutomations, demoBills, demoDoneTasks, demoDrive, demoEvents, demoG
 import { shortDate } from '@/lib/format';
 import { defaultBudget, defaultCategories, defaultWatchlist, useFin } from './finance';
 import { ensureDates, useHealth } from './health';
+import { seedJobs } from '@/data/jobsSeed';
 import { useChat, type ChatMessage } from './chat';
+import { useJobs } from './jobs';
 import { useLife } from './life';
 import { useNet } from './network';
 import { useTravel } from './travel';
@@ -53,6 +55,7 @@ export function applyDemo(me: string, email = '') {
   (Object.keys(h.series) as (keyof typeof h.series)[]).forEach((k) => { dates[k] = ensureDates(h.series[k], undefined); });
   useHealth.setState({ series, dates, sources: Object.fromEntries(Object.keys(h.series).map((k) => [k, 'demo'])), workouts: h.workouts, mindSessions: h.mindSessions, moods: h.moods });
   seedChats(me);
+  { const j = seedJobs(me); useJobs.setState({ jobs: j.jobs, applications: j.applications, practice: j.practice }); useNet.setState((st) => ({ votes: { ...st.votes, ...j.votes } })); }
   const months = demoMonths();
   useFin.setState({
     months, insights: demoInsights(), savingsPct: 6.5, bills: demoBills(), cash: 5000, stocks: defaultWatchlist(true),
@@ -74,6 +77,7 @@ export function applyDemo(me: string, email = '') {
 export function resetAllData() {
   useNet.getState().reset();
   useChat.getState().reset();
+  useJobs.getState().reset();
   useLife.getState().reset();
   useHealth.getState().reset();
   useFin.getState().reset();

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { Inbox } from '@/components/Inbox';
+import { JobsHub } from '@/components/JobsHub';
 import { IdeaCard, LpTag, MediaBlock, PostCard, Badge, openPurchaseConfirm, openSheet, UserAvatar } from '@/components/network';
 import { Body, Btn, Card, Empty, H, Input, Page, Row, Seg, TabRow, Item } from '@/components/ui';
 import { useT } from '@/lib/i18n';
@@ -22,7 +23,7 @@ export default function LifeNetwork() {
   const [ideaQ, setIdeaQ] = useState('');
   const unread = unreadMessages(me);
 
-  const tabs = ['Home', 'Messaggi', 'Community', 'Idee', 'Marketplace'];
+  const tabs = ['Home', 'Messaggi', 'Lavoro', 'Community', 'Idee', 'Marketplace'];
   const tabLabel = (k: string) => ({ Home: tr('lnTabHome'), Messaggi: tr('lnTabMessages'), Community: tr('lnTabCommunity'), Idee: tr('lnTabIdeas'), Marketplace: tr('lnTabMarketplace') }[k] ?? k) + (k === 'Messaggi' && unread ? ` (${unread})` : '');
 
   if (!net.identity.verified) {
@@ -95,6 +96,8 @@ export default function LifeNetwork() {
       )}
 
       {prefs.lnTab === 'Messaggi' && <Inbox />}
+
+      {prefs.lnTab === 'Lavoro' && <JobsHub />}
 
       {prefs.lnTab === 'Community' && (
         <>

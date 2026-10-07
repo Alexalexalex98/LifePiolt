@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useApp } from '@/store/app';
 import { useFin } from '@/store/finance';
 import { useChat } from '@/store/chat';
+import { useJobs } from '@/store/jobs';
 import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
 import { useNet } from '@/store/network';
@@ -18,7 +19,7 @@ import { useTravel } from '@/store/travel';
 
 SplashScreen.preventAutoHideAsync();
 
-const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat];
+const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs];
 const allHydrated = () => stores.every((s) => s.persist.hasHydrated());
 
 export default function RootLayout() {
