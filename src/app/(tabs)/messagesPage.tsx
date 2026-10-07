@@ -85,7 +85,7 @@ export default function MessagesPage() {
             <View style={{ flex: 1 }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Text numberOfLines={1} style={{ color: t.text, fontSize: 16, fontWeight: unread ? '800' : '600', flex: 1 }}>{c.name}</Text>
-                <Text style={{ color: unread && !muted ? '#00a884' : t.muted, fontSize: 12 }}>{last ? listTime(last.ts) : ''}</Text>
+                <Text style={{ color: unread && !muted ? t.accent : t.muted, fontSize: 12 }}>{last ? listTime(last.ts) : ''}</Text>
               </Row>
               <Row style={{ justifyContent: 'space-between' }} gap={6}>
                 <Text numberOfLines={1} style={{ color: t.muted, fontSize: 14, flex: 1, fontWeight: unread ? '700' : '400' }}>
@@ -95,7 +95,7 @@ export default function MessagesPage() {
                 </Text>
                 {muted && <Text style={{ fontSize: 12 }}>🔕</Text>}
                 {c.pinned && <Text style={{ fontSize: 12 }}>📌</Text>}
-                {unread && <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: muted ? t.muted : '#00a884', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{u > 0 ? u : ''}</Text></View>}
+                {unread && <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: muted ? t.muted : t.accent, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.onText, fontSize: 11, fontWeight: '800' }}>{u > 0 ? u : ''}</Text></View>}
               </Row>
             </View>
           </Pressable>

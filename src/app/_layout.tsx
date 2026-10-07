@@ -22,6 +22,8 @@ SplashScreen.preventAutoHideAsync();
 const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs];
 const allHydrated = () => stores.every((s) => s.persist.hasHydrated());
 
+export { ErrorScreen as ErrorBoundary } from '@/components/ErrorScreen';
+
 export default function RootLayout() {
   const t = useTheme();
   const onboarded = useApp((s) => s.onboarded);

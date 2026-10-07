@@ -38,20 +38,24 @@ export default function LifeDrive() {
     toast(`Aggiunto e raccolto in "${f}" dall'AI`);
   }
   async function pickFile() {
-    const r = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
-    if (!r.canceled && r.assets[0]) put(r.assets[0].name, sizeLabel(r.assets[0].size), r.assets[0].uri);
+    try {
+      const r = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
+      if (!r.canceled && r.assets[0]) put(r.assets[0].name, sizeLabel(r.assets[0].size), r.assets[0].uri);
+    } catch { toast('Impossibile aprire i file'); }
   }
   async function pickPhoto() {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) { toast('Serve il permesso di accedere alle foto'); return; }
-    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
-    if (!r.canceled && r.assets[0]) {
-      const a = r.assets[0];
-      const n = a.fileName ?? `Foto ${weekdayShortDate().replace('/', '-')}.jpg`;
-      addFile({ n, s: sizeLabel(a.fileSize), folder: 'Foto', date: weekdayShortDate(), uri: a.uri });
-      setUpload(false);
-      toast('Foto aggiunta');
-    }
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) { toast('Serve il permesso di accedere alle foto'); return; }
+      const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+      if (!r.canceled && r.assets[0]) {
+        const a = r.assets[0];
+        const n = a.fileName ?? `Foto ${weekdayShortDate().replace('/', '-')}.jpg`;
+        addFile({ n, s: sizeLabel(a.fileSize), folder: 'Foto', date: weekdayShortDate(), uri: a.uri });
+        setUpload(false);
+        toast('Foto aggiunta');
+      }
+    } catch { toast('Impossibile aprire le foto'); }
   }
 
   const Tile = ({ f, i }: { f: DriveFile; i: number }) => {

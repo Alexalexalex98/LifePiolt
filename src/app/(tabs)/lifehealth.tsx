@@ -31,9 +31,13 @@ export default function LifeHealth() {
   const [hkOk, setHkOk] = useState(false);
   async function runSync(connect: boolean) {
     setBusy(true);
-    const r = connect ? await connectAppleHealth() : await syncAppleHealth(60);
-    setBusy(false); setHkMsg(r.message); setHkOk(r.ok);
-    toast(r.message);
+    try {
+      const r = connect ? await connectAppleHealth() : await syncAppleHealth(60);
+      setHkMsg(r.message); setHkOk(r.ok); toast(r.message);
+    } catch {
+      const m = 'Non riesco a collegare Apple Health da questa versione dell’app. Serve la build nativa (vedi la guida).';
+      setHkMsg(m); setHkOk(false); toast(m);
+    } finally { setBusy(false); }
   }
 
   const sleep = last(series.sleep), hr = last(series.hr), steps = last(series.steps), weight = last(series.weight);

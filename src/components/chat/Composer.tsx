@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -145,7 +146,7 @@ export function Composer(p: Props) {
           {!p.editing && !has && <Pressable onPress={() => run(takePhoto)} hitSlop={6} style={{ paddingVertical: 9, paddingLeft: 8 }} accessibilityLabel="Fotocamera"><Text style={{ fontSize: 22 }}>📷</Text></Pressable>}
         </View>
         {has && rec === 'off' ? (
-          <Pressable onPress={sendText} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#00a884', alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={p.editing ? 'Salva modifica' : 'Invia'}><Text style={{ color: '#fff', fontSize: 18 }}>{p.editing ? '✓' : '➤'}</Text></Pressable>
+          <Pressable onPress={sendText} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={p.editing ? 'Salva modifica' : 'Invia'}><Text style={{ color: t.onText, fontSize: 18 }}>{p.editing ? '✓' : '➤'}</Text></Pressable>
         ) : (
           <Pressable
             onPress={() => { if (mode.current === 'lock') void sendRec(); else if (rec === 'off') { mode.current = 'lock'; void startRec().then((ok) => { if (!ok) mode.current = 'none'; }); } }}
@@ -154,9 +155,9 @@ export function Composer(p: Props) {
             onTouchStart={(e) => { touchX.current = e.nativeEvent.pageX; }}
             onTouchMove={(e) => { if (mode.current === 'hold') { const c = touchX.current - e.nativeEvent.pageX > 90; slideCancel.current = c; setWillCancel(c); } }}
             onPressOut={() => { if (mode.current !== 'hold') return; void (startP.current ?? Promise.resolve(false)).then((ok) => { if (!ok) return; if (slideCancel.current) void cancelRec(); else void sendRec(); }); }}
-            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: rec === 'off' ? '#00a884' : willCancel ? '#e5484d' : '#00a884', alignItems: 'center', justifyContent: 'center', transform: [{ scale: rec !== 'off' && mode.current === 'hold' ? 1.35 : 1 }] }}
+            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: rec === 'off' ? t.accent : willCancel ? '#e5484d' : t.accent, alignItems: 'center', justifyContent: 'center', transform: [{ scale: rec !== 'off' && mode.current === 'hold' ? 1.35 : 1 }] }}
             accessibilityLabel={rec === 'off' ? 'Messaggio vocale: tocca o tieni premuto' : 'Invia vocale'}>
-            <Text style={{ fontSize: 20, color: '#fff' }}>{rec === 'off' ? '🎤' : '➤'}</Text>
+            <Text style={{ fontSize: 20, color: t.onText }}>{rec === 'off' ? '🎤' : '➤'}</Text>
           </Pressable>
         )}
         {rec !== 'off' && (
@@ -197,9 +198,16 @@ export function Composer(p: Props) {
 
       <Sheet visible={!!preview} title={preview ? `Invia ${preview.length} ${preview.length === 1 ? 'elemento' : 'elementi'}` : ''} onClose={() => setPreview(null)}>
         <ScrollView horizontal style={{ marginBottom: 10 }}>
-          {preview?.map((x, i) => <View key={i} style={{ marginRight: 8, width: 110, height: 110, borderRadius: 10, backgroundColor: t.item, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.muted, fontSize: 12 }}>{x.kind === 'video' ? '🎥 Video' : '📷 Foto'} {i + 1}</Text></View>)}
+          {preview?.map((x, i) => (
+            <View key={i} style={{ marginRight: 8, width: 120, height: 120, borderRadius: 10, backgroundColor: t.item, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+              <Image source={{ uri: x.media?.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+              {x.kind === 'video' && <Text style={{ position: 'absolute', color: '#fff', fontSize: 26 }}>▶</Text>}
+              <Pressable onPress={() => { const next = (preview ?? []).filter((_, j) => j !== i); setPreview(next.length ? next : null); }} hitSlop={8} accessibilityLabel="Rimuovi" style={{ position: 'absolute', top: 4, right: 4, width: 26, height: 26, borderRadius: 13, backgroundColor: '#000c', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 14 }}>✕</Text></Pressable>
+            </View>
+          ))}
         </ScrollView>
         <Input placeholder="Aggiungi una didascalia…" value={caption} onChangeText={setCaption} />
+        <Btn ghost style={{ marginBottom: 8 }} title="Annulla" onPress={() => setPreview(null)} />
         <Btn title="Invia" onPress={() => { preview?.forEach((x, i) => p.onSendPicked(x, i === 0 ? caption.trim() || undefined : undefined)); setPreview(null); }} />
       </Sheet>
 

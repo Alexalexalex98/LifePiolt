@@ -10,6 +10,8 @@ import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { useNet } from '@/store/network';
 
+export { ErrorScreen as ErrorBoundary } from '@/components/ErrorScreen';
+
 export default function TabsLayout() {
   const me = useApp((s) => s.account.name);
   const chats = useChat((s) => s.chats);

@@ -4,6 +4,7 @@ import { TrendChart } from '@/components/charts';
 import { Body, Card, Item, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import type { Palette } from '@/constants/theme';
+import { metricInfo } from '@/data/metricInfo';
 import { fmtVal, type Analysis, type Insight, type Status } from '@/lib/analytics';
 
 export const statusColor = (t: Palette, s: Status | Insight['severity']) =>
@@ -57,6 +58,7 @@ export function KpiCard({ a, onPress }: { a: Analysis; onPress: () => void }) {
         <DeltaChip a={a} />
       </Row>
       <TrendChart pts={a.pts.slice(-21)} forecast={fc} color={d.color} h={46} target={d.target} range={d.range} />
+      {metricInfo[d.id] && <Text style={{ color: c, fontSize: 11, marginTop: 4, fontWeight: '600' }} numberOfLines={2}>Ottimale: {metricInfo[d.id].optimal}</Text>}
       <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }} numberOfLines={2}>
         {fc ? `Prev. ${d.period === 'day' ? '7 gg' : '3 mesi'}: ${fmtVal(fc.end, d)}` : `${a.n} ${d.period === 'day' ? 'giorni' : 'mesi'} di dati`}
         {a.significant ? `  ${a.trend === 'up' ? '↗' : '↘'}` : ''}
@@ -114,6 +116,8 @@ export function MetricSheet({ a, onClose }: { a: Analysis | null; onClose: () =>
       <View style={{ marginVertical: 12 }}><TrendChart pts={a.pts.slice(-30)} forecast={fc} color={d.color} h={120} target={d.target} range={d.range} showLabels /></View>
       <Body small muted>Linea piena = storico · tratteggio = previsione · fascia = intervallo probabile all'80%{d.target != null ? ' · linea punteggiata = obiettivo' : ''}</Body>
 
+      <Explain a={a} part="top" />
+
       {fc && (
         <Card style={{ marginTop: 12 }}>
           <Body bold>Previsione {d.period === 'day' ? 'a 7 giorni' : 'a 3 mesi'}: {f(fc.end)}</Body>
@@ -142,8 +146,64 @@ export function MetricSheet({ a, onClose }: { a: Analysis | null; onClose: () =>
           ))}
         </>
       )}
+      <Explain a={a} part="rest" />
       <Body small muted style={{ marginTop: 12 }}>Fonte: {srcLabel[a.source] ?? a.source}.</Body>
     </Sheet>
+  );
+}
+
+/** Da che parte è fuori range il dato: sotto o sopra l'ottimale. */
+function side(a: Analysis): 'low' | 'high' | null {
+  const d = a.def, v = mainValue(a);
+  if (d.better === 'range' && d.range) return v < d.range[0] ? 'low' : v > d.range[1] ? 'high' : null;
+  if (d.better === 'up') return d.target != null ? (v < d.target ? 'low' : null) : a.status === 'bad' || a.status === 'warn' ? 'low' : null;
+  if (d.better === 'down') return d.target != null ? (v > d.target ? 'high' : null) : a.status === 'bad' || a.status === 'warn' ? 'high' : null;
+  return a.deltaPct != null && Math.abs(a.deltaPct) >= 5 ? (a.deltaPct > 0 ? 'high' : 'low') : null;
+}
+
+const Sect = ({ title, children, color }: { title: string; children: React.ReactNode; color?: string }) => {
+  const t = useTheme();
+  return (<View style={{ marginTop: 14 }}><Text style={{ color: color ?? t.text, fontWeight: '800', fontSize: 14, marginBottom: 4 }}>{title}</Text>{children}</View>);
+};
+
+/** Cos'è il dato, qual è l'ottimale, cosa comporta e come migliorarlo. */
+function Explain({ a, part }: { a: Analysis; part: 'top' | 'rest' }) {
+  const t = useTheme();
+  const info = metricInfo[a.def.id];
+  if (!info) return null;
+  const f = (v: number) => fmtVal(v, a.def);
+  const sd = side(a);
+  const good = a.status === 'good' || (!sd && a.status !== 'bad' && a.status !== 'warn');
+  const c = statusColor(t, good ? 'good' : a.status === 'bad' ? 'bad' : 'warn');
+  const consequence = sd === 'low' ? info.low : sd === 'high' ? info.high : undefined;
+  if (part === 'top') return (
+    <View>
+      <Sect title="Dove sei rispetto all’ottimale">
+        <View style={{ backgroundColor: c + '18', borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: c }}>
+          <Body bold>Il tuo valore: {f(mainValue(a))}</Body>
+          <Body small style={{ marginTop: 2 }}>Ottimale: {info.optimal}</Body>
+          <Body small muted style={{ marginTop: 2 }}>{info.basis}</Body>
+          <Body small color={c} style={{ marginTop: 6 }}>
+            {good ? 'Sei nella zona ottimale.' : sd === 'low' ? 'Sei sotto l’ottimale.' : sd === 'high' ? 'Sei sopra l’ottimale.' : 'Sei fuori dalla zona ottimale.'}
+          </Body>
+        </View>
+      </Sect>
+    </View>
+  );
+  return (
+    <View>
+      <Sect title="Cos’è"><Body small>{info.what}</Body></Sect>
+      <Sect title="Perché conta"><Body small>{info.why}</Body></Sect>
+      {!good && consequence && <Sect title="Cosa comporta così com’è" color={c}><Body small>{consequence}</Body></Sect>}
+      {good ? (
+        <Sect title="Come mantenerlo" color={t.positive}><Body small>{info.keep}</Body></Sect>
+      ) : (
+        <Sect title="Come migliorarlo" color={c}>
+          {info.improve.map((x, i) => <Body key={i} small style={{ marginBottom: 3 }}>{i + 1}. {x}</Body>)}
+        </Sect>
+      )}
+      {info.caution && <Body small muted style={{ marginTop: 10 }}>⚠ {info.caution}</Body>}
+    </View>
   );
 }
 

@@ -43,7 +43,8 @@ export default function Settings() {
 
   async function togglePush(v: boolean) {
     if (v) {
-      const { status } = await Notifications.requestPermissionsAsync();
+      let status = 'denied';
+      try { status = (await Notifications.requestPermissionsAsync()).status; } catch { /* Expo Go o permessi non disponibili */ }
       if (status !== 'granted') { Alert.alert('Notifiche disattivate', 'Per riceverle abilita le notifiche per LifePilot dalle impostazioni del telefono.'); return; }
     }
     set({ notif: { ...app.notif, push: v } });
@@ -52,7 +53,7 @@ export default function Settings() {
 
   async function exportData() {
     const data = { account: app.account, life: { tasks: life.tasks, goals: life.goals, automations: life.automations, notes: life.notes, drive: life.drive.map(({ uri, ...f }) => f), events: life.events, vacations: life.vacations }, health: { series: health.series, workouts: health.workouts, mindSessions: health.mindSessions, moods: health.moods }, finance: { months: fin.months, budget: fin.budget, bills: fin.bills, tax: fin.tax }, travel: travel.saved };
-    await Share.share({ message: JSON.stringify(data, null, 2), title: 'I miei dati LifePilot' });
+    try { await Share.share({ message: JSON.stringify(data, null, 2), title: 'I miei dati LifePilot' }); } catch { toast('Esportazione non riuscita'); }
   }
 
   function toggleNav(id: string) {

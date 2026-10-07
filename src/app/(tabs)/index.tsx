@@ -205,6 +205,14 @@ export default function Dashboard() {
       )}
 
       {/* ---------- 6. qualità dei dati ---------- */}
+      <SectionLabel>Come leggere i dati</SectionLabel>
+      <Card>
+        <Body small><Body small bold>Pallino verde / giallo / rosso</Body> — sei nella zona ottimale / vicino / lontano. L’ottimale è scritto sotto ogni dato.</Body>
+        <Body small style={{ marginTop: 6 }}><Body small bold>Freccia e percentuale</Body> — come cambia la media degli ultimi 7 giorni rispetto ai 7 prima. Per alcuni dati salire è buono (passi), per altri è un segnale da guardare (battito a riposo, stress).</Body>
+        <Body small style={{ marginTop: 6 }}><Body small bold>Tratteggio e fascia</Body> — previsione dei prossimi giorni e intervallo probabile all’80%: è una stima dalla tendenza recente, non una certezza.</Body>
+        <Body small style={{ marginTop: 6 }}>Tocca qualsiasi dato per vedere cos’è, perché conta, cosa comporta se è fuori range e come migliorarlo. Non sono consigli medici o finanziari: per sintomi o decisioni importanti rivolgiti a un professionista.</Body>
+      </Card>
+
       <SectionLabel>Affidabilità dell'analisi</SectionLabel>
       <Card>
         <Row><Body small muted>Giorni con dati</Body><Body small bold>{dash.dataDays}</Body></Row>

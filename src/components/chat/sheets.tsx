@@ -12,7 +12,7 @@ import { toast } from '@/store/toast';
 
 const dt = (ts: number) => { const d = new Date(ts); return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${fmtClock(ts)}`; };
 
-export type Action = 'reply' | 'copy' | 'forward' | 'star' | 'edit' | 'info' | 'delete' | 'select' | 'react' | 'theia';
+export type Action = 'reply' | 'copy' | 'forward' | 'star' | 'edit' | 'info' | 'delete' | 'select' | 'react' | 'theia' | 'task' | 'event' | 'note';
 
 export function MessageActions({ m, me, onClose, onAction }: { m: ChatMessage | null; me: string; onClose: () => void; onAction: (a: Action, emoji?: string) => void }) {
   const t = useTheme();
@@ -35,9 +35,12 @@ export function MessageActions({ m, me, onClose, onAction }: { m: ChatMessage | 
       <Body small muted numberOfLines={2} style={{ marginBottom: 6 }}>{previewOf(m)}</Body>
       {!m.deletedForAll && row('↩︎ Rispondi', 'reply')}
       {!m.deletedForAll && row(`✦ Chiedi a ${name}`, 'theia')}
+      {copyable && row('✓ Trasforma in task', 'task')}
+      {copyable && row('📅 Aggiungi al piano di oggi', 'event')}
+      {copyable && row('📝 Salva in una nota', 'note')}
       {row('⧉ Copia', 'copy', copyable)}
       {!m.deletedForAll && row('↪ Inoltra', 'forward')}
-      {!m.deletedForAll && row(starred ? '★ Rimuovi dai preferiti' : '☆ Aggiungi ai preferiti', 'star')}
+      {!m.deletedForAll && row(starred ? '★ Togli da importanti' : '☆ Segna come importante', 'star')}
       {row('✎ Modifica', 'edit', canEdit)}
       {mine && !m.deletedForAll && row('ⓘ Info messaggio', 'info')}
       {row('☑ Seleziona', 'select')}
@@ -81,6 +84,7 @@ export function InfoSheet({ m, onClose }: { m: ChatMessage | null; onClose: () =
 
 /** Scelta destinatari (inoltro) — chat esistenti + persone. */
 export function PickChatsSheet({ visible, title, me, onClose, onPick, exclude }: { visible: boolean; title: string; me: string; onClose: () => void; onPick: (chatIds: string[]) => void; exclude?: string }) {
+  const t = useTheme();
   const chats = useChat((s) => s.chats);
   const ensureDm = useChat((s) => s.ensureDm);
   const [q, setQ] = useState('');
@@ -95,7 +99,7 @@ export function PickChatsSheet({ visible, title, me, onClose, onPick, exclude }:
       <Input placeholder="Cerca…" value={q} onChangeText={setQ} />
       {rows.map((r) => (
         <Item key={r.id} onPress={() => setSel(sel.includes(r.id) ? sel.filter((x) => x !== r.id) : [...sel, r.id])}>
-          <Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}>{r.group ? <Text style={{ fontSize: 22 }}>👥</Text> : <UserAvatar name={r.name} size={28} />}<Body>{r.name}</Body></Row>{sel.includes(r.id) ? <Text style={{ color: '#00a884', fontSize: 18 }}>✓</Text> : null}</Row>
+          <Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}>{r.group ? <Text style={{ fontSize: 22 }}>👥</Text> : <UserAvatar name={r.name} size={28} />}<Body>{r.name}</Body></Row>{sel.includes(r.id) ? <Text style={{ color: t.accent, fontSize: 18 }}>✓</Text> : null}</Row>
         </Item>
       ))}
       <Btn style={{ marginTop: 12 }} title={sel.length ? `Invia a ${sel.length}` : 'Seleziona almeno una chat'} disabled={!sel.length} onPress={() => {

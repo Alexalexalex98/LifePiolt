@@ -94,7 +94,7 @@ export default function ChatInfo() {
           <Row><Body bold>{chat.members.length} partecipanti</Body>{iAmAdmin && <Pressable onPress={() => setSheet('add')}><Text style={{ color: t.accent, fontWeight: '700' }}>+ Aggiungi</Text></Pressable>}</Row>
           {chat.members.map((n, i) => (
             <Item key={n} last={i === chat.members.length - 1} onPress={() => n !== me && setMember(n)}>
-              <Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}><UserAvatar name={n} size={32} /><Body>{n === me ? 'Tu' : n}</Body></Row>{chat.admins.includes(n) && <Text style={{ color: '#00a884', fontSize: 11, fontWeight: '700' }}>ADMIN</Text>}</Row>
+              <Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}><UserAvatar name={n} size={32} /><Body>{n === me ? 'Tu' : n}</Body></Row>{chat.admins.includes(n) && <Text style={{ color: t.accent, fontSize: 11, fontWeight: '700' }}>ADMIN</Text>}</Row>
             </Item>
           ))}
         </Card>
@@ -118,10 +118,10 @@ export default function ChatInfo() {
       </Sheet>
       <Sheet visible={sheet === 'disappear'} title="Messaggi a tempo" onClose={() => setSheet(null)}>
         <Body small muted style={{ marginBottom: 8 }}>I nuovi messaggi di questa chat vengono eliminati dopo il tempo scelto. Non riguarda i messaggi già inviati.</Body>
-        {DISAPPEAR.map(([l, s]) => <Item key={l} onPress={() => { st().setDisappearing(id, s, me); setSheet(null); }}><Row><Body>{l}</Body>{(chat.disappearingSec ?? 0) === s ? <Text style={{ color: '#00a884' }}>✓</Text> : null}</Row></Item>)}
+        {DISAPPEAR.map(([l, s]) => <Item key={l} onPress={() => { st().setDisappearing(id, s, me); setSheet(null); }}><Row><Body>{l}</Body>{(chat.disappearingSec ?? 0) === s ? <Text style={{ color: t.accent }}>✓</Text> : null}</Row></Item>)}
       </Sheet>
       <Sheet visible={sheet === 'wall'} title="Sfondo chat" onClose={() => setSheet(null)}>
-        {Object.entries(wallpapers).map(([k, w]) => <Item key={k} onPress={() => { st().patchChat(id, { wallpaper: k }); setSheet(null); }}><Row><Row style={{ justifyContent: 'flex-start' }} gap={10}><View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: w.dark, borderWidth: 1, borderColor: t.border }} /><Body>{w.label}</Body></Row>{(chat.wallpaper ?? 'default') === k ? <Text style={{ color: '#00a884' }}>✓</Text> : null}</Row></Item>)}
+        {Object.entries(wallpapers).map(([k, w]) => <Item key={k} onPress={() => { st().patchChat(id, { wallpaper: k }); setSheet(null); }}><Row><Row style={{ justifyContent: 'flex-start' }} gap={10}><View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: w.dark, borderWidth: 1, borderColor: t.border }} /><Body>{w.label}</Body></Row>{(chat.wallpaper ?? 'default') === k ? <Text style={{ color: t.accent }}>✓</Text> : null}</Row></Item>)}
       </Sheet>
       <Sheet visible={sheet === 'clear'} title="Svuotare la chat?" onClose={() => setSheet(null)}>
         <Item onPress={() => { st().clearChat(id, false); setSheet(null); toast('Chat svuotata'); }}><Body color={t.danger}>Svuota tutto</Body></Item>

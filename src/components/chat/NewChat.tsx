@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 
 import { UserAvatar } from '@/components/network';
 import { Body, Btn, Input, Item, Pill, Row, Sheet } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
 import { go } from '@/lib/nav';
 import { peoplePool } from '@/lib/network';
 import { useApp } from '@/store/app';
@@ -11,6 +12,7 @@ import { toast } from '@/store/toast';
 
 /** Nuova chat: scegli una persona oppure crea un gruppo. */
 export function PickPeopleSheet({ visible, onClose, addTo }: { visible: boolean; onClose: () => void; addTo?: { chatId: string; existing: string[] } }) {
+  const t = useTheme();
   const me = useApp((s) => s.account.name);
   const [q, setQ] = useState('');
   const [group, setGroup] = useState(!!addTo);
@@ -31,7 +33,7 @@ export function PickPeopleSheet({ visible, onClose, addTo }: { visible: boolean;
           if (!group) { const id = useChat.getState().ensureDm(n, me); done(); go('conversationPage', { id }); return; }
           setSel(sel.includes(n) ? sel.filter((x) => x !== n) : [...sel, n]);
         }}>
-          <Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}><UserAvatar name={n} size={30} /><Body>{n}</Body></Row>{sel.includes(n) ? <Text style={{ color: '#00a884', fontSize: 18 }}>✓</Text> : null}</Row>
+          <Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}><UserAvatar name={n} size={30} /><Body>{n}</Body></Row>{sel.includes(n) ? <Text style={{ color: t.accent, fontSize: 18 }}>✓</Text> : null}</Row>
         </Item>
       ))}
       {group && (

@@ -16,6 +16,8 @@ import { go, goBack } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { dayLabel, dmId, previewOf, useChat, visibleMsgs, type ChatMessage, type Poll } from '@/store/chat';
 import { askTheiaAbout } from '@/store/theia';
+import { dayKey } from '@/lib/format';
+import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
 
 type Row = { type: 'day'; key: string; label: string } | { type: 'unread'; key: string; n: number } | { type: 'msg'; key: string; m: ChatMessage; showSender: boolean };
@@ -132,12 +134,19 @@ export default function Conversation() {
     if (a === 'reply') { setReplyTo(m); setEditing(undefined); }
     if (a === 'copy') copyText(m);
     if (a === 'forward') setForwarding([m]);
-    if (a === 'star') toast(st().toggleStar(id, [m.id], me) ? 'Aggiunto ai preferiti' : 'Rimosso dai preferiti');
+    if (a === 'star') toast(st().toggleStar(id, [m.id], me) ? 'Segnato come importante' : 'Tolto dagli importanti');
     if (a === 'edit') { setEditing(m); setReplyTo(undefined); setDraftState(m.text ?? ''); }
     if (a === 'info') setInfoMsg(m);
     if (a === 'delete') setDeleting([m]);
     if (a === 'select') setSelected([m.id]);
     if (a === 'theia') askAbout([m]);
+    if (a === 'task' && m.text) { useLife.getState().addTask({ t: m.text.length > 90 ? m.text.slice(0, 88) + '…' : m.text, done: false }); toast('Aggiunto ai tuoi task'); }
+    if (a === 'note' && m.text) { useLife.getState().saveNote(null, `Dalla chat con ${title}:\n${m.text}`); toast('Salvato nelle note'); }
+    if (a === 'event' && m.text) {
+      const d = new Date(); const h = Math.min(23, d.getHours() + 1);
+      useLife.getState().addEvent(dayKey(d), { time: `${String(h).padStart(2, '0')}:00`, title: m.text.length > 60 ? m.text.slice(0, 58) + '…' : m.text });
+      toast(`Aggiunto al piano di oggi alle ${String(h).padStart(2, '0')}:00`);
+    }
   }
   function askAbout(list: ChatMessage[]) {
     const text = list.map((m) => (m.text ? (list.length > 1 ? `${m.from}: ${m.text}` : m.text) : previewOf(m))).join('\n');
@@ -245,7 +254,7 @@ export default function Conversation() {
       }} />
       <InfoSheet m={infoMsg} onClose={() => setInfoMsg(null)} />
       <PickChatsSheet visible={!!forwarding} title="Inoltra a…" me={me} onClose={() => setForwarding(null)} onPick={(ids) => { st().forward(ids, forwarding ?? [], me); setForwarding(null); exitSel(); toast(`Inoltrato a ${ids.length} ${ids.length === 1 ? 'chat' : 'chat'}`); }} />
-      <MediaViewer items={mediaItems} index={viewer} onClose={() => setViewer(null)} />
+      <MediaViewer items={mediaItems} index={viewer} onClose={() => setViewer(null)} onDelete={(m) => { setViewer(null); setTimeout(() => setDeleting([m]), 350); }} />
 
       <Sheet visible={menu} title={title} onClose={() => setMenu(false)}>
         <Item onPress={() => { setMenu(false); go('chatInfo', { id }); }}><Body>ⓘ Info {chat.type === 'group' ? 'gruppo' : 'contatto'}</Body></Item>

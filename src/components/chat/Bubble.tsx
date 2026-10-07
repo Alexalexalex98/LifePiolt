@@ -53,10 +53,10 @@ export const Bubble = memo(function Bubble(p: Props) {
     body = (
       <>
         {m.forwarded && <Text style={{ color: c.meta, fontSize: 11, fontStyle: 'italic', marginBottom: 2 }}>↪ Inoltrato</Text>}
-        {(m.kind === 'image' || m.kind === 'video') && <MediaThumb m={m} onOpen={p.onOpenMedia} />}
+        {(m.kind === 'image' || m.kind === 'video') && <MediaThumb m={m} onOpen={p.onOpenMedia} onLongPress={p.onLongPress} />}
         {m.kind === 'audio' && <VoiceBubble m={m} mine={mine} />}
-        {m.kind === 'file' && <FileCard m={m} />}
-        {m.kind === 'location' && <LocationCard m={m} />}
+        {m.kind === 'file' && <FileCard m={m} onLongPress={p.onLongPress} />}
+        {m.kind === 'location' && <LocationCard m={m} onLongPress={p.onLongPress} />}
         {m.kind === 'contact' && <ContactCard m={m} />}
         {m.kind === 'poll' && <PollCard m={m} me={p.me} onVote={p.onVote} />}
         {!!m.text && m.kind !== 'poll' && m.kind !== 'audio' ? <View style={{ marginTop: m.kind === 'text' ? 0 : 6 }}><LinkText text={m.text} color={fg} size={p.fontSize} /></View> : null}
