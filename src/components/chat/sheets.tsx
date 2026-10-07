@@ -5,16 +5,18 @@ import { Pressable, Text, View } from 'react-native';
 import { UserAvatar } from '@/components/network';
 import { Body, Btn, Input, Item, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
+import { useApp } from '@/store/app';
 import { peoplePool } from '@/lib/network';
 import { DELETE_ALL_WINDOW, EDIT_WINDOW, EMOJIS, dmId, fmtClock, previewOf, useChat, type ChatMessage } from '@/store/chat';
 import { toast } from '@/store/toast';
 
 const dt = (ts: number) => { const d = new Date(ts); return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${fmtClock(ts)}`; };
 
-export type Action = 'reply' | 'copy' | 'forward' | 'star' | 'edit' | 'info' | 'delete' | 'select' | 'react';
+export type Action = 'reply' | 'copy' | 'forward' | 'star' | 'edit' | 'info' | 'delete' | 'select' | 'react' | 'theia';
 
 export function MessageActions({ m, me, onClose, onAction }: { m: ChatMessage | null; me: string; onClose: () => void; onAction: (a: Action, emoji?: string) => void }) {
   const t = useTheme();
+  const name = useApp((x) => x.assistantName);
   if (!m) return <Sheet visible={false} title="" onClose={onClose}><View /></Sheet>;
   const mine = m.from === me;
   const starred = !!m.starredBy?.includes(me);
@@ -32,6 +34,7 @@ export function MessageActions({ m, me, onClose, onAction }: { m: ChatMessage | 
       )}
       <Body small muted numberOfLines={2} style={{ marginBottom: 6 }}>{previewOf(m)}</Body>
       {!m.deletedForAll && row('↩︎ Rispondi', 'reply')}
+      {!m.deletedForAll && row(`✦ Chiedi a ${name}`, 'theia')}
       {row('⧉ Copia', 'copy', copyable)}
       {!m.deletedForAll && row('↪ Inoltra', 'forward')}
       {!m.deletedForAll && row(starred ? '★ Rimuovi dai preferiti' : '☆ Aggiungi ai preferiti', 'star')}

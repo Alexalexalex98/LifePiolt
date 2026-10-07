@@ -15,6 +15,7 @@ import { simulateDelivery } from '@/lib/chatSim';
 import { go, goBack } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { dayLabel, dmId, previewOf, useChat, visibleMsgs, type ChatMessage, type Poll } from '@/store/chat';
+import { askTheiaAbout } from '@/store/theia';
 import { toast } from '@/store/toast';
 
 type Row = { type: 'day'; key: string; label: string } | { type: 'unread'; key: string; n: number } | { type: 'msg'; key: string; m: ChatMessage; showSender: boolean };
@@ -136,6 +137,13 @@ export default function Conversation() {
     if (a === 'info') setInfoMsg(m);
     if (a === 'delete') setDeleting([m]);
     if (a === 'select') setSelected([m.id]);
+    if (a === 'theia') askAbout([m]);
+  }
+  function askAbout(list: ChatMessage[]) {
+    const text = list.map((m) => (m.text ? (list.length > 1 ? `${m.from}: ${m.text}` : m.text) : previewOf(m))).join('\n');
+    const img = list.find((m) => m.kind === 'image')?.media?.uri;
+    askTheiaAbout({ text: text || undefined, imageUri: img, source: 'chat', label: list.length > 1 ? `${list.length} messaggi` : `Messaggio di ${list[0].from === me ? 'te' : list[0].from}`, replyToChat: id });
+    setSelected([]);
   }
   const selMsgs = selected.map((x) => byId[x]).filter(Boolean);
   const exitSel = () => setSelected([]);
@@ -179,6 +187,7 @@ export default function Conversation() {
             {selected.length === 1 && <Pressable onPress={() => { setReplyTo(selMsgs[0]); exitSel(); }} hitSlop={8} accessibilityLabel="Rispondi"><Text style={{ fontSize: 20, color: t.text }}>↩︎</Text></Pressable>}
             <Pressable onPress={() => { toast(st().toggleStar(id, selected, me) ? 'Aggiunti ai preferiti' : 'Rimossi dai preferiti'); exitSel(); }} hitSlop={8} accessibilityLabel="Preferito"><Text style={{ fontSize: 20, color: t.text }}>☆</Text></Pressable>
             <Pressable onPress={() => { const txt = selMsgs.map((m) => m.text).filter(Boolean).join('\n'); if (txt) copyText({ ...selMsgs[0], text: txt }); exitSel(); }} hitSlop={8} accessibilityLabel="Copia"><Text style={{ fontSize: 20, color: t.text }}>⧉</Text></Pressable>
+            <Pressable onPress={() => askAbout(selMsgs)} hitSlop={8} accessibilityLabel="Chiedi a Theia"><Text style={{ fontSize: 20, color: t.text }}>✦</Text></Pressable>
             <Pressable onPress={() => setForwarding(selMsgs)} hitSlop={8} accessibilityLabel="Inoltra"><Text style={{ fontSize: 20, color: t.text }}>↪</Text></Pressable>
             <Pressable onPress={() => setDeleting(selMsgs)} hitSlop={8} accessibilityLabel="Elimina"><Text style={{ fontSize: 20, color: t.danger }}>🗑</Text></Pressable>
           </>

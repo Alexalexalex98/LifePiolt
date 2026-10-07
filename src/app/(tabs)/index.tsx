@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { TrendChart } from '@/components/charts';
+import { TheiaCard } from '@/components/TheiaCard';
 import { InsightCard, KpiCard, MetricSheet, deltaStatus, scoreStatus, statusColor } from '@/components/dashboard';
 import { PlanDaySheet } from '@/components/plan';
 import { Body, Btn, Card, H, Item, Page, Row, SectionLabel, Tag } from '@/components/ui';
@@ -63,6 +64,7 @@ export default function Dashboard() {
     return (
       <Page id="index">
         <Text style={{ color: t.text, fontSize: 28, fontWeight: '800', marginTop: 18 }}>{greet}, {account.name}</Text>
+        <TheiaCard />
         <Card style={{ marginTop: 14 }}>
           <H>La Dashboard analizza i tuoi dati</H>
           <Body muted>Appena arrivano dati, qui compaiono punteggi, trend, previsioni, anomalie e correlazioni. Per iniziare:</Body>
@@ -84,6 +86,8 @@ export default function Dashboard() {
           {dash.dataDays} giorni di dati · {wearable.connected && lastSync ? `Apple Health sincronizzato ${new Date(lastSync).toLocaleTimeString('it-CH', { hour: '2-digit', minute: '2-digit' })}` : 'aggiornato in tempo reale'}
         </Text>
       </View>
+
+      <TheiaCard />
 
       {/* ---------- 1. punteggio generale ---------- */}
       <Card style={{ marginTop: 10, padding: 18 }}>

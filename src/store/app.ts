@@ -25,6 +25,9 @@ type AppState = {
   accessibility: { textLg: boolean; reduceMotion: boolean; highContrast: boolean };
   navItems: string[];
   pageVisits: Record<string, number>;
+  /** quante volte, per ogni pagina, l'hai aperta in ciascuna ora del giorno (serve a Theia per capire le tue abitudini) */
+  visitHours: Record<string, number[]>;
+  assistantName: string;
   dismissedNav: string[];
   workHours: { start: string; end: string };
   devices: Device[];
@@ -48,6 +51,8 @@ const initial = {
   accessibility: { textLg: false, reduceMotion: false, highContrast: false },
   navItems: ['home', 'ai', 'lifenetwork', 'lifefinance', 'profile'],
   pageVisits: {} as Record<string, number>,
+  visitHours: {} as Record<string, number[]>,
+  assistantName: 'Theia',
   dismissedNav: [] as string[],
   workHours: { start: '09:00', end: '18:00' },
   devices: [{ name: 'Questo dispositivo', detail: 'Sessione attuale', current: true }] as Device[],
@@ -60,7 +65,13 @@ export const useApp = create<AppState>()(
   persisted<AppState>('app', (set) => ({
     ...initial,
     set: (patch) => set(patch),
-    trackVisit: (p) => set((s) => (navCatalog[p] ? { pageVisits: { ...s.pageVisits, [p]: (s.pageVisits[p] || 0) + 1 } } : s)),
+    trackVisit: (p) => set((s) => {
+      if (!navCatalog[p]) return s;
+      const h = new Date().getHours();
+      const arr = (s.visitHours?.[p] ?? Array(24).fill(0)).slice();
+      arr[h] = (arr[h] || 0) + 1;
+      return { pageVisits: { ...s.pageVisits, [p]: (s.pageVisits[p] || 0) + 1 }, visitHours: { ...(s.visitHours ?? {}), [p]: arr } };
+    }),
     reset: () => set({ ...initial }),
   })),
 );

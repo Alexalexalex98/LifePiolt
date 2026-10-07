@@ -28,7 +28,7 @@ export default function Settings() {
   const names = useSectionNames();
   const app = useApp();
   const { set } = app;
-  const [edit, setEdit] = useState<null | 'name' | 'email'>(null);
+  const [edit, setEdit] = useState<null | 'name' | 'email' | 'assistant'>(null);
   const [editVal, setEditVal] = useState('');
   const [wh, setWh] = useState(false);
   const [info, setInfo] = useState<null | 'help' | 'contact' | 'terms' | 'privacy'>(null);
@@ -95,6 +95,7 @@ export default function Settings() {
         <H>{tr('stAccount')}</H>
         <Item><Row><Body muted>{tr('stNameLabel')}</Body><Pressable onPress={() => { setEditVal(app.account.name); setEdit('name'); }}><Body bold>{app.account.name || '—'}</Body></Pressable></Row></Item>
         <Item><Row><Body muted>{tr('stEmailLabel')}</Body><Pressable onPress={() => { setEditVal(app.account.email); setEdit('email'); }}><Body bold>{app.account.email || 'Aggiungi email'}</Body></Pressable></Row></Item>
+        <Item><Row><Body muted>Nome dell'assistente AI</Body><Pressable onPress={() => { setEditVal(app.assistantName); setEdit('assistant'); }}><Body bold>{app.assistantName}</Body></Pressable></Row></Item>
         <Item last><Row><Body muted>{tr('stPasswordLabel')}</Body><Link onPress={() => toast("Il cambio password sarà disponibile con l'account online")}>{tr('stChangePasswordBtn')}</Link></Row></Item>
       </Card>
 
@@ -180,9 +181,9 @@ export default function Settings() {
 
       <Card><H>Informazioni sull'app</H><Row><Body muted>Versione</Body><Body>LifePilot {Constants.expoConfig?.version}</Body></Row></Card>
 
-      <Sheet visible={!!edit} title={edit === 'name' ? 'Modifica nome' : 'Modifica email'} onClose={() => setEdit(null)}>
+      <Sheet visible={!!edit} title={edit === 'name' ? 'Modifica nome' : edit === 'assistant' ? 'Nome dell’assistente' : 'Modifica email'} onClose={() => setEdit(null)}>
         <Input value={editVal} onChangeText={setEditVal} autoCapitalize={edit === 'email' ? 'none' : 'words'} keyboardType={edit === 'email' ? 'email-address' : 'default'} />
-        <Btn title="Salva" onPress={() => { const v = editVal.trim(); if (!v || !edit) return; set({ account: { ...app.account, [edit]: v } }); setEdit(null); toast(edit === 'name' ? 'Nome aggiornato' : 'Email aggiornato'); }} />
+        <Btn title="Salva" onPress={() => { const v = editVal.trim(); if (!v || !edit) return; if (edit === 'assistant') set({ assistantName: v }); else set({ account: { ...app.account, [edit]: v } }); setEdit(null); toast(edit === 'name' ? 'Nome aggiornato' : 'Email aggiornato'); }} />
       </Sheet>
       <WorkHoursSheet key={`${app.workHours.start}${app.workHours.end}${wh}`} visible={wh} onClose={() => setWh(false)} />
       <Sheet visible={!!info} title={info ? infos[info].title : ''} onClose={() => setInfo(null)}>{info && <Body small muted>{infos[info].body}</Body>}</Sheet>

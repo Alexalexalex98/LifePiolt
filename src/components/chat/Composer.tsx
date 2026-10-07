@@ -44,6 +44,11 @@ export function Composer(p: Props) {
   const [ms, setMs] = useState(0);
   const levels = useRef<number[]>([]);
   const [live, setLive] = useState<number[]>([]);
+  const mode = useRef<'none' | 'hold' | 'lock'>('none');
+  const startP = useRef<Promise<boolean> | null>(null);
+  const touchX = useRef(0);
+  const slideCancel = useRef(false);
+  const [willCancel, setWillCancel] = useState(false);
 
   useEffect(() => {
     if (rec !== 'on') return;
@@ -55,29 +60,31 @@ export function Composer(p: Props) {
     return () => clearInterval(id);
   }, [rec, recorder]);
 
-  async function startRec() {
+  async function startRec(): Promise<boolean> {
     try {
       const perm = await requestRecordingPermissionsAsync();
-      if (!perm.granted) { toast('Permesso microfono negato: abilitalo da Impostazioni'); return; }
+      if (!perm.granted) { toast('Permesso microfono negato: abilitalo da Impostazioni'); return false; }
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
       await recorder.prepareToRecordAsync();
       levels.current = []; setLive([]); setMs(0);
       recorder.record();
       setRec('on');
+      return true;
     } catch {
       toast(Platform.OS === 'web' ? 'La registrazione vocale richiede l’app sul telefono' : 'Impossibile avviare la registrazione');
+      return false;
     }
   }
   async function cancelRec() {
     try { await recorder.stop(); } catch { /* già fermo */ }
     await setAudioModeAsync({ allowsRecording: false }).catch(() => undefined);
-    setRec('off'); setMs(0);
+    setRec('off'); setMs(0); mode.current = 'none'; setWillCancel(false);
   }
   async function sendRec() {
     const dur = recorder.getStatus().durationMillis || ms;
     try { await recorder.stop(); } catch { /* ignore */ }
     await setAudioModeAsync({ allowsRecording: false }).catch(() => undefined);
-    setRec('off');
+    setRec('off'); mode.current = 'none'; setWillCancel(false);
     const uri = recorder.uri;
     if (!uri || dur < 600) { toast('Registrazione troppo breve'); return; }
     p.onSendVoice(persistFile(uri, 'voce.m4a'), dur, toWaveform(levels.current));
@@ -105,20 +112,6 @@ export function Composer(p: Props) {
 
   if (p.disabledReason) {
     return <View style={{ padding: 14, alignItems: 'center', backgroundColor: t.card }}><Body small muted>{p.disabledReason}</Body></View>;
-  }
-
-  if (rec !== 'off') {
-    return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, backgroundColor: t.card }}>
-        <Pressable onPress={cancelRec} hitSlop={10} accessibilityLabel="Annulla registrazione"><Text style={{ fontSize: 22 }}>🗑️</Text></Pressable>
-        <Text style={{ color: rec === 'on' ? '#e5484d' : t.muted, fontSize: 15, fontWeight: '700', width: 46 }}>● {fmtDur(ms)}</Text>
-        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, height: 28 }}>
-          {live.map((l, i) => <View key={i} style={{ flex: 1, height: Math.max(3, ((l + 60) / 60) * 26), borderRadius: 2, backgroundColor: t.muted }} />)}
-        </View>
-        <Pressable onPress={pauseRec} hitSlop={10} accessibilityLabel={rec === 'on' ? 'Pausa' : 'Riprendi'}><Text style={{ fontSize: 22, color: t.text }}>{rec === 'on' ? '⏸' : '⏺'}</Text></Pressable>
-        <Pressable onPress={sendRec} style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#00a884', alignItems: 'center', justifyContent: 'center' }} accessibilityLabel="Invia vocale"><Text style={{ color: '#fff', fontSize: 18 }}>➤</Text></Pressable>
-      </View>
-    );
   }
 
   const ctx = p.editing ?? p.replyTo;
@@ -151,10 +144,30 @@ export function Composer(p: Props) {
           {!p.editing && <Pressable onPress={() => setAttach(true)} hitSlop={6} style={{ paddingVertical: 9 }} accessibilityLabel="Allega"><Text style={{ fontSize: 22 }}>📎</Text></Pressable>}
           {!p.editing && !has && <Pressable onPress={() => run(takePhoto)} hitSlop={6} style={{ paddingVertical: 9, paddingLeft: 8 }} accessibilityLabel="Fotocamera"><Text style={{ fontSize: 22 }}>📷</Text></Pressable>}
         </View>
-        {has ? (
+        {has && rec === 'off' ? (
           <Pressable onPress={sendText} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#00a884', alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={p.editing ? 'Salva modifica' : 'Invia'}><Text style={{ color: '#fff', fontSize: 18 }}>{p.editing ? '✓' : '➤'}</Text></Pressable>
         ) : (
-          <Pressable onPress={startRec} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#00a884', alignItems: 'center', justifyContent: 'center' }} accessibilityLabel="Registra messaggio vocale"><Text style={{ fontSize: 20 }}>🎤</Text></Pressable>
+          <Pressable
+            onPress={() => { if (mode.current === 'lock') void sendRec(); else if (rec === 'off') { mode.current = 'lock'; void startRec().then((ok) => { if (!ok) mode.current = 'none'; }); } }}
+            onLongPress={() => { if (rec !== 'off') return; mode.current = 'hold'; slideCancel.current = false; startP.current = startRec(); void startP.current.then((ok) => { if (!ok) mode.current = 'none'; }); }}
+            delayLongPress={250}
+            onTouchStart={(e) => { touchX.current = e.nativeEvent.pageX; }}
+            onTouchMove={(e) => { if (mode.current === 'hold') { const c = touchX.current - e.nativeEvent.pageX > 90; slideCancel.current = c; setWillCancel(c); } }}
+            onPressOut={() => { if (mode.current !== 'hold') return; void (startP.current ?? Promise.resolve(false)).then((ok) => { if (!ok) return; if (slideCancel.current) void cancelRec(); else void sendRec(); }); }}
+            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: rec === 'off' ? '#00a884' : willCancel ? '#e5484d' : '#00a884', alignItems: 'center', justifyContent: 'center', transform: [{ scale: rec !== 'off' && mode.current === 'hold' ? 1.35 : 1 }] }}
+            accessibilityLabel={rec === 'off' ? 'Messaggio vocale: tocca o tieni premuto' : 'Invia vocale'}>
+            <Text style={{ fontSize: 20, color: '#fff' }}>{rec === 'off' ? '🎤' : '➤'}</Text>
+          </Pressable>
+        )}
+        {rec !== 'off' && (
+          <View style={{ position: 'absolute', left: 8, right: 58, top: 8, bottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, backgroundColor: t.input, borderRadius: 22, borderWidth: 1, borderColor: t.inputBorder }}>
+            <Text style={{ color: rec === 'on' ? '#e5484d' : t.muted, fontSize: 15, fontWeight: '700', width: 52 }}>● {fmtDur(ms)}</Text>
+            {mode.current === 'hold'
+              ? <Text style={{ flex: 1, color: willCancel ? '#e5484d' : t.muted, fontSize: 13 }}>{willCancel ? 'Rilascia per annullare' : '‹ Scorri per annullare'}</Text>
+              : <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, height: 28 }}>{live.map((l, i) => <View key={i} style={{ flex: 1, height: Math.max(3, ((l + 60) / 60) * 26), borderRadius: 2, backgroundColor: t.muted }} />)}</View>}
+            {mode.current === 'lock' && <Pressable onPress={pauseRec} hitSlop={10} accessibilityLabel={rec === 'on' ? 'Pausa' : 'Riprendi'}><Text style={{ fontSize: 20, color: t.text }}>{rec === 'on' ? '⏸' : '⏺'}</Text></Pressable>}
+            {mode.current === 'lock' && <Pressable onPress={cancelRec} hitSlop={10} accessibilityLabel="Annulla registrazione"><Text style={{ fontSize: 20 }}>🗑️</Text></Pressable>}
+          </View>
         )}
       </View>
 

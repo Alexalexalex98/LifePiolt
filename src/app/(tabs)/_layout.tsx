@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 
 import { MenuSheet, NavBar } from '@/components/NavBar';
 import { NetSheetHost } from '@/components/NetSheets';
+import { TheiaFab, TheiaHost } from '@/components/TheiaHost';
 import { useUI } from '@/components/ui';
 import { unreadMessages } from '@/lib/network';
 import { useApp } from '@/store/app';
@@ -25,6 +26,8 @@ export default function TabsLayout() {
       <Tabs backBehavior="history" tabBar={(p) => <NavBar {...p} />} screenOptions={{ headerShown: false, lazy: true }} />
       <MenuSheet />
       <NetSheetHost />
+      <TheiaFab />
+      <TheiaHost />
     </>
   );
 }

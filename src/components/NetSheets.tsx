@@ -181,33 +181,6 @@ export function NetSheetHost() {
       break;
     }
     case 'addCard': { title = 'Aggiungi carta'; body = <AddCardView />; break; }
-    case 'newGroup': { title = 'Nuova chat di gruppo'; body = <NewGroupView />; break; }
-    case 'groupSettings': {
-      const g = net.groups.find((x) => x.id === p.id);
-      if (!g) break;
-      title = g.name;
-      body = (
-        <>
-          <Body small muted style={{ marginBottom: 10 }}>Membri: {g.members.join(', ')}</Body>
-          <Item last onPress={() => { const removed = g; net.patch({ groups: net.groups.filter((x) => x.id !== g.id) }); close(); goBack(); showUndoToast('Gruppo eliminato', () => useNet.setState((s) => ({ groups: [...s.groups, removed] }))); }}><Body color={t.danger}>Elimina gruppo</Body></Item>
-        </>
-      );
-      break;
-    }
-    case 'convSettings': {
-      const name = p.name;
-      const muted = net.mutedAuthors.includes(name);
-      title = name;
-      body = (
-        <>
-          <Item onPress={() => { close(); go('userProfile', { name }); }}><Body>Vedi profilo</Body></Item>
-          <Item onPress={() => { const m = net.toggleMuteAuthor(name); close(); toast(m ? `Post di ${name} silenziati` : `Post di ${name} riattivati`); }}><Body>{muted ? 'Riattiva notifiche' : 'Silenzia conversazione'}</Body></Item>
-          <Item onPress={() => { net.report(name); close(); toast('Segnalazione inviata, verrà valutata'); }}><Body>Segnala</Body></Item>
-          <Item last onPress={() => { const removed = net.conversations[name]; const next = { ...net.conversations }; delete next[name]; net.patch({ conversations: next }); close(); goBack(); showUndoToast('Conversazione eliminata', () => useNet.setState((s) => ({ conversations: { ...s.conversations, [name]: removed } }))); }}><Body color={t.danger}>Elimina conversazione</Body></Item>
-        </>
-      );
-      break;
-    }
     case 'cv': {
       const name = p.name;
       const mine = name === me;
@@ -501,30 +474,6 @@ function AddCardView() {
         const id = newId();
         net.patch({ cards: [...net.cards, { id, brand, last4, holder: holder.trim(), expiry: exp.trim() }], defaultCard: id });
         toast('Carta salvata'); openSheet('topup');
-      }} />
-    </>
-  );
-}
-
-function NewGroupView() {
-  const net = useNet();
-  const me = useApp((s) => s.account.name);
-  const close = useNetSheet((s) => s.close);
-  const [name, setName] = useState(''); const [q, setQ] = useState(''); const [sel, setSel] = useState<string[]>([]);
-  const people = peoplePool(me).filter((n) => n.toLowerCase().includes(q.trim().toLowerCase()));
-  return (
-    <>
-      <Input placeholder="Nome del gruppo" value={name} onChangeText={setName} />
-      <Input placeholder="Cerca una persona…" value={q} onChangeText={setQ} />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>{sel.map((n) => <Pill key={n} on label={n} />)}</View>
-      {people.length === 0 ? <Body small muted>Nessuna persona trovata.</Body> : people.map((n) => (
-        <Item key={n} onPress={() => setSel(sel.includes(n) ? sel.filter((x) => x !== n) : [...sel, n])}><Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}><UserAvatar name={n} size={26} /><Body>{n}</Body></Row>{sel.includes(n) ? <Text style={{ color: '#7be0b0' }}>✓</Text> : null}</Row></Item>
-      ))}
-      <Btn style={{ marginTop: 12 }} title="Crea gruppo" onPress={() => {
-        if (!name.trim() || !sel.length) { toast('Dai un nome al gruppo e scegli almeno una persona'); return; }
-        const id = newId();
-        net.patch({ groups: [...net.groups, { id, name: name.trim(), members: sel, msgs: [] }] });
-        close(); toast('Gruppo creato'); go('conversationPage', { type: 'group', key: String(id) });
       }} />
     </>
   );
