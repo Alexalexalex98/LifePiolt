@@ -16,6 +16,10 @@ import { monthEnd, monthNet, holdings, useFin } from '@/store/finance';
 import { last, moodOptions, streakOf, useHealth } from '@/store/health';
 import { taskIsDone, useLife } from '@/store/life';
 import { toast } from '@/store/toast';
+import { LpTag, UserAvatar } from '@/components/network';
+import { donationStreak, followerCountFor } from '@/lib/network';
+import { useNet } from '@/store/network';
+import { weekdayShortDate } from '@/lib/format';
 
 const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 
@@ -28,6 +32,16 @@ export default function Home() {
   const [scoreSheet, setScoreSheet] = useState(false);
   const [planSheet, setPlanSheet] = useState(false);
   const [insight, setInsight] = useState(false);
+  const ns = useNet();
+  const demo = useApp((a) => a.demo);
+  const lpStreak = donationStreak();
+  const donatedToday = ns.dailyPoint.lastGiven === weekdayShortDate();
+  const topIdea = ns.ideas.slice().sort((a, b) => b.raised / (b.target || 500) - a.raised / (a.target || 500))[0];
+  const topPct = topIdea ? Math.round((topIdea.raised / (topIdea.target || 500)) * 100) : 0;
+  const topPosts = [
+    ...ns.posts.filter((p) => !ns.mutedAuthors.includes(p.author) && !(p.tag && ns.mutedTopics.includes(p.tag))).map((p) => ({ author: p.author, text: p.text, likes: p.likes })),
+    ...ns.communities.filter((c) => c.members.includes(name)).flatMap((c) => c.posts.filter((p) => !ns.mutedAuthors.includes(p.author)).map((p) => ({ author: p.author, text: p.text, likes: p.likes }))),
+  ].sort((a, b) => (ns.following.includes(b.author) ? 1 : 0) - (ns.following.includes(a.author) ? 1 : 0) || b.likes - a.likes).slice(0, 3);
 
   const now = new Date();
   const h = now.getHours();
@@ -85,6 +99,7 @@ export default function Home() {
         <H>I tuoi streak</H>
         <Body small muted style={{ marginBottom: 12 }}>Fai qualcosa ogni giorno per non spegnere la fiamma.</Body>
         <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Streak label="LP donato" streak={lpStreak} done={donatedToday} to="lifepointsPage" />
           <Streak label="10k passi" streak={stepsStreak} done={(steps ?? 0) >= 10000} to="lifehealth" />
           <Streak label="Sonno 7h+" streak={sleepStreak} done={(sleep ?? 0) >= 7} to="lifehealth" />
         </View>
@@ -135,6 +150,15 @@ export default function Home() {
         <Body small muted>{activeCount ? `${activeCount} task da fare · ${doneCount} completati` : life.tasks.length ? 'Tutto fatto, bel lavoro' : 'Nessun task ancora'}</Body>
       </Card>
 
+      {ns.bookings.length > 0 && (
+        <Card>
+          <H>I tuoi appuntamenti</H>
+          {ns.bookings.map((b, i) => (
+            <Item key={b.id} last={i === ns.bookings.length - 1}><Row><View style={{ flex: 1 }}><Body bold>{b.provider}</Body><Body small muted>{b.role} · {b.slot}</Body></View><Btn small ghost title="×" onPress={() => { ns.patch({ bookings: ns.bookings.filter((x) => x.id !== b.id) }); toast('Appuntamento rimosso'); }} /></Row></Item>
+          ))}
+        </Card>
+      )}
+
       <SectionLabel>Salute e abitudini</SectionLabel>
       <Card onPress={() => go('lifehealth')}>
         <Tag>SALUTE</Tag>
@@ -158,6 +182,28 @@ export default function Home() {
           <Body small muted>Saldo {formatCHF(cur ? monthEnd(cur) : 0)} CHF{topCat ? ` · più speso: ${topCat.n}` : ''}</Body>
         </Card>
       </Row>
+
+      <Card accent="#c9b6ff" onPress={() => go('lifenetwork')} style={{ padding: 20 }}>
+        <Tag>✦ LIFENETWORK</Tag>
+        <Row>
+          <View style={{ flex: 1 }}><Body bold style={{ fontSize: 16 }}>{topIdea ? topIdea.title : 'Nessuna idea ancora'}</Body><Body small muted>{topIdea ? "idea più vicina all'obiettivo" : 'Pubblica la tua prima idea'}</Body></View>
+          <Text style={{ color: '#c9b6ff', fontSize: 24, fontWeight: '700' }}>{topIdea ? `${topPct}%` : '—'}</Text>
+        </Row>
+        {topIdea && <Progress value={Math.min(100, topPct)} color="#c9b6ff" />}
+        <Row style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: t.item, paddingTop: 10 }} gap={0}>
+          <View style={{ flex: 1, alignItems: 'center' }}><Body bold>{followerCountFor(name, name, demo)}</Body><Body small muted>Follower</Body></View>
+          <View style={{ flex: 1, alignItems: 'center', borderLeftWidth: 1, borderLeftColor: t.item }}><Row gap={2}><Body bold>{formatCHF(ns.lifePoints)}</Body><LpTag size={13} /></Row><Body small muted>Saldo</Body></View>
+          <View style={{ flex: 1, alignItems: 'center', borderLeftWidth: 1, borderLeftColor: t.item }}><Body bold>{donatedToday ? '✓ donato' : 'da donare'}</Body><Body small muted>LP oggi</Body></View>
+        </Row>
+        <Body small muted style={{ marginTop: 12, marginBottom: 6, borderTopWidth: 1, borderTopColor: t.item, paddingTop: 10 }}>Per te</Body>
+        {topPosts.length === 0 ? <Body small muted>Nessun post ancora da mostrarti.</Body> : topPosts.map((p, i) => (
+          <Pressable key={i} onPress={() => go('userProfile', { name: p.author })} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 }}>
+            <UserAvatar name={p.author} size={26} />
+            <Body small numberOfLines={1} style={{ flex: 1 }}><Text style={{ fontWeight: '700' }}>{p.author}</Text> {p.text}</Body>
+            <Body small muted>♥ {p.likes}</Body>
+          </Pressable>
+        ))}
+      </Card>
 
       <SectionLabel>Altri strumenti</SectionLabel>
       <Row style={{ alignItems: 'stretch' }} gap={10}>

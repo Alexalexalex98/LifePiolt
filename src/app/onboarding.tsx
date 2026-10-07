@@ -13,7 +13,7 @@ export default function Onboarding() {
   const account = useApp((s) => s.account);
 
   function start(demo: boolean) {
-    if (demo) applyDemo();
+    if (demo) applyDemo(name.trim(), account.email);
     set({ account: { ...account, name: name.trim() }, demo, onboarded: true });
   }
 

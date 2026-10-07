@@ -10,11 +10,12 @@ import { useApp } from '@/store/app';
 import { useFin } from '@/store/finance';
 import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
+import { useNet } from '@/store/network';
 import { useTravel } from '@/store/travel';
 
 SplashScreen.preventAutoHideAsync();
 
-const stores = [useApp, useLife, useHealth, useFin, useTravel];
+const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet];
 const allHydrated = () => stores.every((s) => s.persist.hasHydrated());
 
 export default function RootLayout() {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Image, View } from 'react-native';
+import { View } from 'react-native';
+import { UserAvatar } from '@/components/network';
 
 import { Body, Btn, Card, H, Item, Metric, Page, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -26,7 +27,7 @@ export default function Profile() {
     <Page id="profile" title="Profilo & Memory">
       <Card onPress={() => go('userProfile', { name: account.name })}>
         <Row style={{ justifyContent: 'flex-start' }}>
-          <Image source={require('../../../assets/proto/user-photo.jpg')} style={{ width: 46, height: 46, borderRadius: 23 }} />
+          <UserAvatar name={account.name} size={46} />
           <View style={{ flex: 1 }}>
             <H>{account.name}</H>
             <Body small muted>Il tuo profilo LifeNetwork · post, follower, voti, biglietto da visita</Body>

@@ -10,6 +10,9 @@ import { areaColors } from '@/lib/icons';
 import { savingsRatePct } from '@/lib/scores';
 import { avgRecentNet, defaultBudget, emergencyByMonth, monthEnd, monthNet, useFin } from '@/store/finance';
 import { toast } from '@/store/toast';
+import { LpTag } from '@/components/network';
+import { go } from '@/lib/nav';
+import { useNet } from '@/store/network';
 
 export default function LifeFinance() {
   const t = useTheme();
@@ -32,6 +35,9 @@ export default function LifeFinance() {
   const [bAmount, setBAmount] = useState('');
   const [bFreq, setBFreq] = useState<'Ogni mese' | 'Ogni anno'>('Ogni mese');
 
+  const ledger = useNet((n) => n.ledger);
+  const lpTop = ledger.filter((l) => l.type === 'topup').reduce((s, l) => s + l.amount, 0);
+  const lpSpent = ledger.filter((l) => l.type === 'spend').reduce((s, l) => s + l.amount, 0);
   const cur = f.months[0];
   const net = monthNet(cur), end = monthEnd(cur);
   const endsChrono = f.months.slice().reverse().map(monthEnd);
@@ -72,6 +78,15 @@ export default function LifeFinance() {
           <Pressable onPress={() => setTrend(true)}>{endsChrono.length > 1 && <Spark data={endsChrono} w={140} h={60} pad={6} stroke={2.5} color={t.text} />}</Pressable>
         </Row>
         <Body small muted style={{ marginTop: 8 }}>Tocca per vedere tutti i movimenti · stipendio ed entrate/uscite · tocca il grafico per l'andamento mensile</Body>
+      </Card>
+
+      <Card onPress={() => go('lifepointsPage')}>
+        <H>LifePoints</H>
+        <Row>
+          <View style={{ flex: 1, alignItems: 'center' }}><Body small muted>Caricati in totale</Body><Row gap={2}><Body bold>{formatCHF(lpTop)}</Body><LpTag size={14} /></Row></View>
+          <View style={{ flex: 1, alignItems: 'center', borderLeftWidth: 1, borderLeftColor: t.item }}><Body small muted>Spesi in totale</Body><Row gap={2}><Body bold>{formatCHF(lpSpent)}</Body><LpTag size={14} /></Row></View>
+        </Row>
+        <Body small muted style={{ marginTop: 10 }}>tocca per il dettaglio</Body>
       </Card>
 
       {f.insights.length > 0 && (

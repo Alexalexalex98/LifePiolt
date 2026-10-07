@@ -1,48 +1,49 @@
 # LifePilot
 
-App mobile (Expo / React Native, TypeScript) per iOS e Android.
-Il prototipo HTML originale è in `prototype/lifepilot-prototype.html` (solo riferimento).
+App mobile (Expo / React Native, TypeScript) per iOS e Android, portata dal prototipo HTML `prototype/lifepilot-prototype.html`.
 
 ## Sviluppo
 
 ```bash
 npm install
-npx expo start        # poi scansiona il QR con Expo Go, oppure premi i / a
-npx tsc --noEmit      # typecheck
+npx expo start --tunnel   # QR da aprire con Expo Go (serve un account gratuito su expo.dev)
+npx tsc --noEmit          # typecheck
 ```
 
-## Stato attuale (v0.1)
+## Cosa c'è (tutti i moduli del prototipo)
 
-Funzionanti, con dati salvati sul dispositivo: onboarding, Home con Life Score, Plan (task, obiettivi),
-LifeNotes, LifeHealth (sonno, passi, peso, umore), LifeFinance (stipendio, movimenti, categorie),
-Impostazioni (tema, notifiche, esporta dati, elimina dati, pagine legali).
+Home (Life Score, streak, check-in umore, briefing), Plan (calendario, vacanze, orari di lavoro, task con scomposizione AI,
+obiettivi, automazioni), LifeTask, LifeNotes, LifeDrive (file e foto reali), LifeChat per argomenti,
+LifeHealth + Mind, LifeFinance (movimenti, budget, bollette, fondo emergenza), Dichiarazione fiscale, Previsioni a 10 anni,
+Stock e Portafoglio (simulati), LifeTravel, Settings (barra personalizzabile, 4 lingue, accessibilità, export/elimina dati),
+LifeNetwork (post, community, idee con punteggio AI, marketplace servizi/seminari), LifePoints, messaggi e gruppi,
+notifiche, ricerca, profili, voti, LifeClub, biglietto da visita.
 
-Chat AI: l'interfaccia c'è, ma serve un backend che custodisca la chiave API. Vedi `src/lib/ai.ts`.
-Imposta `EXPO_PUBLIC_API_URL` in `.env`.
+Al primo avvio si sceglie "Inizia da zero" oppure "Esplora con dati demo" (i dati d'esempio del prototipo).
+Tutti i dati restano sul dispositivo (AsyncStorage). Struttura: `src/store` (stato per area), `src/app/(tabs)` (schermate),
+`src/components` (UI e schede), `src/lib` (logica), `src/data` (dati demo e traduzioni).
 
-Ancora da portare dal prototipo: Drive, Travel, LifeNetwork (social), LifePoints, Portafoglio/azioni,
-dichiarazione fiscale, biglietto da visita, messaggi, automazioni.
+## Prima di pubblicare sugli store
+
+Parti ancora simulate o da completare:
+
+- **Chat AI**: serve un backend che custodisca la chiave API (vedi `src/lib/ai.ts`, variabile `EXPO_PUBLIC_API_URL`).
+- **LifePoints**: la ricarica è simulata. Una valuta virtuale venduta nell'app deve usare gli acquisti in-app di Apple/Google.
+- **Portafoglio/azioni**: dati e ordini simulati. Un servizio reale richiede un broker partner con licenza. Valuta di toglierlo dalla v1.
+- **LifeNetwork**: senza backend i contenuti degli altri utenti esistono solo nei dati demo. Per UGC gli store richiedono
+  moderazione, segnalazione e blocco, politica contenuti e cancellazione account (anche lato server).
+- **Salute**: il collegamento a Apple Health/Fitbit/Garmin è di prova. Per dati reali servono HealthKit / Health Connect.
+- **QR del biglietto**: illustrativo (non scansionabile).
+- **Testi legali** (privacy, termini): sono bozze in Settings, serve una privacy policy pubblica su un URL.
+- **Icona e splash**: sono ancora quelle di esempio di Expo. Servono un'icona 1024×1024 (senza trasparenza) e uno splash definitivi in `assets/images/`.
+- **Identificatori** in `app.json` (`com.lifepilot.app`): scegli quelli definitivi prima della prima pubblicazione.
 
 ## Pubblicazione
 
-1. Account: Apple Developer (99 $/anno) e Google Play Console (25 $ una tantum), più account gratuito su expo.dev.
-2. **Prima di tutto cambia gli identificatori in `app.json`** (`ios.bundleIdentifier`, `android.package`,
-   ora `com.lifepilot.app`): non si possono più modificare dopo la prima pubblicazione.
-3. Sostituisci icona e splash in `assets/images/` (icona 1024×1024, senza trasparenza per iOS).
-4. Build e invio:
-   ```bash
-   npm i -g eas-cli && eas login
-   eas build:configure
-   eas build --platform all --profile production
-   eas submit --platform ios      # App Store Connect / TestFlight
-   eas submit --platform android  # Google Play (la prima release va caricata a mano dalla Console)
-   ```
-5. Schede store: screenshot, descrizione, **URL privacy policy pubblica**, età, dichiarazioni sui dati
-   (Apple "App Privacy", Google "Data safety"). I testi in `src/app/legal/[doc].tsx` sono bozze.
-
-## Regole store da non dimenticare
-
-- Vendere LifePoints (valuta virtuale) richiede acquisti in-app (Apple/Google, commissione 30%/15%).
-- Portafoglio/azioni richiede un broker partner con licenza e disclaimer: tenere fuori dalla v1.
-- LifeNetwork (contenuti utente) richiede moderazione, segnalazione e blocco utenti.
-- Cancellazione account obbligatoria (già presente per i dati locali; con un backend va cancellato anche lato server).
+```bash
+npm i -g eas-cli && eas login
+eas build:configure
+eas build --platform all --profile production
+eas submit --platform ios      # richiede Apple Developer (99 $/anno)
+eas submit --platform android  # richiede Google Play Console (25 $ una tantum)
+```

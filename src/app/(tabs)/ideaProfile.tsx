@@ -1,0 +1,39 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams } from 'expo-router';
+import { Share, Text, View } from 'react-native';
+
+import { Badge, LpTag, contribute, gradientFor, openSheet } from '@/components/network';
+import { Body, Btn, Card, Empty, H, Page, Progress, Row } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
+import { formatCHF } from '@/lib/format';
+import { go } from '@/lib/nav';
+import { rateIdea, scoreColor } from '@/lib/network';
+import { useNet } from '@/store/network';
+
+export default function IdeaProfile() {
+  const t = useTheme();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const idea = useNet((s) => s.ideas.find((x) => String(x.id) === id));
+  if (!idea) return <Page id="ideaProfile" title="Idea" back><Card><Empty text="Idea non trovata." /></Card></Page>;
+  const score = rateIdea(idea.desc);
+  const pct = Math.min(100, Math.round((idea.raised / (idea.target || 500)) * 100));
+  const tiles = [0, 1, 2, 3].map((n) => gradientFor(idea.title + n));
+  const gv = gradientFor(idea.title + 'video');
+  return (
+    <Page id="ideaProfile" title={idea.title} back right={<Btn small ghost title="Condividi" onPress={() => Share.share({ message: 'Guarda questa idea su LifePilot: ' + idea.title })} />}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 14, marginHorizontal: -3 }}>
+        {tiles.map((g, i) => <View key={i} style={{ width: '33.33%', padding: 3 }}><LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14 }} /></View>)}
+        <View style={{ width: '33.33%', padding: 3 }}><LinearGradient colors={gv} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 26 }}>▶</Text></LinearGradient></View>
+      </View>
+      <Card><Row><Body small muted>Punteggio AI</Body><Badge label={`${score}/100`} color={scoreColor(score)} onPress={() => openSheet('scoreExpl', { id: idea.id })} /></Row></Card>
+      <Card><H>Descrizione</H><Body small>{idea.desc}</Body></Card>
+      <Card><H>Titolare</H><Row><Body muted>Fondatore</Body><Body bold onPress={() => go('userProfile', { name: idea.author })} style={{ textDecorationLine: 'underline' }}>{idea.author}</Body></Row></Card>
+      <Card>
+        <Row><Body small muted>LP raccolti</Body><Row gap={2}><Body bold>{formatCHF(idea.raised)}</Body><LpTag size={14} /><Body bold> · obiettivo {formatCHF(idea.target || 500)}</Body><LpTag size={14} /></Row></Row>
+        <Progress value={pct} />
+        <Row style={{ marginTop: 6 }}>{[25, 50, 75, 100].map((m) => <Body key={m} small color={pct >= m ? t.positive : t.muted} style={{ flex: 1, textAlign: 'center' }}>{pct >= m ? '✓' : '○'} {m}%</Body>)}</Row>
+        <Btn style={{ marginTop: 14 }} title="Contribuisci con LifePoints" onPress={() => contribute(idea)} />
+      </Card>
+    </Page>
+  );
+}

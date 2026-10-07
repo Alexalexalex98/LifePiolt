@@ -8,11 +8,15 @@ import { computeScores } from '@/lib/scores';
 import { useFin } from '@/store/finance';
 import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
+import { LpTag } from '@/components/network';
+import { formatCHF } from '@/lib/format';
+import { useNet } from '@/store/network';
 
 export default function Life() {
   const life = useLife();
   useHealth((s) => s.series); useFin((s) => s.months);
   const [sheet, setSheet] = useState(false);
+  const lp = useNet((n) => n.lifePoints);
   const sc = computeScores();
   void goBack;
   return (
@@ -32,7 +36,7 @@ export default function Life() {
       </Row>
       <Card onPress={() => go('lifenotes')}><H>LifeNotes</H><Metric>{life.notes.length}</Metric><Body small muted>note salvate · tocca per aprire</Body></Card>
       <Card onPress={() => go('lifedrive')}><H>LifeDrive</H><Metric>{life.drive.length}</Metric><Body small muted>file organizzati dall'AI · tocca per aprire</Body></Card>
-      <View />
+      <Card onPress={() => go('lifepointsPage')}><H>LifePoints</H><Row style={{ justifyContent: 'flex-start' }} gap={4}><Metric>{formatCHF(lp)}</Metric><LpTag size={15} /></Row><Body small muted>tocca per il resoconto</Body></Card>
       <LifeScoreSheet visible={sheet} onClose={() => setSheet(false)} />
     </Page>
   );
