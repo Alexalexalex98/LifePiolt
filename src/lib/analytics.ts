@@ -10,7 +10,7 @@
  */
 
 export type Pt = { d: string; v: number };
-export type Domain = 'salute' | 'mente' | 'finanza' | 'crescita';
+export type Domain = 'salute' | 'mente' | 'finanza' | 'crescita' | 'contesto';
 export type Better = 'up' | 'down' | 'range' | 'none';
 export type Period = 'day' | 'month';
 

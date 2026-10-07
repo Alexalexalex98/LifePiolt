@@ -119,3 +119,48 @@ export function convertAmount(chf: number, currency: string): number {
   return chf;
 }
 export type { Idea };
+
+/* ---------- voto consentito solo dopo una partecipazione confermata ---------- */
+export const VOTE_BLOCK_MSG = 'Puoi votare solo dopo aver partecipato a un servizio o seminario di questa persona.';
+
+/** true se `me` ha una partecipazione confermata (non ancora usata per votare) a un seminario/servizio di `target`. */
+export function canVote(me: string, target: string): boolean {
+  if (!target || target === me) return false;
+  return useNet.getState().enrollments.some((e) => e.host === target && e.status === 'attended' && !e.voted);
+}
+
+/** Motivo per cui non si puo' votare (null se si puo'). */
+export function voteBlockReason(me: string, target: string): string | null {
+  if (target === me) return 'Non puoi votare te stesso.';
+  if (canVote(me, target)) return null;
+  const done = useNet.getState().enrollments.some((e) => e.host === target && e.status === 'attended' && e.voted);
+  return done ? 'Hai già votato per la tua partecipazione a un servizio o seminario di questa persona. Potrai votare di nuovo dopo la prossima partecipazione confermata.' : VOTE_BLOCK_MSG;
+}
+
+/** Registra il voto e lo associa alla partecipazione (un voto per partecipazione). */
+export function castVote(me: string, target: string, stars: number): boolean {
+  if (!canVote(me, target)) return false;
+  useNet.setState((s) => {
+    const cur = s.votes[target] ?? { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let used = false;
+    return {
+      votes: { ...s.votes, [target]: { ...cur, [stars]: (cur[stars] || 0) + 1 } },
+      enrollments: s.enrollments.map((e) => { if (!used && e.host === target && e.status === 'attended' && !e.voted) { used = true; return { ...e, voted: true }; } return e; }),
+    };
+  });
+  return true;
+}
+
+/* ---------- post per chiave ('standalone:ID' | 'community:CID:INDICE') ---------- */
+export type PostView = { author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; community?: { id: number; name: string } };
+export function postByKey(key: string): PostView | null {
+  const s = useNet.getState();
+  if (key.startsWith('standalone:')) {
+    const p = s.posts.find((x) => x.id === Number(key.split(':')[1]));
+    return p ? { author: p.author, text: p.text, media: p.media, tag: p.tag, likes: p.likes, ts: p.ts, uri: p.uri } : null;
+  }
+  const [, cid, pi] = key.split(':');
+  const c = s.communities.find((x) => x.id === Number(cid));
+  const p = c?.posts[Number(pi)];
+  return c && p ? { author: p.author, text: p.text, media: p.media ?? null, tag: c.name, likes: p.likes, ts: p.ts, uri: p.uri, community: { id: c.id, name: c.name } } : null;
+}

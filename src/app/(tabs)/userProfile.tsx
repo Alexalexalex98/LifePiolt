@@ -2,10 +2,11 @@ import { useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { IdeaCard, LpTag, PostCard, UserAvatar, openPurchaseConfirm, openSheet } from '@/components/network';
-import { Body, Btn, Card, Empty, Page, Row, Seg } from '@/components/ui';
+import { Body, Btn, Card, Chev, Empty, Item, Page, Row, Seg } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF } from '@/lib/format';
 import { go } from '@/lib/nav';
+import { fmtDateTime } from '@/lib/when';
 import { badgesFor, bioFor, followerCountFor, ratingFor, receivedLPFor } from '@/lib/network';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
@@ -26,8 +27,13 @@ export default function UserProfile() {
   if (isMe) {
     const given = net.ledger.filter((l) => l.desc.startsWith('Contributo a')).length;
     if (given > 0) stats.push(['Contributi dati', given, () => openSheet('statDetail', { what: 'contributions', name })]);
-    if (net.bookings.length > 0) stats.push(['Servizi prenotati', net.bookings.length, () => openSheet('statDetail', { what: 'bookings', name })]);
+    const nSem = net.enrollments.filter((e) => e.kind === 'seminar').length;
+    const nSvc = net.enrollments.filter((e) => e.kind === 'service').length;
+    if (nSem > 0) stats.push(['Seminari', nSem, () => openSheet('statDetail', { what: 'seminars', name })]);
+    if (nSvc > 0) stats.push(['Servizi prenotati', nSvc, () => openSheet('statDetail', { what: 'bookings', name })]);
   }
+  const hostSeminars = net.seminars.filter((x) => x.host === name);
+  const provider = net.providers.find((x) => x.name === name);
   const followers = followerCountFor(name, me, demo);
   const r = ratingFor(name);
   const fol = net.following.includes(name);
@@ -69,7 +75,7 @@ export default function UserProfile() {
             <>
               <Btn small ghost={fol} title={fol ? 'Già seguito' : 'Segui'} onPress={() => { const f = net.toggleFollow(name); toast(f ? 'Ora segui ' + name : 'Non segui più ' + name); }} />
               <Btn small ghost title="Messaggio" onPress={() => go('conversationPage', { id: useChat.getState().ensureDm(name, me) })} />
-              <Btn small ghost title="Vota" onPress={() => openSheet('vote', { name })} />
+              <Btn small ghost icon="star" title="Vota" onPress={() => openSheet('vote', { name })} />
               <Btn small ghost title="Competenze" onPress={() => go('skillProfile', { name })} />
               <Btn small ghost title="Biglietto" onPress={() => go('businessCard', { name })} />
               {net.clubs[name] && <Btn small ghost title={`LifeClub · ${net.clubs[name].fee} LP`} onPress={() => joinClub(name)} />}
@@ -77,6 +83,15 @@ export default function UserProfile() {
           )}
         </View>
       </Card>
+
+      {(hostSeminars.length > 0 || provider) && (
+        <Card>
+          <Body bold style={{ marginBottom: 8 }}>{isMe ? 'I tuoi seminari e servizi' : 'Seminari e servizi'}</Body>
+          {provider && <Item last={!hostSeminars.length} onPress={() => go('servicePage', { name })}><Row><View style={{ flex: 1 }}><Body>{provider.role}</Body><Body small muted>Servizio · {provider.price} LP a sessione</Body></View><Chev /></Row></Item>}
+          {hostSeminars.map((sm, i) => <Item key={sm.id} last={i === hostSeminars.length - 1} onPress={() => go('seminarPage', { id: String(sm.id) })}><Row><View style={{ flex: 1 }}><Body>{sm.title}</Body><Body small muted>Seminario · {sm.startsAt ? fmtDateTime(sm.startsAt) : 'data da definire'}</Body></View><Chev /></Row></Item>)}
+          {!isMe && <Body small muted style={{ marginTop: 8 }}>Puoi votare {name} solo dopo aver partecipato a un suo seminario o servizio.</Body>}
+        </Card>
+      )}
 
       {others.length > 0 && (
         <View style={{ marginVertical: 14 }}>

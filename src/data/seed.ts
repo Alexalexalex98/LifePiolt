@@ -51,12 +51,42 @@ const driveRows: [string, string, string, number][] = [
 ];
 export const demoDrive = (): DriveFile[] => driveRows.map(([n, s, folder, ago]) => ({ id: uid(), n, s, folder, date: shortDate(ago) }));
 
-export const demoEvents = (): Record<string, CalEvent[]> => ({
-  [dayKey()]: [
-    { time: '09:00', title: 'Allenamento' }, { time: '11:30', title: 'Meeting team' },
-    { time: '14:00', title: 'Deep work' }, { time: '18:30', title: 'Review giornata' },
-  ],
-});
+/** Plan dei prossimi 7 giorni: impegni realistici con fasce libere evidenti (pomeriggi e sere in parte vuoti). */
+export const demoEvents = (): Record<string, CalEvent[]> => {
+  const k = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return dayKey(d); };
+  return {
+    [k(0)]: [
+      { time: '09:00', title: 'Allenamento' }, { time: '11:30', title: 'Meeting team' },
+      { time: '14:00', title: 'Deep work' }, { time: '18:30', title: 'Review giornata' },
+    ],
+    [k(1)]: [
+      { time: '08:00', title: 'Colazione con investitore' }, { time: '10:00', title: 'Call fornitore PCB' },
+      { time: '12:00', title: 'Pranzo con Marco T.' }, { time: '15:00', title: 'Revisione roadmap LifePilot', dur: 90 },
+      { time: '19:30', title: 'Cena in famiglia', dur: 120 },
+    ],
+    [k(2)]: [
+      { time: '09:30', title: 'Studio in sala prove (Dæmon)', dur: 120 }, { time: '11:30', title: 'Call con il commercialista' },
+      { time: '14:30', title: 'Sopralluogo Élite Caffè', dur: 90 }, { time: '20:30', title: 'Cena con Giulia', dur: 90 },
+    ],
+    [k(3)]: [
+      { time: '08:00', title: 'Allenamento' }, { time: '13:00', title: 'Pranzo in famiglia', dur: 90 }, { time: '16:00', title: 'Spesa e commissioni' },
+    ],
+    [k(4)]: [
+      { time: '11:30', title: 'Brunch con Tommaso', dur: 90 }, { time: '17:00', title: 'Studio tedesco', dur: 60 },
+    ],
+    [k(5)]: [
+      { time: '09:00', title: 'Allenamento' }, { time: '10:30', title: 'Riunione team Life SA', dur: 90 },
+      { time: '14:00', title: 'Deep work AURA', dur: 120 }, { time: '20:00', title: 'Telefonata ai genitori', dur: 30 },
+    ],
+    [k(6)]: [
+      { time: '09:30', title: 'Meeting fornitori AURA', dur: 90 }, { time: '15:00', title: 'Call con la banca' }, { time: '19:00', title: 'Partita a calcetto', dur: 90 },
+    ],
+    [k(7)]: [
+      { time: '09:00', title: 'Allenamento' }, { time: '11:00', title: 'Review settimanale' },
+      { time: '14:00', title: 'Colloquio socio reparto hardware' }, { time: '17:30', title: 'Aperitivo con il team', dur: 90 },
+    ],
+  };
+};
 
 export const demoHealth = () => ({
   series: {

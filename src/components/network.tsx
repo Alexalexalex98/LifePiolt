@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Modal, Pressable, Text, View } from 'react-native';
 import { create } from 'zustand';
 
 import { Avatar, Body, Btn, Card, Row } from '@/components/ui';
@@ -7,6 +7,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, hashStr, weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
+import { fmtAgo, pubLabel } from '@/lib/when';
 import { rateIdea, scoreColor } from '@/lib/network';
 import { useApp } from '@/store/app';
 import { useNet, type Idea, type Post } from '@/store/network';
@@ -18,8 +19,8 @@ export const gradientFor = (seed: string) => photoGradients[Math.abs(hashStr(see
 /* ---------- gestione schede (una sola host nel layout) ---------- */
 export type SheetKind =
   | 'comments' | 'postMenu' | 'donate' | 'scoreExpl' | 'ideaMenu' | 'contribute' | 'newIdea' | 'newCommunity' | 'postToCommunity' | 'newSeminar'
-  | 'promoteSeminar' | 'booking' | 'vote' | 'rating' | 'createClub' | 'clubManage' | 'statDetail' | 'following' | 'editProfile' | 'verification'
-  | 'topup' | 'cardPicker' | 'addCard' | 'cv' | 'newPost' | 'purchaseFinal';
+  | 'promoteSeminar' | 'vote' | 'rating' | 'createClub' | 'clubManage' | 'statDetail' | 'following' | 'editProfile' | 'verification'
+  | 'topup' | 'cardPicker' | 'addCard' | 'cv' | 'newPost' | 'purchaseFinal' | 'sponsoredInfo' | 'confirmAttendance';
 
 type SheetState = { kind: SheetKind | null; p: Record<string, any>; open: (kind: SheetKind, p?: Record<string, any>) => void; close: () => void };
 export const useNetSheet = create<SheetState>((set) => ({ kind: null, p: {}, open: (kind, p = {}) => set({ kind, p }), close: () => set({ kind: null, p: {} }) }));
@@ -51,17 +52,52 @@ export const LpAmount = ({ n, size = 13, bold = true, color }: { n: number; size
 export function UserAvatar({ name, size = 30 }: { name: string; size?: number }) {
   const me = useApp((s) => s.account.name);
   const demo = useApp((s) => s.demo);
-  // la foto del prototipo compare solo nella modalità demo
+  const photo = useApp((s) => s.account.photo);
+  // la foto scelta dall'utente ha la precedenza; quella del prototipo compare solo nella modalità demo
+  if (name === me && photo) return <Avatar name={name} size={size} uri={{ uri: photo }} />;
   return name === me && demo ? <Avatar name={name} size={size} uri={require('../../assets/proto/user-photo.jpg')} /> : <Avatar name={name} size={size} />;
 }
 
-export function MediaBlock({ media, seed }: { media?: 'photo' | 'video' | null; seed: string }) {
+/* ---------- visualizzatore a schermo intero per foto e video ---------- */
+type MediaItem = { media: 'photo' | 'video'; seed: string; uri?: string };
+export const useMediaViewer = create<{ item: MediaItem | null; open: (i: MediaItem) => void; close: () => void }>((set) => ({ item: null, open: (item) => set({ item }), close: () => set({ item: null }) }));
+export const openMedia = (i: MediaItem) => useMediaViewer.getState().open(i);
+
+/** Montato una sola volta (NetSheetHost). Immagini reali (uri) a tutto schermo; per i segnaposto il gradiente grande, con play sui video. */
+export function MediaViewer() {
+  const { item, close } = useMediaViewer();
+  return (
+    <Modal visible={!!item} transparent animationType="fade" onRequestClose={close} statusBarTranslucent>
+      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center' }}>
+        {item && (item.uri ? (
+          <Image source={{ uri: item.uri }} style={{ width: '100%', height: '100%' }} resizeMode="contain" accessibilityLabel={item.media === 'video' ? 'Video' : 'Foto'} />
+        ) : (
+          <LinearGradient colors={gradientFor(item.seed)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: '100%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={item.media === 'video' ? 'Video' : 'Foto'}>
+            {item.media === 'video' && <Icon name="play" size={72} color="#fff" fill="#fff" />}
+          </LinearGradient>
+        ))}
+        <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Chiudi" hitSlop={12} style={{ position: 'absolute', top: 44, right: 18, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="x" size={22} color="#fff" stroke={2.2} />
+        </Pressable>
+        <Text style={{ position: 'absolute', bottom: 40, alignSelf: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{item?.media === 'video' ? 'Anteprima video (segnaposto)' : 'Anteprima foto (segnaposto)'}</Text>
+      </View>
+    </Modal>
+  );
+}
+
+export function MediaBlock({ media, seed, uri }: { media?: 'photo' | 'video' | null; seed: string; uri?: string }) {
   if (!media) return null;
   const g = gradientFor(seed);
   return (
-    <LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14, marginVertical: 8, alignItems: 'center', justifyContent: 'center' }}>
-      {media === 'video' && <Icon name="play" size={28} color="#fff" fill="#fff" />}
-    </LinearGradient>
+    <Pressable onPress={() => openMedia({ media, seed, uri })} accessibilityRole="imagebutton" accessibilityLabel={media === 'video' ? 'Apri il video a schermo intero' : 'Apri la foto a schermo intero'}>
+      {uri ? (
+        <Image source={{ uri }} style={{ aspectRatio: 1, borderRadius: 14, marginVertical: 8, width: '100%' }} resizeMode="cover" />
+      ) : (
+        <LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14, marginVertical: 8, alignItems: 'center', justifyContent: 'center' }}>
+          {media === 'video' && <Icon name="play" size={28} color="#fff" fill="#fff" />}
+        </LinearGradient>
+      )}
+    </Pressable>
   );
 }
 
@@ -73,7 +109,7 @@ export function Badge({ label, color, onPress }: { label: string; color: string;
   );
 }
 
-export function PostCard({ post, likeKey }: { post: { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number }; likeKey: string }) {
+export function PostCard({ post, likeKey }: { post: { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string }; likeKey: string }) {
   const t = useTheme();
   const net = useNet();
   if (net.mutedAuthors.includes(post.author) || (post.tag && net.mutedTopics.includes(post.tag))) return null;
@@ -81,23 +117,25 @@ export function PostCard({ post, likeKey }: { post: { author: string; text: stri
   const donated = net.dailyPoint.lastGiven === weekdayShortDate();
   const commentCount = (net.comments[likeKey] || []).length;
   return (
-    <Card>
+    <Card onPress={() => go('postPage', { key: likeKey })}>
       <Row style={{ marginBottom: 8 }}>
         <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 }} onPress={() => go('userProfile', { name: post.author })}>
           <UserAvatar name={post.author} size={30} />
-          <Body bold style={{ fontSize: 14 }}>{post.author}</Body>
-          {post.tag ? <Text style={{ color: t.muted, fontSize: 11 }}>{post.tag}</Text> : null}
+          <View style={{ flex: 1 }}>
+            <Body bold style={{ fontSize: 14 }}>{post.author}</Body>
+            <Text style={{ color: t.muted, fontSize: 11 }}>{[post.tag, fmtAgo(post.ts)].filter(Boolean).join(' · ')}</Text>
+          </View>
         </Pressable>
         <Pressable onPress={() => openSheet('postMenu', { author: post.author, tag: post.tag })} hitSlop={10}><Icon name="more-h" size={20} color={t.text} /></Pressable>
       </Row>
       <Body small style={{ marginBottom: 2 }}>{post.text}</Body>
-      <MediaBlock media={post.media} seed={post.author + post.text} />
+      <MediaBlock media={post.media} seed={post.author + post.text} uri={post.uri} />
       <Row style={{ marginTop: 8 }}>
         <Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={16}>
           <Pressable onPress={() => net.likePost(likeKey)} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <Icon name="heart" size={19} color={liked ? '#ff5d7a' : t.text} fill={liked ? '#ff5d7a' : 'none'} /><Body small muted>{post.likes}</Body>
           </Pressable>
-          <Pressable onPress={() => openSheet('comments', { key: likeKey })} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <Pressable onPress={() => go('postPage', { key: likeKey })} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }} accessibilityLabel="Apri il post e i commenti">
             <Icon name="ai" size={19} color={t.text} /><Body small muted>{commentCount}</Body>
           </Pressable>
         </Row>
@@ -115,9 +153,9 @@ export function IdeaCard({ idea }: { idea: Idea }) {
   const dup = idea.similarTo ? ideas.find((x) => x.id === idea.similarTo) : null;
   const reward = idea.rewardType === 'fisso' ? `Contributo fisso: ${idea.fixedAmount} LP${idea.rewardDesc ? ' · ' + idea.rewardDesc : ''}` : idea.rewardDesc ? `Importo libero · In cambio: ${idea.rewardDesc}` : 'Importo libero · nessuna ricompensa specificata';
   return (
-    <Card>
+    <Card onPress={() => go('ideaProfile', { id: String(idea.id) })}>
       <Row style={{ alignItems: 'flex-start' }}>
-        <Pressable style={{ flex: 1 }} onPress={() => go('ideaProfile', { id: String(idea.id) })}><Body bold style={{ fontSize: 17 }}>{idea.title}</Body></Pressable>
+        <View style={{ flex: 1 }}><Body bold style={{ fontSize: 17 }}>{idea.title}</Body>{idea.ts ? <Body small muted>{pubLabel(idea.ts, 'Pubblicata')}</Body> : null}</View>
         <Row gap={6}>
           <Badge label={`${score}/100`} color={color} onPress={() => openSheet('scoreExpl', { id: idea.id })} />
           <Pressable onPress={() => openSheet('ideaMenu', { author: idea.author })} hitSlop={10}><Icon name="more-h" size={20} color={t.text} /></Pressable>

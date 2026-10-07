@@ -9,7 +9,8 @@ export type Goal = { id: string; t: string; p: number; hist?: { d: string; p: nu
 export type Automation = { id: string; t: string; on: boolean };
 export type Note = { id: string; text: string; date: string };
 export type DriveFile = { id: string; n: string; s: string; folder: string; date: string; uri?: string };
-export type CalEvent = { time: string; title: string; reminder?: boolean };
+/** dur = durata in minuti (se manca si assumono 60); ref = id dell'iscrizione/prenotazione che l'ha creato. */
+export type CalEvent = { time: string; title: string; reminder?: boolean; dur?: number; ref?: string };
 export type Vacation = { id: string; dest: string; month: string; hotel: string; price: number; days: number; flight: number };
 export type ChatMsg = { who: 'me' | 'ai'; text: string };
 

@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { Pressable, Share, Text, View } from 'react-native';
 
-import { IdeaCard, LpTag, UserAvatar, doContribute, openPurchaseConfirm, openSheet, useNetSheet } from '@/components/network';
-import { Body, Btn, Empty, Input, Item, Link, Pill, Progress, Row, Select, Sheet, Toggle, Metric, Chev } from '@/components/ui';
+import { SPONSORED_TEXT } from '@/components/market';
+import { IdeaCard, LpTag, MediaViewer, UserAvatar, doContribute, openPurchaseConfirm, openSheet, useNetSheet } from '@/components/network';
+import { Body, Btn, Empty, IL, Input, Item, Link, Pill, Progress, Row, Select, Sheet, Toggle, Metric, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, weekdayShortDate } from '@/lib/format';
 import { goBack, go } from '@/lib/nav';
-import { convertAmount, cryptoRates, isVoteReasonRelevant, peoplePool, rateIdeaDetailed, ratingFor, textSimilarity } from '@/lib/network';
+import { paidCancel, freeCancel } from '@/data/marketSeed';
+import { confirmAttendance, hasEnded } from '@/lib/enroll';
+import { ConflictSheet } from '@/lib/planBooking';
+import { fmtRange, nextDays, timeOptions, tsOf } from '@/lib/when';
+import { VOTE_BLOCK_MSG, canVote, castVote, convertAmount, cryptoRates, isVoteReasonRelevant, rateIdeaDetailed, ratingFor, textSimilarity, voteBlockReason } from '@/lib/network';
 import { useApp } from '@/store/app';
 import { newId, topicList, useNet } from '@/store/network';
 import { showUndoToast, toast } from '@/store/toast';
@@ -14,6 +19,16 @@ import { Icon } from '@/lib/icons';
 
 /** Un'unica Sheet che mostra la vista richiesta dal social (evita modali annidate). */
 export function NetSheetHost() {
+  return (
+    <>
+      <NetSheetInner />
+      <ConflictSheet />
+      <MediaViewer />
+    </>
+  );
+}
+
+function NetSheetInner() {
   const { kind, p, close } = useNetSheet();
   const t = useTheme();
   const me = useApp((s) => s.account.name);
@@ -101,27 +116,25 @@ export function NetSheetHost() {
     }
     case 'newSeminar': { title = 'Nuovo seminario'; body = <NewSeminarView />; break; }
     case 'promoteSeminar': { title = 'Promuovi seminario'; body = <PromoteView id={p.id} />; break; }
-    case 'booking': {
-      const pr = net.providers[p.idx];
-      if (!pr) break;
-      title = 'Scegli lo slot · ' + pr.name;
-      body = (
+    case 'vote': {
+      title = 'Vota ' + p.name;
+      const why = voteBlockReason(me, p.name);
+      body = why ? (
         <>
-          <Body small muted>Pagamento già effettuato ({pr.price} LP). Scegli uno slot disponibile:</Body>
-          {pr.slots.length === 0 ? <Empty text="Nessuno slot disponibile: contatta l'assistenza per il rimborso." /> : pr.slots.map((s, si) => (
-            <Item key={si} last={si === pr.slots.length - 1} onPress={() => {
-              net.patch({
-                providers: net.providers.map((x, i) => (i === p.idx ? { ...x, slots: x.slots.filter((_, j) => j !== si) } : x)),
-                bookings: [{ id: String(newId()), provider: pr.name, role: pr.role, slot: s, price: pr.price }, ...net.bookings],
-              });
-              close(); toast(`Sessione prenotata con ${pr.name} · ${s}`);
-            }}><Row><Body>{s}</Body><Chev /></Row></Item>
-          ))}
+          <IL icon="info" bold>Voto non disponibile</IL>
+          <Body small style={{ marginTop: 10 }}>{why}</Body>
+          <Body small muted style={{ marginTop: 8 }}>Così le valutazioni vengono solo da chi ha provato davvero il servizio o seguito il seminario.</Body>
+          <Btn ghost style={{ marginTop: 14 }} title="Ho capito" onPress={close} />
         </>
-      );
+      ) : <VoteView name={p.name} />;
       break;
     }
-    case 'vote': { title = 'Vota ' + p.name; body = <VoteView name={p.name} />; break; }
+    case 'sponsoredInfo': {
+      title = 'Cosa significa Sponsorizzato';
+      body = (<><Body small>{SPONSORED_TEXT}</Body><Btn ghost style={{ marginTop: 14 }} title="Ho capito" onPress={close} /></>);
+      break;
+    }
+    case 'confirmAttendance': { title = 'Conferma partecipazione'; body = <ConfirmAttendanceView id={p.id} />; break; }
     case 'rating': {
       title = 'Voti di ' + p.name;
       const r = ratingFor(p.name);
@@ -151,8 +164,10 @@ export function NetSheetHost() {
         const list = net.ledger.filter((l) => l.desc.startsWith('Contributo a'));
         body = list.length ? list.map((l, i) => <Item key={i}><Row><View style={{ flex: 1 }}><Body>{l.desc}</Body><Body small muted>{l.date}</Body></View><Body bold>{formatCHF(l.amount)} LP</Body></Row></Item>) : <Body small muted>Nessun contributo ancora.</Body>;
       } else {
-        title = 'Servizi prenotati';
-        body = net.bookings.length ? net.bookings.map((b) => <Item key={b.id}><Body bold>{b.provider}</Body><Body small muted>{b.role} · {b.slot}</Body></Item>) : <Body small muted>Nessun servizio prenotato ancora.</Body>;
+        title = p.what === 'seminars' ? 'Seminari' : 'Servizi prenotati';
+        const kind = p.what === 'seminars' ? 'seminar' : 'service';
+        const list = net.enrollments.filter((e) => e.kind === kind);
+        body = list.length ? list.map((e) => <Item key={e.id} onPress={() => { close(); if (e.kind === 'seminar') go('seminarPage', { id: e.ref }); else go('servicePage', { name: e.host }); }}><Body bold>{e.kind === 'seminar' ? e.title : `${e.title} con ${e.host}`}</Body><Body small muted>{fmtRange(e.startsAt, e.durationMin)} · {e.status === 'attended' ? 'partecipazione confermata' : e.status === 'declined' ? 'non partecipato' : hasEnded(e) ? 'da confermare' : 'in programma'}</Body></Item>) : <Body small muted>Nessun elemento ancora.</Body>;
       }
       break;
     }
@@ -264,7 +279,7 @@ function NewIdeaView() {
         const fa = type === 'fisso' ? parseFloat(fixed.replace(',', '.')) : null;
         if (type === 'fisso' && (!fa || fa <= 0)) { toast('Inserisci un importo fisso valido'); return; }
         const dup = net.ideas.find((x) => textSimilarity(x.title + ' ' + x.desc, ti + ' ' + de) > 0.35);
-        net.patch({ ideas: [...net.ideas, { id: newId(), title: ti, desc: de, author: me, raised: 0, similarTo: dup ? dup.id : null, rewardType: type, fixedAmount: fa, rewardDesc: reward.trim(), target: 500 }] });
+        net.patch({ ideas: [...net.ideas, { id: newId(), title: ti, desc: de, author: me, raised: 0, similarTo: dup ? dup.id : null, rewardType: type, fixedAmount: fa, rewardDesc: reward.trim(), target: 500, ts: Date.now() }] });
         close();
         toast(dup ? `Idea simile già presente: "${dup.title}". La tua è stata registrata come correlata.` : 'Idea pubblicata · punteggio AI: ' + rateIdeaDetailed(de).score + '/100');
       }} />
@@ -274,17 +289,21 @@ function NewIdeaView() {
 
 function NewCommunityView() {
   const net = useNet();
-  const me = useApp((s) => s.account.name);
+  const me = useApp((a) => a.account.name);
   const close = useNetSheet((s) => s.close);
   const [name, setName] = useState(''); const [topic, setTopic] = useState(topicList[0]); const [ownerOnly, setOwnerOnly] = useState(true);
+  const [desc, setDesc] = useState(''); const [rules, setRules] = useState('');
   return (
     <>
       <Input placeholder="Nome community" value={name} onChangeText={setName} />
       <Select title="Argomento" value={topic} options={topicList} onChange={setTopic} />
-      <Toggle label="Solo io posso pubblicare" value={ownerOnly} onChange={setOwnerOnly} />
+      <Input multiline style={{ minHeight: 80 }} placeholder="Descrizione: di cosa parla, per chi è, cosa si trova (almeno 30 caratteri)" value={desc} onChangeText={setDesc} />
+      <Input multiline style={{ minHeight: 60 }} placeholder="Regole di pubblicazione aggiuntive (facoltativo)" value={rules} onChangeText={setRules} />
+      <Toggle label="Solo io posso pubblicare" value={ownerOnly} onChange={setOwnerOnly} hint={ownerOnly ? 'I membri leggono e commentano' : 'Tutti i membri possono pubblicare'} />
       <Btn style={{ marginTop: 10 }} title="Crea" onPress={() => {
         if (!name.trim()) { toast('Inserisci un nome'); return; }
-        net.patch({ communities: [{ id: newId(), name: name.trim(), topic, owner: me, openPosting: !ownerOnly, members: [me], posts: [] }, ...net.communities] });
+        if (desc.trim().length < 30) { toast('Scrivi una descrizione di almeno 30 caratteri: chi la trova deve capire di cosa si tratta'); return; }
+        net.patch({ communities: [{ id: newId(), name: name.trim(), topic, owner: me, openPosting: !ownerOnly, members: [me], posts: [], desc: desc.trim(), rules: rules.trim() || undefined, ts: Date.now() }, ...net.communities] });
         close(); toast('Community creata');
       }} />
     </>
@@ -301,27 +320,104 @@ function PostToCommunityView({ id }: { id: number }) {
       <Input multiline placeholder="Scrivi qualcosa…" value={text} onChangeText={setText} />
       <Btn title="Pubblica" onPress={() => {
         if (!text.trim()) return;
-        net.patch({ communities: net.communities.map((c) => (c.id === id ? { ...c, posts: [{ author: me, text: text.trim(), likes: 0 }, ...c.posts] } : c)) });
+        net.patch({ communities: net.communities.map((c) => (c.id === id ? { ...c, posts: [{ author: me, text: text.trim(), likes: 0, ts: Date.now() }, ...c.posts] } : c)) });
         close(); toast('Pubblicato');
       }} />
     </>
   );
 }
 
+const DURATIONS: [string, number][] = [['30 minuti', 30], ['45 minuti', 45], ['1 ora', 60], ['1 ora e 30', 90], ['2 ore', 120], ['3 ore', 180]];
+
 function NewSeminarView() {
   const net = useNet();
-  const me = useApp((s) => s.account.name);
+  const me = useApp((a) => a.account.name);
   const close = useNetSheet((s) => s.close);
-  const [title, setTitle] = useState(''); const [price, setPrice] = useState('');
+  const days = nextDays(90);
+  const [title, setTitle] = useState(''); const [desc, setDesc] = useState(''); const [learn, setLearn] = useState(''); const [audience, setAudience] = useState('');
+  const [dayLabel, setDayLabel] = useState(days[1].label); const [time, setTime] = useState('18:00'); const [dur, setDur] = useState('1 ora');
+  const [mode, setMode] = useState<'online' | 'presenza'>('online'); const [place, setPlace] = useState(''); const [lang, setLang] = useState('Italiano');
+  const [price, setPrice] = useState(''); const [seats, setSeats] = useState('');
   return (
     <>
+      <Body small muted style={{ marginBottom: 8 }}>Scrivi in modo chiaro e onesto: chi si iscrive deve capire cosa imparerà, quando e dove. Gli iscritti ti pagano solo dopo il seminario, quando confermano di aver partecipato.</Body>
       <Input placeholder="Titolo del seminario" value={title} onChangeText={setTitle} />
+      <Input multiline style={{ minHeight: 100 }} placeholder="Descrizione completa: di cosa parli, come si svolge, cosa non è (almeno 80 caratteri)" value={desc} onChangeText={setDesc} />
+      <Input multiline style={{ minHeight: 60 }} placeholder="Cosa si impara: una voce per riga (facoltativo)" value={learn} onChangeText={setLearn} />
+      <Input placeholder="A chi è rivolto (facoltativo)" value={audience} onChangeText={setAudience} />
+      <Body small muted style={{ marginBottom: 4 }}>Data e ora di inizio</Body>
+      <Select title="Data" value={dayLabel} options={days.map((d) => d.label)} onChange={setDayLabel} />
+      <Select title="Ora di inizio" value={time} options={timeOptions(6, 22)} onChange={setTime} />
+      <Body small muted style={{ marginBottom: 4 }}>Durata</Body>
+      <Select title="Durata" value={dur} options={DURATIONS.map((d) => d[0])} onChange={setDur} />
+      <Body small muted style={{ marginBottom: 4 }}>Modalità</Body>
+      <View style={{ flexDirection: 'row', marginBottom: 8 }}><Pill label="Online" on={mode === 'online'} onPress={() => setMode('online')} /><Pill label="In presenza" on={mode === 'presenza'} onPress={() => setMode('presenza')} /></View>
+      <Input placeholder={mode === 'online' ? 'Link o istruzioni per collegarsi' : 'Luogo e indirizzo'} value={place} onChangeText={setPlace} />
+      <Body small muted style={{ marginBottom: 4 }}>Lingua</Body>
+      <Select title="Lingua" value={lang} options={['Italiano', 'English', 'Français', 'Deutsch']} onChange={setLang} />
       <Input keyboardType="decimal-pad" placeholder="Prezzo in LP (0 = gratuito)" value={price} onChangeText={setPrice} />
+      <Input keyboardType="number-pad" placeholder="Numero di posti" value={seats} onChangeText={setSeats} />
       <Btn title="Pubblica" onPress={() => {
-        if (!title.trim()) { toast('Inserisci un titolo'); return; }
-        net.patch({ seminars: [{ id: newId(), title: title.trim(), host: me, price: parseFloat(price.replace(',', '.')) || 0, promoted: false }, ...net.seminars] });
+        const ti = title.trim(), de = desc.trim();
+        if (ti.length < 8) { toast('Inserisci un titolo di almeno 8 caratteri'); return; }
+        if (de.length < 80) { toast(`La descrizione è troppo breve (${de.length}/80 caratteri): spiega cosa si impara e come si svolge`); return; }
+        const day = days.find((d) => d.label === dayLabel)!.key;
+        const startsAt = tsOf(day, time);
+        if (startsAt <= Date.now()) { toast('La data e l\'ora devono essere nel futuro'); return; }
+        if (place.trim().length < 3) { toast(mode === 'online' ? 'Indica il link o come collegarsi' : 'Indica il luogo e l\'indirizzo'); return; }
+        if (price.trim() === '') { toast('Inserisci il prezzo in LP (0 per un seminario gratuito)'); return; }
+        const pr = parseFloat(price.replace(',', '.'));
+        if (!Number.isFinite(pr) || pr < 0) { toast('Inserisci un prezzo valido'); return; }
+        const se = parseInt(seats, 10);
+        if (!Number.isFinite(se) || se < 1 || se > 1000) { toast('Inserisci il numero di posti (da 1 a 1000)'); return; }
+        const durationMin = DURATIONS.find((d) => d[0] === dur)![1];
+        const lines = learn.split('\n').map((l) => l.trim()).filter(Boolean);
+        net.patch({ seminars: [{
+          id: newId(), title: ti, host: me, price: pr, promoted: false, ts: Date.now(), startsAt, durationMin, mode, place: place.trim(), seats: se, joined: 0,
+          desc: de, learn: lines.length ? lines : undefined, audience: audience.trim() || undefined, included: 'Partecipazione al seminario secondo la descrizione sopra.', language: lang,
+          cancelPolicy: pr ? paidCancel(pr) : freeCancel,
+        }, ...net.seminars] });
         close(); toast('Seminario pubblicato');
       }} />
+    </>
+  );
+}
+
+function ConfirmAttendanceView({ id }: { id: string }) {
+  const net = useNet();
+  const close = useNetSheet((s) => s.close);
+  const [step, setStep] = useState(1);
+  const e = net.enrollments.find((x) => x.id === id);
+  if (!e) return <Body small muted>Iscrizione non trovata.</Body>;
+  const noun = e.kind === 'seminar' ? 'seminario' : 'sessione';
+  const done = () => {
+    if (!confirmAttendance(id)) { close(); return; }
+    toast(e.price ? `Partecipazione confermata: -${e.price} LP, accreditati a ${e.host}` : 'Partecipazione confermata');
+    openSheet('vote', { name: e.host });
+  };
+  return (
+    <>
+      <Item><Row><Body muted>{e.kind === 'seminar' ? 'Seminario' : 'Servizio'}</Body><Body bold style={{ flexShrink: 1, textAlign: 'right' }}>{e.title}</Body></Row></Item>
+      <Item><Row><Body muted>{e.kind === 'seminar' ? 'Relatore' : 'Professionista'}</Body><Body bold>{e.host}</Body></Row></Item>
+      <Item><Row><Body muted>Quando</Body><Body bold style={{ flexShrink: 1, textAlign: 'right' }}>{fmtRange(e.startsAt, e.durationMin)}</Body></Row></Item>
+      <Item last><Row><Body muted>Importo</Body><Body bold>{e.price ? `${e.price} LP` : 'Gratuito'}</Body></Row></Item>
+      {step === 1 ? (
+        <>
+          <Body small muted style={{ marginTop: 12 }}>{e.price ? `Confermando dichiari di aver partecipato al ${noun}. Solo a questo punto ${e.price} LP vengono addebitati sul tuo saldo e accreditati a ${e.host}.` : `Confermando dichiari di aver partecipato al ${noun}. Non verrà addebitato nulla.`}</Body>
+          <Row style={{ marginTop: 14 }}>
+            <Btn ghost style={{ flex: 1 }} title="Non ora" onPress={close} />
+            <Btn style={{ flex: 1 }} title={e.price ? 'Continua' : 'Conferma'} onPress={() => (e.price ? setStep(2) : done())} />
+          </Row>
+        </>
+      ) : (
+        <>
+          <Body small style={{ marginTop: 12 }}>Conferma definitiva: verranno addebitati <Body small bold>{e.price} LP</Body> (saldo attuale {formatCHF(net.lifePoints)} LP). L'operazione non può essere annullata dopo questo punto.</Body>
+          <Row style={{ marginTop: 14 }}>
+            <Btn ghost style={{ flex: 1 }} title="Indietro" onPress={() => setStep(1)} />
+            <Btn style={{ flex: 1 }} title={`Conferma e paga ${e.price} LP`} onPress={done} />
+          </Row>
+        </>
+      )}
     </>
   );
 }
@@ -352,19 +448,19 @@ function PromoteView({ id }: { id: number }) {
 
 function VoteView({ name }: { name: string }) {
   const t = useTheme();
-  const net = useNet();
+  const me = useApp((a) => a.account.name);
   const close = useNetSheet((s) => s.close);
   const [stars, setStars] = useState(0); const [reason, setReason] = useState('');
   return (
     <>
+      <Body small color={t.positive} style={{ marginBottom: 6 }}>Grazie per aver partecipato: com'è andata?</Body>
       <Body small muted>Il voto resta aggregato (si vede la media e la distribuzione, non chi ha votato). Il motivo che scrivi qui viene controllato prima di pubblicare il voto: deve essere pertinente, non un riempitivo.</Body>
       <Row style={{ justifyContent: 'center', marginVertical: 16 }} gap={12}>{[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setStars(n)}><Icon name="star" size={32} color={t.text} fill={n <= stars ? t.text : 'none'} /></Pressable>)}</Row>
       <Input multiline style={{ minHeight: 70 }} placeholder="Perché dai questo voto? (obbligatorio)" value={reason} onChangeText={setReason} />
       <Btn title="Invia voto" onPress={() => {
         if (!stars) { toast('Seleziona da 1 a 5 stelle'); return; }
         if (!isVoteReasonRelevant(reason)) { toast('Il motivo non sembra abbastanza pertinente: spiega meglio perché dai questo voto'); return; }
-        const cur = net.votes[name] ?? { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-        net.patch({ votes: { ...net.votes, [name]: { ...cur, [stars]: (cur[stars] || 0) + 1 } } });
+        if (!castVote(me, name, stars)) { close(); toast(VOTE_BLOCK_MSG); return; }
         close(); toast('Voto pubblicato');
       }} />
     </>
@@ -384,7 +480,7 @@ function CreateClubView() {
         const f = parseFloat(fee.replace(',', '.'));
         if (!Number.isFinite(f) || f <= 0) { toast('Inserisci una quota valida'); return; }
         const cid = newId();
-        net.patch({ communities: [{ id: cid, name: me + ' Club', topic: 'Business', owner: me, openPosting: false, members: [me], posts: [] }, ...net.communities], clubs: { ...net.clubs, [me]: { fee: f, desc: desc.trim(), communityId: cid, members: [me] } } });
+        net.patch({ communities: [{ id: cid, name: me + ' Club', topic: 'Business', owner: me, openPosting: false, members: [me], posts: [], desc: desc.trim() || undefined, ts: Date.now() }, ...net.communities], clubs: { ...net.clubs, [me]: { fee: f, desc: desc.trim(), communityId: cid, members: [me] } } });
         close(); toast('LifeClub creato');
       }} />
     </>
@@ -492,11 +588,11 @@ function NewPostView() {
       <View style={{ flexDirection: 'row', marginBottom: 8 }}><Pill label="Solo testo" on={!media} onPress={() => setMedia(null)} /><Pill label="Foto" on={media === 'photo'} onPress={() => setMedia('photo')} /><Pill label="Video" on={media === 'video'} onPress={() => setMedia('video')} /></View>
       <Btn title="Pubblica" onPress={() => {
         if (!text.trim()) return;
-        net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media, tag, likes: 0 }, ...net.posts] });
+        net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media, tag, likes: 0, ts: Date.now() }, ...net.posts] });
         close(); toast('Post pubblicato');
       }} />
     </>
   );
 }
 
-void IdeaCard; void weekdayShortDate;
+void IdeaCard; void weekdayShortDate; void canVote;

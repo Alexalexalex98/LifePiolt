@@ -1,17 +1,24 @@
 import { create } from 'zustand';
 
-import { bank, questionById, traits, type Question, type Trait } from '@/data/skillBank';
+import { bank, questionById, traits, type FileRef, type Question, type Trait } from '@/data/skillBank';
 import { uid } from '@/lib/format';
-import { gradeTest, pickQuestions, type Answer, type SkillReq, type TestResult } from '@/lib/hiring';
+import { gradeTest, isLate, pickQuestions, type Answer, type SkillReq, type TestResult } from '@/lib/hiring';
 import { persisted } from './persist';
 
 export type JobKind = 'Tempo pieno' | 'Part-time' | 'Freelance' | 'Stage';
+/** Prova pratica con file: il tempo parte quando il candidato scarica il test. */
+export type Practical = { title: string; instructions: string; deliverables: string; files: FileRef[]; limitMin: number; skill: string; weight: number };
+export const PRACTICAL_QID = 'practical';
 export type Job = {
   id: string; owner: string; company: string; title: string; description: string; location: string; kind: JobKind; pay: string;
   reqs: SkillReq[]; questionIds: string[]; custom: Question[]; timeLimitMin: number;
   /** candidature "alla cieca": chi assume vede competenze e affidabilità, non nome né foto, finché non invita */
   blind: boolean; trustWeight: number; status: 'open' | 'closed'; createdAt: number;
+  practical?: Practical;
 };
+/** Stato della prova pratica di un candidato. `startedAt` è salvato subito: il conto alla rovescia sopravvive alla chiusura dell'app. */
+export type PracticalRun = { id: string; jobId: string; candidate: string; startedAt: number; submittedAt?: number; files: FileRef[]; note: string; late?: boolean };
+export type SavedQuestion = { id: string; owner: string; q: Question };
 export type AppStatus = 'submitted' | 'shortlist' | 'invited' | 'rejected';
 export type Application = {
   id: string; jobId: string; candidate: string; submittedAt: number; answers: Answer[]; openScores: Record<string, number>;
@@ -20,6 +27,13 @@ export type Application = {
 export type PracticeResult = { id: string; person: string; skill: string; ts: number; answers: Answer[]; result: TestResult; questionIds: string[] };
 
 export const jobQuestions = (j: Job): Question[] => [...j.questionIds.map((id) => questionById(id)).filter((q): q is Question => !!q), ...j.custom];
+/** La prova pratica vista come una domanda a risposta file, così alimenta le competenze come le altre. */
+export const practicalQuestion = (j: Job): Question | null => (j.practical ? { id: PRACTICAL_QID, skill: j.practical.skill, kind: 'file', prompt: j.practical.title || 'Prova pratica', rubric: j.practical.deliverables || undefined, w: j.practical.weight } : null);
+/** Domande che contano per una candidatura: quelle del test e, se consegnata, la prova pratica. */
+export function questionsOfApp(j: Job, a: Application): Question[] {
+  const pq = practicalQuestion(j);
+  return pq && a.answers.some((x) => x.qid === PRACTICAL_QID) ? [...jobQuestions(j), pq] : jobQuestions(j);
+}
 export const DAY = 86400000;
 export const PRACTICE_COOLDOWN = 7 * DAY;
 
@@ -27,6 +41,12 @@ type JobsState = {
   jobs: Job[];
   applications: Application[];
   practice: PracticeResult[];
+  practicals: PracticalRun[];
+  library: SavedQuestion[];
+  startPractical: (jobId: string, candidate: string) => PracticalRun | null;
+  submitPractical: (jobId: string, candidate: string, files: FileRef[], note: string) => boolean;
+  saveQuestion: (owner: string, q: Question) => void;
+  removeSaved: (id: string) => void;
   /** persone che hanno rimosso i propri risultati (diritto alla cancellazione) */
   createJob: (j: Omit<Job, 'id' | 'createdAt' | 'status'>) => string;
   updateJob: (id: string, p: Partial<Job>) => void;
@@ -41,10 +61,10 @@ type JobsState = {
 
 export const useJobs = create<JobsState>()(
   persisted<JobsState>('jobs', (set, get) => ({
-    jobs: [], applications: [], practice: [],
+    jobs: [], applications: [], practice: [], practicals: [], library: [],
     createJob: (j) => { const id = uid(); set((s) => ({ jobs: [{ ...j, id, status: 'open', createdAt: Date.now() }, ...s.jobs] })); return id; },
     updateJob: (id, p) => set((s) => ({ jobs: s.jobs.map((j) => (j.id === id ? { ...j, ...p } : j)) })),
-    deleteJob: (id) => set((s) => ({ jobs: s.jobs.filter((j) => j.id !== id), applications: s.applications.filter((a) => a.jobId !== id) })),
+    deleteJob: (id) => set((s) => ({ jobs: s.jobs.filter((j) => j.id !== id), applications: s.applications.filter((a) => a.jobId !== id), practicals: (s.practicals ?? []).filter((p) => p.jobId !== id) })),
     apply: (jobId, candidate, answers) => {
       const job = get().jobs.find((j) => j.id === jobId);
       if (!job || get().applications.some((a) => a.jobId === jobId && a.candidate === candidate)) return null;
@@ -53,13 +73,39 @@ export const useJobs = create<JobsState>()(
       set((s) => ({ applications: [...s.applications, { id, jobId, candidate, submittedAt: Date.now(), answers, openScores: {}, result, status: 'submitted' }] }));
       return id;
     },
+    startPractical: (jobId, candidate) => {
+      const st = get(), job = st.jobs.find((j) => j.id === jobId);
+      if (!job?.practical || !st.applications.some((a) => a.jobId === jobId && a.candidate === candidate)) return null;
+      const prev = (st.practicals ?? []).find((p) => p.jobId === jobId && p.candidate === candidate);
+      if (prev) return prev; // una sola prova: il tempo non riparte
+      const run: PracticalRun = { id: uid(), jobId, candidate, startedAt: Date.now(), files: [], note: '' };
+      set((x) => ({ practicals: [...(x.practicals ?? []), run] }));
+      return run;
+    },
+    submitPractical: (jobId, candidate, files, note) => {
+      const st = get(), job = st.jobs.find((j) => j.id === jobId);
+      const run = (st.practicals ?? []).find((p) => p.jobId === jobId && p.candidate === candidate);
+      if (!job?.practical || !run || run.submittedAt || (!files.length && !note.trim())) return false;
+      const now = Date.now(), late = isLate(run.startedAt, job.practical.limitMin, now);
+      set((s) => ({
+        practicals: (s.practicals ?? []).map((p) => (p.id === run.id ? { ...p, submittedAt: now, files, note: note.trim(), late } : p)),
+        applications: s.applications.map((a) => {
+          if (a.jobId !== jobId || a.candidate !== candidate) return a;
+          const answers = [...a.answers.filter((x) => x.qid !== PRACTICAL_QID), { qid: PRACTICAL_QID, value: note.trim(), ms: now - run.startedAt, files }];
+          return { ...a, answers, result: gradeTest(questionsOfApp(job, { ...a, answers }), answers, a.openScores) };
+        }),
+      }));
+      return true;
+    },
+    saveQuestion: (owner, q) => set((s) => ((s.library ?? []).some((x) => x.owner === owner && x.q.id === q.id) ? s : { library: [{ id: uid(), owner, q }, ...(s.library ?? [])] })),
+    removeSaved: (id) => set((s) => ({ library: (s.library ?? []).filter((x) => x.id !== id) })),
     gradeOpen: (appId, qid, score) => set((s) => ({
       applications: s.applications.map((a) => {
         if (a.id !== appId) return a;
         const job = s.jobs.find((j) => j.id === a.jobId);
         if (!job) return a;
         const openScores = { ...a.openScores, [qid]: score };
-        return { ...a, openScores, result: gradeTest(jobQuestions(job), a.answers, openScores) };
+        return { ...a, openScores, result: gradeTest(questionsOfApp(job, a), a.answers, openScores) };
       }),
     })),
     setStatus: (appId, status, feedback) => set((s) => ({ applications: s.applications.map((a) => (a.id === appId ? { ...a, status, feedback: feedback ?? a.feedback, revealed: a.revealed || status === 'invited' } : a)) })),
@@ -68,8 +114,8 @@ export const useJobs = create<JobsState>()(
       set((s) => ({ practice: [...s.practice, r] }));
       return r;
     },
-    deleteResults: (person) => set((s) => ({ practice: s.practice.filter((p) => p.person !== person), applications: s.applications.filter((a) => a.candidate !== person) })),
-    reset: () => set({ jobs: [], applications: [], practice: [] }),
+    deleteResults: (person) => set((s) => ({ practice: s.practice.filter((p) => p.person !== person), applications: s.applications.filter((a) => a.candidate !== person), practicals: (s.practicals ?? []).filter((p) => p.candidate !== person) })),
+    reset: () => set({ jobs: [], applications: [], practice: [], practicals: [], library: [] }),
   })),
 );
 

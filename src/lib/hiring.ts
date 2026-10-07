@@ -8,9 +8,10 @@
  * a scenari (auto-dichiarati) e l'affidabilità dai segnali che la rete conosce; l'indice mostra
  * sempre da quali dati nasce e quanto è affidabile. Decide sempre una persona.
  */
-import type { Question, Trait } from '../data/skillBank';
+import type { FileRef, Question, Trait } from '../data/skillBank';
 
-export type Answer = { qid: string; value: number | string | null; ms: number };
+/** `files`: consegne di una domanda a risposta file (il testo in `value` è una nota facoltativa). */
+export type Answer = { qid: string; value: number | string | null; ms: number; files?: FileRef[] };
 export type TestResult = {
   skillScores: Record<string, number | null>;
   traits: Partial<Record<Trait, number>>;
@@ -26,36 +27,41 @@ const mean = (a: number[]) => a.reduce((s, x) => s + x, 0) / a.length;
 const std = (a: number[]) => { const m = mean(a); return Math.sqrt(mean(a.map((x) => (x - m) ** 2))); };
 const clamp = (v: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
 
-/** 0..100, oppure null se serve la valutazione di una persona (domanda aperta). */
+/** La risposta c'è se ha un valore o almeno un file. */
+export const hasAnswer = (a: Answer | undefined): boolean => !!a && ((a.value != null && a.value !== '') || !!a.files?.length);
+
+/** 0..100, oppure null se serve la valutazione di una persona (domanda aperta o con risposta file). */
 export function gradeAnswer(q: Question, a: Answer | undefined, openScore?: number): number | null {
-  if (q.kind === 'open') return openScore == null ? null : clamp(openScore);
+  if (q.kind === 'open' || q.kind === 'file') return openScore == null ? null : clamp(openScore);
   if (!a || a.value == null || a.value === '') return 0;
   if (q.kind === 'number') {
     const v = typeof a.value === 'number' ? a.value : Number(String(a.value).replace(',', '.').replace(/[^0-9.\-]/g, ''));
     if (!Number.isFinite(v) || q.answer == null) return 0;
     const err = Math.abs(v - q.answer) / Math.max(Math.abs(q.answer), 1e-9);
-    return err <= (q.tol ?? 0.01) ? 100 : 0;
+    if (q.tolAbs != null) return Math.abs(v - q.answer) <= q.tolAbs + 1e-9 ? 100 : 0;
+    return err <= (q.tol ?? 0.01) + 1e-9 ? 100 : 0;
   }
   const idx = Number(a.value);
   return q.options?.[idx]?.score ?? 0;
 }
 
 export function gradeTest(questions: Question[], answers: Answer[], openScores: Record<string, number> = {}): TestResult {
-  const bySkill: Record<string, number[]> = {};
+  const bySkill: Record<string, [number, number][]> = {};
   const traitScores: Partial<Record<Trait, number[]>> = {};
   const pending: string[] = [];
   let answered = 0, timeMs = 0;
   questions.forEach((q) => {
     const a = answers.find((x) => x.qid === q.id);
-    if (a && a.value != null && a.value !== '') answered++;
+    if (hasAnswer(a)) answered++;
     if (a) timeMs += a.ms;
+    const w = q.w != null && q.w > 0 ? q.w : 1;
     const g = gradeAnswer(q, a, openScores[q.id]);
-    if (g == null) { if (a && a.value) pending.push(q.id); else (bySkill[q.skill] ??= []).push(0); return; }
-    (bySkill[q.skill] ??= []).push(g);
+    if (g == null) { if (hasAnswer(a)) pending.push(q.id); else (bySkill[q.skill] ??= []).push([0, w]); return; }
+    (bySkill[q.skill] ??= []).push([g, w]);
     if (q.trait) (traitScores[q.trait] ??= []).push(g);
   });
   const skillScores: Record<string, number | null> = {};
-  questions.forEach((q) => { if (!(q.skill in skillScores)) skillScores[q.skill] = bySkill[q.skill]?.length ? Math.round(mean(bySkill[q.skill])) : null; });
+  questions.forEach((q) => { if (!(q.skill in skillScores)) skillScores[q.skill] = bySkill[q.skill]?.length ? Math.round(bySkill[q.skill].reduce((s, x) => s + x[0] * x[1], 0) / bySkill[q.skill].reduce((s, x) => s + x[1], 0)) : null; });
   delete skillScores.atteggiamento;
 
   const traits: TestResult['traits'] = {};
@@ -65,7 +71,7 @@ export function gradeTest(questions: Question[], answers: Answer[], openScores: 
   const consistency = sds.length ? Math.round(clamp(100 - mean(sds) * 1.6)) : null;
 
   const flags: string[] = [];
-  const asked = answers.filter((a) => a.value != null && a.value !== '');
+  const asked = answers.filter((a) => (a.value != null && a.value !== '') && !questions.find((q) => q.id === a.qid && q.kind === 'file'));
   if (asked.length >= 5 && mean(asked.map((a) => a.ms)) < 2500) flags.push('Risposte molto veloci: il risultato potrebbe non riflettere un ragionamento attento.');
   if (answered < questions.length) flags.push(`${questions.length - answered} domande senza risposta.`);
   return { skillScores, traits, consistency, pending, answered, total: questions.length, timeMs, flags };
@@ -126,3 +132,18 @@ export function pickQuestions(pool: Question[], skills: string[], perSkill: numb
   });
   return out;
 }
+
+/* ---------- prova pratica con tempo ---------- */
+export const MIN_MS = 60000;
+/** Scadenza: l'orario di partenza (download del test) più il tempo concesso. */
+export const deadlineOf = (startedAt: number, limitMin: number) => startedAt + limitMin * MIN_MS;
+export const timeLeftMs = (startedAt: number, limitMin: number, now: number) => deadlineOf(startedAt, limitMin) - now;
+/** Consegna in ritardo se arriva dopo la scadenza (nessuna tolleranza nascosta). */
+export const isLate = (startedAt: number, limitMin: number, deliveredAt: number) => deliveredAt > deadlineOf(startedAt, limitMin);
+export function fmtDuration(ms: number): string {
+  const s = Math.floor(Math.abs(ms) / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  const p = (n: number) => String(n).padStart(2, '0');
+  return h ? `${h}:${p(m)}:${p(ss)}` : `${m}:${p(ss)}`;
+}
+/** "90 min" -> "1 h 30 min" */
+export const fmtLimit = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`);

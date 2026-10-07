@@ -3,13 +3,24 @@ import { create } from 'zustand';
 import { uid, weekdayShortDate } from '@/lib/format';
 import { persisted } from './persist';
 
-export type Post = { id: number; author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number };
-export type CommPost = { author: string; text: string; media?: 'photo' | 'video' | null; likes: number };
-export type Community = { id: number; name: string; topic: string; owner: string; openPosting: boolean; members: string[]; posts: CommPost[] };
+export type Post = { id: number; author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string };
+export type CommPost = { author: string; text: string; media?: 'photo' | 'video' | null; likes: number; ts?: number; uri?: string };
+export type Community = { id: number; name: string; topic: string; owner: string; openPosting: boolean; members: string[]; posts: CommPost[]; desc?: string; rules?: string; ts?: number };
 export type Provider = { name: string; role: string; price: number; rating: number; tag: string; media: 'photo' | 'video' | null; slots: string[] };
 export type Booking = { id: string; provider: string; role: string; slot: string; price: number };
-export type Idea = { id: number; title: string; desc: string; author: string; raised: number; similarTo: number | null; rewardType: 'libero' | 'fisso'; fixedAmount: number | null; rewardDesc: string; target: number };
-export type Seminar = { id: number; title: string; host: string; price: number; promoted: boolean };
+export type Idea = { id: number; title: string; desc: string; author: string; raised: number; similarTo: number | null; rewardType: 'libero' | 'fisso'; fixedAmount: number | null; rewardDesc: string; target: number; ts?: number };
+export type SeminarMode = 'online' | 'presenza';
+/** I campi oltre a promoted sono opzionali solo per i dati salvati da versioni precedenti. */
+export type Seminar = {
+  id: number; title: string; host: string; price: number; promoted: boolean;
+  ts?: number; startsAt?: number; durationMin?: number; mode?: SeminarMode; place?: string; seats?: number; joined?: number;
+  desc?: string; learn?: string[]; audience?: string; included?: string; language?: string; cancelPolicy?: string;
+};
+/** Iscrizione a un seminario o prenotazione di un servizio: si paga solo dopo, con la conferma di partecipazione. */
+export type Enrollment = {
+  id: string; kind: 'seminar' | 'service'; ref: string; title: string; host: string; price: number;
+  startsAt: number; durationMin: number; status: 'enrolled' | 'attended' | 'declined'; voted?: boolean; createdAt: number; slot?: string;
+};
 export type Ledger = { type: 'spend' | 'topup'; desc: string; amount: number; date: string };
 export type Msg = { from: string; text: string; date: string };
 export type GroupChat = { id: number; name: string; members: string[]; msgs: Msg[] };
@@ -45,6 +56,7 @@ type NetState = {
   hideIdeas: boolean;
   mutedIdeaAuthors: string[];
   seminars: Seminar[];
+  enrollments: Enrollment[];
   votes: Record<string, Record<number, number>>;
   clubs: Record<string, Club>;
   bio: string;
@@ -97,6 +109,7 @@ const blank = () => ({
   hideIdeas: false,
   mutedIdeaAuthors: [] as string[],
   seminars: [] as Seminar[],
+  enrollments: [] as Enrollment[],
   votes: {} as Record<string, Record<number, number>>,
   clubs: {} as Record<string, Club>,
   bio: '',

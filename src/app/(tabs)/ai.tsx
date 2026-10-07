@@ -1,74 +1,115 @@
-import { useRef, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { Body, Btn, Input, Item, Page, Row, Sheet } from '@/components/ui';
+import { Body, Input, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { askAssistant, captureTask, catReplies, categories, detectTopic } from '@/lib/ai';
+import { sendToAssistant } from '@/lib/assistant/run';
 import { Icon } from '@/lib/icons';
-import { useLife, type ChatMsg } from '@/store/life';
+import { GENERALE, foldersOf, migrateOldChat, searchLog, useAssistant, type AMsg } from '@/store/assistant';
+import { useApp } from '@/store/app';
 import { toast } from '@/store/toast';
+
+const START_CHIPS = ['Aggiungi una riunione al piano', 'Aggiungi un task', 'Cosa ho in programma domani?', 'Analisi delle mie finanze', 'Rendi privato il mio profilo', 'Cambia la foto del profilo', 'Cosa sai fare?'];
 
 export default function LifeChat() {
   const t = useTheme();
-  const { chat, activeCat, pushChat, setCat, addTask } = useLife();
+  const log = useAssistant((s) => s.log);
+  const clearTopic = useAssistant((s) => s.clearTopic);
+  const name = useApp((s) => s.assistantName);
+  // si parte sempre da "Generale": un'unica grande chat con tutto quello che ci si è detti
+  const [section, setSection] = useState(GENERALE);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const [picker, setPicker] = useState(false);
-  const list = useRef<FlatList<ChatMsg>>(null);
+  const [searching, setSearching] = useState(false);
+  const [q, setQ] = useState('');
+  const list = useRef<FlatList<AMsg>>(null);
 
-  const msgs: ChatMsg[] = chat[activeCat]?.length ? chat[activeCat] : [{ who: 'ai', text: catReplies[activeCat] ?? catReplies.General }];
+  useEffect(() => { migrateOldChat(); }, []);
 
-  async function send() {
-    const msg = text.trim();
+  const folders = useMemo(() => foldersOf(log), [log]);
+  const shown = useMemo(() => (section === GENERALE ? log : log.filter((m) => m.topic === section)), [log, section]);
+  const results = useMemo(() => (searching && q.trim() ? searchLog(log, q) : []), [log, q, searching]);
+  const lastAi = [...shown].reverse().find((m) => m.who === 'ai');
+
+  async function send(v?: string) {
+    const msg = (v ?? text).trim();
     if (!msg || busy) return;
-    setText('');
-    let cat = activeCat;
-    const detected = detectTopic(msg);
-    if (detected && detected !== activeCat) { cat = detected; setCat(detected); toast('Argomento rilevato: ' + detected); }
-    if (!useLife.getState().chat[cat]?.length) pushChat(cat, { who: 'ai', text: catReplies[cat] ?? catReplies.General });
-    pushChat(cat, { who: 'me', text: msg });
-    const task = captureTask(msg);
-    if (task) { addTask({ t: task.charAt(0).toUpperCase() + task.slice(1), done: false }); toast('Aggiunto ai task: "' + task + '"'); }
-    setBusy(true);
-    try {
-      pushChat(cat, { who: 'ai', text: await askAssistant(cat, useLife.getState().chat[cat] ?? []) });
-    } catch {
-      pushChat(cat, { who: 'ai', text: 'Non riesco a raggiungere il server. Riprova tra poco.' });
-    } finally {
-      setBusy(false);
-    }
+    setText(''); setBusy(true);
+    try { await sendToAssistant(msg); } finally { setBusy(false); }
+    // se la domanda cambia argomento resto in Generale, che mostra tutto
+    setTimeout(() => list.current?.scrollToEnd({ animated: true }), 60);
   }
 
   return (
-    <Page id="ai" title="LifeChat" scroll={false}>
-      <Body muted small style={{ marginBottom: 10 }}>LifePilot riconosce da solo l'argomento di cui parli. Puoi comunque cambiarlo tu.</Body>
-      <Pressable onPress={() => setPicker(true)} style={{ backgroundColor: t.input, borderColor: t.inputBorder, borderWidth: 1, borderRadius: 14, padding: 13, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ color: t.text, fontSize: 16 }}>{activeCat}</Text>
-        <Icon name="chevron" size={16} color={t.muted} stroke={2} />
-      </Pressable>
-      <FlatList
-        ref={list}
-        style={{ flex: 1 }}
-        data={msgs}
-        keyExtractor={(_, i) => String(i)}
-        onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
-        renderItem={({ item }) => (
-          <View style={{ alignSelf: item.who === 'me' ? 'flex-end' : 'flex-start', maxWidth: '86%', backgroundColor: item.who === 'me' ? '#e6ebf3' : t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: item.who === 'me' ? 0 : 1, borderRadius: 18, padding: 12, marginVertical: 5 }}>
-            <Text style={{ color: item.who === 'me' ? '#111' : t.text, fontSize: 15, lineHeight: 21 }}>{item.text}</Text>
+    <Page id="ai" title="LifeChat" scroll={false} right={<Pressable onPress={() => { setSearching((x) => !x); setQ(''); }} hitSlop={10} accessibilityLabel="Cerca nelle conversazioni"><Icon name="search" size={22} color={t.text} /></Pressable>}>
+      {searching ? (
+        <View style={{ flex: 1 }}>
+          <Input placeholder="Cerca una domanda o una risposta…" value={q} onChangeText={setQ} autoFocus style={{ marginBottom: 8 }} />
+          <FlatList
+            data={results}
+            keyExtractor={(m) => m.id}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={<Body muted small>{q.trim() ? 'Nessun risultato.' : 'Scrivi una parola: cerco in tutte le conversazioni, anche in quelle archiviate per argomento.'}</Body>}
+            renderItem={({ item }) => (
+              <Pressable onPress={() => { setSection(item.topic); setSearching(false); setQ(''); }} style={{ backgroundColor: t.item, borderRadius: 14, padding: 12, marginBottom: 8 }}>
+                <Text style={{ color: t.muted, fontSize: 11, marginBottom: 3 }}>{item.topic} · {new Date(item.ts).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} · {item.who === 'me' ? 'Tu' : name}</Text>
+                <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }} numberOfLines={4}>{item.text}</Text>
+              </Pressable>
+            )}
+          />
+        </View>
+      ) : (
+        <>
+          <View style={{ height: 44, marginBottom: 6 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', gap: 8 }}>
+              <Pill label="Generale" on={section === GENERALE} onPress={() => setSection(GENERALE)} />
+              {folders.map((f) => <Pill key={f.topic} label={`${f.topic} · ${f.count}`} on={section === f.topic} onPress={() => setSection(f.topic)} />)}
+            </ScrollView>
           </View>
-        )}
-      />
-      <Row style={{ paddingTop: 10, paddingBottom: 6, alignItems: 'flex-start' }}>
-        <Input flex={1} placeholder="Chiedi qualsiasi cosa…" value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" style={{ marginBottom: 0 }} />
-        <Btn title="" icon="arrow-up" onPress={send} disabled={busy || !text.trim()} />
-      </Row>
-      <Sheet visible={picker} title="Argomento" onClose={() => setPicker(false)}>
-        {categories.map((c, i) => (
-          <Item key={c} last={i === categories.length - 1} onPress={() => { setCat(c); setPicker(false); }}>
-            <Row><Body>{c}</Body>{c === activeCat ? <Icon name="check" size={17} color={t.positive} stroke={2.4} /> : null}</Row>
-          </Item>
-        ))}
-      </Sheet>
+          {section !== GENERALE && (
+            <Row style={{ marginBottom: 6 }}>
+              <Body muted small style={{ flex: 1 }}>Qui trovi solo ciò che riguarda «{section}». Tutto resta anche in Generale.</Body>
+              <Pill label="Svuota" onPress={() => { clearTopic(section); setSection(GENERALE); toast('Cartella svuotata'); }} />
+            </Row>
+          )}
+          <FlatList
+            ref={list}
+            style={{ flex: 1 }}
+            data={shown}
+            keyExtractor={(m) => m.id}
+            keyboardShouldPersistTaps="handled"
+            onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
+            ListEmptyComponent={
+              <View style={{ paddingTop: 8 }}>
+                <Body style={{ marginBottom: 8 }}>Sono {name}. Dimmi cosa fare e lo faccio io: piano, task, note, profilo, analisi di finanze, salute e umore. Funziono con regole sul tuo telefono, senza consumare AI.</Body>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>{START_CHIPS.map((c) => <Pill key={c} label={c} onPress={() => send(c)} />)}</View>
+              </View>
+            }
+            renderItem={({ item }) => {
+              const me = item.who === 'me';
+              return (
+                <View style={{ marginVertical: 4 }}>
+                  <View style={{ alignSelf: me ? 'flex-end' : 'flex-start', maxWidth: '88%', backgroundColor: me ? '#e6ebf3' : t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: me ? 0 : 1, borderRadius: 18, padding: 12 }}>
+                    {item.image ? <Image source={{ uri: item.image }} style={{ width: 160, height: 100, borderRadius: 10, marginBottom: 6 }} contentFit="cover" /> : null}
+                    <Text selectable style={{ color: me ? '#111' : t.text, fontSize: 15, lineHeight: 21 }}>{item.text}</Text>
+                    {item.source === 'theia' && <Text style={{ color: me ? '#556' : t.muted, fontSize: 10, marginTop: 4 }}>da {name} sulla schermata</Text>}
+                  </View>
+                  {item.id === lastAi?.id && item.chips?.length ? (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 }}>{item.chips.map((c) => <Pill key={c} label={c} onPress={() => send(c)} />)}</View>
+                  ) : null}
+                </View>
+              );
+            }}
+          />
+          <Row style={{ paddingTop: 10, paddingBottom: 6, alignItems: 'flex-start' }}>
+            <Input flex={1} placeholder="Scrivi un comando o una domanda…" value={text} onChangeText={setText} onSubmitEditing={() => send()} returnKeyType="send" style={{ marginBottom: 0 }} />
+            <Pressable onPress={() => send()} disabled={busy || !text.trim()} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: busy || !text.trim() ? 0.4 : 1, marginLeft: 8 }} accessibilityLabel="Invia">
+              <Icon name="arrow-up" size={20} color={t.onText} stroke={2.4} />
+            </Pressable>
+          </Row>
+        </>
+      )}
     </Page>
   );
 }

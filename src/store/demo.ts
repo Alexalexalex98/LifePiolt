@@ -1,4 +1,5 @@
 import seed from '@/data/network-seed.json';
+import { seedMarketplace } from '@/data/marketSeed';
 import { demoAutomations, demoBills, demoDoneTasks, demoDrive, demoEvents, demoGoals, demoHealth, demoInsights, demoMonths, demoNotes, demoTasks } from '@/data/seed';
 import { shortDate } from '@/lib/format';
 import { defaultBudget, defaultCategories, defaultWatchlist, useFin } from './finance';
@@ -9,6 +10,10 @@ import { useJobs } from './jobs';
 import { useLife } from './life';
 import { useNet } from './network';
 import { useTravel } from './travel';
+import { demoMoods } from '@/data/moodDemo';
+import { demoWeather } from '@/lib/weather';
+import { useContext } from './context';
+import { useAssistant } from './assistant';
 
 /** Sostituisce il nome del prototipo con quello dell'utente e le date relative con date reali. */
 function personalise<T>(data: T, me: string): T {
@@ -49,6 +54,20 @@ function seedChats(me: string) {
   add(g, 'Tommaso V.', 'Ritrovo alle 8:00 al lago?', 26 * 3600000);
   add(g, me, 'Per me va benissimo', 25 * 3600000, { status: 'read', reactions: { 'Tommaso V.': 'like' } });
   add(g, 'Federica L.', 'Io porto le barrette energetiche', 2 * 3600000);
+  // gruppo di lavoro con TUTTI gli strumenti, da provare uno per uno
+  const w = 'g:demo-aura';
+  chats[w] = { id: w, type: 'group', name: 'Team AURA', members: [me, 'Marco T.', 'Giulia M.', 'Federica L.'], admins: [me], description: 'Lavoro sul prototipo AURA: agenda, task, note, sondaggi e orari', lastRead: Date.now() - 4 * 3600000, createdAt: Date.now() - 12 * DAY, pinned: true };
+  add(w, 'system', `${me} ha creato il gruppo "Team AURA"`, 12 * DAY, { kind: 'system', from: 'system' });
+  add(w, 'Giulia M.', 'Ciao a tutti! Qui proviamo tutti gli strumenti: agenda, task, note, sondaggi, orari, posizione, contatti e file.', 6 * 3600000);
+  add(w, 'Giulia M.', '', 5.5 * 3600000, { kind: 'agenda', agenda: { title: 'Quando sono libera questa settimana', range: '7 giorni', mode: 'liberi', items: [], free: [{ day: dk(1), from: '09:00', to: '10:30' }, { day: dk(2), from: '13:00', to: '15:00' }, { day: dk(3), from: '09:00', to: '12:00' }, { day: dk(4), from: '15:00', to: '17:00' }], hours: { from: '09:00', to: '18:00', minSlot: 30 } } });
+  add(w, 'Federica L.', '', 5 * 3600000, { kind: 'agenda', agenda: { title: 'Disponibilità di Federica (occupato / libero)', range: '7 giorni', mode: 'occupato', items: [], busy: [{ day: dk(1), from: '10:00', to: '12:00' }, { day: dk(2), from: '09:00', to: '13:00' }], free: [{ day: dk(1), from: '13:00', to: '17:00' }, { day: dk(2), from: '14:00', to: '17:00' }], hours: { from: '09:00', to: '18:00', minSlot: 30 } } });
+  add(w, 'Marco T.', '', 4.5 * 3600000, { kind: 'tasks', taskList: { title: 'Da fare prima del test', items: [{ t: 'Calibrare il sensore', done: false }, { t: 'Aggiornare il firmware', done: false }, { t: 'Stampare le istruzioni', done: true }] } });
+  add(w, 'Giulia M.', '', 4 * 3600000, { kind: 'note', noteShare: { title: 'Appunti riunione fornitore', text: 'Appunti riunione fornitore\n- Consegna prototipi entro il 30\n- Costo unitario 42 CHF con ordine minimo di 50\n- Garanzia 24 mesi' } });
+  add(w, 'Federica L.', '', 3.5 * 3600000, { kind: 'poll', poll: { q: 'Dove facciamo la riunione di venerdì?', multi: false, options: [{ id: 'p1', t: 'In ufficio', votes: ['Marco T.'] }, { id: 'p2', t: 'Online', votes: ['Giulia M.'] }, { id: 'p3', t: 'Al bar vicino', votes: [] }] } });
+  add(w, 'Marco T.', '', 3 * 3600000, { kind: 'location', location: { lat: 46.0037, lng: 8.9511, label: 'Laboratorio AURA, Lugano' } });
+  add(w, 'Giulia M.', '', 2.5 * 3600000, { kind: 'contact', contact: { name: 'Elena Rossi (fornitore sensori)', phone: '+41 79 123 45 67' } });
+  add(w, 'Federica L.', '', 2 * 3600000, { kind: 'slots', slots: { title: 'Riunione di allineamento', durationMin: 45, options: [{ id: 'w1', day: dk(2), time: '10:00', votes: ['Giulia M.', 'Federica L.'] }, { id: 'w2', day: dk(2), time: '14:00', votes: ['Marco T.'] }, { id: 'w3', day: dk(3), time: '09:30', votes: ['Giulia M.'] }] } });
+  add(w, 'Marco T.', 'Se vi va bene scelgo io un orario: tocca a chi ha creato il gruppo confermare quello giusto.', 1.5 * 3600000);
   useChat.setState({ chats, messages });
 }
 
@@ -61,7 +80,9 @@ export function applyDemo(me: string, email = '') {
   (Object.keys(h.series) as (keyof typeof h.series)[]).forEach((k) => { dates[k] = ensureDates(h.series[k], undefined); });
   useHealth.setState({ series, dates, sources: Object.fromEntries(Object.keys(h.series).map((k) => [k, 'demo'])), workouts: h.workouts, mindSessions: h.mindSessions, moods: h.moods });
   seedChats(me);
-  { const j = seedJobs(me); useJobs.setState({ jobs: j.jobs, applications: j.applications, practice: j.practice }); useNet.setState((st) => ({ votes: { ...st.votes, ...j.votes } })); }
+  useHealth.setState({ moods: demoMoods() });
+  useContext.getState().set({ days: demoWeather(), source: 'demo', fetchedAt: Date.now(), city: useContext.getState().city || 'Lugano', error: null });
+  { const j = seedJobs(me); useJobs.setState({ jobs: j.jobs, applications: j.applications, practice: j.practice, practicals: j.practicals }); useNet.setState((st) => ({ votes: { ...st.votes, ...j.votes } })); }
   const months = demoMonths();
   useFin.setState({
     months, insights: demoInsights(), savingsPct: 6.5, bills: demoBills(), cash: 5000, stocks: defaultWatchlist(true),
@@ -78,11 +99,14 @@ export function applyDemo(me: string, email = '') {
     cards: n.cards.map((c: any) => ({ ...c, holder: me })), defaultCard: n.cards[0]?.id ?? null,
     bio: 'Founder di Life SA · costruisco LifePilot', myCard: { ...n.myCard, email: email || n.myCard.email },
   });
+  seedMarketplace(me); // seminari, iscrizioni, descrizioni e date di pubblicazione
 }
 
 export function resetAllData() {
   useNet.getState().reset();
   useChat.getState().reset();
+  useContext.getState().reset();
+  useAssistant.getState().reset();
   useJobs.getState().reset();
   useLife.getState().reset();
   useHealth.getState().reset();

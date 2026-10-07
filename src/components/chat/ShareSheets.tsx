@@ -1,5 +1,7 @@
+import * as DocumentPicker from 'expo-document-picker';
+import { File } from 'expo-file-system';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Body, Btn, Input, Item, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -21,6 +23,8 @@ const modeInfo: Record<AgendaMode, { label: string; hint: string }> = {
   liberi: { label: 'Solo slot liberi', hint: 'Chi riceve vede soltanto quando sei libero e può proporti un orario. Impegni e titoli restano nascosti: non vengono inviati.' },
 };
 
+const bandList = [{ n: 'Mattina', from: '06:00', to: '12:00' }, { n: 'Pomeriggio', from: '12:00', to: '18:00' }, { n: 'Sera', from: '18:00', to: '23:00' }];
+
 export function AgendaSheet({ visible, onClose, onSend }: Common) {
   const t = useTheme();
   const events = useLife((s) => s.events);
@@ -29,7 +33,13 @@ export function AgendaSheet({ visible, onClose, onSend }: Common) {
   const [mode, setMode] = useState<AgendaMode>('liberi');
   const [minSlot, setMinSlot] = useState(30);
   const [weekend, setWeekend] = useState(false);
-  const preview = visible ? buildAgenda(range, mode, { minSlot, weekend }) : null;
+  // fasce della giornata da mostrare: togli quelle in cui non vuoi essere disturbato
+  const [bands, setBands] = useState<string[]>(['Mattina', 'Pomeriggio', 'Sera']);
+  const [cust, setCust] = useState(false);
+  const [cf, setCf] = useState('09:00');
+  const [ct, setCt] = useState('13:00');
+  const windows = cust ? [{ from: cf, to: ct }] : bands.length === 3 ? undefined : bandList.filter((b) => bands.includes(b.n)).map((b) => ({ from: b.from, to: b.to }));
+  const preview = visible ? buildAgenda(range, mode, { minSlot, weekend, windows: windows ?? (mode === 'dettagli' ? undefined : [{ from: wh.start, to: wh.end }]) }) : null;
   void events;
   const list = mode === 'dettagli'
     ? preview?.items.map((it) => ({ day: it.day, key: it.time, text: `${it.time}  ${it.title}` }))
@@ -40,6 +50,17 @@ export function AgendaSheet({ visible, onClose, onSend }: Common) {
       <Row style={{ justifyContent: 'flex-start', marginBottom: 6, flexWrap: 'wrap' }} gap={6}>{(Object.keys(modeInfo) as AgendaMode[]).map((m) => <Pill key={m} icon={m === 'dettagli' ? 'calendar' : m === 'occupato' ? 'eye' : 'clock'} label={modeInfo[m].label} on={mode === m} onPress={() => setMode(m)} />)}</Row>
       <View style={{ backgroundColor: t.accent + '1f', borderRadius: 12, padding: 10, marginBottom: 10 }}><Body small>{modeInfo[mode].hint}</Body></View>
       <Row style={{ justifyContent: 'flex-start', marginBottom: 8, flexWrap: 'wrap' }} gap={6}>{(['oggi', 'domani', '7 giorni'] as AgendaRange[]).map((r) => <Pill key={r} label={r === 'oggi' ? 'Oggi' : r === 'domani' ? 'Domani' : 'Prossimi 7 giorni'} on={range === r} onPress={() => setRange(r)} />)}</Row>
+      <Body small muted style={{ marginBottom: 4 }}>Fasce della giornata da includere{mode === 'dettagli' ? '' : ' (con tutte e tre vale il tuo orario di lavoro)'}</Body>
+      <Row style={{ justifyContent: 'flex-start', marginBottom: 8, flexWrap: 'wrap' }} gap={6}>
+        {bandList.map((b) => <Pill key={b.n} label={`${b.n} ${b.from}–${b.to}`} on={!cust && bands.includes(b.n)} onPress={() => { setCust(false); setBands(bands.includes(b.n) ? bands.filter((x) => x !== b.n) : [...bands, b.n]); }} />)}
+        <Pill label="Orario preciso" on={cust} onPress={() => setCust(!cust)} />
+      </Row>
+      {cust && (
+        <Row style={{ marginBottom: 8 }} gap={8}>
+          <Input flex={1} placeholder="Dalle (09:00)" value={cf} onChangeText={setCf} style={{ marginBottom: 0 }} />
+          <Input flex={1} placeholder="Alle (13:00)" value={ct} onChangeText={setCt} style={{ marginBottom: 0 }} />
+        </Row>
+      )}
       {mode !== 'dettagli' && (
         <>
           <Body small muted style={{ marginBottom: 4 }}>Slot liberi di almeno · orario di lavoro {wh.start}–{wh.end}</Body>
@@ -58,15 +79,47 @@ export function TasksSheet({ visible, onClose, onSend }: Common) {
   const t = useTheme();
   const tasks = useLife((s) => s.tasks);
   const [sel, setSel] = useState<string[]>([]);
+  const [fresh, setFresh] = useState<string[]>([]); // task nuovi scritti qui, non ancora nella tua lista
+  const [draft, setDraft] = useState('');
   const open = tasks.filter((x) => !taskIsDone(x));
+  const addFresh = () => { const v = draft.trim(); if (!v) return; setFresh([...fresh, v]); setDraft(''); };
+  async function fromFile() {
+    try {
+      const r = await DocumentPicker.getDocumentAsync({ type: ['text/plain', 'text/csv', 'text/markdown'], copyToCacheDirectory: true });
+      if (r.canceled || !r.assets[0]) return;
+      const a = r.assets[0];
+      const txt = Platform.OS === 'web' ? await (await fetch(a.uri)).text() : await new File(a.uri).text();
+      const lines = txt.split(/\r?\n/).map((l) => l.replace(/^[\s\-*•\d.)\[\]x]+/i, '').trim()).filter((l) => l.length > 1).slice(0, 40);
+      if (!lines.length) { toast('Il file è vuoto'); return; }
+      setFresh((f) => [...f, ...lines]);
+      toast(`${lines.length} task letti dal file`);
+    } catch { toast('Non riesco a leggere il file'); }
+  }
+  const total = sel.length + fresh.length;
   return (
     <Sheet visible={visible} title="Condividi dei task" onClose={onClose}>
+      <Body small muted style={{ marginBottom: 6 }}>Scegli dai tuoi task, scrivine di nuovi o caricane una lista da file di testo (una riga per task).</Body>
+      <Row style={{ alignItems: 'flex-start', marginBottom: 8 }} gap={8}>
+        <Input flex={1} placeholder="Nuovo task da condividere…" value={draft} onChangeText={setDraft} onSubmitEditing={addFresh} returnKeyType="done" style={{ marginBottom: 0 }} />
+        <Btn title="" icon="plus" onPress={addFresh} disabled={!draft.trim()} />
+      </Row>
+      <Row style={{ justifyContent: 'flex-start', marginBottom: 8 }} gap={6}><Pill icon="paperclip" label="Carica da file" onPress={fromFile} /></Row>
+      {fresh.map((f, i) => (
+        <Item key={'f' + i} last={false}>
+          <Row style={{ justifyContent: 'flex-start' }} gap={10}><Icon name="plus" size={18} color={t.accent} /><Body style={{ flex: 1 }}>{f}</Body><Pressable onPress={() => setFresh(fresh.filter((_, j) => j !== i))} hitSlop={8} accessibilityLabel="Togli"><Icon name="x" size={16} color={t.muted} /></Pressable></Row>
+        </Item>
+      ))}
       {open.length === 0 ? <Body small muted>Non hai task aperti.</Body> : open.map((x, i) => (
         <Item key={x.id} last={i === open.length - 1} onPress={() => setSel(sel.includes(x.id) ? sel.filter((y) => y !== x.id) : [...sel, x.id])}>
           <Row style={{ justifyContent: 'flex-start' }} gap={10}><Icon name={sel.includes(x.id) ? 'checksquare' : 'square'} size={20} color={sel.includes(x.id) ? t.accent : t.muted} /><Body style={{ flex: 1 }}>{x.t}</Body></Row>
         </Item>
       ))}
-      <Btn style={{ marginTop: 12 }} icon="send" title={sel.length ? `Invia ${sel.length} ${sel.length === 1 ? 'task' : 'task'}` : 'Scegli almeno un task'} disabled={!sel.length} onPress={() => { const l = buildTasks(sel); if (l) onSend({ kind: 'tasks', taskList: l }); setSel([]); onClose(); }} />
+      <Btn style={{ marginTop: 12 }} icon="send" title={total ? `Invia ${total} task` : 'Scegli o scrivi almeno un task'} disabled={!total} onPress={() => {
+        const l = buildTasks(sel);
+        const items = [...(l?.items ?? []), ...fresh.map((f) => ({ t: f, done: false }))];
+        onSend({ kind: 'tasks', taskList: { title: items.length === 1 ? items[0].t : `${items.length} task`, items } });
+        setSel([]); setFresh([]); onClose();
+      }} />
     </Sheet>
   );
 }

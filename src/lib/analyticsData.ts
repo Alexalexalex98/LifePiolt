@@ -7,6 +7,7 @@ import {
 import { dayKey, monthNames } from '@/lib/format';
 import { useFin, monthEnd, type FinMonth } from '@/store/finance';
 import { healthMeta, pointsOf, useHealth, type Metric } from '@/store/health';
+import { useContext } from '@/store/context';
 import { useLife } from '@/store/life';
 
 /* ---------- definizioni delle metriche ---------- */
@@ -29,6 +30,10 @@ export const defs: Record<string, MetricDef> = {
   savings: { id: 'savings', label: 'Tasso di risparmio', unit: '%', domain: 'finanza', better: 'up', target: 20, dec: 0, color: '#7be0b0', period: 'month' },
   spending: { id: 'spending', label: 'Spese del mese', unit: 'CHF', domain: 'finanza', better: 'down', dec: 0, color: '#ff9d9d', period: 'month' },
   dailyspend: { id: 'dailyspend', label: 'Spesa giornaliera', unit: 'CHF', domain: 'finanza', better: 'down', dec: 0, color: '#ffb84f', period: 'day' },
+  rain: { id: 'rain', label: 'Pioggia', unit: 'mm', domain: 'contesto', better: 'none', dec: 1, color: '#7bb8e0', period: 'day' },
+  sun: { id: 'sun', label: 'Ore di sole', unit: 'h', domain: 'contesto', better: 'none', dec: 1, color: '#e0c97b', period: 'day' },
+  temp: { id: 'temp', label: 'Temperatura massima', unit: '°C', domain: 'contesto', better: 'none', dec: 0, color: '#ff9d9d', period: 'day' },
+  events: { id: 'events', label: 'Impegni in calendario', unit: '/giorno', domain: 'contesto', better: 'none', dec: 0, color: '#8fb3ff', period: 'day' },
   tasks: { id: 'tasks', label: 'Task completati', unit: '/giorno', domain: 'crescita', better: 'up', target: 2, dec: 1, color: '#8fb3ff', period: 'day' },
 };
 
@@ -202,7 +207,7 @@ function dailyIndex(series: Series[], today: string, days = 28): Pt[] {
 export function computeDashboard(): Dashboard {
   const today = todayStr();
   const series = collect(today);
-  const list = series.map((s) => analyze(s, today)).filter((a): a is Analysis => !!a);
+  const list = series.filter((s) => s.def.domain !== 'contesto').map((s) => analyze(s, today)).filter((a): a is Analysis => !!a);
   const byId: Record<string, Analysis> = {};
   list.forEach((a) => { byId[a.def.id] = a; });
   const corrs = correlations(series);
@@ -236,5 +241,5 @@ export function useDashboard(): Dashboard {
   return useMemo(() => computeDashboard(), [hs, hd, hm, months, cats, tasks, goals]);
 }
 
-export const domainLabel: Record<Domain, string> = { salute: 'Salute', mente: 'Mente', finanza: 'Finanze', crescita: 'Crescita' };
+export const domainLabel: Record<Domain, string> = { salute: 'Salute', mente: 'Mente', finanza: 'Finanze', crescita: 'Crescita', contesto: 'Contesto' };
 void dayKey;

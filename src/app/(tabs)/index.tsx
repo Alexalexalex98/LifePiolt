@@ -3,11 +3,13 @@ import { Pressable, Text, View } from 'react-native';
 
 import { TrendChart } from '@/components/charts';
 import { TheiaCard } from '@/components/TheiaCard';
+import { CorrelationSheet, DomainSheet, MoodCheckIn } from '@/components/homeParts';
 import { InsightCard, KpiCard, MetricSheet, deltaStatus, scoreStatus, statusColor } from '@/components/dashboard';
 import { PlanDaySheet } from '@/components/plan';
-import { Body, Btn, Card, H, Item, Page, Row, SectionLabel, Tag } from '@/components/ui';
+import { Body, Btn, Card, Chev, H, Item, Page, Row, SectionLabel, Tag } from '@/components/ui';
+import { LifeScoreSheet } from '@/components/scoreSheet';
 import { useTheme } from '@/hooks/use-theme';
-import { attainment, fmtVal, type Analysis, type Domain } from '@/lib/analytics';
+import { attainment, fmtVal, type Analysis, type Correlation, type Domain } from '@/lib/analytics';
 import { domainLabel, useDashboard } from '@/lib/analyticsData';
 import { go } from '@/lib/nav';
 import { applyDemo } from '@/store/demo';
@@ -22,6 +24,7 @@ const order: Record<Domain, string[]> = {
   mente: ['stress', 'mood', 'mindful'],
   finanza: ['balance', 'savings', 'spending', 'dailyspend'],
   crescita: ['tasks'],
+  contesto: [],
 };
 
 export default function Dashboard() {
@@ -35,6 +38,10 @@ export default function Dashboard() {
   const [open, setOpen] = useState<Analysis | null>(null);
   const [plan, setPlan] = useState(false);
   const [moreInsights, setMoreInsights] = useState(false);
+  const [scoreOpen, setScoreOpen] = useState(false);
+  const [domain, setDomain] = useState<Exclude<Domain, 'contesto'> | null>(null);
+  const [corr, setCorr] = useState<Correlation | null>(null);
+  const [info, setInfo] = useState(false);
 
   const { scores, list, insights, corrs, lifeSeries, lifeForecast, lifeDelta } = dash;
   const hour = new Date().getHours();
@@ -57,6 +64,8 @@ export default function Dashboard() {
     return items.sort((a, b) => idx(a) - idx(b)).slice(0, d === 'salute' ? 8 : 6);
   };
   const openMetric = (id?: string) => { const a = id ? dash.byId[id] : null; if (a) setOpen(a); };
+  const domainPage: Record<string, string> = { salute: 'lifehealth', mente: 'mood', finanza: 'lifefinance', crescita: 'lifetask', contesto: 'mood' };
+  const openInsight = (i: { metricId?: string; domain: string }) => { if (i.metricId && dash.byId[i.metricId]) openMetric(i.metricId); else go(domainPage[i.domain] ?? 'lifehealth'); };
 
   const srcNames: Record<string, string> = { apple: 'Apple Health', manuale: 'Manuale', demo: 'Demo', stimato: 'Stimato' };
 
@@ -65,6 +74,7 @@ export default function Dashboard() {
     return (
       <Page id="index">
         <Text style={{ color: t.text, fontSize: 28, fontWeight: '800', marginTop: 18 }}>{greet}, {account.name}</Text>
+        <MoodCheckIn />
         <TheiaCard />
         <Card style={{ marginTop: 14 }}>
           <H>La Dashboard analizza i tuoi dati</H>
@@ -88,10 +98,12 @@ export default function Dashboard() {
         </Text>
       </View>
 
+      <MoodCheckIn />
+
       <TheiaCard />
 
       {/* ---------- 1. punteggio generale ---------- */}
-      <Card style={{ marginTop: 10, padding: 18 }}>
+      <Card style={{ marginTop: 10, padding: 18 }} onPress={() => setScoreOpen(true)}>
         <Row style={{ alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
             <Tag>Life Score</Tag>
@@ -121,14 +133,14 @@ export default function Dashboard() {
           </View>
         )}
         <Row style={{ marginTop: 14 }} gap={8}>
-          {(['salute', 'mente', 'finanza', 'crescita'] as Domain[]).map((d) => {
+          {(['salute', 'mente', 'finanza', 'crescita'] as const).map((d) => {
             const v = scores[d]; const c = statusColor(t, scoreStatus(v));
             return (
-              <View key={d} style={{ flex: 1, backgroundColor: t.tile, borderRadius: 14, padding: 10, alignItems: 'center' }}>
-                <Text style={{ color: t.muted, fontSize: 10, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' }}>{domainLabel[d]}</Text>
+              <Pressable key={d} onPress={() => setDomain(d as Exclude<Domain, 'contesto'>)} accessibilityRole="button" accessibilityLabel={`${domainLabel[d]}: dettagli`} style={{ flex: 1, backgroundColor: t.tile, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 4, alignItems: 'center' }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ color: t.muted, fontSize: 10, fontWeight: '700', letterSpacing: 0.2, textTransform: 'uppercase' }}>{domainLabel[d]}</Text>
                 <Text style={{ color: c, fontSize: 22, fontWeight: '800' }}>{v ?? '—'}</Text>
-                <View style={{ height: 3, alignSelf: 'stretch', borderRadius: 2, backgroundColor: t.border, marginTop: 2 }}><View style={{ width: `${v ?? 0}%`, height: 3, borderRadius: 2, backgroundColor: c }} /></View>
-              </View>
+                <View style={{ height: 3, alignSelf: 'stretch', marginHorizontal: 6, borderRadius: 2, backgroundColor: t.border, marginTop: 2 }}><View style={{ width: `${v ?? 0}%`, height: 3, borderRadius: 2, backgroundColor: c }} /></View>
+              </Pressable>
             );
           })}
         </Row>
@@ -138,10 +150,10 @@ export default function Dashboard() {
       <SectionLabel>Cosa conta adesso</SectionLabel>
       {insights.length === 0 ? (
         <Card><Body muted>Per ora nessun segnale da evidenziare: sei in linea con i tuoi obiettivi e le tue abitudini.</Body></Card>
-      ) : insights.slice(0, 3).map((i) => <InsightCard key={i.id} i={i} onPress={i.metricId ? () => openMetric(i.metricId) : undefined} />)}
+      ) : insights.slice(0, 3).map((i) => <InsightCard key={i.id} i={i} onPress={() => openInsight(i)} />)}
       {insights.length > 3 && (
         <>
-          {moreInsights && insights.slice(3).map((i) => <InsightCard key={i.id} i={i} onPress={i.metricId ? () => openMetric(i.metricId) : undefined} />)}
+          {moreInsights && insights.slice(3).map((i) => <InsightCard key={i.id} i={i} onPress={() => openInsight(i)} />)}
           <Btn small ghost title={moreInsights ? 'Mostra meno' : `Altri ${insights.length - 3} segnali`} onPress={() => setMoreInsights(!moreInsights)} />
         </>
       )}
@@ -191,7 +203,7 @@ export default function Dashboard() {
           <SectionLabel>Cosa influenza cosa</SectionLabel>
           <Card>
             {corrs.map((c, i) => (
-              <Item key={`${c.a.id}${c.b.id}${c.lag}`} last={i === corrs.length - 1}>
+              <Item key={`${c.a.id}${c.b.id}${c.lag}`} last={i === corrs.length - 1} onPress={() => setCorr(c)}>
                 <Body small>{c.sentence}</Body>
                 <Row style={{ marginTop: 6 }} gap={8}>
                   <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: t.border, overflow: 'hidden' }}>
@@ -206,52 +218,48 @@ export default function Dashboard() {
         </>
       )}
 
-      {/* ---------- 6. qualità dei dati ---------- */}
-      <SectionLabel>Come leggere i dati</SectionLabel>
-      <Card>
-        <Body small><Body small bold>Pallino verde / giallo / rosso</Body> — sei nella zona ottimale / vicino / lontano. L’ottimale è scritto sotto ogni dato.</Body>
-        <Body small style={{ marginTop: 6 }}><Body small bold>Freccia e percentuale</Body> — come cambia la media degli ultimi 7 giorni rispetto ai 7 prima. Per alcuni dati salire è buono (passi), per altri è un segnale da guardare (battito a riposo, stress).</Body>
-        <Body small style={{ marginTop: 6 }}><Body small bold>Tratteggio e fascia</Body> — previsione dei prossimi giorni e intervallo probabile all’80%: è una stima dalla tendenza recente, non una certezza.</Body>
-        <Body small style={{ marginTop: 6 }}>Tocca qualsiasi dato per vedere cos’è, perché conta, cosa comporta se è fuori range e come migliorarlo. Non sono consigli medici o finanziari: per sintomi o decisioni importanti rivolgiti a un professionista.</Body>
+      {/* ---------- 6. umore e contesto ---------- */}
+      <Card onPress={() => go('mood')}>
+        <Row>
+          <Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}>
+            <Icon name="chart" size={20} color={t.accent} />
+            <View style={{ flex: 1 }}><Body bold>Umore e contesto</Body><Body small muted>Il tuo umore confrontato con meteo, impegni, sonno, spese e movimento.</Body></View>
+          </Row>
+          <Chev />
+        </Row>
       </Card>
 
-      <SectionLabel>Affidabilità dell'analisi</SectionLabel>
-      <Card>
-        <Row><Body small muted>Giorni con dati</Body><Body small bold>{dash.dataDays}</Body></Row>
-        <Row style={{ marginTop: 6 }}><Body small muted>Indicatori analizzati</Body><Body small bold>{list.length}</Body></Row>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 6 }}>
-          {Object.entries(dash.sources).map(([k, n]) => (
-            <View key={k} style={{ backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}><Text style={{ color: t.text, fontSize: 12 }}>{srcNames[k] ?? k} · {n}</Text></View>
-          ))}
-        </View>
-        <Body small muted style={{ marginTop: 10 }}>
-          {dash.dataDays < 14 ? 'Con meno di 14 giorni di dati le previsioni sono molto incerte: più dati = analisi migliori. ' : ''}
-          Le previsioni sono stime statistiche della tendenza recente, non promesse. Non sono consigli medici o finanziari.
-        </Body>
-        {!(wearable.connected && wearable.device === 'Apple Health') && <Btn small ghost style={{ marginTop: 10 }} title="Collega Apple Health per dati automatici" onPress={() => go('lifehealth')} />}
-      </Card>
-
-      {/* ---------- 7. azioni rapide per inserire dati ---------- */}
-      <SectionLabel>Aggiungi dati</SectionLabel>
-      {!moodToday && (
-        <Card>
-          <Body bold style={{ marginBottom: 8 }}>Come ti senti oggi?</Body>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {moodOptions.map(([m, c]) => (
-              <Pressable key={m} onPress={() => { logMood(m); toast('Umore registrato: ' + m); }} style={{ width: '31%', alignItems: 'center', paddingVertical: 11, borderRadius: 14, backgroundColor: t.tile, borderWidth: 1, borderColor: t.navBorder }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c, marginBottom: 6 }} /><Body small>{m}</Body>
-              </Pressable>
-            ))}
+      {/* ---------- 7. informazioni sull'analisi (una sola scheda) ---------- */}
+      <Card onPress={() => setInfo(!info)}>
+        <Row>
+          <Body bold>Come leggere i dati · {dash.dataDays} giorni analizzati</Body>
+          <Icon name={info ? 'arrow-up' : 'arrow-down'} size={16} color={t.muted} />
+        </Row>
+        {info && (
+          <View style={{ marginTop: 10 }}>
+            <Body small><Body small bold>Pallino verde / giallo / rosso</Body>: sei nella zona ottimale, vicino o lontano. L’ottimale è scritto sotto ogni dato.</Body>
+            <Body small style={{ marginTop: 6 }}><Body small bold>Freccia e percentuale</Body>: come cambia la media degli ultimi 7 giorni rispetto ai 7 prima. Per alcuni dati salire è buono (passi), per altri è un segnale da guardare (battito a riposo, stress).</Body>
+            <Body small style={{ marginTop: 6 }}><Body small bold>Tratteggio e fascia</Body>: previsione dei prossimi giorni e intervallo probabile all’80%, stima dalla tendenza recente.</Body>
+            <Body small muted style={{ marginTop: 8 }}>Indicatori analizzati: {list.length} · fonti: {Object.entries(dash.sources).map(([k, n]) => `${srcNames[k] ?? k} ${n}`).join(', ')}.{dash.dataDays < 14 ? ' Con meno di 14 giorni le previsioni sono molto incerte.' : ''} Non sono consigli medici o finanziari.</Body>
+            {!(wearable.connected && wearable.device === 'Apple Health') && <Btn small ghost style={{ marginTop: 10 }} icon="lifehealth" title="Collega Apple Health per dati automatici" onPress={() => go('lifehealth')} />}
           </View>
-        </Card>
-      )}
-      <Row gap={8}>
-        <Btn small ghost style={{ flex: 1 }} title="Registra salute" onPress={() => go('lifehealth')} />
-        <Btn small ghost style={{ flex: 1 }} title="Movimenti" onPress={() => go('lifefinance')} />
-        <Btn small ghost style={{ flex: 1 }} title="Pianifica oggi" onPress={() => setPlan(true)} />
+        )}
+      </Card>
+
+      {/* ---------- 8. azioni rapide ---------- */}
+      <Row gap={8} style={{ marginTop: 6 }}>
+        {([['lifehealth', 'Registra salute', () => go('lifehealth')], ['lifefinance', 'Movimenti', () => go('lifefinance')], ['plan', 'Pianifica oggi', () => setPlan(true)]] as [string, string, () => void][]).map(([ic, label, fn]) => (
+          <Pressable key={label} onPress={fn} accessibilityRole="button" style={{ flex: 1, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 16, paddingVertical: 14, alignItems: 'center', gap: 6 }}>
+            <Icon name={ic} size={22} color={t.text} />
+            <Text style={{ color: t.text, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
+          </Pressable>
+        ))}
       </Row>
 
       <MetricSheet a={open} onClose={() => setOpen(null)} />
+      <LifeScoreSheet visible={scoreOpen} onClose={() => setScoreOpen(false)} />
+      <DomainSheet domain={domain} list={list} onClose={() => setDomain(null)} />
+      <CorrelationSheet c={corr} onClose={() => setCorr(null)} onOpen={(id) => openMetric(id)} />
       <PlanDaySheet visible={plan} onClose={() => setPlan(false)} />
     </Page>
   );

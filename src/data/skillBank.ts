@@ -4,10 +4,16 @@
  * quelle "scenario" assegnano un punteggio a ogni risposta (giudizio situazionale).
  * Sono prove di esempio scritte per LifePilot: il datore di lavoro può aggiungerne di proprie.
  */
-export type QKind = 'mc' | 'scenario' | 'open' | 'number';
+export type QKind = 'mc' | 'scenario' | 'open' | 'number' | 'file';
 export type QOption = { t: string; score: number };
+/** File allegato (consegna, testo della prova, immagine di una domanda). `text` = contenuto in linea (file di esempio). */
+export type FileRef = { uri: string; name: string; size?: number; mime?: string; text?: string };
+export type ChartType = 'bar' | 'line' | 'pie';
+/** Tabella di dati con grafico mostrata al candidato: una riga per etichetta, una colonna per serie. */
+export type ChartSpec = { type: ChartType; title?: string; unit?: string; labels: string[]; series: { name: string; values: number[] }[] };
 export type Question = {
   id: string;
+  /** id di competenza della banca oppure libero: 'custom:Excel avanzato' */
   skill: string;
   kind: QKind;
   prompt: string;
@@ -15,11 +21,24 @@ export type Question = {
   /** per 'number': risposta esatta e tolleranza relativa (0.02 = ±2%) */
   answer?: number;
   tol?: number;
-  /** per 'open': criteri mostrati a chi valuta */
+  /** per 'number': tolleranza assoluta (in alternativa alla relativa) e unità di misura mostrata */
+  tolAbs?: number;
+  unit?: string;
+  /** per 'open'/'file': criteri mostrati a chi valuta */
   rubric?: string;
   /** tratto misurato (solo domande di atteggiamento) */
   trait?: Trait;
   secs?: number;
+  /** testo di contesto lungo / brano da leggere prima della domanda */
+  ctx?: string;
+  /** immagine allegata alla domanda */
+  img?: FileRef;
+  /** dati e grafico mostrati sopra la domanda */
+  chart?: ChartSpec;
+  /** peso (punti) della domanda nel punteggio della competenza; default 1 */
+  w?: number;
+  /** tempo massimo per questa domanda, in secondi (facoltativo: allo scadere si passa oltre) */
+  limitSec?: number;
 };
 export type Trait = 'affidabilita' | 'onesta' | 'collaborazione';
 
@@ -31,7 +50,10 @@ export const skills: { id: string; label: string; icon: string; desc: string }[]
   { id: 'clienti', label: 'Assistenza clienti', icon: 'headphones', desc: 'Empatia, soluzioni, gestione dei reclami.' },
   { id: 'organizzazione', label: 'Organizzazione e priorità', icon: 'tasks', desc: 'Gestire tempo, scadenze e imprevisti.' },
 ];
-export const skillLabel = (id: string) => skills.find((s) => s.id === id)?.label ?? id;
+export const CUSTOM_PREFIX = 'custom:';
+export const customSkill = (name: string) => CUSTOM_PREFIX + name.trim();
+export const isCustomSkill = (id: string) => id.startsWith(CUSTOM_PREFIX);
+export const skillLabel = (id: string) => (isCustomSkill(id) ? id.slice(CUSTOM_PREFIX.length).trim() || 'Personalizzata' : skills.find((s) => s.id === id)?.label ?? id);
 
 export const traitLabel: Record<Trait, string> = { affidabilita: 'Affidabilità', onesta: 'Onestà e trasparenza', collaborazione: 'Collaborazione' };
 

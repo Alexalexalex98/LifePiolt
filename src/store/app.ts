@@ -16,7 +16,7 @@ type Device = { name: string; detail: string; current: boolean };
 type AppState = {
   onboarded: boolean;
   demo: boolean;
-  account: { name: string; email: string };
+  account: { name: string; email: string; photo?: string };
   appearance: Appearance;
   language: Language;
   timeFormat: '24h' | '12h';

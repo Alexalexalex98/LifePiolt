@@ -21,16 +21,19 @@ export type AgendaRange = 'oggi' | 'domani' | '7 giorni';
  * - 'occupato': solo i blocchi in cui sei occupato (nessun titolo)
  * - 'liberi': solo gli slot liberi nell'orario di lavoro (nessun titolo, nessun blocco occupato)
  */
-export function buildAgenda(range: AgendaRange, mode: AgendaMode = 'dettagli', opts: { ws?: string; we?: string; minSlot?: number; weekend?: boolean } = {}): AgendaShare | null {
+export function buildAgenda(range: AgendaRange, mode: AgendaMode = 'dettagli', opts: { ws?: string; we?: string; minSlot?: number; weekend?: boolean; windows?: { from: string; to: string }[] } = {}): AgendaShare | null {
   let days = range === 'oggi' ? [addDays(0)] : range === 'domani' ? [addDays(1)] : Array.from({ length: 7 }, (_, i) => addDays(i));
   // la disponibilità di lavoro salta il weekend, salvo richiesta esplicita
   if (mode !== 'dettagli' && !opts.weekend && range === '7 giorni') days = days.filter((d) => { const w = new Date(d + 'T00:00:00').getDay(); return w !== 0 && w !== 6; });
   const ev = useLife.getState().events;
   const wh = useApp.getState().workHours;
   const ws = opts.ws ?? wh.start, we = opts.we ?? wh.end, minSlot = opts.minSlot ?? 30;
+  // fasce scelte da chi condivide (es. niente mattina, niente sera): se mancano vale l'orario di lavoro
+  const wins = opts.windows?.length ? opts.windows : [{ from: ws, to: we }];
+  const inWins = (time: string) => !opts.windows?.length || opts.windows.some((w) => time >= w.from && time < w.to);
   const rangeTitle = range === 'oggi' ? 'di oggi' : range === 'domani' ? 'di domani' : 'della settimana';
   if (mode === 'dettagli') {
-    const items = days.flatMap((d) => (ev[d] ?? []).map((e) => ({ day: d, time: e.time, title: e.title }))).sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time));
+    const items = days.flatMap((d) => (ev[d] ?? []).filter((e) => inWins(e.time)).map((e) => ({ day: d, time: e.time, title: e.title }))).sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time));
     if (!items.length) return null;
     return { title: `I miei impegni ${rangeTitle}`, range, mode, items };
   }
@@ -38,10 +41,10 @@ export function buildAgenda(range: AgendaRange, mode: AgendaMode = 'dettagli', o
   const busy: NonNullable<AgendaShare['busy']> = [], free: NonNullable<AgendaShare['free']> = [];
   days.forEach((d) => {
     const events = ev[d] ?? [];
-    busyBlocks(events).forEach((b) => busy.push({ day: d, from: fmtMin(b.from), to: fmtMin(b.to) }));
-    freeSlots(events, ws, we, minSlot, 60, d === addDays(0) ? nowMin : 0).forEach((f) => free.push({ day: d, from: fmtMin(f.from), to: fmtMin(f.to) }));
+    busyBlocks(events).filter((b) => !opts.windows?.length || opts.windows.some((w) => fmtMin(b.from) < w.to && fmtMin(b.to) > w.from)).forEach((b) => busy.push({ day: d, from: fmtMin(b.from), to: fmtMin(b.to) }));
+    wins.forEach((w) => freeSlots(events, w.from, w.to, minSlot, 60, d === addDays(0) ? nowMin : 0).forEach((f) => free.push({ day: d, from: fmtMin(f.from), to: fmtMin(f.to) })));
   });
-  return { title: mode === 'liberi' ? `Quando sono libero ${rangeTitle}` : `La mia disponibilità ${rangeTitle}`, range, mode, items: [], busy: mode === 'occupato' ? busy : undefined, free, hours: { from: ws, to: we, minSlot } };
+  return { title: mode === 'liberi' ? `Quando sono libero ${rangeTitle}` : `La mia disponibilità ${rangeTitle}`, range, mode, items: [], busy: mode === 'occupato' ? busy : undefined, free, hours: { from: wins[0].from, to: wins[wins.length - 1].to, minSlot } };
 }
 
 export function buildTasks(ids: string[]): TaskShare | null {

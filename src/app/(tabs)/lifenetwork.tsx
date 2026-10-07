@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Inbox } from '@/components/Inbox';
 import { JobsHub } from '@/components/JobsHub';
-import { IdeaCard, LpTag, MediaBlock, PostCard, Badge, openPurchaseConfirm, openSheet, UserAvatar } from '@/components/network';
+import { SeminarCard, ServiceCard } from '@/components/market';
+import { IdeaCard, LpTag, PostCard, openSheet, UserAvatar } from '@/components/network';
 import { Body, Btn, Card, Empty, H, Input, Page, Row, Seg, TabRow, Item, Chev } from '@/components/ui';
 import { useT } from '@/lib/i18n';
 import { formatCHF } from '@/lib/format';
 import { go } from '@/lib/nav';
-import { peoplePool, unreadMessages } from '@/lib/network';
+import { peoplePool } from '@/lib/network';
+import { describeCommunity } from '@/data/marketSeed';
 import { useApp } from '@/store/app';
 import { topicList, useNet } from '@/store/network';
 import { toast } from '@/store/toast';
@@ -21,10 +22,11 @@ export default function LifeNetwork() {
   const [people, setPeople] = useState('');
   const [commQ, setCommQ] = useState(''); const [commTopic, setCommTopic] = useState('Tutti');
   const [ideaQ, setIdeaQ] = useState('');
-  const unread = unreadMessages(me);
 
-  const tabs = ['Home', 'Messaggi', 'Lavoro', 'Community', 'Idee', 'Marketplace'];
-  const tabLabel = (k: string) => ({ Home: tr('lnTabHome'), Messaggi: tr('lnTabMessages'), Community: tr('lnTabCommunity'), Idee: tr('lnTabIdeas'), Marketplace: tr('lnTabMarketplace') }[k] ?? k) + (k === 'Messaggi' && unread ? ` (${unread})` : '');
+  // i messaggi si aprono dall'icona in alto: qui restano solo queste schede
+  const tabs = ['Home', 'Lavoro', 'Community', 'Idee', 'Marketplace'];
+  const tabLabel = (k: string) => ({ Home: tr('lnTabHome'), Community: tr('lnTabCommunity'), Idee: tr('lnTabIdeas'), Marketplace: tr('lnTabMarketplace') }[k] ?? k);
+  const curTab = tabs.includes(prefs.lnTab) ? prefs.lnTab : 'Home';
 
   if (!net.identity.verified) {
     return (
@@ -55,11 +57,9 @@ export default function LifeNetwork() {
 
   const renderFeedItem = (it: any, i: number) => {
     if (it.type === 'standalone') return <PostCard key={'s' + it.post.id} post={it.post} likeKey={'standalone:' + it.post.id} />;
-    if (it.type === 'community') return <PostCard key={`c${it.cid}${it.pi}`} post={{ author: it.author, text: it.text, media: it.media, tag: it.community, likes: it.likes }} likeKey={`community:${it.cid}:${it.pi}`} />;
+    if (it.type === 'community') return <PostCard key={`c${it.cid}${it.pi}`} post={{ author: it.author, text: it.text, media: it.media, tag: it.community, likes: it.likes, ts: it.ts, uri: it.uri }} likeKey={`community:${it.cid}:${it.pi}`} />;
     if (it.type === 'idea') return <IdeaCard key={'i' + it.idea.id} idea={it.idea} />;
-    if (it.type === 'seminar') return (
-      <Card key={'m' + it.id}><Badge label="Sponsorizzato" color="#c9b6ff" /><H>{it.title}</H><Body small muted>di {it.host} · {it.price ? it.price + ' LP' : 'Gratuito'}</Body></Card>
-    );
+    if (it.type === 'seminar') return <SeminarCard key={'m' + it.id} s={it} />;
     return <Card key={'q' + i}><Body small style={{ fontStyle: 'italic' }}>"{it.text}"</Body><Body small muted style={{ marginTop: 6 }}>— {it.author}</Body></Card>;
   };
 
@@ -83,9 +83,9 @@ export default function LifeNetwork() {
           <Item key={n} last={i === matches.length - 1} onPress={() => go('userProfile', { name: n })}><Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}><UserAvatar name={n} size={28} /><Body>{n}</Body></Row><Chev /></Row></Item>
         ))}</Card>
       )}
-      <TabRow options={tabs.map(tabLabel)} value={tabLabel(prefs.lnTab)} onChange={(v) => setPref('lnTab', tabs.find((x) => tabLabel(x) === v) ?? 'Home')} />
+      <TabRow options={tabs.map(tabLabel)} value={tabLabel(curTab)} onChange={(v) => setPref('lnTab', tabs.find((x) => tabLabel(x) === v) ?? 'Home')} />
 
-      {prefs.lnTab === 'Home' && (
+      {curTab === 'Home' && (
         <>
           <Row style={{ marginBottom: 8 }}>
             <View style={{ flex: 1 }}><TabRow options={[tr('lnFilterForYou'), tr('lnFilterFollowing')]} value={prefs.homeFilter === 'Seguiti' ? tr('lnFilterFollowing') : tr('lnFilterForYou')} onChange={(v) => setPref('homeFilter', v === tr('lnFilterFollowing') ? 'Seguiti' : 'Per te')} /></View>
@@ -95,11 +95,9 @@ export default function LifeNetwork() {
         </>
       )}
 
-      {prefs.lnTab === 'Messaggi' && <Inbox />}
+            {curTab === 'Lavoro' && <JobsHub />}
 
-      {prefs.lnTab === 'Lavoro' && <JobsHub />}
-
-      {prefs.lnTab === 'Community' && (
+      {curTab === 'Community' && (
         <>
           <Input placeholder="Cerca community…" value={commQ} onChangeText={setCommQ} />
           <TabRow options={['Tutti', ...topicList]} value={commTopic} onChange={setCommTopic} />
@@ -109,12 +107,13 @@ export default function LifeNetwork() {
             if (!list.length) return <Card><Empty text="Nessuna community trovata." /></Card>;
             return list.map((c) => {
               const joined = c.members.includes(me);
+              const d = describeCommunity(c);
               return (
                 <View key={c.id}>
-                  <Card>
+                  <Card onPress={() => go('communityProfile', { id: String(c.id) })}>
                     <Row>
                       <View style={{ flex: 1 }}>
-                        <Body bold onPress={() => go('communityProfile', { id: String(c.id) })}>{c.name}</Body>
+                        <Body bold>{c.name}</Body>
                         <Body small muted>{c.topic} · {c.members.length} membri · {c.openPosting ? 'tutti possono pubblicare' : 'solo il proprietario pubblica'}</Body>
                       </View>
                       <Btn small ghost={joined} title={joined ? 'Iscritto' : 'Iscriviti'} onPress={() => {
@@ -122,9 +121,13 @@ export default function LifeNetwork() {
                         toast(joined ? 'Hai lasciato ' + c.name : 'Iscritto a ' + c.name);
                       }} />
                     </Row>
-                    {joined && <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} title="Pubblica qui" onPress={() => { if (c.owner !== me && !c.openPosting) { toast('Solo il proprietario può pubblicare qui'); return; } openSheet('postToCommunity', { id: c.id }); }} />}
+                    <Body small muted numberOfLines={3} style={{ marginTop: 8 }}>{d.desc}</Body>
+                    <Row style={{ marginTop: 8 }}>
+                      {joined ? <Btn small ghost title="Pubblica qui" onPress={() => { if (c.owner !== me && !c.openPosting) { toast('Solo il proprietario può pubblicare qui'); return; } openSheet('postToCommunity', { id: c.id }); }} /> : <View />}
+                      <Row gap={4}><Body small muted>Apri la community</Body><Chev /></Row>
+                    </Row>
                   </Card>
-                  {c.posts.slice(0, 2).map((p, pi) => <PostCard key={pi} post={{ author: p.author, text: p.text, media: p.media, tag: c.name, likes: p.likes }} likeKey={`community:${c.id}:${pi}`} />)}
+                  {c.posts.slice(0, 2).map((p, pi) => <PostCard key={pi} post={{ author: p.author, text: p.text, media: p.media, tag: c.name, likes: p.likes, ts: p.ts, uri: p.uri }} likeKey={`community:${c.id}:${pi}`} />)}
                 </View>
               );
             });
@@ -132,7 +135,7 @@ export default function LifeNetwork() {
         </>
       )}
 
-      {prefs.lnTab === 'Idee' && (
+      {curTab === 'Idee' && (
         <>
           <Body small muted style={{ marginBottom: 10 }}>Ogni idea è legata a un titolare, come nel registro di commercio. Se ne pubblichi una simile a una già esistente, viene segnalata come correlata a quella creata prima.</Body>
           <Btn small ghost style={{ marginBottom: 12 }} title="+ Crea la tua idea" onPress={() => openSheet('newIdea')} />
@@ -144,42 +147,21 @@ export default function LifeNetwork() {
         </>
       )}
 
-      {prefs.lnTab === 'Marketplace' && (
+      {curTab === 'Marketplace' && (
         <>
           <Seg options={['Seminari', 'Servizi']} value={prefs.marketFilter} onChange={(v) => setPref('marketFilter', v)} />
           {prefs.marketFilter === 'Servizi' ? (
             <>
-              <Body small muted style={{ marginBottom: 10 }}>Psicologi, personal trainer, insegnanti di lingua e altri professionisti: prenoti uno slot fisso pagando il prezzo fisso in LifePoints, accessibile a chiunque.</Body>
+              <Body small muted style={{ marginBottom: 10 }}>Psicologi, personal trainer, insegnanti di lingua e altri professionisti. Apri un servizio per leggere cosa offre e scegliere una data: prenoti senza pagare e paghi in LifePoints solo dopo la sessione, quando confermi di aver partecipato.</Body>
               {net.providers.length === 0 && <Card><Empty text="Ancora nessun professionista in elenco." /></Card>}
-              {net.providers.map((p, i) => (
-                <Card key={p.name}>
-                  <Row><View style={{ flex: 1 }}><Body bold>{p.name}</Body><Body small muted>{p.role} · {p.rating}/5 · {p.slots.length} slot liberi</Body></View><Badge label={p.tag} color="#8fa4ff" /></Row>
-                  <MediaBlock media={p.media} seed={p.name + p.role} />
-                  <Row style={{ marginTop: 10 }}>
-                    <Row gap={2}><Body bold>{p.price}</Body><LpTag size={13} /><Body bold> / sessione</Body></Row>
-                    <Btn small disabled={!p.slots.length} title="Prenota" onPress={() => openPurchaseConfirm('Prenota · ' + p.name, [['Professionista', p.name], ['Ruolo', p.role], ['Importo', p.price + ' LP']], () => {
-                      const st = useNet.getState();
-                      if (!st.spend(p.price, 'Sessione con ' + p.name, p.name)) { toast('LifePoints insufficienti'); return; }
-                      toast(`Pagamento confermato: -${p.price} LP`);
-                      openSheet('booking', { idx: i });
-                    })} />
-                  </Row>
-                </Card>
-              ))}
+              {net.providers.map((p) => <ServiceCard key={p.name} p={p} />)}
             </>
           ) : (
             <>
-              <Body small muted style={{ marginBottom: 10 }}>Seminari gratuiti o a pagamento. Promuoverli in home costa LifePoints.</Body>
+              <Body small muted style={{ marginBottom: 10 }}>Seminari gratuiti o a pagamento. Apri un seminario per vedere data, contenuti e relatore: ti iscrivi senza pagare e i LifePoints si addebitano solo dopo, quando confermi di aver partecipato. Promuoverli in home costa LifePoints.</Body>
               <Btn small ghost style={{ marginBottom: 12 }} title="+ Crea seminario" onPress={() => openSheet('newSeminar')} />
               {net.seminars.length === 0 && <Card><Empty text="Nessun seminario ancora." /></Card>}
-              {net.seminars.map((s) => (
-                <Card key={s.id}>
-                  {s.promoted && <Badge label="Sponsorizzato" color="#c9b6ff" />}
-                  <H>{s.title}</H>
-                  <Body small muted style={{ marginBottom: 8 }}>di {s.host} · {s.price ? s.price + ' LP' : 'Gratuito'}</Body>
-                  {!s.promoted && <Btn small ghost title="Promuovi con LifePoints" onPress={() => openSheet('promoteSeminar', { id: s.id })} />}
-                </Card>
-              ))}
+              {[...net.seminars].sort((a, b) => ((a.startsAt ?? 9e15) < Date.now() ? 1e16 : 0) + (a.startsAt ?? 9e15) - (((b.startsAt ?? 9e15) < Date.now() ? 1e16 : 0) + (b.startsAt ?? 9e15))).map((s) => <SeminarCard key={s.id} s={s} />)}
             </>
           )}
         </>

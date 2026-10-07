@@ -1,7 +1,8 @@
 import { Pressable, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
-import { addSlotToPlan, dayLabelOf, importAgenda, importTasks, myConflicts } from '@/lib/chatShare';
+import { addToPlanWithCheck } from '@/lib/planBooking';
+import { dayLabelOf, importAgenda, importTasks, myConflicts } from '@/lib/chatShare';
 import { Icon } from '@/lib/icons';
 import { useChat, type ChatMessage } from '@/store/chat';
 import { useLife } from '@/store/life';
@@ -174,13 +175,13 @@ export function SlotsCard({ m, me, chatId }: { m: ChatMessage; me: string; chatI
             </View>
             {conf.length > 0 && <Text style={{ color: t.warn, fontSize: 11, marginTop: 3 }}>Per te: hai già {conf[0]}</Text>}
             {mine && !sl.confirmed && o.votes.length === best && best > 0 && (
-              <Pressable onPress={() => useChat.getState().confirmSlot(chatId, m.id, o.id, me)} style={{ marginTop: 6, alignSelf: 'flex-start', backgroundColor: t.accent, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}><Text style={{ color: t.onText, fontWeight: '800', fontSize: 12 }}>Conferma questo orario</Text></Pressable>
+              <Pressable onPress={() => addToPlanWithCheck({ day: o.day, time: o.time, durationMin: sl.durationMin, title: sl.title, ref: `slot:${m.id}`, verb: 'Conferma' }, () => { useChat.getState().confirmSlot(chatId, m.id, o.id, me); useChat.getState().markImported(chatId, m.id, me); toast('Orario confermato e aggiunto al tuo piano'); })} style={{ marginTop: 6, alignSelf: 'flex-start', backgroundColor: t.accent, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}><Text style={{ color: t.onText, fontWeight: '800', fontSize: 12 }}>Conferma questo orario</Text></Pressable>
             )}
           </Pressable>
         );
       })}
       {mine && !sl.confirmed && best === 0 && <Text style={{ color: c.meta, fontSize: 11 }}>Quando qualcuno vota potrai confermare l’orario.</Text>}
-      {sl.confirmed && <Action icon="plus" label={imported ? 'Aggiunto al tuo piano' : 'Aggiungi al mio piano'} done={imported} onPress={() => { addSlotToPlan(sl, sl.confirmed!); useChat.getState().markImported(chatId, m.id, me); toast('Aggiunto al tuo piano'); }} />}
+      {sl.confirmed && <Action icon="plus" label={imported ? 'Aggiunto al tuo piano' : 'Aggiungi al mio piano'} done={imported} onPress={() => { const o = sl.options.find((x) => x.id === sl.confirmed); if (!o) return; addToPlanWithCheck({ day: o.day, time: o.time, durationMin: sl.durationMin, title: sl.title, ref: `slot:${m.id}` }, () => { useChat.getState().markImported(chatId, m.id, me); toast('Aggiunto al tuo piano'); }); }} />}
     </View>
   );
 }

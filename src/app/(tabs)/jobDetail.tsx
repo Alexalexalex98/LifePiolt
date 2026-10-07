@@ -3,8 +3,10 @@ import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { SkillRow, scoreTone } from '@/components/jobs';
+import { PracticalCard, runLabel } from '@/components/PracticalCard';
 import { Avatar, Body, Btn, Card, Empty, Page, Pill, Row, Sheet } from '@/components/ui';
 import { skillLabel } from '@/data/skillBank';
+import { fmtLimit } from '@/lib/hiring';
 import { useTheme } from '@/hooks/use-theme';
 import { fitOfApplication, fitOfPerson, statusLabel } from '@/lib/jobFit';
 import { go, goBack } from '@/lib/nav';
@@ -19,6 +21,7 @@ export default function JobDetail() {
   const job = useJobs((s) => s.jobs.find((j) => j.id === id));
   const apps = useJobs((s) => s.applications);
   useJobs((s) => s.practice);
+  const runs = useJobs((s) => s.practicals) ?? [];
   const [filter, setFilter] = useState('Tutti');
   const [del, setDel] = useState(false);
 
@@ -44,7 +47,7 @@ export default function JobDetail() {
         {job.reqs.map((r) => mine
           ? <Row key={r.skill} style={{ marginBottom: 8 }}><Body small bold style={{ flex: 1 }}>{skillLabel(r.skill)}</Body><Body small muted>importanza {r.weight}/5 · minimo {r.min}</Body></Row>
           : <SkillRow key={r.skill} skill={r.skill} value={myProf.skills[r.skill]?.score ?? null} min={r.min} note={`importanza ${r.weight}/5`} />)}
-        <Body small muted>Il test dura circa {job.timeLimitMin} minuti ({nQ} domande). {job.blind ? 'Candidature alla cieca: chi assume non vede nome né foto finché non ti invita.' : ''}</Body>
+        <Body small muted>Il test dura circa {job.timeLimitMin} minuti ({nQ} domande).{job.practical ? ` Poi c’è una prova pratica con file (${fmtLimit(job.practical.limitMin)}, il tempo parte quando scarichi il test).` : ''} {job.blind ? 'Candidature alla cieca: chi assume non vede nome né foto finché non ti invita.' : ''}</Body>
       </Card>
 
       {!mine && (
@@ -67,8 +70,11 @@ export default function JobDetail() {
         </>
       )}
 
+      {!mine && job.practical && <PracticalCard job={job} me={me} hasApp={!!myApp} />}
+
       {mine && (
         <>
+          {job.practical && <Card><Body bold>Prova pratica: {job.practical.title}</Body><Body small muted style={{ marginTop: 2 }}>{job.practical.files.length} {job.practical.files.length === 1 ? 'file' : 'file'} · tempo {fmtLimit(job.practical.limitMin)} dal download · valuta {skillLabel(job.practical.skill)}</Body></Card>}
           <Row style={{ marginTop: 10, marginBottom: 6 }}><Body bold>{ranked.length} {ranked.length === 1 ? 'candidato' : 'candidati'}</Body></Row>
           <Row style={{ flexWrap: 'wrap', justifyContent: 'flex-start', marginBottom: 6 }} gap={6}>{['Tutti', 'Preferiti', 'Da valutare'].map((f) => <Pill key={f} label={f} on={filter === f} onPress={() => setFilter(f)} />)}</Row>
           {shown.length === 0 ? <Card><Empty text="Nessun candidato per ora." /></Card> : shown.map(({ a, n, fit }) => {
@@ -85,6 +91,7 @@ export default function JobDetail() {
                   </Row>
                   <View style={{ alignItems: 'flex-end' }}><Text style={{ color: scoreTone(fit.overall, t), fontSize: 24, fontWeight: '800' }}>{fit.overall}</Text><Body small muted>adeguatezza</Body></View>
                 </Row>
+                {(() => { const rl = runLabel(job, runs.find((x) => x.jobId === job.id && x.candidate === a.candidate)); return rl ? <Body small color={rl.tone === 'ok' ? t.positive : rl.tone === 'warn' ? t.warn : rl.tone === 'bad' ? t.danger : t.muted} style={{ marginTop: 6 }}>{rl.text}</Body> : null; })()}
                 <Row style={{ flexWrap: 'wrap', justifyContent: 'flex-start', marginTop: 8 }} gap={6}>
                   {job.reqs.map((r) => { const v = a.result.skillScores[r.skill] ?? null; return <Text key={r.skill} style={{ color: v != null && v >= r.min ? t.positive : t.danger, fontSize: 11, backgroundColor: t.item, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>{skillLabel(r.skill).split(' ')[0]} {v ?? '—'}</Text>; })}
                   {fit.trust != null && <Text style={{ color: scoreTone(fit.trust, t), fontSize: 11, backgroundColor: t.item, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>Affidabilità {fit.trust}</Text>}

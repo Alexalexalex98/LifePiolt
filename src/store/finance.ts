@@ -9,7 +9,14 @@ export type FinCategory = { n: string; p: number; c: string };
 export type Insight = { id: number; title: string; detail: string; saving: string; dismissed: boolean };
 export type Bill = { id: string; name: string; amount: number; freq: 'monthly' | 'yearly' };
 export type Budget = { salary: number; saveToEmergency: boolean; alloc: Record<string, number> };
-export type TaxDecl = { married: boolean; children: boolean; banks: string[]; docs: Record<string, boolean> };
+export type TaxDocFile = { name: string; uri: string; size?: number; mime?: string; checkedAt: string; status: 'ok' | 'dubbio' };
+/** docs: un valore booleano (dati vecchi) non vale come caricato: va ricaricato il file. */
+export type TaxDecl = { married: boolean; children: boolean; banks: string[]; docs: Record<string, TaxDocFile> };
+/** Restituisce il file confermato per un documento, ignorando i vecchi valori booleani. */
+export function taxDocOf(docs: Record<string, unknown>, k: string): TaxDocFile | undefined {
+  const v = docs?.[k] as Partial<TaxDocFile> | boolean | undefined;
+  return v && typeof v === 'object' && typeof v.uri === 'string' && typeof v.name === 'string' ? (v as TaxDocFile) : undefined;
+}
 export type Stock = {
   symbol: string; name: string; history: number[]; price: number; changeAbs: number; changePct: number; open: number;
   high52: number; low52: number; vol: string; mcap: string; pe: string; shares: number; avgCost: number;
@@ -90,7 +97,7 @@ type FinState = {
   addBill: (b: Omit<Bill, 'id'>) => void;
   delBill: (id: string) => void;
   setTax: (p: Partial<TaxDecl>) => void;
-  toggleTaxDoc: (k: string, v: boolean) => void;
+  setTaxDoc: (k: string, f: TaxDocFile | null) => void;
   rollMonth: () => void;
 
   addStock: (symbol: string, name: string) => void;
@@ -136,7 +143,11 @@ export const useFin = create<FinState>()(
     addBill: (b) => set((s) => ({ bills: [...s.bills, { id: uid(), ...b }] })),
     delBill: (id) => set((s) => ({ bills: s.bills.filter((b) => b.id !== id) })),
     setTax: (p) => set((s) => ({ tax: { ...s.tax, ...p } })),
-    toggleTaxDoc: (k, v) => set((s) => ({ tax: { ...s.tax, docs: { ...s.tax.docs, [k]: v } } })),
+    setTaxDoc: (k, f) => set((s) => {
+      const docs = { ...s.tax.docs };
+      if (f) docs[k] = f; else delete docs[k];
+      return { tax: { ...s.tax, docs } };
+    }),
 
     /** Se è iniziato un nuovo mese, blocca quello precedente e ne apre uno nuovo. */
     rollMonth: () => {

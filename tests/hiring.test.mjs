@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gradeAnswer, gradeTest, computeTrust, computeFit, shrunkRating, pickQuestions } from '../src/lib/hiring.ts';
-import { bank } from '../src/data/skillBank.ts';
+import { gradeAnswer, gradeTest, computeTrust, computeFit, shrunkRating, pickQuestions, hasAnswer, deadlineOf, timeLeftMs, isLate, fmtDuration, fmtLimit } from '../src/lib/hiring.ts';
+import { bank, skillLabel, customSkill, isCustomSkill } from '../src/data/skillBank.ts';
+import { parseTable, tableToText, niceMax } from '../src/lib/dataTable.ts';
 
 const q = (id) => bank.find((x) => x.id === id);
 
@@ -82,4 +83,74 @@ test('selezione domande ripetibile e senza duplicati', () => {
   const a = pickQuestions(bank, ['vendite', 'analisi'], 3, 7).map((x) => x.id);
   const b = pickQuestions(bank, ['vendite', 'analisi'], 3, 7).map((x) => x.id);
   assert.deepEqual(a, b); assert.equal(new Set(a).size, 6);
+});
+
+test('domanda con risposta file: in attesa di valutazione, poi voto della persona', () => {
+  const f = { id: 'f1', skill: 'analisi', kind: 'file', prompt: 'Carica il foglio', w: 2 };
+  const withFile = { qid: 'f1', value: '', ms: 5000, files: [{ uri: 'x', name: 'a.xlsx' }] };
+  assert.ok(hasAnswer(withFile)); assert.ok(!hasAnswer({ qid: 'f1', value: '', ms: 1 }));
+  assert.equal(gradeAnswer(f, withFile), null);
+  assert.equal(gradeAnswer(f, withFile, 80), 80);
+  const r = gradeTest([f, q('a1')], [withFile, { qid: 'a1', value: 15, ms: 4000 }]);
+  assert.deepEqual(r.pending, ['f1']); assert.equal(r.answered, 2); assert.equal(r.skillScores.analisi, 100); // provvisorio
+  const r2 = gradeTest([f, q('a1')], [withFile, { qid: 'a1', value: 15, ms: 4000 }], { f1: 40 });
+  assert.equal(r2.skillScores.analisi, 60); // (40*2 + 100*1) / 3 = 60
+  assert.deepEqual(r2.pending, []);
+  // senza file: conta come domanda senza risposta (0), non in attesa
+  const r3 = gradeTest([f], [{ qid: 'f1', value: '', ms: 1 }]);
+  assert.deepEqual(r3.pending, []); assert.equal(r3.skillScores.analisi, 0);
+});
+
+test('domande matematiche: tolleranza relativa o assoluta, unità ignorata', () => {
+  const rel = { id: 'm1', skill: 'problem', kind: 'number', prompt: '', answer: 200, tol: 0.05, unit: 'CHF' };
+  assert.equal(gradeAnswer(rel, { qid: 'm1', value: '208 CHF', ms: 1 }), 100);
+  assert.equal(gradeAnswer(rel, { qid: 'm1', value: '211', ms: 1 }), 0);
+  const abs = { id: 'm2', skill: 'problem', kind: 'number', prompt: '', answer: 499.8, tolAbs: 0.5 };
+  assert.equal(gradeAnswer(abs, { qid: 'm2', value: '499,5', ms: 1 }), 100);
+  assert.equal(gradeAnswer(abs, { qid: 'm2', value: '500,5', ms: 1 }), 0);
+  const exact = { id: 'm3', skill: 'problem', kind: 'number', prompt: '', answer: 62, tolAbs: 0 };
+  assert.equal(gradeAnswer(exact, { qid: 'm3', value: 62, ms: 1 }), 100);
+  assert.equal(gradeAnswer(exact, { qid: 'm3', value: 61, ms: 1 }), 0);
+});
+
+test('peso per domanda e competenze personalizzate', () => {
+  const sk = customSkill('Excel avanzato');
+  assert.equal(sk, 'custom:Excel avanzato'); assert.ok(isCustomSkill(sk)); assert.ok(!isCustomSkill('vendite'));
+  assert.equal(skillLabel(sk), 'Excel avanzato'); assert.equal(skillLabel('custom:'), 'Personalizzata'); assert.equal(skillLabel('vendite'), 'Vendite e negoziazione');
+  const a = { id: 'w1', skill: sk, kind: 'number', prompt: '', answer: 1, w: 3 };
+  const b = { id: 'w2', skill: sk, kind: 'number', prompt: '', answer: 1 };
+  const r = gradeTest([a, b], [{ qid: 'w1', value: 1, ms: 9000 }, { qid: 'w2', value: 5, ms: 9000 }]);
+  assert.equal(r.skillScores[sk], 75); // (100*3 + 0*1) / 4
+  const fit = computeFit([{ skill: sk, weight: 2, min: 70 }], r.skillScores, null);
+  assert.equal(fit.skillFit, 75); assert.deepEqual(fit.unmet, []);
+  // senza peso il comportamento resta quello di prima (media semplice)
+  assert.equal(gradeTest([{ ...a, w: undefined }, b], [{ qid: 'w1', value: 1, ms: 9000 }, { qid: 'w2', value: 5, ms: 9000 }]).skillScores[sk], 50);
+});
+
+test('tabelle dati: CSV con punto e virgola, virgola, tabulazione e decimali', () => {
+  const a = parseTable(';Gen;Feb\nNord;1,5;2\nSud;3;4,25');
+  assert.ok(a.ok); assert.deepEqual(a.table.labels, ['Nord', 'Sud']);
+  assert.deepEqual(a.table.series, [{ name: 'Gen', values: [1.5, 3] }, { name: 'Feb', values: [2, 4.25] }]);
+  const b = parseTable('Mese,Incassi\nGen,10.5\nFeb,12');
+  assert.ok(b.ok); assert.deepEqual(b.table.series[0].values, [10.5, 12]);
+  const c = parseTable('x\tA\tB\nr1\t1\t2');
+  assert.ok(c.ok); assert.equal(c.table.series.length, 2);
+  const d = parseTable('Gen,5\nFeb,7'); // senza intestazione
+  assert.ok(d.ok); assert.deepEqual(d.table.labels, ['Gen', 'Feb']); assert.equal(d.table.series[0].name, 'Serie 1');
+  assert.ok(!parseTable('solo una riga').ok);
+  const bad = parseTable('A,B\nx,abc\ny,2'); // intestazione + valore non numerico
+  assert.ok(!bad.ok && /riga 2/.test(bad.error));
+  const round = parseTable(tableToText(a.table)); assert.ok(round.ok); assert.deepEqual(round.table, a.table);
+  assert.equal(niceMax(61), 100); assert.equal(niceMax(4.2), 5); assert.equal(niceMax(0), 1);
+});
+
+test('prova pratica: il tempo parte dal download, consegna in ritardo segnalata', () => {
+  const t0 = 1_000_000_000_000;
+  assert.equal(deadlineOf(t0, 90), t0 + 90 * 60000);
+  assert.equal(timeLeftMs(t0, 90, t0 + 30 * 60000), 60 * 60000);
+  assert.ok(timeLeftMs(t0, 90, t0 + 100 * 60000) < 0);
+  assert.equal(isLate(t0, 90, t0 + 90 * 60000), false); // esattamente alla scadenza: in tempo
+  assert.equal(isLate(t0, 90, t0 + 90 * 60000 + 1), true);
+  assert.equal(fmtDuration(3725000), '1:02:05'); assert.equal(fmtDuration(65000), '1:05'); assert.equal(fmtDuration(-65000), '1:05');
+  assert.equal(fmtLimit(45), '45 min'); assert.equal(fmtLimit(90), '1 h 30 min'); assert.equal(fmtLimit(120), '2 h');
 });
