@@ -8,6 +8,7 @@ import { formatCHF } from '@/lib/format';
 import { go } from '@/lib/nav';
 import { badgesFor, bioFor, followerCountFor, ratingFor, receivedLPFor } from '@/lib/network';
 import { useApp } from '@/store/app';
+import { useChat } from '@/store/chat';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 
@@ -66,7 +67,7 @@ export default function UserProfile() {
           ) : (
             <>
               <Btn small ghost={fol} title={fol ? 'Già seguito' : 'Segui'} onPress={() => { const f = net.toggleFollow(name); toast(f ? 'Ora segui ' + name : 'Non segui più ' + name); }} />
-              <Btn small ghost title="Messaggio" onPress={() => go('conversationPage', { type: 'dm', key: name })} />
+              <Btn small ghost title="Messaggio" onPress={() => go('conversationPage', { id: useChat.getState().ensureDm(name, me) })} />
               <Btn small ghost title="Vota" onPress={() => openSheet('vote', { name })} />
               <Btn small ghost title="Biglietto" onPress={() => go('businessCard', { name })} />
               {net.clubs[name] && <Btn small ghost title={`LifeClub · ${net.clubs[name].fee} LP`} onPress={() => joinClub(name)} />}

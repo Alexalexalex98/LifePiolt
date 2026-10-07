@@ -1,4 +1,5 @@
 import { hashStr, mulberry32, shortDate } from '@/lib/format';
+import { totalUnread, useChat } from '@/store/chat';
 import { useNet, type Idea } from '@/store/network';
 
 /* ---------- punteggio idea ---------- */
@@ -102,23 +103,11 @@ export function isWithinDays(dateStr: string, days: number): boolean {
   return diff >= 0 && diff < days;
 }
 
-export function unreadMessages(me: string): number {
-  const s = useNet.getState();
-  let n = 0;
-  Object.entries(s.conversations).forEach(([name, msgs]) => {
-    const last = msgs[msgs.length - 1];
-    if (last && last.from !== me && s.convSeen[name] !== msgs.length) n++;
-  });
-  s.groups.forEach((g) => {
-    const last = g.msgs[g.msgs.length - 1];
-    if (last && last.from !== me && s.groupSeen[g.id] !== g.msgs.length) n++;
-  });
-  return n;
-}
+export const unreadMessages = (me: string): number => totalUnread(me);
 
 export const peoplePool = (me: string): string[] => {
   const s = useNet.getState();
-  return [...new Set([...s.suggested, ...s.following, ...s.posts.map((p) => p.author), ...s.communities.flatMap((c) => c.members), ...Object.keys(s.conversations)])].filter((n) => n !== me);
+  return [...new Set([...s.suggested, ...s.following, ...s.posts.map((p) => p.author), ...s.communities.flatMap((c) => c.members), ...Object.values(useChat.getState().chats).filter((c) => c.type === 'dm').map((c) => c.name)])].filter((n) => n !== me);
 };
 
 export const fxRates: Record<string, number> = { CHF: 1, EUR: 0.96, USD: 1.05, GBP: 0.83 };

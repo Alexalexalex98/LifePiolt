@@ -46,6 +46,31 @@
           "NSHealthUpdateUsageDescription": false,
           "background": false
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "LifePilot usa il microfono per registrare i messaggi vocali nelle chat."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LifePilot accede alle foto per inviarle nelle chat.",
+          "cameraPermission": "LifePilot usa la fotocamera per scattare foto e video da inviare nelle chat."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "LifePilot usa la posizione solo quando scegli di condividerla in una chat."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "LifePilot accede ai contatti solo quando scegli di condividerne uno in una chat."
+        }
       ]
     ],
     "experiments": {
