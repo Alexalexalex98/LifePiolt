@@ -225,6 +225,7 @@ export default function Settings() {
         {Object.keys(app.privacy).map((k) => <Toggle key={k} label={tr({ 'AI Memory': 'stPrivAiMemory', 'Dati salute': 'stPrivHealth', 'Dati finanziari': 'stPrivFinance', Posizione: 'stPrivLocation' }[k] ?? k)} value={app.privacy[k]} onChange={(v) => { set({ privacy: { ...app.privacy, [k]: v } }); toast(`${k} ${v ? 'collegato' : 'disconnesso'}`); }} />)}
         <View style={{ gap: 8, marginTop: 10 }}>
           <Btn small ghost title="Privacy e permessi" onPress={() => go('privacy')} />
+          <Btn small ghost title="Segnalazioni e utenti bloccati" onPress={() => go('reports')} />
           <Btn small ghost title={tr('stExportBtn')} onPress={exportData} />
           <Btn small ghost danger title="Elimina tutti i miei dati" onPress={() => setDel(1)} />
         </View>
