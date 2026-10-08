@@ -130,9 +130,9 @@ const monthSpecs = (k: number): Spec[] => {
     [[11, 'Abbigliamento · Scarpe running', 139], [12, 'Abbigliamento · Giacca', 99.9], [19, 'Viaggio estero · Treno e hotel Milano', 236], [26, 'Altro · Visita dentista', 120]],
   ];
   return [
-    [1, 'Stipendio', 6500], [2, 'Affitto', 1450], [3, 'Cassa malati', 385], [3, 'Abbonamenti · Palestra', 69],
-    [4, 'Alimentari/Casa · Coop', spesa[0]], [5, 'Altro · Imposte accantonate', 380], [5, 'Fondo emergenza', 650],
-    [6, 'Abbonamenti · Netflix', 15.9], [6, 'Abbonamenti · Spotify', 12.95], [7, 'Abbonamenti · Abbonamento Arcobaleno', 85],
+    [1, 'Stipendio', 6500], [2, 'Affitto', 1400], [3, 'Cassa malati', 385], [3, 'Abbonamenti · Palestra', 69],
+    [4, 'Alimentari/Casa · Coop', spesa[0]], [5, 'Altro · Imposte accantonate', 420], [5, 'Fondo emergenza', 650],
+    [6, 'Abbonamenti · Netflix', 15.9], [6, 'Abbonamenti · Spotify', 12.95], [7, 'Abbonamenti · Abbonamento trasporti', 85],
     [8, 'Alimentari/Casa · Elettricità', el], [9, 'Alimentari/Casa · Internet e telefono', 79],
     [11, 'Alimentari/Casa · Migros', spesa[1]], [12, 'Altro · Ristorante con amici', 62.5], [15, 'Altro · Benzina e parcheggi', 74.2],
     [18, 'Alimentari/Casa · Coop', spesa[2]], [19, 'Altro · Cinema e aperitivi', 84.3], [21, 'Alimentari/Casa · Assicurazione RC e economia domestica', 16],
@@ -165,10 +165,10 @@ export const demoInsights = (): Insight[] => [
   { id: 2, title: 'Shopping impulsivo: Amazon', detail: 'Hai speso più del solito questo mese.', saving: '125 CHF nei prossimi 2 mesi', dismissed: false },
 ];
 export const demoBills = (): Bill[] => [
-  { id: uid(), name: 'Affitto', amount: 1450, freq: 'monthly' }, { id: uid(), name: 'Cassa malati', amount: 385, freq: 'monthly' },
+  { id: uid(), name: 'Affitto', amount: 1400, freq: 'monthly' }, { id: uid(), name: 'Cassa malati', amount: 385, freq: 'monthly' },
   { id: uid(), name: 'Elettricità', amount: 62, freq: 'monthly' }, { id: uid(), name: 'Internet e telefono', amount: 79, freq: 'monthly' },
   { id: uid(), name: 'Assicurazione RC e economia domestica', amount: 190, freq: 'yearly' }, { id: uid(), name: 'Serafe (canone radio-TV)', amount: 335, freq: 'yearly' },
-  { id: uid(), name: 'Abbonamento Arcobaleno', amount: 85, freq: 'monthly' }, { id: uid(), name: 'Abbonamento SBB metà-prezzo', amount: 185, freq: 'yearly' },
+  { id: uid(), name: 'Abbonamento trasporti', amount: 85, freq: 'monthly' }, { id: uid(), name: 'Abbonamento SBB metà-prezzo', amount: 185, freq: 'yearly' },
   { id: uid(), name: 'Palestra', amount: 69, freq: 'monthly' }, { id: uid(), name: 'Netflix', amount: 15.9, freq: 'monthly' }, { id: uid(), name: 'Spotify', amount: 12.95, freq: 'monthly' },
-  { id: uid(), name: 'Imposte accantonate', amount: 380, freq: 'monthly' },
+  { id: uid(), name: 'Imposte accantonate', amount: 420, freq: 'monthly' }, { id: uid(), name: 'Benzina o trasporti', amount: 120, freq: 'monthly' },
 ];

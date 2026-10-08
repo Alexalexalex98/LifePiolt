@@ -58,7 +58,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "node --experimental-strip-types --test tests/analytics.test.mjs tests/hiring.test.mjs tests/availability.test.mjs tests/mood.test.mjs tests/docCheck.test.mjs tests/nlp.test.mjs tests/assistant.test.mjs tests/priority.test.mjs tests/planner.test.mjs"
+    "test": "node --experimental-strip-types --test tests/analytics.test.mjs tests/hiring.test.mjs tests/availability.test.mjs tests/mood.test.mjs tests/docCheck.test.mjs tests/nlp.test.mjs tests/assistant.test.mjs tests/priority.test.mjs tests/moodlog.test.mjs tests/planner.test.mjs"
   },
   "private": true
 }

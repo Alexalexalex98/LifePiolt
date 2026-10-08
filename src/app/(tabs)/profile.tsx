@@ -14,6 +14,8 @@ import { useLife } from '@/store/life';
 import { answerStyles, DEFAULT_STYLE, styleLabel, usePrefs } from '@/store/prefs';
 import { showUndoToast, toast } from '@/store/toast';
 
+const Sec = ({ children }: { children: string }) => <View style={{ marginTop: 16 }}><Tag>{children}</Tag></View>;
+
 type SheetKey = null | 'goals' | 'autos' | 'pref' | 'memory' | 'module';
 
 /** Moduli futuri: cosa sono, a che punto sono e (se esiste già qualcosa) dove aprirli. */
@@ -146,7 +148,7 @@ export default function Profile() {
             )}
           </Item>
         ))}
-        <Tag>Nuovo obiettivo</Tag>
+        <Sec>Nuovo obiettivo</Sec>
         <Input value={newGoal} onChangeText={setNewGoal} placeholder="Es. Correre 10 km" onSubmitEditing={addGoal} />
         <Btn title="Aggiungi obiettivo" icon="plus" onPress={addGoal} />
       </Sheet>
@@ -166,7 +168,7 @@ export default function Profile() {
             )}
           </Item>
         ))}
-        <Tag>Nuova automazione</Tag>
+        <Sec>Nuova automazione</Sec>
         <Input value={newAuto} onChangeText={setNewAuto} placeholder="Es. Riepilogo spese ogni domenica" onSubmitEditing={addAuto} />
         <Btn title="Aggiungi automazione" icon="plus" onPress={addAuto} />
       </Sheet>
@@ -188,25 +190,25 @@ export default function Profile() {
       <Sheet visible={sheet === 'memory'} title="Memoria di LifePilot" onClose={close}>
         <Body small muted>Qui vedi tutto ciò che l'app ricorda di te. Puoi cancellare le singole voci (con annulla) o tutto insieme.</Body>
 
-        <Tag>{`Task aperti · ${openTasks.length}`}</Tag>
+        <Sec>{`Task aperti · ${openTasks.length}`}</Sec>
         {openTasks.length === 0 ? <Body small muted>Nessun task aperto.</Body> : openTasks.map((x) => <Row key={x.id} style={{ paddingVertical: 6 }}><Body small style={{ flex: 1 }} numberOfLines={2}>{x.t}</Body><XBtn label={`Elimina ${x.t}`} onPress={() => delTask(x.id)} /></Row>)}
 
-        <Tag>{`Note · ${notes.length}`}</Tag>
+        <Sec>{`Note · ${notes.length}`}</Sec>
         {notes.length === 0 ? <Body small muted>Nessuna nota.</Body> : notes.map((n) => <Row key={n.id} style={{ paddingVertical: 6 }}><Body small style={{ flex: 1 }} numberOfLines={2}>{n.text}</Body><XBtn label="Elimina nota" onPress={() => delNote(n.id)} /></Row>)}
 
-        <Tag>{`Obiettivi · ${goals.length}`}</Tag>
+        <Sec>{`Obiettivi · ${goals.length}`}</Sec>
         {goals.length === 0 ? <Body small muted>Nessun obiettivo.</Body> : goals.map((g) => <Row key={g.id} style={{ paddingVertical: 6 }}><Body small style={{ flex: 1 }}>{g.t} · {g.p}%</Body><XBtn label={`Elimina ${g.t}`} onPress={() => delGoal(g.id)} /></Row>)}
 
-        <Tag>{`Automazioni · ${automations.length}`}</Tag>
+        <Sec>{`Automazioni · ${automations.length}`}</Sec>
         {automations.length === 0 ? <Body small muted>Nessuna automazione.</Body> : automations.map((a) => <Row key={a.id} style={{ paddingVertical: 6 }}><Body small style={{ flex: 1 }}>{a.t} · {a.on ? 'attiva' : 'disattivata'}</Body><XBtn label={`Elimina ${a.t}`} onPress={() => delAuto(a.id)} /></Row>)}
 
-        <Tag>Preferenze</Tag>
+        <Sec>Preferenze</Sec>
         <Row style={{ paddingVertical: 6 }}>
           <Body small style={{ flex: 1 }}>Stile risposte · {styleLabel(answerStyle)}</Body>
           {answerStyle !== DEFAULT_STYLE ? <XBtn label="Ripristina la preferenza" onPress={() => { resetPrefs(); toast('Preferenza ripristinata'); }} color={t.muted} /> : null}
         </Row>
 
-        <Tag>{`Privacy attive · ${activePriv.length}`}</Tag>
+        <Sec>{`Privacy attive · ${activePriv.length}`}</Sec>
         {activePriv.length === 0 ? <Body small muted>Nessun consenso attivo.</Body> : activePriv.map((k) => (
           <Row key={k} style={{ paddingVertical: 6 }}><Body small style={{ flex: 1 }}>{k}</Body><Btn small ghost title="Disattiva" onPress={() => { set({ privacy: { ...privacy, [k]: false } }); toast(`${k} disattivato`); }} /></Row>
         ))}

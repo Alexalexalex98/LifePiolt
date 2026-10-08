@@ -45,7 +45,9 @@ export default function LifeFinance() {
   const endsChrono = f.months.slice().reverse().map(monthEnd);
 
   // categorie reali: ultimi 3 mesi con spese (media mensile), così il grafico mostra tutte le categorie anche a inizio mese
-  const recent = f.months.slice(0, 3);
+  // (si usano i mesi chiusi: il mese in corso è parziale e falserebbe le quote; se non ce ne sono, si usa quello corrente)
+  const closed = f.months.filter((x) => x.locked).slice(0, 3);
+  const recent = closed.length ? closed : f.months.slice(0, 1);
   const spentMap = spendByCategory(recent, f.categories);
   const spentByCat = f.categories.map((c) => ({ ...c, v: spentMap[c.n] ?? 0 }));
   const totalSpent = spentByCat.reduce((s, c) => s + c.v, 0);
@@ -133,7 +135,7 @@ export default function LifeFinance() {
 
       <Card>
         <H>Spese mensili per categoria</H>
-        <Body small muted style={{ marginBottom: 10 }}>{recent.length > 1 ? `Ripartizione sulla media degli ultimi ${recent.length} mesi` : 'Ripartizione del mese corrente'}</Body>
+        <Body small muted style={{ marginBottom: 10 }}>{recent.length > 1 ? `Ripartizione sulla media degli ultimi ${recent.length} mesi chiusi` : closed.length ? 'Ripartizione dell\'ultimo mese chiuso' : 'Ripartizione del mese corrente'}</Body>
         <Row gap={18}>
           <View style={{ width: 132, height: 132, alignItems: 'center', justifyContent: 'center' }}>
             <Donut parts={catParts} holeColor={t.card} />

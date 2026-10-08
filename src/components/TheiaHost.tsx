@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import { captureScreen } from 'react-native-view-shot';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Body, Btn, Input, Pill, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Input, ModalToast, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { sendToAssistant } from '@/lib/assistant/run';
 import { go } from '@/lib/nav';
@@ -192,6 +192,7 @@ export function TheiaSelect() {
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={end} statusBarTranslucent>
+      <ModalToast />
       <View style={{ flex: 1, backgroundColor: '#000' }} {...pan.panHandlers}>
         <Image source={{ uri }} style={{ width, height }} contentFit="fill" pointerEvents="none" />
         <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.35)' }} />

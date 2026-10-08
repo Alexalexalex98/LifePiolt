@@ -71,7 +71,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
   const trackVisit = useApp((a) => a.trackVisit);
   useEffect(() => { trackVisit(id === 'index' ? 'home' : id); }, [id, trackVisit]);
   // il pulsante indietro compare da solo su ogni pagina aperta con go() (non sulle 5 tab principali)
-  const showBack = back ?? (!noTop && !MAIN_TABS.includes(id));
+  const showBack = !MAIN_TABS.includes(id) && (back ?? !noTop);
   const body = (
     <>
       {!noTop && <TopBar page={id} />}
