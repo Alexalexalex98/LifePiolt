@@ -1,6 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
 import { useState } from 'react';
 import { Alert, Pressable, Share, View } from 'react-native';
 
@@ -57,7 +56,7 @@ export default function Settings() {
   async function togglePush(v: boolean) {
     if (v) {
       let status = 'denied';
-      try { status = (await Notifications.requestPermissionsAsync()).status; } catch { /* Expo Go o permessi non disponibili */ }
+      try { status = (await requestPermission()).ok ? 'granted' : 'denied'; } catch { /* Expo Go o permessi non disponibili */ }
       if (status !== 'granted') { Alert.alert('Notifiche disattivate', 'Per riceverle abilita le notifiche per LifePilot dalle impostazioni del telefono.'); return; }
     }
     set({ notif: { ...app.notif, push: v } });

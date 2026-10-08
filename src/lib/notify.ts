@@ -1,4 +1,5 @@
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
+import type * as NotificationsType from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { useApp } from '@/store/app';
@@ -13,9 +14,25 @@ const CHANNEL = 'briefing';
 export const MORNING_ID = 'lp-briefing-morning';
 export const EVENING_ID = 'lp-briefing-evening';
 
+/** Su Android Expo Go il modulo lancia un errore già al caricamento: lo carico solo quando serve e solo dove esiste. */
+const androidExpoGo = Platform.OS === 'android' && Constants.executionEnvironment === 'storeClient';
+let loaded: typeof NotificationsType | null | undefined;
+function load(): typeof NotificationsType | null {
+  if (loaded !== undefined) return loaded;
+  if (Platform.OS === 'web' || androidExpoGo) return (loaded = null);
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    loaded = require('expo-notifications') as typeof NotificationsType;
+  } catch { loaded = null; }
+  return loaded;
+}
+const Notifications = new Proxy({} as typeof NotificationsType, {
+  get(_t, k) { const m = load(); if (!m) throw new Error('notifiche non disponibili'); return (m as never)[k]; },
+});
+
 /** True se questa piattaforma può schedulare notifiche locali. */
 export function isSupported(): boolean {
-  return Platform.OS === 'ios' || Platform.OS === 'android';
+  return (Platform.OS === 'ios' || Platform.OS === 'android') && !androidExpoGo;
 }
 
 let handlerSet = false;
@@ -38,7 +55,7 @@ async function ensureChannel() {
 
 /** Chiede il permesso se serve. Restituisce true se le notifiche sono consentite. */
 export async function requestPermission(): Promise<NotifyResult> {
-  if (!isSupported()) return { ok: false, reason: 'unsupported', message: 'Le notifiche sono disponibili solo sull\'app per iPhone e Android.' };
+  if (!isSupported()) return { ok: false, reason: 'unsupported', message: 'Le notifiche sono disponibili solo sull\'app installata (non in Expo Go su Android).' };
   try {
     ensureHandler();
     await ensureChannel();
