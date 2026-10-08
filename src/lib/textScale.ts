@@ -1,7 +1,7 @@
 import { TEXT_LG_SCALE } from '@/constants/theme';
 import { useApp } from '@/store/app';
 
-import { setTextScaleFactor } from './rn-shim';
+import { setTextScaleFactor } from './textScaleState';
 
 /** Collega "Testo più grande" (Impostazioni > Accessibilità) al wrapper <Text> di rn-shim. */
 let installed = false;

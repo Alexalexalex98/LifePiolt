@@ -7,20 +7,13 @@ import { createElement, useSyncExternalStore } from 'react';
 import { Pressable as NativePressable, StyleSheet, Text as NativeText, type PressableProps, type TextProps } from 'react-native';
 
 import { toast } from '../store/toast';
+import { getTextScaleFactor, setTextScaleFactor, snapshotTextScale, subscribeTextScale } from './textScaleState';
 
 export * from 'react-native';
 
-let factor = 1;
-const listeners = new Set<() => void>();
-const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
-const snapshot = () => factor;
-
-export function setTextScaleFactor(k: number) {
-  if (k === factor) return;
-  factor = k;
-  listeners.forEach((l) => l());
-}
-export const getTextScaleFactor = () => factor;
+const subscribe = subscribeTextScale;
+const snapshot = snapshotTextScale;
+export { setTextScaleFactor, getTextScaleFactor };
 
 export default Text;
 
