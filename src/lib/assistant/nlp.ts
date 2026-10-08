@@ -77,7 +77,7 @@ export function parseWhen(raw: string, now: Date): When {
   const toTime = (h: number, mi: number, extra: string) => {
     let hh = h;
     if (/\bpomeriggio\b|\bsera\b|\bstasera\b|\bnotte\b/.test(extra) && hh < 12) hh += 12;
-    else if (!/\bmattina\b|\bmattino\b|\bstamattina\b/.test(extra) && hh >= 1 && hh <= 7) hh += 12;
+    else if (!/\bmattina\b|\bmattino\b|\bstamattina\b/.test(extra) && hh >= 1 && hh <= 6) hh += 12;
     if (hh > 23 || mi > 59) return undefined;
     return `${pad(hh)}:${pad(mi)}`;
   };
@@ -168,9 +168,12 @@ const rules: { intent: Intent; test: RegExp; w?: number }[] = [
   { intent: 'health.report', test: R(/\b(come ho dormito|come sto di salute|riepilogo salute|analisi (della )?salute|come vanno i miei dati|come sono i miei dati)\b|\b(sonno|passi|salute)\b.*\b(oggi|ieri|settimana|analisi)\b/), w: 3 },
   { intent: 'mood.analysis', test: R(/\b(analisi|come vanno|come e|com'e|andamento|grafico)\b.*\bumore\b|\bil mio umore\b.*\b(ultimi|settimana|mese|meteo|pioggia)\b/), w: 4 },
   { intent: 'mood.log', test: R(/\b(mi sento|sono|oggi sono|oggi mi sento)\b.*\b(felice|contento|calmo|sereno|neutro|stressato|triste|arrabbiato|nervoso|stanco|giu)\b/), w: 4 },
+  { intent: 'agenda.show', test: R(/\b(cosa|che cosa|che)\b (ho|c'e|devo fare|faccio)\b.*\b(oggi|domani|dopodomani|lunedi|martedi|mercoledi|giovedi|venerdi|sabato|domenica|settimana)\b/), w: 4 },
+  { intent: 'finance.report', test: R(/\bquanto (ho )?(speso|spendo|guadagnato|risparmiato|sto spendendo)\b/), w: 5 },
+  { intent: 'event.add', test: R(/\bho (il|la|un|una|lo)\b.*\b(alle|ore)\b\s*\d/), w: 3 },
   { intent: 'plan.reschedule', test: R(/\b(ripianifica|ripianificare|riorganizza|recupera|rimetti)\b.*\b(saltat\w+|persi\w*|non fatt\w+|sessioni|task|impegni|lavoro)\b|^ripianific\w*( tutto)?$/), w: 7 },
   { intent: 'briefing', test: R(/\b(briefing|riepilogo (della giornata|di oggi|serale|del mattino)|com'e la mia giornata|cosa mi aspetta oggi|resoconto della giornata|programma di oggi)\b|^buongiorno$|^buonasera$/), w: 6 },
-  { intent: 'event.recurring', test: R(/\b(ogni|tutti i|tutte le)\s+(giorno|giorni|settimana|settimane|lunedi|martedi|mercoledi|giovedi|venerdi|sabato|domenica)\b/), w: 7 },
+  { intent: 'event.recurring', test: R(/\b(ogni|tutti i|tutte le)\s+(giorno|giorni|settimana|settimane|sera|mattina|pomeriggio|lunedi|martedi|mercoledi|giovedi|venerdi|sabato|domenica)\b/), w: 7 },
   { intent: 'event.when', test: R(/\ba che ora\b|\bquando (e|ho|c'e)\b.*\b(riunione|call|appuntamento|visita|cena|pranzo|allenamento|meeting|incontro)\b/), w: 4 },
   { intent: 'task.due', test: R(/\b(scadenza|scade|scadra)\b/), w: 4 },
   { intent: 'plan.fill', test: R(/\b(pianifica|pianificami|organizza|organizzami|riempi|riempimi|programma|programmami|sistema|sistemami)\b.*\b(tutto|il mese|questo mese|mese|la settimana|settimana|la giornata|giornata|il piano|oggi|domani)\b|^organizz\w+$|^pianific\w+$/), w: 6 },
@@ -197,7 +200,7 @@ const rules: { intent: Intent; test: RegExp; w?: number }[] = [
   { intent: 'hours.set', test: R(/\b(orario|orari) di lavoro\b|\blavoro dalle\b/), w: 4 },
   { intent: 'notif.on', test: R(/\b(attiva|abilita|accendi)\b.*\bnotific\w+/), w: 4 },
   { intent: 'notif.off', test: R(/\b(disattiva|spegni|blocca)\b.*\bnotific\w+/), w: 4 },
-  { intent: 'open', test: R(/^(apri|vai a|vai su|portami (a|in|su)|mostrami)\b/), w: 2 },
+  { intent: 'open', test: R(/^(apri|vai (a|al|alla|allo|alle|agli|ai|su|in)|portami (a|in|su)|mostrami)\b/), w: 5 },
   { intent: 'help', test: R(/\b(aiuto|cosa sai fare|cosa puoi fare|che cosa fai|comandi|esempi|come funzioni)\b/), w: 2 },
 ];
 

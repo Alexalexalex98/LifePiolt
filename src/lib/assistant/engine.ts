@@ -128,6 +128,10 @@ export class Assistant {
       const r = await this.continuePending(raw);
       if (r) return r;
     }
+    const nn = norm(raw);
+    if (/^(ciao|salve|hey|ehi|buongiorno|buonasera|buon pomeriggio)\b/.test(nn) && nn.split(' ').length <= 3) return { handled: true, text: `Ciao${this.env.userName() ? ' ' + this.env.userName() : ''}! Dimmi cosa vuoi fare: piano, task, note, report o una domanda sui tuoi dati.`, chips: ['Cosa devo fare adesso?', 'Che impegni ho oggi?', 'Aiuto'] };
+    if (/^(grazie|ok grazie|perfetto|ottimo|bene|ok)\b/.test(nn) && nn.split(' ').length <= 3) return { handled: true, text: 'Di niente! Se ti serve altro, sono qui.', chips: ['Cosa devo fare adesso?'] };
+    if ((isYes(raw) || isNo(raw)) && !this.pending && !/^(annulla|disfa|ripristina|torna indietro)/.test(nn)) return { handled: true, text: 'Al momento non ho nulla in sospeso. Dimmi cosa vuoi fare.', chips: ['Aiuto'] };
     // 2) nuovo comando
     const intent = detectIntent(raw);
     switch (intent) {
@@ -248,8 +252,8 @@ export class Assistant {
   private startEventAdd(raw0: string, recurring = false): Reply {
     const { text: raw, place } = this.splitPlace(raw0);
     const w = parseWhen(raw, this.env.now());
-    const title = extractTitle(raw, w.spans, /\b(aggiungi|metti|inserisci|segna|programma|pianifica|fissa|prenota|crea|organizza|ogni|tutti|tutte|i|le|giorni|giorno|settimana|settimane|al piano|nel piano)\b/g);
-    const recur = recurring ? (/\bogni giorno|tutti i giorni\b/.test(norm(raw)) ? 'daily' : 'weekly') : undefined;
+    const title = extractTitle(raw, w.spans, /\b(aggiungi|metti|inserisci|segna|programma|pianifica|fissa|prenota|crea|organizza|ogni|tutti|tutte|i|le|giorni|giorno|settimana|settimane|sera|mattina|pomeriggio|al piano|nel piano|ho)\b/g);
+    const recur = recurring ? (/\bogni (giorno|sera|mattina|pomeriggio)\b|\btutti i giorni\b|\btutte le (sere|mattine)\b/.test(norm(raw)) ? 'daily' : 'weekly') : undefined;
     let day = w.day;
     if (recur === 'daily' && !day) day = this.today();
     this.pending = { kind: 'event.add', title, day, time: w.time, dur: w.durationMin ?? DEF_DUR, hint: w.hint, awaiting: 'title', recur, place };
@@ -414,7 +418,8 @@ export class Assistant {
     const lines = days.map((d) => {
       const now = this.env.now();
       const from = d === this.today() ? now.getHours() * 60 + Math.ceil(now.getMinutes() / 15) * 15 : 0;
-      const sl = freeSlots(this.evs(d), wh.start, wh.end, 30, DEF_DUR, from);
+      const lo = w.hint === 'pomeriggio' ? '12:00' : w.hint === 'sera' ? '18:00' : wh.start, hi = w.hint === 'mattina' ? '12:00' : w.hint === 'pomeriggio' ? '18:00' : wh.end;
+      const sl = freeSlots(this.evs(d), lo < wh.start ? wh.start : lo, hi > wh.end && w.hint !== 'sera' ? wh.end : hi, 30, DEF_DUR, from);
       return `${this.label(d)}: ${sl.length ? sl.map((s) => `${fmtMin(s.from)}–${fmtMin(s.to)}`).join(', ') : 'nessuno slot libero'}`;
     });
     return { handled: true, text: `Slot liberi nel tuo orario di lavoro (${wh.start}–${wh.end}):\n${lines.join('\n')}`, chips: ['Condividi la mia agenda'] };
@@ -532,7 +537,7 @@ export class Assistant {
   }
 
   private open(raw: string): Reply {
-    const n = norm(raw).replace(/^(apri|vai a|vai su|portami (a|in|su)|mostrami)\s+(il |la |lo |le |i |l')?/, '').replace(/^(mio |mia )/, '').trim();
+    const n = norm(raw).replace(/^(apri|vai (a|al|alla|allo|alle|agli|ai|su|in)|portami (a|in|su)|mostrami)\s+(il |la |lo |le |i |l'|al |alla |ai )?/, '').replace(/^(mio |mia )/, '').trim();
     const key = Object.keys(pageNames).find((k) => n.startsWith(k));
     if (!key) return { handled: true, text: 'Dove vuoi andare? Per esempio "apri finanze", "apri piano", "apri note", "apri umore".' };
     return { handled: true, text: `Apro ${key}.`, navigate: pageNames[key] };
@@ -722,6 +727,14 @@ export class Assistant {
 
   private fallback(raw: string): Reply {
     const t = raw.trim().replace(/[?!.]+$/, '');
+    const nr = norm(raw);
+    // "ho comprato il latte" -> task completato; "cancella il dentista" / "rinomina X in Y" senza dire se è un task o un impegno
+    if (/^ho \w+(ato|uto|ito)\b/.test(nr) && this.openTasks().length) {
+      const q = extractTitle(raw, [], /\b(ho|il|lo|la|le|i|gli)\b/g);
+      if (q && bestMatch(q, this.openTasks(), (x) => x.t)) return this.taskDone(raw);
+    }
+    if (/^(cancella|elimina|rimuovi|togli|disdici)\b/.test(nr)) return this.findEvent(raw) ? this.eventDelete(raw) : this.taskDelete(raw);
+    if (/^rinomina\b/.test(nr)) { const base = raw.replace(/\b(?:in|con|come|a)\s+.+$/i, ''); return this.findEvent(base) ? this.eventRename(raw) : this.taskRename(raw); }
     // una frase breve all'infinito ("Chiamare il commercialista") è quasi sempre una cosa da fare: lo propongo
     if (t.split(/\s+/).length <= 9 && /^[a-zà-ÿ]+(are|ere|ire|arsi|ersi|irsi)\b/i.test(t) && !/\?$/.test(raw)) {
       const title = t.charAt(0).toUpperCase() + t.slice(1);
