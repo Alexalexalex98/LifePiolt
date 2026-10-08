@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
-import { addToPlanWithCheck, removeFromPlan } from '@/lib/planBooking';
+import { addToPlanWithCheck, findConflicts, removeFromPlan } from '@/lib/planBooking';
 import { dayLabelOf, importAgenda, importTasks, myConflicts } from '@/lib/chatShare';
 import { rsvpSummary } from '@/lib/chatList';
 import { findPlanned, respondToEvent } from '@/lib/chatEvent';
@@ -248,7 +248,7 @@ export function EventCard({ m, me, chatId }: { m: ChatMessage; me: string; chatI
   const mine = m.from === me;
   const mineAns = ev.rsvp[me];
   const sum = rsvpSummary(ev.rsvp);
-  const conf = !mine && !mineAns && !findPlanned(m.id) ? myConflicts(ev.day, ev.time, ev.durationMin) : [];
+  const conf = !mine && !mineAns && !findPlanned(m.id) ? findConflicts(ev.day, ev.time, ev.durationMin).map((x) => `${x.ev.time} ${x.ev.title}`) : [];
   const col = { yes: t.positive, maybe: t.warn, no: t.danger };
   return (
     <View style={{ minWidth: 250 }}>
@@ -266,7 +266,7 @@ export function EventCard({ m, me, chatId }: { m: ChatMessage; me: string; chatI
               <Pressable key={k} onPress={() => respondToEvent(chatId, m, me, k, toast)} accessibilityLabel={label} accessibilityState={{ selected: on }}
                 style={{ flex: 1, alignItems: 'center', gap: 2, paddingVertical: 7, paddingHorizontal: 2, borderRadius: 12, borderWidth: 1.5, borderColor: on ? col[k] : c.quoteBg, backgroundColor: on ? col[k] + '22' : 'transparent' }}>
                 <Icon name={ic} size={15} color={on ? col[k] : c.meta} stroke={2.3} />
-                <Text style={{ color: on ? col[k] : c.theirsText, fontWeight: '800', fontSize: 11 }} numberOfLines={1}>{label}</Text>
+                <Text style={{ color: on ? col[k] : c.theirsText, fontWeight: '800', fontSize: 11, textAlign: 'center' }}>{label}</Text>
               </Pressable>
             );
           })}

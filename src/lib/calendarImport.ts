@@ -22,7 +22,6 @@ type CalPrefs = { selected: string[] | null; lastSync: number | null; lastMessag
 /** Calendari scelti (null = non ancora scelti, si propongono tutti) e data dell'ultima importazione. */
 export const useCalPrefs = create<CalPrefs>()(persisted<CalPrefs>('calsync', (set) => ({ selected: null, lastSync: null, lastMessage: null, prune: true, set: (p) => set(p) })));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mod(): any | null {
   if (Platform.OS === 'web') return null;
   try {

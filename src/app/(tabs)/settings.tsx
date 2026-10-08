@@ -2,13 +2,13 @@ import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { useState } from 'react';
-import { Alert, Pressable, Share, Text, View } from 'react-native';
+import { Alert, Pressable, Share, View } from 'react-native';
 
 import { navLabelFor } from '@/components/NavBar';
 import { WorkHoursSheet } from '@/components/plan';
 import { Body, Btn, Card, H, Input, Item, Link, Page, Pill, Row, Select, Sheet, Toggle, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { checkBackupText, exportBackup, pickBackup, restoreBackup, STORE_LABELS, wipeAllData, type BackupPreview } from '@/lib/backup';
+import { exportBackup, pickBackup, restoreBackup, STORE_LABELS, wipeAllData, type BackupPreview } from '@/lib/backup';
 import { formatErrors, logError, useErrorLog } from '@/lib/errorLog';
 import { translate, useSectionNames, useT } from '@/lib/i18n';
 import { go } from '@/lib/nav';
@@ -40,7 +40,7 @@ export default function Settings() {
   const [wh, setWh] = useState(false);
   const [info, setInfo] = useState<null | 'help' | 'contact' | 'terms'>(null);
   const [del, setDel] = useState<0 | 1 | 2>(0);
-  const [restore, setRestore] = useState<null | { text: string; preview: BackupPreview; step: 1 | 2 }>(null);
+  const [restore, setRestore] = useState<null | { text: string; preview: BackupPreview | null; step: 1 | 2; error?: string }>(null);
   const [errSheet, setErrSheet] = useState(false);
   const [busy, setBusy] = useState(false);
   const errors = useErrorLog((e) => e.entries);
@@ -71,7 +71,7 @@ export default function Settings() {
     const next = { ...app.briefing, ...patch };
     if (patch[kind] === true) {
       const r = await requestPermission();
-      if (!r.ok) { Alert.alert('Notifiche non attive', r.message); return; }
+      if (!r.ok) { toast(r.message); Alert.alert('Notifiche non attive', r.message); return; }
     }
     set({ briefing: next });
     void refreshBriefings();
@@ -87,7 +87,7 @@ export default function Settings() {
 
   async function doPickBackup() {
     const r = await pickBackup();
-    if (!r.ok) { if (!r.canceled) Alert.alert('Backup non valido', r.error); return; }
+    if (!r.ok) { if (!r.canceled) setRestore({ text: '', preview: null, step: 1, error: r.error }); return; }
     setRestore({ text: r.text, preview: r.preview, step: 1 });
   }
 
@@ -113,7 +113,9 @@ export default function Settings() {
   }
 
   async function sendErrors() {
-    try { await Share.share({ message: formatErrors(errors), title: 'Problemi riscontrati - LifePilot' }); } catch { toast('Condivisione non riuscita'); }
+    try { await Share.share({ message: formatErrors(errors), title: 'Problemi riscontrati - LifePilot' }); } catch {
+      try { await Clipboard.setStringAsync(formatErrors(errors)); toast('Copiato: incollalo in un messaggio al supporto'); } catch { toast('Condivisione non riuscita'); }
+    }
   }
 
   function toggleNav(id: string) {
@@ -280,8 +282,9 @@ export default function Settings() {
           <Btn danger style={{ flex: 1 }} title="Elimina tutto" onPress={() => void doDeleteAll()} />
         </Row>
       </Sheet>
-      <Sheet visible={!!restore} title={restore?.step === 2 ? 'Ultima conferma' : 'Ripristina da backup'} onClose={() => setRestore(null)}>
-        {restore && restore.step === 1 && (
+      <Sheet visible={!!restore} title={restore?.error ? 'Backup non valido' : restore?.step === 2 ? 'Ultima conferma' : 'Ripristina da backup'} onClose={() => setRestore(null)}>
+        {restore?.error && <><Body small muted>{restore.error}</Body><Btn ghost style={{ marginTop: 14 }} title="Chiudi" onPress={() => setRestore(null)} /></>}
+        {restore && !restore.error && restore.preview && restore.step === 1 && (
           <>
             <Body small muted>Backup del {restore.preview.createdAt ? new Date(restore.preview.createdAt).toLocaleString('it-IT') : 'data sconosciuta'}{restore.preview.appVersion ? ` (LifePilot ${restore.preview.appVersion})` : ''}. {restore.preview.storeCount} categorie, {restore.preview.sizeKB} KB.</Body>
             <View style={{ marginVertical: 10 }}>
@@ -294,7 +297,7 @@ export default function Settings() {
             </Row>
           </>
         )}
-        {restore && restore.step === 2 && (
+        {restore && !restore.error && restore.step === 2 && (
           <>
             <Body small muted>Sei sicuro? I dati attuali verranno sovrascritti e non potranno essere recuperati.</Body>
             <Row style={{ marginTop: 14 }}>

@@ -56,7 +56,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -89,7 +94,10 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "LifePilot usa la posizione solo quando scegli di condividerla in una chat."
+          "locationWhenInUsePermission": "LifePilot usa la posizione solo quando scegli di condividerla in una chat.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false
         }
       ],
       [

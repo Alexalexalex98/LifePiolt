@@ -9,6 +9,7 @@ import { useChat, type ChatMessage } from './chat';
 import { useJobs } from './jobs';
 import { useLife } from './life';
 import { useNet } from './network';
+import { useMod } from './moderation';
 import { useTravel } from './travel';
 import { demoMoods } from '@/data/moodDemo';
 import { demoWeather } from '@/lib/weather';
@@ -145,6 +146,7 @@ export function applyDemo(me: string, email = '') {
 
 export function resetAllData() {
   useNet.getState().reset();
+  useMod.getState().reset();
   useChat.getState().reset();
   useContext.getState().reset();
   useAssistant.getState().reset();

@@ -220,7 +220,7 @@ export function Composer(p: Props) {
       </Sheet>
 
       <Sheet visible={!!preview} title={preview ? `Invia ${preview.length} ${preview.length === 1 ? 'elemento' : 'elementi'}` : ''} onClose={() => setPreview(null)}>
-        <ScrollView horizontal style={{ marginBottom: 10 }}>
+        <ScrollView horizontal keyboardShouldPersistTaps="handled" style={{ marginBottom: 10 }}>
           {preview?.map((x, i) => (
             <View key={i} style={{ marginRight: 8, width: 120, height: 120, borderRadius: 10, backgroundColor: t.item, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
               <Image source={{ uri: x.media?.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, Share, Text, View } from 'react-native';
 
 import { SPONSORED_TEXT } from '@/components/market';
-import { IdeaCard, LpTag, MediaViewer, UserAvatar, doContribute, openPurchaseConfirm, openSheet, useNetSheet } from '@/components/network';
+import { IdeaCard, LpTag, type ModTarget, MediaViewer, UserAvatar, doContribute, openPurchaseConfirm, openSheet, useNetSheet } from '@/components/network';
 import { Body, Btn, Empty, IL, Input, Item, Link, Pill, Progress, Row, Select, Sheet, Toggle, Metric, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, weekdayShortDate } from '@/lib/format';
@@ -16,6 +16,13 @@ import { useApp } from '@/store/app';
 import { newId, topicList, useNet } from '@/store/network';
 import { showUndoToast, toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
+import { REPORT_NOTICE } from '@/components/ReportsSheet';
+import { MediaPickerField } from '@/components/MediaPickerField';
+import type { NetMedia } from '@/lib/netMedia';
+import { REASONS, modKey, type ModKind, type ReasonId } from '@/lib/modRules';
+import { useVisible } from '@/lib/moderation';
+import { useChat } from '@/store/chat';
+import { useMod } from '@/store/moderation';
 
 /** Un'unica Sheet che mostra la vista richiesta dal social (evita modali annidate). */
 export function NetSheetHost() {
@@ -51,12 +58,23 @@ function NetSheetInner() {
       body = (
         <>
           <Item onPress={() => { Share.share({ message: `Post di ${author} su LifePilot` }); }}><Body>Condividi</Body></Item>
-          <Item onPress={() => { net.report(author); close(); toast('Segnalazione inviata, verrà valutata'); }}><Body>Segnala</Body></Item>
           <Item onPress={() => { const f = net.toggleFollow(author); close(); toast(f ? 'Ora segui ' + author : 'Non segui più ' + author); }}><Body>{fol ? 'Smetti di seguire' : 'Segui'}</Body></Item>
-          <Item last={!tag} onPress={() => { const m = net.toggleMuteAuthor(author); close(); toast(m ? `Post di ${author} silenziati` : `Post di ${author} riattivati`); }}><Body>{mutedP ? 'Riattiva ' + author : 'Silenzia ' + author}</Body></Item>
-          {tag ? <Item last onPress={() => { const m = net.toggleMuteTopic(tag); close(); toast(m ? `Post su ${tag} silenziati` : `Post su ${tag} riattivati`); }}><Body>{mutedT ? 'Riattiva argomento ' + tag : 'Silenzia argomento ' + tag}</Body></Item> : null}
+          <Item onPress={() => { const m = net.toggleMuteAuthor(author); close(); toast(m ? `Post di ${author} silenziati` : `Post di ${author} riattivati`); }}><Body>{mutedP ? 'Riattiva ' + author : 'Silenzia ' + author}</Body></Item>
+          {tag ? <Item onPress={() => { const m = net.toggleMuteTopic(tag); close(); toast(m ? `Post su ${tag} silenziati` : `Post su ${tag} riattivati`); }}><Body>{mutedT ? 'Riattiva argomento ' + tag : 'Silenzia argomento ' + tag}</Body></Item> : null}
+          {p.ref ? <ModItems target={{ kind: 'post', ref: p.ref, label: p.label || 'Post di ' + author, author }} /> : null}
         </>
       );
+      break;
+    }
+    case 'contentMenu': {
+      const tg = p as ModTarget;
+      title = tg.label ? (tg.label.length > 40 ? tg.label.slice(0, 38) + '…' : tg.label) : 'Azioni';
+      body = <ModItems target={tg} />;
+      break;
+    }
+    case 'report': {
+      title = 'Segnala';
+      body = <ReportView target={p as ModTarget} />;
       break;
     }
     case 'donate': {
@@ -93,7 +111,8 @@ function NetSheetInner() {
       body = (
         <>
           <Item onPress={() => { net.patch({ hideIdeas: !net.hideIdeas }); close(); toast(net.hideIdeas ? 'Le idee sono tornate visibili nella home' : 'Non vedrai più idee nella home'); }}><Body>{net.hideIdeas ? 'Torna a vedere le idee nella home' : 'Non vedere più idee nella home'}</Body></Item>
-          <Item last onPress={() => { net.patch({ mutedIdeaAuthors: muted ? net.mutedIdeaAuthors.filter((n) => n !== p.author) : [...net.mutedIdeaAuthors, p.author] }); close(); toast(muted ? `Idee di ${p.author} di nuovo visibili` : `Idee di ${p.author} nascoste dalla home`); }}><Body>{muted ? 'Rivedi le idee di ' + p.author : 'Non vedere più le idee di ' + p.author}</Body></Item>
+          <Item onPress={() => { net.patch({ mutedIdeaAuthors: muted ? net.mutedIdeaAuthors.filter((n) => n !== p.author) : [...net.mutedIdeaAuthors, p.author] }); close(); toast(muted ? `Idee di ${p.author} di nuovo visibili` : `Idee di ${p.author} nascoste dalla home`); }}><Body>{muted ? 'Rivedi le idee di ' + p.author : 'Non vedere più le idee di ' + p.author}</Body></Item>
+          {p.id != null ? <ModItems target={{ kind: 'idea', ref: p.id, label: p.label || 'Idea di ' + p.author, author: p.author }} /> : null}
         </>
       );
       break;
@@ -227,11 +246,12 @@ function CommentsView({ k }: { k: string }) {
   const net = useNet();
   const me = useApp((s) => s.account.name);
   const [text, setText] = useState('');
-  const list = net.comments[k] || [];
+  const visible = useVisible();
+  const list = (net.comments[k] || []).map((c, i) => ({ ...c, i })).filter((c) => visible('comment', `${k}#${c.i}`, c.author));
   return (
     <>
       {list.length === 0 ? <Body small muted>Ancora nessun commento: scrivi il primo.</Body> : list.map((c, i) => (
-        <Item key={i}><Row style={{ justifyContent: 'flex-start', alignItems: 'flex-start' }} gap={8}><UserAvatar name={c.author} size={24} /><View style={{ flex: 1 }}><Body small bold>{c.author}</Body><Body small muted>{c.text}</Body></View></Row></Item>
+        <Item key={c.i}><Row style={{ justifyContent: 'flex-start', alignItems: 'flex-start' }} gap={8}><UserAvatar name={c.author} size={24} /><View style={{ flex: 1 }}><Body small bold>{c.author}</Body><Body small muted>{c.text}</Body></View></Row></Item>
       ))}
       <Input multiline style={{ marginTop: 12, minHeight: 60 }} placeholder="Scrivi un commento…" value={text} onChangeText={setText} />
       <Btn small title="Commenta" onPress={() => { if (!text.trim()) return; net.addComment(k, me, text.trim()); setText(''); }} />
@@ -264,11 +284,13 @@ function NewIdeaView() {
   const close = useNetSheet((s) => s.close);
   const [title, setTitle] = useState(''); const [desc, setDesc] = useState('');
   const [type, setType] = useState<'libero' | 'fisso'>('libero'); const [fixed, setFixed] = useState(''); const [reward, setReward] = useState('');
+  const [media, setMedia] = useState<NetMedia | null>(null);
   return (
     <>
       <Body small muted>Titolare: {me} (le pagine idea sono sempre legate a un titolare, come nel registro di commercio).</Body>
       <Input style={{ marginTop: 8 }} placeholder="Titolo dell'idea" value={title} onChangeText={setTitle} />
       <Input multiline placeholder="Descrivi l'idea: problema, mercato, come funziona…" value={desc} onChangeText={setDesc} />
+      <MediaPickerField value={media} onChange={setMedia} />
       <Body small muted style={{ marginVertical: 8 }}>Chi contribuisce riceve in cambio…</Body>
       <View style={{ flexDirection: 'row', marginBottom: 8 }}><Pill label="Importo libero" on={type === 'libero'} onPress={() => setType('libero')} /><Pill label="Importo fisso" on={type === 'fisso'} onPress={() => setType('fisso')} /></View>
       {type === 'fisso' && <Input keyboardType="decimal-pad" placeholder="Importo fisso in LP" value={fixed} onChangeText={setFixed} />}
@@ -279,7 +301,7 @@ function NewIdeaView() {
         const fa = type === 'fisso' ? parseFloat(fixed.replace(',', '.')) : null;
         if (type === 'fisso' && (!fa || fa <= 0)) { toast('Inserisci un importo fisso valido'); return; }
         const dup = net.ideas.find((x) => textSimilarity(x.title + ' ' + x.desc, ti + ' ' + de) > 0.35);
-        net.patch({ ideas: [...net.ideas, { id: newId(), title: ti, desc: de, author: me, raised: 0, similarTo: dup ? dup.id : null, rewardType: type, fixedAmount: fa, rewardDesc: reward.trim(), target: 500, ts: Date.now() }] });
+        net.patch({ ideas: [...net.ideas, { id: newId(), title: ti, desc: de, author: me, raised: 0, similarTo: dup ? dup.id : null, rewardType: type, fixedAmount: fa, rewardDesc: reward.trim(), target: 500, ts: Date.now(), media: media?.media ?? null, uri: media?.uri }] });
         close();
         toast(dup ? `Idea simile già presente: "${dup.title}". La tua è stata registrata come correlata.` : 'Idea pubblicata · punteggio AI: ' + rateIdeaDetailed(de).score + '/100');
       }} />
@@ -315,12 +337,14 @@ function PostToCommunityView({ id }: { id: number }) {
   const me = useApp((s) => s.account.name);
   const close = useNetSheet((s) => s.close);
   const [text, setText] = useState('');
+  const [media, setMedia] = useState<NetMedia | null>(null);
   return (
     <>
       <Input multiline placeholder="Scrivi qualcosa…" value={text} onChangeText={setText} />
+      <MediaPickerField value={media} onChange={setMedia} />
       <Btn title="Pubblica" onPress={() => {
-        if (!text.trim()) return;
-        net.patch({ communities: net.communities.map((c) => (c.id === id ? { ...c, posts: [{ author: me, text: text.trim(), likes: 0, ts: Date.now() }, ...c.posts] } : c)) });
+        if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
+        net.patch({ communities: net.communities.map((c) => (c.id === id ? { ...c, posts: [{ author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, likes: 0, ts: Date.now() }, ...c.posts] } : c)) });
         close(); toast('Pubblicato');
       }} />
     </>
@@ -580,15 +604,15 @@ function NewPostView() {
   const net = useNet();
   const me = useApp((s) => s.account.name);
   const close = useNetSheet((s) => s.close);
-  const [text, setText] = useState(''); const [tag, setTag] = useState('Business'); const [media, setMedia] = useState<'photo' | 'video' | null>(null);
+  const [text, setText] = useState(''); const [tag, setTag] = useState('Business'); const [media, setMedia] = useState<NetMedia | null>(null);
   return (
     <>
       <Input multiline placeholder="Cosa vuoi condividere?" value={text} onChangeText={setText} />
       <Select title="Argomento" value={tag} options={topicList} onChange={setTag} />
-      <View style={{ flexDirection: 'row', marginBottom: 8 }}><Pill label="Solo testo" on={!media} onPress={() => setMedia(null)} /><Pill label="Foto" on={media === 'photo'} onPress={() => setMedia('photo')} /><Pill label="Video" on={media === 'video'} onPress={() => setMedia('video')} /></View>
+      <MediaPickerField value={media} onChange={setMedia} />
       <Btn title="Pubblica" onPress={() => {
-        if (!text.trim()) return;
-        net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media, tag, likes: 0, ts: Date.now() }, ...net.posts] });
+        if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
+        net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, tag, likes: 0, ts: Date.now() }, ...net.posts] });
         close(); toast('Post pubblicato');
       }} />
     </>
@@ -596,3 +620,58 @@ function NewPostView() {
 }
 
 void IdeaCard; void weekdayShortDate; void canVote;
+
+
+/** Segnala / Nascondi / Blocca utente per un contenuto della rete. */
+function ModItems({ target }: { target: ModTarget }) {
+  const me = useApp((a) => a.account.name);
+  const close = useNetSheet((s) => s.close);
+  const blocked = useChat((s) => s.blocked);
+  const key = modKey(target.kind, target.ref);
+  const a = target.author;
+  const canBlock = !!a && a !== me;
+  return (
+    <>
+      {a !== me && <Item last={false} onPress={() => openSheet('report', target)}><IL icon="alert">Segnala</IL></Item>}
+      <Item last={!canBlock} onPress={() => { useMod.getState().hide(target.kind, target.ref, target.label); close(); showUndoToast('Contenuto nascosto', () => useMod.getState().unhide(key)); }}><IL icon="eye">Nascondi</IL></Item>
+      {canBlock && (
+        <Item last onPress={() => {
+          const on = !blocked.includes(a!);
+          useChat.getState().block(a!, on);
+          close();
+          toast(on ? `${a} bloccato: non vedrai più i suoi contenuti. Puoi sbloccarlo da Segnalazioni inviate.` : `${a} sbloccato`);
+        }}><IL icon="block" color="#e5484d">{blocked.includes(a!) ? 'Sblocca ' + a : 'Blocca ' + a}</IL></Item>
+      )}
+    </>
+  );
+}
+
+
+function ReportView({ target }: { target: ModTarget }) {
+  const t = useTheme();
+  const close = useNetSheet((s) => s.close);
+  const [reason, setReason] = useState<ReasonId | null>(null);
+  const [note, setNote] = useState('');
+  return (
+    <>
+      <Body small muted style={{ marginBottom: 8 }}>Perché vuoi segnalare questo contenuto?</Body>
+      {REASONS.map((r) => (
+        <Item key={r.id} onPress={() => setReason(r.id)}>
+          <Row style={{ justifyContent: 'flex-start' }} gap={10}>
+            <Icon name={reason === r.id ? 'checksquare' : 'square'} size={20} color={reason === r.id ? t.accent : t.muted} />
+            <View style={{ flex: 1 }}><Body>{r.label}</Body><Body small muted>{r.hint}</Body></View>
+          </Row>
+        </Item>
+      ))}
+      <Input multiline style={{ marginTop: 10, minHeight: 60 }} placeholder={reason === 'altro' ? 'Spiega il motivo (obbligatorio)' : 'Aggiungi una nota (facoltativa)'} value={note} onChangeText={setNote} />
+      <View style={{ backgroundColor: t.accent + '1f', borderRadius: 12, padding: 10, marginBottom: 10 }}><Body small>{REPORT_NOTICE}</Body></View>
+      <Btn danger title="Segnala" onPress={() => {
+        if (!reason) { toast('Scegli un motivo'); return; }
+        if (reason === 'altro' && !note.trim()) { toast('Spiega il motivo nella nota'); return; }
+        useMod.getState().report({ kind: target.kind as ModKind, ref: target.ref, label: target.label, author: target.author, reason, note });
+        close();
+        toast('Segnalazione registrata sul dispositivo');
+      }} />
+    </>
+  );
+}

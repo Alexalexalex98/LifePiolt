@@ -72,7 +72,7 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
         </Pressable>
         {dueBtn}
         {urgentBtn}
-        <Btn small ghost title="" icon="x" onPress={remove} />
+        <Btn small ghost title="" label="Rimuovi" icon="x" onPress={remove} />
       </Row>
     </Item>
   );

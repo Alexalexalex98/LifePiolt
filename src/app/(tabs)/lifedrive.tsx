@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Image, Pressable, Share, Text, View } from 'react-native';
 
 import { Body, Btn, Card, Empty, Input, Item, Link, Page, Row, Seg, Sheet, TabRow, XBtn } from '@/components/ui';
-import { useTheme } from '@/hooks/use-theme';
+import { useInk, useTheme } from '@/hooks/use-theme';
 import { weekdayShortDate } from '@/lib/format';
 import { detectFileFolder, driveFolderColors, useLife, type DriveFile } from '@/store/life';
 import { toast } from '@/store/toast';
@@ -17,6 +17,7 @@ const sizeLabel = (bytes?: number) => (bytes == null ? '—' : bytes < 1024 * 10
 
 export default function LifeDrive() {
   const t = useTheme();
+  const ink = useInk();
   const { drive, addFile, delFile } = useLife();
   const [q, setQ] = useState('');
   const [tab, setTab] = useState('File');
@@ -95,14 +96,14 @@ export default function LifeDrive() {
                     <Row>
                       <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }} onPress={() => setPreview(f)}>
                         <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: color + '33', borderWidth: 1, borderColor: color + '33', alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={{ color, fontWeight: '800', fontSize: 15 }}>{f.folder[0]}</Text>
+                          <Text style={{ color: ink(color), fontWeight: '800', fontSize: 15 }}>{f.folder[0]}</Text>
                         </View>
                         <View style={{ flex: 1 }}>
                           <Body numberOfLines={1}>{f.n}</Body>
                           <Body small muted>{f.s} · {f.date}</Body>
                         </View>
                       </Pressable>
-                      <View style={{ backgroundColor: color + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color, fontSize: 10, fontWeight: '700' }}>{f.folder}</Text></View>
+                      <View style={{ backgroundColor: color + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: ink(color), fontSize: 10, fontWeight: '700' }}>{f.folder}</Text></View>
                       <XBtn onPress={() => setDel(f)} />
                     </Row>
                   </Item>

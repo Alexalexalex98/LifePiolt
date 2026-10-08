@@ -1,12 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
-import { PostCard, UserAvatar, openSheet } from '@/components/network';
+import { ModButton, PostCard, UserAvatar, openSheet } from '@/components/network';
 import { Body, Btn, Card, Empty, H, IL, Item, Page, Row } from '@/components/ui';
 import { describeCommunity } from '@/data/marketSeed';
 import { go } from '@/lib/nav';
 import { fmtDate } from '@/lib/when';
 import { useApp } from '@/store/app';
+import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 
@@ -15,12 +16,14 @@ export default function CommunityProfile() {
   const me = useApp((s) => s.account.name);
   const net = useNet();
   const c = net.communities.find((x) => String(x.id) === id);
+  const visible = useVisible();
+  if (c && !visible('community', c.id, c.owner === 'system' ? undefined : c.owner)) return <Page id="communityProfile" title="Community" back><Card><Empty text="Hai nascosto o segnalato questa community, oppure il proprietario è bloccato." /><Btn small ghost style={{ marginTop: 10 }} title="Segnalazioni inviate" onPress={() => go('reports')} /></Card></Page>;
   if (!c) return <Page id="communityProfile" title="Community" back><Card><Empty text="Community non trovata." /></Card></Page>;
   const joined = c.members.includes(me);
   const d = describeCommunity(c);
   const canPost = c.owner === me || c.openPosting;
   return (
-    <Page id="communityProfile" title={c.name} back>
+    <Page id="communityProfile" title={c.name} back right={c.owner !== me ? <ModButton kind="community" refId={c.id} label={c.name} author={c.owner === 'system' ? undefined : c.owner} /> : undefined}>
       <Card>
         <View style={{ gap: 8, marginBottom: 12 }}>
           <IL icon="compass" small>Argomento: {c.topic}</IL>

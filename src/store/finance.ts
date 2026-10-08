@@ -107,6 +107,9 @@ export const defaultWatchlist = (holdings: boolean): Stock[] => [
   makeStock('NESN', 'Nestlé SA', 88, '237B', '19.5'),
 ];
 
+/** Sottoinsieme dello stato finanza usato dalle funzioni pure/di sola lettura. */
+export type FinState0 = Pick<FinState, 'months' | 'categories' | 'budget' | 'guidelines'>;
+
 type FinState = {
   categories: FinCategory[];
   insights: Insight[];
@@ -136,6 +139,8 @@ type FinState = {
   setTax: (p: Partial<TaxDecl>) => void;
   setTaxDoc: (k: string, f: TaxDocFile | null) => void;
   rollMonth: () => void;
+  /** Aggiunge movimenti importati (data ISO). Crea i mesi mancanti (chiusi) e tiene coerenti i saldi. */
+  importMovements: (rows: { date: string; label: string; amount: number }[]) => { added: number; newMonths: number; future: number };
 
   addStock: (symbol: string, name: string) => void;
   delStock: (symbol: string) => void;
@@ -191,6 +196,41 @@ export const useFin = create<FinState>()(
       if (f) docs[k] = f; else delete docs[k];
       return { tax: { ...s.tax, docs } };
     }),
+
+
+    importMovements: (rows) => {
+      const names = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+      const keyOfLabel = (l: string) => { const [n, y] = l.split(' '); const i = names.indexOf(n); return i < 0 || !y ? -1 : Number(y) * 12 + i; };
+      const labelOfIso = (iso: string) => `${names[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
+      const months = get().months.map((m) => ({ ...m, movements: m.movements.slice() }));
+      const curKey = months.length ? keyOfLabel(months[0].label) : -1;
+      const groups = new Map<string, { date: string; label: string; amount: number }[]>();
+      let future = 0;
+      rows.forEach((r) => {
+        const lab = labelOfIso(r.date);
+        if (curKey >= 0 && keyOfLabel(lab) > curKey) { future++; return; }
+        groups.set(lab, [...(groups.get(lab) ?? []), r]);
+      });
+      let added = 0, newMonths = 0;
+      [...groups.entries()].sort((a, b) => keyOfLabel(b[0]) - keyOfLabel(a[0])).forEach(([lab, list]) => {
+        const mvs: Movement[] = list.slice().sort((a, b) => a.date.localeCompare(b.date)).map((r) => ({ date: `${r.date.slice(8, 10)}/${r.date.slice(5, 7)}`, label: r.label, amount: r.amount }));
+        const net = mvs.reduce((sum, x) => sum + x.amount, 0);
+        const idx = months.findIndex((m) => m.label === lab);
+        if (idx >= 0) {
+          months[idx] = { ...months[idx], movements: [...months[idx].movements, ...mvs], start: idx > 0 ? months[idx].start - net : months[idx].start };
+        } else {
+          // nuovo mese storico: lo inserisco al posto giusto (dal più recente) e ricavo il saldo iniziale dal mese successivo
+          let at = months.findIndex((m) => keyOfLabel(m.label) < keyOfLabel(lab));
+          if (at < 0) at = months.length;
+          const newer = at > 0 ? months[at - 1] : null;
+          months.splice(at, 0, { label: lab, start: (newer ? newer.start : 0) - net, locked: true, movements: mvs });
+          newMonths++;
+        }
+        added += mvs.length;
+      });
+      if (added) set({ months });
+      return { added, newMonths, future };
+    },
 
     /** Se è iniziato un nuovo mese, blocca quello precedente e ne apre uno nuovo. */
     rollMonth: () => {

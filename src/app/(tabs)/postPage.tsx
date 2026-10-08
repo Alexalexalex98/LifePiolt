@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Share, Text, View } from 'react-native';
 
-import { LpTag, MediaBlock, UserAvatar, openSheet } from '@/components/network';
+import { LpTag, MediaBlock, ModButton, UserAvatar, openSheet } from '@/components/network';
 import { Body, Btn, Card, Empty, H, Input, Item, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { weekdayShortDate } from '@/lib/format';
@@ -11,6 +11,7 @@ import { go } from '@/lib/nav';
 import { postByKey } from '@/lib/network';
 import { fmtDateTime, fmtAgo } from '@/lib/when';
 import { useApp } from '@/store/app';
+import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 
@@ -20,10 +21,13 @@ export default function PostPage() {
   const me = useApp((a) => a.account.name);
   const net = useNet();
   const [text, setText] = useState('');
+  const visible = useVisible();
   const post = key ? postByKey(key) : null;
+  if (key && post && !visible('post', key, post.author)) return <Page id="postPage" title="Post" back><Card><Empty text="Hai nascosto o segnalato questo post, oppure l’autore è bloccato. Lo trovi in Segnalazioni inviate." /><Btn small ghost style={{ marginTop: 10 }} title="Segnalazioni inviate" onPress={() => go('reports')} /></Card></Page>;
   if (!key || !post) return <Page id="postPage" title="Post" back><Card><Empty text="Post non trovato: potrebbe essere stato rimosso." /></Card></Page>;
   const liked = net.likedPosts.includes(key);
-  const comments = net.comments[key] || [];
+  const allComments = net.comments[key] || [];
+  const comments = allComments.map((c, i) => ({ ...c, i })).filter((c) => visible('comment', `${key}#${c.i}`, c.author));
   const donated = net.dailyPoint.lastGiven === weekdayShortDate();
   const send = () => {
     if (!text.trim()) { toast('Scrivi qualcosa prima di commentare'); return; }
@@ -41,7 +45,7 @@ export default function PostPage() {
               <Text style={{ color: t.muted, fontSize: 12 }}>{post.ts ? `${fmtDateTime(post.ts)} (${fmtAgo(post.ts)})` : 'Data non disponibile'}</Text>
             </View>
           </Pressable>
-          <Pressable onPress={() => openSheet('postMenu', { author: post.author, tag: post.tag })} hitSlop={10}><Icon name="more-h" size={20} color={t.text} /></Pressable>
+          <Pressable onPress={() => openSheet('postMenu', { author: post.author, tag: post.tag, ref: key, label: post.text })} hitSlop={10}><Icon name="more-h" size={20} color={t.text} /></Pressable>
         </Row>
         {post.tag ? (
           post.community
@@ -64,10 +68,11 @@ export default function PostPage() {
       <Card>
         <H>Commenti ({comments.length})</H>
         {comments.length === 0 ? <Body small muted>Ancora nessun commento: scrivi il primo.</Body> : comments.map((c, i) => (
-          <Item key={i} last={i === comments.length - 1}>
+          <Item key={c.i} last={i === comments.length - 1}>
             <Row style={{ justifyContent: 'flex-start', alignItems: 'flex-start' }} gap={8}>
               <UserAvatar name={c.author} size={26} />
               <View style={{ flex: 1 }}><Body small bold onPress={() => go('userProfile', { name: c.author })}>{c.author}</Body><Body small muted>{c.text}</Body></View>
+              {c.author !== me && <ModButton kind="comment" refId={`${key}#${c.i}`} label={c.text} author={c.author} size={18} />}
             </Row>
           </Item>
         ))}

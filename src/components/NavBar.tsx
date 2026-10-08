@@ -2,7 +2,7 @@ import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Body, Btn, Card, Row, Sheet, Item, Chev } from '@/components/ui';
+import { Body, Btn, Card, Row, Sheet, Item, Chev, Press } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { translate, sectionNamesFor } from '@/lib/i18n';
 import { Icon, areaColors } from '@/lib/icons';
@@ -49,15 +49,15 @@ export function NavBar({ state }: BottomTabBarProps) {
           </Card>
         </View>
       )}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-around', backgroundColor: t.nav, borderTopWidth: 1, borderTopColor: t.navBorder, paddingTop: 10, paddingBottom: 10 + insets.bottom }}>
+      <View accessibilityRole="tablist" style={{ flexDirection: 'row', justifyContent: 'space-around', backgroundColor: t.nav, borderTopWidth: 1, borderTopColor: t.navBorder, paddingTop: 10, paddingBottom: 10 + insets.bottom }}>
         {navItems.map((id) => {
           const active = id === current;
           return (
-            <Pressable key={id} onPress={() => go(id)} style={{ alignItems: 'center', minWidth: 56 }} accessibilityRole="button" accessibilityState={{ selected: active }}>
-              {active && <View style={{ position: 'absolute', top: -10, width: 4, height: 4, borderRadius: 2, backgroundColor: '#8fa4ff' }} />}
-              <Icon name={id} size={20} color={active ? t.text : '#8792a2'} />
-              <Text style={{ color: active ? t.text : '#8792a2', fontSize: 11, marginTop: 2 }}>{navLabelFor(id, language)}</Text>
-            </Pressable>
+            <Press key={id} onPress={() => go(id)} role="tab" selected={active} accessibilityLabel={navLabelFor(id, language)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} style={{ alignItems: 'center', minWidth: 56, minHeight: 44, justifyContent: 'center' }}>
+              {active && <View style={{ position: 'absolute', top: -10, width: 4, height: 4, borderRadius: 2, backgroundColor: t.accent }} />}
+              <Icon name={id} size={20} color={active ? t.text : t.navInactive} />
+              <Text style={{ color: active ? t.text : t.navInactive, fontSize: 11, marginTop: 2, fontWeight: active ? '700' : '400' }}>{navLabelFor(id, language)}</Text>
+            </Press>
           );
         })}
       </View>
@@ -78,18 +78,19 @@ export function MenuSheet() {
   ];
   return (
     <Sheet visible={open} title={translate(language, 'menuTitle')} onClose={() => setMenu(false)}>
-      <Pressable
+      <Press
         onPress={() => { setMenu(false); go('searchPage'); }}
+        accessibilityLabel={sn.searchPage || 'Cerca'}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: t.input, borderWidth: 1, borderColor: t.border, borderRadius: 14, marginBottom: 16 }}>
         <Icon name="search" size={17} color={t.text} />
         <Text style={{ color: t.muted }}>{sn.searchPage || 'Cerca'}</Text>
-      </Pressable>
+      </Press>
       {groups.map((g) => (
         <View key={g.label}>
           <Text style={{ color: t.muted, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 14, marginBottom: 6, marginLeft: 2 }}>{g.label}</Text>
           <View style={{ backgroundColor: t.input, borderWidth: 1, borderColor: t.border, borderRadius: 16, overflow: 'hidden' }}>
             {g.items.map(([id, label], i) => {
-              const color = areaColors[id] ?? '#8fa4ff';
+              const color = t.mode === 'light' ? t.accent : (areaColors[id] ?? t.accent);
               return (
                 <Item key={id} last={i === g.items.length - 1} style={{ paddingHorizontal: 14, paddingVertical: 12 }} onPress={() => { setMenu(false); go(id); }}>
                   <Row style={{ justifyContent: 'flex-start' }}>

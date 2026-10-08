@@ -82,7 +82,7 @@ export default function LifeTravel() {
 
       <Body small muted style={{ marginTop: 14, marginHorizontal: 2, marginBottom: 4 }}>Scelto dall'AI per te</Body>
       {vacText ? <Body small color="#ffc78a" style={{ marginBottom: 8 }}>In base alle tue vacanze in Plan: {vacText}</Body> : null}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
+      <ScrollView horizontal keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
         {picks.slice(0, 3).map((p) => {
           const c = destinations.find((x) => x.id === p.cityId)!;
           const rep = sorted[0].h;

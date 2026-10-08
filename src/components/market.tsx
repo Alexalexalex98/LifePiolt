@@ -9,6 +9,7 @@ import { cancelEnrollment, declineAttendance, demoFinish, hasEnded, seminarFacts
 import { go } from '@/lib/nav';
 import { canVote } from '@/lib/network';
 import { fmtDateTime, fmtDuration, fmtRange, nextOccurrence, pubLabel } from '@/lib/when';
+import { useVisible } from '@/lib/moderation';
 import { useApp } from '@/store/app';
 import { useNet, type Enrollment, type Provider, type Seminar } from '@/store/network';
 
@@ -43,6 +44,8 @@ export function SeminarCard({ s }: { s: Seminar }) {
   const f = seminarFacts(s);
   const enr = useSeminarEnrollment(s.id);
   const st = statusOf(enr, now);
+  const visible = useVisible();
+  if (!visible('seminar', s.id, s.host)) return null;
   return (
     <Card onPress={() => go('seminarPage', { id: String(s.id) })}>
       <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 4 }} gap={6}>
@@ -75,6 +78,8 @@ export function ServiceCard({ p }: { p: Provider }) {
   const slots = datedSlots(p);
   const enrollments = useNet((s) => s.enrollments);
   const open = enrollments.filter((e) => e.kind === 'service' && e.host === p.name && e.status === 'enrolled').length;
+  const visible = useVisible();
+  if (!visible('service', p.name, p.name)) return null;
   return (
     <Card onPress={() => go('servicePage', { name: p.name })}>
       <Row>

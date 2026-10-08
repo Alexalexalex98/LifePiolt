@@ -1,9 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { Image, Modal, Pressable, Text, View } from 'react-native';
 import { create } from 'zustand';
 
 import { Avatar, Body, Btn, Card, ModalToast, Row } from '@/components/ui';
-import { useTheme } from '@/hooks/use-theme';
+import { useInk, useTheme } from '@/hooks/use-theme';
 import { formatCHF, hashStr, weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
@@ -30,10 +31,10 @@ export const openSheet = (kind: SheetKind, p?: Record<string, any>) => useNetShe
 
 /** Pulsante "..." con Segnala / Nascondi / Blocca utente, per qualunque contenuto della rete. */
 export type ModTarget = { kind: ModKind; ref: string | number; label: string; author?: string };
-export function ModButton(p: ModTarget & { size?: number }) {
+export function ModButton(p: Omit<ModTarget, 'ref'> & { refId: string | number; size?: number }) {
   const t = useTheme();
   return (
-    <Pressable onPress={() => openSheet('contentMenu', { kind: p.kind, ref: p.ref, label: p.label, author: p.author })} hitSlop={10} accessibilityRole="button" accessibilityLabel="Altre azioni: segnala, nascondi, blocca">
+    <Pressable onPress={() => openSheet('contentMenu', { kind: p.kind, ref: p.refId, label: p.label, author: p.author })} hitSlop={10} accessibilityRole="button" accessibilityLabel="Altre azioni: segnala, nascondi, blocca">
       <Icon name="more-h" size={p.size ?? 20} color={t.text} />
     </Pressable>
   );
@@ -82,7 +83,9 @@ export function MediaViewer() {
   return (
     <Modal visible={!!item} transparent animationType="fade" onRequestClose={close} statusBarTranslucent>
       <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center' }}>
-        {item && (item.uri ? (
+        {item && (item.uri && item.media === 'video' ? (
+          <FullVideo uri={item.uri} />
+        ) : item.uri ? (
           <Image source={{ uri: item.uri }} style={{ width: '100%', height: '100%' }} resizeMode="contain" accessibilityLabel={item.media === 'video' ? 'Video' : 'Foto'} />
         ) : (
           <LinearGradient colors={gradientFor(item.seed)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: '100%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={item.media === 'video' ? 'Video' : 'Foto'}>
@@ -92,11 +95,16 @@ export function MediaViewer() {
         <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Chiudi" hitSlop={12} style={{ position: 'absolute', top: 44, right: 18, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="x" size={22} color="#fff" stroke={2.2} />
         </Pressable>
-        <Text style={{ position: 'absolute', bottom: 40, alignSelf: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{item?.media === 'video' ? 'Anteprima video (segnaposto)' : 'Anteprima foto (segnaposto)'}</Text>
+        <Text style={{ position: 'absolute', bottom: 40, alignSelf: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{item?.uri ? '' : item?.media === 'video' ? 'Anteprima video (segnaposto)' : 'Anteprima foto (segnaposto)'}</Text>
         <ModalToast />
       </View>
     </Modal>
   );
+}
+
+function FullVideo({ uri }: { uri: string }) {
+  const p = useVideoPlayer(uri, (pl) => { pl.loop = false; });
+  return <VideoView player={p} style={{ width: '100%', height: '100%' }} nativeControls contentFit="contain" />;
 }
 
 export function MediaBlock({ media, seed, uri }: { media?: 'photo' | 'video' | null; seed: string; uri?: string }) {
@@ -104,8 +112,10 @@ export function MediaBlock({ media, seed, uri }: { media?: 'photo' | 'video' | n
   const g = gradientFor(seed);
   return (
     <Pressable onPress={() => openMedia({ media, seed, uri })} accessibilityRole="imagebutton" accessibilityLabel={media === 'video' ? 'Apri il video a schermo intero' : 'Apri la foto a schermo intero'}>
-      {uri ? (
+      {uri && media === 'photo' ? (
         <Image source={{ uri }} style={{ aspectRatio: 1, borderRadius: 14, marginVertical: 8, width: '100%' }} resizeMode="cover" />
+      ) : uri ? (
+        <View style={{ aspectRatio: 16 / 9, borderRadius: 14, marginVertical: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111' }}><Icon name="play" size={40} color="#fff" fill="#fff" /><Text style={{ color: '#ffffffb0', fontSize: 12, marginTop: 6 }}>Video · tocca per guardarlo</Text></View>
       ) : (
         <LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14, marginVertical: 8, alignItems: 'center', justifyContent: 'center' }}>
           {media === 'video' && <Icon name="play" size={28} color="#fff" fill="#fff" />}
@@ -116,9 +126,10 @@ export function MediaBlock({ media, seed, uri }: { media?: 'photo' | 'video' | n
 }
 
 export function Badge({ label, color, onPress }: { label: string; color: string; onPress?: () => void }) {
+  const ink = useInk();
   return (
-    <Pressable onPress={onPress} style={{ alignSelf: 'flex-start', backgroundColor: color + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}>
-      <Text style={{ color, fontSize: 10, fontWeight: '700' }}>{label}</Text>
+    <Pressable onPress={onPress} hitSlop={onPress ? 10 : undefined} accessibilityRole={onPress ? 'button' : undefined} style={{ alignSelf: 'flex-start', backgroundColor: color + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}>
+      <Text style={{ color: ink(color), fontSize: 10, fontWeight: '700' }}>{label}</Text>
     </Pressable>
   );
 }
@@ -179,6 +190,7 @@ export function IdeaCard({ idea }: { idea: Idea }) {
         </Row>
       </Row>
       {dup && <Body small color="#ffb84f" style={{ marginVertical: 4 }}>Simile a "{dup.title}" di {dup.author}, creata prima</Body>}
+      {idea.uri ? <MediaBlock media={idea.media ?? 'photo'} seed={idea.title} uri={idea.uri} /> : null}
       <Body small muted style={{ marginVertical: 6 }}>{idea.desc}</Body>
       <Body small color="#c9b6ff" style={{ marginBottom: 6 }}>{reward}</Body>
       <Row>

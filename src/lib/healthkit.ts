@@ -1,4 +1,6 @@
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { create } from 'zustand';
 
 import { dayKey } from '@/lib/format';
 import { useHealth, type Pt, type Workout } from '@/store/health';
@@ -35,6 +37,20 @@ const SLEEP = 'HKCategoryTypeIdentifierSleepAnalysis' as const;
 const MINDFUL = 'HKCategoryTypeIdentifierMindfulSession' as const;
 
 export const HK_UNAVAILABLE_MSG = 'Apple Health richiede la versione installata con Xcode, in Expo Go non è disponibile. Puoi registrare i dati a mano.';
+
+/** Messaggio chiaro sul perché Apple Health non c'è (Expo Go, Android, web, iPhone senza modulo nativo). */
+export function hkUnsupportedMessage(): string {
+  if (Platform.OS !== 'ios') return 'Apple Health esiste solo su iPhone. Qui puoi registrare i dati a mano.';
+  let expoGo = false;
+  try { expoGo = Constants.executionEnvironment === 'storeClient' || (Constants as unknown as { appOwnership?: string }).appOwnership === 'expo'; } catch { /* ignora */ }
+  return expoGo
+    ? 'Stai usando Expo Go: Apple Health non è disponibile lì. Serve la versione installata con Xcode, una development build o TestFlight. Intanto puoi registrare i dati a mano.'
+    : HK_UNAVAILABLE_MSG;
+}
+
+/** Stato visibile della sincronizzazione (non salvato: serve solo alla schermata). */
+export type SyncPhase = 'idle' | 'syncing' | 'ok' | 'error' | 'unsupported';
+export const useHkStatus = create<{ phase: SyncPhase; message: string; set: (p: SyncPhase, message?: string) => void }>((set) => ({ phase: 'idle', message: '', set: (phase, message = '') => set({ phase, message }) }));
 
 export type HkState = 'unsupported' | 'unavailable' | 'ready';
 
@@ -169,9 +185,22 @@ function estimateStress(hrv: Pt[], hr: Pt[]): Pt[] {
 export type SyncResult = { ok: boolean; message: string; counts?: Record<string, number> };
 
 /** Scarica gli ultimi `days` giorni da Salute e li salva nello stato dell'app. */
-export async function syncAppleHealth(days = 60): Promise<SyncResult> {
+let inFlight: Promise<SyncResult> | null = null;
+export function syncAppleHealth(days = 60): Promise<SyncResult> {
+  // una sola sincronizzazione alla volta: chi chiama mentre ce n'è una in corso riceve lo stesso risultato
+  if (inFlight) return inFlight;
+  const status = useHkStatus.getState();
+  status.set('syncing', 'Sincronizzo con Apple Health…');
+  inFlight = syncInner(days)
+    .catch((e): SyncResult => ({ ok: false, message: 'Errore nella sincronizzazione: ' + (e instanceof Error ? e.message : String(e)) }))
+    .then((r) => { useHkStatus.getState().set(r.ok ? 'ok' : r.message === hkUnsupportedMessage() ? 'unsupported' : 'error', r.message); return r; })
+    .finally(() => { inFlight = null; });
+  return inFlight;
+}
+
+async function syncInner(days: number): Promise<SyncResult> {
   const st = await hkState();
-  if (st === 'unsupported') return { ok: false, message: HK_UNAVAILABLE_MSG };
+  if (st === 'unsupported') return { ok: false, message: hkUnsupportedMessage() };
   if (st === 'unavailable') return { ok: false, message: 'Questo dispositivo non supporta Apple Health.' };
   const store = useHealth.getState();
   try {
@@ -210,14 +239,14 @@ export async function syncAppleHealth(days = 60): Promise<SyncResult> {
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    store.setSync(null, msg);
+    store.setSync(useHealth.getState().lastSync, msg); // l'ultimo aggiornamento riuscito resta visibile
     return { ok: false, message: 'Errore nella lettura da Apple Health: ' + msg };
   }
 }
 
 export async function connectAppleHealth(): Promise<SyncResult> {
   const st = await hkState();
-  if (st !== 'ready') return syncAppleHealth(); // restituisce il messaggio giusto
+  if (st !== 'ready') return syncAppleHealth(); // restituisce il messaggio giusto (Expo Go, Android…)
   let granted = false;
   try { granted = await requestAppleHealth(); } catch { granted = false; }
   if (!granted) return { ok: false, message: 'Permesso non concesso. Puoi attivarlo da Impostazioni > Salute.' };
@@ -225,14 +254,19 @@ export async function connectAppleHealth(): Promise<SyncResult> {
 }
 
 let lastAuto = 0;
-/** Sincronizzazione leggera all'avvio e quando l'app torna in primo piano (al massimo ogni 10 minuti). */
+let lastAutoFailed = false;
+/**
+ * Sincronizzazione leggera all'avvio e quando l'app torna in primo piano (al massimo ogni 10 minuti, 2 dopo un errore).
+ * Solo in primo piano: expo-background-task / expo-task-manager non sono installati, quindi non c'è sync a app chiusa.
+ */
 export async function autoSyncIfConnected() {
   try { await autoSyncInner(); } catch { /* mai bloccare l'avvio */ }
 }
 async function autoSyncInner() {
   const { wearable } = useHealth.getState();
   if (!wearable.connected || wearable.device !== 'Apple Health') return;
-  if (Date.now() - lastAuto < 10 * 60 * 1000) return;
+  if (Date.now() - lastAuto < (lastAutoFailed ? 2 : 10) * 60 * 1000) return;
   lastAuto = Date.now();
-  await syncAppleHealth(21);
+  const r = await syncAppleHealth(21);
+  lastAutoFailed = !r.ok;
 }

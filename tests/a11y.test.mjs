@@ -29,3 +29,12 @@ test('le palette hanno le stesse chiavi', () => {
   const k = Object.keys(palettes.dark).sort().join();
   for (const n of Object.keys(palettes)) assert.equal(Object.keys(palettes[n]).sort().join(), k);
 });
+
+import { readable } from '../src/lib/a11y.ts';
+test('readable: scurisce i pastello su chiaro, schiarisce su scuro, lascia i colori a norma', () => {
+  assert.ok(contrast(readable('#7be0b0', '#ffffff'), '#ffffff') >= 4.5);
+  assert.ok(contrast(readable('#e0c97b', '#ffffff'), '#ffffff') >= 4.5);
+  assert.ok(contrast(readable('#3a2a5c', '#141a24'), '#141a24') >= 4.5);
+  assert.equal(readable('#10151d', '#ffffff'), '#10151d');
+  assert.equal(readable('nonuncolore', '#ffffff'), 'nonuncolore');
+});

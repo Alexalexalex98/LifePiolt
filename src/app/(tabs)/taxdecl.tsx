@@ -7,9 +7,10 @@ import { FinTabs } from '@/components/FinTabs';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Pill, Progress, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { checkDoc, fmtBytes, isImageFile, taxDocFolder, type DocCheck } from '@/lib/docCheck';
-import { monthNames, weekdayShortDate } from '@/lib/format';
+import { dayKey, monthNames, weekdayShortDate } from '@/lib/format';
 import { persistFile } from '@/lib/chatMedia';
 import { Icon } from '@/lib/icons';
+import { TAX_DISCLAIMER, taxEventsToAdd, upcomingDeadlines } from '@/lib/taxDeadlines';
 import { taxDocOf, useFin, type TaxDocFile } from '@/store/finance';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
@@ -39,6 +40,14 @@ export default function TaxDecl() {
   const [res, setRes] = useState<DocCheck | null>(null);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<TaxDocFile | null>(null);
+
+  const deadlines = upcomingDeadlines(dayKey());
+  const addDeadlines = () => {
+    const life = useLife.getState();
+    const add = taxEventsToAdd(deadlines, life.events);
+    add.forEach((a) => life.addEvent(a.day, a.ev));
+    toast(add.length ? `Aggiunte ${add.length} scadenze al Plan, con promemoria` : 'Le scadenze fiscali sono già nel Plan');
+  };
 
   const persons = tax.married ? ['Titolare', 'Coniuge'] : ['Titolare'];
   const items: ReqItem[] = [];
@@ -172,6 +181,18 @@ export default function TaxDecl() {
             })}
           </View>
         ))}
+      </Card>
+      <Card>
+        <H>Scadenze fiscali</H>
+        <Body small color={t.warn} style={{ marginVertical: 6 }}>{TAX_DISCLAIMER}</Body>
+        {deadlines.map((d, i) => (
+          <Item key={d.id} last={i === deadlines.length - 1}>
+            <Body bold>{d.day.slice(8)}.{d.day.slice(5, 7)}.{d.day.slice(0, 4)} · {d.title}</Body>
+            <Body small muted style={{ marginTop: 2 }}>{d.note}</Body>
+          </Item>
+        ))}
+        <Btn style={{ marginTop: 12 }} icon="calendar" title="Aggiungi le scadenze fiscali al Plan" onPress={addDeadlines} />
+        <Body small muted style={{ marginTop: 6 }}>Vengono inserite come impegni alle 09:00 con promemoria, senza duplicati.</Body>
       </Card>
       <Btn style={{ marginVertical: 6 }} title="Genera dichiarazione" onPress={() => setSummary(true)} />
 

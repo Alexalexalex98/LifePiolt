@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { Pressable, Share, View } from 'react-native';
 
 import { EnrollmentBox, Price, datedSlots, modeLabel } from '@/components/market';
-import { Badge, MediaBlock, UserAvatar } from '@/components/network';
+import { Badge, MediaBlock, ModButton, UserAvatar } from '@/components/network';
 import { Body, Btn, Card, Chev, Empty, H, IL, Item, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { providerInfoFor } from '@/data/marketSeed';
@@ -12,6 +12,7 @@ import { go } from '@/lib/nav';
 import { ratingFor } from '@/lib/network';
 import { fmtDateTime, fmtDuration, hhmm } from '@/lib/when';
 import { useApp } from '@/store/app';
+import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
 
 export default function ServicePage() {
@@ -21,6 +22,8 @@ export default function ServicePage() {
   const p = useNet((s) => s.providers.find((x) => x.name === name));
   const enrollments = useNet((s) => s.enrollments);
   useNet((s) => s.votes);
+  const visible = useVisible();
+  if (p && !visible('service', p.name, p.name)) return <Page id="servicePage" title="Servizio" back><Card><Empty text="Hai nascosto o segnalato questo servizio, oppure il professionista è bloccato." /><Btn small ghost style={{ marginTop: 10 }} title="Segnalazioni inviate" onPress={() => go('reports')} /></Card></Page>;
   if (!p) return <Page id="servicePage" title="Servizio" back><Card><Empty text="Servizio non trovato." /></Card></Page>;
   const info = providerInfoFor(p);
   const isMine = p.name === me;
@@ -29,7 +32,7 @@ export default function ServicePage() {
   const r = ratingFor(p.name);
 
   return (
-    <Page id="servicePage" title={p.role} back right={<Btn small ghost icon="share" title="Condividi" onPress={() => Share.share({ message: `${p.role} con ${p.name} su LifePilot` })} />}>
+    <Page id="servicePage" title={p.role} back right={<Row gap={10}><Btn small ghost icon="share" title="Condividi" onPress={() => Share.share({ message: `${p.role} con ${p.name} su LifePilot` })} />{!isMine && <ModButton kind="service" refId={p.name} label={`${p.role} · ${p.name}`} author={p.name} />}</Row>}>
       <Card>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }} gap={6}>
           <Badge label={p.tag} color="#8fa4ff" />

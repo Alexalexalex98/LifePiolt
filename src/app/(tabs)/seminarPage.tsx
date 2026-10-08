@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { Pressable, Share, View } from 'react-native';
 
 import { EnrollmentBox, Price, SPONSORED_TEXT, modeLabel, useSeminarEnrollment } from '@/components/market';
-import { Badge, UserAvatar, openSheet } from '@/components/network';
+import { Badge, ModButton, UserAvatar, openSheet } from '@/components/network';
 import { Body, Btn, Card, Chev, Empty, H, IL, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { enrollSeminar, hasEnded, seminarFacts, useNow } from '@/lib/enroll';
@@ -11,6 +11,7 @@ import { go } from '@/lib/nav';
 import { ratingFor } from '@/lib/network';
 import { fmtDuration, fmtRange, pubLabel } from '@/lib/when';
 import { useApp } from '@/store/app';
+import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
 
 export default function SeminarPage() {
@@ -21,6 +22,8 @@ export default function SeminarPage() {
   const enr = useSeminarEnrollment(Number(id));
   const now = useNow(20000);
   useNet((st) => st.votes); // aggiorna la valutazione del relatore
+  const visible = useVisible();
+  if (s && !visible('seminar', s.id, s.host)) return <Page id="seminarPage" title="Seminario" back><Card><Empty text="Hai nascosto o segnalato questo seminario, oppure il relatore è bloccato." /><Btn small ghost style={{ marginTop: 10 }} title="Segnalazioni inviate" onPress={() => go('reports')} /></Card></Page>;
   if (!s) return <Page id="seminarPage" title="Seminario" back><Card><Empty text="Seminario non trovato." /></Card></Page>;
   const f = seminarFacts(s);
   const isHost = s.host === me;
@@ -31,7 +34,7 @@ export default function SeminarPage() {
   const ended = f.startsAt !== null && hasEnded({ startsAt: f.startsAt, durationMin: f.durationMin }, now);
 
   return (
-    <Page id="seminarPage" title={s.title} back right={<Btn small ghost icon="share" title="Condividi" onPress={() => Share.share({ message: `Seminario su LifePilot: ${s.title} (${s.host})` })} />}>
+    <Page id="seminarPage" title={s.title} back right={<Row gap={10}><Btn small ghost icon="share" title="Condividi" onPress={() => Share.share({ message: `Seminario su LifePilot: ${s.title} (${s.host})` })} />{!isHost && <ModButton kind="seminar" refId={s.id} label={s.title} author={s.host} />}</Row>}>
       <Card>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 6 }} gap={6}>
           {s.promoted && <Badge label="Sponsorizzato" color="#c9b6ff" onPress={() => openSheet('sponsoredInfo')} />}

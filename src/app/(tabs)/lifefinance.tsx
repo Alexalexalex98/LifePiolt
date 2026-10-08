@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { CsvImportSheet } from '@/components/CsvImportSheet';
 import { Donut, LineChart, Spark } from '@/components/charts';
 import { FinTabs } from '@/components/FinTabs';
-import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Pill, Row, Select, Sheet, Tag, Toggle, XBtn } from '@/components/ui';
+import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Pill, Progress, Row, Select, Sheet, Tag, Toggle, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, shortDate } from '@/lib/format';
 import { areaColors, Icon } from '@/lib/icons';
 import { savingsRatePct } from '@/lib/scores';
+import { alertsFor } from '@/lib/budgetState';
+import { detectRecurring, movementsToDated } from '@/lib/recurring';
 import { avgRecentNet, defaultBudget, emergencyByMonth, monthEnd, monthNet, normBill, spendByCategory, typicalCosts, useFin } from '@/store/finance';
 import { toast } from '@/store/toast';
 import { LpTag } from '@/components/network';
@@ -24,6 +27,7 @@ export default function LifeFinance() {
   const [ef, setEf] = useState(false);
   const [guide, setGuide] = useState(false);
   const [billSheet, setBillSheet] = useState(false);
+  const [csvSheet, setCsvSheet] = useState(false);
   const [typSheet, setTypSheet] = useState(false);
   const [typ, setTyp] = useState<Record<string, { on: boolean; amt: string }>>({});
   const [budgetKey, setBudgetKey] = useState(0);
@@ -61,6 +65,8 @@ export default function LifeFinance() {
   const monthlyBills = f.bills.reduce((s, b) => s + (b.freq === 'monthly' ? b.amount : b.amount / 12), 0);
 
   const m = hist != null ? f.months[hist] : null;
+  const alerts = alertsFor(f);
+  const recurring = detectRecurring(movementsToDated(f.months), f.bills.map((b) => b.name));
 
   const haveBills = new Set(f.bills.map((b) => normBill(b.name)));
   function openTyp() {
@@ -100,6 +106,23 @@ export default function LifeFinance() {
           <Pressable onPress={() => setTrend(true)}>{endsChrono.length > 1 && <Spark data={endsChrono} w={140} h={60} pad={6} stroke={2.5} color={t.text} />}</Pressable>
         </Row>
         <Body small muted style={{ marginTop: 8 }}>Tocca per vedere tutti i movimenti · stipendio ed entrate/uscite · tocca il grafico per l'andamento mensile</Body>
+      </Card>
+
+      {alerts.length > 0 && (
+        <Card accent={alerts.some((a) => a.level === 'over') ? t.danger : t.warn}>
+          <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="alert" size={20} color={alerts.some((a) => a.level === 'over') ? t.danger : t.warn} /><H>Avvisi di budget</H></Row>
+          {alerts.map((a, i) => (
+            <Item key={a.category} last={i === alerts.length - 1}>
+              <Body bold color={a.level === 'over' ? t.danger : t.warn}>{a.text}</Body>
+              <Body small muted style={{ marginTop: 2 }}>{a.detail}</Body>
+              <Progress value={Math.min(100, a.pct)} color={a.level === 'over' ? t.danger : t.warn} />
+            </Item>
+          ))}
+        </Card>
+      )}
+
+      <Card>
+        <Row><View style={{ flex: 1 }}><Body bold>Importa movimenti</Body><Body small muted>Da un CSV o estratto conto della tua banca</Body></View><Btn small ghost icon="plus" title="Importa CSV" onPress={() => setCsvSheet(true)} /></Row>
       </Card>
 
       <Card onPress={() => go('lifepointsPage')}>
@@ -176,6 +199,19 @@ export default function LifeFinance() {
             <Row><View style={{ flex: 1 }}><Body>{b.name}</Body><Body small muted>{b.freq === 'monthly' ? 'ogni mese' : 'ogni anno'}</Body></View><Body bold>{formatCHF(b.amount)} CHF</Body><XBtn onPress={() => { f.delBill(b.id); toast('Rimossa'); }} /></Row>
           </Item>
         ))}
+        {recurring.length > 0 && (
+          <View style={{ marginTop: 12, backgroundColor: t.item, borderRadius: 14, padding: 12 }}>
+            <Body bold>Rilevate dai tuoi movimenti</Body>
+            <Body small muted style={{ marginBottom: 6 }}>Pagamenti che si ripetono: aggiungili con un tocco.</Body>
+            {recurring.slice(0, 6).map((r) => (
+              <Row key={r.key} style={{ paddingVertical: 5 }}>
+                <View style={{ flex: 1 }}><Body>{r.name}</Body><Body small muted>{formatCHF(r.amount)} CHF · {r.freq === 'monthly' ? 'ogni mese' : 'ogni anno'} · visto {r.count} volte</Body></View>
+                <Btn small ghost title="Aggiungi" onPress={() => { const n = f.addBills([{ name: r.name, amount: r.amount, freq: r.freq }]); toast(n ? 'Aggiunta alle bollette' : 'Già presente'); }} />
+              </Row>
+            ))}
+            {recurring.length > 1 && <Btn small style={{ marginTop: 8 }} title={`Aggiungi tutte (${Math.min(recurring.length, 6)})`} onPress={() => { const n = f.addBills(recurring.slice(0, 6).map((r) => ({ name: r.name, amount: r.amount, freq: r.freq }))); toast(n === 1 ? 'Aggiunta 1 bolletta' : `Aggiunte ${n} bollette`); }} />}
+          </View>
+        )}
         {f.bills.length > 0 && <Body small muted style={{ marginTop: 10 }}>Totale equivalente mensile: {formatCHF(Math.round(monthlyBills))} CHF</Body>}
       </Card>
 
@@ -302,6 +338,7 @@ export default function LifeFinance() {
           setBName(''); setBAmount(''); setBillSheet(false); toast('Bolletta aggiunta');
         }} />
       </Sheet>
+      <CsvImportSheet visible={csvSheet} onClose={() => setCsvSheet(false)} />
       <Tag>{''}</Tag>
     </Page>
   );

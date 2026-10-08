@@ -11,6 +11,7 @@ import { BOTTOM_CLEARANCE, MIN_HIT, radius, space, type as fs } from '@/constant
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useTheme } from '@/hooks/use-theme';
 import { useSectionNames } from '@/lib/i18n';
+import { readable } from '@/lib/a11y';
 import { areaColors, Icon } from '@/lib/icons';
 import { goBack, go } from '@/lib/nav';
 import { useApp } from '@/store/app';
@@ -87,7 +88,7 @@ function TopBar({ page }: { page: string }) {
   return (
     <View style={s.top}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1 }}>
-        <Image source={require('../../assets/proto/app-logo.png')} style={{ height: 30, width: 30 }} resizeMode="contain" accessibilityLabel="LifePilot" />
+        <Image source={require('../../assets/proto/app-logo.png')} style={{ height: 30, width: 30, ...(t.mode === 'light' ? { tintColor: '#10151d' } : null) }} resizeMode="contain" accessibilityLabel="LifePilot" />
         <Text accessibilityRole="header" style={{ color: t.mode === 'light' ? t.text : (areaColors[page] ?? t.text), fontSize: 16, fontWeight: '700' }}>{tag}</Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -250,11 +251,12 @@ export function Btn({ title, onPress, ghost, small, danger, disabled, style, ton
 
 export function Pill({ label, on, onPress, off, color, icon }: { label: string; icon?: string; on?: boolean; onPress?: () => void; off?: boolean; color?: string }) {
   const t = useTheme();
+  const tone = color ? readable(color, t.chip) : t.text;
   return (
     <Press onPress={off ? undefined : onPress} disabled={off} accessibilityLabel={label} selected={on} hitSlop={{ top: 7, bottom: 7, left: 3, right: 3 }} style={[s.pill, { backgroundColor: on ? t.text : t.chip, opacity: off ? 0.4 : 1 }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-        {icon ? <Icon name={icon} size={13} color={on ? t.bg : (color ?? t.text)} stroke={2} /> : null}
-        <Text style={{ color: on ? t.bg : (color ?? t.text), fontSize: 12, fontWeight: on ? '700' : '500' }}>{label}</Text>
+        {icon ? <Icon name={icon} size={13} color={on ? t.bg : tone} stroke={2} /> : null}
+        <Text style={{ color: on ? t.bg : tone, fontSize: 12, fontWeight: on ? '700' : '500' }}>{label}</Text>
       </View>
     </Press>
   );

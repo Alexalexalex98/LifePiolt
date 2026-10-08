@@ -9,7 +9,9 @@ import { refreshBriefings } from '@/lib/notify';
 import { refreshWeather } from '@/lib/weather';
 
 import { ErrorBanner, installGlobalErrors } from '@/components/ErrorBanner';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { ToastHost } from '@/components/ui';
+import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useTheme } from '@/hooks/use-theme';
 import { useApp } from '@/store/app';
 import { useFin } from '@/store/finance';
@@ -33,6 +35,7 @@ export { ErrorScreen as ErrorBoundary } from '@/components/ErrorScreen';
 
 export default function RootLayout() {
   const t = useTheme();
+  const reduceMotion = useReduceMotion();
   const onboarded = useApp((s) => s.onboarded);
   const [ready, setReady] = useState(allHydrated());
 
@@ -59,7 +62,7 @@ export default function RootLayout() {
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
       <StatusBar style={t.mode === 'light' ? 'dark' : 'light'} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
+      <Stack screenOptions={{ headerShown: false, animation: reduceMotion ? 'none' : 'default', contentStyle: { backgroundColor: t.bg } }}>
         <Stack.Protected guard={!onboarded}>
           <Stack.Screen name="onboarding" />
         </Stack.Protected>
@@ -67,6 +70,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
         </Stack.Protected>
       </Stack>
+      <OfflineBanner />
       <ToastHost />
       <ErrorBanner />
     </View>

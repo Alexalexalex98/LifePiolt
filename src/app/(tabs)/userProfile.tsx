@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { IdeaCard, LpTag, PostCard, UserAvatar, openPurchaseConfirm, openSheet } from '@/components/network';
+import { IdeaCard, LpTag, ModButton, PostCard, UserAvatar, openPurchaseConfirm, openSheet } from '@/components/network';
 import { Body, Btn, Card, Chev, Empty, Item, Page, Row, Seg } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF } from '@/lib/format';
@@ -10,6 +10,7 @@ import { fmtDateTime } from '@/lib/when';
 import { badgesFor, bioFor, followerCountFor, ratingFor, receivedLPFor } from '@/lib/network';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
+import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 
@@ -21,6 +22,8 @@ export default function UserProfile() {
   const net = useNet();
   const name = param || me;
   const isMe = name === me;
+  const visible = useVisible();
+  const blockedUser = useChat((s) => s.blocked.includes(name));
   const ideasCount = net.ideas.filter((i) => i.author === name).length;
   const stats: [string, number, () => void][] = [];
   if (ideasCount > 0) stats.push(['Idee pubblicate', ideasCount, () => openSheet('statDetail', { what: 'ideas', name })]);
@@ -43,7 +46,17 @@ export default function UserProfile() {
   const filtered = tab === 'Post' ? authorPosts : tab === 'Foto' ? authorPosts.filter((p) => p.media === 'photo') : authorPosts.filter((p) => p.media === 'video');
 
   return (
-    <Page id="userProfile" back>
+    <Page id="userProfile" back right={!isMe ? <ModButton kind="profile" refId={name} label={`Profilo di ${name}`} author={name} /> : undefined}>
+      {!isMe && (blockedUser || !visible('profile', name)) && (
+        <Card>
+          <Body bold>{blockedUser ? `Hai bloccato ${name}` : 'Hai segnalato o nascosto questo profilo'}</Body>
+          <Body small muted style={{ marginTop: 4 }}>{blockedUser ? 'Non vedi i suoi contenuti e non puoi scrivergli. Puoi sbloccarlo qui o da Segnalazioni inviate.' : 'Lo trovi in Segnalazioni inviate, dove puoi annullare la segnalazione.'}</Body>
+          <Row style={{ marginTop: 10, justifyContent: 'flex-start' }} gap={8}>
+            {blockedUser && <Btn small title={`Sblocca ${name}`} onPress={() => { useChat.getState().block(name, false); toast(`${name} sbloccato`); }} />}
+            <Btn small ghost title="Segnalazioni inviate" onPress={() => go('reports')} />
+          </Row>
+        </Card>
+      )}
       <Card style={{ alignItems: 'center' }}>
         <UserAvatar name={name} size={84} />
         <Text style={{ color: t.text, fontSize: 22, fontWeight: '800', marginTop: 10 }}>{name}</Text>
@@ -96,7 +109,7 @@ export default function UserProfile() {
       {others.length > 0 && (
         <View style={{ marginVertical: 14 }}>
           <Body small muted style={{ marginBottom: 8 }}>{isMe ? 'Altri profili' : 'Potresti conoscere'}</Body>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
+          <ScrollView horizontal keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
             {others.map((n) => <Pressable key={n} style={{ width: 62, alignItems: 'center' }} onPress={() => go('userProfile', { name: n })}><UserAvatar name={n} size={48} /><Body small muted numberOfLines={1} style={{ marginTop: 4 }}>{n.split(' ')[0]}</Body></Pressable>)}
           </ScrollView>
         </View>

@@ -8,6 +8,7 @@ import { Body, Btn, Card, Empty, H, Input, Page, Row, Seg, TabRow, Item, Chev } 
 import { useT } from '@/lib/i18n';
 import { formatCHF } from '@/lib/format';
 import { go } from '@/lib/nav';
+import { useVisible } from '@/lib/moderation';
 import { peoplePool } from '@/lib/network';
 import { describeCommunity } from '@/data/marketSeed';
 import { useApp } from '@/store/app';
@@ -22,6 +23,7 @@ export default function LifeNetwork() {
   const [people, setPeople] = useState('');
   const [commQ, setCommQ] = useState(''); const [commTopic, setCommTopic] = useState('Tutti');
   const [ideaQ, setIdeaQ] = useState('');
+  const visible = useVisible();
 
   // i messaggi si aprono dall'icona in alto: qui restano solo queste schede
   const tabs = ['Home', 'Lavoro', 'Community', 'Idee', 'Marketplace'];
@@ -43,10 +45,10 @@ export default function LifeNetwork() {
   /* feed misto */
   function buildFeed() {
     const comm: any[] = [];
-    net.communities.filter((c) => c.members.includes(me)).forEach((c) => c.posts.forEach((p, pi) => comm.push({ type: 'community', community: c.name, cid: c.id, pi, ...p })));
-    const standalone = net.posts.map((p) => ({ type: 'standalone', post: p }));
-    const ideaItems = net.hideIdeas ? [] : net.ideas.filter((i) => !net.mutedIdeaAuthors.includes(i.author)).map((idea) => ({ type: 'idea', idea }));
-    const sem = net.seminars.filter((s) => s.promoted).map((s) => ({ type: 'seminar', ...s }));
+    net.communities.filter((c) => c.members.includes(me) && visible('community', c.id, c.owner === 'system' ? undefined : c.owner)).forEach((c) => c.posts.forEach((p, pi) => comm.push({ type: 'community', community: c.name, cid: c.id, pi, ...p })));
+    const standalone = net.posts.filter((p) => visible('post', 'standalone:' + p.id, p.author)).map((p) => ({ type: 'standalone', post: p }));
+    const ideaItems = net.hideIdeas ? [] : net.ideas.filter((i) => !net.mutedIdeaAuthors.includes(i.author) && visible('idea', i.id, i.author)).map((idea) => ({ type: 'idea', idea }));
+    const sem = net.seminars.filter((s) => s.promoted && visible('seminar', s.id, s.host)).map((s) => ({ type: 'seminar', ...s }));
     const mot = [{ type: 'motivational', text: 'Il progresso non è lineare: anche un piccolo passo oggi conta.', author: 'LifePilot' }, { type: 'motivational', text: 'Non devi vedere tutta la scala, basta il primo gradino.', author: 'LifePilot' }];
     const pools = [standalone, comm, ideaItems, sem, mot].filter((p) => p.length);
     const feed: any[] = [];
@@ -64,7 +66,7 @@ export default function LifeNetwork() {
   };
 
   const q = people.trim().toLowerCase();
-  const matches = q.length >= 2 ? peoplePool(me).filter((n) => n.toLowerCase().includes(q)) : [];
+  const matches = q.length >= 2 ? peoplePool(me).filter((n) => n.toLowerCase().includes(q) && visible('profile', n, n)) : [];
 
   let feed = buildFeed();
   if (prefs.homeFilter === 'Seguiti') {
@@ -103,7 +105,7 @@ export default function LifeNetwork() {
           <TabRow options={['Tutti', ...topicList]} value={commTopic} onChange={setCommTopic} />
           <Btn small ghost style={{ marginBottom: 12 }} title="+ Crea la tua community" onPress={() => openSheet('newCommunity')} />
           {(() => {
-            const list = net.communities.filter((c) => (commTopic === 'Tutti' || c.topic === commTopic) && c.name.toLowerCase().includes(commQ.toLowerCase()));
+            const list = net.communities.filter((c) => (commTopic === 'Tutti' || c.topic === commTopic) && c.name.toLowerCase().includes(commQ.toLowerCase()) && visible('community', c.id, c.owner === 'system' ? undefined : c.owner));
             if (!list.length) return <Card><Empty text="Nessuna community trovata." /></Card>;
             return list.map((c) => {
               const joined = c.members.includes(me);
@@ -141,7 +143,7 @@ export default function LifeNetwork() {
           <Btn small ghost style={{ marginBottom: 12 }} title="+ Crea la tua idea" onPress={() => openSheet('newIdea')} />
           <Input placeholder="Cerca idee…" value={ideaQ} onChangeText={setIdeaQ} />
           {(() => {
-            const l = net.ideas.filter((i) => i.title.toLowerCase().includes(ideaQ.toLowerCase()) || i.desc.toLowerCase().includes(ideaQ.toLowerCase()));
+            const l = net.ideas.filter((i) => (i.title.toLowerCase().includes(ideaQ.toLowerCase()) || i.desc.toLowerCase().includes(ideaQ.toLowerCase())) && visible('idea', i.id, i.author));
             return l.length ? l.map((i) => <IdeaCard key={i.id} idea={i} />) : <Card><Empty text="Nessuna idea trovata." /></Card>;
           })()}
         </>

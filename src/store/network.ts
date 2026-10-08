@@ -8,7 +8,7 @@ export type CommPost = { author: string; text: string; media?: 'photo' | 'video'
 export type Community = { id: number; name: string; topic: string; owner: string; openPosting: boolean; members: string[]; posts: CommPost[]; desc?: string; rules?: string; ts?: number };
 export type Provider = { name: string; role: string; price: number; rating: number; tag: string; media: 'photo' | 'video' | null; slots: string[] };
 export type Booking = { id: string; provider: string; role: string; slot: string; price: number };
-export type Idea = { id: number; title: string; desc: string; author: string; raised: number; similarTo: number | null; rewardType: 'libero' | 'fisso'; fixedAmount: number | null; rewardDesc: string; target: number; ts?: number };
+export type Idea = { id: number; title: string; desc: string; author: string; raised: number; similarTo: number | null; rewardType: 'libero' | 'fisso'; fixedAmount: number | null; rewardDesc: string; target: number; ts?: number; media?: 'photo' | 'video' | null; uri?: string };
 export type SeminarMode = 'online' | 'presenza';
 /** I campi oltre a promoted sono opzionali solo per i dati salvati da versioni precedenti. */
 export type Seminar = {

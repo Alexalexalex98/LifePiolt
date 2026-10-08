@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Icon } from '@/lib/icons';
 import { lastNDays, useMoodData } from '@/lib/moodContext';
 import type { Factor } from '@/lib/moodAnalysis';
-import { defaultCity, refreshWeather } from '@/lib/weather';
+import { defaultCity, locateCity, refreshWeather } from '@/lib/weather';
 import { useContext } from '@/store/context';
 import { moodOptions, useHealth } from '@/store/health';
 import { toast } from '@/store/toast';
@@ -100,9 +100,10 @@ export default function MoodPage() {
       <Card>
         <Row><View style={{ flex: 1 }}><Body bold>{wx.city || 'Nessuna città'}</Body><Body small muted>{wx.source === 'demo' ? 'Dati meteo di esempio (demo)' : wx.source === 'open-meteo' ? 'Dati Open-Meteo, ultimi 60 giorni' : wx.error ?? 'Scegli la città per confrontare il meteo'}</Body></View></Row>
         <Input style={{ marginTop: 8 }} placeholder="Città (es. Lugano)" value={city} onChangeText={setCity} />
-        <Btn small ghost icon="repeat" title="Aggiorna meteo" onPress={() => { useContext.getState().set({ city: city.trim(), lat: null, lon: null }); void refreshWeather(true).then(() => toast('Meteo aggiornato')); }} />
+        <Btn small ghost icon="repeat" title="Aggiorna meteo" onPress={() => { useContext.getState().set({ city: city.trim(), lat: null, lon: null, manual: true }); void refreshWeather(true).then(() => toast('Meteo aggiornato')); }} />
+        <Btn small ghost icon="location" title="Usa la mia posizione" style={{ marginTop: 4 }} onPress={async () => { const r = await locateCity(true); toast(r.message); if (r.ok) { if (r.city) setCity(r.city); await refreshWeather(true, true); } }} />
         {wx.error && wx.source !== 'demo' ? <Body small color={t.warn} style={{ marginTop: 6 }}>{wx.error}</Body> : null}
-        <Body small muted style={{ marginTop: 8 }}>Uso solo il nome della città, non la tua posizione. Il meteo è confrontato con umore, sonno, spese e impegni nell’analisi della Dashboard.</Body>
+        <Body small muted style={{ marginTop: 8 }}>Se consenti la posizione ricavo io la città (le coordinate restano sul telefono e servono solo a chiedere il meteo); altrimenti scrivi la città a mano. Il meteo è confrontato con umore, sonno, spese e impegni nell’analisi della Dashboard.</Body>
       </Card>
 
       <Body small muted style={{ marginTop: 10 }}>Sono associazioni statistiche, non cause: confronto l’umore medio tra gruppi di giorni e segnalo un legame solo con abbastanza giorni e una differenza netta. Non sostituisce un parere professionale: se ti senti molto giù per più di due settimane, parlane con qualcuno di competente.</Body>

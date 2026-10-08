@@ -81,7 +81,7 @@ export default function LifeChat() {
       ) : (
         <>
           <View style={{ height: 44, marginBottom: 6 }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', gap: 8 }}>
+            <ScrollView horizontal keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', gap: 8 }}>
               <Pill label="Generale" on={section === GENERALE} onPress={() => setSection(GENERALE)} />
               {folders.map((f) => <Pill key={f.topic} label={`${f.topic} · ${f.count}`} on={section === f.topic} onPress={() => setSection(f.topic)} />)}
             </ScrollView>

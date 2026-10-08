@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AppState, Pressable, Text, View } from 'react-native';
 
+import { WeeklyReportButton } from '@/components/WeeklyReportButton';
 import { Flame, LineChart } from '@/components/charts';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Progress, Row, SectionLabel, Sheet, Tag, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -9,7 +10,17 @@ import { areaColors, Icon } from '@/lib/icons';
 import { computeScores } from '@/lib/scores';
 import { healthMeta, last, moodOptions, streakOf, useHealth, type Metric as M } from '@/store/health';
 import { toast } from '@/store/toast';
-import { connectAppleHealth, HK_UNAVAILABLE_MSG, syncAppleHealth } from '@/lib/healthkit';
+import { autoSyncIfConnected, connectAppleHealth, hkUnsupportedMessage, syncAppleHealth, useHkStatus } from '@/lib/healthkit';
+
+/** "2 minuti fa", "oggi alle 09:14"… */
+function ago(ts: number): string {
+  const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
+  if (m < 1) return 'adesso';
+  if (m < 60) return `${m} ${m === 1 ? 'minuto' : 'minuti'} fa`;
+  const d = new Date(ts);
+  const hhmm = d.toLocaleTimeString('it-CH', { hour: '2-digit', minute: '2-digit' });
+  return new Date().toDateString() === d.toDateString() ? `oggi alle ${hhmm}` : `${d.toLocaleDateString('it-CH', { day: '2-digit', month: '2-digit' })} alle ${hhmm}`;
+}
 
 const fmtSleep = (h: number) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`;
 const stressLabel = (v: number) => (v < 30 ? 'Basso' : v < 60 ? 'Medio' : 'Alto');
@@ -29,13 +40,20 @@ export default function LifeHealth() {
   const [busy, setBusy] = useState(false);
   const [hkMsg, setHkMsg] = useState('');
   const [hkOk, setHkOk] = useState(false);
+  const hk = useHkStatus();
+  // sincronizza all'apertura della pagina e ogni volta che l'app torna attiva (in primo piano; niente sync ad app chiusa)
+  useEffect(() => {
+    void autoSyncIfConnected();
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') void autoSyncIfConnected(); });
+    return () => sub.remove();
+  }, []);
   async function runSync(connect: boolean) {
     setBusy(true);
     try {
       const r = connect ? await connectAppleHealth() : await syncAppleHealth(60);
       setHkMsg(r.message); setHkOk(r.ok); toast(r.message);
     } catch {
-      const m = HK_UNAVAILABLE_MSG;
+      const m = hkUnsupportedMessage();
       setHkMsg(m); setHkOk(false); toast(m);
     } finally { setBusy(false); }
   }
@@ -64,9 +82,13 @@ export default function LifeHealth() {
         {h.wearable.connected && h.wearable.device === 'Apple Health' ? (
           <>
             <Row><Body>Collegato a <Text style={{ fontWeight: '700' }}>Apple Health</Text></Body><Link onPress={() => { h.connect(null); toast('Apple Health scollegato'); }}>Disconnetti</Link></Row>
-            <Body small muted style={{ marginTop: 6 }}>{h.lastSync ? `Ultima sincronizzazione: ${new Date(h.lastSync).toLocaleString('it-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'Non ancora sincronizzato.'} I dati dell'Apple Watch arrivano qui tramite l'app Salute.</Body>
+            <Body small muted style={{ marginTop: 6 }}>{h.lastSync ? `Ultimo aggiornamento: ${ago(h.lastSync)} (${new Date(h.lastSync).toLocaleString('it-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })})` : 'Non ancora sincronizzato.'} I dati dell'Apple Watch arrivano qui tramite l'app Salute. Si aggiorna da solo quando apri l'app e quando ci torni.</Body>
+            <Body small color={hk.phase === 'syncing' ? t.muted : hk.phase === 'ok' ? t.positive : hk.phase === 'idle' ? t.muted : t.warn} style={{ marginTop: 6 }}>
+              Stato: {hk.phase === 'syncing' ? 'sincronizzazione in corso…' : hk.phase === 'ok' ? 'aggiornato' : hk.phase === 'error' ? 'errore nell’ultima sincronizzazione' : hk.phase === 'unsupported' ? 'non disponibile su questo dispositivo' : h.syncError ? 'errore nell’ultima sincronizzazione' : 'in attesa'}
+            </Body>
+            {hk.phase === 'unsupported' ? <Body small color={t.warn} style={{ marginTop: 4 }}>{hk.message}</Body> : null}
             {h.syncError ? <Body small color={t.danger} style={{ marginTop: 6 }}>Ultimo errore: {h.syncError}</Body> : null}
-            <Btn small ghost style={{ marginTop: 10 }} disabled={busy} title={busy ? 'Sincronizzo…' : 'Sincronizza ora'} onPress={() => runSync(false)} />
+            <Btn small ghost style={{ marginTop: 10 }} disabled={busy || hk.phase === 'syncing'} title={busy || hk.phase === 'syncing' ? 'Sincronizzo…' : 'Sincronizza ora'} onPress={() => runSync(false)} />
           </>
         ) : (
           <>
@@ -75,6 +97,7 @@ export default function LifeHealth() {
             {hkMsg ? <Body small color={hkOk ? t.positive : t.warn} style={{ marginTop: 8 }}>{hkMsg}</Body> : null}
           </>
         )}
+        <WeeklyReportButton small style={{ marginTop: 10 }} />
         <Btn small ghost style={{ marginTop: 10 }} title="Registra i dati di oggi a mano" onPress={() => { setToday({}); setSheet('today'); }} />
       </Card>
 

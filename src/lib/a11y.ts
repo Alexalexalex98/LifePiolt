@@ -59,3 +59,25 @@ export function failingPairs(p: Record<string, string>, min = AA_TEXT) {
   }
   return out;
 }
+
+const toHex = (c: number[]) => '#' + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+
+/**
+ * Ritocca `fg` (scurendolo su sfondi chiari, schiarendolo su sfondi scuri) finché ha almeno `min`:1 su `bg`.
+ * Serve per i colori "pastello" nati per il tema scuro (badge, etichette) quando compaiono su sfondo chiaro.
+ * Se già a norma, restituisce il colore invariato (l'eventuale alpha viene mantenuta).
+ */
+export function readable(fg: string, bg: string, min = AA_TEXT): string {
+  let rgb: [number, number, number];
+  try { rgb = parseHex(fg); } catch { return fg; }
+  const a = alphaOf(fg);
+  const solid = (c: number[]) => toHex(c);
+  if (contrast(over(fg, bg), bg) >= min) return fg;
+  const target = luminance(bg) > 0.4 ? 0 : 255;
+  let cur: number[] = rgb;
+  for (let i = 1; i <= 20; i++) {
+    cur = rgb.map((v) => v + (target - v) * (i / 20));
+    if (contrast(solid(cur), bg) >= min) break;
+  }
+  return a < 1 ? solid(cur) + Math.round(a * 255).toString(16).padStart(2, '0') : solid(cur);
+}

@@ -91,8 +91,9 @@ export default function Conversation() {
   const byId = useMemo(() => Object.fromEntries(msgs.map((m) => [m.id, m])), [msgs]);
   const mediaItems = useMemo(() => msgs.filter((m) => (m.kind === 'image' || m.kind === 'video') && !m.deletedForAll), [msgs]);
 
-  useEffect(() => { if (!search) setTimeout(() => list.current?.scrollToEnd({ animated: false }), 60); }, [id, search]);
-  useEffect(() => { if (!search) setTimeout(() => list.current?.scrollToEnd({ animated: true }), 60); }, [msgs.length, search]);
+  // resta in fondo all'apertura e a ogni nuovo messaggio, anche quando le schede (agenda, inviti...) si disegnano dopo
+  const stick = useRef(true);
+  useEffect(() => { if (search || params.jump) return; stick.current = true; const tm = setTimeout(() => { stick.current = false; }, 1500); return () => clearTimeout(tm); }, [id, msgs.length, search, params.jump]);
   useEffect(() => { if (params.jump) setTimeout(() => jumpTo(params.jump!), 300); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [params.jump]);
 
   const jumpTo = useCallback((mid: string) => {
@@ -239,6 +240,7 @@ export default function Conversation() {
         keyExtractor={(r) => r.key}
         renderItem={renderItem}
         extraData={[selected, highlight, settings.fontSize]}
+        onContentSizeChange={() => { if (stick.current && !search) list.current?.scrollToEnd({ animated: false }); }}
         onScrollToIndexFailed={(e) => setTimeout(() => list.current?.scrollToOffset({ offset: e.averageItemLength * e.index, animated: true }), 50)}
         ListEmptyComponent={<Body muted small style={{ textAlign: 'center', marginTop: 40 }}>{search ? 'Nessun risultato.' : 'Nessun messaggio ancora: scrivi per primo.'}</Body>}
         keyboardShouldPersistTaps="handled"

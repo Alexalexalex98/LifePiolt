@@ -88,7 +88,7 @@ export function TheiaHost() {
       </ScrollView>
       <Row style={{ alignItems: 'flex-start', marginTop: 4 }}>
         <Input flex={1} placeholder="Scrivi una domanda o un comando…" value={q} onChangeText={setQ} onSubmitEditing={() => ask(q)} returnKeyType="send" style={{ marginBottom: 0 }} />
-        <Btn title="" icon="arrow-up" onPress={() => ask(q)} disabled={!q.trim() || busy} />
+        <Btn title="" label="Invia" icon="arrow-up" onPress={() => ask(q)} disabled={!q.trim() || busy} />
       </Row>
       <Pressable onPress={() => { close(); go('ai'); }} style={{ paddingVertical: 10 }}><Body small muted>Questa conversazione viene archiviata in LifeChat, nella sezione giusta. Apri LifeChat</Body></Pressable>
     </Sheet>

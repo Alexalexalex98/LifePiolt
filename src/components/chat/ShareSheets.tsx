@@ -102,7 +102,7 @@ export function TasksSheet({ visible, onClose, onSend }: Common) {
       <Body small muted style={{ marginBottom: 6 }}>Scegli dai tuoi task, scrivine di nuovi o caricane una lista da file di testo (una riga per task).</Body>
       <Row style={{ alignItems: 'flex-start', marginBottom: 8 }} gap={8}>
         <Input flex={1} placeholder="Nuovo task da condividere…" value={draft} onChangeText={setDraft} onSubmitEditing={addFresh} returnKeyType="done" style={{ marginBottom: 0 }} />
-        <Btn title="" icon="plus" onPress={addFresh} disabled={!draft.trim()} />
+        <Btn title="" label="Aggiungi" icon="plus" onPress={addFresh} disabled={!draft.trim()} />
       </Row>
       <Row style={{ justifyContent: 'flex-start', marginBottom: 8 }} gap={6}><Pill icon="paperclip" label="Carica da file" onPress={fromFile} /></Row>
       {fresh.map((f, i) => (
@@ -173,7 +173,7 @@ export function SlotsSheet({ visible, onClose, onSend }: Common) {
         const conf = myConflicts(o.day, timeStr(o.min), dur);
         return (
           <View key={o.id} style={{ borderWidth: 1, borderColor: t.border, borderRadius: 14, padding: 10, marginBottom: 8 }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>{nextDays.map((d) => <Pill key={d} label={dayLabelOf(d)} on={o.day === d} onPress={() => upd(o.id, { day: d })} />)}</ScrollView>
+            <ScrollView horizontal keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false}>{nextDays.map((d) => <Pill key={d} label={dayLabelOf(d)} on={o.day === d} onPress={() => upd(o.id, { day: d })} />)}</ScrollView>
             <Row style={{ marginTop: 8 }}>
               <Row gap={10}>
                 <Pressable onPress={() => step(o.id, -30)} hitSlop={8} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: t.item, alignItems: 'center', justifyContent: 'center' }}><Icon name="minus" size={16} color={t.text} /></Pressable>
