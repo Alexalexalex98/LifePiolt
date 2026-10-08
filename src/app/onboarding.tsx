@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Image, Text, View } from 'react-native';
 
-import { Body, Btn, Input, Page } from '@/components/ui';
+import { PrivacyContent } from '@/components/PrivacyContent';
+import { Body, Btn, Input, Page, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { applyDemo } from '@/store/demo';
 import { useApp } from '@/store/app';
@@ -9,6 +10,7 @@ import { useApp } from '@/store/app';
 export default function Onboarding() {
   const t = useTheme();
   const [name, setName] = useState('');
+  const [priv, setPriv] = useState(false);
   const set = useApp((s) => s.set);
   const account = useApp((s) => s.account);
 
@@ -30,6 +32,8 @@ export default function Onboarding() {
         <Body muted small style={{ marginBottom: 22 }}>
           I tuoi dati restano su questo dispositivo. Puoi esportarli o cancellarli in qualsiasi momento da Settings.
         </Body>
+        <Btn small ghost style={{ alignSelf: 'flex-start', marginBottom: 18 }} title="Come usiamo i tuoi dati" onPress={() => setPriv(true)} />
+        <Btn small ghost style={{ alignSelf: 'flex-start', marginBottom: 18 }} title="Come usiamo i tuoi dati" onPress={() => setPriv(true)} />
         <View style={{ gap: 10 }}>
           <Btn title="Inizia da zero" disabled={!name.trim()} onPress={() => start(false)} />
           <Btn ghost title="Esplora con dati demo" disabled={!name.trim()} onPress={() => start(true)} />
@@ -38,6 +42,9 @@ export default function Onboarding() {
           I dati demo riempiono l'app con esempi (note, file, movimenti, salute) per vedere subito tutte le funzioni. Si possono eliminare dalle Impostazioni.
         </Body>
       </View>
+      <Sheet visible={priv} title="Privacy e permessi" onClose={() => setPriv(false)}>
+        <PrivacyContent />
+      </Sheet>
     </Page>
   );
 }

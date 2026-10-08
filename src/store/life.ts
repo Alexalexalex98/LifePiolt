@@ -5,12 +5,13 @@ import { persisted } from './persist';
 
 export type Subtask = { t: string; h: number; done: boolean; type: 'lavoro' | 'piacere'; doneAt?: string };
 export type Task = { id: string; t: string; done?: boolean; urgent?: boolean; due?: string; doneAt?: string; recurring?: 'none' | 'daily' | 'weekly'; subtasks?: Subtask[] };
-export type Goal = { id: string; t: string; p: number; hist?: { d: string; p: number }[] };
+/** metric/target/period (opzionali): obiettivo collegato ai dati, l'avanzamento si calcola da solo (vedi lib/goalData.ts). */
+export type Goal = { id: string; t: string; p: number; hist?: { d: string; p: number }[]; metric?: 'workouts' | 'steps' | 'sleep' | 'mindful' | 'exercise' | 'savings'; target?: number; period?: 'week' | 'month' };
 export type Automation = { id: string; t: string; on: boolean };
 export type Note = { id: string; text: string; date: string };
 export type DriveFile = { id: string; n: string; s: string; folder: string; date: string; uri?: string };
 /** dur = durata in minuti (se manca si assumono 60); ref = id dell'iscrizione/prenotazione che l'ha creato. */
-export type CalEvent = { time: string; title: string; important?: boolean; reminder?: boolean; dur?: number; ref?: string };
+export type CalEvent = { time: string; title: string; important?: boolean; place?: string; reminder?: boolean; dur?: number; ref?: string };
 export type Vacation = { id: string; dest: string; month: string; hotel: string; price: number; days: number; flight: number };
 export type ChatMsg = { who: 'me' | 'ai'; text: string };
 
@@ -51,7 +52,9 @@ type LifeState = {
   expandSubtask: (id: string, si: number, steps: { t: string; h: number }[]) => void;
   scheduleBreakdown: (id: string, workStart: string, workEnd: string) => { scheduled: number; skipped: number };
 
-  addGoal: (t: string) => void;
+  addGoal: (t: string, link?: { metric: NonNullable<Goal['metric']>; target: number; period: NonNullable<Goal['period']> }) => void;
+  /** Collega (o scollega con null) un obiettivo a una metrica dei dati. */
+  setGoalLink: (id: string, link: { metric: NonNullable<Goal['metric']>; target: number; period: NonNullable<Goal['period']> } | null) => void;
   bumpGoal: (id: string) => number;
   delGoal: (id: string) => void;
   addAuto: (t: string) => void;
@@ -155,7 +158,8 @@ export const useLife = create<LifeState>()(
       return { scheduled, skipped };
     },
 
-    addGoal: (t) => set((s) => ({ goals: [...s.goals, { id: uid(), t, p: 0, hist: [{ d: dayKey(), p: 0 }] }] })),
+    addGoal: (t, link) => set((s) => ({ goals: [...s.goals, { id: uid(), t, p: 0, hist: [{ d: dayKey(), p: 0 }], ...(link ?? {}) }] })),
+    setGoalLink: (id, link) => set((s) => ({ goals: s.goals.map((g) => { if (g.id !== id) return g; const { metric: _m, target: _t, period: _p, ...rest } = g; void _m; void _t; void _p; return link ? { ...rest, ...link } : rest; }) })),
     bumpGoal: (id) => {
       let p = 0;
       set((s) => ({ goals: s.goals.map((g) => { if (g.id !== id) return g; p = Math.min(100, g.p + 5); const today = dayKey(); const hist = (g.hist ?? []).filter((h) => h.d !== today); return { ...g, p, hist: [...hist, { d: today, p }].slice(-120) }; }) }));

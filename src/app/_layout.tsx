@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { AppState, View } from 'react-native';
 
 import { autoSyncIfConnected } from '@/lib/healthkit';
+import { refreshBriefings } from '@/lib/notify';
 import { refreshWeather } from '@/lib/weather';
 
 import { ErrorBanner, installGlobalErrors } from '@/components/ErrorBanner';
@@ -48,7 +49,8 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
     void autoSyncIfConnected();
     void refreshWeather();
-    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
+    void refreshBriefings();
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
     return () => sub.remove();
   }, [ready]);
 
@@ -56,7 +58,7 @@ export default function RootLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
-      <StatusBar style={t.bg === '#eef1f6' ? 'dark' : 'light'} />
+      <StatusBar style={t.mode === 'light' ? 'dark' : 'light'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
         <Stack.Protected guard={!onboarded}>
           <Stack.Screen name="onboarding" />

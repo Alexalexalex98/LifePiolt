@@ -87,3 +87,39 @@ export const featureGroups: FeatureGroup[] = [
 ];
 
 export const featureCount = featureGroups.reduce((s, g) => s + g.items.length, 0);
+
+/* ---------- guida a piccoli pezzi ---------- */
+export type FlatFeature = Feature & { groupId: string; groupTitle: string; color: string; icon: string };
+export const allFeatures: FlatFeature[] = featureGroups.flatMap((g) => g.items.map((f) => ({ ...f, groupId: g.id, groupTitle: g.title, color: g.color, icon: g.icon })));
+
+/** Giorni (dal primo avvio) in cui la guida completa compare all'apertura. */
+export const FULL_GUIDE_DAYS = 3;
+
+const DAY = 86400000;
+/** Numero progressivo del giorno di calendario LOCALE (cambia a mezzanotte, non ogni 24 ore). */
+export function dayIndex(ts: number): number {
+  const d = new Date(ts);
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY);
+}
+
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+
+/** Una funzione diversa ogni giorno, a salti per variare area (stesso risultato per tutto il giorno). */
+export function featureOfDay(ts: number = Date.now()): FlatFeature {
+  const n = allFeatures.length;
+  const stride = gcd(7, n) === 1 ? 7 : 1;
+  return allFeatures[(((dayIndex(ts) * stride) % n) + n) % n];
+}
+
+/**
+ * Cosa mostrare all'apertura dell'app:
+ * - primi FULL_GUIDE_DAYS giorni: guida completa;
+ * - poi: solo se "showOnOpen" è attivo, e solo la funzione del giorno (una al giorno, non a ogni apertura);
+ * - altrimenti niente (la guida completa resta riapribile dalla Home).
+ */
+export function guideMode(p: { firstSeenAt: number | null; now: number; showOnOpen: boolean; lastBiteDay?: number | null }): 'full' | 'bite' | 'none' {
+  if (p.firstSeenAt == null) return 'full';
+  if (dayIndex(p.now) - dayIndex(p.firstSeenAt) < FULL_GUIDE_DAYS) return 'full';
+  if (p.showOnOpen && p.lastBiteDay !== dayIndex(p.now)) return 'bite';
+  return 'none';
+}

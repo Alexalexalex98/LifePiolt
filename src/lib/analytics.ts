@@ -265,6 +265,35 @@ export function correlations(series: Series[], minN = 10, minR = 0.45, max = 5):
   return [...best.values()].sort((x, y) => Math.abs(y.r) * Math.sqrt(y.n) - Math.abs(x.r) * Math.sqrt(x.n)).slice(0, max);
 }
 
+
+/* ---------------- conferma nel tempo ---------------- */
+export type CorrConfirmation = {
+  status: 'confermata' | 'incerta' | 'non si ripete';
+  first: number | null; second: number | null; nFirst: number; nSecond: number; text: string;
+};
+const sgnFmt = (v: number | null) => (v == null ? 'dati insufficienti' : `r = ${v.toFixed(2)}`);
+
+/**
+ * La correlazione si ripete? Divide le coppie di giorni in prima e seconda metà (cronologica) e ricalcola Pearson su ciascuna.
+ * 'confermata' = stesso segno e |r| ≥ 0.3 in entrambe; 'non si ripete' = segno opposto o quasi zero in una metà; altrimenti 'incerta'.
+ */
+export function confirmCorrelation(a: Series, b: Series, lag: 0 | 1, minHalf = 6): CorrConfirmation {
+  const mb = new Map(b.pts.map((p) => [p.d, p.v]));
+  const pairs: { d: string; x: number; y: number }[] = [];
+  a.pts.forEach((p) => { const v = mb.get(lag ? addDays(p.d, 1) : p.d); if (v != null) pairs.push({ d: p.d, x: p.v, y: v }); });
+  pairs.sort((u, v) => u.d.localeCompare(v.d));
+  const h = Math.floor(pairs.length / 2);
+  const halves = [pairs.slice(0, h), pairs.slice(h)];
+  const rs = halves.map((hv) => (hv.length >= minHalf ? pearson(hv.map((q) => q.x), hv.map((q) => q.y)) : null));
+  const [r1, r2] = rs;
+  const mk = (status: CorrConfirmation['status'], text: string): CorrConfirmation => ({ status, first: r1, second: r2, nFirst: halves[0].length, nSecond: halves[1].length, text });
+  if (r1 == null || r2 == null || Number.isNaN(r1) || Number.isNaN(r2)) return mk('incerta', 'Troppo pochi giorni in una delle due metà del periodo per sapere se si ripete.');
+  if (Math.sign(r1) === Math.sign(r2) && Math.abs(r1) >= 0.3 && Math.abs(r2) >= 0.3) return mk('confermata', `Si ripete nelle due metà del periodo (${sgnFmt(r1)} e ${sgnFmt(r2)}).`);
+  if (Math.sign(r1) !== Math.sign(r2) && Math.max(Math.abs(r1), Math.abs(r2)) >= 0.3) return mk('non si ripete', `Nelle due metà del periodo va in direzioni opposte (${sgnFmt(r1)} e ${sgnFmt(r2)}): potrebbe essere un caso.`);
+  if (Math.min(Math.abs(r1), Math.abs(r2)) < 0.15 && Math.max(Math.abs(r1), Math.abs(r2)) >= 0.3) return mk('non si ripete', `C’è solo in una metà del periodo (${sgnFmt(r1)} e ${sgnFmt(r2)}): non si ripete.`);
+  return mk('incerta', `Legame più debole in almeno una metà (${sgnFmt(r1)} e ${sgnFmt(r2)}): servono più giorni.`);
+}
+
 /* ---------------- insight (business intelligence in italiano) ---------------- */
 export type Insight = {
   id: string; severity: 'bad' | 'warn' | 'good' | 'info'; domain: Domain; title: string; detail: string; action?: string; metricId?: string; priority: number;

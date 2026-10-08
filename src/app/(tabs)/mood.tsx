@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { ConfirmBadge } from '@/components/ConfirmBadge';
 import { MoodChart, overlays, type Overlay } from '@/components/MoodChart';
 import { Body, Btn, Card, Input, Page, Pill, Row, SectionLabel, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -115,6 +116,7 @@ export default function MoodPage() {
               <GroupBox g={open.b} />
             </Row>
             <Body small muted style={{ marginTop: 10 }}>Differenza {open.diff > 0 ? '+' : ''}{open.diff.toFixed(1).replace('.', ',')} punti su 5 · forza del legame: {open.strength} · {open.sig ? 'statisticamente solido' : 'non abbastanza solido'} (t = {open.t.toFixed(1)}).</Body>
+            {open.confirmation ? <View style={{ marginTop: 12 }}><Body bold style={{ marginBottom: 6 }}>Si ripete nel tempo?</Body><ConfirmBadge status={open.confirmation.status} text={open.confirmation.text} /></View> : null}
             <View style={{ backgroundColor: t.accent + '1f', borderRadius: 12, padding: 12, marginTop: 12 }}><Body bold>Cosa puoi fare</Body><Body small style={{ marginTop: 4 }}>{open.tip}</Body></View>
           </>
         )}
@@ -145,6 +147,7 @@ function FactorCard({ f, onPress }: { f: Factor; onPress: () => void }) {
             <Body bold>{f.label}: {up ? '+' : ''}{f.diff.toFixed(1).replace('.', ',')} punti</Body>
             <Body small muted style={{ marginTop: 2 }}>{f.sentence}</Body>
             <Body small color={strengthColor(f.strength, t)} style={{ marginTop: 4 }}>Legame {f.strength} · tocca per i dettagli</Body>
+            {f.confirmation ? <View style={{ marginTop: 6 }}><ConfirmBadge compact status={f.confirmation.status} /></View> : null}
           </View>
         </Row>
       </Row>

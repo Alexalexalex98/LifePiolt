@@ -1,3 +1,4 @@
+import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { useState } from 'react';
@@ -7,10 +8,13 @@ import { navLabelFor } from '@/components/NavBar';
 import { WorkHoursSheet } from '@/components/plan';
 import { Body, Btn, Card, H, Input, Item, Link, Page, Pill, Row, Select, Sheet, Toggle, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
+import { checkBackupText, exportBackup, pickBackup, restoreBackup, STORE_LABELS, wipeAllData, type BackupPreview } from '@/lib/backup';
+import { formatErrors, logError, useErrorLog } from '@/lib/errorLog';
 import { translate, useSectionNames, useT } from '@/lib/i18n';
+import { go } from '@/lib/nav';
+import { cancelAll, refreshBriefings, requestPermission } from '@/lib/notify';
 import { areaColors, Icon } from '@/lib/icons';
 import { navCatalog, useApp, type Appearance, type Language } from '@/store/app';
-import { resetAllData } from '@/store/demo';
 import { useFin } from '@/store/finance';
 import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
@@ -22,6 +26,9 @@ const dataLabels: Record<string, string> = {
   travel: 'Preferenze e itinerari di viaggio', app: 'Account, preferenze e impostazioni',
 };
 
+/** Orari a passi di 15 minuti tra due ore (incluse). */
+const timeOptions = (from: number, to: number) => Array.from({ length: (to - from + 1) * 4 }, (_, i) => `${String(from + Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}`);
+
 export default function Settings() {
   const t = useTheme();
   const tr = useT();
@@ -31,8 +38,12 @@ export default function Settings() {
   const [edit, setEdit] = useState<null | 'name' | 'email' | 'assistant'>(null);
   const [editVal, setEditVal] = useState('');
   const [wh, setWh] = useState(false);
-  const [info, setInfo] = useState<null | 'help' | 'contact' | 'terms' | 'privacy'>(null);
-  const [del, setDel] = useState(false);
+  const [info, setInfo] = useState<null | 'help' | 'contact' | 'terms'>(null);
+  const [del, setDel] = useState<0 | 1 | 2>(0);
+  const [restore, setRestore] = useState<null | { text: string; preview: BackupPreview; step: 1 | 2 }>(null);
+  const [errSheet, setErrSheet] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const errors = useErrorLog((e) => e.entries);
   const life = useLife(), health = useHealth(), fin = useFin(), travel = useTravel();
 
   const sizes: Record<string, number> = {
@@ -56,6 +67,55 @@ export default function Settings() {
     try { await Share.share({ message: JSON.stringify(data, null, 2), title: 'I miei dati LifePilot' }); } catch { toast('Esportazione non riuscita'); }
   }
 
+  async function setBrief(kind: 'morning' | 'evening', patch: Partial<typeof app.briefing>) {
+    const next = { ...app.briefing, ...patch };
+    if (patch[kind] === true) {
+      const r = await requestPermission();
+      if (!r.ok) { Alert.alert('Notifiche non attive', r.message); return; }
+    }
+    set({ briefing: next });
+    void refreshBriefings();
+    toast('Preferenza aggiornata');
+  }
+
+  async function doExportBackup() {
+    setBusy(true);
+    const r = await exportBackup();
+    setBusy(false);
+    toast(r.message);
+  }
+
+  async function doPickBackup() {
+    const r = await pickBackup();
+    if (!r.ok) { if (!r.canceled) Alert.alert('Backup non valido', r.error); return; }
+    setRestore({ text: r.text, preview: r.preview, step: 1 });
+  }
+
+  async function doRestore() {
+    if (!restore) return;
+    setBusy(true);
+    const r = await restoreBackup(restore.text);
+    setBusy(false);
+    setRestore(null);
+    if (r.ok) void refreshBriefings();
+    toast(r.message);
+  }
+
+  async function doDeleteAll() {
+    setDel(0);
+    setBusy(true);
+    try {
+      await cancelAll();
+      await wipeAllData();
+      useErrorLog.getState().clear();
+    } catch (e) { logError(e, 'settings.deleteAll'); toast('Eliminazione non completata'); }
+    setBusy(false);
+  }
+
+  async function sendErrors() {
+    try { await Share.share({ message: formatErrors(errors), title: 'Problemi riscontrati - LifePilot' }); } catch { toast('Condivisione non riuscita'); }
+  }
+
   function toggleNav(id: string) {
     const has = app.navItems.includes(id);
     if (!has && app.navItems.length >= 5) { toast('Puoi averne al massimo 5: toglierne una prima'); return; }
@@ -67,7 +127,6 @@ export default function Settings() {
     help: { title: tr('stHelpCenter'), body: 'Domande frequenti su LifePilot: come collegare LifeHealth a un wearable, come funziona la scomposizione dei task, come modificare gli orari di lavoro. Per altro scrivici dalla sezione Contattaci.' },
     contact: { title: tr('stContactUs'), body: "Per assistenza su LifePilot scrivi al contatto di supporto indicato nella scheda dello store dell'app." },
     terms: { title: tr('stTerms'), body: 'BOZZA — da completare e far revisionare prima della pubblicazione: qui andranno i termini di servizio completi.' },
-    privacy: { title: 'Informativa privacy', body: "BOZZA — da completare prima della pubblicazione. I dati restano su questo dispositivo; i messaggi inviati all'assistente AI vengono trasmessi al server solo se l'assistente è collegato. Serve una privacy policy pubblicata su un URL pubblico per gli store." },
   };
 
   return (
@@ -117,6 +176,10 @@ export default function Settings() {
         <Toggle label={tr('stNotifHealth')} value={app.notif.health} onChange={(v) => { set({ notif: { ...app.notif, health: v } }); toast('Preferenza aggiornata'); }} />
         <Toggle label={tr('stNotifDigest')} value={app.notif.digest} onChange={(v) => { set({ notif: { ...app.notif, digest: v } }); toast('Preferenza aggiornata'); }} />
         <Toggle label={tr('stNotifEmail')} value={app.notif.email} onChange={(v) => { set({ notif: { ...app.notif, email: v } }); toast('Preferenza aggiornata'); }} />
+        <Toggle label="Briefing del mattino" hint="Notifica sul telefono con il riepilogo della giornata" value={app.briefing.morning} onChange={(v) => void setBrief('morning', { morning: v })} />
+        {app.briefing.morning && <Row><Body small muted>Orario</Body><Select value={app.briefing.morningAt} options={timeOptions(5, 11)} onChange={(v) => void setBrief('morning', { morningAt: v })} /></Row>}
+        <Toggle label="Riepilogo serale" hint="Notifica sul telefono con il bilancio della giornata" value={app.briefing.evening} onChange={(v) => void setBrief('evening', { evening: v })} />
+        {app.briefing.evening && <Row><Body small muted>Orario</Body><Select value={app.briefing.eveningAt} options={timeOptions(17, 23)} onChange={(v) => void setBrief('evening', { eveningAt: v })} /></Row>}
       </Card>
 
       <Card>
@@ -159,9 +222,24 @@ export default function Settings() {
         <H>{tr('stPrivacyCenterTitle')}</H>
         {Object.keys(app.privacy).map((k) => <Toggle key={k} label={tr({ 'AI Memory': 'stPrivAiMemory', 'Dati salute': 'stPrivHealth', 'Dati finanziari': 'stPrivFinance', Posizione: 'stPrivLocation' }[k] ?? k)} value={app.privacy[k]} onChange={(v) => { set({ privacy: { ...app.privacy, [k]: v } }); toast(`${k} ${v ? 'collegato' : 'disconnesso'}`); }} />)}
         <View style={{ gap: 8, marginTop: 10 }}>
+          <Btn small ghost title="Privacy e permessi" onPress={() => go('privacy')} />
           <Btn small ghost title={tr('stExportBtn')} onPress={exportData} />
-          <Btn small ghost danger title={tr('stDeleteAcctBtn')} onPress={() => setDel(true)} />
+          <Btn small ghost danger title="Elimina tutti i miei dati" onPress={() => setDel(1)} />
         </View>
+      </Card>
+
+      <Card>
+        <H>Backup e ripristino</H>
+        <Body small muted style={{ marginBottom: 10 }}>Salva tutti i tuoi dati in un unico file da conservare o da portare su un altro telefono. Gli allegati multimediali delle chat (foto, video, audio) non sono inclusi.</Body>
+        <View style={{ gap: 8 }}>
+          <Btn small ghost disabled={busy} title="Esporta backup" onPress={() => void doExportBackup()} />
+          <Btn small ghost disabled={busy} title="Ripristina da file" onPress={() => void doPickBackup()} />
+        </View>
+      </Card>
+
+      <Card>
+        <H>Problemi riscontrati</H>
+        <Row><Body small muted style={{ flex: 1 }}>{errors.length ? `${errors.length} registrati su questo dispositivo` : 'Nessun problema registrato'}</Body><Btn small ghost title="Apri" onPress={() => setErrSheet(true)} /></Row>
       </Card>
 
       <Card>
@@ -175,8 +253,8 @@ export default function Settings() {
 
       <Card>
         <H>{tr('stHelpTitle')}</H>
-        {([['help', tr('stHelpCenter')], ['contact', tr('stContactUs')], ['terms', tr('stTerms')], ['privacy', 'Informativa privacy']] as const).map(([k, label], i, a) => (
-          <Item key={k} last={i === a.length - 1} onPress={() => setInfo(k)}><Row><Body>{label}</Body><Chev /></Row></Item>
+        {([['help', tr('stHelpCenter')], ['contact', tr('stContactUs')], ['terms', tr('stTerms')], ['privacy', 'Privacy e permessi']] as const).map(([k, label], i, a) => (
+          <Item key={k} last={i === a.length - 1} onPress={() => (k === 'privacy' ? go('privacy') : setInfo(k))}><Row><Body>{label}</Body><Chev /></Row></Item>
         ))}
       </Card>
 
@@ -188,12 +266,61 @@ export default function Settings() {
       </Sheet>
       <WorkHoursSheet key={`${app.workHours.start}${app.workHours.end}${wh}`} visible={wh} onClose={() => setWh(false)} />
       <Sheet visible={!!info} title={info ? infos[info].title : ''} onClose={() => setInfo(null)}>{info && <Body small muted>{infos[info].body}</Body>}</Sheet>
-      <Sheet visible={del} title="Eliminare account?" onClose={() => setDel(false)}>
-        <Body small muted>Eliminare tutti i dati salvati su questo dispositivo, compreso il profilo? L'azione non è reversibile.</Body>
+      <Sheet visible={del === 1} title="Eliminare tutti i miei dati?" onClose={() => setDel(0)}>
+        <Body small muted>Verranno eliminati dal telefono task, note, file, salute, finanze, messaggi, impostazioni e profilo. Prima puoi salvare un backup.</Body>
         <Row style={{ marginTop: 14 }}>
-          <Btn ghost style={{ flex: 1 }} title="Annulla" onPress={() => setDel(false)} />
-          <Btn danger style={{ flex: 1 }} title="Elimina" onPress={() => { setDel(false); resetAllData(); app.reset(); }} />
+          <Btn ghost style={{ flex: 1 }} title="Annulla" onPress={() => setDel(0)} />
+          <Btn danger style={{ flex: 1 }} title="Continua" onPress={() => setDel(2)} />
         </Row>
+      </Sheet>
+      <Sheet visible={del === 2} title="Ultima conferma" onClose={() => setDel(0)}>
+        <Body small muted>Questa azione non si può annullare. L'app tornerà alla schermata iniziale come appena installata.</Body>
+        <Row style={{ marginTop: 14 }}>
+          <Btn ghost style={{ flex: 1 }} title="Annulla" onPress={() => setDel(0)} />
+          <Btn danger style={{ flex: 1 }} title="Elimina tutto" onPress={() => void doDeleteAll()} />
+        </Row>
+      </Sheet>
+      <Sheet visible={!!restore} title={restore?.step === 2 ? 'Ultima conferma' : 'Ripristina da backup'} onClose={() => setRestore(null)}>
+        {restore && restore.step === 1 && (
+          <>
+            <Body small muted>Backup del {restore.preview.createdAt ? new Date(restore.preview.createdAt).toLocaleString('it-IT') : 'data sconosciuta'}{restore.preview.appVersion ? ` (LifePilot ${restore.preview.appVersion})` : ''}. {restore.preview.storeCount} categorie, {restore.preview.sizeKB} KB.</Body>
+            <View style={{ marginVertical: 10 }}>
+              {Object.entries(restore.preview.items).map(([k, n]) => <Row key={k}><Body small>{STORE_LABELS[k] ?? k}</Body><Body small muted>{n > 0 ? `${n} voci` : 'impostazioni'}</Body></Row>)}
+            </View>
+            <Body small muted>Ripristinando, i dati attuali di questo telefono verranno sostituiti da quelli del backup.</Body>
+            <Row style={{ marginTop: 14 }}>
+              <Btn ghost style={{ flex: 1 }} title="Annulla" onPress={() => setRestore(null)} />
+              <Btn danger style={{ flex: 1 }} title="Continua" onPress={() => setRestore({ ...restore, step: 2 })} />
+            </Row>
+          </>
+        )}
+        {restore && restore.step === 2 && (
+          <>
+            <Body small muted>Sei sicuro? I dati attuali verranno sovrascritti e non potranno essere recuperati.</Body>
+            <Row style={{ marginTop: 14 }}>
+              <Btn ghost style={{ flex: 1 }} title="Annulla" onPress={() => setRestore(null)} />
+              <Btn danger style={{ flex: 1 }} disabled={busy} title="Sovrascrivi" onPress={() => void doRestore()} />
+            </Row>
+          </>
+        )}
+      </Sheet>
+      <Sheet visible={errSheet} title="Problemi riscontrati" onClose={() => setErrSheet(false)}>
+        {errors.length === 0 ? <Body small muted>Nessun problema registrato.</Body> : (
+          <>
+            <Body small muted style={{ marginBottom: 8 }}>Ultimi {errors.length} (massimo 50). Restano solo su questo telefono.</Body>
+            {errors.map((e) => (
+              <View key={e.id} style={{ marginBottom: 10 }}>
+                <Body small bold>{new Date(e.at).toLocaleString('it-IT')}{e.screen ? ` · ${e.screen}` : ''}</Body>
+                <Body small muted>{e.message}</Body>
+              </View>
+            ))}
+            <Row style={{ marginTop: 6, flexWrap: 'wrap' }}>
+              <Btn small ghost title="Copia" onPress={() => { void Clipboard.setStringAsync(formatErrors(errors)); toast('Copiato'); }} />
+              <Btn small ghost title="Invia al supporto" onPress={() => void sendErrors()} />
+              <Btn small ghost danger title="Cancella" onPress={() => { useErrorLog.getState().clear(); toast('Registro cancellato'); }} />
+            </Row>
+          </>
+        )}
       </Sheet>
     </Page>
   );

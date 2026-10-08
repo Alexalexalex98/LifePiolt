@@ -3,7 +3,8 @@ import { File } from 'expo-file-system';
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { Body, Btn, Input, Item, Pill, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Input, Item, Pill, Row, Select, Sheet } from '@/components/ui';
+import { fmtDuration, nextDays as whenDays, timeOptions } from '@/lib/when';
 import { useTheme } from '@/hooks/use-theme';
 import { buildAgenda, buildTasks, dayLabelOf, myConflicts, noteShareOf, type AgendaRange } from '@/lib/chatShare';
 import { dayKey, pad2, uid } from '@/lib/format';
@@ -190,6 +191,39 @@ export function SlotsSheet({ visible, onClose, onSend }: Common) {
         if (!title.trim()) { toast('Scrivi per cosa è l’incontro'); return; }
         onSend({ kind: 'slots', slots: { title: title.trim(), durationMin: dur, options: opts.map((o) => ({ id: o.id, day: o.day, time: timeStr(o.min), votes: [] })) } });
         setTitle(''); onClose();
+      }} />
+    </Sheet>
+  );
+}
+
+/* ---------- invito a un evento ---------- */
+const EV_DURS = [30, 60, 90, 120, 180];
+
+export function EventSheet({ visible, onClose, onSend }: Common) {
+  const days = whenDays(30);
+  const [title, setTitle] = useState('');
+  const [dayLabel, setDayLabel] = useState(days[1].label);
+  const [time, setTime] = useState('19:00');
+  const [dur, setDur] = useState(60);
+  const [place, setPlace] = useState('');
+  const [desc, setDesc] = useState('');
+  const day = days.find((d) => d.label === dayLabel) ?? days[1];
+  const conf = visible ? myConflicts(day.key, time, dur) : [];
+  return (
+    <Sheet visible={visible} title="Invito a un evento" onClose={onClose}>
+      <Body small muted style={{ marginBottom: 8 }}>Chi riceve risponde con Partecipo, Forse o Non partecipo: le risposte finiscono nel suo Plan e tu vedi il riepilogo.</Body>
+      <Input placeholder="Titolo (es. Cena di compleanno)" value={title} onChangeText={setTitle} />
+      <Select title="Giorno" value={dayLabel} options={days.map((d) => d.label)} onChange={setDayLabel} />
+      <Select title="Ora" value={time} options={timeOptions(6, 23)} onChange={setTime} />
+      <Body small muted style={{ marginBottom: 4 }}>Durata</Body>
+      <Row style={{ justifyContent: 'flex-start', marginBottom: 8, flexWrap: 'wrap' }} gap={6}>{EV_DURS.map((d) => <Pill key={d} label={fmtDuration(d)} on={dur === d} onPress={() => setDur(d)} />)}</Row>
+      <Input placeholder="Luogo (facoltativo)" value={place} onChangeText={setPlace} />
+      <Input placeholder="Descrizione (facoltativa)" value={desc} onChangeText={setDesc} multiline />
+      {conf.length > 0 && <Body small color="#ffb84f" style={{ marginBottom: 8 }}>Attenzione: nel tuo piano hai già {conf[0]}</Body>}
+      <Btn icon="send" title="Invia invito" onPress={() => {
+        if (!title.trim()) { toast('Scrivi il titolo dell’evento'); return; }
+        onSend({ kind: 'event', event: { title: title.trim(), day: day.key, time, durationMin: dur, place: place.trim() || undefined, description: desc.trim() || undefined, rsvp: {} } });
+        setTitle(''); setPlace(''); setDesc(''); onClose();
       }} />
     </Sheet>
   );

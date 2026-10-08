@@ -1,7 +1,9 @@
 import { go } from '@/lib/nav';
 import { askTheia, theiaOnline, type TheiaRequest } from '@/lib/theia';
 import { useAssistant, type AMsg } from '@/store/assistant';
+import { usePrefs } from '@/store/prefs';
 import { Assistant } from './engine';
+import { styleText } from './style';
 import { makeEnv } from './env';
 
 let engine: Assistant | null = null;
@@ -22,7 +24,7 @@ export async function sendToAssistant(text: string, opts: { source?: 'chat' | 't
     if (!hasContext || eng.pending) {
       const r = await eng.handle(text);
       if (r.handled) {
-        const m = useAssistant.getState().push({ who: 'ai', text: r.text, chips: r.chips, source: opts.source ?? 'chat' });
+        const m = useAssistant.getState().push({ who: 'ai', text: styleText(r.text, usePrefs.getState().answerStyle), chips: r.chips, source: opts.source ?? 'chat' });
         if (r.navigate) go(r.navigate);
         return m;
       }

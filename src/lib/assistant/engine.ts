@@ -4,11 +4,13 @@
  * È indipendente dall'app (usa un `Env` iniettato), così si prova con test automatici.
  */
 import { freeSlots, fmtMin, toMin } from '../availability.ts';
+import { travelWarnings } from '../places.ts';
+import { skippedWork } from '../reschedule.ts';
 import { planMonth, pickSlot, keyOf, type PlanItem } from '../planner.ts';
 import { nextActionText, rankTasks } from '../priority.ts';
 import { bestMatch, isDelegate, dayKeyOf, dayLabel, detectIntent, extractTitle, isNo, isYes, norm, pageNames, parseWhen, addDaysTo, type Intent, type When } from './nlp.ts';
 
-export type Ev = { time: string; title: string; dur?: number; important?: boolean };
+export type Ev = { time: string; title: string; dur?: number; important?: boolean; place?: string; ref?: string };
 export type TaskLite = { id: string; t: string; done?: boolean; urgent?: boolean; due?: string };
 
 export interface Env {
@@ -40,13 +42,19 @@ export interface Env {
   people(): string[];
   setTaskUrgent(id: string, v: boolean): void;
   setEventImportant(day: string, ev: Ev, v: boolean): void;
+  setTaskDue(id: string, day: string | undefined): void;
+  /** crea un impegno che si ripete (settimanale o giornaliero) fino a `until`; ritorna il riferimento per annullare */
+  addRecurring(day: string, ev: Ev, until: string, kind: 'weekly' | 'daily'): string;
+  delByRef(ref: string): void;
+  briefing(): { title: string; body: string };
   userName(): string;
 }
 
 export type Reply = { text: string; chips?: string[]; navigate?: string; handled: boolean };
 
 type Pending =
-  | { kind: 'event.add'; title: string; day?: string; time?: string; dur: number; hint?: When['hint']; awaiting: 'title' | 'day' | 'time' | 'conflict'; conflicts?: { day: string; ev: Ev }[]; replacing?: { day: string; ev: Ev } }
+  | { kind: 'resched.confirm'; moves: { from: { day: string; ev: Ev }; to: { day: string; time: string } }[] }
+  | { kind: 'event.add'; recur?: 'weekly' | 'daily'; place?: string; title: string; day?: string; time?: string; dur: number; hint?: When['hint']; awaiting: 'title' | 'day' | 'time' | 'conflict'; conflicts?: { day: string; ev: Ev }[]; replacing?: { day: string; ev: Ev } }
   | { kind: 'event.move'; target: { day: string; ev: Ev }; day?: string; time?: string; dur: number; awaiting: 'when' }
   | { kind: 'confirm.photo' }
   | { kind: 'plan.confirm'; items: PlanItem[]; keep: number; scope: string }
@@ -61,6 +69,7 @@ export class Assistant {
   private pendingAt = 0;
   private misses = 0;
   private lastTask: string | null = null;
+  private lastEv: { day: string; ev: Ev } | null = null;
   get pending(): Pending | null { return this._pending; }
   set pending(v: Pending | null) { this._pending = v; this.pendingAt = Date.now(); this.misses = 0; }
   /** dopo 3 risposte non capite la domanda in sospeso cade, così non si resta bloccati in un giro */
@@ -124,6 +133,11 @@ export class Assistant {
     switch (intent) {
       case 'undo': return this.doUndo();
       case 'plan.fill': return this.planFill(raw);
+      case 'plan.reschedule': return this.reschedule();
+      case 'briefing': return { handled: true, text: (() => { const b = this.env.briefing(); return `${b.title}\n${b.body}`; })(), chips: ['Cosa devo fare adesso?', 'Pianificami il mese'] };
+      case 'event.recurring': return this.startEventAdd(raw, true);
+      case 'event.when': return this.eventWhen(raw);
+      case 'task.due': return this.taskDue(raw);
       case 'task.next': return this.taskNext();
       case 'task.urgent': return this.taskUrgent(raw);
       case 'event.important': return this.eventImportant(raw);
@@ -179,6 +193,7 @@ export class Assistant {
       }
     }
     if (p.kind === 'plan.confirm') return this.planAnswer(p, raw);
+    if (p.kind === 'resched.confirm') return this.reschedAnswer(p, raw);
     if (p.kind === 'share.agenda') return this.shareAnswer(p, raw);
     if (p.kind === 'add.suggest') {
       const n2 = norm(raw);
@@ -219,10 +234,25 @@ export class Assistant {
   }
 
   /* ---------- aggiungere al piano ---------- */
-  private startEventAdd(raw: string): Reply {
+  /** "riunione a Zurigo domani" -> luogo "Zurigo". Cerca "a/presso/in" + Maiuscola, oppure luoghi comuni (ufficio, casa, online). */
+  private splitPlace(raw: string): { text: string; place?: string } {
+    const m = /\b(?:a|presso|in|da)\s+((?:[A-ZÀ-Ý][\p{L}'.-]+)(?:\s+[A-ZÀ-Ý][\p{L}'.-]+){0,2})(?=\s|[?.!,]|$)/u.exec(raw) ?? /\b(?:in|a|da)\s+(ufficio|casa|online|studio|palestra|sede)\b/i.exec(raw);
+    if (!m) return { text: raw };
+    const place = m[1].replace(/\.$/, '');
+    const first = raw.slice(0, m.index).trim();
+    // se il "luogo" è l'inizio della frase (es. "A Marco dico...") non lo tratto come luogo
+    if (!first && /^[a-zà-ÿ]/.test(m[1]) === false && /^(a|in|da)\b/i.test(raw)) return { text: raw };
+    return { text: (raw.slice(0, m.index) + ' ' + raw.slice(m.index + m[0].length)).replace(/\s+/g, ' ').trim(), place: place.charAt(0).toUpperCase() + place.slice(1) };
+  }
+
+  private startEventAdd(raw0: string, recurring = false): Reply {
+    const { text: raw, place } = this.splitPlace(raw0);
     const w = parseWhen(raw, this.env.now());
-    const title = extractTitle(raw, w.spans, /\b(aggiungi|metti|inserisci|segna|programma|pianifica|fissa|prenota|crea|organizza)\b/g);
-    this.pending = { kind: 'event.add', title, day: w.day, time: w.time, dur: w.durationMin ?? DEF_DUR, hint: w.hint, awaiting: 'title' };
+    const title = extractTitle(raw, w.spans, /\b(aggiungi|metti|inserisci|segna|programma|pianifica|fissa|prenota|crea|organizza|ogni|tutti|tutte|i|le|giorni|giorno|settimana|settimane|al piano|nel piano)\b/g);
+    const recur = recurring ? (/\bogni giorno|tutti i giorni\b/.test(norm(raw)) ? 'daily' : 'weekly') : undefined;
+    let day = w.day;
+    if (recur === 'daily' && !day) day = this.today();
+    this.pending = { kind: 'event.add', title, day, time: w.time, dur: w.durationMin ?? DEF_DUR, hint: w.hint, awaiting: 'title', recur, place };
     return this.progressAdd();
   }
 
@@ -279,13 +309,25 @@ export class Assistant {
 
   private commitAdd(silent = false): Reply {
     const p = this.pending as Extract<Pending, { kind: 'event.add' }>;
-    const ev = { time: p.time!, title: p.title, dur: p.dur };
-    this.env.addEvent(p.day!, ev);
-    this.pushUndo('aggiunta al piano', () => this.env.delEvent(p.day!, ev));
+    const ev: Ev = { time: p.time!, title: p.title, dur: p.dur, ...(p.place ? { place: p.place } : {}) };
+    const day = p.day!;
+    const warns = p.place ? travelWarnings(this.evs(day).map((e) => ({ time: e.time, title: e.title, dur: e.dur, place: e.place })), { time: ev.time, title: ev.title, dur: ev.dur, place: ev.place }) : [];
+    if (p.recur) {
+      const until = dayKeyOf(addDaysTo(new Date(day + 'T00:00:00'), p.recur === 'daily' ? 30 : 90));
+      const ref = this.env.addRecurring(day, ev, until, p.recur);
+      this.pushUndo('impegno ricorrente', () => this.env.delByRef(ref));
+      this.pending = null;
+      this.lastEv = { day, ev };
+      const end0 = fmtMin(toMin(ev.time) + p.dur);
+      return { handled: true, text: `Fatto: «${ev.title}» ${p.recur === 'daily' ? 'ogni giorno' : `ogni ${this.label(day).split(' ')[0]}`} dalle ${ev.time} alle ${end0}${p.recur === 'daily' ? ' per 30 giorni' : ' per circa 3 mesi'}${p.place ? ` a ${p.place}` : ''}. Per togliere tutta la serie scrivi "annulla".`, chips: ['Annulla', 'Apri il piano'] };
+    }
+    this.env.addEvent(day, ev);
+    this.pushUndo('aggiunta al piano', () => this.env.delEvent(day, ev));
     this.pending = null;
+    this.lastEv = { day, ev };
     const end = fmtMin(toMin(ev.time) + p.dur);
     if (silent) return { handled: true, text: '' };
-    return { handled: true, text: `Fatto: «${ev.title}» ${this.label(p.day!)} dalle ${ev.time} alle ${end}. Lo trovi nel Plan.`, chips: ['Annulla', 'Apri il piano'] };
+    return { handled: true, text: `Fatto: «${ev.title}» ${this.label(day)} dalle ${ev.time} alle ${end}${p.place ? ` a ${p.place}` : ''}. Lo trovi nel Plan.${warns.length ? '\nAttenzione: ' + warns.join(' ') : ''}`, chips: ['Annulla', 'Apri il piano'] };
   }
 
   /* ---------- spostare / eliminare / rinominare ---------- */
@@ -294,7 +336,12 @@ export class Assistant {
     const list = this.upcoming();
     const q = extractTitle(raw, w.spans, /\b(sposta|rimanda|anticipa|posticipa|cambia|elimina|cancella|togli|rimuovi|rinomina|impegno|evento|appuntamento|riunione|dal piano)\b/g) || raw;
     const byDay = w.day ? list.filter((x) => x.day === w.day) : list;
-    return bestMatch(q, byDay.length ? byDay : list, (x) => x.ev.title);
+    const hit = bestMatch(q, byDay.length ? byDay : list, (x) => x.ev.title);
+    if (hit) { this.lastEv = hit; return hit; }
+    // "spostala", "cancellalo", "quella riunione": mi riferisco all'ultimo impegno di cui abbiamo parlato
+    const le = this.lastEv;
+    if (le && /\b(la|lo|l|quella|quello|questa|questo|stessa|stesso|ultima|ultimo)\b|(a|o|e)$|\b\w+(la|lo)\b/.test(norm(raw)) && (this.env.events()[le.day] ?? []).some((e) => e.time === le.ev.time && e.title === le.ev.title)) return le;
+    return null;
   }
 
   private startEventMove(raw: string): Reply {
@@ -319,6 +366,7 @@ export class Assistant {
     this.env.addEvent(day, ev);
     this.pushUndo('spostamento', () => { this.env.delEvent(day, ev); this.env.addEvent(old.day, old.ev); });
     this.pending = null;
+    this.lastEv = { day, ev };
     const warn = c.length ? ` Attenzione: a quell’ora hai anche «${c[0].ev.title}».` : '';
     return { handled: true, text: `Spostato: «${ev.title}» ora è ${this.label(day)} alle ${time}.${warn}`, chips: ['Annulla'] };
   }
@@ -356,7 +404,7 @@ export class Assistant {
     const l = this.evs(day);
     const lab = this.label(day);
     if (!l.length) return { handled: true, text: `${lab[0].toUpperCase() + lab.slice(1)} non hai impegni: giornata libera.`, chips: ['Aggiungi un impegno'] };
-    return { handled: true, text: `${lab[0].toUpperCase() + lab.slice(1)} hai ${l.length} ${l.length === 1 ? 'impegno' : 'impegni'}:\n${l.map((e) => `${e.time}  ${e.title}`).join('\n')}`, chips: ['Quando sono libero?', 'Aggiungi un impegno'] };
+    return { handled: true, text: `${lab[0].toUpperCase() + lab.slice(1)} hai ${l.length} ${l.length === 1 ? 'impegno' : 'impegni'}:\n${l.map((e) => `${e.time}  ${e.title}${e.place ? ' · ' + e.place : ''}${e.important ? ' (importante)' : ''}`).join('\n')}`, chips: ['Quando sono libero?', 'Aggiungi un impegno'] };
   }
 
   private agendaFree(raw: string): Reply {
@@ -388,19 +436,21 @@ export class Assistant {
 
   /* ---------- task ---------- */
   private taskAdd(raw: string): Reply {
-    const title = extractTitle(raw, [], /\b(aggiungi|crea|nuovo|nuova|metti|segna|inserisci|devo|bisogna|ricordami di|ricordati di|task|attivita)\b/g);
-    if (!title) return { handled: true, text: 'Che task aggiungo? Scrivi per esempio "aggiungi task chiamare il commercialista".' };
+    const w = /\b(entro|scade|scadenza|per il|per)\b/.test(norm(raw)) ? parseWhen(raw, this.env.now()) : { spans: [] as [number, number][], day: undefined as string | undefined };
+    const title = extractTitle(raw, w.spans, /\b(aggiungi|crea|nuovo|nuova|metti|segna|inserisci|devo|bisogna|ricordami di|ricordati di|task|attivita|entro|scade|scadenza|per il)\b/g);
+    if (!title) return { handled: true, text: 'Che task aggiungo? Scrivi per esempio "aggiungi task chiamare il commercialista entro venerdì".' };
     const id = this.env.addTask(title);
+    if (w.day) this.env.setTaskDue(id, w.day);
     this.lastTask = title;
     this.pushUndo('nuovo task', () => this.env.delTask(id));
-    return { handled: true, text: `Aggiunto il task «${title}».`, chips: ['Annulla', 'Metti nel piano'] };
+    return { handled: true, text: `Aggiunto il task «${title}»${w.day ? `, scade ${this.label(w.day)}` : ''}.`, chips: ['Annulla', 'Metti nel piano'] };
   }
 
   private openTasks() { return this.env.tasks().filter((t) => !t.done); }
 
   private taskDone(raw: string): Reply {
     const q = extractTitle(raw, [], /\b(ho fatto|ho finito|ho completato|ho concluso|completa|completato|segna come fatto|segna come completato|segna|spunta|fatto|finito|task|attivita|il|lo|la)\b/g) || raw;
-    const t = bestMatch(q, this.openTasks(), (x) => x.t);
+    const t = bestMatch(q, this.openTasks(), (x) => x.t) ?? (this.lastTask && /\b(l|lo|la|quello|quella|questo|questa)\b|(lo|la)$/.test(norm(raw)) ? this.openTasks().find((x) => x.t === this.lastTask) ?? null : null);
     if (!t) return { handled: true, text: this.openTasks().length ? 'Non trovo quel task. Quelli aperti sono: ' + this.openTasks().slice(0, 6).map((x) => `«${x.t}»`).join(', ') + '.' : 'Non hai task aperti.' };
     this.env.setTaskDone(t.id, true);
     this.pushUndo('task completato', () => this.env.setTaskDone(t.id, false));
@@ -498,7 +548,7 @@ export class Assistant {
   private help(): Reply {
     return {
       handled: true,
-      text: 'Posso fare tutto questo, e lo faccio io senza AI:\n• Piano: "aggiungi riunione al piano domani alle 15", "sposta la riunione a venerdì", "elimina la riunione di domani", "che impegni ho domani?", "quando sono libero venerdì?"\n• Organizzazione: "pianificami il mese", "cosa devo fare adesso?", "segna il business plan come urgente", "segna chiamata investitori come importante", dì "scegli tu" e scelgo io l’orario migliore\n• Task: "aggiungi task chiamare Luca", "ho finito il report", "elimina il task report", "che task ho?"\n• Note e obiettivi: "scrivi una nota: ...", "nuovo obiettivo ..."\n• Dati: "analisi delle mie finanze", "come ho dormito?", "analisi del mio umore", "mi sento stressato"\n• Profilo: "cambia la foto profilo", "rendi il profilo privato"\n• App: "metti il tema scuro", "apri finanze", "imposta orario di lavoro dalle 9 alle 17"\nOgni azione si può annullare con "annulla".',
+      text: 'Posso fare tutto questo, e lo faccio io senza AI:\n• Piano: "aggiungi riunione al piano domani alle 15", "sposta la riunione a venerdì", "elimina la riunione di domani", "che impegni ho domani?", "quando sono libero venerdì?"\n• Organizzazione: "pianificami il mese", "cosa devo fare adesso?", "segna il business plan come urgente", "segna chiamata investitori come importante", dì "scegli tu" e scelgo io l’orario migliore\n• Ricorrenze e luoghi: "ogni martedì alle 18 palestra", "riunione a Zurigo domani alle 11" (ti avviso se i tempi di viaggio non bastano), "a che ora è il dentista?", poi "spostala a venerdì"\n• Scadenze: "aggiungi task relazione entro venerdì", "il task relazione scade lunedì"\n• Ripianifica e briefing: "ripianifica le sessioni saltate", "riepilogo della giornata"\n• Task: "aggiungi task chiamare Luca", "ho finito il report", "elimina il task report", "che task ho?"\n• Note e obiettivi: "scrivi una nota: ...", "nuovo obiettivo ..."\n• Dati: "analisi delle mie finanze", "come ho dormito?", "analisi del mio umore", "mi sento stressato"\n• Profilo: "cambia la foto profilo", "rendi il profilo privato"\n• App: "metti il tema scuro", "apri finanze", "imposta orario di lavoro dalle 9 alle 17"\nOgni azione si può annullare con "annulla".',
       chips: ['Aggiungi riunione al piano', 'Analisi delle mie finanze', 'Che impegni ho domani?', 'Quando sono libero?'],
     };
   }
@@ -610,6 +660,64 @@ export class Assistant {
     const hit = bestMatch(raw.replace(/\b(a|con|per|mandala|condividila)\b/gi, ' ').trim(), ppl, (x) => x, 0.4) ?? (/^[A-ZÀ-Ý][\p{L}.' -]+$/u.test(raw.trim()) ? raw.trim() : null);
     if (!hit) { if (this.miss()) return null; return { handled: true, text: 'Dimmi il nome della persona (come nelle tue chat).', chips: ppl.slice(0, 5) }; }
     return this.doShare(hit, p.range, p.mode);
+  }
+
+  /* ---------- a che ora? / scadenze / ripianificazione ---------- */
+  private eventWhen(raw: string): Reply {
+    const t = this.findEvent(raw.replace(/\ba che ora\b|\bquando (e|ho|c'e)\b/gi, ' '));
+    if (!t) return { handled: true, text: 'Non trovo un impegno con quel nome nel piano. Vuoi che lo aggiunga?', chips: ['Aggiungi un impegno'] };
+    return { handled: true, text: `«${t.ev.title}» è ${this.label(t.day)} alle ${t.ev.time}${t.ev.place ? ` a ${t.ev.place}` : ''}.`, chips: ['Sposta', 'Elimina'] };
+  }
+
+  private taskDue(raw: string): Reply {
+    if (/\b(aggiungi|crea|nuovo|nuova|inserisci)\b/.test(norm(raw))) return this.taskAdd(raw);
+    const w = parseWhen(raw, this.env.now());
+    const q = extractTitle(raw, w.spans, /\b(scade|scadenza|scadra|imposta|metti|task|compito|il|lo|la|entro|per)\b/g);
+    let t = q ? bestMatch(q, this.openTasks(), (x) => x.t) : null;
+    if (!t && this.lastTask) t = this.openTasks().find((x) => x.t === this.lastTask) ?? null;
+    if (!t) return { handled: true, text: 'Di quale task? Per esempio "il task relazione scade venerdì".', chips: this.openTasks().slice(0, 4).map((x) => x.t) };
+    if (!w.day) return { handled: true, text: `Quando scade «${t.t}»?`, chips: ['Oggi', 'Domani', 'Venerdì'] };
+    const old = t.due;
+    this.env.setTaskDue(t.id, w.day);
+    this.lastTask = t.t;
+    this.pushUndo('scadenza', () => this.env.setTaskDue(t.id, old));
+    return { handled: true, text: `«${t.t}» scade ${this.label(w.day)}: ne terrò conto nelle priorità.`, chips: ['Annulla', 'Cosa devo fare adesso?'] };
+  }
+
+  private reschedule(): Reply {
+    const flat = Object.entries(this.env.events()).flatMap(([day, l]) => l.map((e) => ({ day, time: e.time, title: e.title, dur: e.dur })));
+    const sk = skippedWork(flat, this.env.tasks().map((t) => ({ id: t.id, t: t.t, done: t.done })), this.env.now());
+    if (!sk.length) return { handled: true, text: 'Nessuna sessione di lavoro saltata: sei in pari con il piano.' };
+    const wh = this.env.workHours();
+    const evs = this.planEvents();
+    const moves: Extract<Pending, { kind: 'resched.confirm' }>['moves'] = [];
+    sk.forEach(({ ev, task }) => {
+      const full = (this.env.events()[ev.day] ?? []).find((e) => e.time === ev.time && e.title === ev.title);
+      if (!full) return;
+      const slot = pickSlot({ now: this.env.now(), workStart: wh.start, workEnd: wh.end, events: evs, dur: ev.dur || DEF_DUR, urgent: !!task.t && !!this.env.tasks().find((x) => x.id === task.id)?.urgent });
+      if (!slot) return;
+      (evs[slot.day] ??= []).push({ time: slot.time, title: ev.title, dur: ev.dur });
+      moves.push({ from: { day: ev.day, ev: full }, to: slot });
+    });
+    if (!moves.length) return { handled: true, text: 'Ho trovato sessioni saltate ma non vedo slot liberi nei prossimi giorni.' };
+    this.pending = { kind: 'resched.confirm', moves };
+    return { handled: true, text: `Hai ${moves.length} ${moves.length === 1 ? 'sessione di lavoro saltata' : 'sessioni di lavoro saltate'}. Le rimetto così:\n${moves.map((m) => `• ${m.from.ev.title}: da ${this.label(m.from.day)} ${m.from.ev.time} a ${this.label(m.to.day)} ${m.to.time}`).join('\n')}`, chips: ['Applica', 'Annulla'] };
+  }
+  private reschedAnswer(p: Extract<Pending, { kind: 'resched.confirm' }>, raw: string): Reply | null {
+    if (/applica|conferma|ok|si|sì|va bene|procedi/.test(norm(raw)) || isYes(raw)) {
+      const done: { from: { day: string; ev: Ev }; to: { day: string; ev: Ev } }[] = [];
+      p.moves.forEach((m) => {
+        this.env.delEvent(m.from.day, m.from.ev);
+        const nev: Ev = { ...m.from.ev, time: m.to.time };
+        this.env.addEvent(m.to.day, nev);
+        done.push({ from: m.from, to: { day: m.to.day, ev: nev } });
+      });
+      this.pushUndo('ripianificazione', () => done.forEach((d) => { this.env.delEvent(d.to.day, d.to.ev); this.env.addEvent(d.from.day, d.from.ev); }));
+      this.pending = null;
+      return { handled: true, text: `Fatto: ho ripianificato ${done.length} ${done.length === 1 ? 'sessione' : 'sessioni'}. Puoi annullare quando vuoi.`, chips: ['Annulla', 'Apri il piano'] };
+    }
+    if (this.miss()) return null;
+    return { handled: true, text: 'Vuoi che le ripianifichi così?', chips: ['Applica', 'Annulla'] };
   }
 
   private fallback(raw: string): Reply {

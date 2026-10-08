@@ -1,7 +1,10 @@
 import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
 
-import { computeDashboard } from '@/lib/analyticsData';
+import { collect, computeDashboard } from '@/lib/analyticsData';
+import { busyDay, lateEventSleep } from '@/lib/insightsLocal';
+import { skippedWork } from '@/lib/reschedule';
+import { useHealth } from '@/store/health';
 import { dayKey } from '@/lib/format';
 import { totalUnread, useChat } from '@/store/chat';
 import { useApp, navCatalog } from '@/store/app';
@@ -120,6 +123,34 @@ export function predictNeeds(now = new Date()): Suggestion[] {
 
   // 7) sera: prepararsi al sonno
   if (h >= 21 || h < 2) out.push({ id: 'sleep', title: 'È tardi: dormire bene domani ti rende di più', detail: 'Stacca schermi e luci, il sonno è la metrica che muove tutte le altre.', why: `Sono le ${hhmm(now)}`, page: 'lifehealth', cta: 'Vedi il sonno', score: 30 });
+
+  // 8) sessioni di lavoro saltate: le ripianifico io
+  try {
+    const flat = Object.entries(life.events).flatMap(([day, l]) => l.map((e) => ({ day, time: e.time, title: e.title, dur: e.dur })));
+    const sk = skippedWork(flat, life.tasks.map((t) => ({ id: t.id, t: t.t, done: t.done })), now);
+    if (sk.length) out.push({ id: 'skipped', title: `${sk.length} ${sk.length === 1 ? 'sessione di lavoro saltata' : 'sessioni di lavoro saltate'}`, detail: 'Il task è ancora aperto: te le rimetto nei prossimi slot liberi.', why: 'Impegni «Lavoro su…» passati con il task non completato', page: 'ai', params: { ask: 'ripianifica le sessioni saltate' }, cta: 'Ripianifica', score: 75 });
+  } catch { /* niente */ }
+
+  // 9) domani è una giornata piena
+  try {
+    const tm = new Date(now); tm.setDate(tm.getDate() + 1);
+    const n = busyDay(Object.entries(life.events).flatMap(([day, l]) => l.map((e) => ({ day, time: e.time, title: e.title }))), dayKey(tm));
+    if (n && h >= 15) out.push({ id: 'busytm', title: `Domani hai ${n} impegni`, detail: 'Giornata piena: controlla che ci sia una pausa e preparati stasera.', why: 'Cinque o più impegni in agenda per domani', page: 'plan', cta: 'Apri il piano', score: 55 });
+  } catch { /* niente */ }
+
+  // 10) dopo gli impegni serali dormi meno?
+  try {
+    const ser = collect(dayKey(now)).find((x) => x.def.id === 'sleep');
+    if (ser) {
+      const r = lateEventSleep(Object.entries(life.events).flatMap(([day, l]) => l.map((e) => ({ day, time: e.time, title: e.title }))), ser.pts);
+      if (r && r.diffMin < 0) out.push({ id: 'late-sleep', title: `Dopo gli impegni serali dormi ${Math.abs(r.diffMin)} min in meno`, detail: 'Provare a spostarli prima delle 18 o a staccare presto dopo.', why: `Confronto di ${r.nWith} notti dopo una sera impegnata con ${r.nWithout} notti normali (è una correlazione, non una prova)`, page: 'lifehealth', cta: 'Vedi il sonno', score: 50 });
+    }
+  } catch { /* niente */ }
+
+  // 11) sera senza check-in dell'umore
+  try {
+    if (h >= 19 && !useHealth.getState().moods.some((m) => m.day === dayKey(now))) out.push({ id: 'mood-eve', title: 'Come ti sei sentito oggi?', detail: 'Il check-in dell’umore ti prende 5 secondi e rende più precise le analisi.', why: 'Oggi non hai ancora registrato il tuo umore', page: 'mood', cta: 'Registra l’umore', score: 45 });
+  } catch { /* niente */ }
 
   return out.sort((a, b) => b.score - a.score).slice(0, 5);
 }

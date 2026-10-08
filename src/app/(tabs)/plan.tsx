@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { CalendarImportSheet } from '@/components/CalendarImportSheet';
+import { GoalProgress } from '@/components/GoalProgress';
 import { DaySheet, MonthCalendar, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet, monthTitle } from '@/components/plan';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Progress, Row, Sheet, Toggle, XBtn } from '@/components/ui';
 import { formatCHF, monthNames } from '@/lib/format';
@@ -22,6 +24,7 @@ export default function Plan() {
   const [goalText, setGoalText] = useState('');
   const [autoSheet, setAutoSheet] = useState(false);
   const [autoText, setAutoText] = useState('');
+  const [calSheet, setCalSheet] = useState(false);
 
   const rangeText = vacRange?.end
     ? `Vacanza: ${vacRange.start.slice(8)}–${vacRange.end.slice(8)} ${monthNames[parseInt(vacRange.start.slice(5, 7)) - 1].toLowerCase()} (${Number(vacRange.end.slice(8)) - Number(vacRange.start.slice(8)) + 1} giorni)`
@@ -54,6 +57,7 @@ export default function Plan() {
           <Btn small icon="calendar" title="Pianifica il mese" onPress={() => { void sendToAssistant('pianificami il mese'); go('ai'); }} />
           <Btn small ghost title="Solo questa settimana" onPress={() => { void sendToAssistant('pianifica la settimana'); go('ai'); }} />
         </Row>
+        <Btn small ghost icon="calendar" style={{ marginTop: 8 }} title="Importa dal calendario del telefono" onPress={() => setCalSheet(true)} />
       </Card>
 
       <Card>
@@ -95,6 +99,7 @@ export default function Plan() {
           <Item key={g.id}>
             <Row><Body bold>{g.t}</Body><Body small muted>{g.p}%</Body></Row>
             <Progress value={g.p} />
+            <GoalProgress goal={g} />
             <Row style={{ marginTop: 8 }}>
               <Link onPress={() => { const p = bumpGoal(g.id); if (p === 100) toast('Obiettivo completato'); }}>+5% progresso</Link>
               <Link danger onPress={() => { delGoal(g.id); toast('Obiettivo rimosso'); }}>rimuovi</Link>
@@ -111,6 +116,7 @@ export default function Plan() {
         ))}
       </Card>
 
+      <CalendarImportSheet visible={calSheet} onClose={() => setCalSheet(false)} />
       <DaySheet day={day} onClose={() => setDay(null)} />
       <SmartTaskSheet visible={taskSheet} onClose={() => setTaskSheet(false)} />
       <TaskBreakdownSheet taskId={openTask} onClose={() => setOpenTask(null)} />

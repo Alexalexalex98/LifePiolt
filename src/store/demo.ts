@@ -100,6 +100,15 @@ function seedChats(me: string) {
   add(w, 'Giulia M.', '', 2.5 * 3600000, { kind: 'contact', contact: { name: 'Elena Rossi (fornitore sensori)', phone: '+41 79 123 45 67' } });
   add(w, 'Federica L.', '', 2 * 3600000, { kind: 'slots', slots: { title: 'Riunione di allineamento', durationMin: 45, options: [{ id: 'w1', day: dk(2), time: '10:00', votes: ['Giulia M.', 'Federica L.'] }, { id: 'w2', day: dk(2), time: '14:00', votes: ['Marco T.'] }, { id: 'w3', day: dk(3), time: '09:30', votes: ['Giulia M.'] }] } });
   add(w, 'Marco T.', 'Se vi va bene scelgo io un orario: tocca a chi ha creato il gruppo confermare quello giusto.', 1.5 * 3600000);
+  // inviti a eventi (alcuni si sovrappongono a impegni demo del Plan: "Pranzo con Marco T." domani 12:00, "Cena con Giulia" dopodomani 20:30)
+  const sunday = dk(((7 - new Date().getDay()) % 7) || 7);
+  add(a, 'Marco T.', '', 40 * 60000, { kind: 'event', event: { title: 'Pranzo di lavoro AURA', day: dk(1), time: '12:30', durationMin: 60, place: 'Bar del laboratorio, Lugano', description: 'Passiamo in rassegna il piano dei beta tester.', rsvp: {} } });
+  add(b, 'Giulia M.', '', 45 * 60000, { kind: 'event', event: { title: 'Cena da Luigi', day: dk(2), time: '20:00', durationMin: 120, place: 'Trattoria da Luigi', rsvp: {} } });
+  add(g, 'Federica L.', '', 50 * 60000, { kind: 'event', event: { title: 'Brunch dopo la corsa', day: sunday, time: '10:30', durationMin: 90, place: 'Caffè del lago', description: 'Chi vuole fermarsi dopo l’allenamento.', rsvp: { 'Tommaso V.': 'yes', 'Giulia M.': 'maybe' } } });
+  add(w, me, '', 55 * 60000, { kind: 'event', status: 'read', event: { title: 'Prova generale prototipo AURA', day: dk(3), time: '15:00', durationMin: 90, place: 'Laboratorio AURA, Lugano', rsvp: { 'Marco T.': 'yes', 'Giulia M.': 'maybe', 'Federica L.': 'no' } } });
+  // ordine coerente: dentro ogni chat i messaggi sono in ordine di data e nessuno è nel futuro
+  const now = Date.now();
+  Object.keys(messages).forEach((k) => { messages[k] = messages[k].map((m) => ({ ...m, ts: Math.min(m.ts, now) })).sort((x, y) => x.ts - y.ts); });
   useChat.setState({ chats, messages });
 }
 

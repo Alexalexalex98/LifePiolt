@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
 
+import { logError } from '@/lib/errorLog';
 import { Icon } from '@/lib/icons';
 
 const useErr = create<{ msg: string | null; set: (m: string | null) => void }>((set) => ({ msg: null, set: (msg) => set({ msg }) }));
@@ -18,6 +19,7 @@ export function installGlobalErrors() {
   const show = (e: unknown) => {
     const m = e instanceof Error ? e.message : String(e);
     if (/Text strings must be rendered|Hydration|#418/.test(m)) return;
+    logError(e);
     useErr.getState().set(m.slice(0, 280));
   };
   const EU = (globalThis as unknown as { ErrorUtils?: { setGlobalHandler: (h: (e: unknown, fatal?: boolean) => void) => void } }).ErrorUtils;

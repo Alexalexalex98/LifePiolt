@@ -99,3 +99,30 @@ test('p-value: correlazione 0.47 su 28 punti non resiste alla correzione per con
   assert.ok(p > 0.005 && p < 0.02, `p=${p}`);
   assert.ok(corrPValue(0.97, 28) < 1e-9);
 });
+
+import { confirmCorrelation } from '../src/lib/analytics.ts';
+{
+  const day = (i) => { const d = new Date(2026, 5, 1 + i); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const def = (id) => ({ id, label: id, unit: '', domain: 'salute', better: 'up', dec: 0, color: '#fff', period: 'day' });
+  const ser = (id, f, n = 40) => ({ def: def(id), pts: Array.from({ length: n }, (_, i) => ({ d: day(i), v: f(i) })), source: 'x' });
+  const noise = (i) => ((i * 7919) % 13) / 13;
+  test('conferma correlazioni: legame stabile = confermata', () => {
+    const a = ser('a', (i) => i % 9 + noise(i)), b = ser('b', (i) => 2 * (i % 9) + noise(i * 3) * 0.5);
+    assert.equal(confirmCorrelation(a, b, 0).status, 'confermata');
+  });
+  test('conferma correlazioni: legame solo nella prima meta = non si ripete', () => {
+    const a = ser('a', (i) => i % 9 + noise(i));
+    const b = ser('b', (i) => (i < 20 ? 2 * (i % 9) : 7 * noise(i * 5 + 1)) + noise(i * 3) * 0.3);
+    const c = confirmCorrelation(a, b, 0);
+    assert.notEqual(c.status, 'confermata');
+    assert.ok(['non si ripete', 'incerta'].includes(c.status));
+  });
+  test('conferma correlazioni: legame invertito = non si ripete', () => {
+    const a = ser('a', (i) => i % 9 + noise(i));
+    const b = ser('b', (i) => (i < 20 ? 1 : -1) * 2 * (i % 9) + noise(i * 3) * 0.3);
+    assert.equal(confirmCorrelation(a, b, 0).status, 'non si ripete');
+  });
+  test('conferma correlazioni: pochi dati = incerta', () => {
+    assert.equal(confirmCorrelation(ser('a', (i) => i, 8), ser('b', (i) => i, 8), 0).status, 'incerta');
+  });
+}

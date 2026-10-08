@@ -19,6 +19,22 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
       <Icon name="alert" size={19} color={task.urgent ? t.danger : t.muted} />
     </Pressable>
   );
+  const dueLabel = task.due ? (() => { const d = Math.round((new Date(task.due + 'T00:00:00').getTime() - new Date(dayKey() + 'T00:00:00').getTime()) / 86400000); return d < 0 ? 'in ritardo' : d === 0 ? 'scade oggi' : d === 1 ? 'scade domani' : `scade tra ${d} giorni`; })() : null;
+  const cycleDue = () => {
+    // tocco: nessuna scadenza -> oggi -> domani -> tra 3 giorni -> tra una settimana -> nessuna
+    const steps = [undefined, 0, 1, 3, 7];
+    const cur = task.due ? Math.round((new Date(task.due + 'T00:00:00').getTime() - new Date(dayKey() + 'T00:00:00').getTime()) / 86400000) : undefined;
+    const i = steps.findIndex((x) => x === cur);
+    const next = steps[(i + 1) % steps.length];
+    const d = new Date(); if (next != null) d.setDate(d.getDate() + next);
+    patchTask(task.id, { due: next == null ? undefined : dayKey(d) });
+    toast(next == null ? 'Scadenza tolta' : next === 0 ? 'Scade oggi' : next === 1 ? 'Scade domani' : `Scade tra ${next} giorni`);
+  };
+  const dueBtn = (
+    <Pressable onPress={cycleDue} hitSlop={8} accessibilityLabel={task.due ? 'Cambia scadenza' : 'Imposta scadenza'}>
+      <Icon name="calendar" size={18} color={task.due ? t.accent : t.muted} />
+    </Pressable>
+  );
   const remove = () => {
     const idx = useLife.getState().tasks.findIndex((x) => x.id === task.id);
     const removed = delTask(task.id);
@@ -33,6 +49,7 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
           <Body style={{ flex: 1, textDecorationLine: dc === task.subtasks.length ? 'line-through' : 'none', opacity: dc === task.subtasks.length ? 0.45 : 1 }}>{task.t}</Body>
           <Row gap={8}>
             <Body small muted>{dc}/{task.subtasks.length} · {totalH}h</Body>
+            {dueBtn}
             {urgentBtn}
             <XBtn onPress={remove} />
           </Row>
@@ -49,9 +66,11 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
           </View>
           <Body style={{ flex: 1, textDecorationLine: task.done ? 'line-through' : 'none', opacity: task.done ? 0.45 : 1 }}>
             {task.t}
+            {dueLabel ? <Text style={{ color: task.due && dueLabel === 'in ritardo' ? t.danger : t.muted, fontSize: 12 }}>{'  · '}{dueLabel}</Text> : null}
             {task.recurring && task.recurring !== 'none' ? <Text style={{ color: t.muted, fontSize: 12 }}>{'  · '}{task.recurring === 'daily' ? 'ogni giorno' : 'ogni settimana'}</Text> : null}
           </Body>
         </Pressable>
+        {dueBtn}
         {urgentBtn}
         <Btn small ghost title="" icon="x" onPress={remove} />
       </Row>

@@ -21,6 +21,10 @@ function mkEnv() {
     pickProfilePhoto: async () => true,
     financeReport: () => 'fin', healthReport: () => 'sal', moodReport: () => 'umore',
     shareAgenda: (p) => (p === 'Marco' ? 'Inviata a Marco' : null), people: () => ['Marco T.', 'Giulia M.'],
+    setTaskDue: (id, d) => { st.tasks.find((t) => t.id === id).due = d; },
+    addRecurring: (day, ev, until, kind) => { const ref = 'rec:' + (st.n = (st.n || 0) + 1); const d = new Date(day + 'T00:00:00'); const end = new Date(until + 'T00:00:00'); const step = kind === 'weekly' ? 7 : 1; while (d <= end) { const k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); (st.events[k] ??= []).push({ ...ev, ref }); d.setDate(d.getDate() + step); } return ref; },
+    delByRef: (ref) => { for (const k of Object.keys(st.events)) st.events[k] = st.events[k].filter((e) => e.ref !== ref); },
+    briefing: () => ({ title: 'Buongiorno, Alex', body: 'Oggi hai 1 impegno.' }),
     setTaskUrgent: (id, v) => { st.tasks.find((t) => t.id === id).urgent = v; }, setEventImportant: () => {}, userName: () => 'Alex',
   };
   return { env, st };
@@ -132,4 +136,58 @@ test('i chip delle anteprime non vengono scambiati per nuovi comandi', async () 
   await a.handle('Chiamare commercialista');
   await a.handle('Aggiungi come task');
   assert.equal(st.tasks[0].t, 'Chiamare commercialista');
+});
+
+test('impegno ricorrente da chat e annulla', async () => {
+  const { env, st } = mkEnv(); const a = new Assistant(env);
+  const r = await a.handle('ogni martedì alle 18 palestra');
+  assert.ok(/ogni/.test(r.text), r.text);
+  const n = Object.values(st.events).flat().filter((e) => e.ref).length;
+  assert.ok(n >= 12, String(n));
+  await a.handle('annulla');
+  assert.equal(Object.values(st.events).flat().filter((e) => e.ref).length, 0);
+});
+
+test('luogo e avviso di spostamento', async () => {
+  const { env, st } = mkEnv(); const a = new Assistant(env);
+  await a.handle('aggiungi riunione a Lugano domani alle 10');
+  assert.equal(st.events['2026-10-08'].find((e) => e.title.includes('Riunione')).place, 'Lugano');
+  const r = await a.handle('aggiungi call con cliente a Zurigo domani alle 11');
+  assert.ok(/ne servono circa 150/.test(r.text), r.text);
+});
+
+test('scadenza del task e riferimento "quello"', async () => {
+  const { env, st } = mkEnv(); const a = new Assistant(env);
+  await a.handle('aggiungi task preparare relazione entro venerdì');
+  assert.equal(st.tasks[0].due, '2026-10-09');
+  await a.handle('aggiungi task comprare latte');
+  await a.handle('il task relazione scade lunedì');
+  assert.equal(st.tasks[0].due, '2026-10-12');
+});
+
+test('riferimenti agli impegni: "spostala", "a che ora?"', async () => {
+  const { env, st } = mkEnv(); const a = new Assistant(env);
+  const q = await a.handle('a che ora è il dentista?');
+  assert.match(q.text, /15:00/);
+  await a.handle('sposta il dentista a venerdì alle 11');
+  assert.ok(st.events['2026-10-09'].some((e) => e.title === 'Dentista'));
+  const r = await a.handle('spostala a lunedì alle 9');
+  assert.ok(st.events['2026-10-12']?.some((e) => e.title === 'Dentista'), r.text);
+});
+
+test('ripianifica le sessioni saltate', async () => {
+  const { env, st } = mkEnv(); const a = new Assistant(env);
+  await a.handle('aggiungi task business plan');
+  st.events['2026-10-06'] = [{ time: '10:30', title: 'Lavoro su: Business plan', dur: 60 }];
+  const r = await a.handle('ripianifica le sessioni saltate');
+  assert.ok(r.chips?.includes('Applica'), r.text);
+  await a.handle('Applica');
+  assert.equal((st.events['2026-10-06'] ?? []).length, 0);
+  assert.ok(Object.values(st.events).flat().some((e) => e.title === 'Lavoro su: Business plan'));
+});
+
+test('briefing', async () => {
+  const { env } = mkEnv(); const a = new Assistant(env);
+  const r = await a.handle('riepilogo della giornata');
+  assert.match(r.text, /Buongiorno, Alex/);
 });

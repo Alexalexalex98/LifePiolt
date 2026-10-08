@@ -12,10 +12,11 @@ import { UserAvatar } from '@/components/network';
 import { Body, Item, Sheet, IL } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import type { Picked } from '@/lib/chatMedia';
-import { simulateDelivery } from '@/lib/chatSim';
+import { searchText } from '@/lib/chatList';
+import { simulateDelivery, simulateRsvp } from '@/lib/chatSim';
 import { go, goBack } from '@/lib/nav';
 import { useApp } from '@/store/app';
-import { dayLabel, dmId, previewOf, useChat, visibleMsgs, type ChatMessage, type Poll } from '@/store/chat';
+import { dayLabel, dmId, isMuted, previewOf, useChat, visibleMsgs, type ChatMessage, type Poll } from '@/store/chat';
 import { askTheiaAbout } from '@/store/theia';
 import { dayKey } from '@/lib/format';
 import { useLife } from '@/store/life';
@@ -74,7 +75,7 @@ export default function Conversation() {
 
   const rows = useMemo<Row[]>(() => {
     const q = search?.trim().toLowerCase();
-    const src = q ? msgs.filter((m) => !m.deletedForAll && previewOf(m).toLowerCase().includes(q)) : msgs;
+    const src = q ? msgs.filter((m) => searchText(m).includes(q)) : msgs;
     const out: Row[] = [];
     let lastDay = ''; let lastFrom = ''; let unreadShown = false;
     src.forEach((m) => {
@@ -127,7 +128,11 @@ export default function Conversation() {
     setReplyTo(undefined); afterSend(mid);
   }
   function sendPoll(poll: Poll) { afterSend(st().send(id, me, { kind: 'poll', poll })); }
-  function sendShare(m: SharePayload) { afterSend(st().send(id, me, { ...m, replyTo: replyTo?.id })); setReplyTo(undefined); }
+  function sendShare(m: SharePayload) {
+    const mid = st().send(id, me, { ...m, replyTo: replyTo?.id });
+    afterSend(mid); setReplyTo(undefined);
+    if (demo && m.kind === 'event' && chat) simulateRsvp(id, mid, chat.members.filter((x) => x !== me));
+  }
 
   /* ---- azioni ---- */
   function onAction(a: Action, emoji?: string) {
@@ -198,7 +203,7 @@ export default function Conversation() {
             <Text style={{ flex: 1, color: t.text, fontSize: 18, fontWeight: '700' }}>{selected.length}</Text>
             {selected.length === 1 && <Pressable onPress={() => { setReplyTo(selMsgs[0]); exitSel(); }} hitSlop={8} accessibilityLabel="Rispondi"><Icon name="reply" size={21} color={t.text} /></Pressable>}
             <Pressable onPress={() => { toast(st().toggleStar(id, selected, me) ? 'Segnati come importanti' : 'Tolti dagli importanti'); exitSel(); }} hitSlop={8} accessibilityLabel="Importante"><Icon name="star" size={21} color={t.text} /></Pressable>
-            <Pressable onPress={() => { const txt = selMsgs.map((m) => m.text).filter(Boolean).join('\n'); if (txt) copyText({ ...selMsgs[0], text: txt }); exitSel(); }} hitSlop={8} accessibilityLabel="Copia"><Text style={{ fontSize: 20, color: t.text }}>⧉</Text></Pressable>
+            <Pressable onPress={() => { const txt = selMsgs.map((m) => m.text).filter(Boolean).join('\n'); if (txt) copyText({ ...selMsgs[0], text: txt }); exitSel(); }} hitSlop={8} accessibilityLabel="Copia"><Icon name="copy" size={21} color={t.text} /></Pressable>
             <Pressable onPress={() => askAbout(selMsgs)} hitSlop={8} accessibilityLabel="Chiedi a Theia"><Icon name="sparkle" size={21} color={t.text} /></Pressable>
             <Pressable onPress={() => setForwarding(selMsgs)} hitSlop={8} accessibilityLabel="Inoltra"><Icon name="forward" size={21} color={t.text} /></Pressable>
             <Pressable onPress={() => setDeleting(selMsgs)} hitSlop={8} accessibilityLabel="Elimina"><Icon name="trash" size={21} color={t.danger} /></Pressable>
@@ -264,7 +269,8 @@ export default function Conversation() {
         <Item onPress={() => { setMenu(false); setSearch(''); }}><IL icon="search">Cerca</IL></Item>
         <Item onPress={() => { setMenu(false); setSelected([msgs[msgs.length - 1]?.id].filter(Boolean) as string[]); }}><IL icon="checksquare">Seleziona messaggi</IL></Item>
         <Item onPress={() => { setMenu(false); go('starredPage', { id }); }}><IL icon="star">Messaggi importanti</IL></Item>
-        <Item onPress={() => { setMenu(false); st().patchChat(id, { mutedUntil: st().chats[id]?.mutedUntil && st().chats[id].mutedUntil! > Date.now() ? undefined : Date.now() + 8 * 3600000 }); toast('Notifiche aggiornate'); }}><IL icon="bell-off">Silenzia / riattiva (8 ore)</IL></Item>
+        <Item onPress={() => { setMenu(false); st().patchChat(id, { mutedUntil: isMuted(chat) ? undefined : Date.now() + 8 * 3600000 }); toast(isMuted(chat) ? 'Notifiche riattivate' : 'Chat silenziata per 8 ore'); }}><IL icon={isMuted(chat) ? 'bell' : 'bell-off'}>{isMuted(chat) ? 'Riattiva notifiche' : 'Silenzia (8 ore)'}</IL></Item>
+        <Item onPress={() => { setMenu(false); st().patchChat(id, { archived: !chat.archived }); toast(chat.archived ? 'Chat ripristinata' : 'Chat archiviata'); if (!chat.archived) goBack(); }}><IL icon="archive">{chat.archived ? 'Ripristina dagli archivi' : 'Archivia chat'}</IL></Item>
         <Item last onPress={() => { setMenu(false); go('chatSettings'); }}><IL icon="gear">Impostazioni chat</IL></Item>
       </Sheet>
     </KeyboardAvoidingView>

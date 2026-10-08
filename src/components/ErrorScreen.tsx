@@ -1,8 +1,12 @@
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+
+import { logError } from '@/lib/errorLog';
 
 /** Schermata mostrata al posto della pagina di errore con il codice: l'app non si blocca. */
 export function ErrorScreen({ error, retry }: { error: Error; retry: () => void }) {
+  useEffect(() => { logError(error, 'ErrorBoundary'); }, [error]);
   return (
     <View style={{ flex: 1, backgroundColor: '#07090d', justifyContent: 'center', padding: 24 }}>
       <Text style={{ color: '#f4f6f8', fontSize: 22, fontWeight: '800' }}>Qualcosa non ha funzionato</Text>

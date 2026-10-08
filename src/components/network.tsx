@@ -10,6 +10,8 @@ import { go } from '@/lib/nav';
 import { fmtAgo, pubLabel } from '@/lib/when';
 import { rateIdea, scoreColor } from '@/lib/network';
 import { useApp } from '@/store/app';
+import { useVisible } from '@/lib/moderation';
+import type { ModKind } from '@/lib/modRules';
 import { useNet, type Idea, type Post } from '@/store/network';
 import { toast } from '@/store/toast';
 
@@ -20,11 +22,22 @@ export const gradientFor = (seed: string) => photoGradients[Math.abs(hashStr(see
 export type SheetKind =
   | 'comments' | 'postMenu' | 'donate' | 'scoreExpl' | 'ideaMenu' | 'contribute' | 'newIdea' | 'newCommunity' | 'postToCommunity' | 'newSeminar'
   | 'promoteSeminar' | 'vote' | 'rating' | 'createClub' | 'clubManage' | 'statDetail' | 'following' | 'editProfile' | 'verification'
-  | 'topup' | 'cardPicker' | 'addCard' | 'cv' | 'newPost' | 'purchaseFinal' | 'sponsoredInfo' | 'confirmAttendance';
+  | 'contentMenu' | 'report' | 'topup' | 'cardPicker' | 'addCard' | 'cv' | 'newPost' | 'purchaseFinal' | 'sponsoredInfo' | 'confirmAttendance';
 
 type SheetState = { kind: SheetKind | null; p: Record<string, any>; open: (kind: SheetKind, p?: Record<string, any>) => void; close: () => void };
 export const useNetSheet = create<SheetState>((set) => ({ kind: null, p: {}, open: (kind, p = {}) => set({ kind, p }), close: () => set({ kind: null, p: {} }) }));
 export const openSheet = (kind: SheetKind, p?: Record<string, any>) => useNetSheet.getState().open(kind, p);
+
+/** Pulsante "..." con Segnala / Nascondi / Blocca utente, per qualunque contenuto della rete. */
+export type ModTarget = { kind: ModKind; ref: string | number; label: string; author?: string };
+export function ModButton(p: ModTarget & { size?: number }) {
+  const t = useTheme();
+  return (
+    <Pressable onPress={() => openSheet('contentMenu', { kind: p.kind, ref: p.ref, label: p.label, author: p.author })} hitSlop={10} accessibilityRole="button" accessibilityLabel="Altre azioni: segnala, nascondi, blocca">
+      <Icon name="more-h" size={p.size ?? 20} color={t.text} />
+    </Pressable>
+  );
+}
 
 /* ---------- conferma acquisto in una pagina dedicata ---------- */
 type Purchase = { title: string; rows: [string, string][]; onConfirm: (() => void) | null; returnTo: string };
@@ -37,7 +50,7 @@ export function openPurchaseConfirm(title: string, rows: [string, string][], onC
 /* ---------- elementi ---------- */
 export function LpTag({ size = 13, dark }: { size?: number; dark?: boolean }) {
   const t = useTheme();
-  const light = t.bg === '#eef1f6';
+  const light = t.mode === 'light';
   const useDark = dark ?? light;
   return <Image source={useDark ? require('../../assets/proto/lp-icon-b.png') : require('../../assets/proto/lp-icon-w.png')} style={{ height: size, width: size * 0.8, marginHorizontal: 1 }} resizeMode="contain" />;
 }
@@ -113,7 +126,8 @@ export function Badge({ label, color, onPress }: { label: string; color: string;
 export function PostCard({ post, likeKey }: { post: { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string }; likeKey: string }) {
   const t = useTheme();
   const net = useNet();
-  if (net.mutedAuthors.includes(post.author) || (post.tag && net.mutedTopics.includes(post.tag))) return null;
+  const visible = useVisible();
+  if (net.mutedAuthors.includes(post.author) || (post.tag && net.mutedTopics.includes(post.tag)) || !visible('post', likeKey, post.author)) return null;
   const liked = net.likedPosts.includes(likeKey);
   const donated = net.dailyPoint.lastGiven === weekdayShortDate();
   const commentCount = (net.comments[likeKey] || []).length;
@@ -127,7 +141,7 @@ export function PostCard({ post, likeKey }: { post: { author: string; text: stri
             <Text style={{ color: t.muted, fontSize: 11 }}>{[post.tag, fmtAgo(post.ts)].filter(Boolean).join(' · ')}</Text>
           </View>
         </Pressable>
-        <Pressable onPress={() => openSheet('postMenu', { author: post.author, tag: post.tag })} hitSlop={10}><Icon name="more-h" size={20} color={t.text} /></Pressable>
+        <Pressable onPress={() => openSheet('postMenu', { author: post.author, tag: post.tag, ref: likeKey, label: post.text })} hitSlop={10} accessibilityLabel="Altre azioni sul post"><Icon name="more-h" size={20} color={t.text} /></Pressable>
       </Row>
       <Body small style={{ marginBottom: 2 }}>{post.text}</Body>
       <MediaBlock media={post.media} seed={post.author + post.text} uri={post.uri} />
@@ -149,9 +163,11 @@ export function PostCard({ post, likeKey }: { post: { author: string; text: stri
 export function IdeaCard({ idea }: { idea: Idea }) {
   const t = useTheme();
   const ideas = useNet((s) => s.ideas);
+  const visible = useVisible();
   const score = rateIdea(idea.desc);
   const color = scoreColor(score);
   const dup = idea.similarTo ? ideas.find((x) => x.id === idea.similarTo) : null;
+  if (!visible('idea', idea.id, idea.author)) return null;
   const reward = idea.rewardType === 'fisso' ? `Contributo fisso: ${idea.fixedAmount} LP${idea.rewardDesc ? ' · ' + idea.rewardDesc : ''}` : idea.rewardDesc ? `Importo libero · In cambio: ${idea.rewardDesc}` : 'Importo libero · nessuna ricompensa specificata';
   return (
     <Card onPress={() => go('ideaProfile', { id: String(idea.id) })}>
@@ -159,7 +175,7 @@ export function IdeaCard({ idea }: { idea: Idea }) {
         <View style={{ flex: 1 }}><Body bold style={{ fontSize: 17 }}>{idea.title}</Body>{idea.ts ? <Body small muted>{pubLabel(idea.ts, 'Pubblicata')}</Body> : null}</View>
         <Row gap={6}>
           <Badge label={`${score}/100`} color={color} onPress={() => openSheet('scoreExpl', { id: idea.id })} />
-          <Pressable onPress={() => openSheet('ideaMenu', { author: idea.author })} hitSlop={10}><Icon name="more-h" size={20} color={t.text} /></Pressable>
+          <Pressable onPress={() => openSheet('ideaMenu', { author: idea.author, id: idea.id, label: idea.title })} hitSlop={10}><Icon name="more-h" size={20} color={t.text} /></Pressable>
         </Row>
       </Row>
       {dup && <Body small color="#ffb84f" style={{ marginVertical: 4 }}>Simile a "{dup.title}" di {dup.author}, creata prima</Body>}

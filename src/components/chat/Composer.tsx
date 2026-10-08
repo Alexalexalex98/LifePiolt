@@ -10,7 +10,7 @@ import { uid } from '@/lib/format';
 import { fmtDur, previewOf, type ChatMessage, type Poll } from '@/store/chat';
 import { toast } from '@/store/toast';
 import { senderColor, useChatColors } from './parts';
-import { AgendaSheet, DriveSheet, NoteSheet, SlotsSheet, TasksSheet, type SharePayload } from './ShareSheets';
+import { AgendaSheet, DriveSheet, EventSheet, NoteSheet, SlotsSheet, TasksSheet, type SharePayload } from './ShareSheets';
 import { Icon } from '@/lib/icons';
 import { useNet } from '@/store/network';
 import { useApp } from '@/store/app';
@@ -45,7 +45,7 @@ export function Composer(p: Props) {
   const t = useTheme();
   const c = useChatColors();
   const [attach, setAttach] = useState(false);
-  const [share, setShare] = useState<null | 'agenda' | 'tasks' | 'note' | 'slots' | 'drive'>(null);
+  const [share, setShare] = useState<null | 'agenda' | 'tasks' | 'note' | 'slots' | 'drive' | 'event'>(null);
   const [poll, setPoll] = useState(false);
   const [preview, setPreview] = useState<Picked[] | null>(null);
   const [caption, setCaption] = useState('');
@@ -206,6 +206,7 @@ export function Composer(p: Props) {
             ['calendar', 'I miei impegni', () => { setAttach(false); setShare('agenda'); }],
             ['tasks', 'Task', () => { setAttach(false); setShare('tasks'); }],
             ['clock', 'Proponi orari', () => { setAttach(false); setShare('slots'); }],
+            ['calendar', 'Invito a evento', () => { setAttach(false); setShare('event'); }],
             ['poll', 'Sondaggio', () => { setAttach(false); setPoll(true); }],
             ['note', 'Nota', () => { setAttach(false); setShare('note'); }],
             ['file', 'Da LifeDrive', () => { setAttach(false); setShare('drive'); }],
@@ -237,6 +238,7 @@ export function Composer(p: Props) {
       <TasksSheet visible={share === 'tasks'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <NoteSheet visible={share === 'note'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <SlotsSheet visible={share === 'slots'} onClose={() => setShare(null)} onSend={p.onSendShare} />
+      <EventSheet visible={share === 'event'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <DriveSheet visible={share === 'drive'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <PollSheet visible={poll} onClose={() => setPoll(false)} onCreate={(pl) => { setPoll(false); p.onSendPoll(pl); }} />
     </View>

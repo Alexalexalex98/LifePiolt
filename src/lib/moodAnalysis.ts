@@ -13,6 +13,8 @@ export type Group = { label: string; mean: number; n: number };
 export type Factor = {
   id: string; label: string; a: Group; b: Group; diff: number; t: number; sig: boolean;
   strength: 'forte' | 'media' | 'lieve'; sentence: string; tip: string;
+  /** si ripete nel tempo? (prima vs seconda metà dei dati) */
+  confirmation?: Confirmation;
 };
 export type MoodReport = { n: number; mean: number; best: Group | null; worst: Group | null; factors: Factor[]; confidence: 'alta' | 'media' | 'bassa' | 'insufficiente' };
 
@@ -45,6 +47,58 @@ const defs: Def[] = [
   { id: 'weekend', label: 'Weekend', get: (d) => (d.weekday === 0 || d.weekday === 6 ? 1 : 0), a: { label: 'weekend', test: (v) => v === 1 }, b: { label: 'giorni lavorativi', test: (v) => v === 0 }, tipUp: 'Il weekend ti ricarica: lascia davvero libera quella parte della settimana.', tipDown: 'Il weekend abbassa il tuo umore: pianifica qualcosa di piacevole anche nei giorni liberi.' },
 ];
 
+
+/** Divide i giorni nei due gruppi da confrontare per un fattore (null se i dati non bastano). */
+function groupsFor(def: Def, days: DayCtx[]): [DayCtx[], DayCtx[]] | null {
+  if (def.id === 'spend') {
+    const vals = days.map((d) => def.get(d)).filter((v): v is number => v != null).sort((x, y) => x - y);
+    if (vals.length < 15) return null;
+    const lo = vals[Math.floor(vals.length / 3)], hi = vals[Math.floor((vals.length * 2) / 3)];
+    if (hi <= lo) return null;
+    return [days.filter((d) => (def.get(d) ?? -1) >= hi && (def.get(d) ?? 0) > 0), days.filter((d) => def.get(d) != null && (def.get(d) as number) <= lo)];
+  }
+  return [
+    days.filter((d) => { const v = def.get(d); return v != null && def.a.test(v); }),
+    days.filter((d) => { const v = def.get(d); return v != null && def.b.test(v); }),
+  ];
+}
+
+/* ---------- conferma nel tempo ---------- */
+export type Confirmation = {
+  status: 'confermata' | 'incerta' | 'non si ripete';
+  /** differenza di umore (gruppo a meno gruppo b) nella prima e nella seconda metà dei dati; null se la metà non ha abbastanza giorni */
+  first: number | null; second: number | null; nFirst: number; nSecond: number;
+  text: string;
+};
+const MIN_HALF_GROUP = 3;
+const SHOW = (v: number | null) => (v == null ? 'dati insufficienti' : `${v > 0 ? '+' : ''}${fmt(v)}`);
+
+/** Giudica se un legame si ripete: stesso confronto sulla prima e sulla seconda metà cronologica dei dati. */
+export function confirmationOf(first: number | null, second: number | null, nFirst: number, nSecond: number, minEffect = 0.25): Confirmation {
+  const mk = (status: Confirmation['status'], text: string): Confirmation => ({ status, first, second, nFirst, nSecond, text });
+  if (first == null || second == null) return mk('incerta', 'Troppo pochi giorni in una delle due metà per sapere se si ripete.');
+  const sameSign = Math.sign(first) === Math.sign(second);
+  if (sameSign && Math.abs(first) >= minEffect && Math.abs(second) >= minEffect) return mk('confermata', `Si ripete in entrambe le metà del periodo (${SHOW(first)} e ${SHOW(second)}).`);
+  if (!sameSign && Math.max(Math.abs(first), Math.abs(second)) >= minEffect && Math.min(Math.abs(first), Math.abs(second)) >= minEffect * 0.5) return mk('non si ripete', `Nelle due metà del periodo va in direzioni opposte (${SHOW(first)} e ${SHOW(second)}): probabilmente è un caso.`);
+  if (Math.min(Math.abs(first), Math.abs(second)) < minEffect * 0.5 && Math.max(Math.abs(first), Math.abs(second)) >= minEffect) return mk('non si ripete', `C’è in una sola metà del periodo (${SHOW(first)} e ${SHOW(second)}): non si ripete.`);
+  return mk('incerta', `Differenza piccola in almeno una metà (${SHOW(first)} e ${SHOW(second)}): servono più giorni.`);
+}
+
+/** Per un fattore dell'umore: confronta prima e seconda metà dei giorni (ordinati per data). */
+export function confirmFactor(days: DayCtx[], factorId: string): Confirmation {
+  const def = defs.find((d) => d.id === factorId);
+  const sorted = days.slice().sort((a, b) => a.day.localeCompare(b.day));
+  const h = Math.floor(sorted.length / 2);
+  const halves = [sorted.slice(0, h), sorted.slice(h)];
+  const diffs = halves.map((half) => {
+    if (!def) return { d: null as number | null, n: half.length };
+    const g = groupsFor(def, half);
+    if (!g || g[0].length < MIN_HALF_GROUP || g[1].length < MIN_HALF_GROUP) return { d: null, n: half.length };
+    return { d: mean(g[0].map((x) => x.mood)) - mean(g[1].map((x) => x.mood)), n: half.length };
+  });
+  return confirmationOf(diffs[0].d, diffs[1].d, diffs[0].n, diffs[1].n);
+}
+
 const strengthOf = (d: number): Factor['strength'] => (Math.abs(d) >= 0.8 ? 'forte' : Math.abs(d) >= 0.5 ? 'media' : 'lieve');
 
 /** Soglia più severa quando si fanno molti confronti (correzione approssimata). */
@@ -57,18 +111,9 @@ export function analyseMood(days: DayCtx[]): MoodReport {
   const factors: Factor[] = [];
   if (n >= 14) {
     defs.forEach((def) => {
-      let A: DayCtx[], B: DayCtx[];
-      if (def.id === 'spend') {
-        const vals = days.map((d) => def.get(d)).filter((v): v is number => v != null).sort((x, y) => x - y);
-        if (vals.length < 15) return;
-        const lo = vals[Math.floor(vals.length / 3)], hi = vals[Math.floor((vals.length * 2) / 3)];
-        if (hi <= lo) return;
-        A = days.filter((d) => (def.get(d) ?? -1) >= hi && (def.get(d) ?? 0) > 0);
-        B = days.filter((d) => def.get(d) != null && (def.get(d) as number) <= lo);
-      } else {
-        A = days.filter((d) => { const v = def.get(d); return v != null && def.a.test(v); });
-        B = days.filter((d) => { const v = def.get(d); return v != null && def.b.test(v); });
-      }
+      const g = groupsFor(def, days);
+      if (!g) return;
+      const [A, B] = g;
       if (A.length < 5 || B.length < 5) return;
       const diff = mean(A.map((d) => d.mood)) - mean(B.map((d) => d.mood));
       const t = welch(A.map((d) => d.mood), B.map((d) => d.mood));
@@ -79,6 +124,7 @@ export function analyseMood(days: DayCtx[]): MoodReport {
         id: def.id, label: def.label, a, b, diff, t, sig, strength: strengthOf(diff),
         sentence: `Nei ${a.label} il tuo umore è in media ${fmt(a.mean)} su 5, contro ${fmt(b.mean)} nei ${b.label} (${sgn(diff)}), su ${a.n} e ${b.n} giorni.`,
         tip: diff > 0 ? def.tipUp : def.tipDown,
+        confirmation: confirmFactor(days, def.id),
       });
     });
   }

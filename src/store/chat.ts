@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 
+import { fmtDur as fmtDurImpl, lastMessage, previewText } from '@/lib/chatList';
 import { uid } from '@/lib/format';
 import { persisted } from './persist';
 
-export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'contact' | 'poll' | 'agenda' | 'tasks' | 'note' | 'slots' | 'system';
+export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'contact' | 'poll' | 'agenda' | 'tasks' | 'note' | 'slots' | 'event' | 'system';
 export type MsgStatus = 'sending' | 'sent' | 'delivered' | 'read';
 
 export type Media = { uri: string; w?: number; h?: number; mime?: string; name?: string; size?: number; durationMs?: number; waveform?: number[] };
@@ -21,6 +22,9 @@ export type TaskShare = { title: string; items: { t: string; done: boolean }[] }
 export type NoteShare = { title: string; text: string };
 /** Proposta di orari per un incontro: chi riceve vota gli orari che gli vanno bene. */
 export type SlotsShare = { title: string; durationMin: number; options: { id: string; day: string; time: string; votes: string[] }[]; confirmed?: string };
+/** Invito a un evento: chi riceve risponde partecipo / forse / non partecipo. */
+export type RsvpAnswer = 'yes' | 'maybe' | 'no';
+export type EventShare = { title: string; day: string; time: string; durationMin: number; place?: string; description?: string; rsvp: Record<string, RsvpAnswer> };
 export type Poll = { q: string; multi: boolean; options: { id: string; t: string; votes: string[] }[] };
 
 export type ChatMessage = {
@@ -46,6 +50,7 @@ export type ChatMessage = {
   taskList?: TaskShare;
   noteShare?: NoteShare;
   slots?: SlotsShare;
+  event?: EventShare;
   /** persone che hanno importato la scheda (agenda/task/nota) nel proprio piano */
   importedBy?: string[];
   expiresAt?: number;
@@ -118,6 +123,7 @@ type ChatState = {
   votePoll: (id: string, mid: string, optId: string, me: string) => void;
   voteSlot: (id: string, mid: string, optId: string, me: string) => void;
   confirmSlot: (id: string, mid: string, optId: string, me: string) => void;
+  rsvpEvent: (id: string, mid: string, who: string, answer: RsvpAnswer | null) => void;
   markImported: (id: string, mid: string, me: string) => void;
   addMembers: (id: string, names: string[], me: string) => void;
   removeMember: (id: string, name: string, me: string) => void;
@@ -155,7 +161,7 @@ export const useChat = create<ChatState>()(
     clearChat: (id, keepStarred) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).filter((m) => keepStarred && m.starredBy?.length) } })),
     markRead: (id, me) => {
       const msgs = get().messages[id] ?? [];
-      const last = msgs[msgs.length - 1];
+      const last = lastMessage(msgs);
       const chat = get().chats[id];
       if (!chat) return;
       const lastTs = last?.ts ?? Date.now();
@@ -189,7 +195,7 @@ export const useChat = create<ChatState>()(
     },
     patchMsg: (id, mid, p) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (m.id === mid ? { ...m, ...p } : m)) } })),
     deleteForMe: (id, mids, me) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (mids.includes(m.id) ? { ...m, hiddenFor: [...(m.hiddenFor ?? []), me] } : m)) } })),
-    deleteForAll: (id, mid) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (m.id === mid ? { ...m, deletedForAll: true, text: undefined, media: undefined, location: undefined, contact: undefined, poll: undefined, agenda: undefined, taskList: undefined, noteShare: undefined, slots: undefined, reactions: undefined, starredBy: undefined } : m)) } })),
+    deleteForAll: (id, mid) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (m.id === mid ? { ...m, deletedForAll: true, text: undefined, media: undefined, location: undefined, contact: undefined, poll: undefined, agenda: undefined, taskList: undefined, noteShare: undefined, slots: undefined, event: undefined, reactions: undefined, starredBy: undefined } : m)) } })),
     editMsg: (id, mid, text) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (m.id === mid ? { ...m, text, edited: true } : m)) } })),
     react: (id, mid, me, emoji) => set((s) => ({
       messages: {
@@ -220,7 +226,7 @@ export const useChat = create<ChatState>()(
     forward: (toIds, msgs, me) => {
       toIds.forEach((to) => {
         msgs.forEach((m) => {
-          get().send(to, me, { kind: m.kind, text: m.text, media: m.media, location: m.location, contact: m.contact, poll: m.poll ? { ...m.poll, options: m.poll.options.map((o) => ({ ...o, votes: [] })) } : undefined, agenda: m.agenda, taskList: m.taskList, noteShare: m.noteShare, slots: m.slots ? { ...m.slots, confirmed: undefined, options: m.slots.options.map((o) => ({ ...o, votes: [] })) } : undefined, forwarded: true });
+          get().send(to, me, { kind: m.kind, text: m.text, media: m.media, location: m.location, contact: m.contact, poll: m.poll ? { ...m.poll, options: m.poll.options.map((o) => ({ ...o, votes: [] })) } : undefined, agenda: m.agenda, taskList: m.taskList, noteShare: m.noteShare, slots: m.slots ? { ...m.slots, confirmed: undefined, options: m.slots.options.map((o) => ({ ...o, votes: [] })) } : undefined, event: m.event ? { ...m.event, rsvp: {} } : undefined, forwarded: true });
         });
       });
     },
@@ -249,6 +255,14 @@ export const useChat = create<ChatState>()(
       const note = sys(id, `${me} ha confermato "${m.slots!.title}": ${o.day} alle ${o.time}`);
       return { messages: { ...s.messages, [id]: [...list.map((x) => (x.id === mid ? { ...x, slots: { ...x.slots!, confirmed: optId } } : x)), note] } };
     }),
+    rsvpEvent: (id, mid, who, answer) => set((s) => ({
+      messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => {
+        if (m.id !== mid || !m.event) return m;
+        const rsvp = { ...m.event.rsvp };
+        if (answer) rsvp[who] = answer; else delete rsvp[who];
+        return { ...m, event: { ...m.event, rsvp } };
+      }) },
+    })),
     markImported: (id, mid, me) => set((s) => ({ messages: { ...s.messages, [id]: (s.messages[id] ?? []).map((m) => (m.id === mid ? { ...m, importedBy: [...new Set([...(m.importedBy ?? []), me])] } : m)) } })),
     addMembers: (id, names, me) => set((s) => {
       const c = s.chats[id]; if (!c) return s;
@@ -313,29 +327,10 @@ export function totalUnread(me: string): number {
   return n;
 }
 
-/** Testo breve per anteprima in lista e per le risposte citate. */
-export function previewOf(m: ChatMessage): string {
-  if (m.deletedForAll) return 'Questo messaggio è stato eliminato';
-  switch (m.kind) {
-    case 'image': return m.text || 'Foto';
-    case 'video': return m.text || 'Video';
-    case 'audio': return 'Messaggio vocale ' + fmtDur(m.media?.durationMs ?? 0);
-    case 'file': return m.media?.name ?? 'Documento';
-    case 'location': return 'Posizione';
-    case 'contact': return m.contact?.name ?? 'Contatto';
-    case 'poll': return m.poll?.q ?? 'Sondaggio';
-    case 'agenda': return m.agenda?.mode === 'liberi' ? 'Disponibilità: slot liberi' : m.agenda?.mode === 'occupato' ? 'Disponibilità: occupato/libero' : 'Agenda: ' + (m.agenda?.title ?? 'impegni');
-    case 'tasks': return 'Task: ' + (m.taskList?.title ?? 'elenco');
-    case 'note': return 'Nota: ' + (m.noteShare?.title ?? '');
-    case 'slots': return 'Proposta orari: ' + (m.slots?.title ?? '');
-    default: return m.text ?? '';
-  }
-}
+/** Testo breve per anteprima in lista, nelle risposte citate e nelle ricerche (vedi '@/lib/chatList'). */
+export const previewOf = (m: ChatMessage): string => previewText(m);
 
-export function fmtDur(ms: number): string {
-  const s = Math.round(ms / 1000);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
+export const fmtDur = fmtDurImpl;
 
 export function fmtClock(ts: number): string {
   const d = new Date(ts);

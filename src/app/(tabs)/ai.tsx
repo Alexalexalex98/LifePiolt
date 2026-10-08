@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -26,6 +27,14 @@ export default function LifeChat() {
   const list = useRef<FlatList<AMsg>>(null);
 
   useEffect(() => { migrateOldChat(); }, []);
+  // una scheda (es. suggerimento di Theia) può aprire la chat già con un comando da eseguire
+  const { ask } = useLocalSearchParams<{ ask?: string }>();
+  useEffect(() => {
+    if (!ask) return;
+    router.setParams({ ask: '' });
+    void send(String(ask));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ask]);
 
   const folders = useMemo(() => foldersOf(log), [log]);
   const [showAll, setShowAll] = useState(false);

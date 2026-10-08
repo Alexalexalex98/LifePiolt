@@ -13,7 +13,7 @@ import { ModalToast } from '@/components/ui';
 
 export function useChatColors() {
   const t = useTheme();
-  const light = t.bg === '#eef1f6' || t.text === '#10151d';
+  const light = t.mode === 'light';
   // colori di LifePilot, non di un'altra app: la chat usa la stessa tavolozza del resto
   return {
     mine: light ? '#dde4ff' : '#26324f',

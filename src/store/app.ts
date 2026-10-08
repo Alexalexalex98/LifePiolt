@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { setErrorScreen } from '@/lib/errorLog';
+
 import { persisted } from './persist';
 
 export type Appearance = 'Scuro' | 'Chiaro' | 'Sistema';
@@ -21,6 +23,8 @@ type AppState = {
   language: Language;
   timeFormat: '24h' | '12h';
   notif: { push: boolean; calendar: boolean; finance: boolean; health: boolean; digest: boolean; email: boolean };
+  /** briefing locali: riepilogo del mattino e della sera (orari HH:MM) */
+  briefing: { morning: boolean; morningAt: string; evening: boolean; eveningAt: string };
   security: { twofa: boolean; lock: boolean };
   accessibility: { textLg: boolean; reduceMotion: boolean; highContrast: boolean };
   navItems: string[];
@@ -47,6 +51,7 @@ const initial = {
   language: 'Italiano' as Language,
   timeFormat: '24h' as const,
   notif: { push: false, calendar: true, finance: true, health: false, digest: false, email: false },
+  briefing: { morning: false, morningAt: '07:45', evening: false, eveningAt: '20:30' },
   security: { twofa: false, lock: false },
   accessibility: { textLg: false, reduceMotion: false, highContrast: false },
   navItems: ['home', 'ai', 'lifenetwork', 'lifefinance', 'profile'],
@@ -66,6 +71,7 @@ export const useApp = create<AppState>()(
     ...initial,
     set: (patch) => set(patch),
     trackVisit: (p) => set((s) => {
+      setErrorScreen(p);
       if (!navCatalog[p]) return s;
       const h = new Date().getHours();
       const arr = (s.visitHours?.[p] ?? Array(24).fill(0)).slice();

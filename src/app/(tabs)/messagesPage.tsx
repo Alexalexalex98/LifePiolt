@@ -7,7 +7,8 @@ import { Body, Btn, Empty, Input, Item, Page, Pill, Row, Sheet, IL } from '@/com
 import { useTheme } from '@/hooks/use-theme';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
-import { isMuted, listTime, previewOf, unreadCount, useChat, visibleMsgs, type Chat } from '@/store/chat';
+import { buildRows, previewParts, searchText, sortRows, visibleTo } from '@/lib/chatList';
+import { isMuted, listTime, useChat, type Chat } from '@/store/chat';
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
 
@@ -28,17 +29,15 @@ export default function MessagesPage() {
 
   const rows = useMemo(() => {
     const ql = q.trim().toLowerCase();
-    return Object.values(chats).map((c) => {
-      const msgs = visibleMsgs(messages[c.id], me);
-      const last = msgs[msgs.length - 1];
-      const u = unreadCount(c, messages[c.id], me);
-      const hit = ql ? msgs.find((m) => !m.deletedForAll && previewOf(m).toLowerCase().includes(ql)) : undefined;
-      return { c, last, u, hit, ts: last?.ts ?? c.createdAt };
-    })
-      .filter((r) => (archived ? r.c.archived : !r.c.archived))
+    const base = buildRows(Object.values(chats), messages, me).map((r) => ({
+      ...r,
+      hit: ql ? visibleTo(messages[r.c.id], me).filter((m) => searchText(m).includes(ql)).sort((x, y) => y.ts - x.ts)[0] : undefined,
+    }));
+    return sortRows(base
+      // cercando si guarda in tutte le chat, archiviate comprese
+      .filter((r) => (ql ? true : archived ? r.c.archived : !r.c.archived))
       .filter((r) => (ql ? r.c.name.toLowerCase().includes(ql) || !!r.hit : true))
-      .filter((r) => (filter === 'Non lette' ? r.u > 0 || r.c.markedUnread : filter === 'Gruppi' ? r.c.type === 'group' : true))
-      .sort((a, b) => Number(!!b.c.pinned) - Number(!!a.c.pinned) || b.ts - a.ts);
+      .filter((r) => (filter === 'Non lette' && !archived ? r.unread : filter === 'Gruppi' && !archived ? r.c.type === 'group' : true)));
   }, [chats, messages, q, filter, archived, me]);
 
   const archivedCount = Object.values(chats).filter((c) => c.archived).length;
@@ -73,11 +72,14 @@ export default function MessagesPage() {
         </>
       )}
 
-      {rows.length === 0 ? <Empty text={q ? 'Nessun risultato.' : filter === 'Non lette' ? 'Nessun messaggio non letto.' : 'Nessuna chat: premi “+” per iniziare.'} /> : rows.map(({ c, last, u, hit }) => {
+      {rows.length === 0 ? <Empty text={q ? 'Nessun risultato.' : filter === 'Non lette' ? 'Nessun messaggio non letto.' : archived ? 'Nessuna chat archiviata.' : 'Nessuna chat: premi “+” per iniziare.'} /> : rows.map(({ c, last, u, hit }) => {
         const unread = u > 0 || c.markedUnread;
         const muted = isMuted(c);
-        const preview = hit && q ? previewOf(hit) : c.draft ? c.draft : last ? previewOf(last) : c.type === 'group' ? `${c.members.length} membri` : 'Nessun messaggio';
-        const mineLast = last?.from === me;
+        const shown = q && hit ? hit : last;
+        const pp = shown ? previewParts(shown) : null;
+        const showDraft = !!c.draft && !q;
+        const mineLast = shown?.from === me;
+        const emptyText = c.type === 'group' ? `${c.members.length} membri` : 'Nessun messaggio';
         return (
           <Pressable key={c.id} onPress={() => open(c)} onLongPress={() => setSel(sel.includes(c.id) ? sel : [...sel, c.id])} delayLongPress={300}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 6, borderRadius: 14, backgroundColor: sel.includes(c.id) ? t.chip : 'transparent' }}
@@ -86,14 +88,16 @@ export default function MessagesPage() {
             <View style={{ flex: 1 }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Text numberOfLines={1} style={{ color: t.text, fontSize: 16, fontWeight: unread ? '800' : '600', flex: 1 }}>{c.name}</Text>
-                <Text style={{ color: unread && !muted ? t.accent : t.muted, fontSize: 12 }}>{last ? listTime(last.ts) : ''}</Text>
+                <Text style={{ color: unread && !muted ? t.accent : t.muted, fontSize: 12 }}>{shown ? listTime(shown.ts) : ''}</Text>
               </Row>
               <Row style={{ justifyContent: 'space-between' }} gap={6}>
-                <Text numberOfLines={1} style={{ color: t.muted, fontSize: 14, flex: 1, fontWeight: unread ? '700' : '400' }}>
-                  {c.draft && !q ? <Text style={{ color: '#e5484d' }}>Bozza: </Text> : null}
-                  {!c.draft && mineLast && last && !last.deletedForAll ? <Text style={{ color: last.status === 'read' ? t.accent : t.muted }}>{last.status === 'sent' ? 'Inviato · ' : 'Consegnato · '}</Text> : null}
-                  {!c.draft && c.type === 'group' && last && !mineLast && last.kind !== 'system' ? `${last.from}: ` : ''}{preview}
-                </Text>
+                <Row gap={4} style={{ flex: 1, justifyContent: 'flex-start' }}>
+                  {showDraft ? <Text style={{ color: '#e5484d', fontSize: 14 }}>Bozza:</Text> : null}
+                  {!showDraft && mineLast && shown && !shown.deletedForAll && shown.kind !== 'system' ? <Text style={{ color: shown.status === 'read' ? t.accent : t.muted, fontSize: 14 }}>{shown.status === 'read' ? 'Letto ·' : shown.status === 'delivered' ? 'Consegnato ·' : 'Inviato ·'}</Text> : null}
+                  {!showDraft && !mineLast && c.type === 'group' && shown && shown.kind !== 'system' ? <Text style={{ color: t.muted, fontSize: 14 }}>{shown.from}:</Text> : null}
+                  {!showDraft && pp?.icon ? <Icon name={pp.icon} size={14} color={t.muted} /> : null}
+                  <Text numberOfLines={1} style={{ color: t.muted, fontSize: 14, flex: 1, fontWeight: unread ? '700' : '400' }}>{showDraft ? c.draft : pp ? pp.text : emptyText}</Text>
+                </Row>
                 {muted && <Icon name="bell-off" size={13} color={t.muted} />}
                 {c.pinned && <Icon name="pin" size={13} color={t.muted} />}
                 {unread && <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: muted ? t.muted : t.accent, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.onText, fontSize: 11, fontWeight: '800' }}>{u > 0 ? u : ''}</Text></View>}

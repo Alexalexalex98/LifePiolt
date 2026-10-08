@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { CorrelationConfirm } from '@/components/ConfirmBadge';
 import { MetricSheet, statusColor, scoreStatus } from '@/components/dashboard';
 import { Body, Btn, Card, Chev, Item, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -95,6 +96,7 @@ export function CorrelationSheet({ c, onClose, onOpen }: { c: Correlation | null
     <Sheet visible title="Cosa influenza cosa" onClose={onClose}>
       <Body bold>{c.sentence}</Body>
       <Body small muted style={{ marginTop: 8 }}>Correlazione {rWord(c.r)} ({c.r > 0 ? 'vanno nella stessa direzione' : 'vanno in direzioni opposte'}), calcolata su {c.n} giorni{c.lag ? ' (con un giorno di scarto)' : ''}. È una associazione, non una prova che uno causi l’altro: possono muoversi insieme per un terzo motivo.</Body>
+      <CorrelationConfirm c={c} />
       <Body bold style={{ marginTop: 12, marginBottom: 6 }}>Guarda i due dati</Body>
       <Row gap={8}><Btn small ghost style={{ flex: 1 }} title={c.a.label} onPress={() => { onClose(); onOpen(c.a.id); }} /><Btn small ghost style={{ flex: 1 }} title={c.b.label} onPress={() => { onClose(); onOpen(c.b.id); }} /></Row>
     </Sheet>

@@ -3,7 +3,7 @@ import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
 
 import { Icon } from '@/lib/icons';
 import { fmtClock, previewOf, reactionIcon, type ChatMessage } from '@/store/chat';
-import { AgendaCard, NoteCard, SlotsCard, TasksCard } from './cards';
+import { AgendaCard, EventCard, NoteCard, SlotsCard, TasksCard } from './cards';
 import { ContactCard, FileCard, LinkText, LocationCard, MediaThumb, PollCard, Ticks, VoiceBubble, senderColor, useChatColors } from './parts';
 
 type Props = {
@@ -65,6 +65,7 @@ export const Bubble = memo(function Bubble(p: Props) {
         {m.kind === 'tasks' && m.taskList && <TasksCard m={m} me={p.me} chatId={m.chatId} />}
         {m.kind === 'note' && m.noteShare && <NoteCard m={m} me={p.me} chatId={m.chatId} />}
         {m.kind === 'slots' && m.slots && <SlotsCard m={m} me={p.me} chatId={m.chatId} />}
+        {m.kind === 'event' && m.event && <EventCard m={m} me={p.me} chatId={m.chatId} />}
         {!!m.text && m.kind !== 'poll' && m.kind !== 'audio' ? <View style={{ marginTop: m.kind === 'text' ? 0 : 6 }}><LinkText text={m.text} color={fg} size={p.fontSize} /></View> : null}
       </>
     );
