@@ -55,6 +55,37 @@ function seedChats(me: string) {
   add(g, 'Tommaso V.', 'Ritrovo alle 8:00 al lago?', 26 * 3600000);
   add(g, me, 'Per me va benissimo', 25 * 3600000, { status: 'read', reactions: { 'Tommaso V.': 'like' } });
   add(g, 'Federica L.', 'Io porto le barrette energetiche', 2 * 3600000);
+  // più persone che condividono con te cose diverse: ogni scelta finisce nel tuo calendario
+  add(b, 'Giulia M.', '', 2 * 3600000, { kind: 'agenda', agenda: { title: 'Quando sono libera questa settimana', range: '7 giorni', mode: 'liberi', items: [], free: [{ day: dk(1), from: '10:00', to: '12:00' }, { day: dk(1), from: '15:00', to: '17:00' }, { day: dk(2), from: '13:30', to: '16:00' }, { day: dk(4), from: '09:00', to: '11:30' }], hours: { from: '09:00', to: '18:00', minSlot: 30 } } });
+  add(b, 'Giulia M.', 'Se ti va un caffè per parlare del progetto, scegli tu l’orario.', 110 * 60000);
+  add(b, 'Giulia M.', '', 100 * 60000, { kind: 'slots', slots: { title: 'Caffè e progetto', durationMin: 45, options: [{ id: 'g1', day: dk(1), time: '15:00', votes: ['Giulia M.'] }, { id: 'g2', day: dk(2), time: '14:00', votes: ['Giulia M.'] }, { id: 'g3', day: dk(4), time: '10:00', votes: [] }] } });
+
+  const f = dm('Federica L.', Date.now() - 4 * DAY);
+  add(f, 'Federica L.', 'Ciao! Ti mando la mia agenda senza i dettagli, vedi solo quando sono occupata.', 5 * 3600000);
+  add(f, 'Federica L.', '', 5 * 3600000 - 60000, { kind: 'agenda', agenda: { title: 'La mia disponibilità della settimana', range: '7 giorni', mode: 'occupato', items: [], busy: [{ day: dk(1), from: '09:00', to: '12:00' }, { day: dk(2), from: '10:00', to: '11:00' }, { day: dk(3), from: '14:00', to: '17:00' }], free: [{ day: dk(1), from: '14:00', to: '17:30' }, { day: dk(2), from: '11:00', to: '13:00' }, { day: dk(3), from: '09:00', to: '12:00' }], hours: { from: '09:00', to: '18:00', minSlot: 30 } } });
+  add(f, 'Federica L.', '', 4 * 3600000, { kind: 'note', noteShare: { title: 'Idee per il lancio', text: 'Idee per il lancio\n- Video di 30 secondi del prototipo\n- Pagina di iscrizione con lista d’attesa\n- 3 beta tester per settimana' } });
+  add(f, 'Federica L.', '', 3 * 3600000, { kind: 'poll', poll: { q: 'Quale giorno è meglio per il test del prototipo?', multi: true, options: [{ id: 'f1', t: 'Martedì mattina', votes: ['Federica L.'] }, { id: 'f2', t: 'Mercoledì pomeriggio', votes: [] }, { id: 'f3', t: 'Giovedì tutto il giorno', votes: ['Federica L.'] }] } });
+  add(f, 'Federica L.', '', 2.5 * 3600000, { kind: 'location', location: { lat: 46.0101, lng: 8.9606, label: 'Spazio coworking, Lugano' } });
+
+  const tm = dm('Tommaso V.', Date.now() - 3 * DAY);
+  add(tm, 'Tommaso V.', 'Ho preparato la lista per il trasloco del laboratorio: prendi quello che puoi.', 6 * 3600000);
+  add(tm, 'Tommaso V.', '', 6 * 3600000 - 60000, { kind: 'tasks', taskList: { title: 'Trasloco laboratorio', items: [{ t: 'Imballare gli strumenti', done: false }, { t: 'Prenotare il furgone', done: false }, { t: 'Cambiare l’indirizzo sul sito', done: false }, { t: 'Ritirare le chiavi nuove', done: true }] } });
+  add(tm, 'Tommaso V.', '', 5 * 3600000, { kind: 'slots', slots: { title: 'Allenamento in coppia', durationMin: 60, options: [{ id: 't1', day: dk(1), time: '12:00', votes: ['Tommaso V.'] }, { id: 't2', day: dk(3), time: '17:00', votes: ['Tommaso V.'] }, { id: 't3', day: dk(5), time: '09:00', votes: [] }] } });
+  add(tm, 'Tommaso V.', '', 4 * 3600000, { kind: 'contact', contact: { name: 'Marta Bianchi (trasportatrice)', phone: '+41 79 555 01 22' } });
+
+  const el = dm('Elena Rossi', Date.now() - 2 * DAY);
+  add(el, 'Elena Rossi', 'Buongiorno, per la dichiarazione dei redditi proponiamo questi orari di consulenza.', 8 * 3600000);
+  add(el, 'Elena Rossi', '', 8 * 3600000 - 60000, { kind: 'slots', slots: { title: 'Consulenza fiscale', durationMin: 60, options: [{ id: 'e1', day: dk(2), time: '09:30', votes: [] }, { id: 'e2', day: dk(3), time: '14:00', votes: [] }, { id: 'e3', day: dk(6), time: '11:00', votes: [] }] } });
+  add(el, 'Elena Rossi', '', 7 * 3600000, { kind: 'tasks', taskList: { title: 'Documenti da portare', items: [{ t: 'Certificato di salario', done: false }, { t: 'Estratti conto bancari', done: false }, { t: 'Ricevute della cassa malati', done: false }] } });
+
+  const cena = 'g:demo-cena';
+  chats[cena] = { id: cena, type: 'group', name: 'Cena di sabato', members: [me, 'Giulia M.', 'Tommaso V.', 'Federica L.'], admins: ['Giulia M.'], lastRead: Date.now() - 5 * DAY, createdAt: Date.now() - 4 * DAY };
+  add(cena, 'system', 'Giulia M. ha creato il gruppo "Cena di sabato"', 4 * DAY, { kind: 'system', from: 'system' });
+  add(cena, 'Giulia M.', 'Organizziamo la cena! Votate gli orari: quello che scegliete va nel vostro calendario.', 3 * 3600000);
+  add(cena, 'Giulia M.', '', 3 * 3600000 - 60000, { kind: 'slots', slots: { title: 'Cena di sabato', durationMin: 120, options: [{ id: 'c1', day: dk(((6 - new Date().getDay() + 7) % 7) || 7), time: '19:30', votes: ['Giulia M.', 'Tommaso V.'] }, { id: 'c2', day: dk(((6 - new Date().getDay() + 7) % 7) || 7), time: '20:30', votes: ['Federica L.'] }] } });
+  add(cena, 'Tommaso V.', '', 2 * 3600000, { kind: 'poll', poll: { q: 'Cosa mangiamo?', multi: false, options: [{ id: 'm1', t: 'Pizza', votes: ['Tommaso V.'] }, { id: 'm2', t: 'Sushi', votes: ['Federica L.', 'Giulia M.'] }, { id: 'm3', t: 'Cucina ticinese', votes: [] }] } });
+  add(cena, 'Federica L.', '', 90 * 60000, { kind: 'location', location: { lat: 46.0048, lng: 8.9523, label: 'Ristorante sul lago, Lugano' } });
+
   // gruppo di lavoro con TUTTI gli strumenti, da provare uno per uno
   const w = 'g:demo-aura';
   chats[w] = { id: w, type: 'group', name: 'Team AURA', members: [me, 'Marco T.', 'Giulia M.', 'Federica L.'], admins: [me], description: 'Lavoro sul prototipo AURA: agenda, task, note, sondaggi e orari', lastRead: Date.now() - 4 * 3600000, createdAt: Date.now() - 12 * DAY, pinned: true };

@@ -1,7 +1,8 @@
+import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
-import { addToPlanWithCheck } from '@/lib/planBooking';
+import { addToPlanWithCheck, removeFromPlan } from '@/lib/planBooking';
 import { dayLabelOf, importAgenda, importTasks, myConflicts } from '@/lib/chatShare';
 import { Icon } from '@/lib/icons';
 import { useChat, type ChatMessage } from '@/store/chat';
@@ -33,6 +34,9 @@ function Action({ icon, label, onPress, done }: { icon: string; label: string; o
   );
 }
 
+/** C'è già nel mio piano un impegno creato da questa scheda? */
+const inPlan = (ref: string) => Object.values(useLife.getState().events).some((l) => l.some((e) => e.ref === ref));
+
 function AvailabilityCard({ m, me, chatId }: { m: ChatMessage; me: string; chatId: string }) {
   const c = useChatColors();
   const t = useTheme();
@@ -41,8 +45,16 @@ function AvailabilityCard({ m, me, chatId }: { m: ChatMessage; me: string; chatI
   const mine = m.from === me;
   const days = [...new Set([...(a.free ?? []).map((f) => f.day), ...(a.busy ?? []).map((b) => b.day)])].sort();
   const propose = (day: string, from: string) => {
-    useChat.getState().send(chatId, me, { kind: 'slots', slots: { title: 'Incontro', durationMin: a.hours?.minSlot ?? 30, options: [{ id: `p${day}${from}`, day, time: from, votes: [me] }] }, replyTo: m.id });
-    toast(`Proposto ${dayLabelOf(day)} alle ${from}`);
+    const dur = a.hours?.minSlot ?? 30;
+    const tmp = `tmp:${m.id}:${day}${from}`;
+    // scegliere uno slot lo mette subito nel mio calendario (con avviso se si sovrappone a qualcosa)
+    addToPlanWithCheck({ day, time: from, durationMin: dur, title: 'Incontro (proposto)', ref: tmp, verb: 'Proponi' }, () => {
+      const id = useChat.getState().send(chatId, me, { kind: 'slots', slots: { title: 'Incontro', durationMin: dur, options: [{ id: `p${day}${from}`, day, time: from, votes: [me] }] }, replyTo: m.id });
+      const st = useLife.getState();
+      const idx = (st.events[day] ?? []).findIndex((e) => e.ref === tmp);
+      if (idx >= 0) st.patchEvent(day, idx, { ref: `slot:${id}:p${day}${from}` });
+      toast(`Proposto ${dayLabelOf(day)} alle ${from} e aggiunto al tuo piano`);
+    });
   };
   return (
     <View style={{ minWidth: 250 }}>
@@ -93,15 +105,23 @@ function DetailCard({ m, me, chatId }: { m: ChatMessage; me: string; chatId: str
       <Head icon="calendar" title={a.title} sub={`${a.items.length} ${a.items.length === 1 ? 'impegno' : 'impegni'}`} />
       {a.items.map((it, i) => {
         const head = it.day !== lastDay; lastDay = it.day;
-        const conf = !mine && !imported ? myConflicts(it.day, it.time, 30) : [];
+        const ref = `ag:${m.id}:${i}`;
+        const added = inPlan(ref);
+        const conf = !mine && !imported && !added ? myConflicts(it.day, it.time, 30) : [];
+        const pick = () => {
+          if (mine) return;
+          if (added) { removeFromPlan(ref); toast('Tolto dal tuo piano'); return; }
+          addToPlanWithCheck({ day: it.day, time: it.time, durationMin: 60, title: it.title, ref, verb: 'Aggiungi' }, () => toast('Aggiunto al tuo piano'));
+        };
         return (
           <View key={i}>
             {head && <Text style={{ color: c.meta, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginTop: i ? 6 : 0 }}>{dayLabelOf(it.day)}</Text>}
-            <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 3 }}>
+            <Pressable onPress={pick} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }} accessibilityLabel={`${it.title}, tocca per ${added ? 'toglierlo dal' : 'aggiungerlo al'} tuo piano`}>
               <Text style={{ color: t.accent, fontWeight: '800', fontSize: 13, width: 42 }}>{it.time}</Text>
               <Text style={{ color: c.theirsText, fontSize: 14, flex: 1 }}>{it.title}</Text>
               {conf.length > 0 && <Icon name="alert" size={14} color={t.warn} />}
-            </View>
+              {!mine && <Icon name={added ? 'check' : 'plus'} size={16} color={added ? t.positive : t.accent} stroke={2.4} />}
+            </Pressable>
             {conf.length > 0 && <Text style={{ color: t.warn, fontSize: 11, marginLeft: 50 }}>Hai già: {conf[0]}</Text>}
           </View>
         );
@@ -120,17 +140,22 @@ export function TasksCard({ m, me, chatId }: { m: ChatMessage; me: string; chatI
   const c = useChatColors();
   const t = useTheme();
   const l = m.taskList!;
+  const myTasks = useLife((s) => s.tasks);
   const mine = m.from === me;
   const imported = !!m.importedBy?.includes(me);
   return (
     <View style={{ minWidth: 240 }}>
       <Head icon="tasks" title={l.title} sub={`${l.items.filter((x) => x.done).length}/${l.items.length} completati`} />
-      {l.items.map((it, i) => (
-        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
-          <Icon name={it.done ? 'checksquare' : 'square'} size={17} color={it.done ? t.positive : c.meta} />
-          <Text style={{ color: c.theirsText, fontSize: 14, flex: 1, textDecorationLine: it.done ? 'line-through' : 'none', opacity: it.done ? 0.6 : 1 }}>{it.t}</Text>
-        </View>
-      ))}
+      {l.items.map((it, i) => {
+        const have = myTasks.some((x) => x.t === it.t);
+        return (
+          <Pressable key={i} onPress={() => { if (mine || it.done) return; if (have) { toast('È già nei tuoi task'); return; } useLife.getState().addTask({ t: it.t, done: false }); toast('Aggiunto ai tuoi task'); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }} accessibilityLabel={`${it.t}, tocca per aggiungerlo ai tuoi task`}>
+            <Icon name={it.done ? 'checksquare' : 'square'} size={17} color={it.done ? t.positive : c.meta} />
+            <Text style={{ color: c.theirsText, fontSize: 14, flex: 1, textDecorationLine: it.done ? 'line-through' : 'none', opacity: it.done ? 0.6 : 1 }}>{it.t}</Text>
+            {!mine && !it.done && <Icon name={have ? 'check' : 'plus'} size={16} color={have ? t.positive : t.accent} stroke={2.4} />}
+          </Pressable>
+        );
+      })}
       {!mine && <Action icon="plus" label={imported ? 'Aggiunti ai tuoi task' : 'Aggiungi ai miei task'} done={imported} onPress={() => { const n = importTasks(l); useChat.getState().markImported(chatId, m.id, me); toast(n ? `${n} task aggiunti` : 'Li avevi già'); }} />}
     </View>
   );
@@ -157,31 +182,54 @@ export function SlotsCard({ m, me, chatId }: { m: ChatMessage; me: string; chatI
   const sl = m.slots!;
   const mine = m.from === me;
   const best = Math.max(0, ...sl.options.map((o) => o.votes.length));
-  const imported = !!m.importedBy?.includes(me);
+  const refOf = (oid: string) => `slot:${m.id}:${oid}`;
+  const chat = useChat.getState();
+
+  // quando l'orario viene confermato, dal mio calendario spariscono le altre opzioni che avevo scelto
+  useEffect(() => {
+    if (!sl.confirmed) return;
+    sl.options.forEach((o) => { if (o.id !== sl.confirmed && inPlan(refOf(o.id))) removeFromPlan(refOf(o.id)); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sl.confirmed]);
+
+  /** Scegliere un orario lo mette nel mio calendario (con avviso se si sovrappone); toglierlo lo rimuove. */
+  const choose = (o: (typeof sl.options)[number], voted: boolean) => {
+    if (sl.confirmed) return;
+    if (voted) { removeFromPlan(refOf(o.id)); chat.voteSlot(chatId, m.id, o.id, me); toast('Tolto dal tuo piano'); return; }
+    addToPlanWithCheck({ day: o.day, time: o.time, durationMin: sl.durationMin, title: sl.title, ref: refOf(o.id), verb: 'Scegli' }, () => { chat.voteSlot(chatId, m.id, o.id, me); toast('Scelto e aggiunto al tuo piano'); });
+  };
+  const confirm = (o: (typeof sl.options)[number]) => {
+    const done = () => { sl.options.forEach((x) => { if (x.id !== o.id) removeFromPlan(refOf(x.id)); }); chat.confirmSlot(chatId, m.id, o.id, me); chat.markImported(chatId, m.id, me); toast('Orario confermato e nel tuo piano'); };
+    if (inPlan(refOf(o.id))) done();
+    else addToPlanWithCheck({ day: o.day, time: o.time, durationMin: sl.durationMin, title: sl.title, ref: refOf(o.id), verb: 'Conferma' }, done);
+  };
+  const confirmedOpt = sl.options.find((x) => x.id === sl.confirmed);
   return (
     <View style={{ minWidth: 250 }}>
-      <Head icon="clock" title={sl.title} sub={sl.confirmed ? 'Orario confermato' : `Proposta di orari · ${sl.durationMin} min · ${mine ? 'scegli quello giusto' : 'vota quelli che ti vanno bene'}`} />
+      <Head icon="clock" title={sl.title} sub={sl.confirmed ? 'Orario confermato' : `Proposta di orari · ${sl.durationMin} min · ${mine ? 'scegli quello giusto' : 'tocca gli orari che ti vanno bene: finiscono nel tuo piano'}`} />
       {sl.options.map((o) => {
         const voted = o.votes.includes(me);
         const conf = myConflicts(o.day, o.time, sl.durationMin);
         const isConf = sl.confirmed === o.id;
         const dim = !!sl.confirmed && !isConf;
+        const added = inPlan(refOf(o.id));
         return (
-          <Pressable key={o.id} onPress={() => { if (!sl.confirmed) useChat.getState().voteSlot(chatId, m.id, o.id, me); }} style={{ marginBottom: 6, borderWidth: 1.5, borderColor: isConf ? t.positive : voted ? t.accent : c.quoteBg, borderRadius: 12, padding: 9, opacity: dim ? 0.45 : 1 }}>
+          <Pressable key={o.id} onPress={() => choose(o, voted)} style={{ marginBottom: 6, borderWidth: 1.5, borderColor: isConf ? t.positive : voted ? t.accent : c.quoteBg, borderRadius: 12, padding: 9, opacity: dim ? 0.45 : 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Icon name={isConf ? 'check' : voted ? 'checksquare' : 'square'} size={18} color={isConf ? t.positive : voted ? t.accent : c.meta} />
               <Text style={{ color: c.theirsText, fontSize: 14, fontWeight: '700', flex: 1 }}>{dayLabelOf(o.day)} · {o.time}</Text>
               <Text style={{ color: c.meta, fontSize: 12 }}>{o.votes.length} {o.votes.length === 1 ? 'sì' : 'sì'}</Text>
             </View>
-            {conf.length > 0 && <Text style={{ color: t.warn, fontSize: 11, marginTop: 3 }}>Per te: hai già {conf[0]}</Text>}
+            {added && !sl.confirmed && <Text style={{ color: t.positive, fontSize: 11, marginTop: 3 }}>Nel tuo piano</Text>}
+            {conf.length > 0 && !added && <Text style={{ color: t.warn, fontSize: 11, marginTop: 3 }}>Per te: hai già {conf[0]}</Text>}
             {mine && !sl.confirmed && o.votes.length === best && best > 0 && (
-              <Pressable onPress={() => addToPlanWithCheck({ day: o.day, time: o.time, durationMin: sl.durationMin, title: sl.title, ref: `slot:${m.id}`, verb: 'Conferma' }, () => { useChat.getState().confirmSlot(chatId, m.id, o.id, me); useChat.getState().markImported(chatId, m.id, me); toast('Orario confermato e aggiunto al tuo piano'); })} style={{ marginTop: 6, alignSelf: 'flex-start', backgroundColor: t.accent, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}><Text style={{ color: t.onText, fontWeight: '800', fontSize: 12 }}>Conferma questo orario</Text></Pressable>
+              <Pressable onPress={() => confirm(o)} style={{ marginTop: 6, alignSelf: 'flex-start', backgroundColor: t.accent, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}><Text style={{ color: t.onText, fontWeight: '800', fontSize: 12 }}>Conferma questo orario</Text></Pressable>
             )}
           </Pressable>
         );
       })}
       {mine && !sl.confirmed && best === 0 && <Text style={{ color: c.meta, fontSize: 11 }}>Quando qualcuno vota potrai confermare l’orario.</Text>}
-      {sl.confirmed && <Action icon="plus" label={imported ? 'Aggiunto al tuo piano' : 'Aggiungi al mio piano'} done={imported} onPress={() => { const o = sl.options.find((x) => x.id === sl.confirmed); if (!o) return; addToPlanWithCheck({ day: o.day, time: o.time, durationMin: sl.durationMin, title: sl.title, ref: `slot:${m.id}` }, () => { useChat.getState().markImported(chatId, m.id, me); toast('Aggiunto al tuo piano'); }); }} />}
+      {sl.confirmed && confirmedOpt && <Action icon="plus" label={inPlan(refOf(confirmedOpt.id)) ? 'Nel tuo piano' : 'Aggiungi al mio piano'} done={inPlan(refOf(confirmedOpt.id))} onPress={() => addToPlanWithCheck({ day: confirmedOpt.day, time: confirmedOpt.time, durationMin: sl.durationMin, title: sl.title, ref: refOf(confirmedOpt.id) }, () => { chat.markImported(chatId, m.id, me); toast('Aggiunto al tuo piano'); })} />}
     </View>
   );
 }
