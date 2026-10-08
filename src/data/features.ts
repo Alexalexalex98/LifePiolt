@@ -28,6 +28,8 @@ export const featureGroups: FeatureGroup[] = [
       { title: 'Scegli tu', text: 'Dì "scegli tu" e l’algoritmo trova il momento migliore nel tuo calendario.', cmd: 'aggiungi call al piano' },
       { title: 'Chat per argomento', text: 'Una chat Generale con tutto e cartelle che si creano da sole (finanze, musica, arte…). Cercabili come in ChatGPT.', page: 'ai' },
       { title: 'Theia sullo schermo', text: 'Tocca il pulsante, trascina sull’area che ti interessa e chiedi. La conversazione viene archiviata nella sezione giusta.', page: 'ai' },
+      { title: 'Ricorrenze, luoghi e scadenze', text: '"Ogni martedì alle 18 palestra", "riunione a Zurigo" (ti avviso se il tempo di viaggio non basta), "relazione entro venerdì". Poi "spostala a lunedì".', page: 'ai' },
+      { title: 'Briefing e ripianificazione', text: 'Riepilogo del mattino e della sera, e ripianificazione delle sessioni di lavoro saltate.', cmd: 'riepilogo della giornata' },
       { title: 'Report dai tuoi dati', text: 'Analisi dettagliata di finanze, salute e umore con una frase.', cmd: 'analisi delle mie finanze' },
     ],
   },
@@ -35,6 +37,8 @@ export const featureGroups: FeatureGroup[] = [
     id: 'salute', title: 'Salute e mente', tagline: 'Corpo e mente sotto controllo', icon: 'lifehealth', color: '#ff9d9d',
     items: [
       { title: 'LifeHealth', text: 'Sonno, battito, passi, peso, stress, allenamenti e mindfulness: a mano o da Apple Health e Apple Watch.', page: 'lifehealth' },
+      { title: 'Calendario e posizione reali', text: 'Importa gli eventi del calendario del telefono nel Plan e usa la tua posizione per il meteo.', page: 'plan' },
+      { title: 'Report settimanale in PDF', text: 'Salute, umore, finanze, task e impegni della settimana, da condividere o stampare.', page: 'home' },
       { title: 'Valori ottimali e spiegazioni', text: 'Per ogni misura vedi il valore di riferimento, cosa significa e come migliorarla.', page: 'home' },
       { title: 'Analisi dell’umore', text: 'Grafico dello storico incrociato con pioggia, impegni e finanze, con i fattori che lo alzano o lo abbassano.', page: 'mood' },
     ],
@@ -44,6 +48,8 @@ export const featureGroups: FeatureGroup[] = [
     items: [
       { title: 'Movimenti, budget e categorie', text: 'Entrate e uscite, bollette, abbonamenti e linee guida in base allo stipendio.', page: 'lifefinance' },
       { title: 'Costi tipici di una persona', text: 'Aggiungi in un colpo solo le spese normali (affitto, cassa malati, trasporti…) con importi modificabili.', page: 'lifefinance' },
+      { title: 'Importa i movimenti da CSV', text: 'Carichi l’estratto conto: riconosce date, importi e categorie, vedi l’anteprima e scarta i duplicati.', page: 'lifefinance' },
+      { title: 'Avvisi di budget e spese ricorrenti', text: 'Ti avverte quando una categoria sfora e riconosce da sola abbonamenti e bollette.', page: 'lifefinance' },
       { title: 'Previsioni e fondo emergenza', text: 'Stima dei mesi successivi e accantonamenti.', page: 'lifeforecast' },
       { title: 'Azioni e portafoglio', text: 'Watchlist, ordini e portafoglio per allenarti.', page: 'stocks' },
       { title: 'Dichiarazione fiscale guidata', text: 'Carichi i documenti richiesti, li controlla e solo allora spunta la voce.', page: 'taxdecl' },
@@ -64,6 +70,7 @@ export const featureGroups: FeatureGroup[] = [
     items: [
       { title: 'Agenda con privacy', text: 'Condividi i titoli, solo occupato/libero oppure solo gli slot liberi, scegliendo le fasce orarie (niente mattina, niente sera).', page: 'messagesPage' },
       { title: 'Un tocco e va nel calendario', text: 'Scegli un orario, un impegno o uno slot libero nella chat e finisce nel tuo Plan, con avviso se si sovrappone.', page: 'messagesPage' },
+      { title: 'Inviti a eventi', text: 'Invii un invito con luogo e ora; chi risponde "partecipo" lo ritrova nel proprio Plan, con avviso di conflitto.', page: 'messagesPage' },
       { title: 'Task, note, sondaggi, posizione, contatti', text: 'Task creati o caricati da file, note, sondaggi, luoghi e contatti condivisi in chat.', page: 'messagesPage' },
       { title: 'Vocali, foto, video, documenti', text: 'Allegati, risposte, reazioni, messaggi a tempo e chat di gruppo.', page: 'messagesPage' },
     ],
@@ -81,6 +88,7 @@ export const featureGroups: FeatureGroup[] = [
     items: [
       { title: 'Cosa sa di te', text: 'Vedi e modifichi obiettivi, automazioni, preferenze e memoria; cancelli quello che vuoi.', page: 'profile' },
       { title: 'Profilo privato e foto', text: 'Rendi privato il profilo o cambia foto anche dalla chat dell’assistente.', cmd: 'rendi privato il mio profilo' },
+      { title: 'Backup, privacy e segnalazioni', text: 'Esporta o ripristina i tuoi dati, cancellali del tutto, leggi cosa resta sul telefono e gestisci segnalazioni e utenti bloccati.', page: 'privacy' },
       { title: 'Impostazioni', text: 'Notifiche, aspetto, sicurezza, accessibilità, lingue e integrazioni.', page: 'settings' },
     ],
   },

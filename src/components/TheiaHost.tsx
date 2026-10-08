@@ -134,11 +134,11 @@ export function TheiaFab() {
 
   if (hidden) return null;
   return (
-    <Animated.View {...pan.panHandlers} style={{ position: 'absolute', right: 12, bottom: insets.bottom + 150, transform: pos.getTranslateTransform() }}>
+    <Animated.View {...pan.panHandlers} style={{ position: 'absolute', right: 12, bottom: insets.bottom + 98, transform: pos.getTranslateTransform() }}>
       <Pressable
         onPress={shot} onLongPress={clip} delayLongPress={350}
         accessibilityLabel={`Chiedi a ${name}: tocca, poi trascina sulla schermata per scegliere cosa chiedere. Tieni premuto per il testo copiato. Trascinalo per spostarlo`}
-        style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: 0.92, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, elevation: 6 }}>
+        style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: 0.8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, elevation: 6 }}>
         <Icon name="sparkle" size={22} color={t.onText} />
       </Pressable>
     </Animated.View>
