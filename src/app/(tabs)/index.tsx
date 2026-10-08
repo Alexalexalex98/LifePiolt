@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { TrendChart } from '@/components/charts';
+import { DiscoverCard } from '@/components/Discover';
 import { TheiaCard } from '@/components/TheiaCard';
 import { CorrelationSheet, DomainSheet, MoodCheckIn } from '@/components/homeParts';
 import { InsightCard, KpiCard, MetricSheet, deltaStatus, scoreStatus, statusColor } from '@/components/dashboard';
@@ -101,6 +102,7 @@ export default function Dashboard() {
       <MoodCheckIn />
 
       <TheiaCard />
+      <DiscoverCard />
 
       {/* ---------- 1. punteggio generale ---------- */}
       <Card style={{ marginTop: 10, padding: 18 }} onPress={() => setScoreOpen(true)}>

@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router/js-tabs';
 import { useEffect } from 'react';
 
+import { DiscoverHost } from '@/components/Discover';
 import { MenuSheet, NavBar } from '@/components/NavBar';
 import { NetSheetHost } from '@/components/NetSheets';
 import { TheiaFab, TheiaHost, TheiaSelect } from '@/components/TheiaHost';
@@ -31,6 +32,7 @@ export default function TabsLayout() {
       <TheiaFab />
       <TheiaHost />
       <TheiaSelect />
+      <DiscoverHost />
     </>
   );
 }

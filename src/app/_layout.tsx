@@ -20,11 +20,12 @@ import { useNet } from '@/store/network';
 import { useTravel } from '@/store/travel';
 import { useContext } from '@/store/context';
 import { useAssistant } from '@/store/assistant';
+import { useDiscover } from '@/store/discover';
 
 SplashScreen.preventAutoHideAsync();
 installGlobalErrors();
 
-const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant];
+const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover];
 const allHydrated = () => stores.every((s) => s.persist.hasHydrated());
 
 export { ErrorScreen as ErrorBoundary } from '@/components/ErrorScreen';
