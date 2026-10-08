@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Modal, Pressable, Text, View } from 'react-native';
 import { create } from 'zustand';
 
-import { Avatar, Body, Btn, Card, Row } from '@/components/ui';
+import { Avatar, Body, Btn, Card, ModalToast, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, hashStr, weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
@@ -80,6 +80,7 @@ export function MediaViewer() {
           <Icon name="x" size={22} color="#fff" stroke={2.2} />
         </Pressable>
         <Text style={{ position: 'absolute', bottom: 40, alignSelf: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{item?.media === 'video' ? 'Anteprima video (segnaposto)' : 'Anteprima foto (segnaposto)'}</Text>
+        <ModalToast />
       </View>
     </Modal>
   );

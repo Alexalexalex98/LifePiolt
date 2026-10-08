@@ -1,6 +1,8 @@
 import * as ImagePicker from 'expo-image-picker';
 
 import { buildAgenda } from '@/lib/chatShare';
+import { bestMatch } from './nlp';
+import { useChat } from '@/store/chat';
 import { dayKey } from '@/lib/format';
 import { useApp } from '@/store/app';
 import { useHealth } from '@/store/health';
@@ -14,12 +16,12 @@ export function makeEnv(): Env {
   return {
     now: () => new Date(),
     events: () => life().events,
-    addEvent: (day, ev) => { life().addEvent(day, { time: ev.time, title: ev.title }); },
+    addEvent: (day, ev) => { life().addEvent(day, { time: ev.time, title: ev.title, ...(ev.dur ? { dur: ev.dur } : {}), ...(ev.important ? { important: true } : {}) }); },
     delEvent: (day, ev) => {
       const idx = (life().events[day] ?? []).findIndex((x) => x.time === ev.time && x.title === ev.title);
       if (idx >= 0) life().delEvent(day, idx);
     },
-    tasks: () => life().tasks.map((t) => ({ id: t.id, t: t.t, done: !!t.done })),
+    tasks: () => life().tasks.map((t) => ({ id: t.id, t: t.t, done: !!t.done, urgent: t.urgent, due: t.due })),
     addTask: (t) => { life().addTask({ t, done: false }); return life().tasks[life().tasks.length - 1]?.id ?? ''; },
     setTaskDone: (id, v) => { life().toggleTask(id, v); },
     delTask: (id) => life().delTask(id),
@@ -42,7 +44,22 @@ export function makeEnv(): Env {
       return true;
     },
     financeReport, healthReport, moodReport,
-    shareAgenda: (_p, range, mode) => (buildAgenda(range, mode) ? null : 'Non hai impegni in quel periodo.'),
+    people: () => Object.values(useChat.getState().chats).filter((c) => !c.archived).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)).map((c) => c.name),
+    shareAgenda: (person, range, mode) => {
+      const chat = useChat.getState();
+      const target = bestMatch(person, Object.values(chat.chats), (c) => c.name, 0.4);
+      const me = useApp.getState().account.name;
+      const agenda = buildAgenda(range, mode);
+      if (!agenda) return null;
+      const id = target ? target.id : chat.ensureDm(person, me);
+      chat.send(id, me, { kind: 'agenda', agenda });
+      return `Fatto: ho inviato la tua agenda a ${target?.name ?? person} (${mode === 'liberi' ? 'solo slot liberi, nessun titolo' : mode === 'occupato' ? 'solo occupato/libero, nessun titolo' : 'con i titoli'}).`;
+    },
+    setTaskUrgent: (id, v) => life().patchTask(id, { urgent: v }),
+    setEventImportant: (day, ev, v) => {
+      const idx = (life().events[day] ?? []).findIndex((x) => x.time === ev.time && x.title === ev.title);
+      if (idx >= 0) life().patchEvent(day, idx, { important: v });
+    },
     userName: () => useApp.getState().account.name,
   };
 }

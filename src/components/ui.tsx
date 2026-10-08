@@ -61,6 +61,8 @@ function TopBar({ page }: { page: string }) {
   );
 }
 
+const MAIN_TABS = ['index', 'home', 'ai', 'lifenetwork', 'lifefinance', 'profile'];
+
 export function Page({ id, title, back, children, right, scroll = true, noTop }: {
   id: string; title?: string; back?: boolean; children: ReactNode; right?: ReactNode; scroll?: boolean; noTop?: boolean;
 }) {
@@ -68,12 +70,14 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
   const insets = useSafeAreaInsets();
   const trackVisit = useApp((a) => a.trackVisit);
   useEffect(() => { trackVisit(id === 'index' ? 'home' : id); }, [id, trackVisit]);
+  // il pulsante indietro compare da solo su ogni pagina aperta con go() (non sulle 5 tab principali)
+  const showBack = back ?? (!noTop && !MAIN_TABS.includes(id));
   const body = (
     <>
       {!noTop && <TopBar page={id} />}
-      {back && (
-        <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Indietro">
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10 }}><Icon name="arrow-left" size={14} color={t.muted} /><Text style={{ color: t.muted, fontSize: 13 }}>Indietro</Text></View>
+      {showBack && (
+        <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Indietro" style={{ alignSelf: 'flex-start', marginTop: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: t.chip }}><Icon name="arrow-left" size={16} color={t.text} stroke={2.2} /><Text style={{ color: t.text, fontSize: 13, fontWeight: '600' }}>Indietro</Text></View>
         </Pressable>
       )}
       {title && (
@@ -308,6 +312,7 @@ export function Sheet({ visible, title, onClose, children }: { visible: boolean;
             {children}
           </ScrollView>
         </View>
+        <ModalToast />
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -342,18 +347,20 @@ function useOpen(): [boolean, (v: boolean) => void] {
 export { useOpen };
 
 /* ---------- toast ---------- */
-export function ToastHost() {
-  const t = useTheme();
-  const { msg, undo, id, hide } = useToast();
-  useEffect(() => {
-    if (!msg) return;
-    const h = setTimeout(hide, undo ? 4500 : 2200);
-    return () => clearTimeout(h);
-  }, [id, msg, undo, hide]);
+/** Modal nativi aperti (in ordine): il toast globale sta sotto i Modal, quindi viene ridisegnato nel Modal in cima. */
+const useModalStack = create<{ ids: number[]; push: (id: number) => void; pop: (id: number) => void }>((set) => ({
+  ids: [],
+  push: (id) => set((st) => ({ ids: [...st.ids, id] })),
+  pop: (id) => set((st) => ({ ids: st.ids.filter((x) => x !== id) })),
+}));
+let modalSeq = 0;
+
+function ToastBubble({ bottom }: { bottom: number }) {
+  const { msg, undo, hide } = useToast();
   if (!msg) return null;
   return (
-    <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 96, alignItems: 'center', zIndex: 50 }}>
-      <View style={{ backgroundColor: '#1c2431', borderWidth: 1, borderColor: '#2c3644', borderRadius: 13, paddingHorizontal: 16, paddingVertical: 11, maxWidth: '88%', flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+    <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom, alignItems: 'center', zIndex: 50 }}>
+      <View accessibilityRole="alert" style={{ backgroundColor: '#1c2431', borderWidth: 1, borderColor: '#2c3644', borderRadius: 13, paddingHorizontal: 16, paddingVertical: 11, maxWidth: '88%', flexDirection: 'row', gap: 10, alignItems: 'center' }}>
         <Text style={{ color: '#f4f6f8', fontSize: 13, flexShrink: 1, textAlign: 'center' }}>{msg}</Text>
         {undo && (
           <Text suppressHighlighting onPress={() => { undo(); hide(); }} style={{ color: '#f4f6f8', fontWeight: '700', textDecorationLine: 'underline', fontSize: 13 }}>Annulla</Text>
@@ -361,6 +368,28 @@ export function ToastHost() {
       </View>
     </View>
   );
+}
+
+/** Da mettere DENTRO ogni <Modal>: mostra il toast sopra il Modal (solo in quello più in alto). */
+export function ModalToast() {
+  const insets = useSafeAreaInsets();
+  const [id] = useState(() => ++modalSeq);
+  const push = useModalStack((m) => m.push), pop = useModalStack((m) => m.pop);
+  const top = useModalStack((m) => m.ids[m.ids.length - 1]);
+  useEffect(() => { push(id); return () => pop(id); }, [id, push, pop]);
+  return top === id ? <ToastBubble bottom={insets.bottom + 90} /> : null;
+}
+
+export function ToastHost() {
+  const { msg, undo, id, hide } = useToast();
+  const inModal = useModalStack((m) => m.ids.length > 0);
+  useEffect(() => {
+    if (!msg) return;
+    const h = setTimeout(hide, undo ? 4500 : 2200);
+    return () => clearTimeout(h);
+  }, [id, msg, undo, hide]);
+  if (!msg || inModal) return null;
+  return <ToastBubble bottom={96} />;
 }
 
 /** Per i punti dove serve tornare indietro da una route esterna al gruppo tab. */

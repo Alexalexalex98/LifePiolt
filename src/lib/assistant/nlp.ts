@@ -149,11 +149,14 @@ export function bestMatch<T>(query: string, items: T[], title: (x: T) => string,
 export const isYes = (s: string) => /^(si|sì|ok|va bene|certo|confermo|conferma|esatto|perfetto|yes|d'accordo|procedi|fai pure|fallo)\b/.test(norm(s));
 export const isNo = (s: string) => /^(no|non|niente|lascia stare|lascia perdere|annulla|stop|basta|cancel)\b/.test(norm(s));
 
+/** "scegli tu", "decidi tu", "quando è più comodo": l'utente lascia la scelta all'algoritmo. */
+export const isDelegate = (s: string) => /\b(scegli tu|decidi tu|scegli pure|scegli il momento|quando vuoi|quando preferisci|come preferisci|come vuoi|fai tu|a tua scelta|qualsiasi (ora|giorno|momento)|va bene (qualsiasi|tutto)|il prima possibile|prima possibile|quando (e|è) piu comodo|quando mi e piu comodo|secondo te|l'orario migliore|il momento migliore|dove vuoi)\b/.test(norm(s));
+
 export type Intent =
   | 'undo' | 'event.add' | 'event.move' | 'event.delete' | 'event.rename' | 'agenda.show' | 'agenda.free' | 'agenda.share'
   | 'task.add' | 'task.done' | 'task.delete' | 'task.rename' | 'task.list' | 'note.add' | 'goal.add'
   | 'mood.log' | 'mood.analysis' | 'profile.photo' | 'profile.private' | 'profile.public'
-  | 'finance.report' | 'health.report' | 'theme.dark' | 'theme.light' | 'hours.set' | 'notif.on' | 'notif.off' | 'open' | 'help' | 'unknown';
+  | 'finance.report' | 'health.report' | 'theme.dark' | 'theme.light' | 'hours.set' | 'notif.on' | 'notif.off' | 'open' | 'help' | 'plan.fill' | 'task.next' | 'task.urgent' | 'event.important' | 'unknown';
 
 const R = (s: RegExp) => s;
 const rules: { intent: Intent; test: RegExp; w?: number }[] = [
@@ -165,7 +168,11 @@ const rules: { intent: Intent; test: RegExp; w?: number }[] = [
   { intent: 'health.report', test: R(/\b(come ho dormito|come sto di salute|riepilogo salute|analisi (della )?salute|come vanno i miei dati|come sono i miei dati)\b|\b(sonno|passi|salute)\b.*\b(oggi|ieri|settimana|analisi)\b/), w: 3 },
   { intent: 'mood.analysis', test: R(/\b(analisi|come vanno|come e|com'e|andamento|grafico)\b.*\bumore\b|\bil mio umore\b.*\b(ultimi|settimana|mese|meteo|pioggia)\b/), w: 4 },
   { intent: 'mood.log', test: R(/\b(mi sento|sono|oggi sono|oggi mi sento)\b.*\b(felice|contento|calmo|sereno|neutro|stressato|triste|arrabbiato|nervoso|stanco|giu)\b/), w: 4 },
-  { intent: 'agenda.share', test: R(/\b(condividi|manda|invia|mostra)\b.*\b(agenda|impegni|disponibilita|slot|calendario)\b.*\b(con|a)\b/), w: 4 },
+  { intent: 'plan.fill', test: R(/\b(pianifica|pianificami|organizza|organizzami|riempi|riempimi|programma|programmami|sistema|sistemami)\b.*\b(tutto|il mese|questo mese|mese|la settimana|settimana|la giornata|giornata|il piano|oggi|domani)\b|^organizz\w+$|^pianific\w+$/), w: 6 },
+  { intent: 'task.next', test: R(/\b(cosa|che cosa|quale|qual e|dimmi)\b.*\b(devo|dovrei|faccio|posso|conviene|fare)\b.*\b(adesso|ora|prima|subito|oggi)\b|\b(quale|prossim[oa]|piu urgente|priorita)\b.*\b(task|compito|cosa|attivita|fare)\b|\bda dove (parto|comincio|inizio)\b|^cosa (devo|faccio) fare\b/), w: 5 },
+  { intent: 'task.urgent', test: R(/\b(segna|metti|imposta|rendi|marca)\b.*\b(urgent[ei])\b|\burgent[ei]\b.*\b(task|compito)\b|^urgente:/), w: 5 },
+  { intent: 'event.important', test: R(/\b(segna|metti|imposta|rendi|marca)\b.*\b(important[ei])\b/), w: 5 },
+  { intent: 'agenda.share', test: R(/\b(condividi|condividimi|manda|invia|mostra)\b.*\b(agenda|impegni|disponibilita|slot|calendario)\b/), w: 4 },
   { intent: 'agenda.free', test: R(/\b(quando sono libero|slot liber\w+|sono libero|ho tempo|buchi|disponibil\w+|quando posso|quando ho tempo)\b/), w: 4 },
   { intent: 'agenda.show', test: R(/\b(che|quali|cosa|quanti|mostra|dimmi|elenco|lista)\b.*\b(impegni|appuntamenti|programma|ho in agenda|agenda|piano|riunioni)\b|\b(il mio|nel) (piano|programma|calendario)\b.*\b(oggi|domani|settimana|dopodomani)\b/), w: 3 },
   { intent: 'event.move', test: R(/\b(sposta|spostare|rimanda|rimandare|anticipa|posticipa|cambia (l')?(orario|giorno|data|ora)|riprogramma)\b/), w: 4 },
@@ -178,6 +185,7 @@ const rules: { intent: Intent; test: RegExp; w?: number }[] = [
   { intent: 'task.add', test: R(/\b(aggiungi|aggiungimi|crea|creami|nuovo|nuova|metti|segna|inserisci)\b.*\b(task|attivita|cosa da fare|to-?do)\b|\b(task|attivita)\b.*\b(nuov[oa]|da aggiungere)\b|^(devo|bisogna|ricordami di|ricordati di)\b/), w: 3 },
   { intent: 'note.add', test: R(/\b(scrivi|crea|salva|aggiungi|prendi|annota)\b.*\b(nota|appunto|memo)\b|^nota:/), w: 4 },
   { intent: 'goal.add', test: R(/\b(nuovo obiettivo|aggiungi (un )?obiettivo|crea (un )?obiettivo|imposta (un )?obiettivo)\b/), w: 4 },
+  { intent: 'event.add', test: R(/\b(metti|mettimi|inserisci|segna|segnami|fissa|fissami|aggiungi|prenota)\b.*\b(oggi|domani|dopodomani|lunedi|martedi|mercoledi|giovedi|venerdi|sabato|domenica)\b.*\b(alle|ore|a)\b\s*\d|\b(metti|mettimi|inserisci|segna|segnami|fissa|fissami)\b.*\b(alle|ore)\b\s*\d/), w: 3 },
   { intent: 'event.add', test: R(/\b(aggiungi|aggiungimi|metti|mettimi|inserisci|segna|segnami|programma|pianifica|fissa|fissami|prenota|crea|creami|organizza)\b.*\b(piano|calendario|agenda|impegno|evento|appuntamento|riunione|meeting|call|allenamento|visita|cena|pranzo)\b|\b(riunione|meeting|call|appuntamento|visita|cena|pranzo|allenamento)\b.*\b(domani|oggi|dopodomani|lunedi|martedi|mercoledi|giovedi|venerdi|sabato|domenica|alle|ore)\b|\bnel mio piano\b|\bal piano\b/), w: 3 },
   { intent: 'theme.dark', test: R(/\b(modalita|tema)\b.*\b(scur[oa]|dark|notte)\b|\bmetti (il )?(tema )?scuro\b/), w: 4 },
   { intent: 'theme.light', test: R(/\b(modalita|tema)\b.*\b(chiar[oa]|light|giorno)\b|\bmetti (il )?(tema )?chiaro\b/), w: 4 },

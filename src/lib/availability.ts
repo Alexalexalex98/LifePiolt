@@ -4,14 +4,14 @@
  * Chi condivide la disponibilità invia solo questi intervalli: i titoli degli impegni non partono mai.
  */
 export type Span = { from: number; to: number };
-export type Ev = { time: string };
+export type Ev = { time: string; dur?: number };
 
 export const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
 export const fmtMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 
 /** Blocchi occupati, ordinati e uniti quando si toccano o si sovrappongono. */
 export function busyBlocks(events: Ev[], assumeMin = 60): Span[] {
-  const spans = events.map((e) => ({ from: toMin(e.time), to: toMin(e.time) + assumeMin })).sort((a, b) => a.from - b.from);
+  const spans = events.map((e) => ({ from: toMin(e.time), to: toMin(e.time) + (e.dur && e.dur > 0 ? e.dur : assumeMin) })).sort((a, b) => a.from - b.from);
   const out: Span[] = [];
   spans.forEach((s) => {
     const last = out[out.length - 1];

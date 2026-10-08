@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, shortDate } from '@/lib/format';
 import { areaColors, Icon } from '@/lib/icons';
 import { savingsRatePct } from '@/lib/scores';
-import { avgRecentNet, defaultBudget, emergencyByMonth, monthEnd, monthNet, useFin } from '@/store/finance';
+import { avgRecentNet, defaultBudget, emergencyByMonth, monthEnd, monthNet, normBill, spendByCategory, typicalCosts, useFin } from '@/store/finance';
 import { toast } from '@/store/toast';
 import { LpTag } from '@/components/network';
 import { go } from '@/lib/nav';
@@ -24,6 +24,8 @@ export default function LifeFinance() {
   const [ef, setEf] = useState(false);
   const [guide, setGuide] = useState(false);
   const [billSheet, setBillSheet] = useState(false);
+  const [typSheet, setTypSheet] = useState(false);
+  const [typ, setTyp] = useState<Record<string, { on: boolean; amt: string }>>({});
   const [budgetKey, setBudgetKey] = useState(0);
   // form movimento
   const [mvType, setMvType] = useState<'out' | 'in'>('out');
@@ -42,10 +44,12 @@ export default function LifeFinance() {
   const net = monthNet(cur), end = monthEnd(cur);
   const endsChrono = f.months.slice().reverse().map(monthEnd);
 
-  // categorie reali del mese corrente (se ci sono spese), altrimenti ripartizione di default
-  const spentByCat = f.categories.map((c) => ({ ...c, v: -cur.movements.filter((m) => m.amount < 0 && m.label === c.n).reduce((s, m) => s + m.amount, 0) }));
+  // categorie reali: ultimi 3 mesi con spese (media mensile), così il grafico mostra tutte le categorie anche a inizio mese
+  const recent = f.months.slice(0, 3);
+  const spentMap = spendByCategory(recent, f.categories);
+  const spentByCat = f.categories.map((c) => ({ ...c, v: spentMap[c.n] ?? 0 }));
   const totalSpent = spentByCat.reduce((s, c) => s + c.v, 0);
-  const catParts = totalSpent > 0 ? spentByCat.filter((c) => c.v > 0).map((c) => ({ ...c, p: Math.round((c.v / totalSpent) * 1000) / 10 })) : f.categories;
+  const catParts = totalSpent > 0 ? spentByCat.filter((c) => c.v > 0).map((c) => ({ ...c, p: Math.round((c.v / totalSpent) * 1000) / 10 })).sort((a, b) => b.p - a.p) : f.categories;
   const sr = savingsRatePct();
 
   const buffer = avgRecentNet(f.months);
@@ -55,6 +59,22 @@ export default function LifeFinance() {
   const monthlyBills = f.bills.reduce((s, b) => s + (b.freq === 'monthly' ? b.amount : b.amount / 12), 0);
 
   const m = hist != null ? f.months[hist] : null;
+
+  const haveBills = new Set(f.bills.map((b) => normBill(b.name)));
+  function openTyp() {
+    const init: Record<string, { on: boolean; amt: string }> = {};
+    typicalCosts.forEach((c) => { init[c.name] = { on: !haveBills.has(normBill(c.name)), amt: String(c.amount) }; });
+    setTyp(init); setTypSheet(true);
+  }
+  function addTypical() {
+    const list = typicalCosts.filter((c) => typ[c.name]?.on && !haveBills.has(normBill(c.name))).map((c) => {
+      const a = parseFloat((typ[c.name]?.amt ?? '').replace(',', '.'));
+      return { ...c, amount: Number.isFinite(a) && a > 0 ? a : c.amount };
+    });
+    if (!list.length) { toast('Seleziona almeno un costo da aggiungere'); return; }
+    const n = f.addBills(list);
+    setTypSheet(false); toast(n === 1 ? 'Aggiunto 1 costo' : `Aggiunti ${n} costi`);
+  }
 
   function addMov() {
     const amt = parseFloat(mvAmount.replace(',', '.'));
@@ -113,6 +133,7 @@ export default function LifeFinance() {
 
       <Card>
         <H>Spese mensili per categoria</H>
+        <Body small muted style={{ marginBottom: 10 }}>{recent.length > 1 ? `Ripartizione sulla media degli ultimi ${recent.length} mesi` : 'Ripartizione del mese corrente'}</Body>
         <Row gap={18}>
           <View style={{ width: 132, height: 132, alignItems: 'center', justifyContent: 'center' }}>
             <Donut parts={catParts} holeColor={t.card} />
@@ -147,6 +168,7 @@ export default function LifeFinance() {
 
       <Card>
         <Row><H>Bollette e abbonamenti</H><Btn small ghost title="+ Aggiungi" onPress={() => setBillSheet(true)} /></Row>
+        <Btn small ghost icon="plus" title="Aggiungi costi tipici" style={{ marginBottom: 8 }} onPress={() => { openTyp(); }} />
         {f.bills.length === 0 ? <Body small muted>Nessuna bolletta ricorrente ancora.</Body> : f.bills.map((b, i) => (
           <Item key={b.id} last={i === f.bills.length - 1}>
             <Row><View style={{ flex: 1 }}><Body>{b.name}</Body><Body small muted>{b.freq === 'monthly' ? 'ogni mese' : 'ogni anno'}</Body></View><Body bold>{formatCHF(b.amount)} CHF</Body><XBtn onPress={() => { f.delBill(b.id); toast('Rimossa'); }} /></Row>
@@ -245,6 +267,26 @@ export default function LifeFinance() {
         {Object.entries(f.guidelines).map(([name, pct], i, a) => (
           <Item key={name} last={i === a.length - 1}><Row><Body>{name}</Body><Body bold>{formatCHF(f.budget.salary ? Math.round((f.budget.salary * pct) / 100) : 0)} CHF <Text style={{ color: t.muted, fontSize: 12 }}>({pct}%)</Text></Body></Row></Item>
         ))}
+      </Sheet>
+
+      <Sheet visible={typSheet} title="Costi tipici di una persona" onClose={() => setTypSheet(false)}>
+        <Body small muted style={{ marginBottom: 8 }}>Valori indicativi per una persona sola in Svizzera (CHF). Spunta quelli che ti servono e correggi gli importi: quelli già presenti non vengono duplicati.</Body>
+        {typicalCosts.map((c, i) => {
+          const dup = haveBills.has(normBill(c.name));
+          const st = typ[c.name] ?? { on: false, amt: String(c.amount) };
+          return (
+            <Item key={c.name} last={i === typicalCosts.length - 1} style={{ opacity: dup ? 0.5 : 1 }}>
+              <Row>
+                <Pressable disabled={dup} onPress={() => setTyp({ ...typ, [c.name]: { ...st, on: !st.on } })} accessibilityRole="checkbox" accessibilityState={{ checked: st.on && !dup, disabled: dup }} accessibilityLabel={c.name} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Icon name={st.on && !dup ? 'checksquare' : 'square'} size={20} color={st.on && !dup ? t.positive : t.muted} />
+                  <View style={{ flex: 1 }}><Body>{c.name}</Body><Body small muted>{dup ? 'già presente' : c.freq === 'monthly' ? 'ogni mese' : 'ogni anno'}</Body></View>
+                </Pressable>
+                <Input keyboardType="decimal-pad" editable={!dup} value={st.amt} onChangeText={(v) => setTyp({ ...typ, [c.name]: { ...st, amt: v } })} style={{ width: 84, padding: 8, marginBottom: 0 }} accessibilityLabel={`Importo ${c.name}`} />
+              </Row>
+            </Item>
+          );
+        })}
+        <Btn style={{ marginTop: 14 }} title={`Aggiungi selezionati (${typicalCosts.filter((c) => typ[c.name]?.on && !haveBills.has(normBill(c.name))).length})`} onPress={addTypical} />
       </Sheet>
 
       <Sheet visible={billSheet} title="Nuova bolletta o abbonamento" onClose={() => setBillSheet(false)}>

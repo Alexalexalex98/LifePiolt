@@ -5,7 +5,7 @@ import {
   type Analysis, type Correlation, type Domain, type Forecast, type Insight, type MetricDef, type Pt, type Series,
 } from '@/lib/analytics';
 import { dayKey, monthNames } from '@/lib/format';
-import { useFin, monthEnd, type FinMonth } from '@/store/finance';
+import { categoryOf, useFin, monthEnd, type FinMonth } from '@/store/finance';
 import { healthMeta, pointsOf, useHealth, type Metric } from '@/store/health';
 import { useContext } from '@/store/context';
 import { useLife } from '@/store/life';
@@ -166,7 +166,7 @@ function financeInsights(today: string): Insight[] {
   if (older.length) {
     let best: { n: string; cur: number; avg: number } | null = null;
     fin.categories.forEach((c) => {
-      const v = (m: FinMonth) => -m.movements.filter((x) => x.amount < 0 && x.label === c.n).reduce((s, x) => s + x.amount, 0);
+      const v = (m: FinMonth) => -m.movements.filter((x) => x.amount < 0 && categoryOf(x.label, fin.categories) === c.n).reduce((s, x) => s + x.amount, 0);
       const avg = mean(older.map(v)), now = v(cur);
       if (avg > 50 && now - avg > 80 && now / avg > 1.25 && (!best || now - avg > best.cur - best.avg)) best = { n: c.n, cur: now, avg };
     });

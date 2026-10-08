@@ -34,6 +34,8 @@ const QTY = {
 const SLEEP = 'HKCategoryTypeIdentifierSleepAnalysis' as const;
 const MINDFUL = 'HKCategoryTypeIdentifierMindfulSession' as const;
 
+export const HK_UNAVAILABLE_MSG = 'Apple Health richiede la versione installata con Xcode, in Expo Go non è disponibile. Puoi registrare i dati a mano.';
+
 export type HkState = 'unsupported' | 'unavailable' | 'ready';
 
 /** 'unsupported' = non iOS o modulo nativo assente (Expo Go); 'unavailable' = dispositivo senza HealthKit (es. iPad vecchi). */
@@ -48,9 +50,13 @@ export async function hkState(): Promise<HkState> {
 
 export async function requestAppleHealth(): Promise<boolean> {
   if (!HK) return false;
-  return HK.requestAuthorization({
-    toRead: [...Object.values(QTY), SLEEP, MINDFUL, 'HKWorkoutTypeIdentifier'],
-  });
+  try {
+    return await HK.requestAuthorization({
+      toRead: [...Object.values(QTY), SLEEP, MINDFUL, 'HKWorkoutTypeIdentifier'],
+    });
+  } catch {
+    return false;
+  }
 }
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -165,7 +171,7 @@ export type SyncResult = { ok: boolean; message: string; counts?: Record<string,
 /** Scarica gli ultimi `days` giorni da Salute e li salva nello stato dell'app. */
 export async function syncAppleHealth(days = 60): Promise<SyncResult> {
   const st = await hkState();
-  if (st === 'unsupported') return { ok: false, message: "Apple Health non è disponibile in Expo Go: serve la build nativa dell'app (vedi la guida)." };
+  if (st === 'unsupported') return { ok: false, message: HK_UNAVAILABLE_MSG };
   if (st === 'unavailable') return { ok: false, message: 'Questo dispositivo non supporta Apple Health.' };
   const store = useHealth.getState();
   try {
@@ -212,7 +218,8 @@ export async function syncAppleHealth(days = 60): Promise<SyncResult> {
 export async function connectAppleHealth(): Promise<SyncResult> {
   const st = await hkState();
   if (st !== 'ready') return syncAppleHealth(); // restituisce il messaggio giusto
-  const granted = await requestAppleHealth();
+  let granted = false;
+  try { granted = await requestAppleHealth(); } catch { granted = false; }
   if (!granted) return { ok: false, message: 'Permesso non concesso. Puoi attivarlo da Impostazioni > Salute.' };
   return syncAppleHealth(90);
 }
@@ -220,6 +227,9 @@ export async function connectAppleHealth(): Promise<SyncResult> {
 let lastAuto = 0;
 /** Sincronizzazione leggera all'avvio e quando l'app torna in primo piano (al massimo ogni 10 minuti). */
 export async function autoSyncIfConnected() {
+  try { await autoSyncInner(); } catch { /* mai bloccare l'avvio */ }
+}
+async function autoSyncInner() {
   const { wearable } = useHealth.getState();
   if (!wearable.connected || wearable.device !== 'Apple Health') return;
   if (Date.now() - lastAuto < 10 * 60 * 1000) return;

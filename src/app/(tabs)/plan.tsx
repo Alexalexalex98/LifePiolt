@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { DaySheet, MonthCalendar, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet, monthTitle } from '@/components/plan';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Progress, Row, Sheet, Toggle, XBtn } from '@/components/ui';
 import { formatCHF, monthNames } from '@/lib/format';
+import { sendToAssistant } from '@/lib/assistant/run';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { useLife } from '@/store/life';
@@ -43,6 +44,15 @@ export default function Plan() {
         <Row style={{ marginTop: 12 }}>
           <Btn small ghost title={selectMode ? 'Tocca inizio e fine…' : 'Seleziona giorni vacanza'} onPress={() => { setSelectMode(!selectMode); if (!selectMode) toast('Tocca il primo giorno di vacanza'); }} />
           <Body small style={{ flexShrink: 1 }}>{rangeText}</Body>
+        </Row>
+      </Card>
+
+      <Card>
+        <H>Pianificazione automatica</H>
+        <Body small muted style={{ marginVertical: 6 }}>Riempio il mese con i tuoi task (prima i più urgenti e quelli legati ai tuoi appuntamenti) e le tue abitudini, solo nel tuo orario di lavoro, lasciando liberi molti slot. Vedi l'anteprima e decidi tu.</Body>
+        <Row style={{ justifyContent: 'flex-start' }} gap={8}>
+          <Btn small icon="calendar" title="Pianifica il mese" onPress={() => { void sendToAssistant('pianificami il mese'); go('ai'); }} />
+          <Btn small ghost title="Solo questa settimana" onPress={() => { void sendToAssistant('pianifica la settimana'); go('ai'); }} />
         </Row>
       </Card>
 

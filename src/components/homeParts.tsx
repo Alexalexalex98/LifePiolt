@@ -18,34 +18,40 @@ import { scoreInfo } from '@/data/metricInfo';
 export function MoodCheckIn() {
   const t = useTheme();
   const moods = useHealth((s) => s.moods);
-  const logMood = useHealth((s) => s.logMood);
+  const setTodayMood = useHealth((s) => s.setTodayMood);
   const { report } = useMoodData();
   const today = todayStr();
   const done = moods.find((m) => m.day === today);
+  const [changing, setChanging] = useState(false);
   const top = report.factors.find((f) => f.sig);
-  if (done) {
+  if (done && !changing) {
     return (
-      <Card onPress={() => go('mood')} style={{ marginTop: 10 }}>
+      <Card style={{ marginTop: 10 }}>
         <Row>
-          <Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}>
-            <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: t.accent + '25', alignItems: 'center', justifyContent: 'center' }}><Icon name="smile" size={19} color={t.accent} /></View>
-            <View style={{ flex: 1 }}>
-              <Body bold>Oggi: {done.mood}</Body>
-              <Body small muted numberOfLines={2}>{top ? top.sentence : 'Tocca per vedere come cambia il tuo umore e cosa lo influenza.'}</Body>
-            </View>
-          </Row>
-          <Chev />
+          <Pressable onPress={() => go('mood')} style={{ flex: 1 }} accessibilityRole="button" accessibilityLabel="Apri l'andamento dell'umore">
+            <Row style={{ justifyContent: 'flex-start' }} gap={10}>
+              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: t.accent + '25', alignItems: 'center', justifyContent: 'center' }}><Icon name="smile" size={19} color={t.accent} /></View>
+              <View style={{ flex: 1 }}>
+                <Body bold>Oggi: {done.mood}</Body>
+                <Body small muted numberOfLines={2}>{top ? top.sentence : 'Tocca per vedere come cambia il tuo umore e cosa lo influenza.'}</Body>
+              </View>
+            </Row>
+          </Pressable>
+          <Btn small ghost icon="edit" title="Cambia" onPress={() => setChanging(true)} />
         </Row>
       </Card>
     );
   }
   return (
     <Card style={{ marginTop: 10, borderColor: t.accent, borderWidth: 1.5 }}>
-      <Body bold style={{ fontSize: 17, marginBottom: 2 }}>Come ti senti oggi?</Body>
-      <Body small muted style={{ marginBottom: 10 }}>Un tocco, 5 secondi: lo confronto con meteo, impegni, sonno e spese.</Body>
+      <Row>
+        <Body bold style={{ fontSize: 17, marginBottom: 2, flex: 1 }}>{done ? 'Cambia il tuo umore di oggi' : 'Come ti senti oggi?'}</Body>
+        {done ? <Btn small ghost title="Annulla" onPress={() => setChanging(false)} /> : null}
+      </Row>
+      <Body small muted style={{ marginBottom: 10 }}>{done ? `Ora è "${done.mood}": la nuova scelta sostituisce quella di oggi.` : 'Un tocco, 5 secondi: lo confronto con meteo, impegni, sonno e spese.'}</Body>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {moodOptions.map(([m, c]) => (
-          <Pressable key={m} onPress={() => { logMood(m); toast('Umore registrato: ' + m); }} style={{ width: '31%', alignItems: 'center', paddingVertical: 12, borderRadius: 14, backgroundColor: t.tile, borderWidth: 1, borderColor: t.navBorder }} accessibilityRole="button" accessibilityLabel={`Mi sento ${m}`}>
+          <Pressable key={m} onPress={() => { setTodayMood(m); setChanging(false); toast((done ? 'Umore aggiornato: ' : 'Umore registrato: ') + m); }} style={{ width: '31%', alignItems: 'center', paddingVertical: 12, borderRadius: 14, backgroundColor: done?.mood === m ? t.accent + '25' : t.tile, borderWidth: 1, borderColor: done?.mood === m ? t.accent : t.navBorder }} accessibilityRole="button" accessibilityLabel={`Mi sento ${m}`}>
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c, marginBottom: 6 }} /><Body small>{m}</Body>
           </Pressable>
         ))}

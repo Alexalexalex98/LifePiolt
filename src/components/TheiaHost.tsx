@@ -34,7 +34,12 @@ export function TheiaHost() {
   const [since, setSince] = useState(0);
   const scroll = useRef<ScrollView>(null);
 
-  useEffect(() => { if (open) { setQ(''); setSince(Date.now()); } }, [open, req]);
+  useEffect(() => {
+    if (!open) return;
+    setQ(''); setSince(Date.now());
+    if (req?.ask) { const a = req.ask; setTimeout(() => void ask(a), 50); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, req]);
   // la conversazione continua nella LifeChat, archiviata nella sezione giusta: qui si vede solo la parte di adesso
   const turns = open ? log.filter((m) => m.ts >= since) : [];
 

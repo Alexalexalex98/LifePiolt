@@ -13,7 +13,12 @@ import { showUndoToast, toast } from '@/store/toast';
 /* ---------- riga task (Plan e LifeTask) ---------- */
 export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
   const t = useTheme();
-  const { toggleTask, delTask, restoreTask } = useLife();
+  const { toggleTask, delTask, restoreTask, patchTask } = useLife();
+  const urgentBtn = (
+    <Pressable onPress={() => { patchTask(task.id, { urgent: !task.urgent }); toast(!task.urgent ? 'Segnato urgente: lo propongo per primo' : 'Non più urgente'); }} hitSlop={8} accessibilityLabel={task.urgent ? 'Togli urgenza' : 'Segna come urgente'}>
+      <Icon name="alert" size={19} color={task.urgent ? t.danger : t.muted} />
+    </Pressable>
+  );
   const remove = () => {
     const idx = useLife.getState().tasks.findIndex((x) => x.id === task.id);
     const removed = delTask(task.id);
@@ -28,6 +33,7 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
           <Body style={{ flex: 1, textDecorationLine: dc === task.subtasks.length ? 'line-through' : 'none', opacity: dc === task.subtasks.length ? 0.45 : 1 }}>{task.t}</Body>
           <Row gap={8}>
             <Body small muted>{dc}/{task.subtasks.length} · {totalH}h</Body>
+            {urgentBtn}
             <XBtn onPress={remove} />
           </Row>
         </Row>
@@ -46,6 +52,7 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
             {task.recurring && task.recurring !== 'none' ? <Text style={{ color: t.muted, fontSize: 12 }}>{'  · '}{task.recurring === 'daily' ? 'ogni giorno' : 'ogni settimana'}</Text> : null}
           </Body>
         </Pressable>
+        {urgentBtn}
         <Btn small ghost title="" icon="x" onPress={remove} />
       </Row>
     </Item>
@@ -271,7 +278,7 @@ export const monthTitle = () => {
 export function DaySheet({ day, onClose }: { day: string | null; onClose: () => void }) {
   const t = useTheme();
   const events = useLife((s) => (day ? s.events[day] : undefined)) ?? [];
-  const { addEvent, delEvent, restoreEvent, toggleReminder } = useLife();
+  const { addEvent, delEvent, restoreEvent, toggleReminder, patchEvent } = useLife();
   const [time, setTime] = useState('09:00');
   const [title, setTitle] = useState('');
   const [weekly, setWeekly] = useState(false);
@@ -288,6 +295,9 @@ export function DaySheet({ day, onClose }: { day: string | null; onClose: () => 
           <Row>
             <Body style={{ flex: 1 }}><Text style={{ fontWeight: '700' }}>{e.time}</Text> · {e.title}</Body>
             <Row gap={12}>
+              <Pressable onPress={() => { patchEvent(day, idx, { important: !e.important }); toast(!e.important ? 'Impegno importante: i task collegati avranno la precedenza' : 'Non più importante'); }} accessibilityLabel={e.important ? 'Togli importanza' : 'Segna come importante'}>
+                <Icon name="star" size={18} color={e.important ? '#ffb84f' : t.text} fill={e.important ? '#ffb84f' : 'none'} />
+              </Pressable>
               <Pressable onPress={() => { const on = toggleReminder(day, idx); toast(on ? 'Promemoria impostato' : 'Promemoria rimosso'); }} accessibilityLabel="Promemoria">
                 <Icon name="bell" size={18} color={e.reminder ? '#ffb84f' : t.text} fill={e.reminder ? '#ffb84f' : 'none'} />
               </Pressable>

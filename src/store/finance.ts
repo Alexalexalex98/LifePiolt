@@ -31,6 +31,41 @@ export const defaultCategories: FinCategory[] = [
 ];
 export const defaultGuidelines: Record<string, number> = { Affitto: 30, 'Fondo emergenza': 10, 'Alimentari/Casa': 12, 'Cassa malati': 10, Abbigliamento: 5, 'Viaggio estero': 5, Abbonamenti: 3, Altro: 15 };
 
+/** Categoria di budget di un movimento: nome esatto, "Categoria · dettaglio", parole chiave note, altrimenti "Altro". */
+export function categoryOf(label: string, cats: FinCategory[] = defaultCategories): string {
+  const l = label.trim().toLowerCase();
+  const hit = cats.find((c) => l === c.n.toLowerCase() || l.startsWith(c.n.toLowerCase() + ' ·') || l.startsWith(c.n.toLowerCase() + ' -'));
+  if (hit) return hit.n;
+  const kw: [RegExp, string][] = [
+    [/affitto|pigione|locazione/, 'Affitto'], [/cassa malati|assicurazione sanitaria|franchigia/, 'Cassa malati'],
+    [/fondo emergenza|emergenza/, 'Fondo emergenza'], [/spesa|coop|migros|aldi|lidl|denner|supermercat|elettricit|internet|bolletta|casa/, 'Alimentari/Casa'],
+    [/abbigliament|scarpe|vestit|zara|h&m/, 'Abbigliamento'], [/viaggio|volo|hotel|vacanz/, 'Viaggio estero'], [/abbonament|netflix|spotify|palestra|disney|sbb/, 'Abbonamenti'],
+  ];
+  const k = kw.find(([re]) => re.test(l));
+  return k && cats.some((c) => c.n === k[1]) ? k[1] : 'Altro';
+}
+/** Spesa (positiva) per categoria in uno o più mesi. */
+export function spendByCategory(months: FinMonth[], cats: FinCategory[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  months.forEach((m) => m.movements.forEach((x) => {
+    if (x.amount >= 0) return;
+    const c = categoryOf(x.label, cats);
+    out[c] = (out[c] ?? 0) - x.amount;
+  }));
+  return out;
+}
+
+/** Costi normali di una persona sola in Svizzera (CHF): proposti da "Aggiungi costi tipici". */
+export const typicalCosts: Omit<Bill, 'id'>[] = [
+  { name: 'Affitto', amount: 1450, freq: 'monthly' }, { name: 'Cassa malati', amount: 385, freq: 'monthly' },
+  { name: 'Elettricità', amount: 62, freq: 'monthly' }, { name: 'Internet e telefono', amount: 79, freq: 'monthly' },
+  { name: 'Assicurazione RC e economia domestica', amount: 190, freq: 'yearly' }, { name: 'Serafe (canone radio-TV)', amount: 335, freq: 'yearly' },
+  { name: 'Abbonamento trasporti', amount: 85, freq: 'monthly' }, { name: 'Palestra', amount: 69, freq: 'monthly' },
+  { name: 'Netflix', amount: 15.9, freq: 'monthly' }, { name: 'Spotify', amount: 12.95, freq: 'monthly' },
+  { name: 'Imposte accantonate', amount: 380, freq: 'monthly' }, { name: 'Benzina o trasporti', amount: 120, freq: 'monthly' },
+];
+export const normBill = (n: string) => n.trim().toLowerCase().replace(/\s+/g, ' ');
+
 export const monthNet = (m: FinMonth) => m.movements.reduce((s, x) => s + x.amount, 0);
 export const monthEnd = (m: FinMonth) => m.start + monthNet(m);
 export const avgRecentNet = (months: FinMonth[]) => {
@@ -96,6 +131,8 @@ type FinState = {
   setGuidelineSalary: (v: number) => void;
   addBill: (b: Omit<Bill, 'id'>) => void;
   delBill: (id: string) => void;
+  /** Aggiunge più bollette in un colpo, saltando i nomi già presenti. Restituisce quante ne ha aggiunte. */
+  addBills: (list: Omit<Bill, 'id'>[]) => number;
   setTax: (p: Partial<TaxDecl>) => void;
   setTaxDoc: (k: string, f: TaxDocFile | null) => void;
   rollMonth: () => void;
@@ -141,6 +178,12 @@ export const useFin = create<FinState>()(
     resetBudget: () => set((s) => ({ budget: defaultBudget(s.budget.salary || 6500, s.budget.saveToEmergency, s.categories, s.months) })),
     setGuidelineSalary: (v) => set((s) => ({ budget: { ...s.budget, salary: v } })),
     addBill: (b) => set((s) => ({ bills: [...s.bills, { id: uid(), ...b }] })),
+    addBills: (list) => {
+      const have = new Set(get().bills.map((b) => normBill(b.name)));
+      const add = list.filter((b) => { const k = normBill(b.name); if (!k || have.has(k)) return false; have.add(k); return true; });
+      if (add.length) set((s) => ({ bills: [...s.bills, ...add.map((b) => ({ id: uid(), ...b }))] }));
+      return add.length;
+    },
     delBill: (id) => set((s) => ({ bills: s.bills.filter((b) => b.id !== id) })),
     setTax: (p) => set((s) => ({ tax: { ...s.tax, ...p } })),
     setTaxDoc: (k, f) => set((s) => {

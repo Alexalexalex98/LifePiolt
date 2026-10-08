@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { dayKey, uid, weekdayShortDate } from '@/lib/format';
+import { replaceTodayMood } from '@/lib/moodLog';
 import { persisted } from './persist';
 
 export type Metric = 'sleep' | 'hr' | 'steps' | 'weight' | 'stress' | 'hrv' | 'mindful' | 'energy' | 'exercise' | 'vo2' | 'spo2';
@@ -51,6 +52,8 @@ type HealthState = {
   addMind: (type: string, duration: number) => void;
   delMind: (id: string) => void;
   logMood: (mood: string) => void;
+  /** Sostituisce l'umore di oggi (o lo rimuove con null) senza aggiungerne un secondo. */
+  setTodayMood: (mood: string | null) => void;
   connect: (device: string | null) => void;
   setSync: (ts: number | null, err: string | null) => void;
   reset: () => void;
@@ -107,7 +110,8 @@ export const useHealth = create<HealthState>()(
     delWorkout: (id) => set((s) => ({ workouts: s.workouts.filter((w) => w.id !== id) })),
     addMind: (type, duration) => set((s) => ({ mindSessions: [{ id: uid(), type, date: weekdayShortDate(), duration }, ...s.mindSessions] })),
     delMind: (id) => set((s) => ({ mindSessions: s.mindSessions.filter((x) => x.id !== id) })),
-    logMood: (mood) => set((s) => ({ moods: [{ date: weekdayShortDate(), mood, day: dayKey() }, ...s.moods] })),
+    logMood: (mood) => set((s) => ({ moods: replaceTodayMood(s.moods, mood, dayKey(), weekdayShortDate()) })),
+    setTodayMood: (mood) => set((s) => ({ moods: replaceTodayMood(s.moods, mood, dayKey(), weekdayShortDate()) })),
     connect: (device) => set({ wearable: { connected: !!device, device } }),
     setSync: (lastSync, syncError) => set({ lastSync, syncError }),
     reset: () => set({ series: emptySeries(), dates: emptyDates(), sources: {}, lastLog: {}, workouts: [], mindSessions: [], moods: [], wearable: { connected: false, device: null }, lastSync: null, syncError: null }),

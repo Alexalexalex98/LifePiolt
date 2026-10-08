@@ -28,7 +28,17 @@ export default function LifeChat() {
   useEffect(() => { migrateOldChat(); }, []);
 
   const folders = useMemo(() => foldersOf(log), [log]);
-  const shown = useMemo(() => (section === GENERALE ? log : log.filter((m) => m.topic === section)), [log, section]);
+  const [showAll, setShowAll] = useState(false);
+  // "Generale" riparte pulito se manca da un paio d'ore, ma l'assistente ricorda tutto: lo storico resta a un tocco e nella ricerca
+  const sessionFrom = useMemo(() => {
+    if (!log.length) return 0;
+    if (Date.now() - log[log.length - 1].ts > 2 * 3600000) return log.length;
+    let i = log.length - 1;
+    while (i > 0 && log[i].ts - log[i - 1].ts < 2 * 3600000) i--;
+    return i;
+  }, [log]);
+  const shown = useMemo(() => (section === GENERALE ? (showAll ? log : log.slice(sessionFrom)) : log.filter((m) => m.topic === section)), [log, section, showAll, sessionFrom]);
+  const hidden = section === GENERALE && !showAll ? sessionFrom : 0;
   const results = useMemo(() => (searching && q.trim() ? searchLog(log, q) : []), [log, q, searching]);
   const lastAi = [...shown].reverse().find((m) => m.who === 'ai');
 
@@ -36,7 +46,7 @@ export default function LifeChat() {
     const msg = (v ?? text).trim();
     if (!msg || busy) return;
     setText(''); setBusy(true);
-    try { await sendToAssistant(msg); } finally { setBusy(false); }
+    try { await sendToAssistant(msg, { topic: section !== GENERALE ? section : undefined }); } finally { setBusy(false); }
     // se la domanda cambia argomento resto in Generale, che mostra tutto
     setTimeout(() => list.current?.scrollToEnd({ animated: true }), 60);
   }
@@ -67,9 +77,15 @@ export default function LifeChat() {
               {folders.map((f) => <Pill key={f.topic} label={`${f.topic} · ${f.count}`} on={section === f.topic} onPress={() => setSection(f.topic)} />)}
             </ScrollView>
           </View>
+          {hidden > 0 && (
+            <Row style={{ marginBottom: 6 }}>
+              <Body muted small style={{ flex: 1 }}>Nuova conversazione. Ricordo tutto quello che ci siamo detti ({hidden} messaggi).</Body>
+              <Pill label="Mostra storico" onPress={() => setShowAll(true)} />
+            </Row>
+          )}
           {section !== GENERALE && (
             <Row style={{ marginBottom: 6 }}>
-              <Body muted small style={{ flex: 1 }}>Qui trovi solo ciò che riguarda «{section}». Tutto resta anche in Generale.</Body>
+              <Body muted small style={{ flex: 1 }}>Sei nella sezione «{section}»: quello che scrivi qui resta qui e compare anche in Generale.</Body>
               <Pill label="Svuota" onPress={() => { clearTopic(section); setSection(GENERALE); toast('Cartella svuotata'); }} />
             </Row>
           )}
@@ -103,7 +119,7 @@ export default function LifeChat() {
             }}
           />
           <Row style={{ paddingTop: 10, paddingBottom: 6, alignItems: 'flex-start' }}>
-            <Input flex={1} placeholder="Scrivi un comando o una domanda…" value={text} onChangeText={setText} onSubmitEditing={() => send()} returnKeyType="send" style={{ marginBottom: 0 }} />
+            <Input flex={1} placeholder={section === GENERALE ? 'Scrivi un comando o una domanda…' : `Scrivi in ${section}…`} value={text} onChangeText={setText} onSubmitEditing={() => send()} returnKeyType="send" style={{ marginBottom: 0 }} />
             <Pressable onPress={() => send()} disabled={busy || !text.trim()} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: busy || !text.trim() ? 0.4 : 1, marginLeft: 8 }} accessibilityLabel="Invia">
               <Icon name="arrow-up" size={20} color={t.onText} stroke={2.4} />
             </Pressable>

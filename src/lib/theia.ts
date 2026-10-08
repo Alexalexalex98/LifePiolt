@@ -5,6 +5,7 @@ import { computeDashboard } from '@/lib/analyticsData';
 import { dayKey } from '@/lib/format';
 import { totalUnread, useChat } from '@/store/chat';
 import { useApp, navCatalog } from '@/store/app';
+import { rankTasks } from '@/lib/priority';
 import { useLife } from '@/store/life';
 
 /**
@@ -22,7 +23,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL;
 export const theiaOnline = Boolean(API_URL);
 
 export type TheiaSource = 'chat' | 'note' | 'screen' | 'clipboard' | 'home' | 'free';
-export type TheiaRequest = { text?: string; imageUri?: string; source: TheiaSource; label?: string; replyToChat?: string };
+export type TheiaRequest = { text?: string; imageUri?: string; source: TheiaSource; label?: string; replyToChat?: string; /** domanda da fare subito all'apertura */ ask?: string };
 export type TheiaAnswer = { text: string; tasks?: string[]; reply?: string; offline: boolean };
 
 /* ---------- contesto dell'utente ---------- */
@@ -92,7 +93,13 @@ export function predictNeeds(now = new Date()): Suggestion[] {
 
   // 3) task aperti
   const open = life.tasks.filter((t) => !(t.subtasks?.length ? t.subtasks.every((s) => s.done) : t.done));
-  if (open.length) out.push({ id: 'tasks', title: `${open.length} ${open.length === 1 ? 'task aperto' : 'task aperti'}`, detail: `Parti da “${open[0].t}”.`, why: 'Hai task non completati', page: 'lifetask', cta: 'Vai ai task', score: 35 + Math.min(open.length, 6) * 3 });
+  if (open.length) {
+    // quale fare per primo: urgenza, scadenze e legame con i prossimi appuntamenti; altrimenti l'ordine scelto dall'utente
+    const ranked = rankTasks(open.map((t) => ({ id: t.id, t: t.t, urgent: t.urgent, due: t.due })), Object.entries(life.events).flatMap(([day, l]) => l.map((e) => ({ day, time: e.time, title: e.title, important: e.important }))), now);
+    const top = ranked[0];
+    const hot = top && top.score > 0;
+    out.push({ id: 'tasks', title: hot ? `Prima: ${top.task.t}` : `${open.length} ${open.length === 1 ? 'task aperto' : 'task aperti'}`, detail: top ? (hot ? `Perché ${top.reasons.join(' e ')}.` : `Nessuno è urgente: parti da “${top.task.t}”, nell’ordine che hai scelto.`) : '', why: hot ? 'Ordinati per urgenza, scadenza e collegamento con i tuoi appuntamenti' : 'Hai task non completati', page: 'lifetask', cta: 'Vai ai task', score: (hot ? 70 : 35) + Math.min(open.length, 6) * 3 });
+  }
 
   // 4) obiettivi fermi da una settimana
   life.goals.forEach((g) => {

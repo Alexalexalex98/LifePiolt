@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { fmtDur, urlRe, type ChatMessage, type MsgStatus } from '@/store/chat';
 import { fmtSize } from '@/lib/chatMedia';
 import { Icon } from '@/lib/icons';
+import { ModalToast } from '@/components/ui';
 
 export function useChatColors() {
   const t = useTheme();
@@ -151,6 +152,7 @@ export function MediaViewer({ items, index, onClose, onDelete }: { items: ChatMe
         <Pressable onPress={onClose} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, left: 16 }} accessibilityLabel="Chiudi"><Icon name="x" size={28} color="#fff" /></Pressable>
         <Text style={{ position: 'absolute', top: insets.top + 16, alignSelf: 'center', color: '#fff', fontSize: 13 }}>{cur + 1} / {items.length}</Text>
         {onDelete && items[cur] && <Pressable onPress={() => onDelete(items[cur])} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, right: 16 }} accessibilityLabel="Elimina"><Icon name="trash" size={24} color="#fff" /></Pressable>}
+        <ModalToast />
       </View>
     </Modal>
   );

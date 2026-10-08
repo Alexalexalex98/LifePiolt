@@ -14,6 +14,7 @@ import { demoMoods } from '@/data/moodDemo';
 import { demoWeather } from '@/lib/weather';
 import { useContext } from './context';
 import { useAssistant } from './assistant';
+import { usePrefs } from './prefs';
 
 /** Sostituisce il nome del prototipo con quello dell'utente e le date relative con date reali. */
 function personalise<T>(data: T, me: string): T {
@@ -112,4 +113,5 @@ export function resetAllData() {
   useHealth.getState().reset();
   useFin.getState().reset();
   useTravel.getState().reset();
+  usePrefs.getState().reset();
 }

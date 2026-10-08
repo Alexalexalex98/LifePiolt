@@ -9,7 +9,7 @@ import { areaColors, Icon } from '@/lib/icons';
 import { computeScores } from '@/lib/scores';
 import { healthMeta, last, moodOptions, streakOf, useHealth, type Metric as M } from '@/store/health';
 import { toast } from '@/store/toast';
-import { connectAppleHealth, syncAppleHealth } from '@/lib/healthkit';
+import { connectAppleHealth, HK_UNAVAILABLE_MSG, syncAppleHealth } from '@/lib/healthkit';
 
 const fmtSleep = (h: number) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`;
 const stressLabel = (v: number) => (v < 30 ? 'Basso' : v < 60 ? 'Medio' : 'Alto');
@@ -35,7 +35,7 @@ export default function LifeHealth() {
       const r = connect ? await connectAppleHealth() : await syncAppleHealth(60);
       setHkMsg(r.message); setHkOk(r.ok); toast(r.message);
     } catch {
-      const m = 'Non riesco a collegare Apple Health da questa versione dell’app. Serve la build nativa (vedi la guida).';
+      const m = HK_UNAVAILABLE_MSG;
       setHkMsg(m); setHkOk(false); toast(m);
     } finally { setBusy(false); }
   }
@@ -112,11 +112,11 @@ export default function LifeHealth() {
         ))}
       </Card>
 
-      <Card onPress={() => setTrend('sleep')}><H>Sonno</H><Body small muted>{sleep != null ? `Ultima notte: ${fmtSleep(sleep)} · media 7gg ${avg(series.sleep.slice(-7)).toFixed(1)}h` : 'Nessun dato: registra il sonno di stanotte.'}</Body></Card>
-      <Card onPress={() => setTrend('hr')}><H>Cuore</H><Body small muted>{hr != null ? `Frequenza a riposo: ${Math.round(hr)} bpm · media 7gg ${Math.round(avg(series.hr.slice(-7)))} bpm` : 'Nessun dato registrato.'}</Body></Card>
+      <Card onPress={() => setTrend('sleep')}><Row><H>Sonno</H><Btn small ghost title="+ Registra" onPress={() => { setToday({}); setSheet('today'); }} /></Row><Body small muted>{sleep != null ? `Ultima notte: ${fmtSleep(sleep)} · media 7gg ${avg(series.sleep.slice(-7)).toFixed(1)}h` : 'Nessun dato: registra il sonno di stanotte.'}</Body></Card>
+      <Card onPress={() => setTrend('hr')}><Row><H>Cuore</H><Btn small ghost title="+ Registra" onPress={() => { setToday({}); setSheet('today'); }} /></Row><Body small muted>{hr != null ? `Frequenza a riposo: ${Math.round(hr)} bpm · media 7gg ${Math.round(avg(series.hr.slice(-7)))} bpm` : 'Nessun dato registrato.'}</Body></Card>
 
       <Card>
-        <H>Attività</H>
+        <Row><H>Attività</H><Btn small ghost title="+ Registra" onPress={() => { setToday({}); setSheet('today'); }} /></Row>
         <Row><Body muted>Passi oggi</Body><Body bold>{Math.round(steps ?? 0).toLocaleString('it-CH')} / {goal.toLocaleString('it-CH')}</Body></Row>
         <Progress value={Math.min(100, ((steps ?? 0) / goal) * 100)} />
         <Row style={{ marginTop: 8 }}><Body muted>Calorie attive stimate</Body><Body bold>{Math.round((steps ?? 0) * 0.045)} kcal</Body></Row>
@@ -149,7 +149,7 @@ export default function LifeHealth() {
         </View>
         <Body small muted>Stress, HRV e mindfulness misurabili da Apple Watch o altri wearable · l'umore resta un check-in scelto da te.</Body>
       </Card>
-      <Card onPress={() => setTrend('stress')}><H>Stress</H><Body small muted>{stress != null ? `Livello ${stressLabel(stress)} · media 7gg ${Math.round(avg(series.stress.slice(-7)))}/100` : 'Nessun dato registrato.'}</Body></Card>
+      <Card onPress={() => setTrend('stress')}><Row><H>Stress</H><Btn small ghost title="+ Registra" onPress={() => { setToday({}); setSheet('today'); }} /></Row><Body small muted>{stress != null ? `Livello ${stressLabel(stress)} · media 7gg ${Math.round(avg(series.stress.slice(-7)))}/100` : 'Nessun dato registrato.'}</Body></Card>
       <Card>
         <Row><H>Mindfulness</H><Btn small ghost title="+ Registra" onPress={() => open('mind')} /></Row>
         <Item><Row><Body muted>Minuti stimati questa settimana (wearable)</Body><Body bold>{Math.round(series.mindful.slice(-7).reduce((a, b) => a + b, 0))} min</Body></Row></Item>
@@ -181,16 +181,16 @@ export default function LifeHealth() {
       <Sheet visible={sheet === 'workout'} title="Nuovo allenamento" onClose={() => setSheet(null)}>
         <Input placeholder="Tipo (es. Corsa, Palestra, Yoga)" value={f1} onChangeText={setF1} />
         <Input keyboardType="decimal-pad" placeholder="Durata (minuti)" value={f2} onChangeText={setF2} />
-        <Btn title="Registra" onPress={() => { const d = num(f2); if (!f1.trim() || !d) return; h.addWorkout(f1.trim(), d); setSheet(null); toast('Allenamento registrato'); }} />
+        <Btn title="Registra" onPress={() => { const d = num(f2); if (!f1.trim() || !d) { toast('Inserisci tipo e durata (minuti)'); return; } h.addWorkout(f1.trim(), d); setSheet(null); toast('Allenamento registrato'); }} />
       </Sheet>
       <Sheet visible={sheet === 'weight'} title="Registra peso" onClose={() => setSheet(null)}>
         <Input keyboardType="decimal-pad" placeholder="Peso attuale (kg)" value={f1} onChangeText={setF1} />
-        <Btn title="Registra" onPress={() => { const v = num(f1); if (!v) return; h.logMetric('weight', v); setSheet(null); toast('Peso registrato'); }} />
+        <Btn title="Registra" onPress={() => { const v = num(f1); if (!v) { toast('Inserisci il peso in kg'); return; } h.logMetric('weight', v); setSheet(null); toast('Peso registrato'); }} />
       </Sheet>
       <Sheet visible={sheet === 'mind'} title="Nuova sessione" onClose={() => setSheet(null)}>
         <Input placeholder="Tipo (es. Meditazione, Respirazione)" value={f1} onChangeText={setF1} />
         <Input keyboardType="decimal-pad" placeholder="Durata (minuti)" value={f2} onChangeText={setF2} />
-        <Btn title="Registra" onPress={() => { const d = num(f2); if (!f1.trim() || !d) return; h.addMind(f1.trim(), d); setSheet(null); toast('Sessione registrata'); }} />
+        <Btn title="Registra" onPress={() => { const d = num(f2); if (!f1.trim() || !d) { toast('Inserisci tipo e durata (minuti)'); return; } h.addMind(f1.trim(), d); setSheet(null); toast('Sessione registrata'); }} />
       </Sheet>
       <Sheet visible={sheet === 'mood'} title="Come ti senti?" onClose={() => setSheet(null)}>
         <Body small muted style={{ marginBottom: 12 }}>Il check-in dell'umore resta un'indicazione che scegli tu: non è misurato automaticamente dal sensore.</Body>

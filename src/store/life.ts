@@ -4,13 +4,13 @@ import { dayKey, minutesToTime, timeToMinutes, uid, weekdayShortDate } from '@/l
 import { persisted } from './persist';
 
 export type Subtask = { t: string; h: number; done: boolean; type: 'lavoro' | 'piacere'; doneAt?: string };
-export type Task = { id: string; t: string; done?: boolean; doneAt?: string; recurring?: 'none' | 'daily' | 'weekly'; subtasks?: Subtask[] };
+export type Task = { id: string; t: string; done?: boolean; urgent?: boolean; due?: string; doneAt?: string; recurring?: 'none' | 'daily' | 'weekly'; subtasks?: Subtask[] };
 export type Goal = { id: string; t: string; p: number; hist?: { d: string; p: number }[] };
 export type Automation = { id: string; t: string; on: boolean };
 export type Note = { id: string; text: string; date: string };
 export type DriveFile = { id: string; n: string; s: string; folder: string; date: string; uri?: string };
 /** dur = durata in minuti (se manca si assumono 60); ref = id dell'iscrizione/prenotazione che l'ha creato. */
-export type CalEvent = { time: string; title: string; reminder?: boolean; dur?: number; ref?: string };
+export type CalEvent = { time: string; title: string; important?: boolean; reminder?: boolean; dur?: number; ref?: string };
 export type Vacation = { id: string; dest: string; month: string; hotel: string; price: number; days: number; flight: number };
 export type ChatMsg = { who: 'me' | 'ai'; text: string };
 
@@ -56,6 +56,11 @@ type LifeState = {
   delGoal: (id: string) => void;
   addAuto: (t: string) => void;
   toggleAuto: (id: string, on: boolean) => void;
+  renameAuto: (id: string, t: string) => void;
+  delAuto: (id: string) => { auto: Automation; idx: number } | null;
+  restoreAuto: (a: Automation, idx: number) => void;
+  patchGoal: (id: string, patch: { t?: string; p?: number }) => void;
+  restoreGoal: (g: Goal, idx: number) => void;
 
   saveNote: (id: string | null, text: string) => void;
   delNote: (id: string) => { note: Note; idx: number } | null;
@@ -68,6 +73,7 @@ type LifeState = {
   delEvent: (day: string, idx: number) => CalEvent | null;
   restoreEvent: (day: string, idx: number, ev: CalEvent) => void;
   toggleReminder: (day: string, idx: number) => boolean;
+  patchEvent: (day: string, idx: number, patch: Partial<CalEvent>) => void;
   addEvents: (day: string, evs: CalEvent[]) => void;
 
   setVacRange: (r: LifeState['vacRange']) => void;
@@ -158,6 +164,30 @@ export const useLife = create<LifeState>()(
     delGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),
     addAuto: (t) => set((s) => ({ automations: [...s.automations, { id: uid(), t, on: true }] })),
     toggleAuto: (id, on) => set((s) => ({ automations: s.automations.map((a) => (a.id === id ? { ...a, on } : a)) })),
+    renameAuto: (id, t) => set((s) => ({ automations: s.automations.map((a) => (a.id === id ? { ...a, t } : a)) })),
+    delAuto: (id) => {
+      const idx = get().automations.findIndex((a) => a.id === id);
+      if (idx < 0) return null;
+      const auto = get().automations[idx];
+      set((s) => ({ automations: s.automations.filter((a) => a.id !== id) }));
+      return { auto, idx };
+    },
+    restoreAuto: (a, idx) => set((s) => { const l = s.automations.slice(); l.splice(Math.min(idx, l.length), 0, a); return { automations: l }; }),
+    patchGoal: (id, patch) => set((s) => ({
+      goals: s.goals.map((g) => {
+        if (g.id !== id) return g;
+        const next: Goal = { ...g };
+        if (patch.t != null) next.t = patch.t;
+        if (patch.p != null) {
+          const p = Math.max(0, Math.min(100, Math.round(patch.p)));
+          const today = dayKey();
+          next.p = p;
+          next.hist = [...(g.hist ?? []).filter((h) => h.d !== today), { d: today, p }].slice(-120);
+        }
+        return next;
+      }),
+    })),
+    restoreGoal: (g, idx) => set((s) => { const l = s.goals.slice(); l.splice(Math.min(idx, l.length), 0, g); return { goals: l }; }),
 
     saveNote: (id, text) =>
       set((s) => (id ? { notes: s.notes.map((n) => (n.id === id ? { ...n, text } : n)) } : { notes: [...s.notes, { id: uid(), text, date: weekdayShortDate() }] })),
@@ -200,6 +230,7 @@ export const useLife = create<LifeState>()(
       return ev;
     },
     restoreEvent: (day, idx, ev) => set((s) => { const l = (s.events[day] || []).slice(); l.splice(idx, 0, ev); return { events: { ...s.events, [day]: l } }; }),
+    patchEvent: (day, idx, patch) => set((st) => ({ events: { ...st.events, [day]: (st.events[day] ?? []).map((e, i) => (i === idx ? { ...e, ...patch } : e)) } })),
     toggleReminder: (day, idx) => {
       let on = false;
       set((s) => ({ events: { ...s.events, [day]: (s.events[day] || []).map((e, i) => { if (i !== idx) return e; on = !e.reminder; return { ...e, reminder: on }; }) } }));
