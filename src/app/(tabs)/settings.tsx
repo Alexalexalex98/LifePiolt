@@ -20,6 +20,7 @@ import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
 import { useTravel } from '@/store/travel';
 import { toast } from '@/store/toast';
+import { applyDemo } from '@/store/demo';
 
 const dataLabels: Record<string, string> = {
   life: 'Task, obiettivi, note, file e calendario', health: 'Dati di salute e umore', finance: 'Movimenti, budget e investimenti simulati',
@@ -37,6 +38,7 @@ export default function Settings() {
   const { set } = app;
   const [edit, setEdit] = useState<null | 'name' | 'email' | 'assistant'>(null);
   const [editVal, setEditVal] = useState('');
+  const [demoAsk, setDemoAsk] = useState(false);
   const [wh, setWh] = useState(false);
   const [info, setInfo] = useState<null | 'help' | 'contact' | 'terms'>(null);
   const [del, setDel] = useState<0 | 1 | 2>(0);
@@ -227,6 +229,7 @@ export default function Settings() {
           <Btn small ghost title="Privacy e permessi" onPress={() => go('privacy')} />
           <Btn small ghost title="Segnalazioni e utenti bloccati" onPress={() => go('reports')} />
           <Btn small ghost title={tr('stExportBtn')} onPress={exportData} />
+          <Btn small ghost title={demoAsk ? 'Tocca ancora per confermare: sostituisce i tuoi dati' : 'Carica i dati demo (chat, piano, finanze...)'} onPress={() => { if (!demoAsk) { setDemoAsk(true); toast('Sostituisce i dati attuali con quelli di esempio. Fai prima un backup se ti servono.'); return; } applyDemo(app.account.name || 'Alex', app.account.email); set({ demo: true }); setDemoAsk(false); toast('Dati demo caricati: guarda Messaggi, Plan e Finanze'); }} />
           <Btn small ghost danger title="Elimina tutti i miei dati" onPress={() => setDel(1)} />
         </View>
       </Card>
