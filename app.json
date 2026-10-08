@@ -13,9 +13,9 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSHealthShareUsageDescription": "LifePilot legge i dati di Salute e Apple Watch (passi, sonno, battito, HRV, allenamenti, peso) solo per mostrarteli e analizzarli sul tuo iPhone.",
-        "NSCalendarsUsageDescription": "LifePilot legge il tuo calendario per mostrare i tuoi impegni nel piano e aggiunge eventi solo quando lo scegli tu.",
-        "NSCalendarsFullAccessUsageDescription": "LifePilot legge il tuo calendario per mostrare i tuoi impegni nel piano e aggiunge eventi solo quando lo scegli tu.",
-        "NSLocationWhenInUseUsageDescription": "LifePilot usa la posizione solo quando scegli di condividerla in una chat.",
+        "NSCalendarsUsageDescription": "LifePilot legge il tuo calendario per importare gli eventi nel Plan e aggiunge eventi solo quando lo scegli tu.",
+        "NSCalendarsFullAccessUsageDescription": "LifePilot legge il tuo calendario per importare gli eventi nel Plan e aggiunge eventi solo quando lo scegli tu.",
+        "NSLocationWhenInUseUsageDescription": "LifePilot usa la posizione quando scegli di condividerla in una chat e, se vuoi, per mostrarti il meteo della tua città.",
         "NSCameraUsageDescription": "LifePilot usa la fotocamera per scattare foto e video da inviare nelle chat.",
         "NSMicrophoneUsageDescription": "LifePilot usa il microfono per registrare i messaggi vocali nelle chat.",
         "NSPhotoLibraryUsageDescription": "LifePilot accede alle foto per inviarle nelle chat.",
@@ -94,7 +94,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "LifePilot usa la posizione solo quando scegli di condividerla in una chat.",
+          "locationWhenInUsePermission": "LifePilot usa la posizione quando scegli di condividerla in una chat e, se vuoi, per mostrarti il meteo della tua città.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
           "motionUsagePermission": false
@@ -109,7 +109,7 @@
       [
         "expo-calendar",
         {
-          "calendarPermission": "LifePilot legge il tuo calendario per mostrare i tuoi impegni nel piano e aggiunge eventi solo quando lo scegli tu.",
+          "calendarPermission": "LifePilot legge il tuo calendario per importare gli eventi nel Plan e aggiunge eventi solo quando lo scegli tu.",
           "remindersPermission": false
         }
       ],

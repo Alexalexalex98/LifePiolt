@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { AppState, View } from 'react-native';
 
 import { autoSyncIfConnected } from '@/lib/healthkit';
+import { resyncCalendars } from '@/lib/calendarImport';
 import { refreshBriefings } from '@/lib/notify';
 import { refreshWeather } from '@/lib/weather';
 
@@ -53,6 +54,7 @@ export default function RootLayout() {
     void autoSyncIfConnected();
     void refreshWeather();
     void refreshBriefings();
+    void resyncCalendars();
     const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
     return () => sub.remove();
   }, [ready]);

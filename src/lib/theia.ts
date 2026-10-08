@@ -2,6 +2,9 @@ import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 import { collect, computeDashboard } from '@/lib/analyticsData';
+import { alertsFor } from '@/lib/budgetState';
+import { budgetSuggestions } from '@/lib/budgetAlerts';
+import { useFin } from '@/store/finance';
 import { busyDay, lateEventSleep } from '@/lib/insightsLocal';
 import { skippedWork } from '@/lib/reschedule';
 import { useHealth } from '@/store/health';
@@ -123,6 +126,11 @@ export function predictNeeds(now = new Date()): Suggestion[] {
 
   // 7) sera: prepararsi al sonno
   if (h >= 21 || h < 2) out.push({ id: 'sleep', title: 'È tardi: dormire bene domani ti rende di più', detail: 'Stacca schermi e luci, il sonno è la metrica che muove tutte le altre.', why: `Sono le ${hhmm(now)}`, page: 'lifehealth', cta: 'Vedi il sonno', score: 30 });
+
+  // 7b) budget: categorie vicine o oltre il limite
+  try {
+    budgetSuggestions(alertsFor(useFin.getState())).forEach((b) => out.push({ id: `bud-${b.id}`, title: b.title, detail: b.detail, why: 'Confronto tra le tue spese e il budget o le linee guida', page: 'lifefinance', cta: 'Apri Finanze', score: 55 + b.priority * 0.1 }));
+  } catch { /* niente */ }
 
   // 8) sessioni di lavoro saltate: le ripianifico io
   try {

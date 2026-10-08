@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { TrendChart } from '@/components/charts';
+import { WeeklyReportButton } from '@/components/WeeklyReportButton';
 import { DiscoverCard } from '@/components/Discover';
 import { TheiaCard } from '@/components/TheiaCard';
 import { CorrelationSheet, DomainSheet, MoodCheckIn } from '@/components/homeParts';
@@ -103,6 +104,7 @@ export default function Dashboard() {
 
       <TheiaCard />
       <DiscoverCard />
+      <WeeklyReportButton ghost style={{ marginBottom: 12 }} />
 
       {/* ---------- 1. punteggio generale ---------- */}
       <Card style={{ marginTop: 10, padding: 18 }} onPress={() => setScoreOpen(true)}>
