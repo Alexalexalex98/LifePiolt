@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { View, type LayoutChangeEvent } from 'react-native';
+import { Platform, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Line, Path, Polygon, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 
 import { Text } from '@/components/T';
@@ -17,6 +17,7 @@ export type OverviewHandlers = {
   onAlerts: () => void; onBills: () => void; onEmergency: () => void; onImport: () => void; onMovements: (monthIdx: number) => void;
 };
 
+const FF = Platform.OS === 'web' ? 'system-ui, -apple-system, Segoe UI, sans-serif' : undefined;
 const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 const money = (n: number) => formatMoney(Math.round(n));
 const compact = (n: number) => (Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(Math.abs(n) >= 10000 ? 0 : 1)}k` : String(Math.round(n)));
@@ -70,7 +71,7 @@ function IncomeExpenseChart({ series, onPick }: { series: MonthStat[]; onPick: (
       <View style={{ width: W, height: H }}>
         <Svg width={W} height={H} accessibilityLabel={label} accessibilityRole="image">
           <Line x1={padX} x2={W - padX} y1={y(0)} y2={y(0)} stroke={th.border} strokeWidth={1} />
-          <SvgText x={padX} y={padT - 5} fontSize={10} fill={th.muted}>{compact(hi)} {currentCurrency()}</SvgText>
+          <SvgText fontFamily={FF} x={padX} y={padT - 5} fontSize={10} fill={th.muted}>{compact(hi)} {currentCurrency()}</SvgText>
           {series.map((s, i) => (
             <Rect key={'i' + s.label} x={cx(i) - bw - 1} y={y(s.income)} width={bw} height={Math.max(1, y(0) - y(s.income))} rx={3} fill={th.accent} />
           ))}
@@ -79,7 +80,7 @@ function IncomeExpenseChart({ series, onPick }: { series: MonthStat[]; onPick: (
           ))}
           <Polyline points={line} fill="none" stroke={th.text} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" />
           {series.map((s, i) => <Circle key={'c' + s.label} cx={cx(i)} cy={y(s.saved)} r={3.6} fill={s.saved >= 0 ? th.positive : th.danger} stroke={th.card} strokeWidth={1.5} />)}
-          {series.map((s, i) => <SvgText key={'t' + s.label} x={cx(i)} y={H - 7} fontSize={11} fill={th.muted} textAnchor="middle">{monthShortOf(s.label)}</SvgText>)}
+          {series.map((s, i) => <SvgText fontFamily={FF} key={'t' + s.label} x={cx(i)} y={H - 7} fontSize={11} fill={th.muted} textAnchor="middle">{monthShortOf(s.label)}</SvgText>)}
         </Svg>
         {series.map((s, i) => (
           <Press key={'z' + s.label} onPress={() => onPick(i)} accessibilityLabel={t('{0}: entrate {1}, uscite {2}, risparmio {3}', monthLongOf(s.label), money(s.income), money(s.expense), money(s.saved))} style={{ position: 'absolute', left: padX + gw * i, top: 0, width: gw, height: H }}><View style={{ flex: 1 }} /></Press>
@@ -109,8 +110,8 @@ function SavingsGauge({ rate, onPress }: { rate: number; onPress: () => void }) 
         <Svg width={w} height={h}>
           {zones.map((zn, i) => <Path key={i} d={arc(zn.a, zn.b)} stroke={zn.c} strokeWidth={sw} fill="none" opacity={0.9} />)}
           <Circle cx={mx} cy={my} r={sw / 2 + 3} fill={th.card} stroke={th.text} strokeWidth={3} />
-          <SvgText x={cx} y={cy - 2} fontSize={30} fontWeight="800" fill={th.text} textAnchor="middle">{Math.round(rate)}%</SvgText>
-          <SvgText x={cx} y={cy + 17} fontSize={12} fill={th.muted} textAnchor="middle">{word}</SvgText>
+          <SvgText fontFamily={FF} x={cx} y={cy - 2} fontSize={30} fontWeight="800" fill={th.text} textAnchor="middle">{Math.round(rate)}%</SvgText>
+          <SvgText fontFamily={FF} x={cx} y={cy + 17} fontSize={12} fill={th.muted} textAnchor="middle">{word}</SvgText>
         </Svg>
       </Press>
       <Legend items={[{ c: th.danger, label: translateText('sotto 0%') }, { c: th.warn, label: '0-10%' }, { c: th.accent, label: '10-20%' }, { c: th.positive, label: translateText('oltre 20%') }]} />
@@ -148,9 +149,9 @@ function BalanceChart({ a, onPick }: { a: Analysis; onPick: (i: number) => void 
           <Polyline points={fl} fill="none" stroke={th.accent} strokeWidth={2.4} strokeDasharray="6 5" strokeLinecap="round" />
           {hist.map((v, i) => <Circle key={'h' + i} cx={x(i)} cy={y(v)} r={3.4} fill={th.accent} stroke={th.card} strokeWidth={1.5} />)}
           {fc.map((v, i) => <Circle key={'f' + i} cx={x(last + 1 + i)} cy={y(v)} r={3.6} fill={th.card} stroke={th.accent} strokeWidth={2} />)}
-          <SvgText x={x(last)} y={y(hist[last]) - 9} fontSize={10.5} fontWeight="700" fill={th.text} textAnchor={anchor(last)}>{compact(hist[last])}</SvgText>
-          <SvgText x={x(n - 1)} y={y(fc[fc.length - 1]) - 9} fontSize={10.5} fontWeight="700" fill={th.muted} textAnchor="end">{compact(fc[fc.length - 1])}</SvgText>
-          {names.map((nm, i) => (i % skip === 0 || i === n - 1) ? <SvgText key={'t' + i} x={x(i)} y={H - 7} fontSize={11} fill={i > last ? th.muted : th.text} opacity={i > last ? 0.85 : 1} textAnchor={anchor(i)}>{nm}</SvgText> : null)}
+          <SvgText fontFamily={FF} x={x(last)} y={y(hist[last]) - 9} fontSize={10.5} fontWeight="700" fill={th.text} textAnchor={anchor(last)}>{compact(hist[last])}</SvgText>
+          <SvgText fontFamily={FF} x={x(n - 1)} y={y(fc[fc.length - 1]) - 9} fontSize={10.5} fontWeight="700" fill={th.muted} textAnchor="end">{compact(fc[fc.length - 1])}</SvgText>
+          {names.map((nm, i) => (i % skip === 0 || i === n - 1) ? <SvgText fontFamily={FF} key={'t' + i} x={x(i)} y={H - 7} fontSize={11} fill={i > last ? th.muted : th.text} opacity={i > last ? 0.85 : 1} textAnchor={anchor(i)}>{nm}</SvgText> : null)}
         </Svg>
         {all.map((v, i) => (
           <Press key={'z' + i} onPress={() => onPick(i)} accessibilityLabel={`${i <= last ? monthLongOf(a.series[i].label) : t('Stima {0}', names[i])}: ${money(v)}`} style={{ position: 'absolute', left: Math.max(0, x(i) - step / 2), top: 0, width: Math.max(28, step), height: H }}><View style={{ flex: 1 }} /></Press>
@@ -205,6 +206,7 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
   const th = useTheme();
   const ink = useInk();
   const f = useFin();
+  const narrow = useWindowDimensions().width < 350;
   const [sheet, setSheet] = useState<null | { kind: 'month'; i: number } | { kind: 'cat'; n: string } | { kind: 'gauge' } | { kind: 'point'; i: number }>(null);
 
   const { a, recap } = useMemo(() => {
@@ -262,18 +264,18 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
       {/* Saldo + numeri chiave */}
       {cur && (
         <Card>
-          <Row gap={8} style={{ alignItems: 'flex-start' }}>
-            <View style={{ flex: 1 }}>
+          <Row gap={8} style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <View style={{ flexGrow: 1 }}>
               <Body small muted>Saldo attuale</Body>
-              <Text style={{ color: th.text, fontSize: 32, fontWeight: '800' }} numberOfLines={1} adjustsFontSizeToFit>{money(cur.end)}</Text>
+              <Text style={{ color: th.text, fontSize: narrow ? 28 : 32, fontWeight: '800' }}>{money(cur.end)}</Text>
             </View>
             <Btn small ghost title="Movimenti" icon="chevron-right" onPress={() => h.onMovements(0)} />
           </Row>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+          <View style={{ flexDirection: narrow ? 'column' : 'row', gap: 8, marginTop: 12 }}>
             {[{ l: 'Entrate', v: cur.income, c: th.accent }, { l: 'Uscite', v: cur.expense, c: th.warn }, { l: 'Risparmio', v: cur.saved, c: cur.saved >= 0 ? th.positive : th.danger }].map((k) => (
-              <View key={k.l} style={{ flex: 1, backgroundColor: th.tile, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 10, borderTopWidth: 3, borderTopColor: k.c }}>
+              <View key={k.l} style={{ flex: narrow ? undefined : 1, flexDirection: narrow ? 'row' : 'column', justifyContent: 'space-between', alignItems: narrow ? 'center' : undefined, backgroundColor: th.tile, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 8, borderTopWidth: 3, borderTopColor: k.c }}>
                 <Body small muted>{k.l}</Body>
-                <Text style={{ color: th.text, fontSize: 15, fontWeight: '700', marginTop: 2 }} numberOfLines={1} adjustsFontSizeToFit>{k.l === 'Risparmio' && k.v > 0 ? '+' : ''}{money(k.v)}</Text>
+                <Text style={{ color: th.text, fontSize: 14, fontWeight: '700', marginTop: narrow ? 0 : 2 }}>{money(k.v)}</Text>
               </View>
             ))}
           </View>
