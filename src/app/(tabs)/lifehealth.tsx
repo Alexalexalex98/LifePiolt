@@ -11,6 +11,7 @@ import { areaColors, Icon } from '@/lib/icons';
 import { computeScores } from '@/lib/scores';
 import { healthMeta, last, moodOptions, streakOf, useHealth, type Metric as M } from '@/store/health';
 import { toast } from '@/store/toast';
+import { confirmDelete } from '@/lib/confirm';
 import { autoSyncIfConnected, connectAppleHealth, hkUnsupportedMessage, syncAppleHealth, useHkStatus } from '@/lib/healthkit';
 import { fmtDate, fmtDateTime, fmtInt, fmtTime } from '@/i18n/format';
 import { t as tl } from '@/i18n/core';
@@ -152,7 +153,7 @@ export default function LifeHealth() {
         <Row><H>Allenamenti</H><Btn small ghost title="+ Registra" onPress={() => open('workout')} /></Row>
         {h.workouts.length === 0 ? <Empty text="Nessun allenamento registrato: il primo passo conta più di quanto pensi." /> : h.workouts.map((w, i) => (
           <Item key={w.id} last={i === h.workouts.length - 1}>
-            <Row><View style={{ flex: 1 }}><Body bold>{w.type}</Body><Body small muted>{w.date} · {w.duration} min</Body></View><Body small muted>{w.calories} kcal</Body><XBtn onPress={() => { h.delWorkout(w.id); toast('Allenamento eliminato'); }} /></Row>
+            <Row><View style={{ flex: 1 }}><Body bold>{w.type}</Body><Body small muted>{w.date} · {w.duration} min</Body></View><Body small muted>{w.calories} kcal</Body><XBtn onPress={() => confirmDelete(`l'allenamento «${w.type}» del ${w.date}`, () => { h.delWorkout(w.id); toast('Allenamento eliminato'); })} /></Row>
           </Item>
         ))}
       </Card>
@@ -181,7 +182,7 @@ export default function LifeHealth() {
         <Item><Row><Body muted>Minuti stimati questa settimana (wearable)</Body><Body bold>{Math.round(series.mindful.slice(-7).reduce((a, b) => a + b, 0))} min</Body></Row></Item>
         {h.mindSessions.length === 0 ? <Empty text="Nessuna sessione registrata." /> : h.mindSessions.map((s, i) => (
           <Item key={s.id} last={i === h.mindSessions.length - 1}>
-            <Row><View style={{ flex: 1 }}><Body bold>{s.type}</Body><Body small muted>{s.date}</Body></View><Body small muted>{s.duration} min</Body><XBtn onPress={() => { h.delMind(s.id); toast('Sessione eliminata'); }} /></Row>
+            <Row><View style={{ flex: 1 }}><Body bold>{s.type}</Body><Body small muted>{s.date}</Body></View><Body small muted>{s.duration} min</Body><XBtn onPress={() => confirmDelete(`la sessione «${s.type}» del ${s.date}`, () => { h.delMind(s.id); toast('Sessione eliminata'); })} /></Row>
           </Item>
         ))}
       </Card>

@@ -114,24 +114,46 @@ export function DiscoverHost() {
   );
 }
 
-/** Card compatta in Home: la funzione del giorno (cambia ogni giorno) + accesso alla guida completa. */
+/** Card in Home: la funzione del giorno, espandibile per leggerla tutta e vedere le altre della stessa area. */
 export function DiscoverCard() {
   const t = useTheme();
   const f = featureOfDay();
+  const [open, setOpen] = useState(false);
+  const group = featureGroups.find((g) => g.title === f.groupTitle);
+  const others = group ? group.items.filter((x) => x.title !== f.title) : [];
   return (
     <View style={{ backgroundColor: t.card, borderColor: t.border, borderWidth: 1, borderRadius: 20, padding: 14, marginBottom: 12 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={translateText(`Funzione del giorno: ${f.title}. ${open ? 'Comprimi' : 'Leggi tutto'}`)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.accent + '2a', alignItems: 'center', justifyContent: 'center' }}><Icon name="sparkle" size={20} color={t.accent} stroke={2} /></View>
         <View style={{ flex: 1 }}>
           <Text style={{ color: t.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' }}>Funzione del giorno</Text>
-          <Text style={{ color: t.text, fontSize: 15, fontWeight: '800' }} numberOfLines={2}>{f.title}</Text>
+          <Text style={{ color: t.text, fontSize: 15, fontWeight: '800' }} numberOfLines={open ? undefined : 2}>{f.title}</Text>
         </View>
-      </View>
-      <Body small muted numberOfLines={2} style={{ marginTop: 8 }}>{f.text}</Body>
+        <View style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}><Icon name="chevron" size={16} color={t.muted} stroke={2.2} /></View>
+      </Pressable>
+      <Body small muted numberOfLines={open ? undefined : 2} style={{ marginTop: 8 }}>{f.text}</Body>
+      {open && others.length > 0 && (
+        <View style={{ marginTop: 10 }}>
+          <Text style={{ color: t.muted, fontSize: 12, fontWeight: '700', marginBottom: 4 }}>Nella stessa area: {f.groupTitle}</Text>
+          {others.map((o) => (
+            <View key={o.title} style={{ paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.border }}>
+              <Text style={{ color: t.text, fontSize: 14, fontWeight: '700' }}>{o.title}</Text>
+              <Text style={{ color: t.muted, fontSize: 13, lineHeight: 19, marginTop: 2 }}>{o.text}</Text>
+              <Press onPress={() => tryFeature(o)} accessibilityLabel={translateText(`Provalo: ${o.title}`)} style={{ alignSelf: 'flex-start', marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ color: t.accent, fontWeight: '800', fontSize: 13 }}>Provalo</Text>
+                <Icon name="arrow-right" size={13} color={t.accent} stroke={2.4} />
+              </Press>
+            </View>
+          ))}
+        </View>
+      )}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, gap: 10 }}>
         <Btn small title="Provalo" icon="arrow-right" onPress={() => tryFeature(f)} />
+        <Press onPress={() => setOpen(!open)} accessibilityLabel={translateText(open ? 'Comprimi' : 'Leggi tutto')} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
+          <Text style={{ color: t.accent, fontSize: 13, fontWeight: '700' }}>{open ? 'Comprimi' : 'Leggi tutto'}</Text>
+        </Press>
         <Press onPress={() => useDiscover.getState().show('full')} accessibilityLabel={translateText(`Scopri tutte le ${featureCount} funzioni di LifePilot`)} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
-          <Text style={{ color: t.muted, fontSize: 13, textDecorationLine: 'underline' }}>Tutte le {featureCount} funzioni</Text>
+          <Text style={{ color: t.muted, fontSize: 13, textDecorationLine: 'underline' }}>Tutte le {featureCount}</Text>
         </Press>
       </View>
     </View>

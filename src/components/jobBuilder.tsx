@@ -8,6 +8,7 @@ import { Body, Btn, Card, Input, Pill, Row, Seg, Sheet, Toggle, XBtn } from '@/c
 import { customSkill, isCustomSkill, skillLabel, skills, type ChartSpec, type ChartType, type FileRef, type Question } from '@/data/skillBank';
 import { useTheme } from '@/hooks/use-theme';
 import { uid } from '@/lib/format';
+import { confirmDelete } from '@/lib/confirm';
 import { fmtLimit } from '@/lib/hiring';
 import { parseTable, tableToText } from '@/lib/dataTable';
 import { Icon } from '@/lib/icons';
@@ -233,7 +234,7 @@ export function LibrarySheet({ visible, onClose, onUse, owner }: { visible: bool
           <Body small muted>{skillLabel(x.q.skill)} · {kindLabel(x.q)}</Body>
           <Body style={{ marginTop: 2 }} numberOfLines={3}>{x.q.prompt}</Body>
           <Row style={{ marginTop: 8, justifyContent: 'flex-end' }} gap={8}>
-            <Btn small ghost danger title="Elimina" onPress={() => useJobs.getState().removeSaved(x.id)} />
+            <Btn small ghost danger title="Elimina" onPress={() => confirmDelete('questo elemento salvato', () => useJobs.getState().removeSaved(x.id))} />
             <Btn small title="Usa" onPress={() => { onUse({ ...x.q, id: 'c-' + uid() }); onClose(); }} />
           </Row>
         </Card>

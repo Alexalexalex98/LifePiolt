@@ -82,8 +82,7 @@ export function sortedDay(list: CalEv[] | undefined): { e: CalEv; idx: number }[
 export function daySummary(list: CalEv[] | undefined, max = 3): { shown: { e: CalEv; idx: number }[]; more: number; total: number } {
   const s = sortedDay(list);
   if (s.length <= max) return { shown: s, more: 0, total: s.length };
-  // se non entrano tutti, l'ultima riga è "+N": mostro max-1 impegni
-  return { shown: s.slice(0, max - 1), more: s.length - (max - 1), total: s.length };
+  return { shown: s.slice(0, max), more: s.length - max, total: s.length };
 }
 
 export type Placed = { idx: number; e: CalEv; start: number; end: number; lane: number; lanes: number };

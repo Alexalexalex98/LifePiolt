@@ -88,6 +88,24 @@ export async function scheduleDaily(id: string, hour: number, minute: number, ti
   }
 }
 
+/** Programma una notifica ripetuta ogni settimana. `weekday` come in Expo: 1 = domenica ... 7 = sabato. Sostituisce quella con lo stesso id. */
+export async function scheduleWeekly(id: string, weekday: number, hour: number, minute: number, title: string, body: string): Promise<NotifyResult> {
+  if (!valid(hour, minute) || !Number.isInteger(weekday) || weekday < 1 || weekday > 7) return { ok: false, reason: 'error', message: 'Orario non valido.' };
+  const perm = await requestPermission();
+  if (!perm.ok) return perm;
+  try {
+    await Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined);
+    await Notifications.scheduleNotificationAsync({
+      identifier: id,
+      content: { title, body },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday, hour, minute, ...(Platform.OS === 'android' ? { channelId: CHANNEL } : {}) },
+    });
+    return { ok: true, message: 'Notifica programmata' };
+  } catch {
+    return { ok: false, reason: 'error', message: 'Non sono riuscito a programmare la notifica.' };
+  }
+}
+
 export async function cancel(id: string): Promise<void> {
   if (!isSupported()) return;
   try { await Notifications.cancelScheduledNotificationAsync(id); } catch { /* ignore */ }

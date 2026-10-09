@@ -85,3 +85,21 @@ export function toWaveform(levels: number[], bars = 32): number[] {
   }
   return out;
 }
+
+/** Pulisce un numero per tel: / sms: / wa.me. */
+export const cleanPhone = (p: string) => p.replace(/[^\d+]/g, '');
+
+/** Salva il contatto in rubrica (apre il modulo nativo precompilato, come WhatsApp). */
+export async function saveContactToBook(name: string, phone?: string): Promise<boolean> {
+  const perm = await Contacts.requestPermissionsAsync();
+  if (!perm.granted) throw new Error('Permesso contatti negato: abilitalo da Impostazioni.');
+  const clean = name.replace(/\s*\(.*\)\s*$/, '').trim() || name;
+  const [first, ...rest] = clean.split(' ');
+  const res = await Contacts.presentFormAsync(null, {
+    firstName: first,
+    lastName: rest.join(' ') || undefined,
+    note: name !== clean ? name.slice(clean.length).replace(/[()]/g, '').trim() : undefined,
+    phoneNumbers: phone ? [{ label: 'mobile', number: phone }] : undefined,
+  } as never, { isNew: true } as never);
+  return res !== undefined;
+}

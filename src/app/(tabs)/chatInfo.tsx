@@ -15,6 +15,7 @@ import { useApp } from '@/store/app';
 import { dayLabel, fmtClock, isMuted, previewOf, urlRe, useChat, visibleMsgs } from '@/store/chat';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
+import { confirmDelete } from '@/lib/confirm';
 import { Icon } from '@/lib/icons';
 
 const DISAPPEAR: [string, number][] = [['Disattivati', 0], ['24 ore', 86400], ['7 giorni', 7 * 86400], ['90 giorni', 90 * 86400]];
@@ -126,7 +127,7 @@ export default function ChatInfo() {
         {Object.entries(wallpapers).map(([k, w]) => <Item key={k} onPress={() => { st().patchChat(id, { wallpaper: k }); setSheet(null); }}><Row><Row style={{ justifyContent: 'flex-start' }} gap={10}><View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: w.dark, borderWidth: 1, borderColor: t.border }} /><Body>{w.label}</Body></Row>{(chat.wallpaper ?? 'default') === k ? <Icon name="check" size={17} color={t.accent} stroke={2.5} /> : null}</Row></Item>)}
       </Sheet>
       <Sheet visible={sheet === 'clear'} title="Svuotare la chat?" onClose={() => setSheet(null)}>
-        <Item onPress={() => { st().clearChat(id, false); setSheet(null); toast('Chat svuotata'); }}><Body color={t.danger}>Svuota tutto</Body></Item>
+        <Item onPress={() => { setSheet(null); confirmDelete('tutti i messaggi di questa chat', () => { st().clearChat(id, false); toast('Chat svuotata'); }); }}><Body color={t.danger}>Svuota tutto</Body></Item>
         <Item last onPress={() => { st().clearChat(id, true); setSheet(null); toast('Chat svuotata (preferiti mantenuti)'); }}><Body>Svuota e tieni i messaggi preferiti</Body></Item>
       </Sheet>
       <Sheet visible={sheet === 'delete'} title="Eliminare la chat?" onClose={() => setSheet(null)}>
@@ -140,7 +141,7 @@ export default function ChatInfo() {
         <Item onPress={() => { const n = member!; setMember(null); const d = st().ensureDm(n, me); go('conversationPage', { id: d }); }}><Body>Scrivi a {member}</Body></Item>
         <Item onPress={() => { const n = member!; setMember(null); go('userProfile', { name: n }); }}><Body>Vedi profilo</Body></Item>
         {iAmAdmin && member && <Item onPress={() => { st().setAdmin(id, member, !chat.admins.includes(member)); setMember(null); }}><Body>{chat.admins.includes(member) ? 'Rimuovi come admin' : 'Rendi admin'}</Body></Item>}
-        {iAmAdmin && member && <Item last onPress={() => { st().removeMember(id, member, me); setMember(null); }}><Body color={t.danger}>Rimuovi dal gruppo</Body></Item>}
+        {iAmAdmin && member && <Item last onPress={() => { const m = member; setMember(null); confirmDelete('questa persona dal gruppo', () => st().removeMember(id, m, me), undefined, { okLabel: 'Rimuovi' }); }}><Body color={t.danger}>Rimuovi dal gruppo</Body></Item>}
       </Sheet>
     </Page>
   );

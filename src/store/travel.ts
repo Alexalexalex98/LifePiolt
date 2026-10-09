@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { uid } from '@/lib/format';
 import { persisted } from './persist';
 
-export type SavedItinerary = { id: string; city: string; hotel: string; price: number; days: number; tripTotal: number; month: string };
+export type SavedItinerary = { id: string; city: string; hotel: string; price: number; days: number; tripTotal: number; month: string; destId?: string; start?: string; budget?: number; interests?: string[]; people?: number };
 
 type TravelState = {
   style: 'budget' | 'comfort' | 'speed';
@@ -11,6 +11,8 @@ type TravelState = {
   city: string;
   monthOffset: number;
   guests: { adults: number; children: number; pets: boolean; rooms: number };
+  /** budget scelto a mano per il viaggio (null = usa il suggerimento dalle Finanze) */
+  budget: number | null;
   saved: SavedItinerary[];
   set: (p: Partial<TravelState>) => void;
   save: (i: Omit<SavedItinerary, 'id'>) => void;
@@ -25,6 +27,7 @@ const initial = {
   city: 'lucerna',
   monthOffset: 0,
   guests: { adults: 2, children: 0, pets: false, rooms: 1 },
+  budget: null as number | null,
   saved: [] as SavedItinerary[],
 };
 

@@ -7,12 +7,20 @@ export type Subtask = { t: string; h: number; done: boolean; type: 'lavoro' | 'p
 export type Task = { id: string; t: string; done?: boolean; urgent?: boolean; due?: string; doneAt?: string; recurring?: 'none' | 'daily' | 'weekly'; subtasks?: Subtask[] };
 /** metric/target/period (opzionali): obiettivo collegato ai dati, l'avanzamento si calcola da solo (vedi lib/goalData.ts). */
 export type Goal = { id: string; t: string; p: number; hist?: { d: string; p: number }[]; metric?: 'workouts' | 'steps' | 'sleep' | 'mindful' | 'exercise' | 'savings'; target?: number; period?: 'week' | 'month' };
-export type Automation = { id: string; t: string; on: boolean };
+/** rule (opzionale): chiave della proposta e, se ha un orario, la notifica locale da pianificare (vedi lib/automationRuntime.ts). */
+export type AutoNotify = { kind: 'daily' | 'weekly'; hour: number; minute: number; weekday?: number; title: string; body: string };
+export type Automation = { id: string; t: string; on: boolean; rule?: { key: string; notify?: AutoNotify } };
 export type Note = { id: string; text: string; date: string };
 export type DriveFile = { id: string; n: string; s: string; folder: string; date: string; uri?: string };
 /** dur = durata in minuti (se manca si assumono 60); ref = id dell'iscrizione/prenotazione che l'ha creato. */
-export type CalEvent = { time: string; title: string; important?: boolean; place?: string; reminder?: boolean; dur?: number; ref?: string };
-export type Vacation = { id: string; dest: string; month: string; hotel: string; price: number; days: number; flight: number };
+/** color = id della tavolozza (lib/calendarColors.ts), se manca vale il colore di default per urgenza/tipo. */
+export type CalEvent = { time: string; title: string; important?: boolean; place?: string; reminder?: boolean; dur?: number; ref?: string; color?: string };
+/** start/end (YYYY-MM-DD, opzionali): se presenti la vacanza compare come fascia nel calendario. */
+export type Vacation = { id: string; dest: string; month: string; hotel: string; price: number; days: number; flight: number; start?: string; end?: string };
+/** Elemento eliminato di recente (cestino di obiettivi e task, 30 giorni). */
+export type TrashItem = { tid: string; kind: 'goal' | 'task'; goal?: Goal; task?: Task; idx: number; at: number };
+export const TRASH_DAYS = 30;
+const freshTrash = (l: TrashItem[]) => l.filter((x) => Date.now() - x.at < TRASH_DAYS * 86400000);
 export type ChatMsg = { who: 'me' | 'ai'; text: string };
 
 export const driveFolders = ['Documenti', 'Ricevute', 'Salute', 'Foto', 'Business', 'Altro'];
@@ -37,8 +45,9 @@ type LifeState = {
   notes: Note[];
   drive: DriveFile[];
   events: Record<string, CalEvent[]>;
-  vacRange: { start: string; end: string | null } | null;
+  vacRange: { start: string; end: string | null; name?: string } | null;
   vacations: Vacation[];
+  trash: TrashItem[];
   freeBuffer: number;
   chat: Record<string, ChatMsg[]>;
   activeCat: string;
@@ -57,7 +66,7 @@ type LifeState = {
   setGoalLink: (id: string, link: { metric: NonNullable<Goal['metric']>; target: number; period: NonNullable<Goal['period']> } | null) => void;
   bumpGoal: (id: string) => number;
   delGoal: (id: string) => void;
-  addAuto: (t: string) => void;
+  addAuto: (t: string, rule?: Automation['rule']) => string;
   toggleAuto: (id: string, on: boolean) => void;
   renameAuto: (id: string, t: string) => void;
   delAuto: (id: string) => { auto: Automation; idx: number } | null;
@@ -83,6 +92,12 @@ type LifeState = {
   setVacRange: (r: LifeState['vacRange']) => void;
   addVacation: (v: Omit<Vacation, 'id'>) => void;
   delVacation: (id: string) => void;
+  patchVacation: (id: string, patch: Partial<Omit<Vacation, 'id'>>) => void;
+  restoreVacation: (v: Vacation, idx: number) => void;
+
+  /** Ripristina dal cestino un obiettivo o un task eliminato di recente. */
+  restoreFromTrash: (tid: string) => boolean;
+  purgeTrash: (tid?: string) => void;
 
   pushChat: (cat: string, m: ChatMsg) => void;
   setCat: (c: string) => void;
@@ -98,6 +113,7 @@ const initial = {
   events: {} as Record<string, CalEvent[]>,
   vacRange: null as LifeState['vacRange'],
   vacations: [] as Vacation[],
+  trash: [] as TrashItem[],
   freeBuffer: 30,
   chat: {} as Record<string, ChatMsg[]>,
   activeCat: 'General',
@@ -122,11 +138,12 @@ export const useLife = create<LifeState>()(
       return note;
     },
     delTask: (id) => {
-      const t = get().tasks.find((x) => x.id === id) ?? null;
-      set((s) => ({ tasks: s.tasks.filter((x) => x.id !== id) }));
+      const idx = get().tasks.findIndex((x) => x.id === id);
+      const t = idx >= 0 ? get().tasks[idx] : null;
+      set((s) => ({ tasks: s.tasks.filter((x) => x.id !== id), trash: t ? [{ tid: uid(), kind: 'task' as const, task: t, idx, at: Date.now() }, ...freshTrash(s.trash ?? [])] : s.trash }));
       return t;
     },
-    restoreTask: (t, idx) => set((s) => { const a = s.tasks.slice(); a.splice(idx, 0, t); return { tasks: a }; }),
+    restoreTask: (t, idx) => set((s) => { const a = s.tasks.slice(); if (a.some((x) => x.id === t.id)) return {}; a.splice(Math.min(idx, a.length), 0, t); return { tasks: a, trash: (s.trash ?? []).filter((x) => x.task?.id !== t.id) }; }),
     patchTask: (id, patch) => set((s) => ({ tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
     toggleSubtask: (id, si, v) =>
       set((s) => ({ tasks: s.tasks.map((t) => (t.id === id && t.subtasks ? { ...t, subtasks: t.subtasks.map((x, i) => (i === si ? { ...x, done: v, doneAt: v ? dayKey() : undefined } : x)) } : t)) })),
@@ -166,8 +183,16 @@ export const useLife = create<LifeState>()(
       set((s) => ({ goals: s.goals.map((g) => { if (g.id !== id) return g; p = Math.min(100, g.p + 5); const today = dayKey(); const hist = (g.hist ?? []).filter((h) => h.d !== today); return { ...g, p, hist: [...hist, { d: today, p }].slice(-120) }; }) }));
       return p;
     },
-    delGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),
-    addAuto: (t) => set((s) => ({ automations: [...s.automations, { id: uid(), t, on: true }] })),
+    delGoal: (id) => set((s) => {
+      const idx = s.goals.findIndex((g) => g.id === id);
+      if (idx < 0) return {};
+      return { goals: s.goals.filter((g) => g.id !== id), trash: [{ tid: uid(), kind: 'goal' as const, goal: s.goals[idx], idx, at: Date.now() }, ...freshTrash(s.trash ?? [])] };
+    }),
+    addAuto: (t, rule) => {
+      const id = uid();
+      set((s) => ({ automations: [...s.automations, { id, t, on: true, ...(rule ? { rule } : {}) }] }));
+      return id;
+    },
     toggleAuto: (id, on) => set((s) => ({ automations: s.automations.map((a) => (a.id === id ? { ...a, on } : a)) })),
     renameAuto: (id, t) => set((s) => ({ automations: s.automations.map((a) => (a.id === id ? { ...a, t } : a)) })),
     delAuto: (id) => {
@@ -192,7 +217,7 @@ export const useLife = create<LifeState>()(
         return next;
       }),
     })),
-    restoreGoal: (g, idx) => set((s) => { const l = s.goals.slice(); l.splice(Math.min(idx, l.length), 0, g); return { goals: l }; }),
+    restoreGoal: (g, idx) => set((s) => { const l = s.goals.slice(); if (l.some((x) => x.id === g.id)) return {}; l.splice(Math.min(idx, l.length), 0, g); return { goals: l, trash: (s.trash ?? []).filter((x) => x.goal?.id !== g.id) }; }),
 
     saveNote: (id, text) =>
       set((s) => (id ? { notes: s.notes.map((n) => (n.id === id ? { ...n, text } : n)) } : { notes: [...s.notes, { id: uid(), text, date: weekdayShortDate() }] })),
@@ -250,8 +275,25 @@ export const useLife = create<LifeState>()(
       }),
 
     setVacRange: (r) => set({ vacRange: r }),
-    addVacation: (v) => set((s) => ({ vacations: [{ id: uid(), ...v }, ...s.vacations] })),
+    // una vacanza salvata senza date prende quelle dell'intervallo scelto nel Plan, così compare nel calendario
+    addVacation: (v) => set((s) => {
+      const r = s.vacRange;
+      const dated = !v.start && r?.end ? { start: r.start, end: r.end } : {};
+      return { vacations: [{ id: uid(), ...dated, ...v }, ...s.vacations] };
+    }),
     delVacation: (id) => set((s) => ({ vacations: s.vacations.filter((v) => v.id !== id) })),
+    patchVacation: (id, patch) => set((s) => ({ vacations: s.vacations.map((v) => (v.id === id ? { ...v, ...patch } : v)) })),
+    restoreVacation: (v, idx) => set((s) => { const l = s.vacations.slice(); if (l.some((x) => x.id === v.id)) return {}; l.splice(Math.min(idx, l.length), 0, v); return { vacations: l }; }),
+
+    restoreFromTrash: (tid) => {
+      const it = (get().trash ?? []).find((x) => x.tid === tid);
+      if (!it) return false;
+      if (it.kind === 'goal' && it.goal) get().restoreGoal(it.goal, it.idx);
+      else if (it.kind === 'task' && it.task) get().restoreTask(it.task, it.idx);
+      set((s) => ({ trash: (s.trash ?? []).filter((x) => x.tid !== tid) }));
+      return true;
+    },
+    purgeTrash: (tid) => set((s) => ({ trash: tid ? (s.trash ?? []).filter((x) => x.tid !== tid) : [] })),
 
     pushChat: (cat, m) => set((s) => ({ chat: { ...s.chat, [cat]: [...(s.chat[cat] || []), m].slice(-200) } })),
     setCat: (c) => set({ activeCat: c }),
