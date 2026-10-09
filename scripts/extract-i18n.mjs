@@ -33,7 +33,7 @@ export const TEXT_KEYS = new Set([
   'meaning', 'example', 'advice', 'verdict', 'cause', 'impact', 'how', 'what', 'suggestion', 'prompt',
 ]);
 // Funzioni il cui primo argomento (o tutti i testuali) e' testo visibile.
-const CALL_FUNCS = new Set(['toast', 'showUndoToast', 't', 'showToast', 'notify']);
+const CALL_FUNCS = new Set(['toast', 'showUndoToast', 't', 'showToast', 'notify', 'L', 'ch', '.ch']);
 
 // Voci aggiunte a mano: chiavi usate anche come etichette visibili (es. impostazioni privacy) ma passate solo per confronti.
 const EXTRA = ['AI Memory', 'Dati salute', 'Dati finanziari', 'Smart Home', 'Profilo privato'];
