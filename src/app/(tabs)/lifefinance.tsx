@@ -3,16 +3,16 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { CsvImportSheet } from '@/components/CsvImportSheet';
-import { Donut, LineChart, Spark } from '@/components/charts';
+import { FinanceOverview } from '@/components/FinanceOverview';
+import { confirmDelete } from '@/lib/confirm';
 import { FinTabs } from '@/components/FinTabs';
-import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Pill, Progress, Row, Select, Sheet, Tag, Toggle, XBtn } from '@/components/ui';
+import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Pill, Progress, Row, Seg, Select, Sheet, Tag, Toggle, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, shortDate } from '@/lib/format';
 import { areaColors, Icon } from '@/lib/icons';
-import { savingsRatePct } from '@/lib/scores';
 import { alertsFor } from '@/lib/budgetState';
 import { detectRecurring, movementsToDated } from '@/lib/recurring';
-import { avgRecentNet, defaultBudget, emergencyByMonth, monthEnd, monthNet, normBill, spendByCategory, typicalCosts, useFin } from '@/store/finance';
+import { avgRecentNet, defaultBudget, emergencyByMonth, monthEnd, normBill, typicalCosts, useFin } from '@/store/finance';
 import { toast } from '@/store/toast';
 import { LpTag } from '@/components/network';
 import { go } from '@/lib/nav';
@@ -26,7 +26,8 @@ export default function LifeFinance() {
   const f = useFin();
   const color = areaColors.lifefinance;
   const [hist, setHist] = useState<number | null>(null);
-  const [trend, setTrend] = useState(false);
+  const [tab, setTab] = useState('Panoramica');
+  const [alertSheet, setAlertSheet] = useState(false);
   const [tips, setTips] = useState(false);
   const [ef, setEf] = useState(false);
   const [guide, setGuide] = useState(false);
@@ -48,20 +49,6 @@ export default function LifeFinance() {
   const ledger = useNet((n) => n.ledger);
   const lpTop = ledger.filter((l) => l.type === 'topup').reduce((s, l) => s + l.amount, 0);
   const lpSpent = ledger.filter((l) => l.type === 'spend').reduce((s, l) => s + l.amount, 0);
-  const cur = f.months[0];
-  const net = monthNet(cur), end = monthEnd(cur);
-  const endsChrono = f.months.slice().reverse().map(monthEnd);
-
-  // categorie reali: ultimi 3 mesi con spese (media mensile), così il grafico mostra tutte le categorie anche a inizio mese
-  // (si usano i mesi chiusi: il mese in corso è parziale e falserebbe le quote; se non ce ne sono, si usa quello corrente)
-  const closed = f.months.filter((x) => x.locked).slice(0, 3);
-  const recent = closed.length ? closed : f.months.slice(0, 1);
-  const spentMap = spendByCategory(recent, f.categories);
-  const spentByCat = f.categories.map((c) => ({ ...c, v: spentMap[c.n] ?? 0 }));
-  const totalSpent = spentByCat.reduce((s, c) => s + c.v, 0);
-  const catParts = totalSpent > 0 ? spentByCat.filter((c) => c.v > 0).map((c) => ({ ...c, p: Math.round((c.v / totalSpent) * 1000) / 10 })).sort((a, b) => b.p - a.p) : f.categories;
-  const sr = savingsRatePct();
-
   const buffer = avgRecentNet(f.months);
   const allocated = Object.values(f.budget.alloc).reduce((s, v) => s + (v || 0), 0);
   const remaining = f.budget.salary - allocated;
@@ -100,35 +87,23 @@ export default function LifeFinance() {
     <Page id="lifefinance" title="LifeFinance" back>
       <FinTabs current="lifefinance" />
 
-      <Card accent={color} onPress={() => setHist(0)} style={{ padding: 20 }}>
-        <H>Panoramica finanziaria</H>
-        <Row style={{ alignItems: 'flex-end' }}>
-          <View>
-            <Metric big>{formatMoney(end)}</Metric>
-            <Text style={{ color: t.positive, fontSize: 13 }}>{net >= 0 ? '+' : '-'}{formatMoney(Math.abs(net))} questo mese</Text>
-          </View>
-          <Pressable onPress={() => setTrend(true)}>{endsChrono.length > 1 && <Spark data={endsChrono} w={140} h={60} pad={6} stroke={2.5} color={t.text} />}</Pressable>
-        </Row>
-        <Body small muted style={{ marginTop: 8 }}>Tocca per vedere tutti i movimenti · stipendio ed entrate/uscite · tocca il grafico per l'andamento mensile</Body>
-      </Card>
+      <Seg options={['Panoramica', 'Budget', 'Bollette']} value={tab} onChange={setTab} />
 
+      {tab === 'Panoramica' && (
+        <>
+          <FinanceOverview h={{ onAlerts: () => setAlertSheet(true), onBills: () => setTab('Bollette'), onEmergency: () => setTab('Budget'), onImport: () => setCsvSheet(true), onMovements: (i) => setHist(i) }} />
       {alerts.length > 0 && (
-        <Card accent={alerts.some((a) => a.level === 'over') ? t.danger : t.warn}>
-          <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="alert" size={20} color={alerts.some((a) => a.level === 'over') ? t.danger : t.warn} /><H>Avvisi di budget</H></Row>
-          {alerts.map((a, i) => (
-            <Item key={a.category} last={i === alerts.length - 1}>
-              <Body bold color={a.level === 'over' ? t.danger : t.warn}>{a.text}</Body>
-              <Body small muted style={{ marginTop: 2 }}>{a.detail}</Body>
-              <Progress value={Math.min(100, a.pct)} color={a.level === 'over' ? t.danger : t.warn} />
-            </Item>
-          ))}
+        <Card accent={alerts.some((a) => a.level === 'over') ? t.danger : t.warn} onPress={() => setAlertSheet(true)}>
+          <Row gap={10}>
+            <Icon name="alert" size={20} color={alerts.some((a) => a.level === 'over') ? t.danger : t.warn} />
+            <View style={{ flex: 1 }}>
+              <Body bold>{alerts.length === 1 ? 'C\'è 1 avviso di budget' : `Ci sono ${alerts.length} avvisi di budget`}</Body>
+              <Body small muted numberOfLines={2}>{alerts[0].text}</Body>
+            </View>
+            <Icon name="chevron-right" size={18} color={t.muted} />
+          </Row>
         </Card>
       )}
-
-      <Card>
-        <Row><View style={{ flex: 1 }}><Body bold>Importa movimenti</Body><Body small muted>Da un CSV o estratto conto della tua banca</Body></View><Btn small ghost icon="plus" title="Importa CSV" onPress={() => setCsvSheet(true)} /></Row>
-      </Card>
-
       <Card onPress={() => go('lifepointsPage')}>
         <H>LifePoints</H>
         <Row>
@@ -160,25 +135,10 @@ export default function LifeFinance() {
         ))}
       </Card>
 
-      <Card>
-        <H>Spese mensili per categoria</H>
-        <Body small muted style={{ marginBottom: 10 }}>{recent.length > 1 ? `Ripartizione sulla media degli ultimi ${recent.length} mesi chiusi` : closed.length ? 'Ripartizione dell\'ultimo mese chiuso' : 'Ripartizione del mese corrente'}</Body>
-        <Row gap={18}>
-          <View style={{ width: 132, height: 132, alignItems: 'center', justifyContent: 'center' }}>
-            <Donut parts={catParts} holeColor={t.card} />
-            <View style={{ position: 'absolute', alignItems: 'center' }}><Body small muted>Risparmio</Body><Body bold>{sr == null ? '—' : `${sr.toFixed(1)}%`}</Body></View>
-          </View>
-          <View style={{ flex: 1 }}>
-            {catParts.map((c) => (
-              <Row key={c.n} style={{ paddingVertical: 4 }}>
-                <Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={8}><View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: c.c }} /><Body small numberOfLines={1} style={{ flex: 1 }}>{c.n}</Body></Row>
-                <Body small bold>{c.p}%</Body>
-              </Row>
-            ))}
-          </View>
-        </Row>
-      </Card>
-
+        </>
+      )}
+      {tab === 'Budget' && (
+        <>
       <Card>
         <Toggle label={<Body bold style={{ fontSize: 17 }}>Fondo di emergenza</Body>} value={f.budget.saveToEmergency} onChange={(v) => {
           const alloc = v ? defaultBudget(f.budget.salary, true, f.categories, f.months).alloc['Fondo emergenza'] : 0;
@@ -187,36 +147,12 @@ export default function LifeFinance() {
           toast(v ? 'Fondo emergenza reinserito con la stima' : 'Fondo emergenza escluso dal piano del prossimo mese');
         }} />
         <Pressable onPress={() => setEf(true)}><Metric big>{formatMoney(efTotal)}</Metric></Pressable>
-        <Body small muted>Accantonato in tutti i mesi registrati · tocca il totale per il dettaglio · la spunta decide se accantonarci anche il prossimo mese</Body>
+        <Body small muted>Accantonato finora. Tocca il totale per il dettaglio; la spunta decide se accantonare anche il prossimo mese.</Body>
       </Card>
 
       <Card onPress={() => setGuide(true)}>
         <H>Quanto dovrebbero pesare le tue spese</H>
-        <Body small muted>Linee guida generali in base allo stipendio (non è consulenza finanziaria) · tocca per vedere e modificare</Body>
-      </Card>
-
-      <Card>
-        <Row><H>Bollette e abbonamenti</H><Btn small ghost title="+ Aggiungi" onPress={() => setBillSheet(true)} /></Row>
-        <Btn small ghost icon="plus" title="Aggiungi costi tipici" style={{ marginBottom: 8 }} onPress={() => { openTyp(); }} />
-        {f.bills.length === 0 ? <Body small muted>Nessuna bolletta ricorrente ancora.</Body> : f.bills.map((b, i) => (
-          <Item key={b.id} last={i === f.bills.length - 1}>
-            <Row><View style={{ flex: 1 }}><Body>{b.name}</Body><Body small muted>{b.freq === 'monthly' ? 'ogni mese' : 'ogni anno'}</Body></View><Body bold>{formatMoney(b.amount)}</Body><XBtn onPress={() => { f.delBill(b.id); toast('Rimossa'); }} /></Row>
-          </Item>
-        ))}
-        {recurring.length > 0 && (
-          <View style={{ marginTop: 12, backgroundColor: t.item, borderRadius: 14, padding: 12 }}>
-            <Body bold>Rilevate dai tuoi movimenti</Body>
-            <Body small muted style={{ marginBottom: 6 }}>Pagamenti che si ripetono: aggiungili con un tocco.</Body>
-            {recurring.slice(0, 6).map((r) => (
-              <Row key={r.key} style={{ paddingVertical: 5 }}>
-                <View style={{ flex: 1 }}><Body>{r.name}</Body><Body small muted>{formatMoney(r.amount)} · {r.freq === 'monthly' ? 'ogni mese' : 'ogni anno'} · visto {r.count} volte</Body></View>
-                <Btn small ghost title="Aggiungi" onPress={() => { const n = f.addBills([{ name: r.name, amount: r.amount, freq: r.freq }]); toast(n ? 'Aggiunta alle bollette' : 'Già presente'); }} />
-              </Row>
-            ))}
-            {recurring.length > 1 && <Btn small style={{ marginTop: 8 }} title={`Aggiungi tutte (${Math.min(recurring.length, 6)})`} onPress={() => { const n = f.addBills(recurring.slice(0, 6).map((r) => ({ name: r.name, amount: r.amount, freq: r.freq }))); toast(n === 1 ? 'Aggiunta 1 bolletta' : `Aggiunte ${n} bollette`); }} />}
-          </View>
-        )}
-        {f.bills.length > 0 && <Body small muted style={{ marginTop: 10 }}>Totale equivalente mensile: {formatMoney(Math.round(monthlyBills))}</Body>}
+        <Body small muted>Linee guida generali in base allo stipendio, non consulenza finanziaria. Tocca per modificarle.</Body>
       </Card>
 
       <Card>
@@ -245,6 +181,41 @@ export default function LifeFinance() {
         <Item last><Row><Body muted>Rimanente dopo le spese</Body><Body bold color={remaining < 0 ? t.danger : t.positive}>{formatMoney(remaining)}</Body></Row></Item>
       </Card>
 
+        </>
+      )}
+      {tab === 'Bollette' && (
+        <>
+      <Card>
+        <Row><View style={{ flex: 1 }}><Body bold>Importa movimenti</Body><Body small muted>Da un CSV o estratto conto della tua banca</Body></View><Btn small ghost icon="plus" title="Importa CSV" onPress={() => setCsvSheet(true)} /></Row>
+      </Card>
+
+      <Card>
+        <Row><H>Bollette e abbonamenti</H><Btn small ghost title="+ Aggiungi" onPress={() => setBillSheet(true)} /></Row>
+        <Btn small ghost icon="plus" title="Aggiungi costi tipici" style={{ marginBottom: 8 }} onPress={() => { openTyp(); }} />
+        {f.bills.length === 0 ? <Body small muted>Nessuna bolletta ricorrente ancora.</Body> : f.bills.map((b, i) => (
+          <Item key={b.id} last={i === f.bills.length - 1}>
+            <Row><View style={{ flex: 1 }}><Body>{b.name}</Body><Body small muted>{b.freq === 'monthly' ? 'ogni mese' : 'ogni anno'}</Body></View><Body bold>{formatMoney(b.amount)}</Body><XBtn onPress={() => confirmDelete(`«${b.name}»`, () => f.delBill(b.id), () => f.restoreBill(b, i), { undoMessage: 'Voce rimossa' })} /></Row>
+          </Item>
+        ))}
+        {recurring.length > 0 && (
+          <View style={{ marginTop: 12, backgroundColor: t.item, borderRadius: 14, padding: 12 }}>
+            <Body bold>Rilevate dai tuoi movimenti</Body>
+            <Body small muted style={{ marginBottom: 6 }}>Pagamenti che si ripetono: aggiungili con un tocco.</Body>
+            {recurring.slice(0, 6).map((r) => (
+              <Row key={r.key} style={{ paddingVertical: 5 }}>
+                <View style={{ flex: 1 }}><Body>{r.name}</Body><Body small muted>{formatMoney(r.amount)} · {r.freq === 'monthly' ? 'ogni mese' : 'ogni anno'} · visto {r.count} volte</Body></View>
+                <Btn small ghost title="Aggiungi" onPress={() => { const n = f.addBills([{ name: r.name, amount: r.amount, freq: r.freq }]); toast(n ? 'Aggiunta alle bollette' : 'Già presente'); }} />
+              </Row>
+            ))}
+            {recurring.length > 1 && <Btn small style={{ marginTop: 8 }} title={`Aggiungi tutte (${Math.min(recurring.length, 6)})`} onPress={() => { const n = f.addBills(recurring.slice(0, 6).map((r) => ({ name: r.name, amount: r.amount, freq: r.freq }))); toast(n === 1 ? 'Aggiunta 1 bolletta' : `Aggiunte ${n} bollette`); }} />}
+          </View>
+        )}
+        {f.bills.length > 0 && <Body small muted style={{ marginTop: 10 }}>Totale equivalente mensile: {formatMoney(Math.round(monthlyBills))}</Body>}
+      </Card>
+
+        </>
+      )}
+
       {/* movimenti */}
       <Sheet visible={m != null} title="Movimenti" onClose={() => setHist(null)}>
         {m && hist != null && (() => {
@@ -263,7 +234,7 @@ export default function LifeFinance() {
                   <Row>
                     <Body style={{ flex: 1 }}>{mv.date} · {mv.label}</Body>
                     <Body bold color={mv.amount > 0 ? t.positive : t.danger}>{mv.amount > 0 ? '+' : ''}{formatMoney(mv.amount, { decimals: 2 })}</Body>
-                    {!m.locked && <XBtn onPress={() => { f.delMovement(hist, mi); toast('Movimento rimosso'); }} />}
+                    {!m.locked && <XBtn onPress={() => confirmDelete(`il movimento «${mv.label}»`, () => f.delMovement(hist, mi), () => f.restoreMovement(hist, mi, mv), { undoMessage: 'Movimento rimosso' })} />}
                   </Row>
                 </Item>
               ))}
@@ -283,12 +254,14 @@ export default function LifeFinance() {
         })()}
       </Sheet>
 
-      <Sheet visible={trend} title="Andamento mensile" onClose={() => setTrend(false)}>
-        {endsChrono.length > 1 ? <LineChart data={endsChrono} /> : <Empty text="Servono almeno due mesi di dati per il grafico." />}
-        <Body small muted style={{ marginVertical: 10 }}>Saldo a fine mese</Body>
-        {f.months.slice().reverse().map((mm, i, a) => { const n = monthNet(mm); return (
-          <Item key={mm.label} last={i === a.length - 1}><Row><Body>{mm.label}</Body><Row gap={10}><Text style={{ color: n >= 0 ? t.positive : t.danger, fontSize: 13 }}>{n >= 0 ? '+' : ''}{formatMoney(n)}</Text><Body bold>{formatMoney(monthEnd(mm))}</Body></Row></Row></Item>
-        ); })}
+      <Sheet visible={alertSheet} title="Avvisi di budget" onClose={() => setAlertSheet(false)}>
+        {alerts.map((a, i) => (
+          <Item key={a.category} last={i === alerts.length - 1}>
+            <Body bold color={a.level === 'over' ? t.danger : t.warn}>{a.text}</Body>
+            <Body small muted style={{ marginTop: 2 }}>{a.detail}</Body>
+            <Progress value={Math.min(100, a.pct)} color={a.level === 'over' ? t.danger : t.warn} />
+          </Item>
+        ))}
       </Sheet>
 
       <Sheet visible={tips} title="Come risparmiare" onClose={() => setTips(false)}>

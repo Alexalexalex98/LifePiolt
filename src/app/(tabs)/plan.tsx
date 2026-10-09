@@ -1,20 +1,26 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { AutomationsCard, AutomationsSheet } from '@/components/Automations';
 import { CalendarImportSheet } from '@/components/CalendarImportSheet';
+import { CalendarPanel, VacationSheet } from '@/components/CalendarViews';
 import { GoalProgress } from '@/components/GoalProgress';
-import { DaySheet, MonthCalendar, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet, monthTitle } from '@/components/plan';
-import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Progress, Row, Sheet, Toggle, XBtn } from '@/components/ui';
+import { DaySheet, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet } from '@/components/plan';
+import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Pill, Progress, Row, Sheet } from '@/components/ui';
 import { sendToAssistant } from '@/lib/assistant/run';
+import { daysBetween, isKey, parseKey, vacationBands } from '@/lib/calendarLayout';
+import { confirmDelete } from '@/lib/confirm';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
-import { useLife } from '@/store/life';
+import { TRASH_DAYS, useLife, type Goal, type Vacation } from '@/store/life';
 import { toast } from '@/store/toast';
-import { formatMoney, monthName } from '@/i18n/format';
+import { fmtDate } from '@/i18n/format';
 import { t as tl } from '@/i18n/core';
 
+const dShort = (k: string) => fmtDate(parseKey(k), { day: 'numeric', month: 'short' });
+
 export default function Plan() {
-  const { tasks, goals, automations, vacRange, vacations, setVacRange, addGoal, bumpGoal, delGoal, addAuto, toggleAuto, delVacation } = useLife();
+  const { tasks, goals, vacRange, vacations, trash, setVacRange, addGoal, bumpGoal, delGoal, restoreGoal, delVacation, restoreVacation, restoreFromTrash, purgeTrash } = useLife();
   const wh = useApp((s) => s.workHours);
   const [day, setDay] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
@@ -24,12 +30,13 @@ export default function Plan() {
   const [goalSheet, setGoalSheet] = useState(false);
   const [goalText, setGoalText] = useState('');
   const [autoSheet, setAutoSheet] = useState(false);
-  const [autoText, setAutoText] = useState('');
   const [calSheet, setCalSheet] = useState(false);
+  const [vacId, setVacId] = useState<string | null>(null);
+  const [trashOpen, setTrashOpen] = useState(false);
 
-  const rangeText = vacRange?.end
-    ? tl('Vacanza: {0}–{1} {2} ({3} giorni)', vacRange.start.slice(8), vacRange.end.slice(8), monthName(parseInt(vacRange.start.slice(5, 7)) - 1), Number(vacRange.end.slice(8)) - Number(vacRange.start.slice(8)) + 1)
-    : '';
+  const range = vacRange?.end ? { start: vacRange.start, end: vacRange.end } : null;
+  const rangeText = range ? tl('Vacanza: {0}–{1} ({2} giorni)', dShort(range.start), dShort(range.end), daysBetween(range.start, range.end, true)) : '';
+  const bandOf = (id: string) => vacationBands(vacations, vacRange).find((b) => b.id === id);
 
   function pick(key: string) {
     if (!selectMode) { setDay(key); return; }
@@ -37,18 +44,38 @@ export default function Plan() {
     const [a, b] = key >= vacRange.start ? [vacRange.start, key] : [key, vacRange.start];
     setVacRange({ start: a, end: b });
     setSelectMode(false);
-    toast("Vacanza impostata · vai su LifeTravel per l'itinerario AI");
+    toast('Vacanza impostata · puoi pianificare il viaggio');
   }
+
+  function removeGoal(g: Goal) {
+    const idx = goals.findIndex((x) => x.id === g.id);
+    confirmDelete(tl('l\'obiettivo «{0}»', g.t), () => delGoal(g.id), () => restoreGoal(g, idx), { undoMessage: 'Obiettivo eliminato · lo ritrovi in «Eliminati di recente»' });
+  }
+
+  function removeVacation(v: Vacation) {
+    const idx = vacations.findIndex((x) => x.id === v.id);
+    confirmDelete(tl('la vacanza «{0}»', v.dest), () => delVacation(v.id), () => restoreVacation(v, idx), { undoMessage: 'Vacanza eliminata' });
+  }
+
+  const fresh = trash.filter((x) => Date.now() - x.at < TRASH_DAYS * 86400000);
 
   return (
     <Page id="plan" title="Plan">
       <Card>
-        <H>{monthTitle()}</H>
-        <MonthCalendar selectMode={selectMode} onPick={pick} />
+        <CalendarPanel selectMode={selectMode} onPickDay={pick} onOpenBand={(id) => setVacId(id)} />
         <Row style={{ marginTop: 12 }}>
           <Btn small ghost title={selectMode ? 'Tocca inizio e fine…' : 'Seleziona giorni vacanza'} onPress={() => { setSelectMode(!selectMode); if (!selectMode) toast('Tocca il primo giorno di vacanza'); }} />
           <Body small style={{ flexShrink: 1 }}>{rangeText}</Body>
         </Row>
+        {range && !selectMode && (
+          <View style={{ marginTop: 10 }}>
+            <Btn icon="compass" title="Pianifica il viaggio" onPress={() => go('lifetravel', { start: range.start, end: range.end })} />
+            <Row style={{ justifyContent: 'flex-start', marginTop: 8 }} gap={8}>
+              <Btn small ghost title="Dai un nome / modifica" onPress={() => setVacId('range')} />
+              <Btn small ghost danger title="Annulla selezione" onPress={() => { const prev = vacRange; confirmDelete(tl('la vacanza selezionata ({0})', rangeText.replace(/^[^:]*: /, '')), () => setVacRange(null), () => setVacRange(prev), { undoMessage: 'Selezione rimossa' }); }} />
+            </Row>
+          </View>
+        )}
       </Card>
 
       <Card>
@@ -79,9 +106,13 @@ export default function Plan() {
             <Row>
               <View style={{ flex: 1 }}>
                 <Body bold>{v.dest}</Body>
-                <Body small muted>{v.month} · {v.days} giorni · {v.hotel} · {formatMoney(v.price * v.days + (v.flight || 0) * 2)} stimati</Body>
+                <Body small muted>{isKey(v.start) && isKey(v.end) ? `${dShort(v.start)} – ${dShort(v.end)}` : v.month} · {v.days} giorni · {v.hotel}</Body>
               </View>
-              <XBtn onPress={() => { delVacation(v.id); toast('Vacanza rimossa'); }} />
+            </Row>
+            <Row style={{ marginTop: 6, justifyContent: 'flex-start' }} gap={14}>
+              <Link onPress={() => setVacId(v.id)}>modifica</Link>
+              {isKey(v.start) && isKey(v.end) ? <Link onPress={() => go('lifetravel', { start: v.start!, end: v.end! })}>pianifica il viaggio</Link> : null}
+              <Link danger onPress={() => removeVacation(v)}>elimina</Link>
             </Row>
           </Item>
         ))}
@@ -103,22 +134,46 @@ export default function Plan() {
             <GoalProgress goal={g} />
             <Row style={{ marginTop: 8 }}>
               <Link onPress={() => { const p = bumpGoal(g.id); if (p === 100) toast('Obiettivo completato'); }}>+5% progresso</Link>
-              <Link danger onPress={() => { delGoal(g.id); toast('Obiettivo rimosso'); }}>rimuovi</Link>
+              <Link danger onPress={() => removeGoal(g)}>rimuovi</Link>
             </Row>
           </Item>
         ))}
       </Card>
 
+      <AutomationsCard onOpen={() => setAutoSheet(true)} />
+
       <Card>
-        <Row><H>Automazioni</H><Btn small ghost title="Crea automazione" onPress={() => setAutoSheet(true)} /></Row>
-        {automations.length === 0 && <Empty text="Nessuna automazione." />}
-        {automations.map((a) => (
-          <Toggle key={a.id} label={a.t} value={a.on} onChange={(v) => { toggleAuto(a.id, v); toast(v ? 'Automazione attivata' : 'Automazione disattivata'); }} />
-        ))}
+        <Row>
+          <View style={{ flex: 1 }}>
+            <H>Eliminati di recente</H>
+            <Body small muted>{fresh.length === 0 ? `Obiettivi e task eliminati negli ultimi ${TRASH_DAYS} giorni compaiono qui.` : tl('{0} elementi · si conservano {1} giorni', fresh.length, TRASH_DAYS)}</Body>
+          </View>
+          <Btn small ghost title={trashOpen ? 'Chiudi' : 'Apri'} onPress={() => setTrashOpen(!trashOpen)} />
+        </Row>
+        {trashOpen && (fresh.length === 0 ? <Empty text="Nessun elemento eliminato di recente." /> : fresh.map((it) => {
+          const name = it.kind === 'goal' ? it.goal?.t : it.task?.t;
+          const left = Math.max(0, TRASH_DAYS - Math.floor((Date.now() - it.at) / 86400000));
+          return (
+            <Item key={it.tid}>
+              <Row>
+                <View style={{ flex: 1 }}>
+                  <Row style={{ justifyContent: 'flex-start' }} gap={8}><Pill label={it.kind === 'goal' ? 'Obiettivo' : 'Task'} /></Row>
+                  <Body bold style={{ marginTop: 4 }}>{name}</Body>
+                  <Body small muted>{tl('Eliminato il {0} · ancora {1} giorni', fmtDate(it.at, { day: 'numeric', month: 'short' }), left)}</Body>
+                </View>
+              </Row>
+              <Row style={{ marginTop: 6, justifyContent: 'flex-start' }} gap={14}>
+                <Btn small title="Ripristina" icon="repeat" onPress={() => { if (restoreFromTrash(it.tid)) toast(it.kind === 'goal' ? 'Obiettivo ripristinato' : 'Task ripristinato'); }} />
+                <Link danger onPress={() => confirmDelete(tl('definitivamente «{0}»', name ?? ''), () => purgeTrash(it.tid), undefined, { title: 'Eliminare per sempre?', okLabel: 'Elimina per sempre' })}>elimina per sempre</Link>
+              </Row>
+            </Item>
+          );
+        }))}
       </Card>
 
       <CalendarImportSheet visible={calSheet} onClose={() => setCalSheet(false)} />
-      <DaySheet day={day} onClose={() => setDay(null)} />
+      <DaySheet day={day} onClose={() => setDay(null)} onVacation={(id) => setVacId(id)} />
+      <VacationSheet id={vacId && bandOf(vacId) ? vacId : null} onClose={() => setVacId(null)} />
       <SmartTaskSheet visible={taskSheet} onClose={() => setTaskSheet(false)} />
       <TaskBreakdownSheet taskId={openTask} onClose={() => setOpenTask(null)} />
       <WorkHoursSheet key={`${wh.start}${wh.end}${whSheet}`} visible={whSheet} onClose={() => setWhSheet(false)} />
@@ -126,10 +181,7 @@ export default function Plan() {
         <Input placeholder="Es. Tedesco C1" value={goalText} onChangeText={setGoalText} />
         <Btn title="Aggiungi" onPress={() => { if (!goalText.trim()) return; addGoal(goalText.trim()); setGoalText(''); setGoalSheet(false); toast('Obiettivo creato'); }} />
       </Sheet>
-      <Sheet visible={autoSheet} title="Nuova automazione" onClose={() => setAutoSheet(false)}>
-        <Input placeholder="Es. Ogni domenica crea la review della settimana" value={autoText} onChangeText={setAutoText} />
-        <Btn title="Crea" onPress={() => { if (!autoText.trim()) return; addAuto(autoText.trim()); setAutoText(''); setAutoSheet(false); toast('Automazione creata'); }} />
-      </Sheet>
+      <AutomationsSheet visible={autoSheet} onClose={() => setAutoSheet(false)} />
     </Page>
   );
 }

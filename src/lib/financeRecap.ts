@@ -216,7 +216,9 @@ export function buildRecap(a: Analysis, inp: RecapInput): Recap {
   // 5) fondo di emergenza
   if (a.efMonths != null) {
     const m = a.efMonths;
-    const base = m < 1.5
+    const base = m < 0.95
+      ? t('Il fondo di emergenza ({0}) copre meno di 1 mese di spese.', money(inp.efTotal))
+      : m < 1.5
       ? t('Il fondo di emergenza ({0}) copre circa 1 mese di spese.', money(inp.efTotal))
       : t('Il fondo di emergenza ({0}) copre circa {1} mesi di spese.', money(inp.efTotal), (Math.round(m * 10) / 10).toString().replace('.', ','));
     out.push(m < 3 ? base + ' ' + t('Come riferimento generale si indicano spesso 3-6 mesi.') : base);

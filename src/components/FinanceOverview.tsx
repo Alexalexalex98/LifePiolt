@@ -17,6 +17,7 @@ export type OverviewHandlers = {
   onAlerts: () => void; onBills: () => void; onEmergency: () => void; onImport: () => void; onMovements: (monthIdx: number) => void;
 };
 
+const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 const money = (n: number) => formatMoney(Math.round(n));
 const compact = (n: number) => (Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(Math.abs(n) >= 10000 ? 0 : 1)}k` : String(Math.round(n)));
 const monthShortOf = (label: string) => { const p = parseMonthLabel(label); return p ? fmtDate(new Date(p.y, p.m, 1), { month: 'short' }).replace('.', '') : label.slice(0, 3); };
@@ -246,7 +247,7 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
       {/* Recap a parole */}
       <Card accent={th.accent} style={{ padding: 18 }}>
         <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="note" size={18} color={th.accent} /><H style={{ marginBottom: 0 }}>Il tuo mese in parole</H></Row>
-        <Body small muted style={{ marginTop: 2, marginBottom: 10 }}>{cur ? monthLongOf(cur.label) : ''} · riepilogo automatico dei tuoi movimenti, non è consulenza finanziaria</Body>
+        <Body small muted style={{ marginTop: 2, marginBottom: 10 }}>{cur ? cap(monthLongOf(cur.label)) : ''} · riepilogo automatico dei tuoi movimenti, non è consulenza finanziaria</Body>
         {recap.sentences.map((s, i) => <Text key={i} style={{ color: th.text, fontSize: 15, lineHeight: 22, marginBottom: 8 }}>{s}</Text>)}
         {recap.actions.length > 0 && (
           <View style={{ marginTop: 6 }}>

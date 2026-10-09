@@ -2,16 +2,18 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
+import { ColorPicker, bandsOnDay, useBands, useCalColors } from '@/components/CalendarViews';
+import { confirmDelete } from '@/lib/confirm';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Pill, Row, Select, Sheet, Toggle, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { dayKey, minutesToTime, pad2, timeToMinutes } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { decomposeTextToSteps } from '@/lib/taskDecompose';
 import { useApp } from '@/store/app';
-import { useLife, taskIsDone, type Task } from '@/store/life';
-import { showUndoToast, toast } from '@/store/toast';
-import { translateText } from '@/i18n/core';
-import { fmtDate, weekdayNarrow } from '@/i18n/format';
+import { useLife, taskIsDone, type CalEvent, type Task } from '@/store/life';
+import { toast } from '@/store/toast';
+import { t as tl, translateText } from '@/i18n/core';
+import { fmtDate } from '@/i18n/format';
 
 /* ---------- riga task (Plan e LifeTask) ---------- */
 export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
@@ -39,9 +41,9 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
     </Pressable>
   );
   const remove = () => {
-    const idx = useLife.getState().tasks.findIndex((x) => x.id === task.id);
-    const removed = delTask(task.id);
-    if (removed) showUndoToast('Task eliminato', () => restoreTask(removed, idx));
+    let removed: Task | null = null;
+    let idx = -1;
+    confirmDelete(tl('il task «{0}»', task.t), () => { idx = useLife.getState().tasks.findIndex((x) => x.id === task.id); removed = delTask(task.id); }, () => { const r = removed as Task | null; if (r) restoreTask(r, idx); }, { undoMessage: 'Task eliminato' });
   };
   if (task.subtasks?.length) {
     const dc = task.subtasks.filter((s) => s.done).length;
@@ -256,78 +258,65 @@ export function PlanDaySheet({ visible, onClose }: { visible: boolean; onClose: 
 }
 
 /* ---------- calendario ---------- */
-export function MonthCalendar({ selectMode, onPick }: { selectMode: boolean; onPick: (key: string) => void }) {
-  const t = useTheme();
-  const events = useLife((s) => s.events);
-  const vac = useLife((s) => s.vacRange);
-  const now = new Date();
-  const y = now.getFullYear(), m = now.getMonth();
-  const days = new Date(y, m + 1, 0).getDate();
-  const offset = (new Date(y, m, 1).getDay() + 6) % 7; // lunedì = 0
-  const cells: (number | null)[] = [...Array(offset).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)];
-  const todayKey = dayKey();
-  void selectMode;
-  return (
-    <View>
-      <View style={{ flexDirection: 'row', marginBottom: 6 }}>
-        {[1, 2, 3, 4, 5, 6, 0].map((wd, i) => <Text key={i} style={{ flex: 1, textAlign: 'center', color: t.muted, fontSize: 11 }}>{weekdayNarrow(wd)}</Text>)}
-      </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-        {cells.map((d, i) => {
-          if (d == null) return <View key={i} style={{ width: `${100 / 7}%`, height: 48 }} />;
-          const key = `${y}-${pad2(m + 1)}-${pad2(d)}`;
-          const isToday = key === todayKey;
-          const inVac = !!vac && key >= vac.start && key <= (vac.end ?? vac.start);
-          return (
-            <View key={i} style={{ width: `${100 / 7}%`, padding: 2 }}>
-              <Pressable onPress={() => onPick(key)} style={{ height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: inVac ? '#3a2a1a' : t.cardAlt, borderWidth: isToday ? 1 : 0, borderColor: '#565f6e' }}>
-                <Text style={{ color: inVac ? '#ffc78a' : t.text, fontSize: 12, fontWeight: inVac ? '700' : '400' }}>{d}</Text>
-                {events[key]?.length ? <Text style={{ color: t.muted, fontSize: 9, marginTop: -2 }}>•</Text> : null}
-              </Pressable>
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
 export const monthTitle = () => {
   const d = new Date();
   return fmtDate(d, { month: 'long', year: 'numeric' });
 };
 
-export function DaySheet({ day, onClose }: { day: string | null; onClose: () => void }) {
+export function DaySheet({ day, onClose, onVacation }: { day: string | null; onClose: () => void; onVacation?: (id: string) => void }) {
   const t = useTheme();
+  const c = useCalColors();
+  const bands = useBands();
   const events = useLife((s) => (day ? s.events[day] : undefined)) ?? [];
   const { addEvent, delEvent, restoreEvent, toggleReminder, patchEvent } = useLife();
   const [time, setTime] = useState('09:00');
   const [title, setTitle] = useState('');
   const [weekly, setWeekly] = useState(false);
+  const [colorFor, setColorFor] = useState<number | null>(null);
   if (!day) return <Sheet visible={false} title="" onClose={onClose}><View /></Sheet>;
   const d = new Date(day + 'T00:00:00');
   const titleStr = day === dayKey() ? `Oggi · ${fmtDate(d, { day: 'numeric', month: 'long' })}` : fmtDate(d, { day: 'numeric', month: 'long' });
   const sorted = events.map((e, idx) => ({ e, idx })).sort((a, b) => a.e.time.localeCompare(b.e.time));
   const endOfMonth = dayKey(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+  const vacs = bandsOnDay(bands, day);
   return (
-    <Sheet visible title={titleStr} onClose={onClose}>
-      {sorted.length === 0 && <Empty text="Nessun impegno pianificato." />}
-      {sorted.map(({ e, idx }) => (
-        <Item key={idx}>
+    <Sheet visible title={titleStr} onClose={() => { setColorFor(null); onClose(); }}>
+      {vacs.map((b) => (
+        <Item key={b.id}>
           <Row>
-            <Body style={{ flex: 1 }}><Text style={{ fontWeight: '700' }}>{e.time}</Text> · {e.title}</Body>
-            <Row gap={12}>
-              <Pressable onPress={() => { patchEvent(day, idx, { important: !e.important }); toast(!e.important ? 'Impegno importante: i task collegati avranno la precedenza' : 'Non più importante'); }} accessibilityLabel={translateText(e.important ? 'Togli importanza' : 'Segna come importante')}>
-                <Icon name="star" size={18} color={e.important ? '#ffb84f' : t.text} fill={e.important ? '#ffb84f' : 'none'} />
-              </Pressable>
-              <Pressable onPress={() => { const on = toggleReminder(day, idx); toast(on ? 'Promemoria impostato' : 'Promemoria rimosso'); }} accessibilityLabel={translateText("Promemoria")}>
-                <Icon name="bell" size={18} color={e.reminder ? '#ffb84f' : t.text} fill={e.reminder ? '#ffb84f' : 'none'} />
-              </Pressable>
-              <Link danger onPress={() => { const rem = delEvent(day, idx); if (rem) showUndoToast('Impegno rimosso', () => restoreEvent(day, idx, rem)); }}>rimuovi</Link>
-            </Row>
+            <View style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, backgroundColor: c.vac }} />
+            <Body style={{ flex: 1 }}><Text style={{ fontWeight: '700' }}>{b.name}</Text> · {tl('vacanza dal {0} al {1}', fmtDate(new Date(b.start + 'T00:00:00'), { day: 'numeric', month: 'short' }), fmtDate(new Date(b.end + 'T00:00:00'), { day: 'numeric', month: 'short' }))}</Body>
+            {onVacation && <Btn small ghost title="Modifica" onPress={() => { onClose(); onVacation(b.id); }} />}
           </Row>
         </Item>
       ))}
+      {sorted.length === 0 && vacs.length === 0 && <Empty text="Nessun impegno pianificato." />}
+      {sorted.map(({ e, idx }) => {
+        const col = c.of(e);
+        return (
+          <Item key={idx}>
+            <Row>
+              <Pressable onPress={() => setColorFor(colorFor === idx ? null : idx)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`${translateText('Cambia colore')}: ${e.title}`} style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: col, borderWidth: 2, borderColor: t.border }} />
+              <Body style={{ flex: 1 }}><Text style={{ fontWeight: '700' }}>{e.time}</Text> · {e.title}</Body>
+              <Row gap={12}>
+                <Pressable onPress={() => { patchEvent(day, idx, { important: !e.important }); toast(!e.important ? 'Impegno importante: i task collegati avranno la precedenza' : 'Non più importante'); }} accessibilityLabel={translateText(e.important ? 'Togli importanza' : 'Segna come importante')}>
+                  <Icon name="star" size={18} color={e.important ? '#ffb84f' : t.text} fill={e.important ? '#ffb84f' : 'none'} />
+                </Pressable>
+                <Pressable onPress={() => { const on = toggleReminder(day, idx); toast(on ? 'Promemoria impostato' : 'Promemoria rimosso'); }} accessibilityLabel={translateText("Promemoria")}>
+                  <Icon name="bell" size={18} color={e.reminder ? '#ffb84f' : t.text} fill={e.reminder ? '#ffb84f' : 'none'} />
+                </Pressable>
+                <Link danger onPress={() => {
+                  let rem: CalEvent | null = null;
+                  confirmDelete(tl('l\'impegno «{0}»', e.title), () => { rem = delEvent(day, idx); setColorFor(null); }, () => { const r = rem as CalEvent | null; if (r) restoreEvent(day, idx, r); }, { undoMessage: 'Impegno rimosso' });
+                }}>rimuovi</Link>
+              </Row>
+            </Row>
+            {colorFor === idx && (
+              <ColorPicker ev={e} onChange={(id) => { patchEvent(day, idx, { color: id }); toast(id ? 'Colore cambiato' : 'Colore automatico'); }} />
+            )}
+          </Item>
+        );
+      })}
       <Row style={{ marginTop: 14 }}>
         <Input placeholder="09:00" style={{ width: 84 }} value={time} onChangeText={setTime} />
         <Input flex={1} placeholder="Nuovo impegno…" value={title} onChangeText={setTitle} />

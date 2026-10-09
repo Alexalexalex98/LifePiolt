@@ -66,7 +66,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "node --experimental-strip-types --test tests/analytics.test.mjs tests/arrival.test.mjs tests/hiring.test.mjs tests/availability.test.mjs tests/mood.test.mjs tests/docCheck.test.mjs tests/nlp.test.mjs tests/assistant.test.mjs tests/priority.test.mjs tests/moodlog.test.mjs tests/planner.test.mjs tests/backup.test.mjs tests/style.test.mjs tests/localintel.test.mjs tests/modrules.test.mjs tests/discover.test.mjs tests/chatlist.test.mjs tests/a11y.test.mjs tests/report.test.mjs tests/taxDeadlines.test.mjs tests/recurring.test.mjs tests/budgetAlerts.test.mjs tests/csvImport.test.mjs tests/goalData.test.mjs tests/calendarImport.test.mjs tests/format.test.mjs tests/i18nCatalog.test.mjs tests/i18n.test.mjs",
+    "test": "node --experimental-strip-types --test tests/analytics.test.mjs tests/arrival.test.mjs tests/tripPlanner.test.mjs tests/financeRecap.test.mjs tests/automationSuggest.test.mjs tests/calendarColors.test.mjs tests/calendarLayout.test.mjs tests/hiring.test.mjs tests/availability.test.mjs tests/mood.test.mjs tests/docCheck.test.mjs tests/nlp.test.mjs tests/assistant.test.mjs tests/priority.test.mjs tests/moodlog.test.mjs tests/planner.test.mjs tests/backup.test.mjs tests/style.test.mjs tests/localintel.test.mjs tests/modrules.test.mjs tests/discover.test.mjs tests/chatlist.test.mjs tests/a11y.test.mjs tests/report.test.mjs tests/taxDeadlines.test.mjs tests/recurring.test.mjs tests/budgetAlerts.test.mjs tests/csvImport.test.mjs tests/goalData.test.mjs tests/calendarImport.test.mjs tests/format.test.mjs tests/i18nCatalog.test.mjs tests/i18n.test.mjs",
     "e2e": "node tests/e2e/smoke.mjs"
   },
   "private": true
