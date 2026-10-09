@@ -3,6 +3,8 @@
  * Modulo PURO e testabile. Confronta l'umore medio tra gruppi di giorni (es. pioggia vs asciutto) con un test t di Welch
  * e segnala un legame solo se campione e differenza sono sufficienti. Indica un'associazione, MAI una causa.
  */
+import { t } from '../i18n/core.ts';
+
 export type DayCtx = {
   day: string; mood: number; weekday: number;
   rain?: number; tmax?: number; sun?: number; events?: number; sleep?: number; steps?: number;
@@ -35,16 +37,16 @@ type Def = {
   tipUp: string; tipDown: string; // consiglio se il gruppo a alza / abbassa l'umore
 };
 
-const defs: Def[] = [
-  { id: 'rain', label: 'Pioggia', get: (d) => d.rain, a: { label: 'giorni di pioggia', test: (v) => v >= 1 }, b: { label: 'giorni asciutti', test: (v) => v < 0.2 }, tipUp: 'Nei giorni di pioggia sembra farti bene: tienila presente nel Plan.', tipDown: 'Quando piove il tuo umore scende: pianifica per quei giorni qualcosa che ti piace al chiuso e un contatto con una persona cara.' },
-  { id: 'sun', label: 'Sole', get: (d) => d.sun, a: { label: 'giorni di sole (6 ore o più)', test: (v) => v >= 6 }, b: { label: 'giorni grigi (3 ore o meno)', test: (v) => v <= 3 }, tipUp: 'Il sole ti fa bene: nei giorni grigi esci comunque 15 minuti all’aperto nelle ore più chiare.', tipDown: 'Il sole non sembra aiutarti: non serve forzare la luce, guarda gli altri fattori.' },
-  { id: 'events', label: 'Impegni', get: (d) => d.events, a: { label: 'giornate piene (4 impegni o più)', test: (v) => v >= 4 }, b: { label: 'giornate leggere (1 impegno o meno)', test: (v) => v <= 1 }, tipUp: 'Le giornate piene ti danno energia: puoi permettertele.', tipDown: 'Le giornate molto piene abbassano il tuo umore: lascia dei buchi nel Plan e non superare 3–4 impegni al giorno.' },
-  { id: 'sleep', label: 'Sonno', get: (d) => d.sleep, a: { label: 'notti da 7,5 ore o più', test: (v) => v >= 7.5 }, b: { label: 'notti sotto le 7 ore', test: (v) => v < 7 }, tipUp: 'Quando dormi bene il tuo umore è migliore: proteggi l’orario di letto, è la leva più efficace.', tipDown: 'Il sonno lungo non migliora il tuo umore: guarda la regolarità degli orari.' },
-  { id: 'steps', label: 'Passi', get: (d) => d.steps, a: { label: 'giorni con 8’000 passi o più', test: (v) => v >= 8000 }, b: { label: 'giorni con meno di 5’000 passi', test: (v) => v < 5000 }, tipUp: 'Muoverti alza il tuo umore: nei giorni difficili inizia da una camminata di 15 minuti.', tipDown: 'I passi non sembrano influire sul tuo umore.' },
-  { id: 'exercise', label: 'Allenamento', get: (d) => d.exercise, a: { label: 'giorni con almeno 20 minuti di esercizio', test: (v) => v >= 20 }, b: { label: 'giorni senza esercizio', test: (v) => v < 5 }, tipUp: 'L’esercizio ti fa stare meglio: fissalo nel Plan come un impegno vero.', tipDown: 'L’esercizio non sembra cambiare il tuo umore del giorno.' },
-  { id: 'mindful', label: 'Mindfulness', get: (d) => d.mindful, a: { label: 'giorni con mindfulness (5 minuti o più)', test: (v) => v >= 5 }, b: { label: 'giorni senza', test: (v) => v < 1 }, tipUp: 'La mindfulness ti aiuta: tienila come abitudine quotidiana.', tipDown: 'La mindfulness non sembra incidere sul tuo umore.' },
-  { id: 'spend', label: 'Spese', get: (d) => d.spend, a: { label: 'giorni di spesa alta', test: () => false }, b: { label: 'giorni di spesa bassa', test: () => false }, tipUp: 'Nei giorni di spesa alta stai meglio: probabilmente sono giorni sociali.', tipDown: 'Nei giorni di spesa alta il tuo umore scende: può essere shopping d’impulso. Aspetta 24 ore prima degli acquisti non necessari.' },
-  { id: 'weekend', label: 'Weekend', get: (d) => (d.weekday === 0 || d.weekday === 6 ? 1 : 0), a: { label: 'weekend', test: (v) => v === 1 }, b: { label: 'giorni lavorativi', test: (v) => v === 0 }, tipUp: 'Il weekend ti ricarica: lascia davvero libera quella parte della settimana.', tipDown: 'Il weekend abbassa il tuo umore: pianifica qualcosa di piacevole anche nei giorni liberi.' },
+const getDefs = (): Def[] => [
+  { id: 'rain', label: t('Pioggia'), get: (d) => d.rain, a: { label: t('giorni di pioggia'), test: (v) => v >= 1 }, b: { label: t('giorni asciutti'), test: (v) => v < 0.2 }, tipUp: t('Nei giorni di pioggia sembra farti bene: tienila presente nel Plan.'), tipDown: t('Quando piove il tuo umore scende: pianifica per quei giorni qualcosa che ti piace al chiuso e un contatto con una persona cara.') },
+  { id: 'sun', label: t('Sole'), get: (d) => d.sun, a: { label: t('giorni di sole (6 ore o più)'), test: (v) => v >= 6 }, b: { label: t('giorni grigi (3 ore o meno)'), test: (v) => v <= 3 }, tipUp: t('Il sole ti fa bene: nei giorni grigi esci comunque 15 minuti all’aperto nelle ore più chiare.'), tipDown: t('Il sole non sembra aiutarti: non serve forzare la luce, guarda gli altri fattori.') },
+  { id: 'events', label: t('Impegni'), get: (d) => d.events, a: { label: t('giornate piene (4 impegni o più)'), test: (v) => v >= 4 }, b: { label: t('giornate leggere (1 impegno o meno)'), test: (v) => v <= 1 }, tipUp: t('Le giornate piene ti danno energia: puoi permettertele.'), tipDown: t('Le giornate molto piene abbassano il tuo umore: lascia dei buchi nel Plan e non superare 3–4 impegni al giorno.') },
+  { id: 'sleep', label: t('Sonno'), get: (d) => d.sleep, a: { label: t('notti da 7,5 ore o più'), test: (v) => v >= 7.5 }, b: { label: t('notti sotto le 7 ore'), test: (v) => v < 7 }, tipUp: t('Quando dormi bene il tuo umore è migliore: proteggi l’orario di letto, è la leva più efficace.'), tipDown: t('Il sonno lungo non migliora il tuo umore: guarda la regolarità degli orari.') },
+  { id: 'steps', label: t('Passi'), get: (d) => d.steps, a: { label: t('giorni con 8’000 passi o più'), test: (v) => v >= 8000 }, b: { label: t('giorni con meno di 5’000 passi'), test: (v) => v < 5000 }, tipUp: t('Muoverti alza il tuo umore: nei giorni difficili inizia da una camminata di 15 minuti.'), tipDown: t('I passi non sembrano influire sul tuo umore.') },
+  { id: 'exercise', label: t('Allenamento'), get: (d) => d.exercise, a: { label: t('giorni con almeno 20 minuti di esercizio'), test: (v) => v >= 20 }, b: { label: t('giorni senza esercizio'), test: (v) => v < 5 }, tipUp: t('L’esercizio ti fa stare meglio: fissalo nel Plan come un impegno vero.'), tipDown: t('L’esercizio non sembra cambiare il tuo umore del giorno.') },
+  { id: 'mindful', label: t('Mindfulness'), get: (d) => d.mindful, a: { label: t('giorni con mindfulness (5 minuti o più)'), test: (v) => v >= 5 }, b: { label: t('giorni senza'), test: (v) => v < 1 }, tipUp: t('La mindfulness ti aiuta: tienila come abitudine quotidiana.'), tipDown: t('La mindfulness non sembra incidere sul tuo umore.') },
+  { id: 'spend', label: t('Spese'), get: (d) => d.spend, a: { label: t('giorni di spesa alta'), test: () => false }, b: { label: t('giorni di spesa bassa'), test: () => false }, tipUp: t('Nei giorni di spesa alta stai meglio: probabilmente sono giorni sociali.'), tipDown: t('Nei giorni di spesa alta il tuo umore scende: può essere shopping d’impulso. Aspetta 24 ore prima degli acquisti non necessari.') },
+  { id: 'weekend', label: t('Weekend'), get: (d) => (d.weekday === 0 || d.weekday === 6 ? 1 : 0), a: { label: t('weekend'), test: (v) => v === 1 }, b: { label: t('giorni lavorativi'), test: (v) => v === 0 }, tipUp: t('Il weekend ti ricarica: lascia davvero libera quella parte della settimana.'), tipDown: t('Il weekend abbassa il tuo umore: pianifica qualcosa di piacevole anche nei giorni liberi.') },
 ];
 
 
@@ -71,22 +73,22 @@ export type Confirmation = {
   text: string;
 };
 const MIN_HALF_GROUP = 3;
-const SHOW = (v: number | null) => (v == null ? 'dati insufficienti' : `${v > 0 ? '+' : ''}${fmt(v)}`);
+const SHOW = (v: number | null) => (v == null ? t('dati insufficienti') : `${v > 0 ? '+' : ''}${fmt(v)}`);
 
 /** Giudica se un legame si ripete: stesso confronto sulla prima e sulla seconda metà cronologica dei dati. */
 export function confirmationOf(first: number | null, second: number | null, nFirst: number, nSecond: number, minEffect = 0.25): Confirmation {
   const mk = (status: Confirmation['status'], text: string): Confirmation => ({ status, first, second, nFirst, nSecond, text });
-  if (first == null || second == null) return mk('incerta', 'Troppo pochi giorni in una delle due metà per sapere se si ripete.');
+  if (first == null || second == null) return mk('incerta', t('Troppo pochi giorni in una delle due metà per sapere se si ripete.'));
   const sameSign = Math.sign(first) === Math.sign(second);
-  if (sameSign && Math.abs(first) >= minEffect && Math.abs(second) >= minEffect) return mk('confermata', `Si ripete in entrambe le metà del periodo (${SHOW(first)} e ${SHOW(second)}).`);
-  if (!sameSign && Math.max(Math.abs(first), Math.abs(second)) >= minEffect && Math.min(Math.abs(first), Math.abs(second)) >= minEffect * 0.5) return mk('non si ripete', `Nelle due metà del periodo va in direzioni opposte (${SHOW(first)} e ${SHOW(second)}): probabilmente è un caso.`);
-  if (Math.min(Math.abs(first), Math.abs(second)) < minEffect * 0.5 && Math.max(Math.abs(first), Math.abs(second)) >= minEffect) return mk('non si ripete', `C’è in una sola metà del periodo (${SHOW(first)} e ${SHOW(second)}): non si ripete.`);
-  return mk('incerta', `Differenza piccola in almeno una metà (${SHOW(first)} e ${SHOW(second)}): servono più giorni.`);
+  if (sameSign && Math.abs(first) >= minEffect && Math.abs(second) >= minEffect) return mk('confermata', t('Si ripete in entrambe le metà del periodo ({0} e {1}).', SHOW(first), SHOW(second)));
+  if (!sameSign && Math.max(Math.abs(first), Math.abs(second)) >= minEffect && Math.min(Math.abs(first), Math.abs(second)) >= minEffect * 0.5) return mk('non si ripete', t('Nelle due metà del periodo va in direzioni opposte ({0} e {1}): probabilmente è un caso.', SHOW(first), SHOW(second)));
+  if (Math.min(Math.abs(first), Math.abs(second)) < minEffect * 0.5 && Math.max(Math.abs(first), Math.abs(second)) >= minEffect) return mk('non si ripete', t('C’è in una sola metà del periodo ({0} e {1}): non si ripete.', SHOW(first), SHOW(second)));
+  return mk('incerta', t('Differenza piccola in almeno una metà ({0} e {1}): servono più giorni.', SHOW(first), SHOW(second)));
 }
 
 /** Per un fattore dell'umore: confronta prima e seconda metà dei giorni (ordinati per data). */
 export function confirmFactor(days: DayCtx[], factorId: string): Confirmation {
-  const def = defs.find((d) => d.id === factorId);
+  const def = getDefs().find((d) => d.id === factorId);
   const sorted = days.slice().sort((a, b) => a.day.localeCompare(b.day));
   const h = Math.floor(sorted.length / 2);
   const halves = [sorted.slice(0, h), sorted.slice(h)];
@@ -110,19 +112,19 @@ export function analyseMood(days: DayCtx[]): MoodReport {
   const confidence: MoodReport['confidence'] = n < 14 ? 'insufficiente' : n < 30 ? 'bassa' : n < 60 ? 'media' : 'alta';
   const factors: Factor[] = [];
   if (n >= 14) {
-    defs.forEach((def) => {
+    getDefs().forEach((def) => {
       const g = groupsFor(def, days);
       if (!g) return;
       const [A, B] = g;
       if (A.length < 5 || B.length < 5) return;
       const diff = mean(A.map((d) => d.mood)) - mean(B.map((d) => d.mood));
-      const t = welch(A.map((d) => d.mood), B.map((d) => d.mood));
-      const sig = Math.abs(t) >= T_MIN && Math.abs(diff) >= 0.3;
+      const tv = welch(A.map((d) => d.mood), B.map((d) => d.mood));
+      const sig = Math.abs(tv) >= T_MIN && Math.abs(diff) >= 0.3;
       const a: Group = { label: def.a.label, mean: mean(A.map((d) => d.mood)), n: A.length };
       const b: Group = { label: def.b.label, mean: mean(B.map((d) => d.mood)), n: B.length };
       factors.push({
-        id: def.id, label: def.label, a, b, diff, t, sig, strength: strengthOf(diff),
-        sentence: `Nei ${a.label} il tuo umore è in media ${fmt(a.mean)} su 5, contro ${fmt(b.mean)} nei ${b.label} (${sgn(diff)}), su ${a.n} e ${b.n} giorni.`,
+        id: def.id, label: def.label, a, b, diff, t: tv, sig, strength: strengthOf(diff),
+        sentence: t('Nei {0} il tuo umore è in media {1} su 5, contro {2} nei {3} ({4}), su {5} e {6} giorni.', a.label, fmt(a.mean), fmt(b.mean), b.label, sgn(diff), a.n, b.n),
         tip: diff > 0 ? def.tipUp : def.tipDown,
         confirmation: confirmFactor(days, def.id),
       });
@@ -131,7 +133,7 @@ export function analyseMood(days: DayCtx[]): MoodReport {
   factors.sort((x, y) => Number(y.sig) - Number(x.sig) || Math.abs(y.t) - Math.abs(x.t));
   // giorno della settimana
   const byDay: Group[] = [];
-  const names = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
+  const names = [t('domenica'), t('lunedì'), t('martedì'), t('mercoledì'), t('giovedì'), t('venerdì'), t('sabato')];
   for (let w = 0; w < 7; w++) { const v = days.filter((d) => d.weekday === w); if (v.length >= 4) byDay.push({ label: names[w], mean: mean(v.map((d) => d.mood)), n: v.length }); }
   byDay.sort((x, y) => y.mean - x.mean);
   return { n, mean: m, best: byDay[0] ?? null, worst: byDay.length > 1 ? byDay[byDay.length - 1] : null, factors, confidence };
