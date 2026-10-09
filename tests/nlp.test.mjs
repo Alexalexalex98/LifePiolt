@@ -82,3 +82,61 @@ test('argomenti per cartelle', () => {
 });
 
 test('sì / no', () => { assert.ok(isYes('Sì, grazie')); assert.ok(isYes('ok')); assert.ok(isNo('no')); assert.ok(isNo('lascia stare')); assert.equal(norm('È già così'), 'e gia cosi'); });
+
+/* ---------- inglese ---------- */
+test('EN giorni, orari, durate', () => {
+  const w = (s) => parseWhen(s, NOW);
+  assert.equal(w('tomorrow at 3pm').day, '2026-10-08'); assert.equal(w('tomorrow at 3pm').time, '15:00');
+  assert.equal(w('day after tomorrow').day, '2026-10-09');
+  assert.equal(w('next Monday').day, '2026-10-12');
+  assert.equal(w('on friday at 11').day, '2026-10-09'); assert.equal(w('on friday at 11').time, '11:00');
+  assert.equal(w('in 3 days').day, '2026-10-10');
+  assert.equal(w('in two weeks').day, '2026-10-21');
+  assert.equal(w('next week').day, '2026-10-12');
+  assert.equal(w('October 15').day, '2026-10-15');
+  assert.equal(w('the 15th').day, '2026-10-15');
+  assert.equal(w('tomorrow evening').hint, 'sera');
+  assert.equal(w('at 3:30 pm').time, '15:30');
+  assert.equal(w('at 9am').time, '09:00');
+  assert.equal(w('at noon').time, '12:00');
+  assert.equal(w('half past ten').time, '10:30');
+  assert.equal(w('tonight at 8').time, '20:00');
+  assert.equal(w('at 15:00 for 2 hours').durationMin, 120);
+  assert.equal(w('for 30 minutes at 4pm').durationMin, 30);
+  assert.equal(w('for half an hour').durationMin, 30);
+  const r = w('from 10 to 12'); assert.equal(r.time, '10:00'); assert.equal(r.endTime, '12:00'); assert.equal(r.durationMin, 120);
+});
+
+test('EN titolo ripulito', () => {
+  const t = (s) => { const w = parseWhen(s, NOW); return extractTitle(s, w.spans); };
+  assert.equal(t('add meeting with Marco to my plan tomorrow at 3pm'), 'Meeting with Marco');
+  assert.equal(t('put gym in my calendar tomorrow'), 'Gym');
+  assert.equal(t('remind me to buy milk'), 'Buy milk');
+});
+
+test('EN riconoscimento del comando', () => {
+  const cases = [
+    ['add meeting to my plan tomorrow at 3pm', 'event.add'], ['schedule dinner with Anna on Saturday at 8pm', 'event.add'], ['I have a meeting at 3', 'event.add'],
+    ['move the meeting to Friday', 'event.move'], ['reschedule the dentist to Monday', 'event.move'], ['delete the meeting tomorrow', 'event.delete'],
+    ['rename team meeting to Budget review', 'event.rename'], ['add task buy milk', 'task.add'], ['I need to call the accountant', 'task.add'], ['remind me to call mom', 'task.add'],
+    ['I finished the report', 'task.done'], ['delete the task report', 'task.delete'], ['what tasks do I have?', 'task.list'],
+    ['what do I have tomorrow?', 'agenda.show'], ['when am I free on Friday?', 'agenda.free'], ['plan my month', 'plan.fill'],
+    ['what should I do now?', 'task.next'], ['undo', 'undo'], ['every Tuesday at 6pm gym', 'event.recurring'],
+    ['mark the business plan as urgent', 'task.urgent'], ['mark investor call as important', 'event.important'], ['the report is due Monday', 'task.due'],
+    ['turn on dark mode', 'theme.dark'], ['switch to light theme', 'theme.light'], ['enable notifications', 'notif.on'], ['turn off notifications', 'notif.off'],
+    ['set my working hours from 9 to 5', 'hours.set'], ['open finance', 'open'], ['help', 'help'], ['what can you do', 'help'], ['I feel stressed', 'mood.log'],
+    ['make my profile private', 'profile.private'], ['make my profile public', 'profile.public'], ['share my agenda with Marco', 'agenda.share'],
+    ['how much did I spend this month', 'finance.report'], ['how did I sleep', 'health.report'], ['write a note: ideas for AURA', 'note.add'],
+    ['new goal run 10 km', 'goal.add'], ['reschedule the skipped sessions', 'plan.reschedule'], ['what time is the dentist?', 'event.when'],
+    ['daily summary', 'briefing'], ['change my profile photo', 'profile.photo'], ['mood analysis', 'mood.analysis'],
+  ];
+  cases.forEach(([s, i]) => assert.equal(detectIntent(s), i, s));
+  assert.ok(cases.length >= 40);
+});
+
+test('EN yes / no / argomenti', () => {
+  ['yes', 'Yes please', 'apply', 'sure', 'go ahead', 'confirm'].forEach((s) => assert.ok(isYes(s), s));
+  ['no thanks', 'nope', 'cancel', "don't"].forEach((s) => assert.ok(isNo(s), s));
+  assert.ok(!isYes('right now what'));
+  assert.equal(topicOf('how can I save money on my budget'), 'Finanze');
+});
