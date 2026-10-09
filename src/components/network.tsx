@@ -17,6 +17,7 @@ import type { ModKind } from '@/lib/modRules';
 import { useNet, type Idea, type Post } from '@/store/network';
 import { toast } from '@/store/toast';
 import { translateText } from '@/i18n/core';
+import { t as tl } from '@/i18n/core';
 
 export const photoGradients: [string, string][] = [['#3a2a5c', '#171224'], ['#1f3b2c', '#131c17'], ['#3a2a1a', '#221a10'], ['#2a1f45', '#181128'], ['#1a2f3a', '#111c22'], ['#3a1f2c', '#22131a']];
 export const gradientFor = (seed: string) => photoGradients[Math.abs(hashStr(seed)) % photoGradients.length];
@@ -220,8 +221,8 @@ export function doContribute(id: number, amt: number) {
   useNet.setState((s) => ({ ideas: s.ideas.map((i) => (i.id === id ? { ...i, raised } : i)) }));
   const after = Math.floor(((raised / idea.target) * 100) / 25) * 25;
   const me = useApp.getState().account.name;
-  if (idea.author === me && after > before && after > 0) useNet.getState().notify('goal', `"${idea.title}" ha raggiunto il ${after}% dell'obiettivo`, after >= 100);
-  toast(`Hai versato ${formatCHF(amt)} LP a "${idea.title}"`);
+  if (idea.author === me && after > before && after > 0) useNet.getState().notify('goal', tl('"{0}" ha raggiunto il {1}% dell\'obiettivo', idea.title, after), after >= 100);
+  toast(tl('Hai versato {0} LP a "{1}"', formatCHF(amt), idea.title));
 }
 
 export type { Post };

@@ -4,12 +4,13 @@ import {
   addDays, analyze, attainment, buildInsights, correlations, dayDiff, domainScore, makeForecast, mean, todayStr,
   type Analysis, type Correlation, type Domain, type Forecast, type Insight, type MetricDef, type Pt, type Series,
 } from '@/lib/analytics';
-import { formatMoney } from '@/i18n/format';
+import { localizeMonths, formatMoney } from '@/i18n/format';
 import { dayKey, monthNames } from '@/lib/format';
 import { categoryOf, useFin, monthEnd, type FinMonth } from '@/store/finance';
 import { healthMeta, pointsOf, useHealth, type Metric } from '@/store/health';
 import { useContext } from '@/store/context';
 import { useLife } from '@/store/life';
+import { t } from '@/i18n/core';
 
 /* ---------- definizioni delle metriche ---------- */
 const H = (id: Metric, over: Partial<MetricDef>): MetricDef => ({ id, label: healthMeta[id].label, unit: healthMeta[id].unit, dec: healthMeta[id].dec, color: healthMeta[id].color, domain: 'salute', better: 'up', period: 'day', ...over });
@@ -156,7 +157,7 @@ function financeInsights(today: string): Insight[] {
         out.push({
           id: 'fin-runrate', severity: pct > 0 ? 'warn' : 'good', domain: 'finanza', metricId: 'spending', priority: pct > 0 ? 2.2 : 1.3,
           title: pct > 0 ? 'Stai spendendo più del mese scorso' : 'Stai spendendo meno del mese scorso',
-          detail: `Sulla base di come si distribuivano le tue spese nei mesi precedenti, chiuderai questo mese a circa ${formatMoney(projected)}, ${Math.abs(Math.round(pct))}% ${pct > 0 ? 'in più' : 'in meno'} rispetto a ${prev.label.split(' ')[0].toLowerCase()} (${formatMoney(base)}).`,
+          detail: t(pct > 0 ? 'Sulla base di come si distribuivano le tue spese nei mesi precedenti, chiuderai questo mese a circa {0}, {1}% in più rispetto a {2} ({3}).' : 'Sulla base di come si distribuivano le tue spese nei mesi precedenti, chiuderai questo mese a circa {0}, {1}% in meno rispetto a {2} ({3}).', formatMoney(projected), Math.abs(Math.round(pct)), localizeMonths(prev.label.split(' ')[0]).toLowerCase(), formatMoney(base)),
           action: pct > 0 ? 'Guarda la categoria in più crescita e fissa un tetto per le prossime due settimane.' : 'Ottimo: considera di accantonare la differenza.',
         });
       }
@@ -173,7 +174,7 @@ function financeInsights(today: string): Insight[] {
     });
     if (best) {
       const b = best as { n: string; cur: number; avg: number };
-      out.push({ id: 'fin-cat', severity: 'warn', domain: 'finanza', priority: 1.9, title: `${b.n}: spesa in forte aumento`, detail: `${formatMoney(b.cur)} questo mese contro una media di ${formatMoney(b.avg)} nei mesi precedenti (+${Math.round(((b.cur - b.avg) / b.avg) * 100)}%).`, action: 'Controlla i movimenti di questa categoria per capire se è una spesa una tantum.' });
+      out.push({ id: 'fin-cat', severity: 'warn', domain: 'finanza', priority: 1.9, title: t('{0}: spesa in forte aumento', b.n), detail: t('{0} questo mese contro una media di {1} nei mesi precedenti (+{2}%).', formatMoney(b.cur), formatMoney(b.avg), Math.round(((b.cur - b.avg) / b.avg) * 100)), action: 'Controlla i movimenti di questa categoria per capire se è una spesa una tantum.' });
     }
   }
   return out;

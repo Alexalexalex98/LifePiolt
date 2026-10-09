@@ -14,6 +14,7 @@ import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
 import { useChatColors } from './parts';
 import { translateText } from '@/i18n/core';
+import { t as tl } from '@/i18n/core';
 
 function Head({ icon, title, sub }: { icon: string; title: string; sub?: string }) {
   const c = useChatColors();
@@ -58,7 +59,7 @@ function AvailabilityCard({ m, me, chatId }: { m: ChatMessage; me: string; chatI
       const st = useLife.getState();
       const idx = (st.events[day] ?? []).findIndex((e) => e.ref === tmp);
       if (idx >= 0) st.patchEvent(day, idx, { ref: `slot:${id}:p${day}${from}` });
-      toast(`Proposto ${dayLabelOf(day)} alle ${from} e aggiunto al tuo piano`);
+      toast(tl('Proposto {0} alle {1} e aggiunto al tuo piano', dayLabelOf(day), from));
     });
   };
   return (

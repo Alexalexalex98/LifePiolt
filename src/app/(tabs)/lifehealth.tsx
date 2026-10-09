@@ -13,15 +13,16 @@ import { healthMeta, last, moodOptions, streakOf, useHealth, type Metric as M } 
 import { toast } from '@/store/toast';
 import { autoSyncIfConnected, connectAppleHealth, hkUnsupportedMessage, syncAppleHealth, useHkStatus } from '@/lib/healthkit';
 import { fmtDate, fmtDateTime, fmtInt, fmtTime } from '@/i18n/format';
+import { t as tl } from '@/i18n/core';
 
 /** "2 minuti fa", "oggi alle 09:14"… */
 function ago(ts: number): string {
   const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
   if (m < 1) return 'adesso';
-  if (m < 60) return `${m} ${m === 1 ? 'minuto' : 'minuti'} fa`;
+  if (m < 60) return m === 1 ? tl('{0} minuto fa', m) : tl('{0} minuti fa', m);
   const d = new Date(ts);
   const hhmm = fmtTime(d);
-  return new Date().toDateString() === d.toDateString() ? `oggi alle ${hhmm}` : `${fmtDate(d, { day: '2-digit', month: '2-digit' })} alle ${hhmm}`;
+  return new Date().toDateString() === d.toDateString() ? tl('oggi alle {0}', hhmm) : tl('{0} alle {1}', fmtDate(d, { day: '2-digit', month: '2-digit' }), hhmm);
 }
 
 const fmtSleep = (h: number) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`;
@@ -84,7 +85,7 @@ export default function LifeHealth() {
         {h.wearable.connected && h.wearable.device === 'Apple Health' ? (
           <>
             <Row><Body>Collegato a <Text style={{ fontWeight: '700' }}>Apple Health</Text></Body><Link onPress={() => { h.connect(null); toast('Apple Health scollegato'); }}>Disconnetti</Link></Row>
-            <Body small muted style={{ marginTop: 6 }}>{h.lastSync ? `Ultimo aggiornamento: ${ago(h.lastSync)} (${fmtDateTime(h.lastSync)})` : 'Non ancora sincronizzato.'} I dati dell'Apple Watch arrivano qui tramite l'app Salute. Si aggiorna da solo quando apri l'app e quando ci torni.</Body>
+            <Body small muted style={{ marginTop: 6 }}>{h.lastSync ? tl('Ultimo aggiornamento: {0} ({1})', ago(h.lastSync), fmtDateTime(h.lastSync)) : 'Non ancora sincronizzato.'} I dati dell'Apple Watch arrivano qui tramite l'app Salute. Si aggiorna da solo quando apri l'app e quando ci torni.</Body>
             <Body small color={hk.phase === 'syncing' ? t.muted : hk.phase === 'ok' ? t.positive : hk.phase === 'idle' ? t.muted : t.warn} style={{ marginTop: 6 }}>
               Stato: {hk.phase === 'syncing' ? 'sincronizzazione in corso…' : hk.phase === 'ok' ? 'aggiornato' : hk.phase === 'error' ? 'errore nell’ultima sincronizzazione' : hk.phase === 'unsupported' ? 'non disponibile su questo dispositivo' : h.syncError ? 'errore nell’ultima sincronizzazione' : 'in attesa'}
             </Body>

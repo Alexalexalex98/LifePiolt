@@ -8,6 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useFin, type Stock } from '@/store/finance';
 import { toast } from '@/store/toast';
 import { formatMoney } from '@/i18n/format';
+import { t as tl } from '@/i18n/core';
 
 export type Flow = { view: 'detail' | 'trade' | 'plan' | 'neworder'; symbol?: string; side?: 'buy' | 'sell' } | null;
 
@@ -71,7 +72,7 @@ export function StockFlow({ flow, setFlow }: { flow: Flow; setFlow: (f: Flow) =>
           <Btn small style={{ flex: 1 }} tone="sell" title="Vendi" onPress={() => startTrade(stock, 'sell')} />
           <Btn small style={{ flex: 1 }} tone="buy" title="Acquista" onPress={() => startTrade(stock, 'buy')} />
         </Row>
-        <Btn small ghost style={{ marginTop: 8 }} icon="repeat" title={`Imposta piano di risparmio${plan ? ` · attivo ${formatMoney(plan.amount)}/${plan.freq === 'mensile' ? 'mese' : 'sett.'}` : ''}`}
+        <Btn small ghost style={{ marginTop: 8 }} icon="repeat" title={plan ? (plan.freq === 'mensile' ? tl('Imposta piano di risparmio · attivo {0}/mese', formatMoney(plan.amount)) : tl('Imposta piano di risparmio · attivo {0}/sett.', formatMoney(plan.amount))) : 'Imposta piano di risparmio'}
           onPress={() => { setSpAmount(plan ? String(plan.amount) : ''); setSpFreq(plan?.freq === 'settimanale' ? 'Settimanale' : 'Mensile'); setFlow({ view: 'plan', symbol: stock.symbol }); }} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 16 }}>
           <Cell l="APERTURA" v={stock.open.toFixed(2)} /><Cell l="MAX 52 SETT." v={stock.high52.toFixed(2)} />
@@ -132,7 +133,7 @@ export function StockFlow({ flow, setFlow }: { flow: Flow; setFlow: (f: Flow) =>
           const a = parseFloat(spAmount.replace(',', '.'));
           if (!Number.isFinite(a) || a <= 0) { toast('Inserisci un importo valido'); return; }
           f.setPlan(stock.symbol, { amount: a, freq: spFreq === 'Mensile' ? 'mensile' : 'settimanale' });
-          close(); toast(`Piano impostato: ${formatMoney(a)} al ${spFreq === 'Mensile' ? 'mese' : 'settimana'} su ${stock.symbol}`);
+          close(); toast(spFreq === 'Mensile' ? tl('Piano impostato: {0} al mese su {1}', formatMoney(a), stock.symbol) : tl('Piano impostato: {0} alla settimana su {1}', formatMoney(a), stock.symbol));
         }} />
         {plan && <Btn small ghost style={{ marginTop: 8 }} title="Disattiva piano" onPress={() => { f.setPlan(stock.symbol, null); close(); toast('Piano disattivato'); }} />}
       </>

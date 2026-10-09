@@ -10,7 +10,8 @@ import { activitiesByStyle, destinations, genFlight, hotelPool, hotelScore, mont
 import { useLife } from '@/store/life';
 import { useTravel } from '@/store/travel';
 import { showUndoToast, toast } from '@/store/toast';
-import { formatMoney, monthName } from '@/i18n/format';
+import { formatMoney, localizeMonths, monthName } from '@/i18n/format';
+import { t as tl } from '@/i18n/core';
 
 type View_ = null | 'city' | 'date' | 'guests' | 'itinerary';
 
@@ -24,7 +25,7 @@ export default function LifeTravel() {
   const city = destinations.find((c) => c.id === tv.city)!;
   const mult = seasonMultiplier(city.type, monthNumFromOffset(tv.monthOffset));
   const days = vacRange?.end ? Number(vacRange.end.slice(8)) - Number(vacRange.start.slice(8)) + 1 : 3;
-  const vacText = vacRange?.end ? `${vacRange.start.slice(8)}–${vacRange.end.slice(8)} ${monthName(Number(vacRange.start.slice(5, 7)) - 1)} (${days} giorni)` : '';
+  const vacText = vacRange?.end ? tl('{0}–{1} {2} ({3} giorni)', vacRange.start.slice(8), vacRange.end.slice(8), monthName(Number(vacRange.start.slice(5, 7)) - 1), days) : '';
   const g = tv.guests;
   const sorted = hotelPool.map((h, i) => ({ h, i, score: hotelScore(h, tv.style) })).sort((a, b) => b.score - a.score);
 
@@ -47,7 +48,7 @@ export default function LifeTravel() {
     const price = Math.round(h.price * seasonMultiplier(c.type, monthNumFromOffset(tv.monthOffset)));
     const flight = genFlight(c.id, tv.monthOffset);
     const stay = price * days, total = stay + flight.price * 2;
-    const dateNote = vacRange?.end ? `, per il ${vacText} (dalle tue vacanze in Plan)` : `, per ${monthLabel(tv.monthOffset)}`;
+    const dateNote = vacRange?.end ? tl(', per il {0} (dalle tue vacanze in Plan)', vacText) : tl(', per {0}', localizeMonths(monthLabel(tv.monthOffset)));
     setItin({
       cityName: c.name, month: monthLabel(tv.monthOffset), hotel: h.name, price, days, flight: flight.price, tripTotal: total, acts: activitiesByStyle[tv.style],
       text: `Basato sul tuo profilo "${styleLabel(tv.style)}", su ${h.name} a ${c.name}${dateNote}. Andata · partenza ${String(flight.outDep).padStart(2, '0')}:00 (${flight.duration} min).`,

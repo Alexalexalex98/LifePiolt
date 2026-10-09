@@ -1,4 +1,5 @@
 import { currentCurrency, formatMoney } from '../i18n/format.ts';
+import { t } from '../i18n/core.ts';
 /**
  * Obiettivi collegati ai dati: l'avanzamento si calcola da solo da salute e finanze. Modulo PURO e testabile.
  * Periodo 'week' = ultimi 7 giorni (oggi incluso), 'month' = ultimi 30 giorni (per il risparmio: il mese in corso).
@@ -66,7 +67,7 @@ export function goalProgress(link: GoalLink, inp: GoalInputs): GoalProgressInfo 
   const pct = hasData && value! > 0 ? Math.min(100, Math.round((value! / link.target) * 100)) : 0;
   const unit = link.metric === 'savings' ? currentCurrency() : meta.unit;
   const text = hasData
-    ? `${fmt(value!, meta.dec)} su ${fmt(link.target, meta.dec)} ${unit}${link.metric === 'savings' ? ' questo mese' : link.period === 'week' ? ' (ultimi 7 giorni)' : ' (ultimi 30 giorni)'}`
+    ? (link.metric === 'savings' ? t('{0} su {1} {2} questo mese', fmt(value!, meta.dec), fmt(link.target, meta.dec), unit) : link.period === 'week' ? t('{0} su {1} {2} (ultimi 7 giorni)', fmt(value!, meta.dec), fmt(link.target, meta.dec), unit) : t('{0} su {1} {2} (ultimi 30 giorni)', fmt(value!, meta.dec), fmt(link.target, meta.dec), unit))
     : 'Ancora nessun dato: collega Apple Health o registra i dati a mano.';
   return { value, target: link.target, pct, done: hasData && value! >= link.target, samples, text, unit, hasData };
 }
@@ -75,12 +76,12 @@ export function goalProgress(link: GoalLink, inp: GoalInputs): GoalProgressInfo 
 export function linkTitle(link: GoalLink): string {
   const m = goalMetrics[link.metric];
   const tgt = fmt(link.target, m.dec);
-  if (link.metric === 'savings') return `Risparmio · ${formatMoney(link.target)} al mese`;
-  if (link.metric === 'workouts') return `Allenamenti · ${tgt} ${periodLabel[link.period]}`;
-  if (link.metric === 'steps') return `Passi medi · ${tgt} al giorno`;
-  if (link.metric === 'sleep') return `Sonno · ${tgt} ore per notte`;
-  if (link.metric === 'exercise') return `Esercizio · ${tgt} minuti al giorno`;
-  return `Mindfulness · ${tgt} minuti ${periodLabel[link.period]}`;
+  if (link.metric === 'savings') return t('Risparmio · {0} al mese', formatMoney(link.target));
+  if (link.metric === 'workouts') return link.period === 'week' ? t('Allenamenti · {0} a settimana', tgt) : t('Allenamenti · {0} al mese', tgt);
+  if (link.metric === 'steps') return t('Passi medi · {0} al giorno', tgt);
+  if (link.metric === 'sleep') return t('Sonno · {0} ore per notte', tgt);
+  if (link.metric === 'exercise') return t('Esercizio · {0} minuti al giorno', tgt);
+  return link.period === 'week' ? t('Mindfulness · {0} minuti a settimana', tgt) : t('Mindfulness · {0} minuti al mese', tgt);
 }
 
 /** "dd/mm" (formato degli allenamenti salvati) -> data ISO, scegliendo l'anno più vicino a `today` senza finire nel futuro. */

@@ -1,5 +1,5 @@
 {
- "count": 3791,
+ "count": 3793,
  "byFile": {
   "src/app/(tabs)/ai.tsx": 24,
   "src/app/(tabs)/applicantView.tsx": 54,
@@ -17,7 +17,7 @@
   "src/app/(tabs)/lifedrive.tsx": 37,
   "src/app/(tabs)/lifefinance.tsx": 92,
   "src/app/(tabs)/lifeforecast.tsx": 23,
-  "src/app/(tabs)/lifehealth.tsx": 102,
+  "src/app/(tabs)/lifehealth.tsx": 103,
   "src/app/(tabs)/lifenetwork.tsx": 45,
   "src/app/(tabs)/lifenotes.tsx": 3,
   "src/app/(tabs)/lifepointsPage.tsx": 13,
@@ -37,7 +37,7 @@
   "src/app/(tabs)/searchPage.tsx": 9,
   "src/app/(tabs)/seminarPage.tsx": 39,
   "src/app/(tabs)/servicePage.tsx": 27,
-  "src/app/(tabs)/settings.tsx": 95,
+  "src/app/(tabs)/settings.tsx": 94,
   "src/app/(tabs)/skillProfile.tsx": 23,
   "src/app/(tabs)/starredPage.tsx": 2,
   "src/app/(tabs)/stocks.tsx": 14,
@@ -59,7 +59,7 @@
   "src/components/MediaPickerField.tsx": 8,
   "src/components/MoodChart.tsx": 6,
   "src/components/NavBar.tsx": 10,
-  "src/components/NetSheets.tsx": 273,
+  "src/components/NetSheets.tsx": 272,
   "src/components/PracticalCard.tsx": 53,
   "src/components/PrivacyContent.tsx": 30,
   "src/components/ReportsSheet.tsx": 17,
@@ -83,7 +83,7 @@
   "src/components/network.tsx": 32,
   "src/components/plan.tsx": 87,
   "src/components/scoreSheet.tsx": 13,
-  "src/components/stocks.tsx": 32,
+  "src/components/stocks.tsx": 34,
   "src/components/ui.tsx": 11,
   "src/data/features.ts": 103,
   "src/data/metricInfo.ts": 184,
@@ -91,7 +91,7 @@
   "src/lib/a11y.ts": 1,
   "src/lib/ai.ts": 23,
   "src/lib/analytics.ts": 62,
-  "src/lib/analyticsData.ts": 31,
+  "src/lib/analyticsData.ts": 30,
   "src/lib/assistant/engine.ts": 209,
   "src/lib/assistant/env.ts": 6,
   "src/lib/assistant/nlp.ts": 9,
@@ -115,7 +115,7 @@
   "src/lib/enroll.ts": 22,
   "src/lib/errorLog.ts": 3,
   "src/lib/format.ts": 12,
-  "src/lib/goalData.ts": 27,
+  "src/lib/goalData.ts": 28,
   "src/lib/healthkit.ts": 30,
   "src/lib/hiring.ts": 26,
   "src/lib/i18n.ts": 4,
@@ -152,5 +152,5 @@
   "src/store/network.ts": 15,
   "src/store/prefs.ts": 6
  },
- "withPlaceholders": 485
+ "withPlaceholders": 492
 }

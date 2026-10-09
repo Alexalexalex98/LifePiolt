@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, Share, View } from 'react-native';
 import { alertT } from '@/lib/alert';
 
+import { t as tl, translateText } from '@/i18n/core';
 import { LanguageList, CurrencyPicker } from '@/components/LanguagePicker';
 import { navLabelFor } from '@/components/NavBar';
 import { WorkHoursSheet } from '@/components/plan';
@@ -197,7 +198,7 @@ export default function Settings() {
 
       <Card>
         <H>{tr('stAppearance')}</H>
-        <Select value={app.appearance} options={['Scuro', 'Chiaro', 'Sistema']} onChange={(v) => { set({ appearance: v as Appearance }); toast('Aspetto: ' + v); }} />
+        <Select value={app.appearance} options={['Scuro', 'Chiaro', 'Sistema']} onChange={(v) => { set({ appearance: v as Appearance }); toast(tl('Aspetto: {0}', translateText(v))); }} />
       </Card>
 
       <Card>
@@ -211,7 +212,7 @@ export default function Settings() {
         <CurrencyPicker />
         <Row style={{ paddingVertical: 4 }}>
           <Body>Formato ora</Body>
-          <Pill label={app.timeFormat} onPress={() => { const n = app.timeFormat === '24h' ? '12h' : '24h'; set({ timeFormat: n }); toast('Formato ora: ' + n); }} />
+          <Pill label={app.timeFormat} onPress={() => { const n = app.timeFormat === '24h' ? '12h' : '24h'; set({ timeFormat: n }); toast(n === '24h' ? tl('Formato ora: 24h') : tl('Formato ora: 12h')); }} />
         </Row>
       </Card>
 

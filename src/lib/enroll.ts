@@ -4,6 +4,7 @@ import { dayKeyOf, hhmm, nextOccurrence } from '@/lib/when';
 import { addToPlanWithCheck, placeInPlan, removeFromPlan, restoreToPlan } from '@/lib/planBooking';
 import { newId, useNet, type Enrollment, type Provider, type Seminar } from '@/store/network';
 import { showUndoToast, toast } from '@/store/toast';
+import { t } from '@/i18n/core';
 import { formatCHF } from '@/lib/format';
 
 /**
@@ -47,7 +48,7 @@ export function enrollSeminar(s: Seminar, me: string): void {
     () => {
       useNet.setState((st) => ({ enrollments: [{ id, kind: 'seminar', ref: String(s.id), title: s.title, host: s.host, price: s.price, startsAt: f.startsAt!, durationMin: f.durationMin, status: 'enrolled', createdAt: Date.now() }, ...st.enrollments] }));
       bumpJoined(s.id, 1);
-      toast(s.price ? `Iscrizione confermata. Pagherai ${formatCHF(s.price)} LP solo dopo il seminario. Aggiunto al Plan.` : 'Iscrizione confermata (gratuito). Aggiunto al Plan.');
+      toast(s.price ? t('Iscrizione confermata. Pagherai {0} LP solo dopo il seminario. Aggiunto al Plan.', formatCHF(s.price)) : 'Iscrizione confermata (gratuito). Aggiunto al Plan.');
     },
   );
 }
@@ -63,7 +64,7 @@ export function bookService(p: Provider, slot: string, durationMin: number, me: 
     () => {
       useNet.setState((st) => ({ enrollments: [{ id, kind: 'service', ref: `${p.name}|${slot}`, title: p.role, host: p.name, price: p.price, startsAt, durationMin, status: 'enrolled', createdAt: Date.now(), slot }, ...st.enrollments] }));
       setSlot(p.name, slot, false);
-      toast(`Prenotato con ${p.name}. Pagherai ${formatCHF(p.price)} LP solo dopo la sessione. Aggiunto al Plan.`);
+      toast(t('Prenotato con {0}. Pagherai {1} LP solo dopo la sessione. Aggiunto al Plan.', p.name, formatCHF(p.price)));
     },
   );
 }

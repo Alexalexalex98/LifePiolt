@@ -1,3 +1,4 @@
+import { translateText } from '../i18n/core.ts';
 import { currentCurrency, fmtNumber } from '../i18n/format.ts';
 
 /**
@@ -303,7 +304,7 @@ export type Insight = {
 
 const fmt = (v: number, dec: number) => fmtNumber(v, { minimumFractionDigits: dec, maximumFractionDigits: dec });
 const unitOf = (u: string) => (u === 'CHF' ? currentCurrency() : u);
-export const fmtVal = (v: number, def: MetricDef) => `${fmt(v, def.dec)}${def.unit && def.unit !== '/100' && def.unit !== '%' ? ' ' + unitOf(def.unit) : def.unit === '%' ? '%' : ''}`;
+export const fmtVal = (v: number, def: MetricDef) => `${fmt(v, def.dec)}${def.unit && def.unit !== '/100' && def.unit !== '%' ? ' ' + translateText(unitOf(def.unit)) : def.unit === '%' ? '%' : ''}`;
 
 const sevW = { bad: 3, warn: 2, info: 1, good: 1.2 } as const;
 

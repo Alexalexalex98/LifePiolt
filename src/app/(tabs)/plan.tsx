@@ -11,6 +11,7 @@ import { useApp } from '@/store/app';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
 import { formatMoney, monthName } from '@/i18n/format';
+import { t as tl } from '@/i18n/core';
 
 export default function Plan() {
   const { tasks, goals, automations, vacRange, vacations, setVacRange, addGoal, bumpGoal, delGoal, addAuto, toggleAuto, delVacation } = useLife();
@@ -27,7 +28,7 @@ export default function Plan() {
   const [calSheet, setCalSheet] = useState(false);
 
   const rangeText = vacRange?.end
-    ? `Vacanza: ${vacRange.start.slice(8)}–${vacRange.end.slice(8)} ${monthName(parseInt(vacRange.start.slice(5, 7)) - 1)} (${Number(vacRange.end.slice(8)) - Number(vacRange.start.slice(8)) + 1} giorni)`
+    ? tl('Vacanza: {0}–{1} {2} ({3} giorni)', vacRange.start.slice(8), vacRange.end.slice(8), monthName(parseInt(vacRange.start.slice(5, 7)) - 1), Number(vacRange.end.slice(8)) - Number(vacRange.start.slice(8)) + 1)
     : '';
 
   function pick(key: string) {
