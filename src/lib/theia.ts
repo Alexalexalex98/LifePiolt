@@ -195,54 +195,57 @@ function findFacts(text: string) {
 export function localAnswer(question: string, selection: string | undefined, hasImage: boolean): TheiaAnswer {
   const q = question.toLowerCase();
   const text = (selection ?? '').trim();
-  const ctx = buildContext(false);
-  const note = '\n\n(Risposta locale: senza server non uso un vero modello AI.)';
+  const ctx = buildContext(false, true);
+  const note = '\n\n' + t('(Risposta locale: senza server non uso un vero modello AI.)');
 
-  if (hasImage && !text) return { offline: true, text: 'Ho salvato lo screenshot, ma leggerlo richiede il modello AI sul server, che non è ancora collegato. Se selezioni e copi il testo, invece, posso lavorarci anche adesso.' };
+  if (hasImage && !text) return { offline: true, text: t('Ho salvato lo screenshot, ma leggerlo richiede il modello AI sul server, che non è ancora collegato. Se selezioni e copi il testo, invece, posso lavorarci anche adesso.') };
 
   if (text) {
     const f = findFacts(text);
-    if (/riassum|sintesi|in breve|tl;?dr/.test(q)) {
+    if (/riassum|sintesi|in breve|tl;?dr|summari[sz]e|summary|sum up|in short/.test(q)) {
       const ss = sentences(text);
       const pick = ss.length <= 2 ? ss : [ss[0], ss.reduce((b, s) => (s.length > b.length ? s : b), ss[1])];
-      return { offline: true, text: `In breve: ${pick.join(' ')}${note}` };
+      return { offline: true, text: `${t('In breve: {0}', pick.join(' '))}${note}` };
     }
-    if (/task|da fare|azion|cosa devo|compit/.test(q)) {
-      const t = extractTasks(text);
-      return { offline: true, tasks: t, text: t.length ? `Ho trovato ${t.length} ${t.length === 1 ? 'cosa da fare' : 'cose da fare'}:\n• ${t.join('\n• ')}` : 'Non trovo azioni chiare in questo testo.' };
+    if (/task|da fare|azion|cosa devo|compit|to-?do|action|what (do )?i (need|have) to/.test(q)) {
+      const tk = extractTasks(text);
+      return { offline: true, tasks: tk, text: tk.length ? (tk.length === 1 ? t('Ho trovato 1 cosa da fare:\n• {0}', tk.join('\n• ')) : t('Ho trovato {0} cose da fare:\n• {1}', tk.length, tk.join('\n• '))) : t('Non trovo azioni chiare in questo testo.') };
     }
-    if (/quando|data|ora|appuntament|scadenz/.test(q)) {
-      const parts = [f.dates.length ? `Date: ${f.dates.join(', ')}` : '', f.times.length ? `Orari: ${f.times.join(', ')}` : ''].filter(Boolean);
-      return { offline: true, text: parts.length ? parts.join('\n') : 'Non vedo date o orari nel testo.' };
+    if (/quando|data|ora|appuntament|scadenz|\bwhen\b|\bdate\b|\btime\b|deadline/.test(q)) {
+      const parts = [f.dates.length ? t('Date: {0}', f.dates.join(', ')) : '', f.times.length ? t('Orari: {0}', f.times.join(', ')) : ''].filter(Boolean);
+      return { offline: true, text: parts.length ? parts.join('\n') : t('Non vedo date o orari nel testo.') };
     }
-    if (/quant|import|costo|prezzo|somma|totale|spes/.test(q)) {
-      if (!f.amounts.length) return { offline: true, text: 'Non vedo importi nel testo.' };
+    if (/quant|import|costo|prezzo|somma|totale|spes|how much|amount|cost|price|total/.test(q)) {
+      if (!f.amounts.length) return { offline: true, text: t('Non vedo importi nel testo.') };
       const tot = f.amounts.reduce((s, a) => s + a.n, 0);
-      return { offline: true, text: `Importi: ${f.amounts.map((a) => a.raw).join(', ')}\nTotale (stessa valuta): ${tot.toFixed(2)}` };
+      return { offline: true, text: `${t('Importi: {0}', f.amounts.map((a) => a.raw).join(', '))}\n${t('Totale (stessa valuta): {0}', tot.toFixed(2))}` };
     }
-    if (/rispond|scrivi|reply|cosa dico/.test(q)) {
+    if (/rispond|scrivi|reply|cosa dico|respond|write back|what (do )?i say/.test(q)) {
       const asks = /\?/.test(text);
-      const reply = asks ? 'Ciao! Sì, mi va bene. Fammi sapere i dettagli e ti confermo.' : 'Ricevuto, grazie! Ti aggiorno a breve.';
-      return { offline: true, reply, text: `Una risposta possibile:\n“${reply}”${note}` };
+      const reply = asks ? t('Ciao! Sì, mi va bene. Fammi sapere i dettagli e ti confermo.') : t('Ricevuto, grazie! Ti aggiorno a breve.');
+      return { offline: true, reply, text: `${t('Una risposta possibile:')}\n“${reply}”${note}` };
     }
     // analisi generica
-    const bits = [`Testo di ${text.split(/\s+/).length} parole.`];
-    if (/\?/.test(text)) bits.push('Contiene una domanda: probabilmente si aspetta una risposta.');
-    if (f.dates.length || f.times.length) bits.push(`Cita ${[...f.dates, ...f.times].join(', ')}.`);
-    if (f.amounts.length) bits.push(`Cita importi: ${f.amounts.map((a) => a.raw).join(', ')}.`);
-    const t = extractTasks(text);
-    if (t.length) bits.push(`Sembra richiedere ${t.length} ${t.length === 1 ? 'azione' : 'azioni'}.`);
-    return { offline: true, tasks: t.length ? t : undefined, text: `${bits.join(' ')}\nChiedimi “riassumi”, “estrai i task”, “quando?”, “quanto?” o “rispondi per me”.${note}` };
+    const bits = [t('Testo di {0} parole.', text.split(/\s+/).length)];
+    if (/\?/.test(text)) bits.push(t('Contiene una domanda: probabilmente si aspetta una risposta.'));
+    if (f.dates.length || f.times.length) bits.push(t('Cita {0}.', [...f.dates, ...f.times].join(', ')));
+    if (f.amounts.length) bits.push(t('Cita importi: {0}.', f.amounts.map((a) => a.raw).join(', ')));
+    const tk = extractTasks(text);
+    if (tk.length) bits.push(tk.length === 1 ? t('Sembra richiedere 1 azione.') : t('Sembra richiedere {0} azioni.', tk.length));
+    return { offline: true, tasks: tk.length ? tk : undefined, text: `${bits.join(' ')}\n${t('Chiedimi “riassumi”, “estrai i task”, “quando?”, “quanto?” o “rispondi per me”.')}${note}` };
   }
 
-  // domande sui dati dell'utente
-  const grab = (re: RegExp) => ctx.split('\n').filter((l) => re.test(l)).join('\n');
-  if (/task|da fare|compiti/.test(q)) return { offline: true, text: grab(/^Task/) };
-  if (/oggi|agenda|calendar|impegn/.test(q)) return { offline: true, text: grab(/^Eventi/) };
-  if (/obiettiv/.test(q)) return { offline: true, text: grab(/^Obiettivi/) };
-  if (/come sto|punteggi|salute|sonno|stress|spes|soldi|budget/.test(q)) return { offline: true, text: `${grab(/^Punteggi|^Metriche|^Segnali/) || 'Non ho ancora abbastanza dati.'}\n\nI dettagli sono nella Dashboard.` };
+  // domande sui dati dell'utente (righe del contesto già nella lingua attiva, per posizione: 2 task, 3 eventi, 4 obiettivi, 5+ dati)
+  const lines = ctx.split('\n');
+  if (/task|da fare|compiti|to-?do/.test(q)) return { offline: true, text: lines[2] };
+  if (/oggi|agenda|calendar|impegn|today|schedule|events?/.test(q)) return { offline: true, text: lines[3] };
+  if (/obiettiv|goals?/.test(q)) return { offline: true, text: lines[4] };
+  if (/come sto|punteggi|salute|sonno|stress|spes|soldi|budget|health|sleep|money|scores|how am i/.test(q)) {
+    const g = lines.slice(5, 8).join('\n');
+    return { offline: true, text: `${g || t('Non ho ancora abbastanza dati.')}\n\n${t('I dettagli sono nella Dashboard.')}` };
+  }
   const s = predictNeeds()[0];
-  return { offline: true, text: s ? `Adesso ti suggerisco: ${s.title}. ${s.detail}` : 'Nessun suggerimento in particolare: sei in linea. Puoi chiedermi dei tuoi task, dell’agenda o di come stai.' };
+  return { offline: true, text: s ? t('Adesso ti suggerisco: {0}. {1}', s.title, s.detail) : t('Nessun suggerimento in particolare: sei in linea. Puoi chiedermi dei tuoi task, dell’agenda o di come stai.') };
 }
 
 /* ---------- richiesta ---------- */
@@ -271,7 +274,7 @@ export async function askTheia(question: string, req: TheiaRequest): Promise<The
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = (await res.json()) as { reply?: string; tasks?: string[] };
-  return { offline: false, text: data.reply ?? 'Risposta vuota dal server.', tasks: data.tasks };
+  return { offline: false, text: data.reply ?? t('Risposta vuota dal server.'), tasks: data.tasks };
 }
 
 void useChat;
