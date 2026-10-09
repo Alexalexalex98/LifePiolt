@@ -71,6 +71,7 @@ type LifeState = {
 
   addFile: (f: Omit<DriveFile, 'id'>) => void;
   delFile: (id: string) => void;
+  restoreFile: (f: DriveFile) => void;
 
   addEvent: (day: string, ev: CalEvent, weeklyUntil?: string) => number;
   delEvent: (day: string, idx: number) => CalEvent | null;
@@ -206,6 +207,7 @@ export const useLife = create<LifeState>()(
 
     addFile: (f) => set((s) => ({ drive: [...s.drive, { id: uid(), ...f }] })),
     delFile: (id) => set((s) => ({ drive: s.drive.filter((f) => f.id !== id) })),
+    restoreFile: (f) => set((s) => (s.drive.some((x) => x.id === f.id) ? s : { drive: [...s.drive, f] })),
 
     addEvent: (day, ev, weeklyUntil) => {
       let count = 1;

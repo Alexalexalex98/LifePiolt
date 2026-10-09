@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 import { Spark } from '@/components/charts';
 import { FinTabs } from '@/components/FinTabs';
 import { StockFlow, type Flow } from '@/components/stocks';
+import { confirmDelete } from '@/lib/confirm';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Row, Sheet, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { go } from '@/lib/nav';
@@ -47,7 +48,7 @@ export default function Stocks() {
                   <View style={{ flex: 1 }}><Body bold>{s.symbol}</Body><Body small muted numberOfLines={1}>{s.name}</Body></View>
                   <Spark data={s.history.slice(-12)} w={54} h={28} pad={3} color={color} stroke={2} />
                   <View style={{ alignItems: 'flex-end', minWidth: 76 }}><Body>{s.price.toFixed(2)}</Body><Body small color={color}>{up ? '+' : ''}{s.changePct.toFixed(2)}%</Body></View>
-                  <XBtn onPress={() => f.delStock(s.symbol)} />
+                  <XBtn onPress={() => { const at = f.stocks.findIndex((x) => x.symbol === s.symbol); confirmDelete(`il titolo ${s.symbol} dalla watchlist`, () => f.delStock(s.symbol), () => f.restoreStock(s, at)); }} />
                 </Row>
               </Pressable>
             </Item>

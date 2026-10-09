@@ -9,7 +9,7 @@ import { currentCurrency, fmtNumber } from '../i18n/format.ts';
  *  - trend: regressione lineare (minimi quadrati) sui giorni reali; "significativo" se |t| > 2 con almeno 6 punti
  *  - previsione: retta con smorzamento (φ=0.92) + intervallo di previsione all'80%
  *  - anomalie: z-score robusto (mediana e MAD), soglia 2.5
- *  - correlazioni: Pearson su giorni allineati (stesso giorno o giorno dopo), n ≥ 10, |r| ≥ 0.45 e p < 0.05 corretto per i confronti multipli (Bonferroni)
+ *  - correlazioni: Pearson su giorni allineati (stesso giorno o giorno dopo), n ≥ 21, |r| < 0.97, confermata nelle due metà del periodo, |r| ≥ 0.45 e p < 0.05 corretto per i confronti multipli (Bonferroni)
  */
 
 export type Pt = { d: string; v: number };
@@ -241,8 +241,14 @@ export function corrPValue(r: number, n: number): number {
   return erfc(Math.abs(z) / Math.SQRT2);
 }
 
-export function correlations(series: Series[], minN = 10, minR = 0.45, max = 5): Correlation[] {
-  const daily = series.filter((s) => s.def.period === 'day' && s.pts.length >= minN);
+/** Giorni di dati allineati minimi prima di dire che due cose sembrano legate. Meno di così sarebbe un caso. */
+export const MIN_CORR_DAYS = 21;
+/** Una correlazione quasi perfetta (|r| ≥ 0.97) su dati reali è quasi sempre un artefatto (serie derivate, pochi punti, dati inventati): non la mostro. */
+export const MAX_PLAUSIBLE_R = 0.97;
+
+export function correlations(series: Series[], minN = MIN_CORR_DAYS, minR = 0.45, max = 5): Correlation[] {
+  // gli obiettivi (avanzamento inserito dall'utente) non sono misure: non entrano nelle correlazioni
+  const daily = series.filter((s) => s.def.period === 'day' && s.pts.length >= minN && !s.def.id.startsWith('goal:'));
   const maps = new Map(daily.map((s) => [s.def.id, new Map(s.pts.map((p) => [p.d, p.v]))]));
   const out: Correlation[] = [];
   // numero di confronti effettuati (per la correzione di Bonferroni)
@@ -258,8 +264,10 @@ export function correlations(series: Series[], minN = 10, minR = 0.45, max = 5):
       if (xs.length < minN) continue;
       const r = pearson(xs, ys);
       const p = corrPValue(r, xs.length);
-      if (Math.abs(r) < minR || p > 0.05 / tests) continue;
-      out.push({ a: A.def, b: B.def, r, n: xs.length, lag, p, sentence: lag ? `Quando ${A.def.label.toLowerCase()} è più alta, ${B.def.label.toLowerCase()} il giorno dopo tende a essere ${r > 0 ? 'più alta' : 'più bassa'}` : `Nei giorni con ${A.def.label.toLowerCase()} più alta, ${B.def.label.toLowerCase()} tende a essere ${r > 0 ? 'più alta' : 'più bassa'}` });
+      if (Math.abs(r) < minR || Math.abs(r) >= MAX_PLAUSIBLE_R || p > 0.05 / tests) continue;
+      // deve ripetersi nel tempo: stessa direzione nella prima e nella seconda metà dei giorni
+      if (confirmCorrelation(A, B, lag).status !== 'confermata') continue;
+      out.push({ a: A.def, b: B.def, r, n: xs.length, lag, p, sentence: lag ? `Possibile legame: quando ${A.def.label.toLowerCase()} è più alta, ${B.def.label.toLowerCase()} il giorno dopo tende a essere ${r > 0 ? 'più alta' : 'più bassa'}` : `Possibile legame: nei giorni con ${A.def.label.toLowerCase()} più alta, ${B.def.label.toLowerCase()} tende a essere ${r > 0 ? 'più alta' : 'più bassa'}` });
     }
   }
   // elimina duplicati (stessa coppia, tiene il più forte) e ordina per forza × campione
@@ -318,14 +326,14 @@ export function buildInsights(list: Analysis[], corrs: Correlation[], today: str
     const rec = a.ageDays <= 1 ? 1 : a.ageDays <= 3 ? 0.85 : 0.5;
 
     // 1. trend significativo
-    if (a.significant && d.better !== 'none') {
+    if (a.significant && d.better !== 'none' && !d.id.startsWith('goal:')) {
       const good = (d.better === 'up' && a.trend === 'up') || (d.better === 'down' && a.trend === 'down');
       const verb = a.trend === 'up' ? 'in aumento' : 'in calo';
       const per = d.period === 'day' ? 'a settimana' : 'al mese';
       push({
         id: `trend-${d.id}`, severity: good ? 'good' : 'warn', domain: d.domain, metricId: d.id,
         title: `${d.label} ${verb}`,
-        detail: `${Math.abs(a.slopePctWeek).toFixed(1)}% ${per} (trend statisticamente significativo su ${a.n} ${d.period === 'day' ? 'giorni' : 'mesi'}).${a.forecast ? ` Se prosegue, ${d.period === 'day' ? 'tra 7 giorni' : 'tra 3 mesi'} sarà intorno a ${fmtVal(a.forecast.end, d)}.` : ''}`,
+        detail: `${Math.abs(a.slopePctWeek).toFixed(1)}% ${per} (${a.n >= 21 || d.period !== 'day' ? 'trend statisticamente significativo' : 'andamento recente, dati ancora pochi per essere sicuri'} su ${a.n} ${d.period === 'day' ? 'giorni' : 'mesi'}).${a.forecast ? ` Se prosegue, ${d.period === 'day' ? 'tra 7 giorni' : 'tra 3 mesi'} sarà intorno a ${fmtVal(a.forecast.end, d)}.` : ''}`,
         action: good ? 'Continua così.' : actionFor(d.id, 'worse'),
       }, conf, rec);
     }
@@ -360,7 +368,7 @@ export function buildInsights(list: Analysis[], corrs: Correlation[], today: str
 
   corrs.slice(0, 3).forEach((c, i) => out.push({
     id: `corr-${c.a.id}-${c.b.id}`, severity: 'info', domain: c.a.domain, title: 'Cosa influenza cosa',
-    detail: `${c.sentence} (r = ${c.r.toFixed(2)}, ${c.n} giorni). È un legame statistico, non una prova di causa.`, priority: 1.1 - i * 0.1,
+    detail: `${c.sentence} (osservato su ${c.n} giorni, r = ${c.r.toFixed(2)}, si ripete in entrambe le metà del periodo). Non è una prova di causa: potrebbe dipendere da altro o essere un caso.`, priority: 1.1 - i * 0.1,
   }));
 
   // unico insight per metrica/tipo, ordinato; massimo 2 per dominio nei primi 6

@@ -134,6 +134,11 @@ type FinState = {
   setGuidelineSalary: (v: number) => void;
   addBill: (b: Omit<Bill, 'id'>) => void;
   delBill: (id: string) => void;
+  /** Ripristini per "annulla" dopo un'eliminazione. */
+  restoreMovement: (idx: number, mi: number, mv: Movement) => void;
+  restoreBill: (b: Bill, at: number) => void;
+  restoreStock: (st: Stock, at: number) => void;
+  restoreOrder: (o: PendingOrder) => void;
   /** Aggiunge più bollette in un colpo, saltando i nomi già presenti. Restituisce quante ne ha aggiunte. */
   addBills: (list: Omit<Bill, 'id'>[]) => number;
   setTax: (p: Partial<TaxDecl>) => void;
@@ -190,6 +195,10 @@ export const useFin = create<FinState>()(
       return add.length;
     },
     delBill: (id) => set((s) => ({ bills: s.bills.filter((b) => b.id !== id) })),
+    restoreMovement: (idx, mi, mv) => set((s) => ({ months: s.months.map((m, i) => { if (i !== idx) return m; const a = m.movements.slice(); a.splice(Math.min(mi, a.length), 0, mv); return { ...m, movements: a }; }) })),
+    restoreBill: (b, at) => set((s) => (s.bills.some((x) => x.id === b.id) ? s : { bills: (() => { const a = s.bills.slice(); a.splice(Math.min(at, a.length), 0, b); return a; })() })),
+    restoreStock: (st, at) => set((s) => (s.stocks.some((x) => x.symbol === st.symbol) ? s : { stocks: (() => { const a = s.stocks.slice(); a.splice(Math.min(at, a.length), 0, st); return a; })() })),
+    restoreOrder: (o) => set((s) => (s.orders.some((x) => x.id === o.id) ? s : { orders: [...s.orders, o] })),
     setTax: (p) => set((s) => ({ tax: { ...s.tax, ...p } })),
     setTaxDoc: (k, f) => set((s) => {
       const docs = { ...s.tax.docs };

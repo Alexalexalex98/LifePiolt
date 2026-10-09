@@ -29,11 +29,12 @@ import { useTravel } from '@/store/travel';
 import { useContext } from '@/store/context';
 import { useAssistant } from '@/store/assistant';
 import { useDiscover } from '@/store/discover';
+import { useInterests } from '@/store/interests';
 
 SplashScreen.preventAutoHideAsync();
 installGlobalErrors();
 
-const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover];
+const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, useInterests];
 const allHydrated = () => stores.every((s) => s.persist.hasHydrated());
 
 export { ErrorScreen as ErrorBoundary } from '@/components/ErrorScreen';

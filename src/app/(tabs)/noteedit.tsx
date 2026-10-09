@@ -1,3 +1,4 @@
+import { confirmDelete } from '@/lib/confirm';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Share, View } from 'react-native';
@@ -25,7 +26,7 @@ export default function NoteEdit() {
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
         <Btn style={{ flex: 1 }} title="Salva" onPress={() => { const v = text.trim(); if (!v) return; saveNote(existing?.id ?? null, v); toast(existing ? 'Nota aggiornata' : 'Nota salvata'); go('lifenotes'); }} />
         <Btn ghost title="Condividi" onPress={() => Share.share({ message: text })} />
-        {existing && <Btn ghost danger title="Elimina" onPress={() => { const r = delNote(existing.id); go('lifenotes'); if (r) showUndoToast('Nota eliminata', () => restoreNote(r.note, r.idx)); }} />}
+        {existing && <Btn ghost danger title="Elimina" onPress={() => { let r: ReturnType<typeof delNote> = null; confirmDelete('questa nota', () => { r = delNote(existing.id); go('lifenotes'); }, () => { if (r) restoreNote(r.note, r.idx); }, { undoMessage: 'Nota eliminata' }); }} />}
       </View>
       <Btn small ghost style={{ marginTop: 8 }} icon="sparkle" title={sel.end > sel.start ? `Chiedi a ${name} sul testo selezionato` : `Chiedi a ${name} su questa nota`} onPress={() => { const part = sel.end > sel.start ? text.slice(sel.start, sel.end) : text; if (!part.trim()) { toast('Scrivi o seleziona del testo'); return; } askTheiaAbout({ text: part, source: 'note', label: sel.end > sel.start ? 'Testo selezionato' : 'Nota' }); }} />
       {existing && <Btn small ghost style={{ marginTop: 8 }} title="Riassumi con AI" onPress={() => setSummary(true)} />}

@@ -28,7 +28,7 @@ const pageErrors = [];
 let expectErrors = false; // true mentre si provoca di proposito un errore
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
-const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
+const ctx = await browser.newContext({ locale: 'it-IT', viewport: { width: 390, height: 844 }, acceptDownloads: true });
 const page = await ctx.newPage();
 let where = 'avvio';
 page.on('pageerror', (e) => { if (!expectErrors && !IGNORED.some((r) => r.test(String(e)))) pageErrors.push(`[${where}] pageerror: ${String(e).slice(0, 240)}`); });
@@ -117,7 +117,7 @@ try {
   check('mese: applicato', /ho aggiunto \d+ impegni/.test(t), t.slice(-300));
   await open('/plan');
   t = await text();
-  check('plan: pagina raggiungibile dopo l\'applicazione', /Ottobre|Novembre|Dicembre|Gennaio|Febbraio|Marzo|Aprile|Maggio|Giugno|Luglio|Agosto|Settembre/.test(t));
+  check('plan: pagina raggiungibile dopo l\'applicazione', /Ottobre|Novembre|Dicembre|Gennaio|Febbraio|Marzo|Aprile|Maggio|Giugno|Luglio|Agosto|Settembre/i.test(t));
 
   // ---------- chat: scegli un orario e controlla il Plan ----------
   log('Chat: orario proposto');

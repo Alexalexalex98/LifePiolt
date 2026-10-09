@@ -1,3 +1,4 @@
+import { confirmDelete } from '@/lib/confirm';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
@@ -72,7 +73,7 @@ export default function Portfolio() {
               <Row>
                 <View style={{ flex: 1 }}><Body bold>{o.symbol}</Body><Body small muted>{o.type === 'buy' ? 'Acquisto' : 'Vendita'} condizionato @ {o.limitPrice.toFixed(2)}{o.sl ? ` · SL ${o.sl}` : ''}{o.tp ? ` · TP ${o.tp}` : ''} · {formatMoney(o.amount)}</Body></View>
                 <Btn small ghost title="Esegui" onPress={() => { const m = f.executeOrder(o.id); if (m) toast(m); }} />
-                <Link danger onPress={() => { f.cancelOrder(o.id); toast('Ordine annullato'); }}>annulla</Link>
+                <Link danger onPress={() => confirmDelete(`l'ordine su ${o.symbol}`, () => f.cancelOrder(o.id), () => f.restoreOrder(o), { title: 'Annullare l\'ordine?', okLabel: 'Annulla ordine', undoMessage: 'Ordine annullato' })}>annulla</Link>
               </Row>
             </Item>
           ))}

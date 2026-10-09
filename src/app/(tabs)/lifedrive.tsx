@@ -7,6 +7,7 @@ import { Text } from '@/components/T';
 
 import { Body, Btn, Card, Empty, Input, Item, Link, Page, Row, Seg, Sheet, TabRow, XBtn } from '@/components/ui';
 import { useInk, useTheme } from '@/hooks/use-theme';
+import { confirmDelete } from '@/lib/confirm';
 import { weekdayShortDate } from '@/lib/format';
 import { detectFileFolder, driveFolderColors, useLife, type DriveFile } from '@/store/life';
 import { toast } from '@/store/toast';
@@ -19,12 +20,12 @@ const sizeLabel = (bytes?: number) => (bytes == null ? '—' : bytes < 1024 * 10
 export default function LifeDrive() {
   const t = useTheme();
   const ink = useInk();
-  const { drive, addFile, delFile } = useLife();
+  const { drive, addFile, delFile, restoreFile } = useLife();
+  const askDel = (f: DriveFile) => confirmDelete(`il file «${f.n}»`, () => delFile(f.id), () => restoreFile(f), { undoMessage: 'File rimosso' });
   const [q, setQ] = useState('');
   const [tab, setTab] = useState('File');
   const [folder, setFolder] = useState('Tutti');
   const [preview, setPreview] = useState<DriveFile | null>(null);
-  const [del, setDel] = useState<DriveFile | null>(null);
   const [upload, setUpload] = useState(false);
   const [name, setName] = useState('');
 
@@ -105,7 +106,7 @@ export default function LifeDrive() {
                         </View>
                       </Pressable>
                       <View style={{ backgroundColor: color + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: ink(color), fontSize: 10, fontWeight: '700' }}>{f.folder}</Text></View>
-                      <XBtn onPress={() => setDel(f)} />
+                      <XBtn onPress={() => askDel(f)} />
                     </Row>
                   </Item>
                 );
@@ -125,16 +126,9 @@ export default function LifeDrive() {
             )}
             <Body small muted>{preview.folder} · {preview.s} · {preview.date}</Body>
             <Btn small ghost style={{ marginTop: 14 }} title="Condividi" onPress={() => Share.share({ message: `File: ${preview.n}`, url: preview.uri })} />
-            <Btn small ghost style={{ marginTop: 8 }} title="Elimina" onPress={() => { setDel(preview); setPreview(null); }} />
+            <Btn small ghost style={{ marginTop: 8 }} title="Elimina" onPress={() => { const p = preview; setPreview(null); askDel(p); }} />
           </>
         )}
-      </Sheet>
-      <Sheet visible={!!del} title="Eliminare file?" onClose={() => setDel(null)}>
-        <Body small muted>Eliminare "{del?.n}"? L'azione non è reversibile.</Body>
-        <Row style={{ marginTop: 14 }}>
-          <Btn ghost style={{ flex: 1 }} title="Annulla" onPress={() => setDel(null)} />
-          <Btn danger style={{ flex: 1 }} title="Elimina" onPress={() => { if (del) delFile(del.id); setDel(null); toast('File rimosso'); }} />
-        </Row>
       </Sheet>
       <Sheet visible={upload} title="Aggiungi file o foto" onClose={() => setUpload(false)}>
         <View style={{ gap: 8 }}>

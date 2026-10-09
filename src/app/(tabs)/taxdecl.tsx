@@ -2,6 +2,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { alertT } from '@/lib/alert';
+import { confirmDelete } from '@/lib/confirm';
 import { Image, Platform, Pressable, Share, View } from 'react-native';
 import { Text } from '@/components/T';
 
@@ -99,8 +100,10 @@ export default function TaxDecl() {
   }
 
   function dropDrive(uri?: string) {
-    if (!uri) return;
-    useLife.getState().drive.filter((f) => f.uri === uri).forEach((f) => delFile(f.id));
+    if (!uri) return [];
+    const gone = useLife.getState().drive.filter((f) => f.uri === uri);
+    gone.forEach((f) => delFile(f.id));
+    return gone;
   }
   async function confirm() {
     if (!active || !picked || !res || res.status === 'invalido') return;
@@ -118,9 +121,11 @@ export default function TaxDecl() {
   }
   function remove(it: ReqItem) {
     const old = taxDocOf(tax.docs, it.key);
-    if (old) dropDrive(old.uri);
-    setTaxDoc(it.key, null);
-    toast('Documento rimosso');
+    let gone: ReturnType<typeof dropDrive> = [];
+    confirmDelete(`il documento «${it.label}»`, () => { if (old) gone = dropDrive(old.uri); setTaxDoc(it.key, null); }, () => {
+      if (old) setTaxDoc(it.key, old);
+      gone.forEach((g) => useLife.getState().restoreFile(g));
+    }, { undoMessage: 'Documento rimosso' });
   }
   function openFile(f: TaxDocFile) {
     if (isImageFile({ name: f.name, mime: f.mime })) { setView(f); return; }
@@ -142,7 +147,7 @@ export default function TaxDecl() {
       </Card>
       <Card>
         <Row><H>Conti bancari</H><Btn small ghost icon="plus" title="Banca" onPress={() => setBankSheet(true)} /></Row>
-        {tax.banks.length === 0 ? <Empty text="Nessuna banca aggiunta." /> : tax.banks.map((b) => <Item key={b}><Row><Body>{b}</Body><Link danger onPress={() => setTax({ banks: tax.banks.filter((x) => x !== b) })}>rimuovi</Link></Row></Item>)}
+        {tax.banks.length === 0 ? <Empty text="Nessuna banca aggiunta." /> : tax.banks.map((b) => <Item key={b}><Row><Body>{b}</Body><Link danger onPress={() => { const prev = tax.banks; confirmDelete(`la banca «${b}»`, () => setTax({ banks: prev.filter((x) => x !== b) }), () => setTax({ banks: prev }), { undoMessage: 'Banca rimossa' }); }}>rimuovi</Link></Row></Item>)}
       </Card>
       <Card>
         <Row><H>Documenti richiesti</H><Body small muted>{done}/{total}</Body></Row>
