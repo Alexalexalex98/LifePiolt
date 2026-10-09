@@ -1,3 +1,4 @@
+import { Text } from '@/components/T';
 import { View } from 'react-native';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Polygon, Polyline, Stop, Text as SvgText } from 'react-native-svg';
 
@@ -14,7 +15,7 @@ export function Spark({ data, w = 140, h = 34, color = '#f4f6f8', pad = 4, strok
 }) {
   if (data.length < 2) return <View style={{ width: w, height: h }} />;
   return (
-    <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+    <Svg style={{ direction: 'ltr' }} width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
       <Polyline points={sparkPoints(data, w, h, pad)} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
@@ -32,7 +33,7 @@ export function LineChart({ data, color = '#f4f6f8', height = 150, padL = 38, gr
   const area = `${padL},${h - padB} ${line} ${pts[pts.length - 1][0].toFixed(1)},${h - padB}`;
   const ticks = [max, (max + min) / 2, min];
   return (
-    <Svg viewBox={`0 0 ${w} ${h}`} width="100%" height={height}>
+    <Svg style={{ direction: 'ltr' }} viewBox={`0 0 ${w} ${h}`} width="100%" height={height}>
       <Defs>
         <LinearGradient id="g" x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0%" stopColor={color} stopOpacity={0.32} />
@@ -68,7 +69,7 @@ export function Donut({ parts, size = 132, hole = 22, holeColor }: {
     return `M${x0},${y0} A${r},${r} 0 ${large} 1 ${x1},${y1} L${x2},${y2} A${ir},${ir} 0 ${large} 0 ${x3},${y3} Z`;
   };
   return (
-    <Svg width={size} height={size}>
+    <Svg style={{ direction: 'ltr' }} width={size} height={size}>
       {parts.map((s, i) => {
         const a0 = (acc / total) * Math.PI * 2;
         acc += s.p;
@@ -83,7 +84,7 @@ export function Donut({ parts, size = 132, hole = 22, holeColor }: {
 export function Bars({ data, color, hi, height = 70 }: { data: number[]; color: string; hi: string; height?: number }) {
   const max = Math.max(...data, 1);
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, height }}>
+    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, height, direction: 'ltr' }}>
       {data.map((v, i) => (
         <View key={i} style={{ flex: 1, height: `${Math.max(10, (v / max) * 100)}%`, borderTopLeftRadius: 5, borderTopRightRadius: 5, backgroundColor: v === max ? hi : color }} />
       ))}
@@ -95,7 +96,7 @@ export function Flame({ streak, size = 40 }: { streak: number; size?: number }) 
   const color = streak > 0 ? '#ff9d4d' : '#3a4150';
   return (
     <View style={{ width: size, height: size, alignSelf: 'center' }}>
-      <Svg viewBox="0 0 24 24" width={size} height={size}>
+      <Svg style={{ direction: 'ltr' }} viewBox="0 0 24 24" width={size} height={size}>
         <Path fill={color} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.657 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
       </Svg>
       <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', paddingTop: size * 0.18 }}>
@@ -105,7 +106,6 @@ export function Flame({ streak, size = 40 }: { streak: number; size?: number }) 
   );
 }
 
-import { Text } from '@/components/T';
 function SvgLabel({ text, size }: { text: string; size: number }) {
   return <Text style={{ color: '#0e1219', fontWeight: '800', fontSize: size }}>{text}</Text>;
 }
@@ -135,7 +135,7 @@ export function TrendChart({ pts, forecast, color, h = 70, target, range, showLa
     ? [`${X(base).toFixed(1)},${Y(hist[base].v).toFixed(1)}`, ...forecast.hi.map((v, i) => `${X(base + 1 + i).toFixed(1)},${Y(v).toFixed(1)}`), ...forecast.lo.map((v, i) => `${X(base + fc.length - i).toFixed(1)},${Y(v).toFixed(1)}`)].join(' ')
     : '';
   return (
-    <Svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h}>
+    <Svg style={{ direction: 'ltr' }} viewBox={`0 0 ${w} ${h}`} width="100%" height={h}>
       {range && <Polygon points={`${padX},${Y(range[1])} ${w - padX},${Y(range[1])} ${w - padX},${Y(range[0])} ${padX},${Y(range[0])}`} fill={color} opacity={0.08} />}
       {target != null && <Line x1={padX} y1={Y(target)} x2={w - padX} y2={Y(target)} stroke={color} strokeWidth={1} strokeDasharray="3 4" opacity={0.5} />}
       {band ? <Polygon points={band} fill={color} opacity={0.16} /> : null}

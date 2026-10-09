@@ -66,7 +66,7 @@ export function ErrorBanner() {
   const fg = light ? '#5c1010' : '#ffd9d9';
   const ic = light ? t.danger : '#ff9d9d';
   return (
-    <View pointerEvents="box-none" style={{ position: 'absolute', left: 10, right: 10, top: insets.top + 6, zIndex: 100 }}>
+    <View pointerEvents="box-none" style={{ position: 'absolute', start: 10, end: 10, top: insets.top + 6, zIndex: 100 }}>
       <View accessibilityRole="alert" style={{ backgroundColor: t.dangerBg, borderColor: ic, borderWidth: 1, borderRadius: 14, padding: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Icon name="alert" size={18} color={ic} />

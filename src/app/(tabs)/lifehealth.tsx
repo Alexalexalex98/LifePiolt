@@ -12,6 +12,7 @@ import { computeScores } from '@/lib/scores';
 import { healthMeta, last, moodOptions, streakOf, useHealth, type Metric as M } from '@/store/health';
 import { toast } from '@/store/toast';
 import { autoSyncIfConnected, connectAppleHealth, hkUnsupportedMessage, syncAppleHealth, useHkStatus } from '@/lib/healthkit';
+import { fmtDate, fmtDateTime, fmtInt, fmtTime } from '@/i18n/format';
 
 /** "2 minuti fa", "oggi alle 09:14"… */
 function ago(ts: number): string {
@@ -19,8 +20,8 @@ function ago(ts: number): string {
   if (m < 1) return 'adesso';
   if (m < 60) return `${m} ${m === 1 ? 'minuto' : 'minuti'} fa`;
   const d = new Date(ts);
-  const hhmm = d.toLocaleTimeString('it-CH', { hour: '2-digit', minute: '2-digit' });
-  return new Date().toDateString() === d.toDateString() ? `oggi alle ${hhmm}` : `${d.toLocaleDateString('it-CH', { day: '2-digit', month: '2-digit' })} alle ${hhmm}`;
+  const hhmm = fmtTime(d);
+  return new Date().toDateString() === d.toDateString() ? `oggi alle ${hhmm}` : `${fmtDate(d, { day: '2-digit', month: '2-digit' })} alle ${hhmm}`;
 }
 
 const fmtSleep = (h: number) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`;
@@ -83,7 +84,7 @@ export default function LifeHealth() {
         {h.wearable.connected && h.wearable.device === 'Apple Health' ? (
           <>
             <Row><Body>Collegato a <Text style={{ fontWeight: '700' }}>Apple Health</Text></Body><Link onPress={() => { h.connect(null); toast('Apple Health scollegato'); }}>Disconnetti</Link></Row>
-            <Body small muted style={{ marginTop: 6 }}>{h.lastSync ? `Ultimo aggiornamento: ${ago(h.lastSync)} (${new Date(h.lastSync).toLocaleString('it-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })})` : 'Non ancora sincronizzato.'} I dati dell'Apple Watch arrivano qui tramite l'app Salute. Si aggiorna da solo quando apri l'app e quando ci torni.</Body>
+            <Body small muted style={{ marginTop: 6 }}>{h.lastSync ? `Ultimo aggiornamento: ${ago(h.lastSync)} (${fmtDateTime(h.lastSync)})` : 'Non ancora sincronizzato.'} I dati dell'Apple Watch arrivano qui tramite l'app Salute. Si aggiorna da solo quando apri l'app e quando ci torni.</Body>
             <Body small color={hk.phase === 'syncing' ? t.muted : hk.phase === 'ok' ? t.positive : hk.phase === 'idle' ? t.muted : t.warn} style={{ marginTop: 6 }}>
               Stato: {hk.phase === 'syncing' ? 'sincronizzazione in corso…' : hk.phase === 'ok' ? 'aggiornato' : hk.phase === 'error' ? 'errore nell’ultima sincronizzazione' : hk.phase === 'unsupported' ? 'non disponibile su questo dispositivo' : h.syncError ? 'errore nell’ultima sincronizzazione' : 'in attesa'}
             </Body>
@@ -107,7 +108,7 @@ export default function LifeHealth() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 10 }}>
           <Tile label="SONNO" value={sleep != null ? fmtSleep(sleep) : '–'} onPress={() => setTrend('sleep')} />
           <Tile label="FC RIPOSO" value={hr != null ? `${Math.round(hr)} bpm` : '–'} onPress={() => setTrend('hr')} />
-          <Tile label="PASSI OGGI" value={steps != null ? Math.round(steps).toLocaleString('it-CH') : '–'} onPress={() => setTrend('steps')} />
+          <Tile label="PASSI OGGI" value={steps != null ? fmtInt(steps) : '–'} onPress={() => setTrend('steps')} />
           <Tile label="PESO" value={weight != null ? `${weight.toFixed(1)} kg` : '–'} onPress={() => setTrend('weight')} />
         </View>
       </Card>
@@ -141,7 +142,7 @@ export default function LifeHealth() {
 
       <Card>
         <Row><H>Attività</H><Btn small ghost title="+ Registra" onPress={() => { setToday({}); setSheet('today'); }} /></Row>
-        <Row><Body muted>Passi oggi</Body><Body bold>{Math.round(steps ?? 0).toLocaleString('it-CH')} / {goal.toLocaleString('it-CH')}</Body></Row>
+        <Row><Body muted>Passi oggi</Body><Body bold>{fmtInt(steps ?? 0)} / {fmtInt(goal)}</Body></Row>
         <Progress value={Math.min(100, ((steps ?? 0) / goal) * 100)} />
         <Row style={{ marginTop: 8 }}><Body muted>Calorie attive stimate</Body><Body bold>{Math.round((steps ?? 0) * 0.045)} kcal</Body></Row>
       </Card>

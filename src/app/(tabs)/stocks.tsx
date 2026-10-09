@@ -6,7 +6,6 @@ import { FinTabs } from '@/components/FinTabs';
 import { StockFlow, type Flow } from '@/components/stocks';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Row, Sheet, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { formatCHF } from '@/lib/format';
 import { go } from '@/lib/nav';
 import { holdings, useFin } from '@/store/finance';
 import { toast } from '@/store/toast';

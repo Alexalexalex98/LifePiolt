@@ -80,7 +80,7 @@ function TopBar({ page }: { page: string }) {
   const tag = names[page === 'index' ? 'home' : page] || '';
   const Badge = ({ n, bg }: { n: number; bg: string }) =>
     n > 0 ? (
-      <View style={{ position: 'absolute', top: 4, right: 2, minWidth: 15, height: 15, borderRadius: 8, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 }} pointerEvents="none">
+      <View style={{ position: 'absolute', top: 4, end: 2, minWidth: 15, height: 15, borderRadius: 8, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 }} pointerEvents="none">
         <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{n}</Text>
       </View>
     ) : null;
@@ -147,7 +147,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
 /* ---------- elementi base ---------- */
 export function Card({ children, style, onPress, accent }: { children: ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void; accent?: string }) {
   const t = useTheme();
-  const base: StyleProp<ViewStyle> = [s.card, { backgroundColor: t.card, borderColor: t.border }, accent ? { borderLeftWidth: 3, borderLeftColor: accent } : null, style];
+  const base: StyleProp<ViewStyle> = [s.card, { backgroundColor: t.card, borderColor: t.border }, accent ? { borderStartWidth: 3, borderStartColor: accent } : null, style];
   if (!onPress) return <View style={base}>{children}</View>;
   return <Press onPress={onPress} style={base}>{children}</Press>;
 }
@@ -302,7 +302,7 @@ export function Toggle({ label, value, onChange, hint }: { label: ReactNode; val
 export function Progress({ value, color }: { value: number; color?: string }) {
   const t = useTheme();
   return (
-    <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(Math.max(0, Math.min(100, value))) }} style={{ height: 7, borderRadius: 10, backgroundColor: t.border, overflow: 'hidden', marginTop: 8 }}>
+    <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(Math.max(0, Math.min(100, value))) }} style={{ height: 7, borderRadius: 10, backgroundColor: t.border, overflow: 'hidden', marginTop: 8, direction: 'ltr' }}>
       <View style={{ width: `${Math.max(0, Math.min(100, value))}%`, height: '100%', backgroundColor: color ?? t.accent, borderRadius: 10 }} />
     </View>
   );
@@ -376,7 +376,7 @@ export function Sheet({ visible, title, onClose, children }: { visible: boolean;
         <Pressable style={{ flex: 1, backgroundColor: t.overlay }} onPress={close} accessibilityRole="button" accessibilityLabel={translateText('Chiudi')} />
         <View accessibilityViewIsModal style={{ backgroundColor: t.sheet, borderTopLeftRadius: 26, borderTopRightRadius: 26, borderTopWidth: 1, borderTopColor: t.sheetBorder, maxHeight: '82%', paddingTop: 20 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 }}>
-            <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.lead, fontWeight: '700', flex: 1, marginRight: 10 }} numberOfLines={2}>{title}</Text>
+            <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.lead, fontWeight: '700', flex: 1, marginEnd: 10 }} numberOfLines={2}>{title}</Text>
             <Btn small ghost title="Chiudi" onPress={onClose} />
           </View>
           <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
@@ -430,7 +430,7 @@ function ToastBubble({ bottom }: { bottom: number }) {
   const { msg, undo, hide } = useToast();
   if (!msg) return null;
   return (
-    <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom, alignItems: 'center', zIndex: 50 }}>
+    <View pointerEvents="box-none" style={{ position: 'absolute', start: 0, end: 0, bottom, alignItems: 'center', zIndex: 50 }}>
       {/* senza "Annulla" il toast non intercetta i tocchi: non deve mai coprire pulsanti sotto di sé */}
       <View pointerEvents={undo ? 'auto' : 'none'} accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ backgroundColor: t.toastBg, borderWidth: 1, borderColor: t.toastBorder, borderRadius: 13, paddingHorizontal: 16, paddingVertical: 11, maxWidth: '88%', flexDirection: 'row', gap: 10, alignItems: 'center' }}>
         <Text style={{ color: t.toastText, fontSize: fs.small, flexShrink: 1, textAlign: 'center' }}>{translateText(msg)}</Text>
@@ -471,5 +471,5 @@ const s = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   menuBtn: { padding: 10 },
   card: { borderWidth: 1, borderRadius: radius.lg, padding: 17, marginVertical: 5 },
-  pill: { borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 11, marginRight: 6, marginBottom: 6 },
+  pill: { borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 11, marginEnd: 6, marginBottom: 6 },
 });

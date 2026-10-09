@@ -1,5 +1,7 @@
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 
+import { isRtlLayout } from '@/lib/rtl';
+
 /** Stesse icone del prototipo (tracciati SVG originali). */
 export const iconMarkup: Record<string, string> = {
   ai: '<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>',
@@ -107,12 +109,15 @@ function parse(markup: string): El[] {
   return out;
 }
 
+/** Icone che indicano una direzione: in scrittura da destra a sinistra vanno specchiate (unico punto: Icon). */
+const DIRECTIONAL = new Set(['arrow-left', 'arrow-right', 'chevron-right', 'forward', 'reply', 'send']);
 export function Icon({ name, size = 20, color = '#fff', fill = 'none', stroke = 1.8 }: {
   name: string; size?: number; color?: string; fill?: string; stroke?: number;
 }) {
   const els = parse(iconMarkup[name] ?? '');
+  const flip = DIRECTIONAL.has(name) && isRtlLayout();
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={size} height={size} viewBox="0 0 24 24" style={flip ? { transform: [{ scaleX: -1 }] } : undefined} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round">
       {els.map((e, i) => {
         const a = e.attrs;
         if (e.tag === 'path') return <Path key={i} d={a.d} fill={fill} />;

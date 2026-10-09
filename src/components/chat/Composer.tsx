@@ -133,7 +133,7 @@ export function Composer(p: Props) {
   return (
     <View style={{ backgroundColor: t.card }}>
       {ctx && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', margin: 8, marginBottom: 0, padding: 8, borderRadius: 10, backgroundColor: c.quoteBg, borderLeftWidth: 4, borderLeftColor: senderColor(ctx.from) }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', margin: 8, marginBottom: 0, padding: 8, borderRadius: 10, backgroundColor: c.quoteBg, borderStartWidth: 4, borderStartColor: senderColor(ctx.from) }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: senderColor(ctx.from), fontWeight: '700', fontSize: 12 }}>{p.editing ? 'Modifica messaggio' : ctx.from === p.me ? 'Tu' : ctx.from}</Text>
             <Text numberOfLines={1} style={{ color: t.muted, fontSize: 13 }}>{previewOf(ctx)}</Text>
@@ -155,8 +155,8 @@ export function Composer(p: Props) {
             returnKeyType={p.enterSends ? 'send' : 'default'}
             style={{ flex: 1, color: t.text, fontSize: p.fontSize, maxHeight: 120, paddingHorizontal: 8, paddingTop: 9, paddingBottom: 9 }}
           />
-          {!p.editing && <Pressable onPress={() => setAttach(true)} hitSlop={6} style={{ paddingVertical: 10, paddingLeft: 6 }} accessibilityLabel={translateText("Allega")}><Icon name="paperclip" size={22} color={t.muted} /></Pressable>}
-          {!p.editing && !has && <Pressable onPress={() => run(takePhoto)} hitSlop={6} style={{ paddingVertical: 10, paddingLeft: 10 }} accessibilityLabel={translateText("Fotocamera")}><Icon name="camera" size={22} color={t.muted} /></Pressable>}
+          {!p.editing && <Pressable onPress={() => setAttach(true)} hitSlop={6} style={{ paddingVertical: 10, paddingStart: 6 }} accessibilityLabel={translateText("Allega")}><Icon name="paperclip" size={22} color={t.muted} /></Pressable>}
+          {!p.editing && !has && <Pressable onPress={() => run(takePhoto)} hitSlop={6} style={{ paddingVertical: 10, paddingStart: 10 }} accessibilityLabel={translateText("Fotocamera")}><Icon name="camera" size={22} color={t.muted} /></Pressable>}
         </View>
         {has && rec === 'off' ? (
           <Pressable onPress={sendText} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={translateText(p.editing ? 'Salva modifica' : 'Invia')}><Icon name={p.editing ? 'check' : 'send'} size={20} color={t.onText} stroke={2.2} /></Pressable>
@@ -174,7 +174,7 @@ export function Composer(p: Props) {
           </Pressable>
         )}
         {rec !== 'off' && (
-          <View style={{ position: 'absolute', left: 8, right: 58, top: 8, bottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, backgroundColor: t.input, borderRadius: 22, borderWidth: 1, borderColor: t.inputBorder }}>
+          <View style={{ position: 'absolute', start: 8, end: 58, top: 8, bottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, backgroundColor: t.input, borderRadius: 22, borderWidth: 1, borderColor: t.inputBorder }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, width: 62 }}><View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: rec === 'on' ? '#e5484d' : t.muted }} /><Text style={{ color: rec === 'on' ? '#e5484d' : t.muted, fontSize: 15, fontWeight: '700' }}>{fmtDur(ms)}</Text></View>
             {mode.current === 'hold'
               ? <Text style={{ flex: 1, color: willCancel ? '#e5484d' : t.muted, fontSize: 13 }}>{willCancel ? 'Rilascia per annullare' : 'Scorri a sinistra per annullare'}</Text>
@@ -224,10 +224,10 @@ export function Composer(p: Props) {
       <Sheet visible={!!preview} title={preview ? `Invia ${preview.length} ${preview.length === 1 ? 'elemento' : 'elementi'}` : ''} onClose={() => setPreview(null)}>
         <ScrollView horizontal keyboardShouldPersistTaps="handled" style={{ marginBottom: 10 }}>
           {preview?.map((x, i) => (
-            <View key={i} style={{ marginRight: 8, width: 120, height: 120, borderRadius: 10, backgroundColor: t.item, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+            <View key={i} style={{ marginEnd: 8, width: 120, height: 120, borderRadius: 10, backgroundColor: t.item, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
               <Image source={{ uri: x.media?.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
               {x.kind === 'video' && <View style={{ position: 'absolute' }}><Icon name="play" size={28} color="#fff" fill="#fff" /></View>}
-              <Pressable onPress={() => { const next = (preview ?? []).filter((_, j) => j !== i); setPreview(next.length ? next : null); }} hitSlop={8} accessibilityLabel={translateText("Rimuovi")} style={{ position: 'absolute', top: 4, right: 4, width: 26, height: 26, borderRadius: 13, backgroundColor: '#000c', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={14} color="#fff" stroke={2.4} /></Pressable>
+              <Pressable onPress={() => { const next = (preview ?? []).filter((_, j) => j !== i); setPreview(next.length ? next : null); }} hitSlop={8} accessibilityLabel={translateText("Rimuovi")} style={{ position: 'absolute', top: 4, end: 4, width: 26, height: 26, borderRadius: 13, backgroundColor: '#000c', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={14} color="#fff" stroke={2.4} /></Pressable>
             </View>
           ))}
         </ScrollView>

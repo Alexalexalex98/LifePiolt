@@ -22,6 +22,7 @@ import { shortDate } from '@/lib/format';
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
 import { translateText } from '@/i18n/core';
+import { fmtTime } from '@/i18n/format';
 
 const order: Record<Domain, string[]> = {
   salute: ['sleep', 'steps', 'hrv', 'hr', 'exercise', 'energy', 'weight', 'vo2', 'spo2'],
@@ -98,7 +99,7 @@ export default function Dashboard() {
       <View style={{ paddingTop: 14 }}>
         <Text style={{ color: t.muted, fontSize: 13 }}>{greet}, {account.name}</Text>
         <Text style={{ color: t.muted, fontSize: 11, marginTop: 2 }}>
-          {dash.dataDays} giorni di dati · {wearable.connected && lastSync ? `Apple Health sincronizzato ${new Date(lastSync).toLocaleTimeString('it-CH', { hour: '2-digit', minute: '2-digit' })}` : 'aggiornato in tempo reale'}
+          {dash.dataDays} giorni di dati · {wearable.connected && lastSync ? `Apple Health sincronizzato ${fmtTime(lastSync)}` : 'aggiornato in tempo reale'}
         </Text>
       </View>
 

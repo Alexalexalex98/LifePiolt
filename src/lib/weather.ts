@@ -1,3 +1,4 @@
+import { getActive } from '@/i18n/core';
 import { Platform } from 'react-native';
 
 import { dayKey, hashStr, mulberry32 } from '@/lib/format';
@@ -29,7 +30,7 @@ export function demoWeather(today = dayKey(), days = 70): Record<string, Weather
 }
 
 async function geocode(city: string) {
-  const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=it`);
+  const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=${getActive()}`);
   if (!r.ok) throw new Error('geo');
   const j = (await r.json()) as { results?: { latitude: number; longitude: number; name: string }[] };
   const hit = j.results?.[0];

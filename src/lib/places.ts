@@ -1,5 +1,9 @@
 /** Spostamenti tra luoghi: stima semplice (nessuna rete) per avvisare quando due impegni sono troppo vicini. */
-const strip = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+import { t } from '../i18n/core.ts';
+
+/** Nomi inglesi/tedeschi delle città -> nome usato nella tabella. */
+const ALIAS: Record<string, string> = { zurich: 'zurigo', geneva: 'ginevra', bern: 'berna', basel: 'basilea', lucerne: 'lucerna', milan: 'milano', 'st gallen': 'san gallo', 'st. gallen': 'san gallo', home: 'casa', office: 'ufficio', zuerich: 'zurigo', genf: 'ginevra', luzern: 'lucerna' };
+const strip = (s: string) => { const x = s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); return ALIAS[x] ?? x; };
 
 /** Minuti di viaggio tra città svizzere/vicine più comuni (simmetrico). Se manca la coppia: 30 min se i luoghi sono diversi. */
 const TABLE: Record<string, number> = {
@@ -31,8 +35,8 @@ export function travelWarnings(day: PlaceEv[], ev: PlaceEv): string[] {
     const xs = toMin(x.time), xe = xs + (x.dur || 60);
     const need = travelMinutes(x.place!, ev.place!);
     if (!need) return;
-    if (xe <= s) { const gap = s - xe; if (gap < need) out.push(`Tra «${x.title}» (${x.place}) e «${ev.title}» (${ev.place}) hai ${gap} min ma ne servono circa ${need} per spostarti.`); }
-    else if (e <= xs) { const gap = xs - e; if (gap < need) out.push(`Tra «${ev.title}» (${ev.place}) e «${x.title}» (${x.place}) hai ${gap} min ma ne servono circa ${need} per spostarti.`); }
+    if (xe <= s) { const gap = s - xe; if (gap < need) out.push(t('Tra «{0}» ({1}) e «{2}» ({3}) hai {4} min ma ne servono circa {5} per spostarti.', x.title, x.place!, ev.title, ev.place, gap, need)); }
+    else if (e <= xs) { const gap = xs - e; if (gap < need) out.push(t('Tra «{0}» ({1}) e «{2}» ({3}) hai {4} min ma ne servono circa {5} per spostarti.', ev.title, ev.place, x.title, x.place!, gap, need)); }
   });
   return out;
 }

@@ -31,7 +31,7 @@ export function MediaPickerField({ value, onChange }: { value: NetMedia | null; 
           {value.media === 'photo'
             ? <Image source={{ uri: value.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
             : <View style={{ alignItems: 'center', gap: 6 }}><Icon name="play" size={34} color={t.text} fill={t.text} /><Text style={{ color: t.muted, fontSize: 12 }}>Video scelto{value.durationMs ? ` · ${Math.round(value.durationMs / 1000)} s` : ''}</Text></View>}
-          <Pressable onPress={() => onChange(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText("Rimuovi")} style={{ position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: 15, backgroundColor: '#000c', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={16} color="#fff" stroke={2.4} /></Pressable>
+          <Pressable onPress={() => onChange(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText("Rimuovi")} style={{ position: 'absolute', top: 8, end: 8, width: 30, height: 30, borderRadius: 15, backgroundColor: '#000c', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={16} color="#fff" stroke={2.4} /></Pressable>
         </View>
         <Body small muted style={{ marginTop: 4 }}>Anteprima: così apparirà nel post. Tocca la X per toglierla.</Body>
       </View>

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { create } from 'zustand';
+import { fmtDate } from '@/i18n/format';
 
 /**
  * Registro locale degli ultimi errori dell'app.
@@ -86,7 +87,7 @@ export function logError(e: unknown, context?: string) {
 
 export function formatErrors(list: ErrorEntry[] = useErrorLog.getState().entries): string {
   const head = `LifePilot ${Constants.expoConfig?.version ?? ''} - ${Platform.OS} - ${list.length} problemi`;
-  const body = list.map((x) => `[${new Date(x.at).toLocaleString('it-IT')}] ${x.screen || 'schermata sconosciuta'}\n${x.message}${x.stack ? '\n' + x.stack : ''}`).join('\n\n');
+  const body = list.map((x) => `[${fmtDate(x.at, { dateStyle: 'short', timeStyle: 'short' })}] ${x.screen || 'schermata sconosciuta'}\n${x.message}${x.stack ? '\n' + x.stack : ''}`).join('\n\n');
   return body ? head + '\n\n' + body : head;
 }
 

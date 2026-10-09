@@ -62,7 +62,7 @@ export function TheiaHost() {
       {!theiaOnline && <Body small muted style={{ marginBottom: 8 }}>Comandi e analisi funzionano sul telefono, senza AI. Per leggere le immagini e rispondere a domande aperte serve il server.</Body>}
       {req?.imageUri && <Image source={{ uri: req.imageUri }} style={{ width: '100%', height: 150, borderRadius: 12, marginBottom: 8, backgroundColor: t.item }} contentFit="contain" />}
       {req?.text ? (
-        <View style={{ backgroundColor: t.item, borderLeftWidth: 3, borderLeftColor: t.accent, borderRadius: 10, padding: 10, marginBottom: 8 }}>
+        <View style={{ backgroundColor: t.item, borderStartWidth: 3, borderStartColor: t.accent, borderRadius: 10, padding: 10, marginBottom: 8 }}>
           <Body small muted>{req.label ?? 'Testo selezionato'}</Body>
           <Body small numberOfLines={6}>{req.text}</Body>
         </View>
@@ -139,7 +139,7 @@ export function TheiaFab() {
 
   if (hidden) return null;
   return (
-    <Animated.View {...pan.panHandlers} style={{ position: 'absolute', right: 12, bottom: insets.bottom + 98, transform: pos.getTranslateTransform() }}>
+    <Animated.View {...pan.panHandlers} style={{ position: 'absolute', end: 12, bottom: insets.bottom + 98, transform: pos.getTranslateTransform() }}>
       <Pressable
         onPress={shot} onLongPress={clip} delayLongPress={350}
         accessibilityLabel={translateText(`Chiedi a ${name}: tocca, poi trascina sulla schermata per scegliere cosa chiedere. Tieni premuto per il testo copiato. Trascinalo per spostarlo`)}
@@ -204,12 +204,12 @@ export function TheiaSelect() {
         {rect && rect.w > 2 && rect.h > 2 && (
           <View pointerEvents="none" style={{ position: 'absolute', left: rect.x, top: rect.y, width: rect.w, height: rect.h, borderColor: t.accent, borderWidth: 2, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.12)' }} />
         )}
-        <View style={{ position: 'absolute', top: insets.top + 10, left: 16, right: 16, alignItems: 'center' }} pointerEvents="none">
+        <View style={{ position: 'absolute', top: insets.top + 10, start: 16, end: 16, alignItems: 'center' }} pointerEvents="none">
           <View style={{ backgroundColor: 'rgba(0,0,0,0.7)', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8 }}>
             <Text style={{ color: '#fff', fontSize: 14 }}>Tieni premuto e trascina su ciò che vuoi chiedere</Text>
           </View>
         </View>
-        <View style={{ position: 'absolute', bottom: insets.bottom + 20, left: 16, right: 16, flexDirection: 'row', justifyContent: 'center', gap: 10 }}>
+        <View style={{ position: 'absolute', bottom: insets.bottom + 20, start: 16, end: 16, flexDirection: 'row', justifyContent: 'center', gap: 10 }}>
           <Pressable onPress={end} style={{ backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12 }} accessibilityLabel={translateText("Annulla")}><Text style={{ color: '#fff', fontWeight: '700' }}>Annulla</Text></Pressable>
           <Pressable onPress={() => confirm(true)} style={{ backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12 }} accessibilityLabel={translateText("Tutta la schermata")}><Text style={{ color: '#fff', fontWeight: '700' }}>Tutta la schermata</Text></Pressable>
           <Pressable onPress={() => confirm(false)} disabled={!rect || rect.w < 24 || busy} style={{ backgroundColor: t.accent, borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12, opacity: !rect || rect.w < 24 ? 0.4 : 1 }} accessibilityLabel={translateText("Chiedi su quest'area")}><Text style={{ color: t.onText, fontWeight: '800' }}>Chiedi</Text></Pressable>

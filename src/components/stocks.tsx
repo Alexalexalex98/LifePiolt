@@ -5,7 +5,6 @@ import { Text } from '@/components/T';
 import { LineChart } from '@/components/charts';
 import { Body, Btn, Card, Input, Item, Metric, Pill, Row, Select, Sheet, Tag, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { formatCHF } from '@/lib/format';
 import { useFin, type Stock } from '@/store/finance';
 import { toast } from '@/store/toast';
 import { formatMoney } from '@/i18n/format';
@@ -127,7 +126,7 @@ export function StockFlow({ flow, setFlow }: { flow: Flow; setFlow: (f: Flow) =>
       <>
         <Body small muted>Versamento periodico automatico in {stock.symbol} (simulato).</Body>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginVertical: 10 }}>{[50, 100, 250, 500].map((v) => <Pill key={v} label={`${formatMoney(v)}`} onPress={() => setSpAmount(String(v))} />)}</View>
-        <Input keyboardType="decimal-pad" placeholder="Importo personalizzato (CHF)" value={spAmount} onChangeText={setSpAmount} />
+        <Input keyboardType="decimal-pad" placeholder="Importo personalizzato" value={spAmount} onChangeText={setSpAmount} />
         <Select value={spFreq} options={['Mensile', 'Settimanale']} onChange={(v) => setSpFreq(v as typeof spFreq)} />
         <Btn title="Continua" onPress={() => {
           const a = parseFloat(spAmount.replace(',', '.'));

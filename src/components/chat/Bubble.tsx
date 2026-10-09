@@ -90,13 +90,13 @@ export const Bubble = memo(function Bubble(p: Props) {
           <View style={{ backgroundColor: bg, borderRadius: 12, borderTopRightRadius: mine ? 3 : 12, borderTopLeftRadius: mine ? 12 : 3, padding: mediaOnly ? 3 : 8, paddingBottom: 5, marginBottom: reactions.length ? 10 : 0 }}>
             {p.isGroup && !mine && p.showSender && <Text style={{ color: senderColor(m.from), fontWeight: '700', fontSize: 13, marginBottom: 2 }}>{m.from}</Text>}
             {p.quoted && !m.deletedForAll && (
-              <Pressable onPress={() => p.onJump(p.quoted!.id)} style={{ backgroundColor: c.quoteBg, borderLeftWidth: 4, borderLeftColor: senderColor(p.quoted.from), borderRadius: 6, padding: 6, marginBottom: 4 }}>
+              <Pressable onPress={() => p.onJump(p.quoted!.id)} style={{ backgroundColor: c.quoteBg, borderStartWidth: 4, borderStartColor: senderColor(p.quoted.from), borderRadius: 6, padding: 6, marginBottom: 4 }}>
                 <Text style={{ color: senderColor(p.quoted.from), fontSize: 12, fontWeight: '700' }}>{p.quoted.from === p.me ? 'Tu' : p.quoted.from}</Text>
                 <Text numberOfLines={2} style={{ color: c.meta, fontSize: 13 }}>{previewOf(p.quoted)}</Text>
               </Pressable>
             )}
             {body}
-            {mediaOnly ? <View style={{ position: 'absolute', right: 8, bottom: 6, backgroundColor: '#0007', borderRadius: 8, paddingHorizontal: 5, flexDirection: 'row', gap: 3 }}><Text style={{ color: '#fff', fontSize: 11 }}>{fmtClock(m.ts)}</Text>{mine && <Ticks status={m.status} />}</View> : meta}
+            {mediaOnly ? <View style={{ position: 'absolute', end: 8, bottom: 6, backgroundColor: '#0007', borderRadius: 8, paddingHorizontal: 5, flexDirection: 'row', gap: 3 }}><Text style={{ color: '#fff', fontSize: 11 }}>{fmtClock(m.ts)}</Text>{mine && <Ticks status={m.status} />}</View> : meta}
             {reactions.length > 0 && (
               <Pressable onPress={() => p.onReact(m)} style={{ position: 'absolute', bottom: -12, [mine ? 'right' : 'left']: 8, flexDirection: 'row', backgroundColor: c.theirs, borderRadius: 12, paddingHorizontal: 6, paddingVertical: 1, borderWidth: 1, borderColor: c.quoteBg }}>
                 {Object.entries(reactionCounts).map(([e, n]) => <View key={e} style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginHorizontal: 2 }}><Icon name={reactionIcon(e)} size={13} color={reactionIcon(e) === 'heart' ? '#ff5d7a' : c.meta} fill={reactionIcon(e) === 'heart' ? '#ff5d7a' : 'none'} />{n > 1 ? <Text style={{ fontSize: 11, color: c.meta }}>{n}</Text> : null}</View>)}

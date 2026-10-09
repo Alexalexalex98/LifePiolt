@@ -105,7 +105,7 @@ export function DiscoverHost() {
             );
           })}
         </ScrollView>
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: t.bg, borderTopColor: t.border, borderTopWidth: 1, paddingHorizontal: 16, paddingTop: 10, paddingBottom: insets.bottom + 10 }}>
+        <View style={{ position: 'absolute', start: 0, end: 0, bottom: 0, backgroundColor: t.bg, borderTopColor: t.border, borderTopWidth: 1, paddingHorizontal: 16, paddingTop: 10, paddingBottom: insets.bottom + 10 }}>
           <Toggle label="Dopo i primi 3 giorni, mostra una funzione al giorno all'apertura" value={showOnOpen} onChange={(v) => useDiscover.getState().setShowOnOpen(v)} />
           <Btn title="Inizia" icon="check" onPress={hide} />
         </View>

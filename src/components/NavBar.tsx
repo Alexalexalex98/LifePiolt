@@ -38,7 +38,7 @@ export function NavBar({ state }: BottomTabBarProps) {
   return (
     <View>
       {suggestion && (
-        <View style={{ position: 'absolute', bottom: 74 + insets.bottom, left: 16, right: 16, zIndex: 6 }}>
+        <View style={{ position: 'absolute', bottom: 74 + insets.bottom, start: 16, end: 16, zIndex: 6 }}>
           <Card>
             <Body small style={{ marginBottom: 10 }}>
               Usi spesso <Text style={{ fontWeight: '700' }}>{navLabelFor(suggestion.inn, language)}</Text>. Vuoi sostituire{' '}
@@ -89,7 +89,7 @@ export function MenuSheet() {
       </Press>
       {groups.map((g) => (
         <View key={g.label}>
-          <Text style={{ color: t.muted, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 14, marginBottom: 6, marginLeft: 2 }}>{g.label}</Text>
+          <Text style={{ color: t.muted, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 14, marginBottom: 6, marginStart: 2 }}>{g.label}</Text>
           <View style={{ backgroundColor: t.input, borderWidth: 1, borderColor: t.border, borderRadius: 16, overflow: 'hidden' }}>
             {g.items.map(([id, label], i) => {
               const color = t.mode === 'light' ? t.accent : (areaColors[id] ?? t.accent);

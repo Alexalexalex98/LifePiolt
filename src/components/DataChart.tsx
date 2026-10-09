@@ -1,3 +1,4 @@
+import { fmtNumber } from '@/i18n/format';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
@@ -7,10 +8,11 @@ import type { ChartSpec } from '@/data/skillBank';
 import { useTheme } from '@/hooks/use-theme';
 import { niceMax } from '@/lib/dataTable';
 import { Icon } from '@/lib/icons';
+import { endAlign } from '@/lib/rtl';
 
 const COLORS = ['#4f7cff', '#1f9d6b', '#e0a030', '#d64545', '#8a5cf6', '#13a8c4', '#e0709c', '#7a8794'];
 export const seriesColor = (i: number) => COLORS[i % COLORS.length];
-const fmtN = (v: number) => (Math.abs(v) >= 1000 ? v.toLocaleString('it-CH', { maximumFractionDigits: 1 }) : String(Math.round(v * 100) / 100).replace('.', ','));
+const fmtN = (v: number) => fmtNumber(v, { maximumFractionDigits: Math.abs(v) >= 1000 ? 1 : 2 });
 const cut = (s: string, n: number) => (s.length > n ? s.slice(0, Math.max(1, n - 1)) + '.' : s);
 
 /** Grafico (barre, linee o torta) disegnato in SVG dai dati inseriti da chi assume. */
@@ -38,7 +40,7 @@ export function DataChart({ spec, tableOpen = false }: { spec: ChartSpec; tableO
     let a0 = -Math.PI / 2;
     body = (
       <>
-        <Svg width="100%" height={180} viewBox={`0 0 ${w} 180`}>
+        <Svg style={{ direction: 'ltr' }} width="100%" height={180} viewBox={`0 0 ${w} 180`}>
           {vals.map((v, i) => {
             const a1 = a0 + (v / tot) * Math.PI * 2;
             const full = v / tot > 0.9999;
@@ -63,7 +65,7 @@ export function DataChart({ spec, tableOpen = false }: { spec: ChartSpec; tableO
     const maxChars = Math.max(3, Math.floor(slot / 5.2));
     body = (
       <>
-        <Svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`}>
+        <Svg style={{ direction: 'ltr' }} width="100%" height={h} viewBox={`0 0 ${w} ${h}`}>
           {ticks.map((v, i) => (
             <G key={i}>
               <Line x1={padL} y1={y(v)} x2={w - padR} y2={y(v)} stroke={t.border} strokeWidth={1} />
@@ -114,12 +116,12 @@ export function DataChart({ spec, tableOpen = false }: { spec: ChartSpec; tableO
         <View style={{ marginTop: 6, borderTopWidth: 1, borderTopColor: t.border }}>
           <View style={{ flexDirection: 'row', paddingVertical: 5 }}>
             <Text style={{ flex: 1.4, color: t.muted, fontSize: 11 }} />
-            {spec.series.map((s, j) => <Text key={j} style={{ flex: 1, color: t.muted, fontSize: 11, fontWeight: '700', textAlign: 'right' }} numberOfLines={1}>{s.name}</Text>)}
+            {spec.series.map((s, j) => <Text key={j} style={{ flex: 1, color: t.muted, fontSize: 11, fontWeight: '700', textAlign: endAlign() }} numberOfLines={1}>{s.name}</Text>)}
           </View>
           {spec.labels.map((l, i) => (
             <View key={i} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: t.item }}>
               <Text style={{ flex: 1.4, color: t.text, fontSize: 12 }} numberOfLines={1}>{l}</Text>
-              {spec.series.map((s, j) => <Text key={j} style={{ flex: 1, color: t.text, fontSize: 12, textAlign: 'right' }}>{fmtN(s.values[i] ?? 0)}</Text>)}
+              {spec.series.map((s, j) => <Text key={j} style={{ flex: 1, color: t.text, fontSize: 12, textAlign: endAlign() }}>{fmtN(s.values[i] ?? 0)}</Text>)}
             </View>
           ))}
         </View>

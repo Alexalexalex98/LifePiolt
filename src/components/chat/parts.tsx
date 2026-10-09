@@ -40,7 +40,7 @@ export function Ticks({ status, size = 13 }: { status: MsgStatus; size?: number 
   return (
     <View style={{ flexDirection: 'row', width: double ? size + 6 : size, height: size }}>
       <Icon name="check" size={size} color={col} stroke={2.6} />
-      {double && <View style={{ position: 'absolute', left: 6 }}><Icon name="check" size={size} color={col} stroke={2.6} /></View>}
+      {double && <View style={{ position: 'absolute', start: 6 }}><Icon name="check" size={size} color={col} stroke={2.6} /></View>}
     </View>
   );
 }
@@ -114,14 +114,14 @@ export function MediaThumb({ m, onOpen, onLongPress }: { m: ChatMessage; onOpen:
         {m.kind === 'video' && (
           <View style={{ ...absoluteFill, alignItems: 'center', justifyContent: 'center' }}>
             <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#000a', alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={20} color="#fff" fill="#fff" /></View>
-            {m.media?.durationMs ? <Text style={{ position: 'absolute', left: 8, bottom: 6, color: '#fff', fontSize: 11 }}>{fmtDur(m.media.durationMs)}</Text> : null}
+            {m.media?.durationMs ? <Text style={{ position: 'absolute', start: 8, bottom: 6, color: '#fff', fontSize: 11 }}>{fmtDur(m.media.durationMs)}</Text> : null}
           </View>
         )}
       </View>
     </Pressable>
   );
 }
-const absoluteFill = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 };
+const absoluteFill = { position: 'absolute' as const, top: 0, start: 0, end: 0, bottom: 0 };
 
 function VideoPage({ uri, active }: { uri: string; active: boolean }) {
   const p = useVideoPlayer(uri, (pl) => { pl.loop = false; });
@@ -147,13 +147,13 @@ export function MediaViewer({ items, index, onClose, onDelete }: { items: ChatMe
           renderItem={({ item, index: i }) => (
             <View style={{ width, justifyContent: 'center' }}>
               {item.kind === 'video' ? <VideoPage uri={item.media!.uri} active={i === cur} /> : <Image source={{ uri: item.media!.uri }} style={{ width: '100%', height: '100%' }} contentFit="contain" />}
-              {item.text ? <Text style={{ position: 'absolute', bottom: insets.bottom + 16, left: 16, right: 16, color: '#fff', textAlign: 'center', fontSize: 15 }}>{item.text}</Text> : null}
+              {item.text ? <Text style={{ position: 'absolute', bottom: insets.bottom + 16, start: 16, end: 16, color: '#fff', textAlign: 'center', fontSize: 15 }}>{item.text}</Text> : null}
             </View>
           )}
         />
-        <Pressable onPress={onClose} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, left: 16 }} accessibilityLabel={translateText("Chiudi")}><Icon name="x" size={28} color="#fff" /></Pressable>
+        <Pressable onPress={onClose} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, start: 16 }} accessibilityLabel={translateText("Chiudi")}><Icon name="x" size={28} color="#fff" /></Pressable>
         <Text style={{ position: 'absolute', top: insets.top + 16, alignSelf: 'center', color: '#fff', fontSize: 13 }}>{cur + 1} / {items.length}</Text>
-        {onDelete && items[cur] && <Pressable onPress={() => onDelete(items[cur])} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, right: 16 }} accessibilityLabel={translateText("Elimina")}><Icon name="trash" size={24} color="#fff" /></Pressable>}
+        {onDelete && items[cur] && <Pressable onPress={() => onDelete(items[cur])} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, end: 16 }} accessibilityLabel={translateText("Elimina")}><Icon name="trash" size={24} color="#fff" /></Pressable>}
         <ModalToast />
       </View>
     </Modal>

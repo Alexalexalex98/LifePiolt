@@ -4,23 +4,25 @@ import { useState } from 'react';
 import { Pressable, Share, View } from 'react-native';
 import { alertT } from '@/lib/alert';
 
+import { LanguageList, CurrencyPicker } from '@/components/LanguagePicker';
 import { navLabelFor } from '@/components/NavBar';
 import { WorkHoursSheet } from '@/components/plan';
 import { Body, Btn, Card, H, Input, Item, Link, Page, Pill, Row, Select, Sheet, Toggle, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { exportBackup, pickBackup, restoreBackup, STORE_LABELS, wipeAllData, type BackupPreview } from '@/lib/backup';
 import { formatErrors, logError, useErrorLog } from '@/lib/errorLog';
-import { translate, useSectionNames, useT } from '@/lib/i18n';
+import { useSectionNames, useT } from '@/lib/i18n';
 import { go } from '@/lib/nav';
 import { cancelAll, refreshBriefings, requestPermission } from '@/lib/notify';
 import { areaColors, Icon } from '@/lib/icons';
-import { navCatalog, useApp, type Appearance, type Language } from '@/store/app';
+import { navCatalog, useApp, type Appearance } from '@/store/app';
 import { useFin } from '@/store/finance';
 import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
 import { useTravel } from '@/store/travel';
 import { toast } from '@/store/toast';
 import { applyDemo } from '@/store/demo';
+import { fmtDate } from '@/i18n/format';
 
 const dataLabels: Record<string, string> = {
   life: 'Task, obiettivi, note, file e calendario', health: 'Dati di salute e umore', finance: 'Movimenti, budget e investimenti simulati',
@@ -200,8 +202,17 @@ export default function Settings() {
 
       <Card>
         <H>{tr('stLanguage')}</H>
-        <Select value={app.language} options={['Italiano', 'English', 'Deutsch', 'Français']} onChange={(v) => { set({ language: v as Language }); toast(translate(v as Language, 'langChanged')); }} />
-        <View style={{ flexDirection: 'row' }}><Pill label={app.timeFormat} onPress={() => { const n = app.timeFormat === '24h' ? '12h' : '24h'; set({ timeFormat: n }); toast('Formato ora: ' + n); }} /></View>
+        <LanguageList />
+        <Body small muted style={{ marginTop: 10 }}>Per le lingue scritte da destra a sinistra (arabo) su telefono può servire riaprire l'app.</Body>
+      </Card>
+
+      <Card>
+        <H>Formato e valuta</H>
+        <CurrencyPicker />
+        <Row style={{ paddingVertical: 4 }}>
+          <Body>Formato ora</Body>
+          <Pill label={app.timeFormat} onPress={() => { const n = app.timeFormat === '24h' ? '12h' : '24h'; set({ timeFormat: n }); toast('Formato ora: ' + n); }} />
+        </Row>
       </Card>
 
       <Card>
@@ -290,7 +301,7 @@ export default function Settings() {
         {restore?.error && <><Body small muted>{restore.error}</Body><Btn ghost style={{ marginTop: 14 }} title="Chiudi" onPress={() => setRestore(null)} /></>}
         {restore && !restore.error && restore.preview && restore.step === 1 && (
           <>
-            <Body small muted>Backup del {restore.preview.createdAt ? new Date(restore.preview.createdAt).toLocaleString('it-IT') : 'data sconosciuta'}{restore.preview.appVersion ? ` (LifePilot ${restore.preview.appVersion})` : ''}. {restore.preview.storeCount} categorie, {restore.preview.sizeKB} KB.</Body>
+            <Body small muted>Backup del {restore.preview.createdAt ? fmtDate(restore.preview.createdAt, { dateStyle: 'short', timeStyle: 'short' }) : 'data sconosciuta'}{restore.preview.appVersion ? ` (LifePilot ${restore.preview.appVersion})` : ''}. {restore.preview.storeCount} categorie, {restore.preview.sizeKB} KB.</Body>
             <View style={{ marginVertical: 10 }}>
               {Object.entries(restore.preview.items).map(([k, n]) => <Row key={k}><Body small>{STORE_LABELS[k] ?? k}</Body><Body small muted>{n > 0 ? `${n} voci` : 'impostazioni'}</Body></Row>)}
             </View>
@@ -317,7 +328,7 @@ export default function Settings() {
             <Body small muted style={{ marginBottom: 8 }}>Ultimi {errors.length} (massimo 50). Restano solo su questo telefono.</Body>
             {errors.map((e) => (
               <View key={e.id} style={{ marginBottom: 10 }}>
-                <Body small bold>{new Date(e.at).toLocaleString('it-IT')}{e.screen ? ` · ${e.screen}` : ''}</Body>
+                <Body small bold>{fmtDate(e.at, { dateStyle: 'short', timeStyle: 'short' })}{e.screen ? ` · ${e.screen}` : ''}</Body>
                 <Body small muted>{e.message}</Body>
               </View>
             ))}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Image, View } from 'react-native';
 import { Text } from '@/components/T';
 
+import { LanguageButton } from '@/components/LanguagePicker';
 import { PrivacyContent } from '@/components/PrivacyContent';
 import { Body, Btn, Input, Page, Sheet } from '@/components/ui';
 import { type as fs } from '@/constants/theme';
@@ -26,6 +27,7 @@ export default function Onboarding() {
   return (
     <Page id="onboarding" noTop>
       <View style={{ paddingTop: 70 }}>
+        <View style={{ position: 'absolute', top: 14, end: 0 }}><LanguageButton /></View>
         <Image source={require('../../assets/proto/app-logo.png')} style={{ width: 72, height: 72, marginBottom: 14, ...(t.mode === 'light' ? { tintColor: '#10151d' } : null) }} resizeMode="contain" accessibilityLabel={translateText("LifePilot")} />
         <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.display, fontWeight: '800', letterSpacing: -0.5 }}>LifePilot</Text>
         <Body muted style={{ marginTop: 8, marginBottom: 30 }}>

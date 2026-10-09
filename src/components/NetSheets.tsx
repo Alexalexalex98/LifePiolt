@@ -24,7 +24,7 @@ import { REASONS, modKey, type ModKind, type ReasonId } from '@/lib/modRules';
 import { useVisible } from '@/lib/moderation';
 import { useChat } from '@/store/chat';
 import { useMod } from '@/store/moderation';
-import { formatMoney } from '@/i18n/format';
+import { endAlign } from '@/lib/rtl';
 
 /** Un'unica Sheet che mostra la vista richiesta dal social (evita modali annidate). */
 export function NetSheetHost() {
@@ -423,9 +423,9 @@ function ConfirmAttendanceView({ id }: { id: string }) {
   };
   return (
     <>
-      <Item><Row><Body muted>{e.kind === 'seminar' ? 'Seminario' : 'Servizio'}</Body><Body bold style={{ flexShrink: 1, textAlign: 'right' }}>{e.title}</Body></Row></Item>
+      <Item><Row><Body muted>{e.kind === 'seminar' ? 'Seminario' : 'Servizio'}</Body><Body bold style={{ flexShrink: 1, textAlign: endAlign() }}>{e.title}</Body></Row></Item>
       <Item><Row><Body muted>{e.kind === 'seminar' ? 'Relatore' : 'Professionista'}</Body><Body bold>{e.host}</Body></Row></Item>
-      <Item><Row><Body muted>Quando</Body><Body bold style={{ flexShrink: 1, textAlign: 'right' }}>{fmtRange(e.startsAt, e.durationMin)}</Body></Row></Item>
+      <Item><Row><Body muted>Quando</Body><Body bold style={{ flexShrink: 1, textAlign: endAlign() }}>{fmtRange(e.startsAt, e.durationMin)}</Body></Row></Item>
       <Item last><Row><Body muted>Importo</Body><Body bold>{e.price ? `${e.price} LP` : 'Gratuito'}</Body></Row></Item>
       {step === 1 ? (
         <>
@@ -556,7 +556,7 @@ function TopUpView() {
   const a = parseFloat(amt.replace(',', '.')) || 0;
   const cur = net.payCurrency;
   const isCrypto = !!cryptoRates[cur];
-  const note = !a ? '' : cur === 'CHF' ? `Addebito: ${formatMoney(a)}` : `Addebito indicativo: ${convertAmount(a, cur).toFixed(isCrypto ? 6 : 2)} ${cur}${isCrypto ? ' · tasso illustrativo, non di mercato' : ' · include un margine di cambio del 2%'}`;
+  const note = !a ? '' : cur === 'CHF' ? `Addebito: ${formatCHF(a)} CHF` : `Addebito indicativo: ${convertAmount(a, cur).toFixed(isCrypto ? 6 : 2)} ${cur}${isCrypto ? ' · tasso illustrativo, non di mercato' : ' · include un margine di cambio del 2%'}`;
   return (
     <>
       <Body small muted>Ricarica di prova: nessun pagamento reale è collegato. In versione pubblicata l'acquisto di LifePoints dovrà passare dai pagamenti in-app dello store.</Body>

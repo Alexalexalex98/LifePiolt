@@ -166,7 +166,7 @@ export default function TaxDecl() {
                     {!checked && <Icon name="paperclip" size={18} color={t.muted} stroke={1.9} />}
                   </Pressable>
                   {rec ? (
-                    <View style={{ marginLeft: 32, marginTop: 6 }}>
+                    <View style={{ marginStart: 32, marginTop: 6 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Icon name={isImageFile({ name: rec.name, mime: rec.mime }) ? 'image' : 'file'} size={15} color={t.muted} stroke={1.9} />
                         <Body small muted numberOfLines={1} style={{ flexShrink: 1 }}>{rec.name}{rec.size ? ` · ${fmtBytes(rec.size)}` : ''}</Body>

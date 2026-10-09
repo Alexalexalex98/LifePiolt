@@ -4,6 +4,7 @@ import { usePurchase } from '@/components/network';
 import { Body, Btn, Card, Item, Page, Row, Sheet } from '@/components/ui';
 import { go } from '@/lib/nav';
 import { toast } from '@/store/toast';
+import { endAlign } from '@/lib/rtl';
 
 export default function PurchaseConfirm() {
   const { pending, set } = usePurchase();
@@ -21,7 +22,7 @@ export default function PurchaseConfirm() {
     <Page id="purchaseConfirm" title={pending?.title ?? 'Conferma acquisto'} noTop back={false}>
       {!pending ? <Body muted>Nessun acquisto in corso.</Body> : (
         <>
-          <Card>{pending.rows.map(([l, v], i) => <Item key={l} last={i === pending.rows.length - 1}><Row><Body muted>{l}</Body><Body bold style={{ flexShrink: 1, textAlign: 'right' }}>{v}</Body></Row></Item>)}</Card>
+          <Card>{pending.rows.map(([l, v], i) => <Item key={l} last={i === pending.rows.length - 1}><Row><Body muted>{l}</Body><Body bold style={{ flexShrink: 1, textAlign: endAlign() }}>{v}</Body></Row></Item>)}</Card>
           <Row style={{ marginTop: 22 }}>
             <Btn ghost style={{ flex: 1 }} title="Annulla" onPress={cancel} />
             <Btn style={{ flex: 1 }} title="Conferma" onPress={() => setFinal(true)} />

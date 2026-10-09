@@ -6,16 +6,20 @@ import { Children, createElement, isValidElement, useSyncExternalStore, type Rea
 import { StyleSheet, Text as RNText, TextInput as RNTextInput, type TextInputProps, type TextProps } from 'react-native';
 
 import { translateText } from '@/i18n/core';
+import { localizeMonths } from '@/i18n/format';
 import { snapshotTextScale, subscribeTextScale } from '@/lib/textScaleState';
+
+/** Traduce un testo; se il catalogo non lo conosce, almeno localizza i nomi dei mesi italiani (etichette salvate come "Ottobre 2026"). */
+const tx = (s: string) => { const o = translateText(s); return o === s ? localizeMonths(s) : o; };
 
 /** Traduce i figli di tipo stringa (anche dentro array); lascia intatti gli elementi React. */
 export function trChildren(children: ReactNode): ReactNode {
-  if (typeof children === 'string') return translateText(children);
+  if (typeof children === 'string') return tx(children);
   if (Array.isArray(children)) {
     // "{n} impegni": prima provo a tradurre le parti, ma se l'insieme è un modello noto lo traduco intero
     const flat = children.every((c) => typeof c === 'string' || typeof c === 'number') ? children.join('') : null;
-    if (flat !== null) { const whole = translateText(flat); if (whole !== flat) return whole; }
-    return Children.map(children, (c) => (typeof c === 'string' ? translateText(c) : isValidElement(c) ? c : c));
+    if (flat !== null) { const whole = tx(flat); if (whole !== flat) return whole; }
+    return Children.map(children, (c) => (typeof c === 'string' ? tx(c) : isValidElement(c) ? c : c));
   }
   return children;
 }

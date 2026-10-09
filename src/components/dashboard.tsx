@@ -75,7 +75,7 @@ export function InsightCard({ i, onPress }: { i: Insight; onPress?: () => void }
   const c = statusColor(t, i.severity);
   const glyph = i.severity === 'good' ? 'check' : i.severity === 'info' ? 'info' : 'alert';
   return (
-    <Card onPress={onPress} style={{ borderLeftWidth: 3, borderLeftColor: c }}>
+    <Card onPress={onPress} style={{ borderStartWidth: 3, borderStartColor: c }}>
       <Row style={{ alignItems: 'flex-start' }}>
         <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: c + '25', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={glyph} size={14} color={c} stroke={2.4} />
@@ -182,7 +182,7 @@ function Explain({ a, part }: { a: Analysis; part: 'top' | 'rest' }) {
   if (part === 'top') return (
     <View>
       <Sect title="Dove sei rispetto all’ottimale">
-        <View style={{ backgroundColor: c + '18', borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: c }}>
+        <View style={{ backgroundColor: c + '18', borderRadius: 12, padding: 12, borderStartWidth: 3, borderStartColor: c }}>
           <Body bold>Il tuo valore: {f(mainValue(a))}</Body>
           <Body small style={{ marginTop: 2 }}>Ottimale: {info.optimal}</Body>
           <Body small muted style={{ marginTop: 2 }}>{info.basis}</Body>

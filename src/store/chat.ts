@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { fmtDur as fmtDurImpl, lastMessage, previewText } from '@/lib/chatList';
 import { uid } from '@/lib/format';
 import { persisted } from './persist';
+import { fmtDate, fmtTime, weekdayLong } from '@/i18n/format';
 
 export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'contact' | 'poll' | 'agenda' | 'tasks' | 'note' | 'slots' | 'event' | 'system';
 export type MsgStatus = 'sending' | 'sent' | 'delivered' | 'read';
@@ -333,11 +334,9 @@ export const previewOf = (m: ChatMessage): string => previewText(m);
 export const fmtDur = fmtDurImpl;
 
 export function fmtClock(ts: number): string {
-  const d = new Date(ts);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return fmtTime(ts);
 }
 
-const wd = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
 export function dayLabel(ts: number): string {
@@ -345,8 +344,8 @@ export function dayLabel(ts: number): string {
   if (sameDay(d, now)) return 'Oggi';
   const y = new Date(now.getTime() - DAY);
   if (sameDay(d, y)) return 'Ieri';
-  if (now.getTime() - ts < 6 * DAY) return wd[d.getDay()];
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  if (now.getTime() - ts < 6 * DAY) return weekdayLong(d.getDay());
+  return fmtDate(d, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 /** Ora per la lista chat: orario oggi, "Ieri", poi data. */
@@ -354,7 +353,7 @@ export function listTime(ts: number): string {
   const d = new Date(ts), now = new Date();
   if (sameDay(d, now)) return fmtClock(ts);
   if (sameDay(d, new Date(now.getTime() - DAY))) return 'Ieri';
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`;
+  return fmtDate(d, { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
 export const urlRe = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;

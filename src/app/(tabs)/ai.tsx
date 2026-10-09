@@ -12,6 +12,7 @@ import { GENERALE, foldersOf, migrateOldChat, searchLog, useAssistant, type AMsg
 import { useApp } from '@/store/app';
 import { toast } from '@/store/toast';
 import { translateText } from '@/i18n/core';
+import { fmtDate } from '@/i18n/format';
 
 const START_CHIPS = ['Aggiungi una riunione al piano', 'Aggiungi un task', 'Cosa ho in programma domani?', 'Analisi delle mie finanze', 'Rendi privato il mio profilo', 'Cambia la foto del profilo', 'Cosa sai fare?'];
 
@@ -74,7 +75,7 @@ export default function LifeChat() {
             ListEmptyComponent={<Body muted small>{q.trim() ? 'Nessun risultato.' : 'Scrivi una parola: cerco in tutte le conversazioni, anche in quelle archiviate per argomento.'}</Body>}
             renderItem={({ item }) => (
               <Pressable onPress={() => { setSection(item.topic); setSearching(false); setQ(''); }} style={{ backgroundColor: t.item, borderRadius: 14, padding: 12, marginBottom: 8 }}>
-                <Text style={{ color: t.muted, fontSize: 11, marginBottom: 3 }}>{item.topic} · {new Date(item.ts).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} · {item.who === 'me' ? 'Tu' : name}</Text>
+                <Text style={{ color: t.muted, fontSize: 11, marginBottom: 3 }}>{item.topic} · {fmtDate(item.ts, { day: 'numeric', month: 'short' })} · {item.who === 'me' ? 'Tu' : name}</Text>
                 <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }} numberOfLines={4}>{item.text}</Text>
               </Pressable>
             )}
@@ -132,7 +133,7 @@ export default function LifeChat() {
           />
           <Row style={{ paddingTop: 10, paddingBottom: 6, alignItems: 'flex-start' }}>
             <Input flex={1} placeholder={section === GENERALE ? 'Scrivi un comando o una domanda…' : `Scrivi in ${section}…`} value={text} onChangeText={setText} onSubmitEditing={() => send()} returnKeyType="send" style={{ marginBottom: 0 }} />
-            <Pressable onPress={() => send()} disabled={busy || !text.trim()} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: busy || !text.trim() ? 0.4 : 1, marginLeft: 8 }} accessibilityLabel={translateText("Invia")}>
+            <Pressable onPress={() => send()} disabled={busy || !text.trim()} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: busy || !text.trim() ? 0.4 : 1, marginStart: 8 }} accessibilityLabel={translateText("Invia")}>
               <Icon name="arrow-up" size={20} color={t.onText} stroke={2.4} />
             </Pressable>
           </Row>

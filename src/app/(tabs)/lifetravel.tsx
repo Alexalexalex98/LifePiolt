@@ -5,13 +5,12 @@ import { Text } from '@/components/T';
 
 import { Body, Btn, Card, H, Item, Link, Page, Pill, Row, Sheet, Toggle, XBtn, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { formatCHF, monthNames } from '@/lib/format';
 import { areaColors, Icon } from '@/lib/icons';
 import { activitiesByStyle, destinations, genFlight, hotelPool, hotelScore, monthLabel, monthNumFromOffset, seasonMultiplier, styleLabel, topicToCity, travelStyles, yearLabel } from '@/lib/travel';
 import { useLife } from '@/store/life';
 import { useTravel } from '@/store/travel';
 import { showUndoToast, toast } from '@/store/toast';
-import { formatMoney } from '@/i18n/format';
+import { formatMoney, monthName } from '@/i18n/format';
 
 type View_ = null | 'city' | 'date' | 'guests' | 'itinerary';
 
@@ -25,7 +24,7 @@ export default function LifeTravel() {
   const city = destinations.find((c) => c.id === tv.city)!;
   const mult = seasonMultiplier(city.type, monthNumFromOffset(tv.monthOffset));
   const days = vacRange?.end ? Number(vacRange.end.slice(8)) - Number(vacRange.start.slice(8)) + 1 : 3;
-  const vacText = vacRange?.end ? `${vacRange.start.slice(8)}–${vacRange.end.slice(8)} ${monthNames[Number(vacRange.start.slice(5, 7)) - 1].toLowerCase()} (${days} giorni)` : '';
+  const vacText = vacRange?.end ? `${vacRange.start.slice(8)}–${vacRange.end.slice(8)} ${monthName(Number(vacRange.start.slice(5, 7)) - 1)} (${days} giorni)` : '';
   const g = tv.guests;
   const sorted = hotelPool.map((h, i) => ({ h, i, score: hotelScore(h, tv.style) })).sort((a, b) => b.score - a.score);
 
@@ -115,7 +114,7 @@ export default function LifeTravel() {
         const sc = o.score, scColor = sc >= 80 ? t.positive : sc >= 55 ? t.warn : t.muted;
         return (
           <Card key={h.name} onPress={() => { tv.set({ hotelIdx: o.i }); toast('Hotel selezionato: ' + h.name); }} style={sel ? { borderColor: t.text } : undefined}>
-            {rank === 0 && <View style={{ position: 'absolute', top: 14, left: 14, zIndex: 1, backgroundColor: t.text, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: t.bg, fontSize: 10, fontWeight: '700' }}>Top scelta per te</Text></View>}
+            {rank === 0 && <View style={{ position: 'absolute', top: 14, start: 14, zIndex: 1, backgroundColor: t.text, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: t.bg, fontSize: 10, fontWeight: '700' }}>Top scelta per te</Text></View>}
             <LinearGradient colors={[tierColor + '40', '#11161f']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 88, borderRadius: 14 }} />
             <Row style={{ marginTop: 10 }}><Body bold>{h.name}</Body><View style={{ backgroundColor: tierColor + '22', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}><Text style={{ color: tierColor, fontSize: 12 }}>{tierLabel}</Text></View></Row>
             <Body small muted style={{ marginVertical: 4 }}>{h.rating}/5 ({h.reviews} recensioni) · {h.distance} km dal centro</Body>

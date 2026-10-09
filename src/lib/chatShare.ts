@@ -4,12 +4,12 @@ import { busyBlocks, fmtMin, freeSlots } from '@/lib/availability';
 import { useApp } from '@/store/app';
 import type { AgendaMode, AgendaShare, ChatMessage, SlotsShare, TaskShare } from '@/store/chat';
 import { taskIsDone, useLife } from '@/store/life';
+import { weekdayShort } from '@/i18n/format';
 
-const wd = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
 /** "mer 14/10" da una chiave YYYY-MM-DD */
 export function dayLabelOf(key: string): string {
   const d = new Date(key + 'T00:00:00');
-  return `${wd[d.getDay()]} ${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`;
+  return `${weekdayShort(d.getDay())} ${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`;
 }
 const addDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return dayKey(d); };
 

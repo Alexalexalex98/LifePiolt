@@ -5,7 +5,6 @@ import { Spark } from '@/components/charts';
 import { StockFlow, type Flow } from '@/components/stocks';
 import { Body, Btn, Card, Empty, Input, Item, Link, Page, Pill, Row, Sheet, Tag } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { formatCHF } from '@/lib/format';
 import { holdings, useFin } from '@/store/finance';
 import { toast } from '@/store/toast';
 import { formatMoney } from '@/i18n/format';
@@ -35,7 +34,7 @@ export default function Portfolio() {
           <Row>
             <View style={{ flex: 1 }}><Body bold>{s.symbol}</Body><Body small muted>{s.shares.toFixed(2)} azioni @ {s.avgCost.toFixed(2)}</Body></View>
             <Spark data={s.history.slice(-12)} w={46} h={26} pad={3} color={col} stroke={2} />
-            <View style={{ alignItems: 'flex-end', minWidth: 90 }}><Body>{formatMoney(val)}</Body><Body small color={col}>{gain >= 0 ? '+' : ''}{formatCHF(gain)} ({gp.toFixed(1)}%)</Body></View>
+            <View style={{ alignItems: 'flex-end', minWidth: 90 }}><Body>{formatMoney(val)}</Body><Body small color={col}>{gain >= 0 ? '+' : ''}{formatMoney(gain)} ({gp.toFixed(1)}%)</Body></View>
           </Row>
         </Pressable>
       </Item>
@@ -105,7 +104,7 @@ export default function Portfolio() {
 
       <StockFlow flow={flow} setFlow={setFlow} />
       <Sheet visible={tr} title="Trasferisci liquidità" onClose={() => setTr(false)}>
-        <Input keyboardType="decimal-pad" placeholder="Importo da trasferire (CHF)" value={amount} onChangeText={setAmount} />
+        <Input keyboardType="decimal-pad" placeholder="Importo da trasferire" value={amount} onChangeText={setAmount} />
         <Btn title="Trasferisci" onPress={() => { const v = parseFloat(amount.replace(',', '.')); if (!Number.isFinite(v) || v <= 0) return; f.addCash(v); setAmount(''); setTr(false); toast('Trasferimento simulato completato'); }} />
       </Sheet>
     </Page>

@@ -19,6 +19,7 @@ import { go } from '@/lib/nav';
 import { useNet } from '@/store/network';
 import { translateText } from '@/i18n/core';
 import { formatMoney } from '@/i18n/format';
+import { endAlign } from '@/lib/rtl';
 
 export default function LifeFinance() {
   const t = useTheme();
@@ -103,8 +104,8 @@ export default function LifeFinance() {
         <H>Panoramica finanziaria</H>
         <Row style={{ alignItems: 'flex-end' }}>
           <View>
-            <Metric big>{formatCHF(end)}</Metric>
-            <Text style={{ color: t.positive, fontSize: 13 }}>{net >= 0 ? '+' : '-'}{formatCHF(Math.abs(net))} questo mese</Text>
+            <Metric big>{formatMoney(end)}</Metric>
+            <Text style={{ color: t.positive, fontSize: 13 }}>{net >= 0 ? '+' : '-'}{formatMoney(Math.abs(net))} questo mese</Text>
           </View>
           <Pressable onPress={() => setTrend(true)}>{endsChrono.length > 1 && <Spark data={endsChrono} w={140} h={60} pad={6} stroke={2.5} color={t.text} />}</Pressable>
         </Row>
@@ -132,7 +133,7 @@ export default function LifeFinance() {
         <H>LifePoints</H>
         <Row>
           <View style={{ flex: 1, alignItems: 'center' }}><Body small muted>Caricati in totale</Body><Row gap={2}><Body bold>{formatCHF(lpTop)}</Body><LpTag size={14} /></Row></View>
-          <View style={{ flex: 1, alignItems: 'center', borderLeftWidth: 1, borderLeftColor: t.item }}><Body small muted>Spesi in totale</Body><Row gap={2}><Body bold>{formatCHF(lpSpent)}</Body><LpTag size={14} /></Row></View>
+          <View style={{ flex: 1, alignItems: 'center', borderStartWidth: 1, borderStartColor: t.item }}><Body small muted>Spesi in totale</Body><Row gap={2}><Body bold>{formatCHF(lpSpent)}</Body><LpTag size={14} /></Row></View>
         </Row>
         <Body small muted style={{ marginTop: 10 }}>tocca per il dettaglio</Body>
       </Card>
@@ -235,7 +236,7 @@ export default function LifeFinance() {
                   {g ? <Body small muted>Consigliato: max {g}%</Body> : null}
                 </View>
                 <Input keyboardType="decimal-pad" editable={!disabled} defaultValue={String(amt)} style={{ width: 76, padding: 8, marginBottom: 0 }} onChangeText={(v) => { if (!disabled) f.setAlloc(c.n, parseFloat(v.replace(',', '.')) || 0); }} />
-                <Body small color={g && pct > g ? t.danger : t.text} style={{ width: 44, textAlign: 'right' }}>{pct.toFixed(1)}%</Body>
+                <Body small color={g && pct > g ? t.danger : t.text} style={{ width: 44, textAlign: endAlign() }}>{pct.toFixed(1)}%</Body>
               </Row>
             </Item>
           );
@@ -273,7 +274,7 @@ export default function LifeFinance() {
                 <View style={{ marginTop: 14 }}>
                   <View style={{ flexDirection: 'row', marginBottom: 6 }}><Pill label="Uscita" on={mvType === 'out'} onPress={() => setMvType('out')} /><Pill label="Entrata" on={mvType === 'in'} onPress={() => setMvType('in')} /></View>
                   <Input placeholder="Descrizione" value={mvLabel} onChangeText={setMvLabel} />
-                  <Row><Input flex={1} keyboardType="decimal-pad" placeholder="Importo CHF" value={mvAmount} onChangeText={setMvAmount} /><Input placeholder="gg/mm" style={{ width: 78 }} value={mvDate} onChangeText={setMvDate} /></Row>
+                  <Row><Input flex={1} keyboardType="decimal-pad" placeholder="Importo" value={mvAmount} onChangeText={setMvAmount} /><Input placeholder="gg/mm" style={{ width: 78 }} value={mvDate} onChangeText={setMvDate} /></Row>
                   <Btn title="Aggiungi movimento" onPress={addMov} />
                 </View>
               )}
@@ -284,9 +285,9 @@ export default function LifeFinance() {
 
       <Sheet visible={trend} title="Andamento mensile" onClose={() => setTrend(false)}>
         {endsChrono.length > 1 ? <LineChart data={endsChrono} /> : <Empty text="Servono almeno due mesi di dati per il grafico." />}
-        <Body small muted style={{ marginVertical: 10 }}>Saldo a fine mese (CHF)</Body>
+        <Body small muted style={{ marginVertical: 10 }}>Saldo a fine mese</Body>
         {f.months.slice().reverse().map((mm, i, a) => { const n = monthNet(mm); return (
-          <Item key={mm.label} last={i === a.length - 1}><Row><Body>{mm.label}</Body><Row gap={10}><Text style={{ color: n >= 0 ? t.positive : t.danger, fontSize: 13 }}>{n >= 0 ? '+' : ''}{formatCHF(n)}</Text><Body bold>{formatMoney(monthEnd(mm))}</Body></Row></Row></Item>
+          <Item key={mm.label} last={i === a.length - 1}><Row><Body>{mm.label}</Body><Row gap={10}><Text style={{ color: n >= 0 ? t.positive : t.danger, fontSize: 13 }}>{n >= 0 ? '+' : ''}{formatMoney(n)}</Text><Body bold>{formatMoney(monthEnd(mm))}</Body></Row></Row></Item>
         ); })}
       </Sheet>
 
@@ -311,7 +312,7 @@ export default function LifeFinance() {
       </Sheet>
 
       <Sheet visible={typSheet} title="Costi tipici di una persona" onClose={() => setTypSheet(false)}>
-        <Body small muted style={{ marginBottom: 8 }}>Valori indicativi per una persona sola in Svizzera (CHF). Spunta quelli che ti servono e correggi gli importi: quelli già presenti non vengono duplicati.</Body>
+        <Body small muted style={{ marginBottom: 8 }}>Valori indicativi per una persona sola in Svizzera. Spunta quelli che ti servono e correggi gli importi: quelli già presenti non vengono duplicati.</Body>
         {typicalCosts.map((c, i) => {
           const dup = haveBills.has(normBill(c.name));
           const st = typ[c.name] ?? { on: false, amt: String(c.amount) };
@@ -332,7 +333,7 @@ export default function LifeFinance() {
 
       <Sheet visible={billSheet} title="Nuova bolletta o abbonamento" onClose={() => setBillSheet(false)}>
         <Input placeholder="Nome (es. Affitto, Netflix…)" value={bName} onChangeText={setBName} />
-        <Input keyboardType="decimal-pad" placeholder="Importo in CHF" value={bAmount} onChangeText={setBAmount} />
+        <Input keyboardType="decimal-pad" placeholder="Importo" value={bAmount} onChangeText={setBAmount} />
         <Select value={bFreq} options={['Ogni mese', 'Ogni anno']} onChange={(v) => setBFreq(v as typeof bFreq)} />
         <Btn title="Aggiungi" onPress={() => {
           const a = parseFloat(bAmount.replace(',', '.'));

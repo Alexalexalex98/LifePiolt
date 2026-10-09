@@ -1,22 +1,24 @@
 import { dayKey, pad2 } from '@/lib/format';
+import { fmtDate as i18nDate, fmtTime } from '@/i18n/format';
 
-/** Date e orari in italiano per seminari, servizi, post e idee. */
-const WD = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
-const MON = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+/** Date e orari (nella lingua scelta) per seminari, servizi, post e idee. */
 const SLOT_WD: Record<string, number> = { dom: 0, lun: 1, mar: 2, mer: 3, gio: 4, ven: 5, sab: 6 };
 
+/** "HH:MM" tecnico (24h), per i dati salvati. Per mostrare un'ora usa fmtHour. */
 export const hhmm = (ts: number) => { const d = new Date(ts); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+/** Ora da mostrare, nel formato scelto (24h o 12h). */
+export const fmtHour = (ts: number) => fmtTime(ts);
 /** "4 ott 2026" */
-export const fmtDate = (ts: number) => { const d = new Date(ts); return `${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`; };
+export const fmtDate = (ts: number) => i18nDate(ts, { day: 'numeric', month: 'short', year: 'numeric' });
 /** "lun 12 ott" (con l'anno solo se diverso da quest'anno) */
 export const fmtDay = (ts: number) => {
   const d = new Date(ts);
-  return `${WD[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}${d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : ''}`;
+  return i18nDate(ts, { weekday: 'short', day: 'numeric', month: 'short', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : null) });
 };
 /** "lun 12 ott, 18:30" */
-export const fmtDateTime = (ts: number) => `${fmtDay(ts)}, ${hhmm(ts)}`;
+export const fmtDateTime = (ts: number) => `${fmtDay(ts)}, ${fmtHour(ts)}`;
 /** "lun 12 ott, 18:30 - 19:30" */
-export const fmtRange = (ts: number, durationMin: number) => `${fmtDay(ts)}, ${hhmm(ts)} - ${hhmm(ts + durationMin * 60000)}`;
+export const fmtRange = (ts: number, durationMin: number) => `${fmtDay(ts)}, ${fmtHour(ts)} - ${fmtHour(ts + durationMin * 60000)}`;
 /** "Pubblicato il 4 ott 2026" */
 export const fmtPublished = (ts?: number) => (ts ? `Pubblicato il ${fmtDate(ts)}` : '');
 /** "3 giorni fa" / "ieri" / "4 ott 2026" */
@@ -60,7 +62,7 @@ export function nextDays(n: number): { key: string; label: string; ts: number }[
   const now = new Date();
   for (let i = 0; i < n; i++) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, 12);
-    out.push({ key: dayKey(d), label: (i === 0 ? 'Oggi · ' : i === 1 ? 'Domani · ' : '') + `${WD[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}${d.getFullYear() !== now.getFullYear() ? ' ' + d.getFullYear() : ''}`, ts: d.getTime() });
+    out.push({ key: dayKey(d), label: (i === 0 ? 'Oggi · ' : i === 1 ? 'Domani · ' : '') + i18nDate(d, { weekday: 'short', day: 'numeric', month: 'short', ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : null) }), ts: d.getTime() });
   }
   return out;
 }

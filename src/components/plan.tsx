@@ -4,13 +4,14 @@ import { Text } from '@/components/T';
 
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Pill, Row, Select, Sheet, Toggle, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { dayKey, minutesToTime, monthNames, pad2, timeToMinutes } from '@/lib/format';
+import { dayKey, minutesToTime, pad2, timeToMinutes } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { decomposeTextToSteps } from '@/lib/taskDecompose';
 import { useApp } from '@/store/app';
 import { useLife, taskIsDone, type Task } from '@/store/life';
 import { showUndoToast, toast } from '@/store/toast';
 import { translateText } from '@/i18n/core';
+import { fmtDate, weekdayNarrow } from '@/i18n/format';
 
 /* ---------- riga task (Plan e LifeTask) ---------- */
 export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
@@ -269,7 +270,7 @@ export function MonthCalendar({ selectMode, onPick }: { selectMode: boolean; onP
   return (
     <View>
       <View style={{ flexDirection: 'row', marginBottom: 6 }}>
-        {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((d, i) => <Text key={i} style={{ flex: 1, textAlign: 'center', color: t.muted, fontSize: 11 }}>{d}</Text>)}
+        {[1, 2, 3, 4, 5, 6, 0].map((wd, i) => <Text key={i} style={{ flex: 1, textAlign: 'center', color: t.muted, fontSize: 11 }}>{weekdayNarrow(wd)}</Text>)}
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
         {cells.map((d, i) => {
@@ -293,7 +294,7 @@ export function MonthCalendar({ selectMode, onPick }: { selectMode: boolean; onP
 
 export const monthTitle = () => {
   const d = new Date();
-  return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+  return fmtDate(d, { month: 'long', year: 'numeric' });
 };
 
 export function DaySheet({ day, onClose }: { day: string | null; onClose: () => void }) {
@@ -305,7 +306,7 @@ export function DaySheet({ day, onClose }: { day: string | null; onClose: () => 
   const [weekly, setWeekly] = useState(false);
   if (!day) return <Sheet visible={false} title="" onClose={onClose}><View /></Sheet>;
   const d = new Date(day + 'T00:00:00');
-  const titleStr = day === dayKey() ? `Oggi · ${d.getDate()} ${monthNames[d.getMonth()].toLowerCase()}` : `${d.getDate()} ${monthNames[d.getMonth()].toLowerCase()}`;
+  const titleStr = day === dayKey() ? `Oggi · ${fmtDate(d, { day: 'numeric', month: 'long' })}` : fmtDate(d, { day: 'numeric', month: 'long' });
   const sorted = events.map((e, idx) => ({ e, idx })).sort((a, b) => a.e.time.localeCompare(b.e.time));
   const endOfMonth = dayKey(new Date(d.getFullYear(), d.getMonth() + 1, 0));
   return (

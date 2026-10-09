@@ -32,8 +32,8 @@ export function MoodChart({ days, keys, overlay, h = 150 }: { days: DayCtx[]; ke
   const ovMax = Math.max(1e-9, ...ovVals.filter((v): v is number => v != null));
   const bw = Math.max(2, iw / keys.length - 2);
   return (
-    <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ height: h }}>
-      <Svg width={w} height={h}>
+    <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ height: h, direction: 'ltr' }}>
+      <Svg style={{ direction: 'ltr' }} width={w} height={h}>
         {[1, 2, 3, 4, 5].map((v) => <Line key={v} x1={padL} x2={w - padR} y1={y(v)} y2={y(v)} stroke={t.border} strokeWidth={v === 3.5 ? 0 : 0.6} />)}
         <Line x1={padL} x2={w - padR} y1={y(3.5)} y2={y(3.5)} stroke={t.positive} strokeWidth={1} strokeDasharray="4 4" opacity={0.7} />
         {[1, 3, 5].map((v) => <SvgText key={v} x={2} y={y(v) + 4} fontSize={10} fill={t.muted}>{v}</SvgText>)}

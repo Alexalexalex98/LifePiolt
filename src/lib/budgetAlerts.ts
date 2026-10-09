@@ -2,6 +2,8 @@
  * Avvisi di budget: una categoria che supera il budget impostato (o, se manca, la linea guida in % dello stipendio).
  * Modulo PURO e testabile: riceve lo stato già pronto, restituisce gli avvisi con importo e percentuale.
  */
+import { t, translateText } from '../i18n/core.ts';
+
 export type BudgetAlert = {
   category: string; spent: number; limit: number;
   /** speso / limite in % (arrotondato) */
@@ -38,9 +40,9 @@ export function budgetAlerts(st: BudgetState): BudgetAlert[] {
     if (!(limit > 0)) continue;
     const pct = Math.round((spent / limit) * 100);
     if (spent > limit) {
-      out.push({ category, spent, limit, pct, over: spent - limit, basis, level: 'over', text: `${category}: superato il ${basis === 'budget' ? 'budget' : 'limite consigliato'} di ${chf(spent - limit)} CHF`, detail: `Hai speso ${chf(spent)} CHF su ${chf(limit)} CHF (${pct}%) rispetto al ${basis === 'budget' ? 'budget che hai impostato' : 'limite consigliato (linea guida generale, non consulenza finanziaria)'}.` });
+      out.push({ category, spent, limit, pct, over: spent - limit, basis, level: 'over', text: basis === 'budget' ? t('{0}: superato il budget di {1} CHF', translateText(category), chf(spent - limit)) : t('{0}: superato il limite consigliato di {1} CHF', translateText(category), chf(spent - limit)), detail: basis === 'budget' ? t('Hai speso {0} CHF su {1} CHF ({2}%) rispetto al budget che hai impostato.', chf(spent), chf(limit), pct) : t('Hai speso {0} CHF su {1} CHF ({2}%) rispetto al limite consigliato (linea guida generale, non consulenza finanziaria).', chf(spent), chf(limit), pct) });
     } else if (near > 0 && pct >= near) {
-      out.push({ category, spent, limit, pct, over: 0, basis, level: 'near', text: `${category}: sei al ${pct}% del ${basis === 'budget' ? 'budget' : 'limite consigliato'}`, detail: `Hai speso ${chf(spent)} CHF su ${chf(limit)} CHF: restano ${chf(limit - spent)} CHF per questo mese.` });
+      out.push({ category, spent, limit, pct, over: 0, basis, level: 'near', text: basis === 'budget' ? t('{0}: sei al {1}% del budget', translateText(category), pct) : t('{0}: sei al {1}% del limite consigliato', translateText(category), pct), detail: t('Hai speso {0} CHF su {1} CHF: restano {2} CHF per questo mese.', chf(spent), chf(limit), chf(limit - spent)) });
     }
   }
   return out.sort((x, y) => (x.level === y.level ? y.pct - x.pct : x.level === 'over' ? -1 : 1));
@@ -49,7 +51,7 @@ export function budgetAlerts(st: BudgetState): BudgetAlert[] {
 /** Suggerimenti per Theia: solo i superamenti reali, i più grossi per primi. */
 export function budgetSuggestions(alerts: BudgetAlert[], max = 3): { id: string; title: string; detail: string; priority: number }[] {
   return alerts.filter((a) => a.level === 'over').slice(0, max).map((a) => ({
-    id: `budget-${a.category}`, title: a.text, detail: a.detail + ' Guarda i movimenti della categoria e decidi se è una spesa una tantum o da ridurre.',
+    id: `budget-${a.category}`, title: a.text, detail: a.detail + ' ' + t('Guarda i movimenti della categoria e decidi se è una spesa una tantum o da ridurre.'),
     priority: Math.min(3, 1 + a.pct / 100),
   }));
 }

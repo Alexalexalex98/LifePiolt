@@ -1,7 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Text } from '@/components/T';
 
 import { UserAvatar } from '@/components/network';
 import { Body, Btn, Input, Item, Row, Sheet, IL } from '@/components/ui';
@@ -12,8 +11,9 @@ import { DELETE_ALL_WINDOW, EDIT_WINDOW, REACTIONS, dmId, reactionIcon, fmtClock
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
 import { translateText } from '@/i18n/core';
+import { fmtDate } from '@/i18n/format';
 
-const dt = (ts: number) => { const d = new Date(ts); return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${fmtClock(ts)}`; };
+const dt = (ts: number) => fmtDate(ts, { day: 'numeric', month: 'numeric', year: 'numeric' }) + ' ' + fmtClock(ts);
 
 export type Action = 'reply' | 'copy' | 'forward' | 'star' | 'edit' | 'info' | 'delete' | 'select' | 'react' | 'theia' | 'task' | 'event' | 'note';
 

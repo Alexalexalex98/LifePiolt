@@ -5,13 +5,12 @@ import { CalendarImportSheet } from '@/components/CalendarImportSheet';
 import { GoalProgress } from '@/components/GoalProgress';
 import { DaySheet, MonthCalendar, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet, monthTitle } from '@/components/plan';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Progress, Row, Sheet, Toggle, XBtn } from '@/components/ui';
-import { formatCHF, monthNames } from '@/lib/format';
 import { sendToAssistant } from '@/lib/assistant/run';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
-import { formatMoney } from '@/i18n/format';
+import { formatMoney, monthName } from '@/i18n/format';
 
 export default function Plan() {
   const { tasks, goals, automations, vacRange, vacations, setVacRange, addGoal, bumpGoal, delGoal, addAuto, toggleAuto, delVacation } = useLife();
@@ -28,7 +27,7 @@ export default function Plan() {
   const [calSheet, setCalSheet] = useState(false);
 
   const rangeText = vacRange?.end
-    ? `Vacanza: ${vacRange.start.slice(8)}–${vacRange.end.slice(8)} ${monthNames[parseInt(vacRange.start.slice(5, 7)) - 1].toLowerCase()} (${Number(vacRange.end.slice(8)) - Number(vacRange.start.slice(8)) + 1} giorni)`
+    ? `Vacanza: ${vacRange.start.slice(8)}–${vacRange.end.slice(8)} ${monthName(parseInt(vacRange.start.slice(5, 7)) - 1)} (${Number(vacRange.end.slice(8)) - Number(vacRange.start.slice(8)) + 1} giorni)`
     : '';
 
   function pick(key: string) {

@@ -1,7 +1,7 @@
 import { dayKey } from '@/lib/format';
 import { eveningText, morningText, type Brief } from '@/lib/briefingCore';
 import { freeSlots } from '@/lib/availability';
-import { nextActionText, rankTasks, type PEvent } from '@/lib/priority';
+import { joinReasons, nextActionText, rankTasks, type PEvent } from '@/lib/priority';
 import { skippedWork } from '@/lib/reschedule';
 import { useApp } from '@/store/app';
 import { useContext } from '@/store/context';
@@ -15,7 +15,7 @@ function snapshot(now = new Date()) {
   const events = Object.entries(life.events).flatMap(([day, l]) => l.map((e) => ({ day, time: e.time, title: e.title, dur: e.dur, important: e.important })));
   const open = life.tasks.filter((t) => !taskIsDone(t));
   const ranked = rankTasks(open.map((t) => ({ id: t.id, t: t.t, urgent: t.urgent, due: t.due })), events as PEvent[], now);
-  const top = ranked[0] ? { t: ranked[0].task.t, why: ranked[0].reasons.join(' e ') } : undefined;
+  const top = ranked[0] ? { t: ranked[0].task.t, why: joinReasons(ranked[0].reasons) } : undefined;
   const wh = useApp.getState().workHours;
   const free = freeSlots(life.events[today] ?? [], wh.start, wh.end, 30, 60, now.getHours() * 60 + now.getMinutes()).reduce((s, x) => s + x.to - x.from, 0);
   const moodLogged = useHealth.getState().moods.some((m) => m.day === today);

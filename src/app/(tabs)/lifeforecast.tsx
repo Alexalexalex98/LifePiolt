@@ -5,7 +5,6 @@ import { LineChart } from '@/components/charts';
 import { FinTabs } from '@/components/FinTabs';
 import { Body, Card, H, Input, Item, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { formatCHF } from '@/lib/format';
 import { avgRecentNet, monthEnd, monthNet, useFin } from '@/store/finance';
 import { formatMoney } from '@/i18n/format';
 
@@ -59,7 +58,7 @@ export default function LifeForecast() {
       <Card>
         <H>Andamento a 10 anni</H>
         <LineChart data={cash} />
-        <View style={{ flexDirection: 'row', paddingLeft: 38 }}>{cash.map((_, i) => <Body key={i} small muted style={{ flex: 1, textAlign: 'center', fontSize: 9 }}>{i === 0 ? 'Ora' : `+${i}`}</Body>)}</View>
+        <View style={{ flexDirection: 'row', paddingLeft: 38, direction: 'ltr' }}>{cash.map((_, i) => <Body key={i} small muted style={{ flex: 1, textAlign: 'center', fontSize: 9 }}>{i === 0 ? 'Ora' : `+${i}`}</Body>)}</View>
         <Body small muted style={{ marginTop: 10 }}>Linea: patrimonio se lasci tutto sul conto, senza investire.</Body>
       </Card>
       <Card>
@@ -70,7 +69,7 @@ export default function LifeForecast() {
       </Card>
       <Card>
         <H>Tappe intermedie</H>
-        {[1, 5, 10].map((y, i) => <Item key={y} last={i === 2}><Row><Body muted>Tra {y} {y === 1 ? 'anno' : 'anni'}</Body><View style={{ alignItems: 'flex-end' }}><Body small muted>conto: {formatCHF(cash[y])}</Body><Body bold>investendo: {formatCHF(inv[y])}</Body></View></Row></Item>)}
+        {[1, 5, 10].map((y, i) => <Item key={y} last={i === 2}><Row><Body muted>Tra {y} {y === 1 ? 'anno' : 'anni'}</Body><View style={{ alignItems: 'flex-end' }}><Body small muted>conto: {formatMoney(cash[y])}</Body><Body bold>investendo: {formatMoney(inv[y])}</Body></View></Row></Item>)}
       </Card>
       <Card>
         <H>Qualche accortezza per averne di più</H>

@@ -10,7 +10,7 @@ import { bookService } from '@/lib/enroll';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { ratingFor } from '@/lib/network';
-import { fmtDateTime, fmtDuration, hhmm } from '@/lib/when';
+import { fmtDateTime, fmtDuration, fmtHour } from '@/lib/when';
 import { useApp } from '@/store/app';
 import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
@@ -91,7 +91,7 @@ export default function ServicePage() {
         {slots.length === 0 ? <Empty text="Nessuno slot libero al momento." /> : slots.map(({ slot, ts }, i) => (
           <Item key={slot} last={i === slots.length - 1}>
             <Row>
-              <View style={{ flex: 1 }}><Body bold>{fmtDateTime(ts)}</Body><Body small muted>Dalle {hhmm(ts)} alle {hhmm(ts + info.durationMin * 60000)} · slot settimanale "{slot}"</Body></View>
+              <View style={{ flex: 1 }}><Body bold>{fmtDateTime(ts)}</Body><Body small muted>Dalle {fmtHour(ts)} alle {fmtHour(ts + info.durationMin * 60000)} · slot settimanale "{slot}"</Body></View>
               {!isMine && <Btn small title="Prenota" onPress={() => bookService(p, slot, info.durationMin, me)} />}
             </Row>
           </Item>

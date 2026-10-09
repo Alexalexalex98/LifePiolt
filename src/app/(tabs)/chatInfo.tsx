@@ -69,7 +69,7 @@ export default function ChatInfo() {
             {media.map((m, i) => (
               <Pressable key={m.id} onPress={() => setViewer(i)} style={{ width: '32.5%', aspectRatio: 1, borderRadius: 6, overflow: 'hidden', backgroundColor: t.item }}>
                 <Image source={{ uri: m.media?.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-                {m.kind === 'video' && <View style={{ position: 'absolute', right: 4, bottom: 4 }}><Icon name="play" size={14} color="#fff" fill="#fff" /></View>}
+                {m.kind === 'video' && <View style={{ position: 'absolute', end: 4, bottom: 4 }}><Icon name="play" size={14} color="#fff" fill="#fff" /></View>}
               </Pressable>
             ))}
           </View>

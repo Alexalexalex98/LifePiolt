@@ -94,7 +94,7 @@ export function MediaViewer() {
             {item.media === 'video' && <Icon name="play" size={72} color="#fff" fill="#fff" />}
           </LinearGradient>
         ))}
-        <Pressable onPress={close} accessibilityRole="button" accessibilityLabel={translateText("Chiudi")} hitSlop={12} style={{ position: 'absolute', top: 44, right: 18, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable onPress={close} accessibilityRole="button" accessibilityLabel={translateText("Chiudi")} hitSlop={12} style={{ position: 'absolute', top: 44, end: 18, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="x" size={22} color="#fff" stroke={2.2} />
         </Pressable>
         <Text style={{ position: 'absolute', bottom: 40, alignSelf: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{item?.uri ? '' : item?.media === 'video' ? 'Anteprima video (segnaposto)' : 'Anteprima foto (segnaposto)'}</Text>

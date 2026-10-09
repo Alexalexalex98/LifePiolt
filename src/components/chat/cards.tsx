@@ -127,7 +127,7 @@ function DetailCard({ m, me, chatId }: { m: ChatMessage; me: string; chatId: str
               {conf.length > 0 && <Icon name="alert" size={14} color={t.warn} />}
               {!mine && <Icon name={added ? 'check' : 'plus'} size={16} color={added ? t.positive : t.accent} stroke={2.4} />}
             </Pressable>
-            {conf.length > 0 && <Text style={{ color: t.warn, fontSize: 11, marginLeft: 50 }}>Hai già: {conf[0]}</Text>}
+            {conf.length > 0 && <Text style={{ color: t.warn, fontSize: 11, marginStart: 50 }}>Hai già: {conf[0]}</Text>}
           </View>
         );
       })}

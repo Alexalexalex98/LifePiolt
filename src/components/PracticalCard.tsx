@@ -9,8 +9,9 @@ import { deadlineOf, fmtDuration, fmtLimit, timeLeftMs } from '@/lib/hiring';
 import { openFile, pickFiles, pickImages } from '@/lib/jobFiles';
 import { useJobs, type Job, type PracticalRun } from '@/store/jobs';
 import { toast } from '@/store/toast';
+import { fmtDateTime } from '@/i18n/format';
 
-const when = (ts: number) => new Date(ts).toLocaleString('it-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const when = (ts: number) => fmtDateTime(ts);
 
 /** Stato sintetico della prova pratica, per le liste di chi assume. */
 export function runLabel(job: Job, run: PracticalRun | undefined, hasApp = true): { text: string; tone: 'ok' | 'warn' | 'bad' | 'muted' } | null {

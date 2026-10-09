@@ -7,6 +7,7 @@ import { CAL_WEB_MSG, IMPORT_DAYS, importCalendars, listDeviceCalendars, useCalP
 import { Icon } from '@/lib/icons';
 import { toast } from '@/store/toast';
 import { translateText } from '@/i18n/core';
+import { fmtDateTime } from '@/i18n/format';
 
 /** Foglio per importare gli eventi dei prossimi 60 giorni dal calendario del telefono. */
 export function CalendarImportSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -72,7 +73,7 @@ export function CalendarImportSheet({ visible, onClose }: { visible: boolean; on
             </>
           )}
           {msg ? <Body small color={cals?.length ? t.positive : t.warn} style={{ marginTop: 10 }}>{msg}</Body> : null}
-          {prefs.lastSync ? <Body small muted style={{ marginTop: 8 }}>Ultima importazione: {new Date(prefs.lastSync).toLocaleString('it-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</Body> : null}
+          {prefs.lastSync ? <Body small muted style={{ marginTop: 8 }}>Ultima importazione: {fmtDateTime(prefs.lastSync)}</Body> : null}
         </>
       )}
     </Sheet>
