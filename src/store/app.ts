@@ -5,7 +5,7 @@ import { setErrorScreen } from '@/lib/errorLog';
 import { persisted } from './persist';
 
 export type Appearance = 'Scuro' | 'Chiaro' | 'Sistema';
-import type { LangCode } from '@/i18n/languages';
+import { infoOf, type LangCode } from '@/i18n/languages';
 
 /** Codice lingua (it, en, es, ...). Le versioni vecchie salvavano il nome ("Italiano"): si normalizza all'avvio. */
 export type Language = LangCode;
@@ -25,6 +25,9 @@ type AppState = {
   appearance: Appearance;
   language: Language;
   timeFormat: '24h' | '12h';
+  /** codice ISO della valuta mostrata (i dati non vengono convertiti: è solo l'unità); di default segue la lingua finché non la scegli a mano */
+  currency: string;
+  currencyManual: boolean;
   notif: { push: boolean; calendar: boolean; finance: boolean; health: boolean; digest: boolean; email: boolean };
   /** briefing locali: riepilogo del mattino e della sera (orari HH:MM) */
   briefing: { morning: boolean; morningAt: string; evening: boolean; eveningAt: string };
@@ -53,6 +56,8 @@ const initial = {
   appearance: 'Scuro' as Appearance,
   language: 'it' as Language,
   timeFormat: '24h' as const,
+  currency: 'CHF',
+  currencyManual: false,
   notif: { push: false, calendar: true, finance: true, health: false, digest: false, email: false },
   briefing: { morning: false, morningAt: '07:45', evening: false, eveningAt: '20:30' },
   security: { twofa: false, lock: false },
@@ -72,7 +77,12 @@ const initial = {
 export const useApp = create<AppState>()(
   persisted<AppState>('app', (set) => ({
     ...initial,
-    set: (patch) => set(patch),
+    set: (patch) => set((st) => {
+      // cambiando lingua, la valuta segue la lingua finché non è stata scelta a mano
+      if (patch.language && patch.currency === undefined && !st.currencyManual) return { ...patch, currency: infoOf(patch.language).currency };
+      if (patch.currency !== undefined && patch.currencyManual === undefined) return { ...patch, currencyManual: true };
+      return patch;
+    }),
     trackVisit: (p) => set((s) => {
       setErrorScreen(p);
       if (!navCatalog[p]) return s;

@@ -11,6 +11,7 @@ import { peoplePool } from '@/lib/network';
 import { DELETE_ALL_WINDOW, EDIT_WINDOW, REACTIONS, dmId, reactionIcon, fmtClock, previewOf, useChat, type ChatMessage } from '@/store/chat';
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
+import { translateText } from '@/i18n/core';
 
 const dt = (ts: number) => { const d = new Date(ts); return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${fmtClock(ts)}`; };
 
@@ -30,7 +31,7 @@ export function MessageActions({ m, me, onClose, onAction }: { m: ChatMessage | 
       {!m.deletedForAll && (
         <Row style={{ justifyContent: 'space-between', marginBottom: 10 }} gap={4}>
           {REACTIONS.map((e) => (
-            <Pressable key={e} onPress={() => onAction('react', e)} style={{ padding: 9, borderRadius: 22, backgroundColor: reactionIcon(m.reactions?.[me] ?? '') === e ? t.chip : 'transparent' }} accessibilityLabel={`Reagisci ${e}`}><Icon name={e} size={26} color={e === 'heart' ? '#ff5d7a' : t.text} fill={e === 'heart' && reactionIcon(m.reactions?.[me] ?? '') === 'heart' ? '#ff5d7a' : 'none'} /></Pressable>
+            <Pressable key={e} onPress={() => onAction('react', e)} style={{ padding: 9, borderRadius: 22, backgroundColor: reactionIcon(m.reactions?.[me] ?? '') === e ? t.chip : 'transparent' }} accessibilityLabel={translateText(`Reagisci ${e}`)}><Icon name={e} size={26} color={e === 'heart' ? '#ff5d7a' : t.text} fill={e === 'heart' && reactionIcon(m.reactions?.[me] ?? '') === 'heart' ? '#ff5d7a' : 'none'} /></Pressable>
           ))}
         </Row>
       )}

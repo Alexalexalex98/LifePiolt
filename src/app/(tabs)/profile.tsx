@@ -13,6 +13,7 @@ import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
 import { answerStyles, DEFAULT_STYLE, styleLabel, usePrefs } from '@/store/prefs';
 import { showUndoToast, toast } from '@/store/toast';
+import { translateText } from '@/i18n/core';
 
 const Sec = ({ children }: { children: string }) => <View style={{ marginTop: 16 }}><Tag>{children}</Tag></View>;
 
@@ -95,7 +96,7 @@ export default function Profile() {
   );
 
   const IconBtn = ({ name, label, onPress }: { name: string; label: string; onPress: () => void }) => (
-    <Pressable onPress={onPress} hitSlop={10} accessibilityRole="button" accessibilityLabel={label} style={{ padding: 4 }}><Icon name={name} size={17} color={t.muted} stroke={2} /></Pressable>
+    <Pressable onPress={onPress} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText(label)} style={{ padding: 4 }}><Icon name={name} size={17} color={t.muted} stroke={2} /></Pressable>
   );
 
   return (
@@ -163,7 +164,7 @@ export default function Profile() {
                 <View style={{ flex: 1 }}><Body bold={a.on} muted={!a.on}>{a.t}</Body><Body small muted>{a.on ? 'Attiva' : 'Disattivata'}</Body></View>
                 <IconBtn name="edit" label={`Rinomina ${a.t}`} onPress={() => setEdit({ kind: 'auto', id: a.id, t: a.t, p: '' })} />
                 <XBtn label={`Elimina ${a.t}`} onPress={() => delAuto(a.id)} />
-                <Switch accessibilityLabel={`Interruttore ${a.t}`} value={a.on} onValueChange={(v) => { life.toggleAuto(a.id, v); toast(`${a.t}: ${v ? 'attiva' : 'disattivata'}`); }} trackColor={{ true: '#4f7cff', false: t.inputBorder }} thumbColor="#fff" />
+                <Switch accessibilityLabel={translateText(`Interruttore ${a.t}`)} value={a.on} onValueChange={(v) => { life.toggleAuto(a.id, v); toast(`${a.t}: ${v ? 'attiva' : 'disattivata'}`); }} trackColor={{ true: '#4f7cff', false: t.inputBorder }} thumbColor="#fff" />
               </Row>
             )}
           </Item>

@@ -15,6 +15,7 @@ import { useApp } from '@/store/app';
 import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
+import { translateText } from '@/i18n/core';
 
 export default function PostPage() {
   const t = useTheme();
@@ -57,12 +58,12 @@ export default function PostPage() {
         <MediaBlock media={post.media} seed={post.author + post.text} uri={post.uri} />
         <Row style={{ marginTop: 8 }}>
           <Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={16}>
-            <Pressable onPress={() => net.likePost(key)} accessibilityRole="button" accessibilityLabel={liked ? 'Togli il mi piace' : 'Mi piace'} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Pressable onPress={() => net.likePost(key)} accessibilityRole="button" accessibilityLabel={translateText(liked ? 'Togli il mi piace' : 'Mi piace')} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <Icon name="heart" size={22} color={liked ? '#ff5d7a' : t.text} fill={liked ? '#ff5d7a' : 'none'} /><Body muted>{post.likes}</Body>
             </Pressable>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Icon name="ai" size={22} color={t.text} /><Body muted>{comments.length}</Body></View>
           </Row>
-          {!donated && post.author !== me && <Pressable onPress={() => openSheet('donate', { author: post.author })} accessibilityLabel="Dona il LifePoint di oggi"><LpTag size={24} dark={false} /></Pressable>}
+          {!donated && post.author !== me && <Pressable onPress={() => openSheet('donate', { author: post.author })} accessibilityLabel={translateText("Dona il LifePoint di oggi")}><LpTag size={24} dark={false} /></Pressable>}
         </Row>
       </Card>
 

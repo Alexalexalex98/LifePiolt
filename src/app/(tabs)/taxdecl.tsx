@@ -1,7 +1,8 @@
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, Image, Platform, Pressable, Share, View } from 'react-native';
+import { alertT } from '@/lib/alert';
+import { Image, Platform, Pressable, Share, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { FinTabs } from '@/components/FinTabs';
@@ -15,6 +16,7 @@ import { TAX_DISCLAIMER, taxEventsToAdd, upcomingDeadlines } from '@/lib/taxDead
 import { taxDocOf, useFin, type TaxDocFile } from '@/store/finance';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
+import { translateText } from '@/i18n/core';
 
 type ReqItem = { key: string; label: string; group: string };
 type Picked = { name: string; uri: string; size?: number; mime?: string };
@@ -93,7 +95,7 @@ export default function TaxDecl() {
   }
   function photoChoice() {
     if (Platform.OS === 'web') { pickPhoto(false); return; }
-    Alert.alert('Foto del documento', undefined, [{ text: 'Scatta una foto', onPress: () => pickPhoto(true) }, { text: 'Scegli dalla libreria', onPress: () => pickPhoto(false) }, { text: 'Annulla', style: 'cancel' }]);
+    alertT('Foto del documento', undefined, [{ text: 'Scatta una foto', onPress: () => pickPhoto(true) }, { text: 'Scegli dalla libreria', onPress: () => pickPhoto(false) }, { text: 'Annulla', style: 'cancel' }]);
   }
 
   function dropDrive(uri?: string) {
@@ -155,7 +157,7 @@ export default function TaxDecl() {
               const checked = !!rec;
               return (
                 <View key={it.key} style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: t.item }}>
-                  <Pressable onPress={() => (rec ? openFile(rec) : open(it))} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} accessibilityRole="checkbox" accessibilityLabel={it.label} accessibilityState={{ checked }}>
+                  <Pressable onPress={() => (rec ? openFile(rec) : open(it))} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} accessibilityRole="checkbox" accessibilityLabel={translateText(it.label)} accessibilityState={{ checked }}>
                     <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: checked ? t.positive : t.muted, backgroundColor: checked ? t.positive : 'transparent', alignItems: 'center', justifyContent: 'center' }}>{checked && <Icon name="check" size={14} color={t.bg} stroke={3} />}</View>
                     <View style={{ flex: 1 }}>
                       <Body>{it.label}</Body>
@@ -209,7 +211,7 @@ export default function TaxDecl() {
             {picked && res ? (
               <View style={{ marginTop: 14 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 14, backgroundColor: t.input }}>
-                  {isImageFile(picked) ? <Image source={{ uri: picked.uri }} accessibilityLabel="Anteprima" style={{ width: 64, height: 64, borderRadius: 10, backgroundColor: t.item }} resizeMode="cover" /> : <View style={{ width: 64, height: 64, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: t.item }}><Icon name="file" size={28} color={t.muted} stroke={1.8} /></View>}
+                  {isImageFile(picked) ? <Image source={{ uri: picked.uri }} accessibilityLabel={translateText("Anteprima")} style={{ width: 64, height: 64, borderRadius: 10, backgroundColor: t.item }} resizeMode="cover" /> : <View style={{ width: 64, height: 64, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: t.item }}><Icon name="file" size={28} color={t.muted} stroke={1.8} /></View>}
                   <View style={{ flex: 1 }}>
                     <Body numberOfLines={2}>{picked.name}</Body>
                     <Body small muted>{fmtBytes(picked.size) || 'Dimensione non disponibile'}</Body>
@@ -233,7 +235,7 @@ export default function TaxDecl() {
         ) : null}
       </Sheet>
       <Sheet visible={!!view} title={view?.name ?? ''} onClose={() => setView(null)}>
-        {view ? <Image source={{ uri: view.uri }} accessibilityLabel="Documento" style={{ width: '100%', aspectRatio: 0.75, borderRadius: 12, backgroundColor: t.input }} resizeMode="contain" /> : null}
+        {view ? <Image source={{ uri: view.uri }} accessibilityLabel={translateText("Documento")} style={{ width: '100%', aspectRatio: 0.75, borderRadius: 12, backgroundColor: t.input }} resizeMode="contain" /> : null}
       </Sheet>
       <Sheet visible={bankSheet} title="Aggiungi banca" onClose={() => setBankSheet(false)}>
         <Input placeholder="Nome banca…" value={bank} onChangeText={setBank} />

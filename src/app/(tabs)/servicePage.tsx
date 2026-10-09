@@ -14,6 +14,7 @@ import { fmtDateTime, fmtDuration, hhmm } from '@/lib/when';
 import { useApp } from '@/store/app';
 import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
+import { translateText } from '@/i18n/core';
 
 export default function ServicePage() {
   const t = useTheme();
@@ -58,7 +59,7 @@ export default function ServicePage() {
 
       <Card>
         <H>Professionista</H>
-        <Pressable onPress={() => go('userProfile', { name: p.name })} accessibilityRole="link" accessibilityLabel={`Apri il profilo di ${p.name}`}>
+        <Pressable onPress={() => go('userProfile', { name: p.name })} accessibilityRole="link" accessibilityLabel={translateText(`Apri il profilo di ${p.name}`)}>
           <Row>
             <Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}>
               <UserAvatar name={p.name} size={42} />

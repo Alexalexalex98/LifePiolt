@@ -1,32 +1,14 @@
 /**
- * Sostituisce 'react-native' per tutto il codice in src/ (vedi metro.config.js): identico, tranne <Text>.
- * "Testo più grande" moltiplica fontSize/lineHeight di OGNI testo dell'app, anche quelli con dimensione fissa.
- * Questo file non deve importare altri moduli di src/ (importa 'react-native' vero perché è l'unica origine esclusa dall'alias).
+ * Solo web (vedi metro.config.js): sostituisce 'react-native' per il codice in src/ ri-esportandolo invariato, tranne <Pressable>.
+ * <Text> e <TextInput> ora arrivano da '@/components/T' (traduzione + "Testo più grande"), quindi qui non si tocca più Text.
+ * Questo file non deve importare altri moduli di src/ oltre al toast.
  */
-import { createElement, useSyncExternalStore } from 'react';
-import { Pressable as NativePressable, StyleSheet, Text as NativeText, type PressableProps, type TextProps } from 'react-native';
+import { createElement } from 'react';
+import { Pressable as NativePressable, StyleSheet, type PressableProps } from 'react-native';
 
 import { toast } from '../store/toast';
-import { getTextScaleFactor, setTextScaleFactor, snapshotTextScale, subscribeTextScale } from './textScaleState';
 
 export * from 'react-native';
-
-const subscribe = subscribeTextScale;
-const snapshot = snapshotTextScale;
-export { setTextScaleFactor, getTextScaleFactor };
-
-export default Text;
-
-export function Text(props: TextProps & { ref?: unknown }) {
-  const k = useSyncExternalStore(subscribe, snapshot, snapshot);
-  if (k === 1 || !props.style) return createElement(NativeText, props);
-  const flat = StyleSheet.flatten(props.style) as { fontSize?: number; lineHeight?: number } | undefined;
-  if (!flat || typeof flat.fontSize !== 'number') return createElement(NativeText, props);
-  const scaled = { fontSize: flat.fontSize * k, ...(typeof flat.lineHeight === 'number' ? { lineHeight: flat.lineHeight * k } : null) };
-  return createElement(NativeText, { ...props, style: [props.style, scaled] } as TextProps);
-}
-Text.displayName = 'Text';
-
 
 /* ---------- Pressable: area tattile minima, feedback al tocco, niente pulsanti "morti" ---------- */
 const DEFAULT_SLOP = { top: 6, bottom: 6, left: 6, right: 6 };

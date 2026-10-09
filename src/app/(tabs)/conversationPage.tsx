@@ -23,6 +23,7 @@ import { dayKey } from '@/lib/format';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
+import { translateText } from '@/i18n/core';
 
 type Row = { type: 'day'; key: string; label: string } | { type: 'unread'; key: string; n: number } | { type: 'msg'; key: string; m: ChatMessage; showSender: boolean };
 
@@ -203,12 +204,12 @@ export default function Conversation() {
           <>
             <Pressable onPress={exitSel} hitSlop={10}><Icon name="x" size={22} color={t.text} /></Pressable>
             <Text style={{ flex: 1, color: t.text, fontSize: 18, fontWeight: '700' }}>{selected.length}</Text>
-            {selected.length === 1 && <Pressable onPress={() => { setReplyTo(selMsgs[0]); exitSel(); }} hitSlop={8} accessibilityLabel="Rispondi"><Icon name="reply" size={21} color={t.text} /></Pressable>}
-            <Pressable onPress={() => { toast(st().toggleStar(id, selected, me) ? 'Segnati come importanti' : 'Tolti dagli importanti'); exitSel(); }} hitSlop={8} accessibilityLabel="Importante"><Icon name="star" size={21} color={t.text} /></Pressable>
-            <Pressable onPress={() => { const txt = selMsgs.map((m) => m.text).filter(Boolean).join('\n'); if (txt) copyText({ ...selMsgs[0], text: txt }); exitSel(); }} hitSlop={8} accessibilityLabel="Copia"><Icon name="copy" size={21} color={t.text} /></Pressable>
-            <Pressable onPress={() => askAbout(selMsgs)} hitSlop={8} accessibilityLabel="Chiedi a Theia"><Icon name="sparkle" size={21} color={t.text} /></Pressable>
-            <Pressable onPress={() => setForwarding(selMsgs)} hitSlop={8} accessibilityLabel="Inoltra"><Icon name="forward" size={21} color={t.text} /></Pressable>
-            <Pressable onPress={() => setDeleting(selMsgs)} hitSlop={8} accessibilityLabel="Elimina"><Icon name="trash" size={21} color={t.danger} /></Pressable>
+            {selected.length === 1 && <Pressable onPress={() => { setReplyTo(selMsgs[0]); exitSel(); }} hitSlop={8} accessibilityLabel={translateText("Rispondi")}><Icon name="reply" size={21} color={t.text} /></Pressable>}
+            <Pressable onPress={() => { toast(st().toggleStar(id, selected, me) ? 'Segnati come importanti' : 'Tolti dagli importanti'); exitSel(); }} hitSlop={8} accessibilityLabel={translateText("Importante")}><Icon name="star" size={21} color={t.text} /></Pressable>
+            <Pressable onPress={() => { const txt = selMsgs.map((m) => m.text).filter(Boolean).join('\n'); if (txt) copyText({ ...selMsgs[0], text: txt }); exitSel(); }} hitSlop={8} accessibilityLabel={translateText("Copia")}><Icon name="copy" size={21} color={t.text} /></Pressable>
+            <Pressable onPress={() => askAbout(selMsgs)} hitSlop={8} accessibilityLabel={translateText("Chiedi a Theia")}><Icon name="sparkle" size={21} color={t.text} /></Pressable>
+            <Pressable onPress={() => setForwarding(selMsgs)} hitSlop={8} accessibilityLabel={translateText("Inoltra")}><Icon name="forward" size={21} color={t.text} /></Pressable>
+            <Pressable onPress={() => setDeleting(selMsgs)} hitSlop={8} accessibilityLabel={translateText("Elimina")}><Icon name="trash" size={21} color={t.danger} /></Pressable>
           </>
         ) : search != null ? (
           <>
@@ -218,7 +219,7 @@ export default function Conversation() {
           </>
         ) : (
           <>
-            <Pressable onPress={goBack} hitSlop={10} accessibilityLabel="Indietro"><Icon name="arrow-left" size={24} color={t.text} /></Pressable>
+            <Pressable onPress={goBack} hitSlop={10} accessibilityLabel={translateText("Indietro")}><Icon name="arrow-left" size={24} color={t.text} /></Pressable>
             <Pressable onPress={() => go('chatInfo', { id })} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               {chat.type === 'group' ? <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Icon name="users" size={19} color={t.text} /></View> : <UserAvatar name={title} size={38} />}
               <View style={{ flex: 1 }}>
@@ -226,7 +227,7 @@ export default function Conversation() {
                 <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12 }}>{chat.type === 'group' ? chat.members.join(', ') : 'tocca per le info'}</Text>
               </View>
             </Pressable>
-            <Pressable onPress={() => setMenu(true)} hitSlop={10} accessibilityLabel="Menu"><Icon name="more" size={22} color={t.text} /></Pressable>
+            <Pressable onPress={() => setMenu(true)} hitSlop={10} accessibilityLabel={translateText("Menu")}><Icon name="more" size={22} color={t.text} /></Pressable>
           </>
         )}
       </View>

@@ -10,13 +10,14 @@ import { decomposeTextToSteps } from '@/lib/taskDecompose';
 import { useApp } from '@/store/app';
 import { useLife, taskIsDone, type Task } from '@/store/life';
 import { showUndoToast, toast } from '@/store/toast';
+import { translateText } from '@/i18n/core';
 
 /* ---------- riga task (Plan e LifeTask) ---------- */
 export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
   const t = useTheme();
   const { toggleTask, delTask, restoreTask, patchTask } = useLife();
   const urgentBtn = (
-    <Pressable onPress={() => { patchTask(task.id, { urgent: !task.urgent }); toast(!task.urgent ? 'Segnato urgente: lo propongo per primo' : 'Non più urgente'); }} hitSlop={8} accessibilityLabel={task.urgent ? 'Togli urgenza' : 'Segna come urgente'}>
+    <Pressable onPress={() => { patchTask(task.id, { urgent: !task.urgent }); toast(!task.urgent ? 'Segnato urgente: lo propongo per primo' : 'Non più urgente'); }} hitSlop={8} accessibilityLabel={translateText(task.urgent ? 'Togli urgenza' : 'Segna come urgente')}>
       <Icon name="alert" size={19} color={task.urgent ? t.danger : t.muted} />
     </Pressable>
   );
@@ -32,7 +33,7 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
     toast(next == null ? 'Scadenza tolta' : next === 0 ? 'Scade oggi' : next === 1 ? 'Scade domani' : `Scade tra ${next} giorni`);
   };
   const dueBtn = (
-    <Pressable onPress={cycleDue} hitSlop={8} accessibilityLabel={task.due ? 'Cambia scadenza' : 'Imposta scadenza'}>
+    <Pressable onPress={cycleDue} hitSlop={8} accessibilityLabel={translateText(task.due ? 'Cambia scadenza' : 'Imposta scadenza')}>
       <Icon name="calendar" size={18} color={task.due ? t.accent : t.muted} />
     </Pressable>
   );
@@ -315,10 +316,10 @@ export function DaySheet({ day, onClose }: { day: string | null; onClose: () => 
           <Row>
             <Body style={{ flex: 1 }}><Text style={{ fontWeight: '700' }}>{e.time}</Text> · {e.title}</Body>
             <Row gap={12}>
-              <Pressable onPress={() => { patchEvent(day, idx, { important: !e.important }); toast(!e.important ? 'Impegno importante: i task collegati avranno la precedenza' : 'Non più importante'); }} accessibilityLabel={e.important ? 'Togli importanza' : 'Segna come importante'}>
+              <Pressable onPress={() => { patchEvent(day, idx, { important: !e.important }); toast(!e.important ? 'Impegno importante: i task collegati avranno la precedenza' : 'Non più importante'); }} accessibilityLabel={translateText(e.important ? 'Togli importanza' : 'Segna come importante')}>
                 <Icon name="star" size={18} color={e.important ? '#ffb84f' : t.text} fill={e.important ? '#ffb84f' : 'none'} />
               </Pressable>
-              <Pressable onPress={() => { const on = toggleReminder(day, idx); toast(on ? 'Promemoria impostato' : 'Promemoria rimosso'); }} accessibilityLabel="Promemoria">
+              <Pressable onPress={() => { const on = toggleReminder(day, idx); toast(on ? 'Promemoria impostato' : 'Promemoria rimosso'); }} accessibilityLabel={translateText("Promemoria")}>
                 <Icon name="bell" size={18} color={e.reminder ? '#ffb84f' : t.text} fill={e.reminder ? '#ffb84f' : 'none'} />
               </Pressable>
               <Link danger onPress={() => { const rem = delEvent(day, idx); if (rem) showUndoToast('Impegno rimosso', () => restoreEvent(day, idx, rem)); }}>rimuovi</Link>

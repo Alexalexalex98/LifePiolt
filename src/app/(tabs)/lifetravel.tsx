@@ -11,6 +11,7 @@ import { activitiesByStyle, destinations, genFlight, hotelPool, hotelScore, mont
 import { useLife } from '@/store/life';
 import { useTravel } from '@/store/travel';
 import { showUndoToast, toast } from '@/store/toast';
+import { formatMoney } from '@/i18n/format';
 
 type View_ = null | 'city' | 'date' | 'guests' | 'itinerary';
 
@@ -63,7 +64,7 @@ export default function LifeTravel() {
         <H>Itinerari salvati</H>
         {tv.saved.length === 0 ? <Body small muted>Nessun itinerario salvato ancora.</Body> : tv.saved.map((it, i) => (
           <Item key={it.id} last={i === tv.saved.length - 1}>
-            <Row><View style={{ flex: 1 }}><Body bold>{it.city}</Body><Body small muted>{it.hotel} · {it.days} notti · {it.month}</Body></View><Body bold>{formatCHF(it.tripTotal)} CHF</Body>
+            <Row><View style={{ flex: 1 }}><Body bold>{it.city}</Body><Body small muted>{it.hotel} · {it.days} notti · {it.month}</Body></View><Body bold>{formatMoney(it.tripTotal)}</Body>
               <XBtn onPress={() => { const rem = tv.del(it.id); if (rem) showUndoToast('Itinerario rimosso', () => tv.restore(rem)); }} /></Row>
           </Item>
         ))}
@@ -94,7 +95,7 @@ export default function LifeTravel() {
                 <View style={{ alignSelf: 'flex-start', backgroundColor: '#2a1f45', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: '#c9b6ff', fontSize: 10, fontWeight: '700' }}>AI</Text></View>
                 <Text style={{ color: '#f4f6f8', fontSize: 17, fontWeight: '700', marginTop: 10 }}>{c.name}</Text>
                 <Text style={{ color: '#8e98a8', fontSize: 13, marginVertical: 2, marginBottom: 10 }}>{p.reason}</Text>
-                <Text style={{ color: '#f4f6f8', fontSize: 16, fontWeight: '700' }}>da {price} CHF<Text style={{ color: '#8e98a8', fontSize: 13, fontWeight: '400' }}> / notte</Text></Text>
+                <Text style={{ color: '#f4f6f8', fontSize: 16, fontWeight: '700' }}>da {formatMoney(price)}<Text style={{ color: '#8e98a8', fontSize: 13, fontWeight: '400' }}> / notte</Text></Text>
               </LinearGradient>
             </Pressable>
           );
@@ -119,7 +120,7 @@ export default function LifeTravel() {
             <Row style={{ marginTop: 10 }}><Body bold>{h.name}</Body><View style={{ backgroundColor: tierColor + '22', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}><Text style={{ color: tierColor, fontSize: 12 }}>{tierLabel}</Text></View></Row>
             <Body small muted style={{ marginVertical: 4 }}>{h.rating}/5 ({h.reviews} recensioni) · {h.distance} km dal centro</Body>
             <View style={{ alignSelf: 'flex-start', backgroundColor: scColor + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: scColor, fontSize: 10, fontWeight: '700' }}>{sc}% in linea col tuo viaggio</Text></View>
-            <Row style={{ marginTop: 8 }}><Body bold>{price} CHF <Text style={{ color: t.muted, fontSize: 13, fontWeight: '400' }}>/ notte</Text></Body><Btn small ghost={!sel} title={sel ? 'Selezionato' : 'Seleziona'} onPress={() => { tv.set({ hotelIdx: o.i }); toast('Hotel selezionato: ' + h.name); }} /></Row>
+            <Row style={{ marginTop: 8 }}><Body bold>{formatMoney(price)} <Text style={{ color: t.muted, fontSize: 13, fontWeight: '400' }}>/ notte</Text></Body><Btn small ghost={!sel} title={sel ? 'Selezionato' : 'Seleziona'} onPress={() => { tv.set({ hotelIdx: o.i }); toast('Hotel selezionato: ' + h.name); }} /></Row>
           </Card>
         );
       })}
@@ -149,11 +150,11 @@ export default function LifeTravel() {
           <>
             <Body small muted>{itin.text}</Body>
             <Body small muted style={{ marginTop: 12, marginBottom: 4 }}>Alloggio</Body>
-            <Item><Row><Body>{itin.hotel}</Body><Body bold>{itin.price} CHF/notte</Body></Row></Item>
+            <Item><Row><Body>{itin.hotel}</Body><Body bold>{formatMoney(itin.price)}/notte</Body></Row></Item>
             {Array.from({ length: itin.days }, (_, d) => <Item key={d}><Body bold>Giorno {d + 1}</Body><Body small muted style={{ marginTop: 4 }}>{itin.acts.join(' · ')}</Body></Item>)}
-            <Item style={{ marginTop: 8 }}><Row><Body muted>Soggiorno ({itin.days} notti)</Body><Body bold>{formatCHF(itin.price * itin.days)} CHF</Body></Row></Item>
-            <Item><Row><Body muted>Trasporto (a/r)</Body><Body bold>{formatCHF(itin.flight * 2)} CHF</Body></Row></Item>
-            <Item last><Row><Body muted>Totale stimato viaggio</Body><Body bold>{formatCHF(itin.tripTotal)} CHF</Body></Row></Item>
+            <Item style={{ marginTop: 8 }}><Row><Body muted>Soggiorno ({itin.days} notti)</Body><Body bold>{formatMoney(itin.price * itin.days)}</Body></Row></Item>
+            <Item><Row><Body muted>Trasporto (a/r)</Body><Body bold>{formatMoney(itin.flight * 2)}</Body></Row></Item>
+            <Item last><Row><Body muted>Totale stimato viaggio</Body><Body bold>{formatMoney(itin.tripTotal)}</Body></Row></Item>
             <Body small muted style={{ marginTop: 12 }}>Itinerario simulato: voli/treni, attività e meteo reali richiederebbero l'integrazione con provider veri.</Body>
             <Btn style={{ marginTop: 12 }} title="Aggiungi al Plan" onPress={() => { addVacation({ dest: itin.cityName, month: itin.month, hotel: itin.hotel, price: itin.price, days: itin.days, flight: itin.flight }); setView(null); toast('Vacanza aggiunta al Plan'); }} />
             <Btn small ghost style={{ marginTop: 8 }} title="Salva itinerario" onPress={() => { tv.save({ city: itin.cityName, hotel: itin.hotel, price: itin.price, days: itin.days, tripTotal: itin.tripTotal, month: itin.month }); toast('Itinerario salvato'); }} />

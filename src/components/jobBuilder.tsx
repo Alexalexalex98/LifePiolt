@@ -15,10 +15,11 @@ import { pickFiles, pickImages, readText } from '@/lib/jobFiles';
 import { useApp } from '@/store/app';
 import { useJobs, type Practical } from '@/store/jobs';
 import { toast } from '@/store/toast';
+import { translateText } from '@/i18n/core';
 
 export function Stepper({ value, onChange, min, max, step = 1, suffix = '' }: { value: number; onChange: (v: number) => void; min: number; max: number; step?: number; suffix?: string }) {
   const t = useTheme();
-  const b = (label: string, d: number, a11y: string) => <Pressable onPress={() => onChange(Math.min(max, Math.max(min, value + d)))} hitSlop={6} accessibilityRole="button" accessibilityLabel={a11y} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: t.item, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.text, fontSize: 18 }}>{label}</Text></Pressable>;
+  const b = (label: string, d: number, a11y: string) => <Pressable onPress={() => onChange(Math.min(max, Math.max(min, value + d)))} hitSlop={6} accessibilityRole="button" accessibilityLabel={translateText(a11y)} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: t.item, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.text, fontSize: 18 }}>{label}</Text></Pressable>;
   return <Row gap={8} style={{ justifyContent: 'flex-end' }}>{b('−', -step, 'Diminuisci')}<Text style={{ color: t.text, minWidth: 44, textAlign: 'center', fontWeight: '700' }}>{value}{suffix}</Text>{b('+', step, 'Aumenta')}</Row>;
 }
 
@@ -189,7 +190,7 @@ export function QuestionSheet({ visible, onClose, onAdd, initial, defaultSkill, 
 
       {d.kind === 'Scelta' && d.opts.map((o, i) => (
         <Row key={i} style={{ alignItems: 'flex-start' }}>
-          <Pressable onPress={() => set('correct', i)} style={{ paddingTop: 14 }} accessibilityRole="button" accessibilityLabel={`Opzione ${i + 1} corretta`}><Icon name={d.correct === i ? 'checksquare' : 'circle'} size={20} color={d.correct === i ? t.positive : t.muted} /></Pressable>
+          <Pressable onPress={() => set('correct', i)} style={{ paddingTop: 14 }} accessibilityRole="button" accessibilityLabel={translateText(`Opzione ${i + 1} corretta`)}><Icon name={d.correct === i ? 'checksquare' : 'circle'} size={20} color={d.correct === i ? t.positive : t.muted} /></Pressable>
           <Input flex={1} placeholder={`Opzione ${i + 1}${d.correct === i ? ' (corretta)' : ''}`} value={o} onChangeText={(v) => set('opts', d.opts.map((x, j) => (j === i ? v : x)))} />
         </Row>
       ))}

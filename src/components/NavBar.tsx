@@ -11,6 +11,7 @@ import { go } from '@/lib/nav';
 import { navCatalog, useApp } from '@/store/app';
 import { toast } from '@/store/toast';
 import { useUI } from '@/components/ui';
+import { translateText } from '@/i18n/core';
 
 const translatedNav: Record<string, string> = { home: 'navHome', ai: 'navAi', lifenetwork: 'navNetwork', lifefinance: 'navFinance', profile: 'navProfile' };
 
@@ -54,7 +55,7 @@ export function NavBar({ state }: BottomTabBarProps) {
         {navItems.map((id) => {
           const active = id === current;
           return (
-            <Press key={id} onPress={() => go(id)} role="tab" selected={active} accessibilityLabel={navLabelFor(id, language)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} style={{ alignItems: 'center', minWidth: 56, minHeight: 44, justifyContent: 'center' }}>
+            <Press key={id} onPress={() => go(id)} role="tab" selected={active} accessibilityLabel={translateText(navLabelFor(id, language))} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} style={{ alignItems: 'center', minWidth: 56, minHeight: 44, justifyContent: 'center' }}>
               {active && <View style={{ position: 'absolute', top: -10, width: 4, height: 4, borderRadius: 2, backgroundColor: t.accent }} />}
               <Icon name={id} size={20} color={active ? t.text : t.navInactive} />
               <Text style={{ color: active ? t.text : t.navInactive, fontSize: 11, marginTop: 2, fontWeight: active ? '700' : '400' }}>{navLabelFor(id, language)}</Text>
@@ -81,7 +82,7 @@ export function MenuSheet() {
     <Sheet visible={open} title={translate(language, 'menuTitle')} onClose={() => setMenu(false)}>
       <Press
         onPress={() => { setMenu(false); go('searchPage'); }}
-        accessibilityLabel={sn.searchPage || 'Cerca'}
+        accessibilityLabel={translateText(sn.searchPage || 'Cerca')}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: t.input, borderWidth: 1, borderColor: t.border, borderRadius: 14, marginBottom: 16 }}>
         <Icon name="search" size={17} color={t.text} />
         <Text style={{ color: t.muted }}>{sn.searchPage || 'Cerca'}</Text>

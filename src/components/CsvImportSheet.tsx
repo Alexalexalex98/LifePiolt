@@ -8,6 +8,7 @@ import { movementLabel, parseCsv, splitDuplicates, toAppDate, monthLabelOfIso, t
 import { readPickedText } from '@/lib/readPicked';
 import { useFin } from '@/store/finance';
 import { toast } from '@/store/toast';
+import { formatMoney } from '@/i18n/format';
 
 /** Importa movimenti da un CSV/estratto conto: scelta del file, anteprima con categorie modificabili, conferma. */
 export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -81,7 +82,7 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
               </Item>
             ))}
           </View>
-          <Body small muted style={{ marginTop: 10 }}>Saldo dei movimenti selezionati: {total >= 0 ? '+' : ''}{total.toFixed(2)} CHF. I mesi che non hai ancora in app vengono aggiunti come storico.</Body>
+          <Body small muted style={{ marginTop: 10 }}>Saldo dei movimenti selezionati: {total >= 0 ? '+' : ''}{formatMoney(total, { decimals: 2 })}. I mesi che non hai ancora in app vengono aggiunti come storico.</Body>
           <Row style={{ marginTop: 12 }} gap={8}>
             <Btn ghost style={{ flex: 1 }} title="Altro file" onPress={reset} />
             <Btn style={{ flex: 1 }} disabled={!chosen.length} title={`Importa ${chosen.length}`} onPress={confirm} />

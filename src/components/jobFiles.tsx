@@ -11,6 +11,7 @@ import { fmtDuration } from '@/lib/hiring';
 import { Icon } from '@/lib/icons';
 import { fmtBytes, isImage, openFile } from '@/lib/jobFiles';
 import { toast } from '@/store/toast';
+import { translateText } from '@/i18n/core';
 
 /** Riga di un file: toccandola si scarica / apre. Con `onRemove` mostra "Rimuovi". */
 export function FileChip({ f, onRemove, label }: { f: FileRef; onRemove?: () => void; label?: string }) {
@@ -18,7 +19,7 @@ export function FileChip({ f, onRemove, label }: { f: FileRef; onRemove?: () => 
   return (
     <Pressable
       onPress={async () => { if (!(await openFile(f))) toast('Impossibile aprire il file su questo dispositivo'); }}
-      accessibilityRole="button" accessibilityLabel={`${label ?? 'Apri'} ${f.name}`}
+      accessibilityRole="button" accessibilityLabel={translateText(`${label ?? 'Apri'} ${f.name}`)}
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: t.item, borderRadius: 12, padding: 10, marginTop: 6, opacity: pressed ? 0.6 : 1 })}>
       <Icon name={isImage(f) ? 'image' : 'file'} size={20} color={t.accent} />
       <View style={{ flex: 1 }}>
@@ -45,7 +46,7 @@ export function QuestionView({ q, noPrompt }: { q: Question; noPrompt?: boolean 
           <Text style={{ color: t.text, fontSize: 14, lineHeight: 21 }}>{q.ctx}</Text>
         </View>
       ) : null}
-      {q.img ? <Image source={{ uri: q.img.uri }} contentFit="contain" accessibilityLabel={q.img.name} style={{ width: '100%', height: 200, borderRadius: 12, backgroundColor: t.item, marginBottom: 12 }} /> : null}
+      {q.img ? <Image source={{ uri: q.img.uri }} contentFit="contain" accessibilityLabel={translateText(q.img.name)} style={{ width: '100%', height: 200, borderRadius: 12, backgroundColor: t.item, marginBottom: 12 }} /> : null}
       {q.chart ? <DataChart spec={q.chart} /> : null}
       {!noPrompt && <Body bold style={{ fontSize: 17, marginBottom: 12 }}>{q.prompt}</Body>}
     </View>

@@ -4,6 +4,7 @@ import {
   addDays, analyze, attainment, buildInsights, correlations, dayDiff, domainScore, makeForecast, mean, todayStr,
   type Analysis, type Correlation, type Domain, type Forecast, type Insight, type MetricDef, type Pt, type Series,
 } from '@/lib/analytics';
+import { formatMoney } from '@/i18n/format';
 import { dayKey, monthNames } from '@/lib/format';
 import { categoryOf, useFin, monthEnd, type FinMonth } from '@/store/finance';
 import { healthMeta, pointsOf, useHealth, type Metric } from '@/store/health';
@@ -155,7 +156,7 @@ function financeInsights(today: string): Insight[] {
         out.push({
           id: 'fin-runrate', severity: pct > 0 ? 'warn' : 'good', domain: 'finanza', metricId: 'spending', priority: pct > 0 ? 2.2 : 1.3,
           title: pct > 0 ? 'Stai spendendo più del mese scorso' : 'Stai spendendo meno del mese scorso',
-          detail: `Sulla base di come si distribuivano le tue spese nei mesi precedenti, chiuderai questo mese a circa ${Math.round(projected).toLocaleString('it-CH')} CHF, ${Math.abs(Math.round(pct))}% ${pct > 0 ? 'in più' : 'in meno'} rispetto a ${prev.label.split(' ')[0].toLowerCase()} (${Math.round(base).toLocaleString('it-CH')} CHF).`,
+          detail: `Sulla base di come si distribuivano le tue spese nei mesi precedenti, chiuderai questo mese a circa ${formatMoney(projected)}, ${Math.abs(Math.round(pct))}% ${pct > 0 ? 'in più' : 'in meno'} rispetto a ${prev.label.split(' ')[0].toLowerCase()} (${formatMoney(base)}).`,
           action: pct > 0 ? 'Guarda la categoria in più crescita e fissa un tetto per le prossime due settimane.' : 'Ottimo: considera di accantonare la differenza.',
         });
       }
@@ -172,7 +173,7 @@ function financeInsights(today: string): Insight[] {
     });
     if (best) {
       const b = best as { n: string; cur: number; avg: number };
-      out.push({ id: 'fin-cat', severity: 'warn', domain: 'finanza', priority: 1.9, title: `${b.n}: spesa in forte aumento`, detail: `${Math.round(b.cur).toLocaleString('it-CH')} CHF questo mese contro una media di ${Math.round(b.avg).toLocaleString('it-CH')} CHF nei mesi precedenti (+${Math.round(((b.cur - b.avg) / b.avg) * 100)}%).`, action: 'Controlla i movimenti di questa categoria per capire se è una spesa una tantum.' });
+      out.push({ id: 'fin-cat', severity: 'warn', domain: 'finanza', priority: 1.9, title: `${b.n}: spesa in forte aumento`, detail: `${formatMoney(b.cur)} questo mese contro una media di ${formatMoney(b.avg)} nei mesi precedenti (+${Math.round(((b.cur - b.avg) / b.avg) * 100)}%).`, action: 'Controlla i movimenti di questa categoria per capire se è una spesa una tantum.' });
     }
   }
   return out;

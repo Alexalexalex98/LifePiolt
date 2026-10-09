@@ -8,6 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatCHF } from '@/lib/format';
 import { useFin, type Stock } from '@/store/finance';
 import { toast } from '@/store/toast';
+import { formatMoney } from '@/i18n/format';
 
 export type Flow = { view: 'detail' | 'trade' | 'plan' | 'neworder'; symbol?: string; side?: 'buy' | 'sell' } | null;
 
@@ -71,7 +72,7 @@ export function StockFlow({ flow, setFlow }: { flow: Flow; setFlow: (f: Flow) =>
           <Btn small style={{ flex: 1 }} tone="sell" title="Vendi" onPress={() => startTrade(stock, 'sell')} />
           <Btn small style={{ flex: 1 }} tone="buy" title="Acquista" onPress={() => startTrade(stock, 'buy')} />
         </Row>
-        <Btn small ghost style={{ marginTop: 8 }} icon="repeat" title={`Imposta piano di risparmio${plan ? ` · attivo ${formatCHF(plan.amount)} CHF/${plan.freq === 'mensile' ? 'mese' : 'sett.'}` : ''}`}
+        <Btn small ghost style={{ marginTop: 8 }} icon="repeat" title={`Imposta piano di risparmio${plan ? ` · attivo ${formatMoney(plan.amount)}/${plan.freq === 'mensile' ? 'mese' : 'sett.'}` : ''}`}
           onPress={() => { setSpAmount(plan ? String(plan.amount) : ''); setSpFreq(plan?.freq === 'settimanale' ? 'Settimanale' : 'Mensile'); setFlow({ view: 'plan', symbol: stock.symbol }); }} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 16 }}>
           <Cell l="APERTURA" v={stock.open.toFixed(2)} /><Cell l="MAX 52 SETT." v={stock.high52.toFixed(2)} />
@@ -102,7 +103,7 @@ export function StockFlow({ flow, setFlow }: { flow: Flow; setFlow: (f: Flow) =>
         <Body small muted style={{ textAlign: 'center', marginTop: 16, marginBottom: 6 }}>{side === 'buy' ? 'Acquista' : 'Vendi'}</Body>
         <Row style={{ justifyContent: 'center' }} gap={16}>
           <Pressable onPress={() => setQty(Math.max(0.0001, +(qty - 0.5).toFixed(4)))} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: t.border, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.text, fontSize: 22 }}>−</Text></Pressable>
-          <View style={{ alignItems: 'center', minWidth: 110 }}><Text style={{ color: t.text, fontSize: 26, fontWeight: '800' }}>{qty.toFixed(4)}</Text><Body small muted>Valore: {formatCHF(value)} CHF</Body></View>
+          <View style={{ alignItems: 'center', minWidth: 110 }}><Text style={{ color: t.text, fontSize: 26, fontWeight: '800' }}>{qty.toFixed(4)}</Text><Body small muted>Valore: {formatMoney(value)}</Body></View>
           <Pressable onPress={() => setQty(+(qty + 0.5).toFixed(4))} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: t.border, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.text, fontSize: 22 }}>+</Text></Pressable>
         </Row>
         <View style={{ marginTop: 16 }}>
@@ -113,8 +114,8 @@ export function StockFlow({ flow, setFlow }: { flow: Flow; setFlow: (f: Flow) =>
           <Toggle label="Take Profit" value={tpOn} onChange={setTpOn} />
           {tpOn && <Input keyboardType="decimal-pad" value={tpPrice} onChangeText={setTpPrice} placeholder="Prezzo take profit" />}
         </View>
-        <Item style={{ marginTop: 8 }}><Row><Body muted>Margine richiesto</Body><Body bold>{formatCHF(margin)} CHF</Body></Row></Item>
-        <Item last><Row><Body muted>Valore</Body><Body bold>{formatCHF(value)} CHF</Body></Row></Item>
+        <Item style={{ marginTop: 8 }}><Row><Body muted>Margine richiesto</Body><Body bold>{formatMoney(margin)}</Body></Row></Item>
+        <Item last><Row><Body muted>Valore</Body><Body bold>{formatMoney(value)}</Body></Row></Item>
         <Btn style={{ marginTop: 14 }} title="Conferma ordine" onPress={place} />
         <Body small muted style={{ marginTop: 10 }}>Operazione simulata: nessun investimento reale viene eseguito. Stop Loss e Take Profit restano registrati sull'ordine, non vengono eseguiti automaticamente.</Body>
       </>
@@ -125,14 +126,14 @@ export function StockFlow({ flow, setFlow }: { flow: Flow; setFlow: (f: Flow) =>
     body = (
       <>
         <Body small muted>Versamento periodico automatico in {stock.symbol} (simulato).</Body>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginVertical: 10 }}>{[50, 100, 250, 500].map((v) => <Pill key={v} label={`${v} CHF`} onPress={() => setSpAmount(String(v))} />)}</View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginVertical: 10 }}>{[50, 100, 250, 500].map((v) => <Pill key={v} label={`${formatMoney(v)}`} onPress={() => setSpAmount(String(v))} />)}</View>
         <Input keyboardType="decimal-pad" placeholder="Importo personalizzato (CHF)" value={spAmount} onChangeText={setSpAmount} />
         <Select value={spFreq} options={['Mensile', 'Settimanale']} onChange={(v) => setSpFreq(v as typeof spFreq)} />
         <Btn title="Continua" onPress={() => {
           const a = parseFloat(spAmount.replace(',', '.'));
           if (!Number.isFinite(a) || a <= 0) { toast('Inserisci un importo valido'); return; }
           f.setPlan(stock.symbol, { amount: a, freq: spFreq === 'Mensile' ? 'mensile' : 'settimanale' });
-          close(); toast(`Piano impostato: ${formatCHF(a)} CHF al ${spFreq === 'Mensile' ? 'mese' : 'settimana'} su ${stock.symbol}`);
+          close(); toast(`Piano impostato: ${formatMoney(a)} al ${spFreq === 'Mensile' ? 'mese' : 'settimana'} su ${stock.symbol}`);
         }} />
         {plan && <Btn small ghost style={{ marginTop: 8 }} title="Disattiva piano" onPress={() => { f.setPlan(stock.symbol, null); close(); toast('Piano disattivato'); }} />}
       </>

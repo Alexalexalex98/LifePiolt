@@ -1,8 +1,10 @@
 /**
- * Comprensione dell'italiano senza AI: date, orari, durate, titoli e riconoscimento del comando.
+ * Comprensione dell'italiano E dell'inglese senza AI (insieme, senza selezione): date, orari, durate, titoli e riconoscimento del comando.
  * Modulo PURO (nessun import dall'app) così si prova con numeri noti. Tutto è regole e espressioni regolari:
  * non "capisce" qualsiasi frase, ma gestisce bene le richieste tipiche e, se non capisce, chiede o suggerisce.
  */
+import { t } from '../../i18n/core.ts';
+
 export const stripAccents = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 export const norm = (s: string) => stripAccents(s.toLowerCase()).replace(/[’`´]/g, "'").replace(/\s+/g, ' ').trim();
 
@@ -14,15 +16,19 @@ const fromKey = (k: string) => new Date(k + 'T00:00:00');
 const wdNames = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
 const wdLabel = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
 const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
-const numWords: Record<string, number> = { un: 1, uno: 1, una: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9, dieci: 10, dodici: 12, quindici: 15, venti: 20, trenta: 30 };
+const wdEn = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const monthEn = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+const monthEnShort = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const monthEnIdx = (x: string) => { const i = monthEn.indexOf(x); if (i >= 0) return i; const j = monthEnShort.indexOf(x.slice(0, 3)); return j; };
+const numWords: Record<string, number> = { un: 1, uno: 1, una: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9, dieci: 10, dodici: 12, quindici: 15, venti: 20, trenta: 30, a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, twelve: 12, fifteen: 15, twenty: 20, thirty: 30 };
 const num = (s: string) => (/^\d+$/.test(s) ? Number(s) : numWords[s]);
 
 export const dayLabel = (key: string, now: Date) => {
-  const d = fromKey(key), t = dayKeyOf(now);
-  if (key === t) return 'oggi';
-  if (key === dayKeyOf(addDaysTo(now, 1))) return 'domani';
-  if (key === dayKeyOf(addDaysTo(now, 2))) return 'dopodomani';
-  return `${wdLabel[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+  const d = fromKey(key), tk = dayKeyOf(now);
+  if (key === tk) return t('oggi');
+  if (key === dayKeyOf(addDaysTo(now, 1))) return t('domani');
+  if (key === dayKeyOf(addDaysTo(now, 2))) return t('dopodomani');
+  return `${t(wdLabel[d.getDay()])} ${d.getDate()}/${d.getMonth() + 1}`;
 };
 
 type Span = [number, number];

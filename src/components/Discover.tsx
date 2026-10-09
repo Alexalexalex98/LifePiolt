@@ -12,6 +12,7 @@ import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { useDiscover } from '@/store/discover';
+import { translateText } from '@/i18n/core';
 
 /** Apre la funzione (pagina o comando all'assistente). */
 export function tryFeature(f: Feature) {
@@ -75,7 +76,7 @@ export function DiscoverHost() {
             const on = openGroup === g.id;
             return (
               <View key={g.id} style={{ backgroundColor: t.card, borderColor: on ? g.color : t.border, borderWidth: on ? 1.5 : 1, borderRadius: 20, marginBottom: 10, overflow: 'hidden' }}>
-                <Pressable onPress={() => setOpenGroup(on ? null : g.id)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, opacity: pressed ? 0.6 : 1 })} accessibilityRole="button" accessibilityState={{ expanded: on }} accessibilityLabel={`${g.title}: ${g.tagline}`}>
+                <Pressable onPress={() => setOpenGroup(on ? null : g.id)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, opacity: pressed ? 0.6 : 1 })} accessibilityRole="button" accessibilityState={{ expanded: on }} accessibilityLabel={translateText(`${g.title}: ${g.tagline}`)}>
                   <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: g.color + '2e', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name={g.icon} size={22} color={g.color} stroke={2} />
                   </View>
@@ -92,7 +93,7 @@ export function DiscoverHost() {
                       <View key={f.title} style={{ paddingVertical: 10, borderTopWidth: 1, borderTopColor: t.border }}>
                         <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{f.title}</Text>
                         <Text style={{ color: t.muted, fontSize: 14, lineHeight: 20, marginTop: 2 }}>{f.text}</Text>
-                        <Press onPress={() => tryIt(f)} accessibilityLabel={`Provalo: ${f.title}`} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ alignSelf: 'flex-start', marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: g.color + '2e', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 9 }}>
+                        <Press onPress={() => tryIt(f)} accessibilityLabel={translateText(`Provalo: ${f.title}`)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ alignSelf: 'flex-start', marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: g.color + '2e', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 9 }}>
                           <Text style={{ color: t.mode === 'light' ? t.text : g.color, fontWeight: '800', fontSize: 13 }}>Provalo</Text>
                           <Icon name="arrow-right" size={14} color={t.mode === 'light' ? t.text : g.color} stroke={2.4} />
                         </Press>
@@ -129,7 +130,7 @@ export function DiscoverCard() {
       <Body small muted numberOfLines={2} style={{ marginTop: 8 }}>{f.text}</Body>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, gap: 10 }}>
         <Btn small title="Provalo" icon="arrow-right" onPress={() => tryFeature(f)} />
-        <Press onPress={() => useDiscover.getState().show('full')} accessibilityLabel={`Scopri tutte le ${featureCount} funzioni di LifePilot`} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
+        <Press onPress={() => useDiscover.getState().show('full')} accessibilityLabel={translateText(`Scopri tutte le ${featureCount} funzioni di LifePilot`)} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
           <Text style={{ color: t.muted, fontSize: 13, textDecorationLine: 'underline' }}>Tutte le {featureCount} funzioni</Text>
         </Press>
       </View>

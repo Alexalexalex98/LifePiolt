@@ -21,6 +21,7 @@ import { moodOptions, useHealth } from '@/store/health';
 import { shortDate } from '@/lib/format';
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
+import { translateText } from '@/i18n/core';
 
 const order: Record<Domain, string[]> = {
   salute: ['sleep', 'steps', 'hrv', 'hr', 'exercise', 'energy', 'weight', 'vo2', 'spo2'],
@@ -141,7 +142,7 @@ export default function Dashboard() {
           {(['salute', 'mente', 'finanza', 'crescita'] as const).map((d) => {
             const v = scores[d]; const c = statusColor(t, scoreStatus(v));
             return (
-              <Pressable key={d} onPress={() => setDomain(d as Exclude<Domain, 'contesto'>)} accessibilityRole="button" accessibilityLabel={`${domainLabel[d]}: dettagli`} style={{ flex: 1, backgroundColor: t.tile, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 4, alignItems: 'center' }}>
+              <Pressable key={d} onPress={() => setDomain(d as Exclude<Domain, 'contesto'>)} accessibilityRole="button" accessibilityLabel={translateText(`${domainLabel[d]}: dettagli`)} style={{ flex: 1, backgroundColor: t.tile, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 4, alignItems: 'center' }}>
                 <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ color: t.muted, fontSize: 10, fontWeight: '700', letterSpacing: 0.2, textTransform: 'uppercase' }}>{domainLabel[d]}</Text>
                 <Text style={{ color: c, fontSize: 22, fontWeight: '800' }}>{v ?? '—'}</Text>
                 <View style={{ height: 3, alignSelf: 'stretch', marginHorizontal: 6, borderRadius: 2, backgroundColor: t.border, marginTop: 2 }}><View style={{ width: `${v ?? 0}%`, height: 3, borderRadius: 2, backgroundColor: c }} /></View>

@@ -1,7 +1,8 @@
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useState } from 'react';
-import { Alert, Pressable, Share, View } from 'react-native';
+import { Pressable, Share, View } from 'react-native';
+import { alertT } from '@/lib/alert';
 
 import { navLabelFor } from '@/components/NavBar';
 import { WorkHoursSheet } from '@/components/plan';
@@ -57,7 +58,7 @@ export default function Settings() {
     if (v) {
       let status = 'denied';
       try { status = (await requestPermission()).ok ? 'granted' : 'denied'; } catch { /* Expo Go o permessi non disponibili */ }
-      if (status !== 'granted') { Alert.alert('Notifiche disattivate', 'Per riceverle abilita le notifiche per LifePilot dalle impostazioni del telefono.'); return; }
+      if (status !== 'granted') { alertT('Notifiche disattivate', 'Per riceverle abilita le notifiche per LifePilot dalle impostazioni del telefono.'); return; }
     }
     set({ notif: { ...app.notif, push: v } });
     toast('Preferenza aggiornata');
@@ -72,7 +73,7 @@ export default function Settings() {
     const next = { ...app.briefing, ...patch };
     if (patch[kind] === true) {
       const r = await requestPermission();
-      if (!r.ok) { toast(r.message); Alert.alert('Notifiche non attive', r.message); return; }
+      if (!r.ok) { toast(r.message); alertT('Notifiche non attive', r.message); return; }
     }
     set({ briefing: next });
     void refreshBriefings();

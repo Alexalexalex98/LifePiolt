@@ -16,6 +16,7 @@ import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useTheme } from '@/hooks/use-theme';
 import * as Localization from 'expo-localization';
 import { applyLanguage } from '@/i18n/apply';
+import { setFormatPrefs } from '@/i18n/format';
 import { detectLang, normalizeLang } from '@/i18n/languages';
 import { useApp } from '@/store/app';
 import { useFin } from '@/store/finance';
@@ -45,6 +46,10 @@ export default function RootLayout() {
   const lang = normalizeLang(rawLang);
   // i testi si traducono a runtime: attivo la lingua prima di disegnare e ridisegno tutto quando cambia (key={lang})
   useMemo(() => { applyLanguage(lang); }, [lang]);
+  const currency = useApp((s) => s.currency) || 'CHF';
+  const timeFormat = useApp((s) => s.timeFormat);
+  // valuta e formato ora: li imposto prima del disegno; cambiandoli l'app si ridisegna (key)
+  useMemo(() => { setFormatPrefs({ currency, timeFormat }); }, [currency, timeFormat]);
   const [ready, setReady] = useState(allHydrated());
 
   useEffect(() => {
@@ -74,7 +79,7 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <View key={lang} style={{ flex: 1, backgroundColor: t.bg }}>
+    <View key={`${lang}|${currency}|${timeFormat}`} style={{ flex: 1, backgroundColor: t.bg }}>
       <StatusBar style={t.mode === 'light' ? 'dark' : 'light'} />
       <Stack screenOptions={{ headerShown: false, animation: reduceMotion ? 'none' : 'default', contentStyle: { backgroundColor: t.bg } }}>
         <Stack.Protected guard={!onboarded}>

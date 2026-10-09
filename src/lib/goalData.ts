@@ -1,3 +1,4 @@
+import { currentCurrency, formatMoney } from '../i18n/format.ts';
 /**
  * Obiettivi collegati ai dati: l'avanzamento si calcola da solo da salute e finanze. Modulo PURO e testabile.
  * Periodo 'week' = ultimi 7 giorni (oggi incluso), 'month' = ultimi 30 giorni (per il risparmio: il mese in corso).
@@ -63,7 +64,7 @@ export function goalProgress(link: GoalLink, inp: GoalInputs): GoalProgressInfo 
   }
   const hasData = value != null;
   const pct = hasData && value! > 0 ? Math.min(100, Math.round((value! / link.target) * 100)) : 0;
-  const unit = link.metric === 'savings' ? 'CHF' : meta.unit;
+  const unit = link.metric === 'savings' ? currentCurrency() : meta.unit;
   const text = hasData
     ? `${fmt(value!, meta.dec)} su ${fmt(link.target, meta.dec)} ${unit}${link.metric === 'savings' ? ' questo mese' : link.period === 'week' ? ' (ultimi 7 giorni)' : ' (ultimi 30 giorni)'}`
     : 'Ancora nessun dato: collega Apple Health o registra i dati a mano.';
@@ -74,7 +75,7 @@ export function goalProgress(link: GoalLink, inp: GoalInputs): GoalProgressInfo 
 export function linkTitle(link: GoalLink): string {
   const m = goalMetrics[link.metric];
   const tgt = fmt(link.target, m.dec);
-  if (link.metric === 'savings') return `Risparmio · ${tgt} CHF al mese`;
+  if (link.metric === 'savings') return `Risparmio · ${formatMoney(link.target)} al mese`;
   if (link.metric === 'workouts') return `Allenamenti · ${tgt} ${periodLabel[link.period]}`;
   if (link.metric === 'steps') return `Passi medi · ${tgt} al giorno`;
   if (link.metric === 'sleep') return `Sonno · ${tgt} ore per notte`;

@@ -13,6 +13,7 @@ import { fmtDuration, fmtRange, pubLabel } from '@/lib/when';
 import { useApp } from '@/store/app';
 import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
+import { translateText } from '@/i18n/core';
 
 export default function SeminarPage() {
   const t = useTheme();
@@ -68,7 +69,7 @@ export default function SeminarPage() {
 
       <Card>
         <H>Relatore</H>
-        <Pressable onPress={() => go('userProfile', { name: s.host })} accessibilityRole="link" accessibilityLabel={`Apri il profilo di ${s.host}`}>
+        <Pressable onPress={() => go('userProfile', { name: s.host })} accessibilityRole="link" accessibilityLabel={translateText(`Apri il profilo di ${s.host}`)}>
           <Row>
             <Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}>
               <UserAvatar name={s.host} size={42} />

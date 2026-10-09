@@ -16,6 +16,7 @@ import { useApp } from '@/store/app';
 import { jobQuestions, practiceQuestions, useJobs } from '@/store/jobs';
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
+import { translateText } from '@/i18n/core';
 
 const fmt = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.max(0, s) % 60).padStart(2, '0')}`;
 
@@ -122,8 +123,8 @@ export default function JobTest() {
       <Row style={{ marginBottom: 8 }}>
         <Body small muted>Domanda {i + 1} di {questions.length}</Body>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          {qLeft != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Icon name="clock" size={15} color={qLeft < 10 ? t.danger : t.muted} /><Text style={{ color: qLeft < 10 ? t.danger : t.muted, fontWeight: '700' }} accessibilityLabel="Tempo per questa domanda">{fmt(qLeft)}</Text></View>}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Icon name="timer" size={16} color={left < 60 ? t.danger : t.text} /><Text style={{ color: left < 60 ? t.danger : t.text, fontWeight: '800' }} accessibilityLabel="Tempo totale rimasto">{fmt(left)}</Text></View>
+          {qLeft != null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Icon name="clock" size={15} color={qLeft < 10 ? t.danger : t.muted} /><Text style={{ color: qLeft < 10 ? t.danger : t.muted, fontWeight: '700' }} accessibilityLabel={translateText("Tempo per questa domanda")}>{fmt(qLeft)}</Text></View>}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Icon name="timer" size={16} color={left < 60 ? t.danger : t.text} /><Text style={{ color: left < 60 ? t.danger : t.text, fontWeight: '800' }} accessibilityLabel={translateText("Tempo totale rimasto")}>{fmt(left)}</Text></View>
         </View>
       </Row>
       <View style={{ height: 4, borderRadius: 2, backgroundColor: t.item, marginBottom: 14 }}><View style={{ height: 4, borderRadius: 2, width: `${((i) / questions.length) * 100}%`, backgroundColor: t.accent }} /></View>

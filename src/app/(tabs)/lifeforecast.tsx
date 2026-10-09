@@ -7,6 +7,7 @@ import { Body, Card, H, Input, Item, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF } from '@/lib/format';
 import { avgRecentNet, monthEnd, monthNet, useFin } from '@/store/finance';
+import { formatMoney } from '@/i18n/format';
 
 export function computeForecast(startCapital: number, monthly: number, annualReturnPct: number) {
   const r = annualReturnPct / 100;
@@ -36,10 +37,10 @@ export default function LifeForecast() {
   const totalExp = -cur.movements.filter((x) => x.amount < 0).reduce((s, x) => s + x.amount, 0);
   const catAmount = Math.round((totalExp * (top?.p ?? 0)) / 100);
   const tips: string[] = [];
-  if (top && catAmount > 0) tips.push(`Tagliando il 20% della categoria "${top.n}" (circa ${formatCHF(catAmount)} CHF/mese) libereresti circa ${formatCHF(Math.round(catAmount * 0.2))} CHF al mese in più da risparmiare o investire.`);
+  if (top && catAmount > 0) tips.push(`Tagliando il 20% della categoria "${top.n}" (circa ${formatMoney(catAmount)}/mese) libereresti circa ${formatMoney(Math.round(catAmount * 0.2))} al mese in più da risparmiare o investire.`);
   if (!f.budget.saveToEmergency) tips.push('Il Fondo di emergenza è escluso dal piano del prossimo mese: riattivarlo aiuta a non dover intaccare gli investimenti nei momenti difficili.');
   const rem = f.budget.salary - Object.values(f.budget.alloc).reduce((s, v) => s + (v || 0), 0);
-  if (f.budget.salary > 0 && rem > 50) tips.push(`Nel piano del prossimo mese hai ${formatCHF(rem)} CHF non allocati: potresti destinarli al Portafoglio invece di lasciarli fermi.`);
+  if (f.budget.salary > 0 && rem > 50) tips.push(`Nel piano del prossimo mese hai ${formatMoney(rem)} non allocati: potresti destinarli al Portafoglio invece di lasciarli fermi.`);
   if (!tips.length) tips.push('Registra qualche mese di movimenti e il piano del mese prossimo: qui comparirà qualche accortezza su misura.');
   void monthNet;
 
@@ -51,7 +52,7 @@ export default function LifeForecast() {
       </Card>
       <Card>
         <Body small muted style={{ marginBottom: 4 }}>Ipotesi di partenza</Body>
-        <Item><Row><Body muted style={{ flex: 1 }}>Risparmio medio mensile (ultimi 3 mesi)</Body><Body bold>{base >= 0 ? '+' : ''}{formatCHF(base)} CHF</Body></Row></Item>
+        <Item><Row><Body muted style={{ flex: 1 }}>Risparmio medio mensile (ultimi 3 mesi)</Body><Body bold>{base >= 0 ? '+' : ''}{formatMoney(base)}</Body></Row></Item>
         <Row style={{ marginTop: 10 }}><Body small muted style={{ flex: 1 }}>Quanto vuoi accantonare al mese</Body><Input keyboardType="decimal-pad" value={monthly} onChangeText={setMonthly} style={{ width: 110, marginBottom: 0 }} /></Row>
         <Row style={{ marginTop: 8 }}><Body small muted style={{ flex: 1 }}>Rendimento medio annuo atteso se investi</Body><Input keyboardType="decimal-pad" value={ret} onChangeText={setRet} style={{ width: 70, marginBottom: 0 }} /></Row>
       </Card>
@@ -63,9 +64,9 @@ export default function LifeForecast() {
       </Card>
       <Card>
         <H>Tra 10 anni</H>
-        <Item><Row><Body muted>Solo risparmiando (conto)</Body><Body bold>{formatCHF(cash[10])} CHF</Body></Row></Item>
-        <Item><Row><Body muted>Investendo al rendimento indicato</Body><Body bold>{formatCHF(inv[10])} CHF</Body></Row></Item>
-        <Item last><Row><Body muted>Differenza stimata</Body><Body bold color={t.positive}>{diff >= 0 ? '+' : ''}{formatCHF(diff)} CHF</Body></Row></Item>
+        <Item><Row><Body muted>Solo risparmiando (conto)</Body><Body bold>{formatMoney(cash[10])}</Body></Row></Item>
+        <Item><Row><Body muted>Investendo al rendimento indicato</Body><Body bold>{formatMoney(inv[10])}</Body></Row></Item>
+        <Item last><Row><Body muted>Differenza stimata</Body><Body bold color={t.positive}>{diff >= 0 ? '+' : ''}{formatMoney(diff)}</Body></Row></Item>
       </Card>
       <Card>
         <H>Tappe intermedie</H>

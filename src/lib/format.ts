@@ -1,8 +1,10 @@
+import { fmtInt } from '../i18n/format.ts';
+
+/** Numero intero raggruppato secondo la lingua (nome storico: serve anche per LifePoints e altri conteggi; per i soldi usa formatMoney). */
 export function formatCHF(n: number): string {
-  const neg = n < 0;
-  const r = Math.round(Math.abs(n));
-  return (neg ? '-' : '') + r.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  return fmtInt(n);
 }
+export { formatMoney } from '../i18n/format.ts';
 
 export const pad2 = (n: number) => String(n).padStart(2, '0');
 

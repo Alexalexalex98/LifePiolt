@@ -17,6 +17,8 @@ import { toast } from '@/store/toast';
 import { LpTag } from '@/components/network';
 import { go } from '@/lib/nav';
 import { useNet } from '@/store/network';
+import { translateText } from '@/i18n/core';
+import { formatMoney } from '@/i18n/format';
 
 export default function LifeFinance() {
   const t = useTheme();
@@ -183,7 +185,7 @@ export default function LifeFinance() {
           setBudgetKey((k) => k + 1);
           toast(v ? 'Fondo emergenza reinserito con la stima' : 'Fondo emergenza escluso dal piano del prossimo mese');
         }} />
-        <Pressable onPress={() => setEf(true)}><Metric big>{formatCHF(efTotal)} CHF</Metric></Pressable>
+        <Pressable onPress={() => setEf(true)}><Metric big>{formatMoney(efTotal)}</Metric></Pressable>
         <Body small muted>Accantonato in tutti i mesi registrati · tocca il totale per il dettaglio · la spunta decide se accantonarci anche il prossimo mese</Body>
       </Card>
 
@@ -197,7 +199,7 @@ export default function LifeFinance() {
         <Btn small ghost icon="plus" title="Aggiungi costi tipici" style={{ marginBottom: 8 }} onPress={() => { openTyp(); }} />
         {f.bills.length === 0 ? <Body small muted>Nessuna bolletta ricorrente ancora.</Body> : f.bills.map((b, i) => (
           <Item key={b.id} last={i === f.bills.length - 1}>
-            <Row><View style={{ flex: 1 }}><Body>{b.name}</Body><Body small muted>{b.freq === 'monthly' ? 'ogni mese' : 'ogni anno'}</Body></View><Body bold>{formatCHF(b.amount)} CHF</Body><XBtn onPress={() => { f.delBill(b.id); toast('Rimossa'); }} /></Row>
+            <Row><View style={{ flex: 1 }}><Body>{b.name}</Body><Body small muted>{b.freq === 'monthly' ? 'ogni mese' : 'ogni anno'}</Body></View><Body bold>{formatMoney(b.amount)}</Body><XBtn onPress={() => { f.delBill(b.id); toast('Rimossa'); }} /></Row>
           </Item>
         ))}
         {recurring.length > 0 && (
@@ -206,19 +208,19 @@ export default function LifeFinance() {
             <Body small muted style={{ marginBottom: 6 }}>Pagamenti che si ripetono: aggiungili con un tocco.</Body>
             {recurring.slice(0, 6).map((r) => (
               <Row key={r.key} style={{ paddingVertical: 5 }}>
-                <View style={{ flex: 1 }}><Body>{r.name}</Body><Body small muted>{formatCHF(r.amount)} CHF · {r.freq === 'monthly' ? 'ogni mese' : 'ogni anno'} · visto {r.count} volte</Body></View>
+                <View style={{ flex: 1 }}><Body>{r.name}</Body><Body small muted>{formatMoney(r.amount)} · {r.freq === 'monthly' ? 'ogni mese' : 'ogni anno'} · visto {r.count} volte</Body></View>
                 <Btn small ghost title="Aggiungi" onPress={() => { const n = f.addBills([{ name: r.name, amount: r.amount, freq: r.freq }]); toast(n ? 'Aggiunta alle bollette' : 'Già presente'); }} />
               </Row>
             ))}
             {recurring.length > 1 && <Btn small style={{ marginTop: 8 }} title={`Aggiungi tutte (${Math.min(recurring.length, 6)})`} onPress={() => { const n = f.addBills(recurring.slice(0, 6).map((r) => ({ name: r.name, amount: r.amount, freq: r.freq }))); toast(n === 1 ? 'Aggiunta 1 bolletta' : `Aggiunte ${n} bollette`); }} />}
           </View>
         )}
-        {f.bills.length > 0 && <Body small muted style={{ marginTop: 10 }}>Totale equivalente mensile: {formatCHF(Math.round(monthlyBills))} CHF</Body>}
+        {f.bills.length > 0 && <Body small muted style={{ marginTop: 10 }}>Totale equivalente mensile: {formatMoney(Math.round(monthlyBills))}</Body>}
       </Card>
 
       <Card>
         <Row><H>Pianifica il prossimo mese</H><Btn small ghost title="Reimposta" onPress={() => { f.resetBudget(); setBudgetKey((k) => k + 1); toast('Piano reimpostato con un residuo stimato'); }} /></Row>
-        <Body small muted style={{ marginBottom: 10 }}>Residuo suggerito ~{formatCHF(buffer)} CHF, in base alla media degli ultimi 3 mesi. Se lo stipendio non è fisso, usa una media prevista.</Body>
+        <Body small muted style={{ marginBottom: 10 }}>Residuo suggerito ~{formatMoney(buffer)}, in base alla media degli ultimi 3 mesi. Se lo stipendio non è fisso, usa una media prevista.</Body>
         <Row style={{ marginBottom: 10 }}><Body small muted style={{ flex: 1 }}>Stipendio medio previsto</Body><Input key={`s${budgetKey}`} keyboardType="decimal-pad" defaultValue={String(f.budget.salary || '')} style={{ width: 120, marginBottom: 0 }} onChangeText={(v) => f.setBudget({ salary: parseFloat(v.replace(',', '.')) || 0 })} /></Row>
         {f.categories.map((c) => {
           const isEF = c.n === 'Fondo emergenza', disabled = isEF && !f.budget.saveToEmergency;
@@ -238,8 +240,8 @@ export default function LifeFinance() {
             </Item>
           );
         })}
-        <Item><Row><Body muted>Allocato</Body><Body bold>{formatCHF(allocated)} CHF</Body></Row></Item>
-        <Item last><Row><Body muted>Rimanente dopo le spese</Body><Body bold color={remaining < 0 ? t.danger : t.positive}>{formatCHF(remaining)} CHF</Body></Row></Item>
+        <Item><Row><Body muted>Allocato</Body><Body bold>{formatMoney(allocated)}</Body></Row></Item>
+        <Item last><Row><Body muted>Rimanente dopo le spese</Body><Body bold color={remaining < 0 ? t.danger : t.positive}>{formatMoney(remaining)}</Body></Row></Item>
       </Card>
 
       {/* movimenti */}
@@ -254,19 +256,19 @@ export default function LifeFinance() {
                 <Body small bold>{m.label}</Body>
                 <Btn small ghost disabled={hist <= 0} icon="arrow-right" title="successivo" onPress={() => setHist(hist - 1)} />
               </Row>
-              <Item><Row><Body muted>Saldo iniziale</Body><Body bold>{m.start.toFixed(2)} CHF</Body></Row></Item>
+              <Item><Row><Body muted>Saldo iniziale</Body><Body bold>{formatMoney(m.start, { decimals: 2 })}</Body></Row></Item>
               {m.movements.map((mv, mi) => (
                 <Item key={mi}>
                   <Row>
                     <Body style={{ flex: 1 }}>{mv.date} · {mv.label}</Body>
-                    <Body bold color={mv.amount > 0 ? t.positive : t.danger}>{mv.amount > 0 ? '+' : ''}{mv.amount.toFixed(2)} CHF</Body>
+                    <Body bold color={mv.amount > 0 ? t.positive : t.danger}>{mv.amount > 0 ? '+' : ''}{formatMoney(mv.amount, { decimals: 2 })}</Body>
                     {!m.locked && <XBtn onPress={() => { f.delMovement(hist, mi); toast('Movimento rimosso'); }} />}
                   </Row>
                 </Item>
               ))}
-              <Item><Row><Body muted>Entrate</Body><Body bold color={t.positive}>+{income.toFixed(2)} CHF</Body></Row></Item>
-              <Item><Row><Body muted>Uscite</Body><Body bold color={t.danger}>-{expenses.toFixed(2)} CHF</Body></Row></Item>
-              <Item last><Row><Body muted>Saldo finale</Body><Body bold>{monthEnd(m).toFixed(2)} CHF</Body></Row></Item>
+              <Item><Row><Body muted>Entrate</Body><Body bold color={t.positive}>+{formatMoney(income, { decimals: 2 })}</Body></Row></Item>
+              <Item><Row><Body muted>Uscite</Body><Body bold color={t.danger}>-{formatMoney(expenses, { decimals: 2 })}</Body></Row></Item>
+              <Item last><Row><Body muted>Saldo finale</Body><Body bold>{formatMoney(monthEnd(m), { decimals: 2 })}</Body></Row></Item>
               {m.locked ? <Body small muted style={{ marginTop: 10 }}>Mese storico, non modificabile.</Body> : (
                 <View style={{ marginTop: 14 }}>
                   <View style={{ flexDirection: 'row', marginBottom: 6 }}><Pill label="Uscita" on={mvType === 'out'} onPress={() => setMvType('out')} /><Pill label="Entrata" on={mvType === 'in'} onPress={() => setMvType('in')} /></View>
@@ -284,7 +286,7 @@ export default function LifeFinance() {
         {endsChrono.length > 1 ? <LineChart data={endsChrono} /> : <Empty text="Servono almeno due mesi di dati per il grafico." />}
         <Body small muted style={{ marginVertical: 10 }}>Saldo a fine mese (CHF)</Body>
         {f.months.slice().reverse().map((mm, i, a) => { const n = monthNet(mm); return (
-          <Item key={mm.label} last={i === a.length - 1}><Row><Body>{mm.label}</Body><Row gap={10}><Text style={{ color: n >= 0 ? t.positive : t.danger, fontSize: 13 }}>{n >= 0 ? '+' : ''}{formatCHF(n)}</Text><Body bold>{formatCHF(monthEnd(mm))} CHF</Body></Row></Row></Item>
+          <Item key={mm.label} last={i === a.length - 1}><Row><Body>{mm.label}</Body><Row gap={10}><Text style={{ color: n >= 0 ? t.positive : t.danger, fontSize: 13 }}>{n >= 0 ? '+' : ''}{formatCHF(n)}</Text><Body bold>{formatMoney(monthEnd(mm))}</Body></Row></Row></Item>
         ); })}
       </Sheet>
 
@@ -295,16 +297,16 @@ export default function LifeFinance() {
       </Sheet>
 
       <Sheet visible={ef} title="Fondo di emergenza" onClose={() => setEf(false)}>
-        <Metric big>{formatCHF(efTotal)} CHF</Metric>
+        <Metric big>{formatMoney(efTotal)}</Metric>
         <Body small muted style={{ marginTop: 4, marginBottom: 14 }}>Totale accantonato in tutti i mesi registrati, calcolato dai movimenti di categoria "Fondo emergenza" in ciascun mese.</Body>
-        {f.months.map((mm, i) => <Item key={mm.label} last={i === f.months.length - 1}><Row><Body>{mm.label}</Body><Body bold>{formatCHF(emergencyByMonth(mm))} CHF</Body></Row></Item>)}
+        {f.months.map((mm, i) => <Item key={mm.label} last={i === f.months.length - 1}><Row><Body>{mm.label}</Body><Body bold>{formatMoney(emergencyByMonth(mm))}</Body></Row></Item>)}
       </Sheet>
 
       <Sheet visible={guide} title="Quanto dovrebbero pesare le tue spese" onClose={() => setGuide(false)}>
         <Row style={{ marginBottom: 12 }}><Body small muted style={{ flex: 1 }}>Entrate di questo mese</Body><Input keyboardType="decimal-pad" defaultValue={String(f.budget.salary || '')} style={{ width: 120, marginBottom: 0 }} onChangeText={(v) => f.setGuidelineSalary(parseFloat(v.replace(',', '.')) || 0)} /></Row>
         <Body small muted style={{ marginBottom: 10 }}>Percentuali guida generali (non è consulenza finanziaria), calcolate sulla cifra qui sopra: affitto max 30%, il resto suddiviso tra necessità e risparmio.</Body>
         {Object.entries(f.guidelines).map(([name, pct], i, a) => (
-          <Item key={name} last={i === a.length - 1}><Row><Body>{name}</Body><Body bold>{formatCHF(f.budget.salary ? Math.round((f.budget.salary * pct) / 100) : 0)} CHF <Text style={{ color: t.muted, fontSize: 12 }}>({pct}%)</Text></Body></Row></Item>
+          <Item key={name} last={i === a.length - 1}><Row><Body>{name}</Body><Body bold>{formatMoney(f.budget.salary ? Math.round((f.budget.salary * pct) / 100) : 0)} <Text style={{ color: t.muted, fontSize: 12 }}>({pct}%)</Text></Body></Row></Item>
         ))}
       </Sheet>
 
@@ -316,11 +318,11 @@ export default function LifeFinance() {
           return (
             <Item key={c.name} last={i === typicalCosts.length - 1} style={{ opacity: dup ? 0.5 : 1 }}>
               <Row>
-                <Pressable disabled={dup} onPress={() => setTyp({ ...typ, [c.name]: { ...st, on: !st.on } })} accessibilityRole="checkbox" accessibilityState={{ checked: st.on && !dup, disabled: dup }} accessibilityLabel={c.name} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Pressable disabled={dup} onPress={() => setTyp({ ...typ, [c.name]: { ...st, on: !st.on } })} accessibilityRole="checkbox" accessibilityState={{ checked: st.on && !dup, disabled: dup }} accessibilityLabel={translateText(c.name)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <Icon name={st.on && !dup ? 'checksquare' : 'square'} size={20} color={st.on && !dup ? t.positive : t.muted} />
                   <View style={{ flex: 1 }}><Body>{c.name}</Body><Body small muted>{dup ? 'già presente' : c.freq === 'monthly' ? 'ogni mese' : 'ogni anno'}</Body></View>
                 </Pressable>
-                <Input keyboardType="decimal-pad" editable={!dup} value={st.amt} onChangeText={(v) => setTyp({ ...typ, [c.name]: { ...st, amt: v } })} style={{ width: 84, padding: 8, marginBottom: 0 }} accessibilityLabel={`Importo ${c.name}`} />
+                <Input keyboardType="decimal-pad" editable={!dup} value={st.amt} onChangeText={(v) => setTyp({ ...typ, [c.name]: { ...st, amt: v } })} style={{ width: 84, padding: 8, marginBottom: 0 }} accessibilityLabel={translateText(`Importo ${c.name}`)} />
               </Row>
             </Item>
           );

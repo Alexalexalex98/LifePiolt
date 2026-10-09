@@ -8,6 +8,7 @@ import { create } from 'zustand';
 import { logError } from '@/lib/errorLog';
 import { useTheme } from '@/hooks/use-theme';
 import { Icon } from '@/lib/icons';
+import { translateText } from '@/i18n/core';
 
 const useErr = create<{ msg: string | null; set: (m: string | null) => void }>((set) => ({ msg: null, set: (msg) => set({ msg }) }));
 
@@ -70,8 +71,8 @@ export function ErrorBanner() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Icon name="alert" size={18} color={ic} />
           <Text style={{ color: fg, fontWeight: '800', flex: 1 }}>Qualcosa non ha funzionato</Text>
-          <Pressable onPress={() => void Clipboard.setStringAsync(msg)} hitSlop={14} accessibilityRole="button" accessibilityLabel="Copia il messaggio di errore"><Text style={{ color: fg, fontSize: 12, textDecorationLine: 'underline' }}>Copia</Text></Pressable>
-          <Pressable onPress={() => set(null)} hitSlop={14} accessibilityRole="button" accessibilityLabel="Chiudi avviso"><Icon name="x" size={18} color={fg} /></Pressable>
+          <Pressable onPress={() => void Clipboard.setStringAsync(msg)} hitSlop={14} accessibilityRole="button" accessibilityLabel={translateText("Copia il messaggio di errore")}><Text style={{ color: fg, fontSize: 12, textDecorationLine: 'underline' }}>Copia</Text></Pressable>
+          <Pressable onPress={() => set(null)} hitSlop={14} accessibilityRole="button" accessibilityLabel={translateText("Chiudi avviso")}><Icon name="x" size={18} color={fg} /></Pressable>
         </View>
         <Text style={{ color: fg, fontSize: 12, marginTop: 6 }} selectable>{msg}</Text>
       </View>

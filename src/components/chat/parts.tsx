@@ -11,6 +11,7 @@ import { fmtDur, urlRe, type ChatMessage, type MsgStatus } from '@/store/chat';
 import { fmtSize } from '@/lib/chatMedia';
 import { Icon } from '@/lib/icons';
 import { ModalToast } from '@/components/ui';
+import { translateText } from '@/i18n/core';
 
 export function useChatColors() {
   const t = useTheme();
@@ -83,7 +84,7 @@ export function VoiceBubble({ m, mine }: { m: ChatMessage; mine: boolean }) {
   }
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 210 }}>
-      <Pressable onPress={() => void toggle()} hitSlop={8} accessibilityLabel={st.playing ? 'Pausa' : 'Riproduci'}>
+      <Pressable onPress={() => void toggle()} hitSlop={8} accessibilityLabel={translateText(st.playing ? 'Pausa' : 'Riproduci')}>
         <Icon name={st.playing ? 'pause' : 'play'} size={24} color={c.meta} fill={c.meta} />
       </Pressable>
       <View style={{ flex: 1 }}>
@@ -107,7 +108,7 @@ export function MediaThumb({ m, onOpen, onLongPress }: { m: ChatMessage; onOpen:
   const w = Math.min(260, width * 0.62);
   const ratio = m.media?.w && m.media?.h ? Math.min(1.6, Math.max(0.6, m.media.h / m.media.w)) : 1;
   return (
-    <Pressable onPress={onOpen} onLongPress={onLongPress} delayLongPress={280} accessibilityLabel={m.kind === 'video' ? 'Apri video' : 'Apri foto'}>
+    <Pressable onPress={onOpen} onLongPress={onLongPress} delayLongPress={280} accessibilityLabel={translateText(m.kind === 'video' ? 'Apri video' : 'Apri foto')}>
       <View style={{ width: w, height: w * ratio, borderRadius: 10, overflow: 'hidden', backgroundColor: '#0006' }}>
         <Image source={{ uri: m.media?.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         {m.kind === 'video' && (
@@ -150,9 +151,9 @@ export function MediaViewer({ items, index, onClose, onDelete }: { items: ChatMe
             </View>
           )}
         />
-        <Pressable onPress={onClose} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, left: 16 }} accessibilityLabel="Chiudi"><Icon name="x" size={28} color="#fff" /></Pressable>
+        <Pressable onPress={onClose} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, left: 16 }} accessibilityLabel={translateText("Chiudi")}><Icon name="x" size={28} color="#fff" /></Pressable>
         <Text style={{ position: 'absolute', top: insets.top + 16, alignSelf: 'center', color: '#fff', fontSize: 13 }}>{cur + 1} / {items.length}</Text>
-        {onDelete && items[cur] && <Pressable onPress={() => onDelete(items[cur])} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, right: 16 }} accessibilityLabel="Elimina"><Icon name="trash" size={24} color="#fff" /></Pressable>}
+        {onDelete && items[cur] && <Pressable onPress={() => onDelete(items[cur])} hitSlop={14} style={{ position: 'absolute', top: insets.top + 10, right: 16 }} accessibilityLabel={translateText("Elimina")}><Icon name="trash" size={24} color="#fff" /></Pressable>}
         <ModalToast />
       </View>
     </Modal>

@@ -9,6 +9,7 @@ import { useFin } from '@/store/finance';
 import { useHealth } from '@/store/health';
 import { useLife, type Goal } from '@/store/life';
 import { toast } from '@/store/toast';
+import { translateText } from '@/i18n/core';
 
 /**
  * Avanzamento automatico di un obiettivo collegato ai dati + scelta del collegamento.
@@ -66,7 +67,7 @@ export function GoalProgress({ goal }: { goal: Goal }) {
             {goalMetrics[metric].periods.map((p) => <Pill key={p} label={p === 'week' ? 'Settimana' : 'Mese'} on={period === p} onPress={() => setPeriod(p)} />)}
           </View>
         )}
-        <Input keyboardType="decimal-pad" value={target} onChangeText={setTarget} placeholder={`Obiettivo (${goalMetrics[metric].unit})`} accessibilityLabel="Valore obiettivo" />
+        <Input keyboardType="decimal-pad" value={target} onChangeText={setTarget} placeholder={`Obiettivo (${goalMetrics[metric].unit})`} accessibilityLabel={translateText("Valore obiettivo")} />
         <Body small muted style={{ marginBottom: 10 }}>Obiettivo: {target || '—'} {goalMetrics[metric].unit}{metric === 'workouts' || metric === 'mindful' ? ' ' + periodLabel[period] : ''}</Body>
         <Btn title="Salva collegamento" onPress={save} />
       </Sheet>

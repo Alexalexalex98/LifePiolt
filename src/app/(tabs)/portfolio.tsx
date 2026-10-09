@@ -8,6 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatCHF } from '@/lib/format';
 import { holdings, useFin } from '@/store/finance';
 import { toast } from '@/store/toast';
+import { formatMoney } from '@/i18n/format';
 
 const tabs = ['Posizioni', 'Ordini', 'Storico', 'Conto'];
 
@@ -34,7 +35,7 @@ export default function Portfolio() {
           <Row>
             <View style={{ flex: 1 }}><Body bold>{s.symbol}</Body><Body small muted>{s.shares.toFixed(2)} azioni @ {s.avgCost.toFixed(2)}</Body></View>
             <Spark data={s.history.slice(-12)} w={46} h={26} pad={3} color={col} stroke={2} />
-            <View style={{ alignItems: 'flex-end', minWidth: 90 }}><Body>{formatCHF(val)} CHF</Body><Body small color={col}>{gain >= 0 ? '+' : ''}{formatCHF(gain)} ({gp.toFixed(1)}%)</Body></View>
+            <View style={{ alignItems: 'flex-end', minWidth: 90 }}><Body>{formatMoney(val)}</Body><Body small color={col}>{gain >= 0 ? '+' : ''}{formatCHF(gain)} ({gp.toFixed(1)}%)</Body></View>
           </Row>
         </Pressable>
       </Item>
@@ -45,13 +46,13 @@ export default function Portfolio() {
     <Page id="portfolio" title="Portafoglio" back>
       <Card>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-          <Stat l="Investito" v={`${formatCHF(value)} CHF`} />
-          <Stat l="Capitale" v={`${formatCHF(value + f.cash)} CHF`} />
-          <Stat l="Liquidità" v={`${formatCHF(f.cash)} CHF`} />
-          <Stat l="Margine" v={`${formatCHF(invested)} CHF`} />
+          <Stat l="Investito" v={`${formatMoney(value)}`} />
+          <Stat l="Capitale" v={`${formatMoney(value + f.cash)}`} />
+          <Stat l="Liquidità" v={`${formatMoney(f.cash)}`} />
+          <Stat l="Margine" v={`${formatMoney(invested)}`} />
         </View>
         <Row style={{ marginTop: 10 }}>
-          <Body small color={up ? t.positive : t.danger} style={{ flex: 1 }}>{up ? '+' : ''}{formatCHF(pnl)} CHF ({up ? '+' : ''}{pnlPct.toFixed(2)}%) non realizzato</Body>
+          <Body small color={up ? t.positive : t.danger} style={{ flex: 1 }}>{up ? '+' : ''}{formatMoney(pnl)} ({up ? '+' : ''}{pnlPct.toFixed(2)}%) non realizzato</Body>
           <Btn small ghost title="Trasferisci" onPress={() => setTr(true)} />
         </Row>
       </Card>
@@ -70,7 +71,7 @@ export default function Portfolio() {
           {f.orders.length === 0 ? <Empty text="Nessun ordine pendente." /> : f.orders.map((o) => (
             <Item key={o.id}>
               <Row>
-                <View style={{ flex: 1 }}><Body bold>{o.symbol}</Body><Body small muted>{o.type === 'buy' ? 'Acquisto' : 'Vendita'} condizionato @ {o.limitPrice.toFixed(2)}{o.sl ? ` · SL ${o.sl}` : ''}{o.tp ? ` · TP ${o.tp}` : ''} · {formatCHF(o.amount)} CHF</Body></View>
+                <View style={{ flex: 1 }}><Body bold>{o.symbol}</Body><Body small muted>{o.type === 'buy' ? 'Acquisto' : 'Vendita'} condizionato @ {o.limitPrice.toFixed(2)}{o.sl ? ` · SL ${o.sl}` : ''}{o.tp ? ` · TP ${o.tp}` : ''} · {formatMoney(o.amount)}</Body></View>
                 <Btn small ghost title="Esegui" onPress={() => { const m = f.executeOrder(o.id); if (m) toast(m); }} />
                 <Link danger onPress={() => { f.cancelOrder(o.id); toast('Ordine annullato'); }}>annulla</Link>
               </Row>
@@ -81,18 +82,18 @@ export default function Portfolio() {
       {tab === 'Storico' && (
         <Card>
           {f.trades.length === 0 ? <Empty text="Nessuna operazione eseguita finora." /> : f.trades.slice().reverse().map((x) => (
-            <Item key={x.id}><Row><View style={{ flex: 1 }}><Body bold>{x.symbol}</Body><Body small muted>{x.type === 'buy' ? 'Acquisto' : 'Vendita'} · {x.shares.toFixed(3)} azioni @ {x.price.toFixed(2)}</Body></View><View style={{ alignItems: 'flex-end' }}><Body>{formatCHF(x.amount)} CHF</Body><Body small muted>{x.date}</Body></View></Row></Item>
+            <Item key={x.id}><Row><View style={{ flex: 1 }}><Body bold>{x.symbol}</Body><Body small muted>{x.type === 'buy' ? 'Acquisto' : 'Vendita'} · {x.shares.toFixed(3)} azioni @ {x.price.toFixed(2)}</Body></View><View style={{ alignItems: 'flex-end' }}><Body>{formatMoney(x.amount)}</Body><Body small muted>{x.date}</Body></View></Row></Item>
           ))}
         </Card>
       )}
       {tab === 'Conto' && (
         <>
           <Card>
-            <Item><Row><Body muted>Liquidità disponibile</Body><Body bold>{formatCHF(f.cash)} CHF</Body></Row></Item>
-            <Item><Row><Body muted>Capitale investito</Body><Body bold>{formatCHF(invested)} CHF</Body></Row></Item>
-            <Item><Row><Body muted>Valore posizioni</Body><Body bold>{formatCHF(value)} CHF</Body></Row></Item>
-            <Item><Row><Body muted>Patrimonio totale</Body><Body bold>{formatCHF(value + f.cash)} CHF</Body></Row></Item>
-            <Item last><Row><Body muted>P&L non realizzato</Body><Body bold color={up ? t.positive : t.danger}>{up ? '+' : ''}{formatCHF(pnl)} CHF ({up ? '+' : ''}{pnlPct.toFixed(2)}%)</Body></Row></Item>
+            <Item><Row><Body muted>Liquidità disponibile</Body><Body bold>{formatMoney(f.cash)}</Body></Row></Item>
+            <Item><Row><Body muted>Capitale investito</Body><Body bold>{formatMoney(invested)}</Body></Row></Item>
+            <Item><Row><Body muted>Valore posizioni</Body><Body bold>{formatMoney(value)}</Body></Row></Item>
+            <Item><Row><Body muted>Patrimonio totale</Body><Body bold>{formatMoney(value + f.cash)}</Body></Row></Item>
+            <Item last><Row><Body muted>P&L non realizzato</Body><Body bold color={up ? t.positive : t.danger}>{up ? '+' : ''}{formatMoney(pnl)} ({up ? '+' : ''}{pnlPct.toFixed(2)}%)</Body></Row></Item>
           </Card>
           <Body small muted>Nessuna leva finanziaria reale: "margine" corrisponde a capitale investito e liquidità disponibile.</Body>
         </>

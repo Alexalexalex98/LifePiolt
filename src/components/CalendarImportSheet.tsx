@@ -6,6 +6,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { CAL_WEB_MSG, IMPORT_DAYS, importCalendars, listDeviceCalendars, useCalPrefs, type DeviceCalendar } from '@/lib/calendarImport';
 import { Icon } from '@/lib/icons';
 import { toast } from '@/store/toast';
+import { translateText } from '@/i18n/core';
 
 /** Foglio per importare gli eventi dei prossimi 60 giorni dal calendario del telefono. */
 export function CalendarImportSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -54,7 +55,7 @@ export function CalendarImportSheet({ visible, onClose }: { visible: boolean; on
             const on = sel.includes(c.id);
             return (
               <Item key={c.id} last={i === cals.length - 1}>
-                <Pressable onPress={() => setSel(on ? sel.filter((x) => x !== c.id) : [...sel, c.id])} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={c.title} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Pressable onPress={() => setSel(on ? sel.filter((x) => x !== c.id) : [...sel, c.id])} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={translateText(c.title)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <Icon name={on ? 'checksquare' : 'square'} size={20} color={on ? t.positive : t.muted} />
                   <View style={{ flex: 1 }}><Body>{c.title}</Body>{c.source ? <Body small muted>{c.source}</Body> : null}</View>
                   {c.color ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c.color }} /> : null}

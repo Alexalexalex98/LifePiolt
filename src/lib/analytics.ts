@@ -1,3 +1,5 @@
+import { currentCurrency, fmtNumber } from '../i18n/format.ts';
+
 /**
  * Motore di analisi: statistica descrittiva, trend, previsioni, anomalie, correlazioni.
  * Modulo PURO (nessuna dipendenza dall'app) così si può testare con numeri noti.
@@ -299,8 +301,9 @@ export type Insight = {
   id: string; severity: 'bad' | 'warn' | 'good' | 'info'; domain: Domain; title: string; detail: string; action?: string; metricId?: string; priority: number;
 };
 
-const fmt = (v: number, dec: number) => (dec === 0 ? Math.round(v).toLocaleString('it-CH').replace(/’/g, "'") : v.toFixed(dec));
-export const fmtVal = (v: number, def: MetricDef) => `${fmt(v, def.dec)}${def.unit && def.unit !== '/100' && def.unit !== '%' ? ' ' + def.unit : def.unit === '%' ? '%' : ''}`;
+const fmt = (v: number, dec: number) => fmtNumber(v, { minimumFractionDigits: dec, maximumFractionDigits: dec });
+const unitOf = (u: string) => (u === 'CHF' ? currentCurrency() : u);
+export const fmtVal = (v: number, def: MetricDef) => `${fmt(v, def.dec)}${def.unit && def.unit !== '/100' && def.unit !== '%' ? ' ' + unitOf(def.unit) : def.unit === '%' ? '%' : ''}`;
 
 const sevW = { bad: 3, warn: 2, info: 1, good: 1.2 } as const;
 

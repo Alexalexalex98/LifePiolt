@@ -13,6 +13,7 @@ import { useVisible } from '@/lib/moderation';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 import { Icon } from '@/lib/icons';
+import { translateText } from '@/i18n/core';
 
 export default function IdeaProfile() {
   const t = useTheme();
@@ -29,8 +30,8 @@ export default function IdeaProfile() {
   return (
     <Page id="ideaProfile" title={idea.title} back right={<Row gap={10}><Btn small ghost title="Condividi" onPress={() => Share.share({ message: 'Guarda questa idea su LifePilot: ' + idea.title })} />{idea.author !== me && <ModButton kind="idea" refId={idea.id} label={idea.title} author={idea.author} />}</Row>}>
       {idea.uri ? <MediaBlock media={idea.media ?? 'photo'} seed={idea.title} uri={idea.uri} /> : <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 14, marginHorizontal: -3 }}>
-        {tiles.map((g, i) => <Pressable key={i} onPress={() => openMedia({ media: 'photo', seed: idea.title + i })} accessibilityRole="imagebutton" accessibilityLabel="Apri la foto a schermo intero" style={{ width: '33.33%', padding: 3 }}><LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14 }} /></Pressable>)}
-        <Pressable onPress={() => openMedia({ media: 'video', seed: idea.title + 'video' })} accessibilityRole="imagebutton" accessibilityLabel="Apri il video a schermo intero" style={{ width: '33.33%', padding: 3 }}><LinearGradient colors={gv} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={26} color="#fff" fill="#fff" /></LinearGradient></Pressable>
+        {tiles.map((g, i) => <Pressable key={i} onPress={() => openMedia({ media: 'photo', seed: idea.title + i })} accessibilityRole="imagebutton" accessibilityLabel={translateText("Apri la foto a schermo intero")} style={{ width: '33.33%', padding: 3 }}><LinearGradient colors={g} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14 }} /></Pressable>)}
+        <Pressable onPress={() => openMedia({ media: 'video', seed: idea.title + 'video' })} accessibilityRole="imagebutton" accessibilityLabel={translateText("Apri il video a schermo intero")} style={{ width: '33.33%', padding: 3 }}><LinearGradient colors={gv} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ aspectRatio: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={26} color="#fff" fill="#fff" /></LinearGradient></Pressable>
       </View>}
       <Card><Row><Body small muted>Punteggio AI</Body><Badge label={`${score}/100`} color={scoreColor(score)} onPress={() => openSheet('scoreExpl', { id: idea.id })} /></Row></Card>
       <Card><H>Descrizione</H>{idea.ts ? <Body small muted style={{ marginBottom: 6 }}>{pubLabel(idea.ts, 'Pubblicata')}</Body> : null}<Body small>{idea.desc}</Body></Card>

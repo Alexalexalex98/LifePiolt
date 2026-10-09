@@ -10,6 +10,7 @@ import { formatCHF } from '@/lib/format';
 import { go } from '@/lib/nav';
 import { holdings, useFin } from '@/store/finance';
 import { toast } from '@/store/toast';
+import { formatMoney } from '@/i18n/format';
 
 export default function Stocks() {
   const t = useTheme();
@@ -31,9 +32,9 @@ export default function Stocks() {
       <FinTabs current="stocks" />
       <Card onPress={() => go('portfolio')}>
         <H>Portafoglio</H>
-        <Metric big>{formatCHF(value)} CHF</Metric>
+        <Metric big>{formatMoney(value)}</Metric>
         <Body small color={gain >= 0 ? t.positive : t.danger}>{gain >= 0 ? '+' : ''}{gain.toFixed(2)}%</Body>
-        <Body small muted style={{ marginTop: 6 }}>Capitale investito: {formatCHF(invested)} CHF · simulazione: nessun investimento reale · tocca per entrare</Body>
+        <Body small muted style={{ marginTop: 6 }}>Capitale investito: {formatMoney(invested)} · simulazione: nessun investimento reale · tocca per entrare</Body>
       </Card>
       <Input placeholder="Cerca un titolo azionario" value={q} onChangeText={setQ} />
       <Card>

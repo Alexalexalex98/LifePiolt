@@ -24,6 +24,7 @@ import { REASONS, modKey, type ModKind, type ReasonId } from '@/lib/modRules';
 import { useVisible } from '@/lib/moderation';
 import { useChat } from '@/store/chat';
 import { useMod } from '@/store/moderation';
+import { formatMoney } from '@/i18n/format';
 
 /** Un'unica Sheet che mostra la vista richiesta dal social (evita modali annidate). */
 export function NetSheetHost() {
@@ -555,7 +556,7 @@ function TopUpView() {
   const a = parseFloat(amt.replace(',', '.')) || 0;
   const cur = net.payCurrency;
   const isCrypto = !!cryptoRates[cur];
-  const note = !a ? '' : cur === 'CHF' ? `Addebito: ${formatCHF(a)} CHF` : `Addebito indicativo: ${convertAmount(a, cur).toFixed(isCrypto ? 6 : 2)} ${cur}${isCrypto ? ' · tasso illustrativo, non di mercato' : ' · include un margine di cambio del 2%'}`;
+  const note = !a ? '' : cur === 'CHF' ? `Addebito: ${formatMoney(a)}` : `Addebito indicativo: ${convertAmount(a, cur).toFixed(isCrypto ? 6 : 2)} ${cur}${isCrypto ? ' · tasso illustrativo, non di mercato' : ' · include un margine di cambio del 2%'}`;
   return (
     <>
       <Body small muted>Ricarica di prova: nessun pagamento reale è collegato. In versione pubblicata l'acquisto di LifePoints dovrà passare dai pagamenti in-app dello store.</Body>

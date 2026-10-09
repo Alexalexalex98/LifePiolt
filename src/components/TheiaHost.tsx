@@ -21,6 +21,7 @@ import { useLife } from '@/store/life';
 import { useTheia, askTheiaAbout } from '@/store/theia';
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
+import { translateText } from '@/i18n/core';
 
 const NONE: string[] = [];
 
@@ -141,7 +142,7 @@ export function TheiaFab() {
     <Animated.View {...pan.panHandlers} style={{ position: 'absolute', right: 12, bottom: insets.bottom + 98, transform: pos.getTranslateTransform() }}>
       <Pressable
         onPress={shot} onLongPress={clip} delayLongPress={350}
-        accessibilityLabel={`Chiedi a ${name}: tocca, poi trascina sulla schermata per scegliere cosa chiedere. Tieni premuto per il testo copiato. Trascinalo per spostarlo`}
+        accessibilityLabel={translateText(`Chiedi a ${name}: tocca, poi trascina sulla schermata per scegliere cosa chiedere. Tieni premuto per il testo copiato. Trascinalo per spostarlo`)}
         style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: 0.8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, elevation: 6 }}>
         <Icon name="sparkle" size={22} color={t.onText} />
       </Pressable>
@@ -209,9 +210,9 @@ export function TheiaSelect() {
           </View>
         </View>
         <View style={{ position: 'absolute', bottom: insets.bottom + 20, left: 16, right: 16, flexDirection: 'row', justifyContent: 'center', gap: 10 }}>
-          <Pressable onPress={end} style={{ backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12 }} accessibilityLabel="Annulla"><Text style={{ color: '#fff', fontWeight: '700' }}>Annulla</Text></Pressable>
-          <Pressable onPress={() => confirm(true)} style={{ backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12 }} accessibilityLabel="Tutta la schermata"><Text style={{ color: '#fff', fontWeight: '700' }}>Tutta la schermata</Text></Pressable>
-          <Pressable onPress={() => confirm(false)} disabled={!rect || rect.w < 24 || busy} style={{ backgroundColor: t.accent, borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12, opacity: !rect || rect.w < 24 ? 0.4 : 1 }} accessibilityLabel="Chiedi su quest'area"><Text style={{ color: t.onText, fontWeight: '800' }}>Chiedi</Text></Pressable>
+          <Pressable onPress={end} style={{ backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12 }} accessibilityLabel={translateText("Annulla")}><Text style={{ color: '#fff', fontWeight: '700' }}>Annulla</Text></Pressable>
+          <Pressable onPress={() => confirm(true)} style={{ backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12 }} accessibilityLabel={translateText("Tutta la schermata")}><Text style={{ color: '#fff', fontWeight: '700' }}>Tutta la schermata</Text></Pressable>
+          <Pressable onPress={() => confirm(false)} disabled={!rect || rect.w < 24 || busy} style={{ backgroundColor: t.accent, borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12, opacity: !rect || rect.w < 24 ? 0.4 : 1 }} accessibilityLabel={translateText("Chiedi su quest'area")}><Text style={{ color: t.onText, fontWeight: '800' }}>Chiedi</Text></Pressable>
         </View>
       </View>
     </Modal>

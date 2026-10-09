@@ -11,6 +11,7 @@ import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
+import { formatMoney } from '@/i18n/format';
 
 export default function Plan() {
   const { tasks, goals, automations, vacRange, vacations, setVacRange, addGoal, bumpGoal, delGoal, addAuto, toggleAuto, delVacation } = useLife();
@@ -78,7 +79,7 @@ export default function Plan() {
             <Row>
               <View style={{ flex: 1 }}>
                 <Body bold>{v.dest}</Body>
-                <Body small muted>{v.month} · {v.days} giorni · {v.hotel} · {formatCHF(v.price * v.days + (v.flight || 0) * 2)} CHF stimati</Body>
+                <Body small muted>{v.month} · {v.days} giorni · {v.hotel} · {formatMoney(v.price * v.days + (v.flight || 0) * 2)} stimati</Body>
               </View>
               <XBtn onPress={() => { delVacation(v.id); toast('Vacanza rimossa'); }} />
             </Row>

@@ -8,6 +8,7 @@ import { type as fs } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { applyDemo } from '@/store/demo';
 import { useApp } from '@/store/app';
+import { translateText } from '@/i18n/core';
 
 /** Una sola schermata: il nome e la scelta tra "da zero" e "dati demo". Tutto il resto si imposta dopo, dalle Impostazioni. */
 export default function Onboarding() {
@@ -25,7 +26,7 @@ export default function Onboarding() {
   return (
     <Page id="onboarding" noTop>
       <View style={{ paddingTop: 70 }}>
-        <Image source={require('../../assets/proto/app-logo.png')} style={{ width: 72, height: 72, marginBottom: 14, ...(t.mode === 'light' ? { tintColor: '#10151d' } : null) }} resizeMode="contain" accessibilityLabel="LifePilot" />
+        <Image source={require('../../assets/proto/app-logo.png')} style={{ width: 72, height: 72, marginBottom: 14, ...(t.mode === 'light' ? { tintColor: '#10151d' } : null) }} resizeMode="contain" accessibilityLabel={translateText("LifePilot")} />
         <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.display, fontWeight: '800', letterSpacing: -0.5 }}>LifePilot</Text>
         <Body muted style={{ marginTop: 8, marginBottom: 30 }}>
           Salute, finanze, obiettivi, viaggi e persone in un posto solo, con un assistente che ti conosce.

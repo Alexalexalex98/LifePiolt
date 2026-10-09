@@ -16,6 +16,7 @@ import { useVisible } from '@/lib/moderation';
 import type { ModKind } from '@/lib/modRules';
 import { useNet, type Idea, type Post } from '@/store/network';
 import { toast } from '@/store/toast';
+import { translateText } from '@/i18n/core';
 
 export const photoGradients: [string, string][] = [['#3a2a5c', '#171224'], ['#1f3b2c', '#131c17'], ['#3a2a1a', '#221a10'], ['#2a1f45', '#181128'], ['#1a2f3a', '#111c22'], ['#3a1f2c', '#22131a']];
 export const gradientFor = (seed: string) => photoGradients[Math.abs(hashStr(seed)) % photoGradients.length];
@@ -35,7 +36,7 @@ export type ModTarget = { kind: ModKind; ref: string | number; label: string; au
 export function ModButton(p: Omit<ModTarget, 'ref'> & { refId: string | number; size?: number }) {
   const t = useTheme();
   return (
-    <Pressable onPress={() => openSheet('contentMenu', { kind: p.kind, ref: p.refId, label: p.label, author: p.author })} hitSlop={10} accessibilityRole="button" accessibilityLabel="Altre azioni: segnala, nascondi, blocca">
+    <Pressable onPress={() => openSheet('contentMenu', { kind: p.kind, ref: p.refId, label: p.label, author: p.author })} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText("Altre azioni: segnala, nascondi, blocca")}>
       <Icon name="more-h" size={p.size ?? 20} color={t.text} />
     </Pressable>
   );
@@ -87,13 +88,13 @@ export function MediaViewer() {
         {item && (item.uri && item.media === 'video' ? (
           <FullVideo uri={item.uri} />
         ) : item.uri ? (
-          <Image source={{ uri: item.uri }} style={{ width: '100%', height: '100%' }} resizeMode="contain" accessibilityLabel={item.media === 'video' ? 'Video' : 'Foto'} />
+          <Image source={{ uri: item.uri }} style={{ width: '100%', height: '100%' }} resizeMode="contain" accessibilityLabel={translateText(item.media === 'video' ? 'Video' : 'Foto')} />
         ) : (
-          <LinearGradient colors={gradientFor(item.seed)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: '100%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={item.media === 'video' ? 'Video' : 'Foto'}>
+          <LinearGradient colors={gradientFor(item.seed)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: '100%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={translateText(item.media === 'video' ? 'Video' : 'Foto')}>
             {item.media === 'video' && <Icon name="play" size={72} color="#fff" fill="#fff" />}
           </LinearGradient>
         ))}
-        <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Chiudi" hitSlop={12} style={{ position: 'absolute', top: 44, right: 18, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable onPress={close} accessibilityRole="button" accessibilityLabel={translateText("Chiudi")} hitSlop={12} style={{ position: 'absolute', top: 44, right: 18, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="x" size={22} color="#fff" stroke={2.2} />
         </Pressable>
         <Text style={{ position: 'absolute', bottom: 40, alignSelf: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{item?.uri ? '' : item?.media === 'video' ? 'Anteprima video (segnaposto)' : 'Anteprima foto (segnaposto)'}</Text>
@@ -112,7 +113,7 @@ export function MediaBlock({ media, seed, uri }: { media?: 'photo' | 'video' | n
   if (!media) return null;
   const g = gradientFor(seed);
   return (
-    <Pressable onPress={() => openMedia({ media, seed, uri })} accessibilityRole="imagebutton" accessibilityLabel={media === 'video' ? 'Apri il video a schermo intero' : 'Apri la foto a schermo intero'}>
+    <Pressable onPress={() => openMedia({ media, seed, uri })} accessibilityRole="imagebutton" accessibilityLabel={translateText(media === 'video' ? 'Apri il video a schermo intero' : 'Apri la foto a schermo intero')}>
       {uri && media === 'photo' ? (
         <Image source={{ uri }} style={{ aspectRatio: 1, borderRadius: 14, marginVertical: 8, width: '100%' }} resizeMode="cover" />
       ) : uri ? (
@@ -153,7 +154,7 @@ export function PostCard({ post, likeKey }: { post: { author: string; text: stri
             <Text style={{ color: t.muted, fontSize: 11 }}>{[post.tag, fmtAgo(post.ts)].filter(Boolean).join(' · ')}</Text>
           </View>
         </Pressable>
-        <Pressable onPress={() => openSheet('postMenu', { author: post.author, tag: post.tag, ref: likeKey, label: post.text })} hitSlop={10} accessibilityLabel="Altre azioni sul post"><Icon name="more-h" size={20} color={t.text} /></Pressable>
+        <Pressable onPress={() => openSheet('postMenu', { author: post.author, tag: post.tag, ref: likeKey, label: post.text })} hitSlop={10} accessibilityLabel={translateText("Altre azioni sul post")}><Icon name="more-h" size={20} color={t.text} /></Pressable>
       </Row>
       <Body small style={{ marginBottom: 2 }}>{post.text}</Body>
       <MediaBlock media={post.media} seed={post.author + post.text} uri={post.uri} />
@@ -162,11 +163,11 @@ export function PostCard({ post, likeKey }: { post: { author: string; text: stri
           <Pressable onPress={() => net.likePost(likeKey)} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <Icon name="heart" size={19} color={liked ? '#ff5d7a' : t.text} fill={liked ? '#ff5d7a' : 'none'} /><Body small muted>{post.likes}</Body>
           </Pressable>
-          <Pressable onPress={() => go('postPage', { key: likeKey })} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }} accessibilityLabel="Apri il post e i commenti">
+          <Pressable onPress={() => go('postPage', { key: likeKey })} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }} accessibilityLabel={translateText("Apri il post e i commenti")}>
             <Icon name="ai" size={19} color={t.text} /><Body small muted>{commentCount}</Body>
           </Pressable>
         </Row>
-        {!donated && <Pressable onPress={() => openSheet('donate', { author: post.author })} accessibilityLabel="Dona il LifePoint di oggi"><LpTag size={24} dark={false} /></Pressable>}
+        {!donated && <Pressable onPress={() => openSheet('donate', { author: post.author })} accessibilityLabel={translateText("Dona il LifePoint di oggi")}><LpTag size={24} dark={false} /></Pressable>}
       </Row>
     </Card>
   );

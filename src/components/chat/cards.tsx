@@ -13,6 +13,7 @@ import { useChat, type ChatMessage } from '@/store/chat';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
 import { useChatColors } from './parts';
+import { translateText } from '@/i18n/core';
 
 function Head({ icon, title, sub }: { icon: string; title: string; sub?: string }) {
   const c = useChatColors();
@@ -120,7 +121,7 @@ function DetailCard({ m, me, chatId }: { m: ChatMessage; me: string; chatId: str
         return (
           <View key={i}>
             {head && <Text style={{ color: c.meta, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginTop: i ? 6 : 0 }}>{dayLabelOf(it.day)}</Text>}
-            <Pressable onPress={pick} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }} accessibilityLabel={`${it.title}, tocca per ${added ? 'toglierlo dal' : 'aggiungerlo al'} tuo piano`}>
+            <Pressable onPress={pick} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }} accessibilityLabel={translateText(`${it.title}, tocca per ${added ? 'toglierlo dal' : 'aggiungerlo al'} tuo piano`)}>
               <Text style={{ color: t.accent, fontWeight: '800', fontSize: 13, width: 42 }}>{it.time}</Text>
               <Text style={{ color: c.theirsText, fontSize: 14, flex: 1 }}>{it.title}</Text>
               {conf.length > 0 && <Icon name="alert" size={14} color={t.warn} />}
@@ -153,7 +154,7 @@ export function TasksCard({ m, me, chatId }: { m: ChatMessage; me: string; chatI
       {l.items.map((it, i) => {
         const have = myTasks.some((x) => x.t === it.t);
         return (
-          <Pressable key={i} onPress={() => { if (mine || it.done) return; if (have) { toast('È già nei tuoi task'); return; } useLife.getState().addTask({ t: it.t, done: false }); toast('Aggiunto ai tuoi task'); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }} accessibilityLabel={`${it.t}, tocca per aggiungerlo ai tuoi task`}>
+          <Pressable key={i} onPress={() => { if (mine || it.done) return; if (have) { toast('È già nei tuoi task'); return; } useLife.getState().addTask({ t: it.t, done: false }); toast('Aggiunto ai tuoi task'); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }} accessibilityLabel={translateText(`${it.t}, tocca per aggiungerlo ai tuoi task`)}>
             <Icon name={it.done ? 'checksquare' : 'square'} size={17} color={it.done ? t.positive : c.meta} />
             <Text style={{ color: c.theirsText, fontSize: 14, flex: 1, textDecorationLine: it.done ? 'line-through' : 'none', opacity: it.done ? 0.6 : 1 }}>{it.t}</Text>
             {!mine && !it.done && <Icon name={have ? 'check' : 'plus'} size={16} color={have ? t.positive : t.accent} stroke={2.4} />}
@@ -264,7 +265,7 @@ export function EventCard({ m, me, chatId }: { m: ChatMessage; me: string; chatI
           {RSVP_OPTS.map(([k, label, ic]) => {
             const on = mineAns === k;
             return (
-              <Pressable key={k} onPress={() => respondToEvent(chatId, m, me, k, toast)} accessibilityLabel={label} accessibilityState={{ selected: on }}
+              <Pressable key={k} onPress={() => respondToEvent(chatId, m, me, k, toast)} accessibilityLabel={translateText(label)} accessibilityState={{ selected: on }}
                 style={{ flex: 1, alignItems: 'center', gap: 2, paddingVertical: 7, paddingHorizontal: 2, borderRadius: 12, borderWidth: 1.5, borderColor: on ? col[k] : c.quoteBg, backgroundColor: on ? col[k] + '22' : 'transparent' }}>
                 <Icon name={ic} size={15} color={on ? col[k] : c.meta} stroke={2.3} />
                 <Text style={{ color: on ? col[k] : c.theirsText, fontWeight: '800', fontSize: 11, textAlign: 'center' }}>{label}</Text>

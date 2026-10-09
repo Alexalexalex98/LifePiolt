@@ -11,6 +11,7 @@ import { Icon } from '@/lib/icons';
 import { GENERALE, foldersOf, migrateOldChat, searchLog, useAssistant, type AMsg } from '@/store/assistant';
 import { useApp } from '@/store/app';
 import { toast } from '@/store/toast';
+import { translateText } from '@/i18n/core';
 
 const START_CHIPS = ['Aggiungi una riunione al piano', 'Aggiungi un task', 'Cosa ho in programma domani?', 'Analisi delle mie finanze', 'Rendi privato il mio profilo', 'Cambia la foto del profilo', 'Cosa sai fare?'];
 
@@ -62,7 +63,7 @@ export default function LifeChat() {
   }
 
   return (
-    <Page id="ai" title="LifeChat" scroll={false} right={<Pressable onPress={() => { setSearching((x) => !x); setQ(''); }} hitSlop={10} accessibilityLabel="Cerca nelle conversazioni"><Icon name="search" size={22} color={t.text} /></Pressable>}>
+    <Page id="ai" title="LifeChat" scroll={false} right={<Pressable onPress={() => { setSearching((x) => !x); setQ(''); }} hitSlop={10} accessibilityLabel={translateText("Cerca nelle conversazioni")}><Icon name="search" size={22} color={t.text} /></Pressable>}>
       {searching ? (
         <View style={{ flex: 1 }}>
           <Input placeholder="Cerca una domanda o una risposta…" value={q} onChangeText={setQ} autoFocus style={{ marginBottom: 8 }} />
@@ -131,7 +132,7 @@ export default function LifeChat() {
           />
           <Row style={{ paddingTop: 10, paddingBottom: 6, alignItems: 'flex-start' }}>
             <Input flex={1} placeholder={section === GENERALE ? 'Scrivi un comando o una domanda…' : `Scrivi in ${section}…`} value={text} onChangeText={setText} onSubmitEditing={() => send()} returnKeyType="send" style={{ marginBottom: 0 }} />
-            <Pressable onPress={() => send()} disabled={busy || !text.trim()} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: busy || !text.trim() ? 0.4 : 1, marginLeft: 8 }} accessibilityLabel="Invia">
+            <Pressable onPress={() => send()} disabled={busy || !text.trim()} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: busy || !text.trim() ? 0.4 : 1, marginLeft: 8 }} accessibilityLabel={translateText("Invia")}>
               <Icon name="arrow-up" size={20} color={t.onText} stroke={2.4} />
             </Pressable>
           </Row>

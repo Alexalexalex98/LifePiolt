@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View, type TextInput as RNTextInput } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 
 import { Body, Btn, Input, Sheet } from '@/components/ui';
@@ -15,6 +15,7 @@ import { AgendaSheet, DriveSheet, EventSheet, NoteSheet, SlotsSheet, TasksSheet,
 import { Icon } from '@/lib/icons';
 import { useNet } from '@/store/network';
 import { useApp } from '@/store/app';
+import { translateText } from '@/i18n/core';
 
 /** Il mio biglietto da visita come contatto: solo i campi che ho scelto di mostrare. */
 function myCardContact() {
@@ -50,7 +51,7 @@ export function Composer(p: Props) {
   const [poll, setPoll] = useState(false);
   const [preview, setPreview] = useState<Picked[] | null>(null);
   const [caption, setCaption] = useState('');
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<RNTextInput>(null);
 
   /* ---- vocale ---- */
   const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
@@ -154,11 +155,11 @@ export function Composer(p: Props) {
             returnKeyType={p.enterSends ? 'send' : 'default'}
             style={{ flex: 1, color: t.text, fontSize: p.fontSize, maxHeight: 120, paddingHorizontal: 8, paddingTop: 9, paddingBottom: 9 }}
           />
-          {!p.editing && <Pressable onPress={() => setAttach(true)} hitSlop={6} style={{ paddingVertical: 10, paddingLeft: 6 }} accessibilityLabel="Allega"><Icon name="paperclip" size={22} color={t.muted} /></Pressable>}
-          {!p.editing && !has && <Pressable onPress={() => run(takePhoto)} hitSlop={6} style={{ paddingVertical: 10, paddingLeft: 10 }} accessibilityLabel="Fotocamera"><Icon name="camera" size={22} color={t.muted} /></Pressable>}
+          {!p.editing && <Pressable onPress={() => setAttach(true)} hitSlop={6} style={{ paddingVertical: 10, paddingLeft: 6 }} accessibilityLabel={translateText("Allega")}><Icon name="paperclip" size={22} color={t.muted} /></Pressable>}
+          {!p.editing && !has && <Pressable onPress={() => run(takePhoto)} hitSlop={6} style={{ paddingVertical: 10, paddingLeft: 10 }} accessibilityLabel={translateText("Fotocamera")}><Icon name="camera" size={22} color={t.muted} /></Pressable>}
         </View>
         {has && rec === 'off' ? (
-          <Pressable onPress={sendText} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={p.editing ? 'Salva modifica' : 'Invia'}><Icon name={p.editing ? 'check' : 'send'} size={20} color={t.onText} stroke={2.2} /></Pressable>
+          <Pressable onPress={sendText} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={translateText(p.editing ? 'Salva modifica' : 'Invia')}><Icon name={p.editing ? 'check' : 'send'} size={20} color={t.onText} stroke={2.2} /></Pressable>
         ) : (
           <Pressable
             onPress={() => { if (mode.current === 'lock') void sendRec(); else if (rec === 'off') { mode.current = 'lock'; void startRec().then((ok) => { if (!ok) mode.current = 'none'; }); } }}
@@ -168,7 +169,7 @@ export function Composer(p: Props) {
             onTouchMove={(e) => { if (mode.current === 'hold') { const c = touchX.current - e.nativeEvent.pageX > 90; slideCancel.current = c; setWillCancel(c); } }}
             onPressOut={() => { if (mode.current !== 'hold') return; void (startP.current ?? Promise.resolve(false)).then((ok) => { if (!ok) return; if (slideCancel.current) void cancelRec(); else void sendRec(); }); }}
             style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: rec === 'off' ? t.accent : willCancel ? '#e5484d' : t.accent, alignItems: 'center', justifyContent: 'center', transform: [{ scale: rec !== 'off' && mode.current === 'hold' ? 1.35 : 1 }] }}
-            accessibilityLabel={rec === 'off' ? 'Messaggio vocale: tocca o tieni premuto' : 'Invia vocale'}>
+            accessibilityLabel={translateText(rec === 'off' ? 'Messaggio vocale: tocca o tieni premuto' : 'Invia vocale')}>
             <Icon name={rec === 'off' ? 'mic' : 'send'} size={21} color={t.onText} stroke={2.1} />
           </Pressable>
         )}
@@ -178,8 +179,8 @@ export function Composer(p: Props) {
             {mode.current === 'hold'
               ? <Text style={{ flex: 1, color: willCancel ? '#e5484d' : t.muted, fontSize: 13 }}>{willCancel ? 'Rilascia per annullare' : 'Scorri a sinistra per annullare'}</Text>
               : <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, height: 28 }}>{live.map((l, i) => <View key={i} style={{ flex: 1, height: Math.max(3, ((l + 60) / 60) * 26), borderRadius: 2, backgroundColor: t.muted }} />)}</View>}
-            {mode.current === 'lock' && <Pressable onPress={pauseRec} hitSlop={10} accessibilityLabel={rec === 'on' ? 'Pausa' : 'Riprendi'}><Icon name={rec === 'on' ? 'pause' : 'mic'} size={20} color={t.text} fill={rec === 'on' ? t.text : 'none'} /></Pressable>}
-            {mode.current === 'lock' && <Pressable onPress={cancelRec} hitSlop={10} accessibilityLabel="Annulla registrazione"><Icon name="trash" size={20} color={t.danger} /></Pressable>}
+            {mode.current === 'lock' && <Pressable onPress={pauseRec} hitSlop={10} accessibilityLabel={translateText(rec === 'on' ? 'Pausa' : 'Riprendi')}><Icon name={rec === 'on' ? 'pause' : 'mic'} size={20} color={t.text} fill={rec === 'on' ? t.text : 'none'} /></Pressable>}
+            {mode.current === 'lock' && <Pressable onPress={cancelRec} hitSlop={10} accessibilityLabel={translateText("Annulla registrazione")}><Icon name="trash" size={20} color={t.danger} /></Pressable>}
           </View>
         )}
       </View>
@@ -195,7 +196,7 @@ export function Composer(p: Props) {
             ['contact', 'Contatto', () => run(pickContact)],
             ['briefcase', 'Il mio biglietto', () => { setAttach(false); p.onSendShare({ kind: 'contact', contact: myCardContact() }); }],
           ] as [string, string, () => void][]).map(([ic, label, fn]) => (
-            <Pressable key={label} onPress={fn} style={{ width: '33.3%', alignItems: 'center', paddingVertical: 12 }} accessibilityLabel={label}>
+            <Pressable key={label} onPress={fn} style={{ width: '33.3%', alignItems: 'center', paddingVertical: 12 }} accessibilityLabel={translateText(label)}>
               <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name={ic} size={23} color={t.accent} stroke={1.9} /></View>
               <Text style={{ color: t.text, fontSize: 12, marginTop: 6, textAlign: 'center' }}>{label}</Text>
             </Pressable>
@@ -212,7 +213,7 @@ export function Composer(p: Props) {
             ['note', 'Nota', () => { setAttach(false); setShare('note'); }],
             ['file', 'Da LifeDrive', () => { setAttach(false); setShare('drive'); }],
           ] as [string, string, () => void][]).map(([ic, label, fn]) => (
-            <Pressable key={label} onPress={fn} style={{ width: '33.3%', alignItems: 'center', paddingVertical: 12 }} accessibilityLabel={label}>
+            <Pressable key={label} onPress={fn} style={{ width: '33.3%', alignItems: 'center', paddingVertical: 12 }} accessibilityLabel={translateText(label)}>
               <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}><Icon name={ic} size={23} color={t.onText} stroke={1.9} /></View>
               <Text style={{ color: t.text, fontSize: 12, marginTop: 6, textAlign: 'center' }}>{label}</Text>
             </Pressable>
@@ -226,7 +227,7 @@ export function Composer(p: Props) {
             <View key={i} style={{ marginRight: 8, width: 120, height: 120, borderRadius: 10, backgroundColor: t.item, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
               <Image source={{ uri: x.media?.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
               {x.kind === 'video' && <View style={{ position: 'absolute' }}><Icon name="play" size={28} color="#fff" fill="#fff" /></View>}
-              <Pressable onPress={() => { const next = (preview ?? []).filter((_, j) => j !== i); setPreview(next.length ? next : null); }} hitSlop={8} accessibilityLabel="Rimuovi" style={{ position: 'absolute', top: 4, right: 4, width: 26, height: 26, borderRadius: 13, backgroundColor: '#000c', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={14} color="#fff" stroke={2.4} /></Pressable>
+              <Pressable onPress={() => { const next = (preview ?? []).filter((_, j) => j !== i); setPreview(next.length ? next : null); }} hitSlop={8} accessibilityLabel={translateText("Rimuovi")} style={{ position: 'absolute', top: 4, right: 4, width: 26, height: 26, borderRadius: 13, backgroundColor: '#000c', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={14} color="#fff" stroke={2.4} /></Pressable>
             </View>
           ))}
         </ScrollView>

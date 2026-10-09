@@ -6,6 +6,7 @@ import { Icon } from '@/lib/icons';
 import { fmtClock, previewOf, reactionIcon, type ChatMessage } from '@/store/chat';
 import { AgendaCard, EventCard, NoteCard, SlotsCard, TasksCard } from './cards';
 import { ContactCard, FileCard, LinkText, LocationCard, MediaThumb, PollCard, Ticks, VoiceBubble, senderColor, useChatColors } from './parts';
+import { translateText } from '@/i18n/core';
 
 type Props = {
   m: ChatMessage;
@@ -85,7 +86,7 @@ export const Bubble = memo(function Bubble(p: Props) {
   return (
     <View style={{ backgroundColor: p.selected ? '#34b7f133' : p.highlight ? '#f5c54233' : 'transparent', paddingHorizontal: 10, paddingVertical: 1 }} {...pan.panHandlers}>
       <Animated.View style={{ transform: [{ translateX: x }], alignItems: mine ? 'flex-end' : 'flex-start' }}>
-        <Pressable onPress={p.onPress} onLongPress={p.onLongPress} delayLongPress={280} style={{ maxWidth: '84%' }} accessibilityLabel={`${mine ? 'Tu' : m.from}: ${previewOf(m)}`}>
+        <Pressable onPress={p.onPress} onLongPress={p.onLongPress} delayLongPress={280} style={{ maxWidth: '84%' }} accessibilityLabel={translateText(`${mine ? 'Tu' : m.from}: ${previewOf(m)}`)}>
           <View style={{ backgroundColor: bg, borderRadius: 12, borderTopRightRadius: mine ? 3 : 12, borderTopLeftRadius: mine ? 12 : 3, padding: mediaOnly ? 3 : 8, paddingBottom: 5, marginBottom: reactions.length ? 10 : 0 }}>
             {p.isGroup && !mine && p.showSender && <Text style={{ color: senderColor(m.from), fontWeight: '700', fontSize: 13, marginBottom: 2 }}>{m.from}</Text>}
             {p.quoted && !m.deletedForAll && (

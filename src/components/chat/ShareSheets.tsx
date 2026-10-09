@@ -15,6 +15,7 @@ import { useApp } from '@/store/app';
 import type { AgendaMode, ChatMessage } from '@/store/chat';
 import { taskIsDone, useLife } from '@/store/life';
 import { toast } from '@/store/toast';
+import { translateText } from '@/i18n/core';
 
 export type SharePayload = Partial<ChatMessage> & { kind: ChatMessage['kind'] };
 type Common = { visible: boolean; onClose: () => void; onSend: (m: SharePayload) => void };
@@ -108,7 +109,7 @@ export function TasksSheet({ visible, onClose, onSend }: Common) {
       <Row style={{ justifyContent: 'flex-start', marginBottom: 8 }} gap={6}><Pill icon="paperclip" label="Carica da file" onPress={fromFile} /></Row>
       {fresh.map((f, i) => (
         <Item key={'f' + i} last={false}>
-          <Row style={{ justifyContent: 'flex-start' }} gap={10}><Icon name="plus" size={18} color={t.accent} /><Body style={{ flex: 1 }}>{f}</Body><Pressable onPress={() => setFresh(fresh.filter((_, j) => j !== i))} hitSlop={8} accessibilityLabel="Togli"><Icon name="x" size={16} color={t.muted} /></Pressable></Row>
+          <Row style={{ justifyContent: 'flex-start' }} gap={10}><Icon name="plus" size={18} color={t.accent} /><Body style={{ flex: 1 }}>{f}</Body><Pressable onPress={() => setFresh(fresh.filter((_, j) => j !== i))} hitSlop={8} accessibilityLabel={translateText("Togli")}><Icon name="x" size={16} color={t.muted} /></Pressable></Row>
         </Item>
       ))}
       {open.length === 0 ? <Body small muted>Non hai task aperti.</Body> : open.map((x, i) => (

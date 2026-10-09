@@ -12,6 +12,7 @@ import { buildRows, previewParts, searchText, sortRows, visibleTo } from '@/lib/
 import { isMuted, listTime, useChat, type Chat } from '@/store/chat';
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
+import { translateText } from '@/i18n/core';
 
 const FILTERS = ['Tutte', 'Non lette', 'Gruppi'] as const;
 
@@ -54,7 +55,7 @@ export default function MessagesPage() {
     <Page id="messagesPage" title={sel.length ? `${sel.length} selezionate` : archived ? 'Archiviate' : 'Messaggi'}
       right={<Row gap={8}>
         {archived && <Pressable onPress={() => setArchived(false)}><Text style={{ color: t.accent }}>Chiudi</Text></Pressable>}
-        <Pressable onPress={() => go('chatSettings')} hitSlop={8} accessibilityLabel="Impostazioni chat"><Icon name="gear" size={21} color={t.text} /></Pressable>
+        <Pressable onPress={() => go('chatSettings')} hitSlop={8} accessibilityLabel={translateText("Impostazioni chat")}><Icon name="gear" size={21} color={t.text} /></Pressable>
       </Row>}>
       {sel.length > 0 ? (
         <Row style={{ flexWrap: 'wrap', marginBottom: 8 }} gap={6}>
@@ -84,7 +85,7 @@ export default function MessagesPage() {
         return (
           <Pressable key={c.id} onPress={() => open(c)} onLongPress={() => setSel(sel.includes(c.id) ? sel : [...sel, c.id])} delayLongPress={300}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 6, borderRadius: 14, backgroundColor: sel.includes(c.id) ? t.chip : 'transparent' }}
-            accessibilityLabel={`${c.name}${unread ? ', non letto' : ''}`}>
+            accessibilityLabel={translateText(`${c.name}${unread ? ', non letto' : ''}`)}>
             {c.type === 'group' ? <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Icon name="users" size={24} color={t.text} /></View> : <UserAvatar name={c.name} size={48} />}
             <View style={{ flex: 1 }}>
               <Row style={{ justifyContent: 'space-between' }}>

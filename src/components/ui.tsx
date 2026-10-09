@@ -14,6 +14,7 @@ import { areaColors, Icon } from '@/lib/icons';
 import { goBack, go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { installTextScale } from '@/lib/textScale';
+import { translateText } from '@/i18n/core';
 import { toast, useToast } from '@/store/toast';
 
 // "Testo più grande" vale per tutti i <Text> dell'app (vedi lib/textScale.ts)
@@ -54,7 +55,7 @@ export function Press({ children, onPress, onLongPress, style, hitSlop, disabled
       disabled={disabled}
       hitSlop={hitSlop}
       accessibilityRole={role}
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={accessibilityLabel ? translateText(accessibilityLabel) : accessibilityLabel}
       accessibilityState={{ disabled: !!disabled, ...(selected != null ? { selected } : null) }}
       style={({ pressed }) => [style, pressed && !disabled && { opacity: feedback }]}>
       {children}
@@ -278,7 +279,7 @@ export function Input(props: TextInputProps & { flex?: number }) {
   return (
     <TextInput
       placeholderTextColor={t.muted}
-      accessibilityLabel={rest.accessibilityLabel ?? rest.placeholder}
+      accessibilityLabel={(() => { const l = rest.accessibilityLabel ?? rest.placeholder; return l ? translateText(l) : l; })()}
       {...rest}
       style={[{ backgroundColor: t.input, borderColor: t.inputBorder, color: t.text, borderWidth: 1, borderRadius: radius.field, padding: 13, fontSize: 16, marginBottom: 8 }, props.multiline && { minHeight: 110, textAlignVertical: 'top' }, flex != null && { flex }, style]}
     />
@@ -293,7 +294,7 @@ export function Toggle({ label, value, onChange, hint }: { label: ReactNode; val
         {typeof label === 'string' ? <Body>{label}</Body> : label}
         {hint ? <Body small muted>{hint}</Body> : null}
       </View>
-      <Switch value={value} onValueChange={safely(onChange)} accessibilityLabel={typeof label === 'string' ? label : undefined} trackColor={{ true: t.accent, false: t.inputBorder }} thumbColor={t.mode === 'light' ? '#fff' : '#f4f6f8'} />
+      <Switch value={value} onValueChange={safely(onChange)} accessibilityLabel={typeof label === 'string' ? translateText(label) : undefined} trackColor={{ true: t.accent, false: t.inputBorder }} thumbColor={t.mode === 'light' ? '#fff' : '#f4f6f8'} />
     </View>
   );
 }
@@ -372,7 +373,7 @@ export function Sheet({ visible, title, onClose, children }: { visible: boolean;
   return (
     <Modal visible={shown} transparent animationType={reduce ? 'none' : 'slide'} onRequestClose={close} statusBarTranslucent>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <Pressable style={{ flex: 1, backgroundColor: t.overlay }} onPress={close} accessibilityRole="button" accessibilityLabel="Chiudi" />
+        <Pressable style={{ flex: 1, backgroundColor: t.overlay }} onPress={close} accessibilityRole="button" accessibilityLabel={translateText('Chiudi')} />
         <View accessibilityViewIsModal style={{ backgroundColor: t.sheet, borderTopLeftRadius: 26, borderTopRightRadius: 26, borderTopWidth: 1, borderTopColor: t.sheetBorder, maxHeight: '82%', paddingTop: 20 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 }}>
             <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.lead, fontWeight: '700', flex: 1, marginRight: 10 }} numberOfLines={2}>{title}</Text>
@@ -394,7 +395,7 @@ export function Select({ value, options, onChange, title }: { value: string; opt
   const [open, setOpen] = useOpen();
   return (
     <>
-      <Press onPress={() => setOpen(true)} accessibilityLabel={`${title ?? 'Scegli'}: ${value}`} style={{ backgroundColor: t.input, borderColor: t.inputBorder, borderWidth: 1, borderRadius: radius.field, padding: 13, minHeight: MIN_HIT, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Press onPress={() => setOpen(true)} accessibilityLabel={`${translateText(title ?? 'Scegli')}: ${translateText(value)}`} style={{ backgroundColor: t.input, borderColor: t.inputBorder, borderWidth: 1, borderRadius: radius.field, padding: 13, minHeight: MIN_HIT, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={{ color: t.text, fontSize: 16 }}>{value}</Text>
         <Icon name="chevron" size={16} color={t.muted} stroke={2} />
       </Press>
@@ -432,7 +433,7 @@ function ToastBubble({ bottom }: { bottom: number }) {
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom, alignItems: 'center', zIndex: 50 }}>
       {/* senza "Annulla" il toast non intercetta i tocchi: non deve mai coprire pulsanti sotto di sé */}
       <View pointerEvents={undo ? 'auto' : 'none'} accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ backgroundColor: t.toastBg, borderWidth: 1, borderColor: t.toastBorder, borderRadius: 13, paddingHorizontal: 16, paddingVertical: 11, maxWidth: '88%', flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-        <Text style={{ color: t.toastText, fontSize: fs.small, flexShrink: 1, textAlign: 'center' }}>{msg}</Text>
+        <Text style={{ color: t.toastText, fontSize: fs.small, flexShrink: 1, textAlign: 'center' }}>{translateText(msg)}</Text>
         {undo && (
           <Text suppressHighlighting accessibilityRole="button" onPress={() => { undo(); hide(); }} style={{ color: t.toastText, fontWeight: '700', textDecorationLine: 'underline', fontSize: fs.small, paddingVertical: 8 }}>Annulla</Text>
         )}

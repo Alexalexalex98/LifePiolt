@@ -11,6 +11,7 @@ import { useChat } from '@/store/chat';
 import { useLife } from '@/store/life';
 import { useTheia, askTheiaAbout } from '@/store/theia';
 import { Icon } from '@/lib/icons';
+import { translateText } from '@/i18n/core';
 
 /** "Theia per te": ciò che probabilmente ti serve adesso, con il motivo. */
 export function TheiaCard() {
@@ -28,7 +29,7 @@ export function TheiaCard() {
     <Card style={{ marginTop: 10 }}>
       <Row>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}><Icon name="sparkle" size={18} color={t.accent} /><Text style={{ color: t.text, fontSize: 16, fontWeight: '800' }}>{name} per te</Text></View>
-        <Pressable onPress={() => askTheiaAbout({ source: 'home', ask: 'Cosa devo fare adesso?' })} hitSlop={12} accessibilityRole="button" accessibilityLabel="Chiedi cosa fare adesso"><Text style={{ color: t.accent, fontWeight: '700' }}>Cosa faccio ora?</Text></Pressable>
+        <Pressable onPress={() => askTheiaAbout({ source: 'home', ask: 'Cosa devo fare adesso?' })} hitSlop={12} accessibilityRole="button" accessibilityLabel={translateText("Chiedi cosa fare adesso")}><Text style={{ color: t.accent, fontWeight: '700' }}>Cosa faccio ora?</Text></Pressable>
       </Row>
       {list.length === 0 ? <Body small muted style={{ marginTop: 6 }}>Per ora non vedo nulla di urgente. Più usi l'app, più imparo cosa ti serve e quando.</Body> : list.slice(0, 3).map((s) => (
         <View key={s.id} style={{ marginTop: 10, borderTopWidth: 1, borderTopColor: t.border, paddingTop: 10 }}>

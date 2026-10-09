@@ -3,7 +3,7 @@ import { useApp } from '@/store/app';
 
 import { setTextScaleFactor } from './textScaleState';
 
-/** Collega "Testo più grande" (Impostazioni > Accessibilità) al wrapper <Text> di rn-shim. */
+/** Collega "Testo più grande" (Impostazioni > Accessibilità) al <Text> di @/components/T. */
 let installed = false;
 export function installTextScale() {
   if (installed) return;

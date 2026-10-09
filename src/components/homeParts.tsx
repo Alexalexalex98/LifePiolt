@@ -15,6 +15,7 @@ import { todayStr } from '@/lib/analytics';
 import { moodOptions, useHealth } from '@/store/health';
 import { toast } from '@/store/toast';
 import { scoreInfo } from '@/data/metricInfo';
+import { translateText } from '@/i18n/core';
 
 /** Check-in dell'umore: la prima cosa che si vede, finché non è stato fatto oggi. */
 export function MoodCheckIn() {
@@ -30,7 +31,7 @@ export function MoodCheckIn() {
     return (
       <Card style={{ marginTop: 10 }}>
         <Row>
-          <Pressable onPress={() => go('mood')} style={{ flex: 1 }} accessibilityRole="button" accessibilityLabel="Apri l'andamento dell'umore">
+          <Pressable onPress={() => go('mood')} style={{ flex: 1 }} accessibilityRole="button" accessibilityLabel={translateText("Apri l'andamento dell'umore")}>
             <Row style={{ justifyContent: 'flex-start' }} gap={10}>
               <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: t.accent + '25', alignItems: 'center', justifyContent: 'center' }}><Icon name="smile" size={19} color={t.accent} /></View>
               <View style={{ flex: 1 }}>
@@ -53,7 +54,7 @@ export function MoodCheckIn() {
       <Body small muted style={{ marginBottom: 10 }}>{done ? `Ora è "${done.mood}": la nuova scelta sostituisce quella di oggi.` : 'Un tocco, 5 secondi: lo confronto con meteo, impegni, sonno e spese.'}</Body>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {moodOptions.map(([m, c]) => (
-          <Pressable key={m} onPress={() => { setTodayMood(m); setChanging(false); toast((done ? 'Umore aggiornato: ' : 'Umore registrato: ') + m); }} style={{ width: '31%', alignItems: 'center', paddingVertical: 12, borderRadius: 14, backgroundColor: done?.mood === m ? t.accent + '25' : t.tile, borderWidth: 1, borderColor: done?.mood === m ? t.accent : t.navBorder }} accessibilityRole="button" accessibilityLabel={`Mi sento ${m}`}>
+          <Pressable key={m} onPress={() => { setTodayMood(m); setChanging(false); toast((done ? 'Umore aggiornato: ' : 'Umore registrato: ') + m); }} style={{ width: '31%', alignItems: 'center', paddingVertical: 12, borderRadius: 14, backgroundColor: done?.mood === m ? t.accent + '25' : t.tile, borderWidth: 1, borderColor: done?.mood === m ? t.accent : t.navBorder }} accessibilityRole="button" accessibilityLabel={translateText(`Mi sento ${m}`)}>
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c, marginBottom: 6 }} /><Body small>{m}</Body>
           </Pressable>
         ))}
