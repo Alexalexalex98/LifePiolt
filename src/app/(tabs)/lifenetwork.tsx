@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { JobsHub } from '@/components/JobsHub';
 import { SeminarCard, ServiceCard } from '@/components/market';

@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Share, Text, View } from 'react-native';
+import { Pressable, Share, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { LpTag, MediaBlock, ModButton, UserAvatar, openSheet } from '@/components/network';
 import { Body, Btn, Card, Empty, H, Input, Item, Page, Row } from '@/components/ui';

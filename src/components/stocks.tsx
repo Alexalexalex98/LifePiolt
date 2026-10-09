@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { LineChart } from '@/components/charts';
 import { Body, Btn, Card, Input, Item, Metric, Pill, Row, Select, Sheet, Tag, Toggle } from '@/components/ui';

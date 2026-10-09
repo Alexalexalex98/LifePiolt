@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { Image, Modal, Pressable, Text, View } from 'react-native';
+import { Image, Modal, Pressable, View } from 'react-native';
+import { Text } from '@/components/T';
 import { create } from 'zustand';
 
 import { Avatar, Body, Btn, Card, ModalToast, Row } from '@/components/ui';

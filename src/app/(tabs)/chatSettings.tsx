@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { wallpapers } from '@/components/chat/parts';
 import { Body, Card, Item, Page, Pill, Row, Seg, Toggle, IL } from '@/components/ui';

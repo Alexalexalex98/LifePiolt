@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { IdeaCard, LpTag, ModButton, PostCard, UserAvatar, openPurchaseConfirm, openSheet } from '@/components/network';
 import { Body, Btn, Card, Chev, Empty, Item, Page, Row, Seg } from '@/components/ui';

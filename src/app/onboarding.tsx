@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Image, Text, View } from 'react-native';
+import { Image, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { PrivacyContent } from '@/components/PrivacyContent';
 import { Body, Btn, Input, Page, Sheet } from '@/components/ui';

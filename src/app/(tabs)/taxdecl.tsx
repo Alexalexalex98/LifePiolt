@@ -1,7 +1,8 @@
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, Image, Platform, Pressable, Share, Text, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, Share, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { FinTabs } from '@/components/FinTabs';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Pill, Progress, Row, Sheet } from '@/components/ui';

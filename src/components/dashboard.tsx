@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { TrendChart } from '@/components/charts';
 import { Body, Card, Item, Row, Sheet } from '@/components/ui';

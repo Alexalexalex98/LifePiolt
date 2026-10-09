@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { FileChip, QuestionView } from '@/components/jobFiles';
 import { SkillRow, TrustCard, scoreTone } from '@/components/jobs';

@@ -1,7 +1,8 @@
 import { Image } from 'expo-image';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
+import { Text, TextInput } from '@/components/T';
 
 import { Body, Btn, Input, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { CorrelationConfirm } from '@/components/ConfirmBadge';
 import { MetricSheet, statusColor, scoreStatus } from '@/components/dashboard';

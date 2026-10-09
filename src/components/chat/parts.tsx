@@ -2,7 +2,8 @@ import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-au
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useState } from 'react';
-import { FlatList, Linking, Modal, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { FlatList, Linking, Modal, Pressable, View, useWindowDimensions } from 'react-native';
+import { Text } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/hooks/use-theme';

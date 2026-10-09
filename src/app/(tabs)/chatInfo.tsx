@@ -1,7 +1,8 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Linking, Pressable, Share, Text, View } from 'react-native';
+import { Linking, Pressable, Share, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { PickPeopleSheet } from '@/components/chat/NewChat';
 import { MediaViewer, wallpapers } from '@/components/chat/parts';

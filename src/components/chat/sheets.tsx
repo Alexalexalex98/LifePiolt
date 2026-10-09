@@ -1,6 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { UserAvatar } from '@/components/network';
 import { Body, Btn, Input, Item, Row, Sheet, IL } from '@/components/ui';

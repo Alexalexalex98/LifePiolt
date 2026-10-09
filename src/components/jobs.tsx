@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { Body, Card, Row } from '@/components/ui';
 import { skillLabel, traitLabel, traits } from '@/data/skillBank';

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { UserAvatar } from '@/components/network';
 import { Body, Btn, Input, Item, Pill, Row, Sheet } from '@/components/ui';

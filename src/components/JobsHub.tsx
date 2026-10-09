@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { SkillRow, scoreTone } from '@/components/jobs';
 import { Body, Btn, Card, Empty, Row, Seg, Chev } from '@/components/ui';

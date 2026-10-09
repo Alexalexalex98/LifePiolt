@@ -2,7 +2,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { Image, Pressable, Share, Text, View } from 'react-native';
+import { Image, Pressable, Share, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { Body, Btn, Card, Empty, Input, Item, Link, Page, Row, Seg, Sheet, TabRow, XBtn } from '@/components/ui';
 import { useInk, useTheme } from '@/hooks/use-theme';

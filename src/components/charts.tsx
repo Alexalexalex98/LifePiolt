@@ -105,7 +105,7 @@ export function Flame({ streak, size = 40 }: { streak: number; size?: number }) 
   );
 }
 
-import { Text } from 'react-native';
+import { Text } from '@/components/T';
 function SvgLabel({ text, size }: { text: string; size: number }) {
   return <Text style={{ color: '#0e1219', fontWeight: '800', fontSize: size }}>{text}</Text>;
 }

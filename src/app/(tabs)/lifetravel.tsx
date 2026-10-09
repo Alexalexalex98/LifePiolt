@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { Body, Btn, Card, H, Item, Link, Page, Pill, Row, Sheet, Toggle, XBtn, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';

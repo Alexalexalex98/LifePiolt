@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { LibrarySheet, PracticalEditor, QuestionSheet, Stepper, emptyPractical } from '@/components/jobBuilder';
 import { Body, Btn, Card, Input, Page, Pill, Row, Seg, Toggle, IL } from '@/components/ui';

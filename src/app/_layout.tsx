@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppState, View } from 'react-native';
 
 import { autoSyncIfConnected } from '@/lib/healthkit';
@@ -14,6 +14,9 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { ToastHost } from '@/components/ui';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useTheme } from '@/hooks/use-theme';
+import * as Localization from 'expo-localization';
+import { applyLanguage } from '@/i18n/apply';
+import { detectLang, normalizeLang } from '@/i18n/languages';
 import { useApp } from '@/store/app';
 import { useFin } from '@/store/finance';
 import { useChat } from '@/store/chat';
@@ -38,6 +41,10 @@ export default function RootLayout() {
   const t = useTheme();
   const reduceMotion = useReduceMotion();
   const onboarded = useApp((s) => s.onboarded);
+  const rawLang = useApp((s) => s.language);
+  const lang = normalizeLang(rawLang);
+  // i testi si traducono a runtime: attivo la lingua prima di disegnare e ridisegno tutto quando cambia (key={lang})
+  useMemo(() => { applyLanguage(lang); }, [lang]);
   const [ready, setReady] = useState(allHydrated());
 
   useEffect(() => {
@@ -50,6 +57,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (!ready) return;
     useFin.getState().rollMonth();
+    // versioni vecchie salvavano "Italiano": normalizzo; alla prima installazione uso la lingua del telefono
+    const app = useApp.getState();
+    if (!app.onboarded && !app.demo && app.language === 'it' && !app.account.name) {
+      try { const tag = Localization.getLocales()[0]?.languageTag; if (tag) app.set({ language: detectLang(tag) }); } catch { /* ignore */ }
+    } else if (normalizeLang(app.language) !== app.language) app.set({ language: normalizeLang(app.language) });
     SplashScreen.hideAsync();
     void autoSyncIfConnected();
     void refreshWeather();
@@ -62,7 +74,7 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: t.bg }}>
+    <View key={lang} style={{ flex: 1, backgroundColor: t.bg }}>
       <StatusBar style={t.mode === 'light' ? 'dark' : 'light'} />
       <Stack screenOptions={{ headerShown: false, animation: reduceMotion ? 'none' : 'default', contentStyle: { backgroundColor: t.bg } }}>
         <Stack.Protected guard={!onboarded}>

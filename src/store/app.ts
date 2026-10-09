@@ -5,7 +5,10 @@ import { setErrorScreen } from '@/lib/errorLog';
 import { persisted } from './persist';
 
 export type Appearance = 'Scuro' | 'Chiaro' | 'Sistema';
-export type Language = 'Italiano' | 'English' | 'Deutsch' | 'Français';
+import type { LangCode } from '@/i18n/languages';
+
+/** Codice lingua (it, en, es, ...). Le versioni vecchie salvavano il nome ("Italiano"): si normalizza all'avvio. */
+export type Language = LangCode;
 
 export const navCatalog: Record<string, string> = {
   home: 'Home', ai: 'AI', lifenetwork: 'Network', lifefinance: 'Finance', profile: 'Profilo', lifehealth: 'LifeHealth',
@@ -48,7 +51,7 @@ const initial = {
   demo: false,
   account: { name: '', email: '' },
   appearance: 'Scuro' as Appearance,
-  language: 'Italiano' as Language,
+  language: 'it' as Language,
   timeFormat: '24h' as const,
   notif: { push: false, calendar: true, finance: true, health: false, digest: false, email: false },
   briefing: { morning: false, morningAt: '07:45', evening: false, eveningAt: '20:30' },

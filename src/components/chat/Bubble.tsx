@@ -1,5 +1,6 @@
 import { memo, useRef } from 'react';
-import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
+import { Animated, PanResponder, Pressable, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { Icon } from '@/lib/icons';
 import { fmtClock, previewOf, reactionIcon, type ChatMessage } from '@/store/chat';

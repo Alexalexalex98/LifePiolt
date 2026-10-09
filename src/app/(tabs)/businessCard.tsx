@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { UserAvatar, openSheet } from '@/components/network';
 import { Body, Card, H, Input, Item, Page, Row } from '@/components/ui';

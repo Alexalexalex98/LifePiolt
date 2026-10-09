@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { useTheme } from '@/hooks/use-theme';
 import { addToPlanWithCheck, findConflicts, removeFromPlan } from '@/lib/planBooking';

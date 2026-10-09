@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { AppState, Pressable, Text, View } from 'react-native';
+import { AppState, Pressable, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { WeeklyReportButton } from '@/components/WeeklyReportButton';
 import { Flame, LineChart } from '@/components/charts';

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { ConfirmBadge } from '@/components/ConfirmBadge';
 import { MoodChart, overlays, type Overlay } from '@/components/MoodChart';

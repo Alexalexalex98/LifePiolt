@@ -1,7 +1,8 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
+import { Text } from '@/components/T';
 
 import { Body, Btn, Input, Item, Pill, Row, Select, Sheet } from '@/components/ui';
 import { fmtDuration, nextDays as whenDays, timeOptions } from '@/lib/when';
