@@ -4,13 +4,13 @@ import { Linking, View } from 'react-native';
 import { Text } from '@/components/T';
 import { Body, Btn, Pill } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { adviceText, arrivalPlan, pickKinds, type Interest } from '@/lib/arrival';
+import { adviceText, arrivalPlan, BUFFER, pickKinds, type Interest } from '@/lib/arrival';
 import { geocode, mapsUrl, nearby, routeMinutes, type Poi } from '@/lib/nearby';
 import { travelMinutes } from '@/lib/places';
 import { INTEREST_CATALOG, useInterests } from '@/store/interests';
 
 /** Tragitto verso il luogo dell'impegno + cosa fare se si arriva molto prima, in base agli interessi. */
-export function ArrivalAdvice({ place, time, from }: { place: string; time: string; from?: string }) {
+export function ArrivalAdvice({ place, time, from, today = true }: { place: string; time: string; from?: string; today?: boolean }) {
   const t = useTheme();
   const { selected, homeCity } = useInterests();
   const origin = from || homeCity;
@@ -21,7 +21,9 @@ export function ArrivalAdvice({ place, time, from }: { place: string; time: stri
   if (!place.trim()) return null;
 
   const now = new Date();
-  const a = minutes != null ? arrivalPlan(time, minutes, now.getHours() * 60 + now.getMinutes()) : null;
+  const [hh, mm] = time.split(':').map(Number);
+  const nowMin = today ? now.getHours() * 60 + now.getMinutes() : hh * 60 + mm - (minutes ?? 0) - BUFFER;
+  const a = minutes != null ? arrivalPlan(time, minutes, nowMin) : null;
   const kinds = a ? pickKinds(selected as Interest[], a.wait) : [];
   const tags = INTEREST_CATALOG.filter((i) => selected.includes(i.id)).flatMap((i) => i.osm);
 

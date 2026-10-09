@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Pressable, Switch, View } from 'react-native';
 import { UserAvatar } from '@/components/network';
+import { AutomationsSheet } from '@/components/Automations';
+import { InterestsPicker } from '@/components/InterestsPicker';
+import { useInterests } from '@/store/interests';
 
 import { Body, Btn, Card, Chev, Empty, H, Input, Item, Metric, Page, Pill, Row, Sheet, Tag, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -17,7 +20,7 @@ import { translateText } from '@/i18n/core';
 
 const Sec = ({ children }: { children: string }) => <View style={{ marginTop: 16 }}><Tag>{children}</Tag></View>;
 
-type SheetKey = null | 'goals' | 'autos' | 'pref' | 'memory' | 'module';
+type SheetKey = null | 'interests' | 'goals' | 'autos' | 'pref' | 'memory' | 'module';
 
 /** Moduli futuri: cosa sono, a che punto sono e (se esiste già qualcosa) dove aprirli. */
 const modules: { name: string; icon: string; what: string; state: string; page?: string; pageLabel?: string }[] = [
@@ -42,6 +45,8 @@ export default function Profile() {
   const resetPrefs = usePrefs((s) => s.reset);
   useHealth((s) => s.series); useFin((s) => s.months);
   const [sheet, setSheet] = useState<SheetKey>(null);
+  const [autoSheet, setAutoSheet] = useState(false);
+  const nInterests = useInterests((x) => x.selected.length);
   const [mod, setMod] = useState<(typeof modules)[number] | null>(null);
   const [newAuto, setNewAuto] = useState('');
   const [newGoal, setNewGoal] = useState('');
@@ -82,6 +87,7 @@ export default function Profile() {
     life.notes.forEach((n) => life.delNote(n.id));
     life.goals.forEach((g) => life.delGoal(g.id));
     life.automations.forEach((a) => life.delAuto(a.id));
+    life.purgeTrash();
     resetPrefs();
     set({ privacy: Object.fromEntries(Object.keys(privacy).map((k) => [k, false])) });
     setConfirmAll(false); toast('Memoria cancellata');
@@ -120,7 +126,8 @@ export default function Profile() {
       <Card>
         <H>Cosa LifePilot sa di te</H>
         <Item onPress={() => open('goals')}><Row><Body style={{ flex: 1 }}>Obiettivo principale · {main ? main.t : 'non ancora impostato'}</Body><Chev /></Row></Item>
-        <Item onPress={() => open('autos')}><Row><Body style={{ flex: 1 }}>Automazioni attive · {automations.filter((a) => a.on).length}</Body><Chev /></Row></Item>
+        <Item onPress={() => setAutoSheet(true)}><Row><Body style={{ flex: 1 }}>Automazioni attive · {automations.filter((a) => a.on).length}</Body><Chev /></Row></Item>
+        <Item onPress={() => open('interests')}><Row><Body style={{ flex: 1 }}>Interessi e città · {nInterests ? nInterests : 'non ancora scelti'}</Body><Chev /></Row></Item>
         <Item last onPress={() => open('pref')}><Row><Body style={{ flex: 1 }}>Preferenza · {styleLabel(answerStyle)}</Body><Chev /></Row></Item>
         <Btn small ghost style={{ marginTop: 10 }} title="Gestisci memoria" onPress={() => open('memory')} />
       </Card>
@@ -136,6 +143,8 @@ export default function Profile() {
       </Card>
 
       {/* obiettivi */}
+      <AutomationsSheet visible={autoSheet} onClose={() => setAutoSheet(false)} />
+      <Sheet visible={sheet === 'interests'} title="I tuoi interessi" onClose={close}><InterestsPicker /></Sheet>
       <Sheet visible={sheet === 'goals'} title="I tuoi obiettivi" onClose={close}>
         <Body small muted style={{ marginBottom: 6 }}>L'obiettivo principale è quello con il progresso più alto. Puoi cambiare titolo e percentuale o eliminarlo.</Body>
         {goals.length === 0 ? <Empty text="Nessun obiettivo: aggiungine uno qui sotto." /> : goals.map((g, i) => (

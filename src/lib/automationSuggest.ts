@@ -55,21 +55,21 @@ export function suggestAutomations(i: SuggestInput, max = 8): AutoSuggestion[] {
   add({
     key: 'weekly-review', score: 58 + (i.hasGoals ? 6 : 0) + (i.openTasks > 4 ? 6 : 0),
     title: t('Revisione della settimana'),
-    why: i.openTasks > 0 ? t('Hai {0} task aperti: una revisione settimanale ti aiuta a chiuderli o spostarli.', i.openTasks) : t('Un momento fisso a settimana per capire cosa è andato bene e preparare la prossima.'),
+    why: i.openTasks > 0 ? i.openTasks === 1 ? t('Hai 1 task aperto: una revisione settimanale ti aiuta a chiuderlo o spostarlo.') : t('Hai {0} task aperti: una revisione settimanale ti aiuta a chiuderli o spostarli.', i.openTasks) : t('Un momento fisso a settimana per capire cosa è andato bene e preparare la prossima.'),
     rule: t('Ogni domenica sera: revisione della settimana'),
     notify: { kind: 'weekly', weekday: 0, hour: 19, minute: 0, title: t('Revisione della settimana'), body: t('Apri LifePilot: com\'è andata la settimana e cosa preparare per la prossima?') },
   });
   add({
     key: 'morning-briefing', score: 52 + clamp(i.urgentTasks, 0, 3) * 8 + (i.openTasks > 5 ? 8 : 0),
     title: t('Briefing del mattino'),
-    why: i.urgentTasks > 0 ? t('Hai {0} task urgenti: parti la mattina sapendo qual è il primo.', i.urgentTasks) : t('Parti la giornata con il piano di oggi e il task più importante.'),
+    why: i.urgentTasks > 0 ? i.urgentTasks === 1 ? t('Hai 1 task urgente: parti la mattina sapendo qual è.') : t('Hai {0} task urgenti: parti la mattina sapendo qual è il primo.', i.urgentTasks) : t('Parti la giornata con il piano di oggi e il task più importante.'),
     rule: t('Ogni giorno alle 07:45: briefing e task più urgente'),
     notify: { kind: 'daily', hour: 7, minute: 45, title: t('Buongiorno'), body: t('Apri LifePilot per il piano di oggi e il task più urgente.') },
   });
   add({
     key: 'mood-checkin', score: 38 + (7 - clamp(i.moodDaysLast7, 0, 7)) * 6,
     title: t('Check-in dell\'umore'),
-    why: i.moodDaysLast7 < 4 ? t('Negli ultimi 7 giorni hai registrato l\'umore solo {0} volte: 5 secondi la sera bastano.', i.moodDaysLast7) : t('Registrare l\'umore ogni sera rende più precise le analisi.'),
+    why: i.moodDaysLast7 < 4 ? i.moodDaysLast7 === 1 ? t('Negli ultimi 7 giorni hai registrato l\'umore una sola volta: 5 secondi la sera bastano.') : t('Negli ultimi 7 giorni hai registrato l\'umore solo {0} volte: 5 secondi la sera bastano.', i.moodDaysLast7) : t('Registrare l\'umore ogni sera rende più precise le analisi.'),
     rule: t('Ogni sera alle 21:00: check-in umore'),
     notify: { kind: 'daily', hour: 21, minute: 0, title: t('Come ti sei sentito oggi?'), body: t('Registra il tuo umore: ti prende 5 secondi.') },
   });
@@ -91,7 +91,7 @@ export function suggestAutomations(i: SuggestInput, max = 8): AutoSuggestion[] {
   add({
     key: 'replan-skipped', score: i.skippedSessions >= 3 ? 86 : i.skippedSessions > 0 ? 58 : 20,
     title: t('Ripianifica le sessioni saltate'),
-    why: i.skippedSessions > 0 ? t('Hai {0} sessioni di lavoro saltate con il task ancora aperto.', i.skippedSessions) : t('Se salti delle sessioni di lavoro, te le rimetto nei prossimi slot liberi.'),
+    why: i.skippedSessions > 0 ? i.skippedSessions === 1 ? t('Hai 1 sessione di lavoro saltata con il task ancora aperto.') : t('Hai {0} sessioni di lavoro saltate con il task ancora aperto.', i.skippedSessions) : t('Se salti delle sessioni di lavoro, te le rimetto nei prossimi slot liberi.'),
     rule: t('Dopo 3 sessioni saltate: ripianifica da sola'),
   });
   const noWorkout = i.daysSinceWorkout == null ? 12 : i.daysSinceWorkout;
@@ -104,14 +104,14 @@ export function suggestAutomations(i: SuggestInput, max = 8): AutoSuggestion[] {
   add({
     key: 'stalled-goals', score: i.stalledGoals > 0 ? 54 + clamp(i.stalledGoals, 0, 3) * 4 : i.hasGoals ? 26 : 0,
     title: t('Obiettivi fermi'),
-    why: i.stalledGoals > 0 ? t('{0} obiettivi non avanzano da una settimana.', i.stalledGoals) : t('Ogni lunedì ti ricordo di dare un passo piccolo ai tuoi obiettivi.'),
+    why: i.stalledGoals > 0 ? i.stalledGoals === 1 ? t('1 obiettivo non avanza da una settimana.') : t('{0} obiettivi non avanzano da una settimana.', i.stalledGoals) : t('Ogni lunedì ti ricordo di dare un passo piccolo ai tuoi obiettivi.'),
     rule: t('Ogni lunedì alle 09:00: obiettivi fermi da una settimana'),
     notify: { kind: 'weekly', weekday: 1, hour: 9, minute: 0, title: t('Obiettivi'), body: t('C\'è qualche obiettivo fermo? Un passo piccolo oggi lo sblocca.') },
   });
   add({
     key: 'urgent-tasks', score: i.urgentTasks >= 3 ? 70 : i.urgentTasks > 0 ? 40 : 15,
     title: t('Troppi task urgenti'),
-    why: i.urgentTasks > 0 ? t('Hai {0} task segnati urgenti.', i.urgentTasks) : t('Se i task urgenti si accumulano, te lo segnalo.'),
+    why: i.urgentTasks > 0 ? i.urgentTasks === 1 ? t('Hai 1 task segnato urgente.') : t('Hai {0} task segnati urgenti.', i.urgentTasks) : t('Se i task urgenti si accumulano, te lo segnalo.'),
     rule: t('Se hai più di 3 task urgenti: avviso per rivedere le priorità'),
   });
   add({

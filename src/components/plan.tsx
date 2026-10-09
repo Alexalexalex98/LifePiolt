@@ -8,6 +8,7 @@ import { Body, Btn, Card, Empty, H, Input, Item, Link, Pill, Row, Select, Sheet,
 import { useTheme } from '@/hooks/use-theme';
 import { dayKey, minutesToTime, pad2, timeToMinutes } from '@/lib/format';
 import { Icon } from '@/lib/icons';
+import { ArrivalAdvice } from '@/components/ArrivalAdvice';
 import { decomposeTextToSteps } from '@/lib/taskDecompose';
 import { useApp } from '@/store/app';
 import { useLife, taskIsDone, type CalEvent, type Task } from '@/store/life';
@@ -271,6 +272,7 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
   const { addEvent, delEvent, restoreEvent, toggleReminder, patchEvent } = useLife();
   const [time, setTime] = useState('09:00');
   const [title, setTitle] = useState('');
+  const [place, setPlace] = useState('');
   const [weekly, setWeekly] = useState(false);
   const [colorFor, setColorFor] = useState<number | null>(null);
   if (!day) return <Sheet visible={false} title="" onClose={onClose}><View /></Sheet>;
@@ -297,7 +299,7 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
           <Item key={idx}>
             <Row>
               <Pressable onPress={() => setColorFor(colorFor === idx ? null : idx)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`${translateText('Cambia colore')}: ${e.title}`} style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: col, borderWidth: 2, borderColor: t.border }} />
-              <Body style={{ flex: 1 }}><Text style={{ fontWeight: '700' }}>{e.time}</Text> · {e.title}</Body>
+              <Body style={{ flex: 1 }}><Text style={{ fontWeight: '700' }}>{e.time}</Text> · {e.title}{e.place ? ` · ${e.place}` : ''}</Body>
               <Row gap={12}>
                 <Pressable onPress={() => { patchEvent(day, idx, { important: !e.important }); toast(!e.important ? 'Impegno importante: i task collegati avranno la precedenza' : 'Non più importante'); }} accessibilityLabel={translateText(e.important ? 'Togli importanza' : 'Segna come importante')}>
                   <Icon name="star" size={18} color={e.important ? '#ffb84f' : t.text} fill={e.important ? '#ffb84f' : 'none'} />
@@ -311,6 +313,7 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
                 }}>rimuovi</Link>
               </Row>
             </Row>
+            {e.place && /^\d{1,2}:\d{2}$/.test(e.time) ? <ArrivalAdvice place={e.place} time={e.time} today={day === dayKey()} /> : null}
             {colorFor === idx && (
               <ColorPicker ev={e} onChange={(id) => { patchEvent(day, idx, { color: id }); toast(id ? 'Colore cambiato' : 'Colore automatico'); }} />
             )}
@@ -321,11 +324,12 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
         <Input placeholder="09:00" style={{ width: 84 }} value={time} onChangeText={setTime} />
         <Input flex={1} placeholder="Nuovo impegno…" value={title} onChangeText={setTitle} />
       </Row>
+      <Input placeholder="Luogo (facoltativo): città o indirizzo" value={place} onChangeText={setPlace} />
       <Toggle label="Ogni settimana (per questo mese)" value={weekly} onChange={setWeekly} />
       <Btn title="Aggiungi al calendario" onPress={() => {
         const ti = title.trim(); if (!ti) return;
-        const n = addEvent(day, { time: time.trim() || '--:--', title: ti, reminder: false }, weekly ? endOfMonth : undefined);
-        setTitle('');
+        const n = addEvent(day, { time: time.trim() || '--:--', title: ti, reminder: false, ...(place.trim() ? { place: place.trim() } : {}) }, weekly ? endOfMonth : undefined);
+        setTitle(''); setPlace('');
         toast(n > 1 ? `Impegno aggiunto a ${n} date (ogni settimana)` : 'Impegno aggiunto');
       }} />
     </Sheet>

@@ -81,10 +81,10 @@ export default function Plan() {
       <Card>
         <H>Pianificazione automatica</H>
         <Body small muted style={{ marginVertical: 6 }}>Riempio il mese con i tuoi task (prima i più urgenti e quelli legati ai tuoi appuntamenti) e le tue abitudini, solo nel tuo orario di lavoro, lasciando liberi molti slot. Vedi l'anteprima e decidi tu.</Body>
-        <Row style={{ justifyContent: 'flex-start' }} gap={8}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           <Btn small icon="calendar" title="Pianifica il mese" onPress={() => { void sendToAssistant('pianificami il mese'); go('ai'); }} />
           <Btn small ghost title="Solo questa settimana" onPress={() => { void sendToAssistant('pianifica la settimana'); go('ai'); }} />
-        </Row>
+        </View>
         <Btn small ghost icon="calendar" style={{ marginTop: 8 }} title="Importa dal calendario del telefono" onPress={() => setCalSheet(true)} />
       </Card>
 
