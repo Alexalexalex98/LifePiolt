@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { uid } from '@/lib/format';
+import { t } from '@/i18n/core';
 import { norm, topicOf } from '@/lib/assistant/nlp';
 import { useLife } from './life';
 import { persisted } from './persist';
@@ -19,6 +20,29 @@ type AState = {
   clearTopic: (topic: string) => void;
   reset: () => void;
 };
+
+/** Nome mostrato di una cartella/argomento (le chiavi interne restano italiane). */
+export function topicLabel(topic: string): string {
+  switch (topic) {
+    case 'Generale': return t('Generale');
+    case 'Finanze': return t('Finanze');
+    case 'Salute': return t('Salute');
+    case 'Fitness': return t('Fitness');
+    case 'Mente': return t('Mente');
+    case 'Lavoro': return t('Lavoro');
+    case 'Studio': return t('Studio');
+    case 'Viaggi': return t('Viaggi');
+    case 'Casa': return t('Casa');
+    case 'Legale': return t('Legale');
+    case 'Musica': return t('Musica');
+    case 'Arte': return t('Arte');
+    case 'Cucina': return t('Cucina');
+    case 'Cinema': return t('Cinema');
+    case 'Tecnologia': return t('Tecnologia');
+    case 'Piano': return t('Piano');
+    default: return topic;
+  }
+}
 
 /** Argomento di un nuovo messaggio dell'utente: quello che riconosce, altrimenti continua il discorso se è recente. */
 export function topicFor(text: string, last: AMsg | undefined): string {

@@ -241,7 +241,7 @@ export function localAnswer(question: string, selection: string | undefined, has
   if (/oggi|agenda|calendar|impegn|today|schedule|events?/.test(q)) return { offline: true, text: lines[3] };
   if (/obiettiv|goals?/.test(q)) return { offline: true, text: lines[4] };
   if (/come sto|punteggi|salute|sonno|stress|spes|soldi|budget|health|sleep|money|scores|how am i/.test(q)) {
-    const g = lines.slice(5, 8).join('\n');
+    const g = lines.length >= 10 ? lines.slice(5, 8).join('\n') : '';
     return { offline: true, text: `${g || t('Non ho ancora abbastanza dati.')}\n\n${t('I dettagli sono nella Dashboard.')}` };
   }
   const s = predictNeeds()[0];

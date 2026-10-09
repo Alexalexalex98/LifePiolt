@@ -1,4 +1,5 @@
 import { go } from '@/lib/nav';
+import { t } from '@/i18n/core';
 import { askTheia, theiaOnline, type TheiaRequest } from '@/lib/theia';
 import { useAssistant, type AMsg } from '@/store/assistant';
 import { usePrefs } from '@/store/prefs';
@@ -34,6 +35,6 @@ export async function sendToAssistant(text: string, opts: { source?: 'chat' | 't
     const a = await askTheia(text, req ?? { source: 'free' });
     return useAssistant.getState().push({ who: 'ai', text: a.text, source: opts.source ?? 'chat' });
   } catch {
-    return useAssistant.getState().push({ who: 'ai', text: 'Non riesco a raggiungere il server. I comandi sul tuo piano, i task e i report funzionano comunque.', source: opts.source ?? 'chat' });
+    return useAssistant.getState().push({ who: 'ai', text: t('Non riesco a raggiungere il server. I comandi sul tuo piano, i task e i report funzionano comunque.'), source: opts.source ?? 'chat' });
   }
 }

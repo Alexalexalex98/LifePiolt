@@ -4,6 +4,7 @@ import { buildAgenda } from '@/lib/chatShare';
 import { bestMatch } from './nlp';
 import { useChat } from '@/store/chat';
 import { dayKey } from '@/lib/format';
+import { t } from '@/i18n/core';
 import { useApp } from '@/store/app';
 import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
@@ -54,7 +55,8 @@ export function makeEnv(): Env {
       if (!agenda) return null;
       const id = target ? target.id : chat.ensureDm(person, me);
       chat.send(id, me, { kind: 'agenda', agenda });
-      return `Fatto: ho inviato la tua agenda a ${target?.name ?? person} (${mode === 'liberi' ? 'solo slot liberi, nessun titolo' : mode === 'occupato' ? 'solo occupato/libero, nessun titolo' : 'con i titoli'}).`;
+      const how = mode === 'liberi' ? t('solo slot liberi, nessun titolo') : mode === 'occupato' ? t('solo occupato/libero, nessun titolo') : t('con i titoli');
+      return t('Fatto: ho inviato la tua agenda a {0} ({1}).', target?.name ?? person, how);
     },
     setTaskDue: (id, day) => life().patchTask(id, { due: day }),
     addRecurring: (day, ev, until, kind) => {
