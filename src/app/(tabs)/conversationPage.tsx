@@ -244,6 +244,12 @@ export default function Conversation() {
         onScrollToIndexFailed={(e) => setTimeout(() => list.current?.scrollToOffset({ offset: e.averageItemLength * e.index, animated: true }), 50)}
         ListEmptyComponent={<Body muted small style={{ textAlign: 'center', marginTop: 40 }}>{search ? 'Nessun risultato.' : 'Nessun messaggio ancora: scrivi per primo.'}</Body>}
         keyboardShouldPersistTaps="handled"
+        // su Android removeClippedSubviews (attivo di default) taglia e sovrappone le schede alte e di altezza variabile
+        removeClippedSubviews={false}
+        initialNumToRender={40}
+        maxToRenderPerBatch={20}
+        windowSize={21}
+        onLayout={() => { if (stick.current && !search) list.current?.scrollToEnd({ animated: false }); }}
       />
 
       <View style={{ paddingBottom: insets.bottom }}>

@@ -1,5 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
+import { usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { ActivityIndicator, Animated, Modal, PanResponder, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
@@ -98,6 +99,7 @@ export function TheiaHost() {
 /** Pulsante flottante: tocca = screenshot della schermata; tieni premuto = usa il testo copiato. */
 export function TheiaFab() {
   const t = useTheme();
+  const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const open = useTheia((s) => s.open);
   const name = useApp((s) => s.assistantName);
@@ -111,7 +113,8 @@ export function TheiaFab() {
     onPanResponderRelease: () => { pos.flattenOffset(); },
   })).current;
   const selecting = useSelect((x) => !!x.uri);
-  if (open || selecting) return null;
+  // nelle chat il pulsante coprirebbe il microfono e il campo messaggio: lì si usa il menu del messaggio
+  if (open || selecting || /conversationPage|\/ai$/.test(pathname)) return null;
 
   async function shot() {
     // lo scatto è silenzioso: il pulsante sparisce per un attimo e l'utente vede subito la schermata "ferma", pronta per la selezione

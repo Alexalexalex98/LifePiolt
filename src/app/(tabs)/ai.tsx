@@ -104,6 +104,7 @@ export default function LifeChat() {
             data={shown}
             keyExtractor={(m) => m.id}
             keyboardShouldPersistTaps="handled"
+            removeClippedSubviews={false}
             onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
             ListEmptyComponent={
               <View style={{ paddingTop: 8 }}>
