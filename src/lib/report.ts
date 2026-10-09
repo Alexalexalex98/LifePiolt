@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 
+import { t, translateText } from '@/i18n/core';
+
 import { confirmCorrelation, addDays, todayStr } from '@/lib/analytics';
 import { collect, computeDashboard } from '@/lib/analyticsData';
 import { alertsFor } from '@/lib/budgetState';
@@ -14,7 +16,7 @@ export { buildReportHtml } from '@/lib/reportHtml';
 
 const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
 const fmtNum = (v: number, dec: number) => (Math.round(v * 10 ** dec) / 10 ** dec).toString().replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, "'");
-const wdNames = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
+const wdNames = () => [t('domenica'), t('lunedì'), t('martedì'), t('mercoledì'), t('giovedì'), t('venerdì'), t('sabato')];
 
 /** Raccoglie dall'app i dati degli ultimi 7 giorni (oggi incluso) e dei 7 successivi per gli impegni. */
 export function gatherReportData(): ReportData {
@@ -31,13 +33,13 @@ export function gatherReportData(): ReportData {
     const prev = pts.filter((p) => p.d >= prevFrom && p.d <= prevTo).map((p) => p.v);
     const meta = healthMeta[m];
     const a = avg(cur)!, b = avg(prev);
-    const delta = b != null ? `${a - b >= 0 ? '+' : ''}${fmtNum(a - b, meta.dec)} rispetto alla settimana prima` : null;
-    health.push({ label: `${meta.label} (media)`, value: `${fmtNum(a, meta.dec)}${meta.unit ? ' ' + meta.unit : ''}`, delta });
+    const delta = b != null ? t('{0} rispetto alla settimana prima', `${a - b >= 0 ? '+' : ''}${fmtNum(a - b, meta.dec)}`) : null;
+    health.push({ label: t('{0} (media)', translateText(meta.label)), value: `${fmtNum(a, meta.dec)}${meta.unit ? ' ' + meta.unit : ''}`, delta });
   });
 
   const series = collect(to);
   const moodPts = (series.find((s) => s.def.id === 'mood')?.pts ?? []).filter((p) => p.d >= from && p.d <= to);
-  const byDay = (d: string) => wdNames[new Date(d + 'T00:00:00').getDay()];
+  const byDay = (d: string) => wdNames()[new Date(d + 'T00:00:00').getDay()];
   const sortedMood = moodPts.slice().sort((a, b) => b.v - a.v);
   const mood = moodPts.length ? { avg: avg(moodPts.map((p) => p.v)), days: moodPts.length, best: byDay(sortedMood[0].d), worst: byDay(sortedMood[sortedMood.length - 1].d) } : null;
 
@@ -72,7 +74,7 @@ export function gatherReportData(): ReportData {
     correlations = dash.corrs.slice(0, 4).map((c) => {
       const a = series.find((s) => s.def.id === c.a.id), b = series.find((s) => s.def.id === c.b.id);
       const conf = a && b ? confirmCorrelation(a, b, c.lag) : null;
-      return { sentence: c.sentence, detail: `r = ${c.r.toFixed(2)} su ${c.n} giorni`, status: conf ? (conf.status === 'confermata' ? 'confermata nel tempo' : conf.status === 'incerta' ? 'ancora incerta' : 'non si ripete') : undefined };
+      return { sentence: c.sentence, detail: t('r = {0} su {1} giorni', c.r.toFixed(2), c.n), status: conf ? (conf.status === 'confermata' ? t('confermata nel tempo') : conf.status === 'incerta' ? t('ancora incerta') : t('non si ripete')) : undefined };
     });
   } catch { /* il report esce comunque senza correlazioni */ }
 
@@ -85,11 +87,11 @@ export type ReportResult = { ok: boolean; message: string };
 export async function exportWeeklyReport(): Promise<ReportResult> {
   let html: string;
   try { html = buildReportHtml(gatherReportData()); }
-  catch (e) { return { ok: false, message: 'Non riesco a preparare il report: ' + (e instanceof Error ? e.message : String(e)) }; }
+  catch (e) { return { ok: false, message: t('Non riesco a preparare il report: {0}', e instanceof Error ? e.message : String(e)) }; }
   if (Platform.OS === 'web') {
     try {
       const doc = (globalThis as unknown as { document?: Document }).document;
-      if (!doc) return { ok: false, message: 'Stampa non disponibile in questo ambiente.' };
+      if (!doc) return { ok: false, message: t('Stampa non disponibile in questo ambiente.') };
       const frame = doc.createElement('iframe');
       frame.setAttribute('aria-hidden', 'true');
       frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
@@ -99,9 +101,9 @@ export async function exportWeeklyReport(): Promise<ReportResult> {
       frame.contentWindow?.focus();
       frame.contentWindow?.print();
       setTimeout(() => frame.remove(), 60000);
-      return { ok: true, message: 'Scegli “Salva come PDF” nella finestra di stampa.' };
+      return { ok: true, message: t('Scegli “Salva come PDF” nella finestra di stampa.') };
     } catch {
-      return { ok: false, message: 'Non riesco ad aprire la stampa del browser.' };
+      return { ok: false, message: t('Non riesco ad aprire la stampa del browser.') };
     }
   }
   try {
@@ -111,12 +113,12 @@ export async function exportWeeklyReport(): Promise<ReportResult> {
     const Sharing = require('expo-sharing') as typeof import('expo-sharing');
     const file = await Print.printToFileAsync({ html });
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: 'Report della settimana' });
-      return { ok: true, message: 'Report pronto: scegli dove salvarlo o condividerlo.' };
+      await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: t('Report della settimana') });
+      return { ok: true, message: t('Report pronto: scegli dove salvarlo o condividerlo.') };
     }
     await Print.printAsync({ html });
-    return { ok: true, message: 'Report pronto per la stampa.' };
+    return { ok: true, message: t('Report pronto per la stampa.') };
   } catch (e) {
-    return { ok: false, message: 'Non riesco a creare il PDF: ' + (e instanceof Error ? e.message : String(e)) };
+    return { ok: false, message: t('Non riesco a creare il PDF: {0}', e instanceof Error ? e.message : String(e)) };
   }
 }

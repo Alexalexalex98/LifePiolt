@@ -35,8 +35,8 @@ export function travelWarnings(day: PlaceEv[], ev: PlaceEv): string[] {
     const xs = toMin(x.time), xe = xs + (x.dur || 60);
     const need = travelMinutes(x.place!, ev.place!);
     if (!need) return;
-    if (xe <= s) { const gap = s - xe; if (gap < need) out.push(t('Tra «{0}» ({1}) e «{2}» ({3}) hai {4} min ma ne servono circa {5} per spostarti.', x.title, x.place!, ev.title, ev.place, gap, need)); }
-    else if (e <= xs) { const gap = xs - e; if (gap < need) out.push(t('Tra «{0}» ({1}) e «{2}» ({3}) hai {4} min ma ne servono circa {5} per spostarti.', ev.title, ev.place, x.title, x.place!, gap, need)); }
+    if (xe <= s) { const gap = s - xe; if (gap < need) out.push(t('Tra «{0}» ({1}) e «{2}» ({3}) hai {4} min ma ne servono circa {5} per spostarti.', x.title, x.place!, ev.title, ev.place!, gap, need)); }
+    else if (e <= xs) { const gap = xs - e; if (gap < need) out.push(t('Tra «{0}» ({1}) e «{2}» ({3}) hai {4} min ma ne servono circa {5} per spostarti.', ev.title, ev.place!, x.title, x.place!, gap, need)); }
   });
   return out;
 }
