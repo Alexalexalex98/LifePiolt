@@ -11,7 +11,8 @@ import { useHealth } from '@/store/health';
 import { dayKey } from '@/lib/format';
 import { totalUnread, useChat } from '@/store/chat';
 import { useApp, navCatalog } from '@/store/app';
-import { rankTasks } from '@/lib/priority';
+import { joinReasons, rankTasks } from '@/lib/priority';
+import { t, translateText } from '@/i18n/core';
 import { useLife } from '@/store/life';
 
 /**
@@ -36,31 +37,36 @@ export type TheiaAnswer = { text: string; tasks?: string[]; reply?: string; offl
 const hhmm = (d = new Date()) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
 /** Riassunto compatto di ciò che l'app sa. `forServer` rispetta i permessi privacy scelti dall'utente. */
-export function buildContext(forServer: boolean): string {
+const itFill = (src: string, args: (string | number)[]) => src.replace(/\{(\d+)\}/g, (_m, i) => String(args[+i] ?? ''));
+
+/** `loc` = testo per l'utente nella lingua attiva; senza `loc` resta in italiano (è il contesto mandato al server). */
+export function buildContext(forServer: boolean, loc = false): string {
+  const L = (src: string, ...args: (string | number)[]) => (loc ? t(src, ...args) : itFill(src, args));
   const app = useApp.getState();
   const life = useLife.getState();
   const allowHealth = !forServer || app.privacy['Dati salute'];
   const allowFin = !forServer || app.privacy['Dati finanziari'];
-  const lines: string[] = [`Ora: ${dayKey()} ${hhmm()}`, `Utente: ${app.account.name}`];
+  const none = () => L('nessuno');
+  const lines: string[] = [L('Ora: {0} {1}', dayKey(), hhmm()), L('Utente: {0}', app.account.name)];
 
   const open = life.tasks.filter((t) => !(t.subtasks?.length ? t.subtasks.every((s) => s.done) : t.done));
-  lines.push(`Task aperti (${open.length}): ${open.slice(0, 8).map((t) => t.t).join('; ') || 'nessuno'}`);
+  lines.push(L('Task aperti ({0}): {1}', open.length, open.slice(0, 8).map((x) => x.t).join('; ') || none()));
   const ev = life.events[dayKey()] ?? [];
-  lines.push(`Eventi oggi: ${ev.map((e) => `${e.time} ${e.title}`).join('; ') || 'nessuno'}`);
-  lines.push(`Obiettivi: ${life.goals.map((g) => `${g.t} ${g.p}%`).join('; ') || 'nessuno'}`);
+  lines.push(L('Eventi oggi: {0}', ev.map((e) => `${e.time} ${e.title}`).join('; ') || none()));
+  lines.push(L('Obiettivi: {0}', life.goals.map((g) => `${g.t} ${g.p}%`).join('; ') || none()));
 
   if (allowHealth || allowFin) {
     try {
       const d = computeDashboard();
       const pick = d.list.filter((a) => (a.def.domain === 'finanza' ? allowFin : allowHealth));
-      lines.push(`Punteggi: ${Object.entries(d.scores).map(([k, v]) => `${k} ${v ?? 'n/d'}`).join(', ')}`);
-      lines.push(`Metriche (media 7 giorni): ${pick.slice(0, 12).map((a) => `${a.def.label} ${Math.round((a.def.period === 'day' ? a.avg7 : a.latest.v) * 10) / 10}${a.def.unit}`).join('; ')}`);
-      lines.push(`Segnali: ${d.insights.filter((i) => (i.domain === 'finanza' ? allowFin : allowHealth)).slice(0, 5).map((i) => i.title).join(' | ')}`);
+      lines.push(L('Punteggi: {0}', Object.entries(d.scores).map(([k, v]) => `${k} ${v ?? L('n/d')}`).join(', ')));
+      lines.push(L('Metriche (media 7 giorni): {0}', pick.slice(0, 12).map((a) => `${a.def.label} ${Math.round((a.def.period === 'day' ? a.avg7 : a.latest.v) * 10) / 10}${a.def.unit}`).join('; ')));
+      lines.push(L('Segnali: {0}', d.insights.filter((i) => (i.domain === 'finanza' ? allowFin : allowHealth)).slice(0, 5).map((i) => i.title).join(' | ')));
     } catch { /* senza dati */ }
   }
   const top = Object.entries(app.pageVisits).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([p]) => navCatalog[p] ?? p);
-  lines.push(`Sezioni più usate: ${top.join(', ') || 'n/d'}`);
-  lines.push(`Chat non lette: ${totalUnread(app.account.name)}`);
+  lines.push(L('Sezioni più usate: {0}', top.join(', ') || L('n/d')));
+  lines.push(L('Chat non lette: {0}', totalUnread(app.account.name)));
   return lines.join('\n');
 }
 
@@ -84,7 +90,7 @@ export function predictNeeds(now = new Date()): Suggestion[] {
   (life.events[dayKey(now)] ?? []).forEach((e, i) => {
     const [eh, em] = e.time.split(':').map(Number);
     const diff = eh * 60 + em - nowMin;
-    if (diff >= 0 && diff <= 90) out.push({ id: `ev${i}`, title: `Tra ${diff} min: ${e.title}`, detail: 'Hai un impegno in arrivo.', why: 'Evento in calendario nelle prossime 90 minuti', page: 'plan', cta: 'Apri il piano', score: 100 - diff / 2 });
+    if (diff >= 0 && diff <= 90) out.push({ id: `ev${i}`, title: t('Tra {0} min: {1}', diff, e.title), detail: t('Hai un impegno in arrivo.'), why: t('Evento in calendario nelle prossime 90 minuti'), page: 'plan', cta: t('Apri il piano'), score: 100 - diff / 2 });
   });
 
   // 2) abitudine: a quest'ora di solito apri una sezione
@@ -94,7 +100,7 @@ export function predictNeeds(now = new Date()): Suggestion[] {
     const arr = app.visitHours[p];
     const near = (arr[(h + 23) % 24] ?? 0) + (arr[h] ?? 0) + (arr[(h + 1) % 24] ?? 0);
     const share = total(p) ? near / total(p) : 0;
-    if (total(p) >= 6 && near >= 3 && share >= 0.3) out.push({ id: `hab-${p}`, title: `Di solito a quest'ora apri ${navCatalog[p] ?? p}`, detail: 'Ti porto subito lì.', why: `${near} delle tue ${total(p)} aperture di ${navCatalog[p] ?? p} sono attorno alle ${h}:00`, page: p, cta: `Apri ${navCatalog[p] ?? p}`, score: 40 + share * 40 });
+    if (total(p) >= 6 && near >= 3 && share >= 0.3) out.push({ id: `hab-${p}`, title: t('Di solito a quest\'ora apri {0}', translateText(navCatalog[p] ?? p)), detail: t('Ti porto subito lì.'), why: t('{0} delle tue {1} aperture di {2} sono attorno alle {3}:00', near, total(p), translateText(navCatalog[p] ?? p), h), page: p, cta: t('Apri {0}', translateText(navCatalog[p] ?? p)), score: 40 + share * 40 });
   });
 
   // 3) task aperti
@@ -104,46 +110,46 @@ export function predictNeeds(now = new Date()): Suggestion[] {
     const ranked = rankTasks(open.map((t) => ({ id: t.id, t: t.t, urgent: t.urgent, due: t.due })), Object.entries(life.events).flatMap(([day, l]) => l.map((e) => ({ day, time: e.time, title: e.title, important: e.important }))), now);
     const top = ranked[0];
     const hot = top && top.score > 0;
-    out.push({ id: 'tasks', title: hot ? `Prima: ${top.task.t}` : `${open.length} ${open.length === 1 ? 'task aperto' : 'task aperti'}`, detail: top ? (hot ? `Perché ${top.reasons.join(' e ')}.` : `Nessuno è urgente: parti da “${top.task.t}”, nell’ordine che hai scelto.`) : '', why: hot ? 'Ordinati per urgenza, scadenza e collegamento con i tuoi appuntamenti' : 'Hai task non completati', page: 'lifetask', cta: 'Vai ai task', score: (hot ? 70 : 35) + Math.min(open.length, 6) * 3 });
+    out.push({ id: 'tasks', title: hot ? t('Prima: {0}', top.task.t) : open.length === 1 ? t('1 task aperto') : t('{0} task aperti', open.length), detail: top ? (hot ? t('Perché {0}.', joinReasons(top.reasons)) : t('Nessuno è urgente: parti da “{0}”, nell’ordine che hai scelto.', top.task.t)) : '', why: hot ? t('Ordinati per urgenza, scadenza e collegamento con i tuoi appuntamenti') : t('Hai task non completati'), page: 'lifetask', cta: t('Vai ai task'), score: (hot ? 70 : 35) + Math.min(open.length, 6) * 3 });
   }
 
   // 4) obiettivi fermi da una settimana
   life.goals.forEach((g) => {
     const last = g.hist?.[g.hist.length - 1]?.d;
-    if (g.p < 100 && last && (Date.parse(dayKey(now)) - Date.parse(last)) / 86400000 >= 7) out.push({ id: `goal-${g.id}`, title: `Obiettivo fermo: ${g.t}`, detail: `È al ${g.p}% e non si muove da una settimana. Un passo piccolo oggi lo sblocca.`, why: 'Nessun avanzamento negli ultimi 7 giorni', page: 'lifetask', cta: 'Apri obiettivi', score: 45 });
+    if (g.p < 100 && last && (Date.parse(dayKey(now)) - Date.parse(last)) / 86400000 >= 7) out.push({ id: `goal-${g.id}`, title: t('Obiettivo fermo: {0}', g.t), detail: t('È al {0}% e non si muove da una settimana. Un passo piccolo oggi lo sblocca.', g.p), why: t('Nessun avanzamento negli ultimi 7 giorni'), page: 'lifetask', cta: t('Apri obiettivi'), score: 45 });
   });
 
   // 5) messaggi
   const unread = totalUnread(app.account.name);
-  if (unread > 0) out.push({ id: 'chat', title: `${unread} ${unread === 1 ? 'chat da leggere' : 'chat da leggere'}`, detail: 'Qualcuno ti ha scritto.', why: 'Messaggi non letti', page: 'messagesPage', cta: 'Apri messaggi', score: 50 });
+  if (unread > 0) out.push({ id: 'chat', title: unread === 1 ? t('1 chat da leggere') : t('{0} chat da leggere', unread), detail: t('Qualcuno ti ha scritto.'), why: t('Messaggi non letti'), page: 'messagesPage', cta: t('Apri messaggi'), score: 50 });
 
   // 6) segnali dall'analisi dati (salute, mente, finanze)
   try {
     computeDashboard().insights.filter((i) => i.severity === 'bad' || i.severity === 'warn').slice(0, 3).forEach((i) => {
-      out.push({ id: `ins-${i.id}`, title: i.title, detail: i.action ?? i.detail, why: 'Rilevato dall’analisi dei tuoi dati', page: pageForDomain[i.domain], cta: 'Vedi i dettagli', score: (i.severity === 'bad' ? 80 : 60) + i.priority * 0.1 });
+      out.push({ id: `ins-${i.id}`, title: i.title, detail: i.action ?? i.detail, why: t('Rilevato dall’analisi dei tuoi dati'), page: pageForDomain[i.domain], cta: t('Vedi i dettagli'), score: (i.severity === 'bad' ? 80 : 60) + i.priority * 0.1 });
     });
   } catch { /* nessun dato */ }
 
   // 7) sera: prepararsi al sonno
-  if (h >= 21 || h < 2) out.push({ id: 'sleep', title: 'È tardi: dormire bene domani ti rende di più', detail: 'Stacca schermi e luci, il sonno è la metrica che muove tutte le altre.', why: `Sono le ${hhmm(now)}`, page: 'lifehealth', cta: 'Vedi il sonno', score: 30 });
+  if (h >= 21 || h < 2) out.push({ id: 'sleep', title: t('È tardi: dormire bene domani ti rende di più'), detail: t('Stacca schermi e luci, il sonno è la metrica che muove tutte le altre.'), why: t('Sono le {0}', hhmm(now)), page: 'lifehealth', cta: t('Vedi il sonno'), score: 30 });
 
   // 7b) budget: categorie vicine o oltre il limite
   try {
-    budgetSuggestions(alertsFor(useFin.getState())).forEach((b) => out.push({ id: `bud-${b.id}`, title: b.title, detail: b.detail, why: 'Confronto tra le tue spese e il budget o le linee guida', page: 'lifefinance', cta: 'Apri Finanze', score: 55 + b.priority * 0.1 }));
+    budgetSuggestions(alertsFor(useFin.getState())).forEach((b) => out.push({ id: `bud-${b.id}`, title: b.title, detail: b.detail, why: t('Confronto tra le tue spese e il budget o le linee guida'), page: 'lifefinance', cta: t('Apri Finanze'), score: 55 + b.priority * 0.1 }));
   } catch { /* niente */ }
 
   // 8) sessioni di lavoro saltate: le ripianifico io
   try {
     const flat = Object.entries(life.events).flatMap(([day, l]) => l.map((e) => ({ day, time: e.time, title: e.title, dur: e.dur })));
     const sk = skippedWork(flat, life.tasks.map((t) => ({ id: t.id, t: t.t, done: t.done })), now);
-    if (sk.length) out.push({ id: 'skipped', title: `${sk.length} ${sk.length === 1 ? 'sessione di lavoro saltata' : 'sessioni di lavoro saltate'}`, detail: 'Il task è ancora aperto: te le rimetto nei prossimi slot liberi.', why: 'Impegni «Lavoro su…» passati con il task non completato', page: 'ai', params: { ask: 'ripianifica le sessioni saltate' }, cta: 'Ripianifica', score: 75 });
+    if (sk.length) out.push({ id: 'skipped', title: sk.length === 1 ? t('1 sessione di lavoro saltata') : t('{0} sessioni di lavoro saltate', sk.length), detail: t('Il task è ancora aperto: te le rimetto nei prossimi slot liberi.'), why: t('Impegni «Lavoro su…» passati con il task non completato'), page: 'ai', params: { ask: 'ripianifica le sessioni saltate' }, cta: t('Ripianifica'), score: 75 });
   } catch { /* niente */ }
 
   // 9) domani è una giornata piena
   try {
     const tm = new Date(now); tm.setDate(tm.getDate() + 1);
     const n = busyDay(Object.entries(life.events).flatMap(([day, l]) => l.map((e) => ({ day, time: e.time, title: e.title }))), dayKey(tm));
-    if (n && h >= 15) out.push({ id: 'busytm', title: `Domani hai ${n} impegni`, detail: 'Giornata piena: controlla che ci sia una pausa e preparati stasera.', why: 'Cinque o più impegni in agenda per domani', page: 'plan', cta: 'Apri il piano', score: 55 });
+    if (n && h >= 15) out.push({ id: 'busytm', title: t('Domani hai {0} impegni', n), detail: t('Giornata piena: controlla che ci sia una pausa e preparati stasera.'), why: t('Cinque o più impegni in agenda per domani'), page: 'plan', cta: t('Apri il piano'), score: 55 });
   } catch { /* niente */ }
 
   // 10) dopo gli impegni serali dormi meno?
@@ -151,13 +157,13 @@ export function predictNeeds(now = new Date()): Suggestion[] {
     const ser = collect(dayKey(now)).find((x) => x.def.id === 'sleep');
     if (ser) {
       const r = lateEventSleep(Object.entries(life.events).flatMap(([day, l]) => l.map((e) => ({ day, time: e.time, title: e.title }))), ser.pts);
-      if (r && r.diffMin < 0) out.push({ id: 'late-sleep', title: `Dopo gli impegni serali dormi ${Math.abs(r.diffMin)} min in meno`, detail: 'Provare a spostarli prima delle 18 o a staccare presto dopo.', why: `Confronto di ${r.nWith} notti dopo una sera impegnata con ${r.nWithout} notti normali (è una correlazione, non una prova)`, page: 'lifehealth', cta: 'Vedi il sonno', score: 50 });
+      if (r && r.diffMin < 0) out.push({ id: 'late-sleep', title: t('Dopo gli impegni serali dormi {0} min in meno', Math.abs(r.diffMin)), detail: t('Provare a spostarli prima delle 18 o a staccare presto dopo.'), why: t('Confronto di {0} notti dopo una sera impegnata con {1} notti normali (è una correlazione, non una prova)', r.nWith, r.nWithout), page: 'lifehealth', cta: t('Vedi il sonno'), score: 50 });
     }
   } catch { /* niente */ }
 
   // 11) sera senza check-in dell'umore
   try {
-    if (h >= 19 && !useHealth.getState().moods.some((m) => m.day === dayKey(now))) out.push({ id: 'mood-eve', title: 'Come ti sei sentito oggi?', detail: 'Il check-in dell’umore ti prende 5 secondi e rende più precise le analisi.', why: 'Oggi non hai ancora registrato il tuo umore', page: 'mood', cta: 'Registra l’umore', score: 45 });
+    if (h >= 19 && !useHealth.getState().moods.some((m) => m.day === dayKey(now))) out.push({ id: 'mood-eve', title: t('Come ti sei sentito oggi?'), detail: t('Il check-in dell’umore ti prende 5 secondi e rende più precise le analisi.'), why: t('Oggi non hai ancora registrato il tuo umore'), page: 'mood', cta: t('Registra l’umore'), score: 45 });
   } catch { /* niente */ }
 
   return out.sort((a, b) => b.score - a.score).slice(0, 5);
