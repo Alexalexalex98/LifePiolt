@@ -140,3 +140,13 @@ test('EN yes / no / argomenti', () => {
   assert.ok(!isYes('right now what'));
   assert.equal(topicOf('how can I save money on my budget'), 'Finanze');
 });
+
+test('nucleo minimo es/fr', () => {
+  assert.equal(parseWhen('mañana', NOW).day, '2026-10-08');
+  assert.equal(parseWhen("aujourd'hui", NOW).day, '2026-10-07');
+  assert.equal(parseWhen('demain', NOW).day, '2026-10-08');
+  assert.equal(parseWhen('hoy', NOW).day, '2026-10-07');
+  assert.ok(isYes('sí') && isYes('oui') && isNo('non'));
+  assert.equal(detectIntent('añade reunión mañana'), 'event.add');
+  assert.equal(detectIntent('ajoute réunion demain'), 'event.add');
+});
