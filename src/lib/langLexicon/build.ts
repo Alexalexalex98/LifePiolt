@@ -17,7 +17,7 @@ function compiledFor(lex: LexData): Compiled {
   if (c) return c;
   const numVal = new Map<string, number>();
   for (const [w, v] of Object.entries(lex.nums)) numVal.set(foldSource(w, lex.script), v);
-  const words = [...numVal.keys()].sort((a, b) => b.length - a.length).map(escapeRe);
+  const words = [...numVal.keys()].sort((a, b) => b.length - a.length).map((w) => escapeRe(w).replace(/ /g, '\\s+'));
   c = { lex, cache: new Map(), numRe: `(?:\\d{1,3}${words.length ? '|' + words.join('|') : ''})`, numVal };
   compiled.set(lex.code, c);
   return c;

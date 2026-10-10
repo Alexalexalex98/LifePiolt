@@ -258,6 +258,12 @@ export default function Settings() {
       </Card>
 
       <Card>
+        <H>Intelligenza di Theia</H>
+        <Body small muted style={{ marginBottom: 10 }}>Cosa fa Theia da sola e quando delega a un'altra AI: scelte, limiti, privacy e cronologia degli invii.</Body>
+        <Btn small ghost icon="sparkle" title="Apri Intelligenza di Theia" onPress={() => go('aiSettings')} />
+      </Card>
+
+      <Card>
         <H>{tr('stPrivacyCenterTitle')}</H>
         {Object.keys(app.privacy).map((k) => <Toggle key={k} label={tr({ 'AI Memory': 'stPrivAiMemory', 'Dati salute': 'stPrivHealth', 'Dati finanziari': 'stPrivFinance', Posizione: 'stPrivLocation' }[k] ?? k)} value={app.privacy[k]} onChange={(v) => { set({ privacy: { ...app.privacy, [k]: v } }); toast(`${k} ${v ? 'collegato' : 'disconnesso'}`); }} />)}
         <View style={{ gap: 8, marginTop: 10 }}>

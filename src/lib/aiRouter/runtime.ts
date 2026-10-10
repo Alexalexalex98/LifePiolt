@@ -8,6 +8,7 @@ import { isSharedNow, readChoices } from '@/store/sharing';
 
 import { createProxyClient } from './adapters/serverProxy.ts';
 import { planRequest, routeDetailed, type ConsentAnswer, type ConsentRequest, type Deps, type Plan, type Trace } from './pipeline.ts';
+import { planById } from './quota.ts';
 import { tx, setTranslate } from './tx.ts';
 import type { ServerProxyClient, RouteRequest, RouteResult } from './types.ts';
 
@@ -69,10 +70,22 @@ export async function routeWithRuntime(req: RouteRequest): Promise<RouteResult> 
 }
 
 /** Per il simulatore: decide tutto senza inviare nulla. */
-export function simulate(text: string, opts: { phoneOnly?: boolean; images?: number } = {}): Plan {
-  const d = buildDeps();
+export function simulate(text: string, opts: { phoneOnly?: boolean; images?: number; limitsReached?: boolean } = {}): Plan {
+  const d0 = buildDeps();
+  const d = opts.limitsReached ? { ...d0, usage: fakeFullUsage(d0.planId, d0.now) } : d0;
   const prefs = opts.phoneOnly === undefined ? d.prefs : { ...d.prefs, phoneOnly: opts.phoneOnly };
   const images = Array.from({ length: opts.images ?? 0 }, (_, i) => ({ uri: `sim://${i}`, mime: 'image/jpeg' }));
   return planRequest({ text, lang: d.profile.lang, images, source: 'typed' }, { ...d, prefs });
 }
 export type { Trace };
+
+/** Per il simulatore: finge che i limiti di oggi siano gia' raggiunti, per vedere il messaggio. */
+export function fakeFullUsage(planId: string, now = Date.now()): import('./quota.ts').UsageEntry[] {
+  const out: import('./quota.ts').UsageEntry[] = [];
+  const plan = planById(planId);
+  for (const l of plan.limits) {
+    if (l.scope === 'tokens') out.push({ ts: now - 60000, kind: 'chat', units: 0, tokens: l.max, cost: 0 });
+    else for (let i = 0; i < l.max; i++) out.push({ ts: now - 60000 - i, kind: l.scope[0], units: 1, tokens: 0, cost: 0 });
+  }
+  return out;
+}

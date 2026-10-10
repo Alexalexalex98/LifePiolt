@@ -76,16 +76,23 @@ export function understand(text: string, lang: string, opts: UnderstandOpts = {}
 
   const c: Ctx = { lex, fd, f: f2, h: hit.h, page: hit.page, mood: hit.mood, w: when, quoted, person, all, words };
 
-  // rinomina: "X in Y"
-  if ((hit.h.rename) && hit.h.into) {
-    const r = hit.h.rename, i = (() => { const m = rx(lex, lex.c.into!).exec(f2.slice(r[1])); return m ? ([r[1] + m.index, r[1] + m.index + m[0].length] as Span) : null; })();
-    if (i) {
-      const rest: Span[] = [...all];
-      for (const k of ['polite', 'rename', 'task', 'event'] as Concept[]) { const s = hit.h[k]; if (s && s[1] > s[0]) rest.push(s); }
-      const old = titleOf({ lex, fd }, rest, 0, i[0]);
-      const neu = titleOf({ lex, fd }, rest, i[1]);
-      if (old && neu) c.rn = { old, neu };
+  // rinomina: "X in Y" (svo) oppure "X <nome> Y" (lingue SOV: il vecchio nome sta prima del verbo)
+  if (hit.h.rename) {
+    const r = hit.h.rename;
+    const rest: Span[] = [...all];
+    for (const k of ['polite', 'rename', 'task', 'event'] as Concept[]) { const s = hit.h[k]; if (s && s[1] > s[0]) rest.push(s); }
+    const intoRe = lex.c.into ? rx(lex, lex.c.into) : null;
+    const im = intoRe ? intoRe.exec(f2.slice(r[1])) : null;
+    const iS = im ? r[1] + im.index : -1, iE = im ? r[1] + im.index + im[0].length : -1;
+    let old = '', neu = '';
+    if (lex.renameSov) {
+      old = titleOf({ lex, fd }, rest, 0, r[0]);
+      neu = im ? titleOf({ lex, fd }, rest, r[1], iS) : titleOf({ lex, fd }, rest, r[1]);
+    } else if (im) {
+      old = titleOf({ lex, fd }, rest, r[1], iS);
+      neu = titleOf({ lex, fd }, rest, iE);
     }
+    if (old && neu) c.rn = { old, neu };
   }
 
   const m = applyRules(c, richTitle);

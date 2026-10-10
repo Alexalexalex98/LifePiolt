@@ -54,6 +54,8 @@ export type LexData = {
   edge: string;
   /** virgolette che racchiudono un titolo, oltre alle comuni */
   quotes?: string;
+  /** lingue SOV (ja, zh, hi): il vecchio nome sta PRIMA del verbo "rinomina" */
+  renameSov?: boolean;
 };
 
 export type Concept =

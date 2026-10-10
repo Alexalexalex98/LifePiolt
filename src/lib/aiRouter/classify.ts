@@ -114,10 +114,10 @@ export function classify(req: { text: string; images?: RouteImage[] }): Classifi
     return mk(c.kind, c.conf, c.why, { docFormat: c.docFormat, alternatives: alt });
   }
   if (hasImages) return mk('vision_read', 0.9, tx('Hai allegato un\'immagine: la leggo.'));
-  if (rs >= 0) return mk('reasoning', 0.75, tx('Serve un ragionamento a piu\' passi.'));
+  if (rs >= 0) return mk('reasoning', 0.75, tx('Serve un ragionamento a più passi.'));
   if (weak.length) {
     const what = weak.map((w) => w.why).join(tx(' o '));
-    return mk('chat', 0.4, tx('Non e\' chiaro se vuoi {0}: prima di usare un servizio a pagamento ti chiedo conferma.', what), { needsConfirm: true, alternatives: weak.map((w) => w.kind) });
+    return mk('chat', 0.4, tx('Non è chiaro se vuoi {0}: prima di usare un servizio a pagamento ti chiedo conferma.', what), { needsConfirm: true, alternatives: weak.map((w) => w.kind) });
   }
   return mk('chat', 0.8, tx('Conversazione normale.'), { needsConfirm: false });
 }

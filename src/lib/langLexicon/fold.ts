@@ -20,6 +20,7 @@ function foldChar(ch: string, script: Script): string {
   const c = ch.codePointAt(0)!;
   switch (script) {
     case 'latin': {
+      if (ch === '’' || ch === 'ʼ' || ch === '`') return "'";
       const lower = ch.toLowerCase();
       const base = lower.normalize('NFD').replace(/\p{M}/gu, '');
       return base.length ? base : '';

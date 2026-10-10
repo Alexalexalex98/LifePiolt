@@ -22,6 +22,10 @@ export const iconMarkup: Record<string, string> = {
   search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
   heart: '<path d="M12 21s-7.5-4.6-10.1-9.2C.3 8.6 1.6 4.8 5.2 4.1c2.2-.4 4.3.7 6.8 3 2.5-2.3 4.6-3.4 6.8-3 3.6.7 4.9 4.5 3.3 7.7C19.5 16.4 12 21 12 21z"/>',
   chevron: '<path d="M6 9l6 6 6-6"/>',
+  comment: '<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>',
+  bookmark: '<path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>',
+  coin: '<circle cx="12" cy="12" r="9.5"/><path d="M14.8 8.6a2.9 2.9 0 00-5.2 1.7V16M8.4 16h7.2M8.4 12.2h5.4"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
 
   check: '<path d="M20 6L9 17l-5-5"/>',
   x: '<path d="M18 6L6 18M6 6l12 12"/>',

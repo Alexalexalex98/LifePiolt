@@ -37,12 +37,14 @@ function clockFrom(lex: LexData, g: Record<string, string | undefined>, hint: Hi
   if (get('hb') !== undefined) { h -= 1; mi = 30; shifted = true; }
   if (get('qb') !== undefined) { h -= 1; mi = 45; shifted = true; }
   const ap = get('ap');
+  const apn = get('apn');
   const isPm = ap ? rx(lex, lex.pm).test(ap) : false;
   const isAm = ap ? rx(lex, lex.am).test(ap) : false;
   if (mi > 59 || h > 24 || h < 0) return undefined;
   const hr = shifted ? h + 1 : h; // l'ora "nominale" decide am/pm
   let out = h;
-  if (isPm && hr < 12) out = h + 12;
+  if (apn !== undefined) { out = hr >= 6 && hr < 12 ? h + 12 : hr === 12 ? h - 12 : h; }
+  else if (isPm && hr < 12) out = h + 12;
   else if (isAm && hr === 12) out = h - 12;
   else if (!isPm && !isAm && hr < 13 && hr > 0) {
     if (hint === 'evening' && hr >= 4 && hr < 12) out = h + 12;
@@ -88,13 +90,26 @@ export function extractWhen(lex: LexData, f0: string): { when: WhenOut; f: strin
   {
     const m = first(lex.inN);
     if (m) {
-      const n = numOf(lex, m.groups?.n);
+      const n = m.groups?.dual !== undefined ? 2 : m.groups?.n === undefined ? 1 : numOf(lex, m.groups.n);
       const u = m.groups?.u ?? '';
       if (n != null && n > 0) {
         const unit = rx(lex, lex.unitDay).test(u) ? 'day' : rx(lex, lex.unitWeek).test(u) ? 'week' : rx(lex, lex.unitMonth).test(u) ? 'month' : '';
         if (unit) { w.day = `in ${n} ${unit}${n === 1 ? '' : 's'}`; take(m); }
       }
     }
+  }
+  // 3) durata (prima degli orari: "2h" è una durata se c'è «per/pendant/für...»)
+  {
+    const m = first(lex.dur);
+    if (m && m.groups?.n !== undefined) {
+      const n = numOf(lex, m.groups.n);
+      if (n != null && n > 0) {
+        const isMin = rx(lex, lex.unitMin).test(m.groups.u ?? '');
+        w.dur = isMin ? `${n} minute${n === 1 ? '' : 's'}` : `${n} hour${n === 1 ? '' : 's'}`;
+        take(m);
+      }
+    } else if (lex.halfHour && rx(lex, lex.halfHour).exec(f)) { take(rx(lex, lex.halfHour).exec(f)); w.dur = '30 minutes'; }
+    else if (lex.oneHour && rx(lex, lex.oneHour).exec(f)) { take(rx(lex, lex.oneHour).exec(f)); w.dur = '1 hour'; }
   }
   // 3) orari: intervallo, poi singolo (prima delle date numeriche, che userebbero gli stessi numeri)
   {
@@ -118,19 +133,6 @@ export function extractWhen(lex: LexData, f0: string): { when: WhenOut; f: strin
   if (!w.start) {
     if (lex.noon && (rx(lex, lex.noon).exec(f))) { take(rx(lex, lex.noon).exec(f)); w.start = '12pm'; }
     else if (lex.midnight && rx(lex, lex.midnight).exec(f)) { take(rx(lex, lex.midnight).exec(f)); w.start = 'midnight'; }
-  }
-  // 4) durata
-  {
-    const m = first(lex.dur);
-    if (m && m.groups?.n !== undefined) {
-      const n = numOf(lex, m.groups.n);
-      if (n != null && n > 0) {
-        const isMin = rx(lex, lex.unitMin).test(m.groups.u ?? '');
-        w.dur = isMin ? `${n} minute${n === 1 ? '' : 's'}` : `${n} hour${n === 1 ? '' : 's'}`;
-        take(m);
-      }
-    } else if (lex.halfHour && rx(lex, lex.halfHour).exec(f)) { take(rx(lex, lex.halfHour).exec(f)); w.dur = '30 minutes'; }
-    else if (lex.oneHour && rx(lex, lex.oneHour).exec(f)) { take(rx(lex, lex.oneHour).exec(f)); w.dur = '1 hour'; }
   }
   // 5) giorno: data, relativo, prossima settimana, giorno della settimana
   if (!w.day) {

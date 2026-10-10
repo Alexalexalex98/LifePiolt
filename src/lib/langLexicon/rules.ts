@@ -51,8 +51,16 @@ export function hitsOf(lex: LexData, f: string): { h: Partial<Record<Concept, Sp
   }
   let personSpan: Span | undefined;
   if (lex.withP) {
-    const m = rx(lex, lex.withP).exec(f);
-    if (m?.groups?.p) { const a = m.index + m[0].lastIndexOf(m.groups.p); personSpan = [a, a + m.groups.p.length]; }
+    const re0 = rx(lex, lex.withP);
+    const re = new RegExp(re0.source, 'gu');
+    const taken: Span[] = Object.values(h).filter((x): x is Span => !!x && x[1] > x[0]);
+    for (let m = re.exec(f); m; m = re.exec(f)) {
+      if (!m.groups?.p) { if (!m[0].length) re.lastIndex++; continue; }
+      const a = m.index + m[0].lastIndexOf(m.groups.p);
+      const sp: Span = [a, a + m.groups.p.length];
+      if (taken.some(([x, y]) => sp[0] < y && x < sp[1])) continue;
+      personSpan = sp; break;
+    }
   }
   return { h, page, mood, personSpan };
 }
@@ -116,14 +124,14 @@ export const RULES: Rule[] = [
   { intent: 'keepboth', w: 10, ok: (c) => has(c, 'keepboth'), strip: [], build: () => 'keep both' },
   { intent: 'hello', w: 8, ok: (c) => has(c, 'hello'), strip: [], build: () => 'hello' },
   { intent: 'thanks', w: 8, ok: (c) => has(c, 'thanks'), strip: [], build: () => 'thanks' },
-  { intent: 'open', w: 7, ok: (c) => !!c.page && any(c, 'open') && !any(c, 'add', 'del'), strip: [], build: (c) => `open ${PAGE_EN[c.page!]}` },
+  { intent: 'open', w: 7, ok: (c) => !!c.page && any(c, 'open') && !any(c, 'add', 'del') && !c.w.day, strip: [], build: (c) => `open ${PAGE_EN[c.page!]}` },
   { intent: 'resched', w: 7, ok: (c) => has(c, 'resched'), strip: [], build: () => 'reschedule my skipped sessions' },
   { intent: 'event.recurring', w: 7, ok: (c) => !!c.w.recur && !any(c, 'del', 'show', 'done', 'task'), strip: ['add', 'cal', 'plan'], needsTitle: true, free: true, build: (c, t) => sp(c.w.recur, c.w.start ? (c.w.start === 'midnight' ? 'at midnight' : `at ${c.w.start}`) : '', c.w.dur ? `for ${c.w.dur}` : '', qt(t)) },
   { intent: 'profile.photo', w: 6, ok: (c) => has(c, 'profile', 'photo'), strip: [], build: () => 'change my profile photo' },
   { intent: 'profile.private', w: 6, ok: (c) => has(c, 'profile', 'priv'), strip: [], build: () => 'make my profile private' },
   { intent: 'profile.public', w: 6, ok: (c) => has(c, 'profile', 'pub'), strip: [], build: () => 'make my profile public' },
   { intent: 'briefing', w: 6, ok: (c) => has(c, 'briefing'), strip: [], build: () => 'daily summary' },
-  { intent: 'plan.fill', w: 6, ok: (c) => has(c, 'plan') && any(c, 'month', 'week', 'dayN') && !any(c, 'task', 'del'), strip: [], build: (c) => `plan my ${c.h.month ? 'month' : c.h.week ? 'week' : 'day'}` },
+  { intent: 'plan.fill', w: 6, ok: (c) => has(c, 'plan') && (any(c, 'month', 'week', 'dayN') || (!!c.w.day && ['today', 'tomorrow', 'this week', 'next week'].includes(c.w.day) && c.words <= 1)) && !any(c, 'task', 'del', 'event') && !c.w.start, strip: [], build: (c) => `plan my ${c.h.month ? 'month' : c.h.week || c.w.day?.endsWith('week') ? 'week' : c.w.day === 'tomorrow' ? 'tomorrow' : c.w.day === 'today' ? 'day' : 'day'}`.replace('plan my tomorrow', 'plan tomorrow') },
   { intent: 'task.next', w: 5, ok: (c) => has(c, 'nowQ'), strip: [], build: () => 'what should I do now?' },
   { intent: 'task.urgent', w: 5, ok: (c) => has(c, 'urgent') && !any(c, 'add', 'del'), strip: ['urgent', 'mark', 'task'], needsTitle: true, free: true, build: (_c, t) => `mark ${qt(t)} as urgent` },
   { intent: 'event.important', w: 5, ok: (c) => has(c, 'important') && any(c, 'mark', 'add') && !any(c, 'task'), strip: ['important', 'mark', 'event'], needsTitle: true, free: true, build: (_c, t) => `mark ${qt(t)} as important` },
@@ -137,11 +145,11 @@ export const RULES: Rule[] = [
   { intent: 'agenda.share', w: 4, ok: (c) => has(c, 'share') && any(c, 'cal', 'free'), strip: [], build: (c) => sp('share my agenda', c.person ? `with ${c.person}` : '', c.w.day === 'today' || c.w.day === 'tomorrow' ? c.w.day : '') },
   { intent: 'agenda.free', w: 4, ok: (c) => has(c, 'free') && !any(c, 'add', 'del', 'share'), strip: [], build: (c) => sp('when am I free', at(c)) + '?' },
   { intent: 'event.move', w: 4, ok: (c) => has(c, 'move') && !any(c, 'task'), strip: ['move', 'event', 'cal'], needsTitle: true, free: true, build: (c, t) => sp('move', qt(t), 'to', at(c)) },
-  { intent: 'event.rename', w: 4, ok: (c) => has(c, 'rename') && !any(c, 'task') && !!c.rn, strip: [], free: true, build: (c) => `rename meeting ${qt(c.rn!.old)} to ${qt(c.rn!.neu)}` },
+  { intent: 'event.rename', w: 4.2, ok: (c) => has(c, 'rename') && !any(c, 'task') && !!c.rn, strip: [], free: true, build: (c) => `rename meeting ${qt(c.rn!.old)} to ${qt(c.rn!.neu)}` },
   { intent: 'event.delete', w: 4, ok: (c) => has(c, 'del') && any(c, 'event', 'cal') && !any(c, 'task'), strip: ['del', 'cal'], needsTitle: true, free: true, build: (_c, t) => `delete ${qt(t)} from my plan` },
   { intent: 'task.done', w: 4, ok: (c) => has(c, 'done') && !any(c, 'add'), strip: ['done', 'task'], needsTitle: true, free: true, build: (_c, t) => `I finished ${qt(t)}` },
   { intent: 'task.delete', w: 4, ok: (c) => has(c, 'del', 'task'), strip: ['del', 'task'], needsTitle: true, free: true, build: (_c, t) => `delete task ${qt(t)}` },
-  { intent: 'task.rename', w: 4, ok: (c) => has(c, 'rename', 'task') && !!c.rn, strip: [], free: true, build: (c) => `rename task ${qt(c.rn!.old)} to ${qt(c.rn!.neu)}` },
+  { intent: 'task.rename', w: 4.2, ok: (c) => has(c, 'rename', 'task') && !!c.rn, strip: [], free: true, build: (c) => `rename task ${qt(c.rn!.old)} to ${qt(c.rn!.neu)}` },
   { intent: 'note.add', w: 4, ok: (c) => has(c, 'note') && any(c, 'write', 'add'), strip: ['note', 'write', 'add'], needsTitle: true, free: true, build: (_c, t) => `write a note: ${t}` },
   { intent: 'goal.add', w: 4, ok: (c) => has(c, 'goal') && any(c, 'add', 'write') , strip: ['goal', 'add', 'write'], needsTitle: true, free: true, build: (_c, t) => `new goal ${qt(t)}` },
   { intent: 'task.due', w: 4, ok: (c) => has(c, 'due', 'task') && !any(c, 'add') && !!c.w.day, strip: ['due', 'task'], needsTitle: true, free: true, build: (c, t) => `the task ${qt(t)} is due ${c.w.day}` },

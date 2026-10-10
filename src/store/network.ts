@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { uid, weekdayShortDate } from '@/lib/format';
 import { persisted } from './persist';
 
-export type Post = { id: number; author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string };
+export type Post = { id: number; author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; uris?: string[] };
 export type CommPost = { author: string; text: string; media?: 'photo' | 'video' | null; likes: number; ts?: number; uri?: string };
 export type Community = { id: number; name: string; topic: string; owner: string; openPosting: boolean; members: string[]; posts: CommPost[]; desc?: string; rules?: string; ts?: number };
 export type Provider = { name: string; role: string; price: number; rating: number; tag: string; media: 'photo' | 'video' | null; slots: string[] };
@@ -49,6 +49,8 @@ type NetState = {
   posts: Post[];
   communities: Community[];
   likedPosts: string[];
+  /** Post salvati (segnalibro): opzionale per i dati di versioni precedenti. */
+  savedPosts?: string[];
   comments: Record<string, { author: string; text: string }[]>;
   providers: Provider[];
   bookings: Booking[];
@@ -82,6 +84,7 @@ type NetState = {
   toggleMuteTopic: (tag: string) => boolean;
   report: (name: string) => void;
   likePost: (key: string) => void;
+  toggleSavePost: (key: string) => boolean;
   addComment: (key: string, author: string, text: string) => void;
   donateDaily: (to: string) => boolean;
   reset: () => void;
@@ -169,6 +172,7 @@ export const useNet = create<NetState>()(
         set({ likedPosts, communities: s.communities.map((c) => (c.id === Number(cid) ? { ...c, posts: c.posts.map((p, i) => (i === Number(pi) ? { ...p, likes: p.likes + d } : p)) } : c)) });
       }
     },
+    toggleSavePost: (key) => { set((s) => ({ savedPosts: toggle(s.savedPosts ?? [], key) })); return (get().savedPosts ?? []).includes(key); },
     addComment: (key, author, text) => set((s) => ({ comments: { ...s.comments, [key]: [...(s.comments[key] || []), { author, text }] } })),
     donateDaily: (to) => {
       const today = weekdayShortDate();
