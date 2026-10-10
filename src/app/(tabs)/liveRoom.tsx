@@ -154,10 +154,10 @@ export default function LiveRoom() {
   const cameraBig = showSelfBig || (isCall && stage === 'lobby');
   const video = stage === 'ended' && !summary ? <View style={{ flex: 1, backgroundColor: '#0b0e14' }} />
     : cameraBig ? <HostCamera facing={facing} torch={torch} camOff={camOff} needMic={false} />
-    : <ViewerStage host={bigName} label={isCall ? 'Anteprima della videochiamata' : 'Anteprima della diretta'} />;
+    : <ViewerStage host={bigName} label={isCall ? 'Anteprima della videochiamata' : 'Anteprima della diretta'} quiet={stage === 'lobby'} />;
 
   const selfTile = isCall && stage === 'live' ? (
-    <View style={{ position: 'absolute', top: insets.top + 118, end: sideInset + 12, width: landscape ? 124 : 96, height: landscape ? 92 : 128, borderRadius: 14, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)', backgroundColor: '#000' }}>
+    <View style={{ position: 'absolute', top: insets.top + (landscape ? 118 : 150), end: sideInset + 12, width: landscape ? 124 : 96, height: landscape ? 92 : 128, borderRadius: 14, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)', backgroundColor: '#000' }}>
       <HostCamera facing={facing} torch={torch} camOff={camOff} needMic={false} small />
     </View>
   ) : null;

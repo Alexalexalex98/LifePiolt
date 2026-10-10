@@ -14,7 +14,7 @@ const NATIVE = Platform.OS !== 'web';
 /** Messaggio centrato sul fondo scuro (camera non disponibile, permesso negato...). */
 export function StageNote({ icon, title, text, action }: { icon: string; title: string; text: string; action?: { label: string; onPress: () => void } }) {
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 10, backgroundColor: '#0b0e14' }}>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, paddingTop: 150, gap: 10, backgroundColor: '#0b0e14' }}>
       <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}><Icon name={icon} size={26} color="#fff" /></View>
       <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700', textAlign: 'center' }}>{title}</Text>
       <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, lineHeight: 19, textAlign: 'center', maxWidth: 340 }}>{text}</Text>
@@ -72,7 +72,7 @@ export function HostCamera({ facing, torch, camOff, needMic, small }: { facing: 
  * Video segnaposto per chi guarda: finche' non e' collegato un servizio di streaming non arriva
  * video vero, quindi mostriamo un'anteprima animata con il relatore.
  */
-export function ViewerStage({ host, label = 'Anteprima della diretta' }: { host: string; label?: string }) {
+export function ViewerStage({ host, label = 'Anteprima della diretta', quiet }: { host: string; label?: string; quiet?: boolean }) {
   const reduce = useReduceMotion();
   const a = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -92,10 +92,10 @@ export function ViewerStage({ host, label = 'Anteprima della diretta' }: { host:
         {[0, 1].map((k) => <Animated.View key={k} style={[{ position: 'absolute', width: 130, height: 130, borderRadius: 65, backgroundColor: '#8fa4ff' }, ring(k)]} />)}
         <UserAvatar name={host} size={104} />
       </View>
-      <View style={{ position: 'absolute', bottom: '38%', backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 999, paddingVertical: 5, paddingHorizontal: 12, flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+      {quiet ? null : <View style={{ position: 'absolute', bottom: '38%', backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 999, paddingVertical: 5, paddingHorizontal: 12, flexDirection: 'row', gap: 6, alignItems: 'center' }}>
         <Icon name="video" size={13} color="#fff" />
         <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{label}</Text>
-      </View>
+      </View>}
     </View>
   );
 }

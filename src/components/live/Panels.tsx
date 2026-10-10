@@ -16,7 +16,7 @@ export function Lobby({ title, subtitle, hint, advice, primary, secondary, child
 }) {
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 }} pointerEvents="box-none">
-      <View style={{ backgroundColor: 'rgba(8,10,16,0.78)', borderRadius: 22, padding: 18, gap: 10, width: '100%', maxWidth: 420, alignItems: 'center' }}>
+      <View style={{ backgroundColor: 'rgba(8,10,16,0.92)', borderRadius: 22, padding: 18, gap: 10, width: '100%', maxWidth: 420, alignItems: 'center' }}>
         <Text accessibilityRole="header" style={{ color: '#fff', fontSize: 19, fontWeight: '800', textAlign: 'center' }}>{title}</Text>
         <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, textAlign: 'center', lineHeight: 20 }}>{subtitle}</Text>
         {hint ? <NoticeChip icon="clock" text={hint} /> : null}
