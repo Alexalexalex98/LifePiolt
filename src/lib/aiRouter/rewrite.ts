@@ -123,7 +123,7 @@ const QUOTES = /«([^»]+)»|"([^"]+)"|“([^”]+)”|„([^“”]+)[“”]|�
 /** Estrae le entita' che devono sopravvivere alla riscrittura. lang 'de' disattiva i nomi propri (i sostantivi tedeschi hanno la maiuscola). */
 export function extractEntities(text: string, lang = ''): Entities {
   const e: Entities = { nums: new Set(), colors: new Set(), objects: new Set(), quotes: new Set(), names: new Set() };
-  const stripped = text.replace(QUOTES, (m, ...g) => { const q = g.slice(0, 6).find((x) => typeof x === 'string'); if (q) e.quotes.add(normalize(q).replace(/\s+/g, ' ').trim()); return ' '; });
+  const stripped = text.replace(/\[[A-Z]+\]/g, ' ').replace(QUOTES, (m, ...g) => { const q = g.slice(0, 6).find((x) => typeof x === 'string'); if (q) e.quotes.add(normalize(q).replace(/\s+/g, ' ').trim()); return ' '; });
   const n = normalize(stripped);
   for (const m of n.matchAll(/\d+(?:[.,]\d+)?/g)) e.nums.add(m[0].replace(',', '.'));
   for (const [v, words] of NUMW) if (find(n, words.map((w) => (/^[a-z]+$/.test(w) ? w + '$' : w)))) e.nums.add(String(v));

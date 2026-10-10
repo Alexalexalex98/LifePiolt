@@ -15,7 +15,10 @@ export class NotConnectedClient implements ServerProxyClient {
 type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string }) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
 
 export class HttpProxyClient implements ServerProxyClient {
-  constructor(private baseUrl: string, private getToken: () => string | null, private fetchImpl: FetchLike) {}
+  private baseUrl: string;
+  private getToken: () => string | null;
+  private fetchImpl: FetchLike;
+  constructor(baseUrl: string, getToken: () => string | null, fetchImpl: FetchLike) { this.baseUrl = baseUrl; this.getToken = getToken; this.fetchImpl = fetchImpl; }
   isConfigured() { return !!this.baseUrl && !!this.getToken(); }
   async route(req: ProxyRequest): Promise<ProxyResponse> {
     const token = this.getToken();

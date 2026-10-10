@@ -4,7 +4,7 @@ import { KIND_NAME } from './labels.ts';
 import { buildContext, byteLength, describeOutgoing, needsConsent, redact, type AiData, type Consents, type Context, type OutgoingSummary, type Redaction, type SendLogEntry, type ShareFlags } from './privacy.ts';
 import { canSpend, estimateRequestTokens, localOffsetMin, planById, type SpendCheck, type UsageEntry } from './quota.ts';
 import { KIND_LABEL } from './registry.ts';
-import { cleanLocal, rewriteFaithfully, REWRITE_SYSTEM_PROMPT, type RewriteOutcome } from './rewrite.ts';
+import { rewriteFaithfully, REWRITE_SYSTEM_PROMPT, type RewriteOutcome } from './rewrite.ts';
 import { pickUsable, selectProvider, type AiPrefs, type Selection } from './select.ts';
 import { simplifyText, toAttachment, type Attachment } from './postprocess.ts';
 import { tx } from './tx.ts';
@@ -87,9 +87,8 @@ export function planRequest(req: RouteRequest, d: Deps, modelRewrite?: string | 
   const quota = canSpend(d.usage, planById(d.planId), { kind: cls.kind, tokens: estTokens, cost: estCost }, d.now, d.tzOffsetMin ?? localOffsetMin(d.now));
   const redaction = redact(req.text, d.prefs.redact);
   const context = buildContext(cls.kind, req.text, { lang: d.profile.lang, answerStyle: d.profile.answerStyle, share: d.share, data: d.data, redact: d.prefs.redact });
-  const rw = REWRITE_KINDS.includes(cls.kind) ? rewriteFaithfully(req.text, modelRewrite, d.profile.lang) : undefined;
-  // la riscrittura parte dal testo gia' ripulito dai dati personali
-  const rwSafe = rw && !modelRewrite ? { ...rw, text: cleanLocal(redaction.text) } : rw;
+  // la riscrittura parte SEMPRE dal testo gia' ripulito dai dati personali
+  const rwSafe = REWRITE_KINDS.includes(cls.kind) ? rewriteFaithfully(redaction.text, modelRewrite, d.profile.lang) : undefined;
   const prompt = (rwSafe?.text ?? redaction.text).trim();
   const outgoing = describeOutgoing({ providerShort: chosen.provider.short, images: hasImages ? req.images!.length : 0, context, redactions: redaction.found });
   const usable = pickUsable(sel, d.isConnected);
@@ -121,11 +120,28 @@ export async function routeDetailed(req: RouteRequest, d: Deps): Promise<Trace> 
   const hasImages = !!req.images?.length;
   const newId = d.newId ?? (() => Math.random().toString(36).slice(2));
 
-  if (REWRITE_KINDS.includes(first.cls.kind) && d.client.isConfigured()) {
+  // consenso PRIMA di qualunque invio, riscrittura compresa: il testo uscirebbe verso un fornitore
+  const consented = new Set<string>();
+  const ask = async (cand: { provider: { id: string; short: string } }, p: Plan): Promise<boolean> => {
+    if (consented.has(cand.provider.id)) return true;
+    const consent = needsConsent(cand.provider.id, d.consents, p.outgoing?.sensitive ?? false);
+    if (consent.needed) {
+      const ans = d.askConsent ? await d.askConsent({ providerId: cand.provider.id, providerShort: cand.provider.short, summary: p.outgoing!, why: consent.why, prompt: p.prompt }) : 'cancel';
+      if (ans === 'cancel') return false;
+      if (ans === 'always') d.onConsentAlways?.(cand.provider.id);
+    }
+    consented.add(cand.provider.id);
+    return true;
+  };
+  const mainCand = pickUsable(sel, d.isConnected)!.candidate;
+  if (!(await ask(mainCand, first))) return finish(first, { status: 'error', kind: first.resultKind, provider: mainCand.provider.id, message: tx('Annullato: non ho inviato nulla.') });
+
+  // la riscrittura con modello usa solo un fornitore di testo gia' autorizzato dall'utente ("sempre"), altrimenti resta la pulizia locale
+  if (REWRITE_KINDS.includes(first.cls.kind) && d.client.isConfigured() && d.prefs.taskPref.text !== 'never') {
     const rewriter = selectProvider({ kind: 'translate', prefs: d.prefs });
-    const rp = rewriter.ok ? pickUsable(rewriter, d.isConnected) : null;
-    if (rp) {
-      const r = await callProvider(d.client, { kind: 'rewrite', provider: rp.candidate.provider.id, prompt: redact(req.text, d.prefs.redact).text, attachments: [], constraints: { lang: d.profile.lang }, context: [{ key: 'system', value: REWRITE_SYSTEM_PROMPT }] });
+    const rc = rewriter.ok ? rewriter.ranking.find((c) => d.isConnected(c.provider.id) && d.consents[c.provider.id]?.always) : undefined;
+    if (rc) {
+      const r = await callProvider(d.client, { kind: 'rewrite', provider: rc.provider.id, prompt: first.redaction?.text ?? req.text, attachments: [], constraints: { lang: d.profile.lang }, context: [{ key: 'system', value: REWRITE_SYSTEM_PROMPT }] });
       if (r.type === 'ok' && r.res.text) modelRewrite = r.res.text;
     }
   }
@@ -134,12 +150,7 @@ export async function routeDetailed(req: RouteRequest, d: Deps): Promise<Trace> 
   let lastMessage = '';
   for (const cand of sel.ranking) {
     if (!d.isConnected(cand.provider.id)) continue;
-    const consent = needsConsent(cand.provider.id, d.consents, plan.outgoing?.sensitive ?? false);
-    if (consent.needed) {
-      const ans = d.askConsent ? await d.askConsent({ providerId: cand.provider.id, providerShort: cand.provider.short, summary: plan.outgoing!, why: consent.why, prompt: plan.prompt }) : 'cancel';
-      if (ans === 'cancel') return finish(plan, { status: 'error', kind: plan.resultKind, provider: cand.provider.id, message: tx('Annullato: non ho inviato nulla.') });
-      if (ans === 'always') d.onConsentAlways?.(cand.provider.id);
-    }
+    if (!(await ask(cand, plan))) return finish(plan, { status: 'error', kind: plan.resultKind, provider: cand.provider.id, message: tx('Annullato: non ho inviato nulla.') });
     const body: ProxyRequest = {
       kind: plan.cls.kind, provider: cand.provider.id, prompt: plan.prompt,
       attachments: (req.images ?? []).map((im: RouteImage, i) => ({ id: `img${i}`, kind: 'image' as const, mime: im.mime })),

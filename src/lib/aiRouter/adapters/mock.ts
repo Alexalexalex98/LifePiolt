@@ -3,7 +3,9 @@ import type { ProxyRequest, ProxyResponse, ServerProxyClient } from '../types.ts
 /** Client finto per i test: risposte e errori scriptati per fornitore, registra le chiamate. */
 export class MockProxyClient implements ServerProxyClient {
   calls: ProxyRequest[] = [];
-  constructor(private script: Record<string, ProxyResponse | ((r: ProxyRequest) => ProxyResponse)> = {}, private configured = true) {}
+  private script: Record<string, ProxyResponse | ((r: ProxyRequest) => ProxyResponse)>;
+  private configured: boolean;
+  constructor(script: Record<string, ProxyResponse | ((r: ProxyRequest) => ProxyResponse)> = {}, configured = true) { this.script = script; this.configured = configured; }
   isConfigured() { return this.configured; }
   async route(req: ProxyRequest): Promise<ProxyResponse> {
     this.calls.push(req);
