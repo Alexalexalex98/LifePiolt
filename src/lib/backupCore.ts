@@ -91,5 +91,5 @@ export function toStorageEntries(b: BackupFile): [string, string][] {
 /** Etichette leggibili per l'anteprima. */
 export const STORE_LABELS: Record<string, string> = {
   app: 'Account e impostazioni', life: 'Task, obiettivi, note, file, calendario', health: 'Salute e umore', finance: 'Finanze', travel: 'Viaggi',
-  network: 'Network e LifePoints', chat: 'Messaggi', jobs: 'Lavoro', context: 'Meteo e contesto', assistant: 'Assistente', discover: 'Guida', prefs: 'Preferenze', theia: 'Suggerimenti',
+  network: 'Network e LifePoints', chat: 'Messaggi', jobs: 'Lavoro', context: 'Meteo e contesto', assistant: 'Assistente', discover: 'Guida', prefs: 'Preferenze', theia: 'Suggerimenti', interests: 'Interessi', sharing: 'Condivisione', tour: 'Tutorial', live: 'Dirette', calprefs: 'Calendario',
 };
