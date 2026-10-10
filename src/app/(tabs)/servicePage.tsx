@@ -4,6 +4,7 @@ import { Pressable, Share, View } from 'react-native';
 import { LiveAccess } from '@/components/live/LiveAccess';
 import { EnrollmentBox, Price, datedSlots, modeLabel } from '@/components/market';
 import { Badge, MediaBlock, ModButton, UserAvatar } from '@/components/network';
+import { E2eNote } from '@/components/PrivacyContent';
 import { Body, Btn, Card, Chev, Empty, H, IL, Item, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { providerInfoFor } from '@/data/marketSeed';
@@ -48,6 +49,7 @@ export default function ServicePage() {
           <IL icon={info.mode === 'presenza' ? 'location' : 'video'}>{info.place}</IL>
           <IL icon="euro"><Price n={p.price} per="/ sessione" /></IL>
           <IL icon="info" muted small>Lingua: {info.language}</IL>
+          <E2eNote />
         </View>
         <MediaBlock media={p.media} seed={p.name + p.role} />
       </Card>

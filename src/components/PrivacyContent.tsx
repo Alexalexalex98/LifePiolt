@@ -1,6 +1,8 @@
 import { Linking, Platform, View } from 'react-native';
 
-import { Body, Btn, Card, H } from '@/components/ui';
+import { Body, Btn, Card, H, IL } from '@/components/ui';
+import { e2eLabel } from '@/lib/e2eModel';
+import { go } from '@/lib/nav';
 import { toast } from '@/store/toast';
 
 const PERMS: { name: string; why: string }[] = [
@@ -21,12 +23,26 @@ function openSystemSettings() {
 const P = ({ children }: { children: string }) => <Body small muted style={{ marginTop: 6, lineHeight: 20 }}>{children}</Body>;
 
 /** Testo dell'informativa, usato sia dalla pagina Privacy sia dall'onboarding. */
-export function PrivacyContent({ showPermissions = true }: { showPermissions?: boolean }) {
+export function PrivacyContent({ showPermissions = true, showSharingLink = false }: { showPermissions?: boolean; showSharingLink?: boolean }) {
   return (
     <View style={{ gap: 12 }}>
       <Card>
         <H>Cosa resta sul tuo telefono</H>
-        <P>Oggi tutto. Task, obiettivi, note, file, calendario, dati di salute, movimenti e budget, messaggi, profilo e impostazioni sono salvati solo su questo dispositivo. LifePilot non ha un account online e non carica i tuoi dati su un server per conto suo.</P>
+        <P>Quasi tutto. Task, obiettivi, note, file, calendario, dati di salute, movimenti e budget, carte, estratti conto, spostamenti, messaggi, profilo e impostazioni sono salvati solo su questo dispositivo, non sui nostri server.</P>
+        <P>I dati più delicati (carte di credito, IBAN, file della banca, dati sanitari clinici, documenti fiscali) sono sempre segreti: non esiste alcun interruttore per condividerli.</P>
+        <P>Oggi LifePilot non ha ancora un server proprio: nulla lascia il telefono, salvo ciò che invii tu (per esempio in una chat) e le domande all'assistente AI.</P>
+      </Card>
+      <Card>
+        <H>Cosa resterà sui nostri server</H>
+        <P>Quando il server sarà attivo, sui nostri server resteranno solo nome, cognome, email, data di nascita e poche altre informazioni dell'account. Niente altro: finanze, salute, note, piano e messaggi restano sul telefono.</P>
+        <P>Sei tu a scegliere cosa condividere con altre persone e servizi (per esempio l'agenda in chat, il biglietto da visita, il profilo LifeNetwork). Partono condivise solo le cose meno importanti; puoi cambiare ogni scelta quando vuoi e vedere in ogni momento cosa è condiviso e cosa no.</P>
+        {showSharingLink && <Btn small style={{ marginTop: 12 }} icon="shield" title="Apri Cosa condivido" onPress={() => go('sharing')} />}
+      </Card>
+      <Card>
+        <H>LifeNetwork e cifratura</H>
+        <P>LifeNetwork è quasi tutto pubblico per scelta (post, idee, annunci). Seminari, corsi, sedute e i documenti scambiati dovranno invece essere cifrati end-to-end, cioè leggibili solo da te e dall'altra persona.</P>
+        <View style={{ marginTop: 8 }}><IL icon="lock" small bold>{e2eLabel()}</IL></View>
+        <P>Oggi questa protezione non è attiva: serve il server. Non va letta come "protetto".</P>
       </Card>
       <Card>
         <H>Cosa verrebbe inviato a un server</H>
@@ -52,8 +68,14 @@ export function PrivacyContent({ showPermissions = true }: { showPermissions?: b
         <H>I tuoi diritti</H>
         <P>Esportare: da Impostazioni, in "Backup e ripristino", puoi salvare tutti i tuoi dati in un file che puoi conservare o portare su un altro telefono. Dalla stessa schermata puoi anche esportare il riepilogo dei dati.</P>
         <P>Cancellare: da Impostazioni, "Elimina tutti i miei dati" svuota ogni dato salvato sul telefono e riporta l'app alla schermata iniziale. Disinstallare l'app ha lo stesso effetto.</P>
-        <P>Poiché i dati non sono su un server nostro, non c'è nulla da chiedere a noi: ogni dato lo controlli direttamente tu.</P>
+        <P>Poiché i dati non sono su un server nostro (a parte i dati di account, quando il server sarà attivo), non c'è nulla da chiedere a noi: ogni dato lo controlli direttamente tu.</P>
+        <P>Attenzione ai backup: il file di backup di LifePilot non è cifrato, e i backup del telefono (iCloud, Google) possono contenere i dati dell'app. Conservali con cura.</P>
       </Card>
     </View>
   );
+}
+
+/** Etichetta onesta per seminari, corsi e sedute: dice che la cifratura end-to-end è predisposta, non attiva. */
+export function E2eNote() {
+  return <IL icon="lock" small muted>{e2eLabel()}</IL>;
 }

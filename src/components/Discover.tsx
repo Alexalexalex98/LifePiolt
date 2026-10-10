@@ -3,10 +3,15 @@ import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Body, Btn, ModalToast, Press, Sheet, Toggle } from '@/components/ui';
+import { Body, Btn, ModalToast, Press, Row, Sheet, Toggle } from '@/components/ui';
+import { toast } from '@/store/toast';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useTheme } from '@/hooks/use-theme';
-import { dayIndex, featureCount, featureGroups, featureOfDay, guideMode, type Feature } from '@/data/features';
+import { TourHost } from '@/components/tour/TourHost';
+import { useUnlockedLevel } from '@/components/tour/hooks';
+import { dayIndex, featureCount, featureGroups, featureOfDay, type Feature } from '@/data/features';
+import { featureLevel } from '@/lib/tour';
+import { useTour } from '@/store/tour';
 import { sendToAssistant } from '@/lib/assistant/run';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
@@ -24,34 +29,44 @@ export function tryFeature(f: Feature) {
 }
 
 /**
- * All'apertura: nei primi 3 giorni la guida completa; poi, solo se attivo "showOnOpen", la sola funzione del giorno.
- * La guida completa resta riapribile dalla card in Home.
+ * Host del tour guidato (benvenuto, mini-tour "Nuovo: ...", blocco delle aree non ancora sbloccate) e della guida
+ * "Tutte le funzioni", che si apre solo su richiesta dalla Home. Chi usava già l'app (percorso "open") vede, se l'ha
+ * attivata, soltanto la funzione del giorno, una volta al giorno.
  */
 export function DiscoverHost() {
+  return (
+    <>
+      <TourHost />
+      <GuideLayer />
+    </>
+  );
+}
+
+function GuideLayer() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const open = useDiscover((s) => s.open);
   const mode = useDiscover((s) => s.mode);
   const showOnOpen = useDiscover((s) => s.showOnOpen);
+  const tourMode = useTour((s) => s.mode);
   const reduce = useReduceMotion();
   const name = useApp((s) => s.account.name);
+  const level = useUnlockedLevel();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
+  // installazioni esistenti: al massimo la funzione del giorno (una al giorno), se l'utente l'ha attivata
   useEffect(() => {
+    if (tourMode !== 'open') return;
     const d = useDiscover.getState();
     const now = Date.now();
-    if (d.firstSeenAt == null) d.set({ firstSeenAt: now });
-    const m = guideMode({ firstSeenAt: d.firstSeenAt, now, showOnOpen: d.showOnOpen, lastBiteDay: d.lastBiteDay });
-    if (m === 'none') return;
-    if (m === 'bite') d.set({ lastBiteDay: dayIndex(now) });
-    d.show(m);
-  }, []);
+    if (d.showOnOpen && d.lastBiteDay !== dayIndex(now)) { d.set({ lastBiteDay: dayIndex(now) }); d.show('bite'); }
+  }, [tourMode]);
 
   const hide = () => useDiscover.getState().hide();
   const tryIt = tryFeature;
 
   if (mode === 'bite') {
-    const f = featureOfDay();
+    const f = featureOfDay(Date.now(), level);
     return (
       <Sheet visible={open} title="Funzione del giorno" onClose={hide}>
         <Text style={{ color: f.color, fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' }}>{f.groupTitle}</Text>
@@ -69,9 +84,16 @@ export function DiscoverHost() {
       <ModalToast />
       <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: insets.top + 8 }}>
         <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 190 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <Text style={{ color: t.muted, fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }}>{name ? `CIAO ${name.toUpperCase()}` : 'BENVENUTO'}</Text>
+          <Text style={{ color: t.muted, fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }}>{name ? `TUTTE LE FUNZIONI, ${name.toUpperCase()}` : 'TUTTE LE FUNZIONI'}</Text>
           <Text style={{ color: t.text, fontSize: 28, fontWeight: '800', marginTop: 4 }}>Tutto quello che puoi fare con LifePilot</Text>
           <Text style={{ color: t.muted, fontSize: 15, lineHeight: 21, marginTop: 8, marginBottom: 14 }}>{featureCount} funzioni in {featureGroups.length} aree. Tocca un’area per vedere cosa fa, poi “Provalo” per aprirla subito.</Text>
+          {level < 99 && (
+            <View style={{ backgroundColor: t.card, borderColor: t.border, borderWidth: 1, borderRadius: 18, padding: 14, marginBottom: 14 }}>
+              <Row style={{ justifyContent: 'flex-start' }} gap={10}><Icon name="lock" size={18} color={t.accent} /><Text style={{ color: t.text, fontWeight: '700', flex: 1 }}>Alcune aree si sbloccano piano piano</Text></Row>
+              <Text style={{ color: t.muted, fontSize: 13, lineHeight: 19, marginTop: 6 }}>Le aree con il lucchetto si aprono da sole, una alla volta. Se vuoi, puoi aprirle tutte adesso.</Text>
+              <Btn small style={{ marginTop: 10, alignSelf: 'flex-start' }} icon="check" title="Mostra tutte le funzioni" onPress={() => { useTour.getState().unlockEverything(); toast('Tutte le funzioni sono sbloccate'); }} />
+            </View>
+          )}
           {featureGroups.map((g) => {
             const on = openGroup === g.id;
             return (
@@ -81,7 +103,7 @@ export function DiscoverHost() {
                     <Icon name={g.icon} size={22} color={g.color} stroke={2} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{g.title}</Text>
+                    <Row style={{ justifyContent: 'flex-start' }} gap={6}><Text style={{ color: t.text, fontSize: 17, fontWeight: '800', flexShrink: 1 }}>{g.title}</Text>{featureLevel(g.id) > level && <Icon name="lock" size={14} color={t.muted} stroke={2.2} />}</Row>
                     <Text style={{ color: t.muted, fontSize: 13 }}>{g.tagline}</Text>
                   </View>
                   <View style={{ backgroundColor: g.color + '2e', borderRadius: 12, paddingHorizontal: 9, paddingVertical: 3 }}><Text style={{ color: g.color, fontWeight: '800', fontSize: 12 }}>{g.items.length}</Text></View>
@@ -106,8 +128,8 @@ export function DiscoverHost() {
           })}
         </ScrollView>
         <View style={{ position: 'absolute', start: 0, end: 0, bottom: 0, backgroundColor: t.bg, borderTopColor: t.border, borderTopWidth: 1, paddingHorizontal: 16, paddingTop: 10, paddingBottom: insets.bottom + 10 }}>
-          <Toggle label="Dopo i primi 3 giorni, mostra una funzione al giorno all'apertura" value={showOnOpen} onChange={(v) => useDiscover.getState().setShowOnOpen(v)} />
-          <Btn title="Inizia" icon="check" onPress={hide} />
+          <Toggle label="Mostra una funzione al giorno all'apertura" value={showOnOpen} onChange={(v) => useDiscover.getState().setShowOnOpen(v)} />
+          <Btn title="Chiudi" icon="check" onPress={hide} />
         </View>
       </View>
     </Modal>
@@ -117,10 +139,11 @@ export function DiscoverHost() {
 /** Card in Home: la funzione del giorno, espandibile per leggerla tutta e vedere le altre della stessa area. */
 export function DiscoverCard() {
   const t = useTheme();
-  const f = featureOfDay();
+  const level = useUnlockedLevel();
+  const f = featureOfDay(Date.now(), level);
   const [open, setOpen] = useState(false);
   const group = featureGroups.find((g) => g.title === f.groupTitle);
-  const others = group ? group.items.filter((x) => x.title !== f.title) : [];
+  const others = group ? group.items.filter((x) => x.title !== f.title && featureLevel(group.id, x.page) <= level) : [];
   return (
     <View style={{ backgroundColor: t.card, borderColor: t.border, borderWidth: 1, borderRadius: 20, padding: 14, marginBottom: 12 }}>
       <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={translateText(`Funzione del giorno: ${f.title}. ${open ? 'Comprimi' : 'Leggi tutto'}`)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -153,7 +176,7 @@ export function DiscoverCard() {
           <Text style={{ color: t.accent, fontSize: 13, fontWeight: '700' }}>{open ? 'Comprimi' : 'Leggi tutto'}</Text>
         </Press>
         <Press onPress={() => useDiscover.getState().show('full')} accessibilityLabel={translateText(`Scopri tutte le ${featureCount} funzioni di LifePilot`)} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
-          <Text style={{ color: t.muted, fontSize: 13, textDecorationLine: 'underline' }}>Tutte le {featureCount}</Text>
+          <Text style={{ color: t.muted, fontSize: 13, textDecorationLine: 'underline' }}>Tutte le funzioni</Text>
         </Press>
       </View>
     </View>

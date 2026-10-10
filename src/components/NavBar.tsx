@@ -12,6 +12,10 @@ import { navCatalog, useApp } from '@/store/app';
 import { toast } from '@/store/toast';
 import { useUI } from '@/components/ui';
 import { translateText } from '@/i18n/core';
+import { TourTarget } from '@/components/tour/TourTarget';
+import { requestUnlock } from '@/components/tour/hooks';
+import { isUnlocked } from '@/lib/tour';
+import { useTour } from '@/store/tour';
 
 const translatedNav: Record<string, string> = { home: 'navHome', ai: 'navAi', lifenetwork: 'navNetwork', lifefinance: 'navFinance', profile: 'navProfile' };
 
@@ -24,6 +28,8 @@ export function NavBar({ state }: BottomTabBarProps) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const { navItems, pageVisits, dismissedNav, language, set } = useApp();
+  const tourMode = useTour((s) => s.mode), tourLevel = useTour((s) => s.level), tourAll = useTour((s) => s.allUnlocked);
+  const lockedPage = (id: string) => !isUnlocked({ mode: tourMode, level: tourLevel, allUnlocked: tourAll }, id);
   const current = state.routes[state.index]?.name === 'index' ? 'home' : state.routes[state.index]?.name;
 
   // suggerimento: scambia la voce meno usata con la più visitata fuori barra
@@ -56,12 +62,19 @@ export function NavBar({ state }: BottomTabBarProps) {
       <View accessibilityRole="tablist" style={{ flexDirection: 'row', justifyContent: 'space-around', backgroundColor: t.nav, borderTopWidth: 1, borderTopColor: t.navBorder, paddingTop: 10, paddingBottom: 10 + insets.bottom }}>
         {navItems.map((id) => {
           const active = id === current;
+          const locked = lockedPage(id);
+          const ink = locked ? t.muted : active ? t.text : t.navInactive;
           return (
-            <Press key={id} onPress={() => go(id)} role="tab" selected={active} accessibilityLabel={translateText(navLabelFor(id, language))} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} style={{ alignItems: 'center', minWidth: 56, minHeight: 44, justifyContent: 'center' }}>
-              {active && <View style={{ position: 'absolute', top: -10, width: 4, height: 4, borderRadius: 2, backgroundColor: t.accent }} />}
-              <Icon name={id} size={20} color={active ? t.text : t.navInactive} />
-              <Text style={{ color: active ? t.text : t.navInactive, fontSize: 11, marginTop: 2, fontWeight: active ? '700' : '400' }}>{navLabelFor(id, language)}</Text>
-            </Press>
+            <TourTarget key={id} id={`nav.${id}`}>
+              <Press onPress={() => (locked ? requestUnlock(id) : go(id))} role="tab" selected={active} accessibilityLabel={translateText(navLabelFor(id, language)) + (locked ? translateText(', si sblocca presto') : '')} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} style={{ alignItems: 'center', minWidth: 56, minHeight: 44, justifyContent: 'center', opacity: locked ? 0.5 : 1 }}>
+                {active && <View style={{ position: 'absolute', top: -10, width: 4, height: 4, borderRadius: 2, backgroundColor: t.accent }} />}
+                <View>
+                  <Icon name={id} size={20} color={ink} />
+                  {locked && <View style={{ position: 'absolute', end: -7, bottom: -4, backgroundColor: t.nav, borderRadius: 7, padding: 1 }}><Icon name="lock" size={11} color={t.text} stroke={2.4} /></View>}
+                </View>
+                <Text style={{ color: ink, fontSize: 11, marginTop: 2, fontWeight: active ? '700' : '400' }}>{navLabelFor(id, language)}</Text>
+              </Press>
+            </TourTarget>
           );
         })}
       </View>
@@ -75,6 +88,7 @@ export function MenuSheet() {
   const setMenu = useUI((s) => s.setMenu);
   const language = useApp((s) => s.language);
   const sn = sectionNamesFor(language);
+  const tourMode = useTour((s) => s.mode), tourLevel = useTour((s) => s.level), tourAll = useTour((s) => s.allUnlocked);
   const groups = [
     { label: 'Principali', items: [['ai', 'LifeChat'], ['home', sn.home], ['plan', sn.plan]] },
     { label: 'Le tue sezioni', items: [['lifehealth', 'LifeHealth'], ['lifenetwork', 'LifeNetwork'], ['lifefinance', 'LifeFinance'], ['lifenotes', 'LifeNotes'], ['lifetravel', 'LifeTravel'], ['lifedrive', 'LifeDrive'], ['lifetask', 'LifeTask'], ['lifepointsPage', 'LifePoints']] },
@@ -95,14 +109,15 @@ export function MenuSheet() {
           <View style={{ backgroundColor: t.input, borderWidth: 1, borderColor: t.border, borderRadius: 16, overflow: 'hidden' }}>
             {g.items.map(([id, label], i) => {
               const color = t.mode === 'light' ? t.accent : (areaColors[id] ?? t.accent);
+              const locked = !isUnlocked({ mode: tourMode, level: tourLevel, allUnlocked: tourAll }, id);
               return (
-                <Item key={id} last={i === g.items.length - 1} style={{ paddingHorizontal: 14, paddingVertical: 12 }} onPress={() => { setMenu(false); go(id); }}>
-                  <Row style={{ justifyContent: 'flex-start' }}>
+                <Item key={id} last={i === g.items.length - 1} style={{ paddingHorizontal: 14, paddingVertical: 12 }} onPress={() => { setMenu(false); if (locked) requestUnlock(id); else go(id); }}>
+                  <Row style={{ justifyContent: 'flex-start', opacity: locked ? 0.5 : 1 }}>
                     <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: color + '22', alignItems: 'center', justifyContent: 'center' }}>
                       <Icon name={id} size={17} color={color} stroke={1.9} />
                     </View>
                     <Text style={{ color: t.text, fontWeight: '500', flex: 1 }}>{label}</Text>
-                    <Chev />
+                    {locked ? <Icon name="lock" size={16} color={t.muted} stroke={2.2} /> : <Chev />}
                   </Row>
                 </Item>
               );

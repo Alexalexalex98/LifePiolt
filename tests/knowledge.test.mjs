@@ -26,3 +26,9 @@ test('testo libero collegato al catalogo', () => {
   assert.equal(matchCatalog('architettura moderna', cat), 'architettura');
   assert.equal(matchCatalog('filatelia', cat), null);
 });
+import { norm, SOURCE_LABEL } from '../src/lib/knowledge.ts';
+test('norm per la ricerca: accenti e maiuscole', () => {
+  assert.equal(norm('  CaffÈ   e  BAR '), 'caffe e bar');
+  assert.ok(norm('Bar e caffetterie').includes(norm('CAFFÈ')));
+  assert.ok(Object.keys(SOURCE_LABEL).length >= 6);
+});

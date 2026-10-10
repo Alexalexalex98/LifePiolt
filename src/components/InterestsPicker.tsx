@@ -6,7 +6,7 @@ import { Body, Btn, Input, Pill, Row, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { confirmDelete } from '@/lib/confirm';
 import { Icon } from '@/lib/icons';
-import { buildKnowledge, groupKnowledge, matchCatalog, shouldGroup, SOURCE_LABEL, type KItem } from '@/lib/knowledge';
+import { buildKnowledge, groupKnowledge, matchCatalog, norm, shouldGroup, SOURCE_LABEL, type KItem } from '@/lib/knowledge';
 import { useHealth } from '@/store/health';
 import { INTEREST_CATALOG, useInterests } from '@/store/interests';
 import { useLife } from '@/store/life';
@@ -15,7 +15,7 @@ import { toast } from '@/store/toast';
 import { translateText } from '@/i18n/core';
 
 /** Cosa LifePilot sa di te: tutto in un elenco, raggruppato in macro categorie quando è lungo. Ogni voce si modifica e si elimina. */
-export function InterestsPicker() {
+export function InterestsPicker({ query = '' }: { query?: string } = {}) {
   const t = useTheme();
   const it = useInterests();
   const trips = useTravel((s) => s.saved);
@@ -26,7 +26,7 @@ export function InterestsPicker() {
   const [editText, setEditText] = useState('');
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
-  const items = useMemo(() => buildKnowledge({
+  const allItems = useMemo(() => buildKnowledge({
     chosen: INTEREST_CATALOG.filter((c) => it.selected.includes(c.id)).map((c) => ({ id: c.id, label: c.label })),
     custom: it.custom,
     recent: it.recent,
@@ -35,6 +35,8 @@ export function InterestsPicker() {
     workouts: workouts.map((w) => ({ type: w.type })),
     dismissed: it.dismissed,
   }), [it.selected, it.custom, it.recent, it.dismissed, trips, goals, workouts]);
+  const nq = norm(query);
+  const items = nq ? allItems.filter((x) => norm(x.label).includes(nq) || norm(SOURCE_LABEL[x.source]).includes(nq)) : allItems;
 
   const suggestions = INTEREST_CATALOG.filter((c) => !it.selected.includes(c.id));
 
@@ -90,7 +92,7 @@ export function InterestsPicker() {
     </View>
   );
 
-  const grouped = shouldGroup(items);
+  const grouped = !nq && shouldGroup(items);
 
   return (
     <View>

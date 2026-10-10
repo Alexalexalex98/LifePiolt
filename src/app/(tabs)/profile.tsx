@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { UserAvatar } from '@/components/network';
 import { AutomationsSheet } from '@/components/Automations';
-import { InterestsPicker } from '@/components/InterestsPicker';
+import { KnowledgeHub, type HubSection } from '@/components/KnowledgeHub';
 import { useInterests } from '@/store/interests';
 
-import { Body, Btn, Card, Chev, Empty, H, Input, Item, Metric, Page, Pill, Row, Sheet, Switch, Tag, XBtn } from '@/components/ui';
+import { Body, Btn, Card, Chev, H, Item, Metric, Page, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
+import { summarize } from '@/lib/dataCatalog';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { computeScores } from '@/lib/scores';
@@ -14,13 +15,11 @@ import { useApp } from '@/store/app';
 import { useFin } from '@/store/finance';
 import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
-import { answerStyles, DEFAULT_STYLE, styleLabel, usePrefs } from '@/store/prefs';
-import { showUndoToast, toast } from '@/store/toast';
-import { translateText } from '@/i18n/core';
+import { styleLabel, usePrefs } from '@/store/prefs';
+import { useChoices } from '@/store/sharing';
+import { t as tl } from '@/i18n/core';
 
-const Sec = ({ children }: { children: string }) => <View style={{ marginTop: 16 }}><Tag>{children}</Tag></View>;
-
-type SheetKey = null | 'interests' | 'goals' | 'autos' | 'pref' | 'memory' | 'module';
+type SheetKey = null | 'know' | 'module';
 
 /** Moduli futuri: cosa sono, a che punto sono e (se esiste già qualcosa) dove aprirli. */
 const modules: { name: string; icon: string; what: string; state: string; page?: string; pageLabel?: string }[] = [
@@ -37,73 +36,20 @@ const modules: { name: string; icon: string; what: string; state: string; page?:
 
 export default function Profile() {
   const t = useTheme();
-  const { account, privacy, set } = useApp();
-  const life = useLife();
-  const { goals, automations, tasks, notes } = life;
+  const { account } = useApp();
+  const { goals, automations } = useLife();
   const answerStyle = usePrefs((s) => s.answerStyle);
-  const setStyle = usePrefs((s) => s.setAnswerStyle);
-  const resetPrefs = usePrefs((s) => s.reset);
   useHealth((s) => s.series); useFin((s) => s.months);
   const [sheet, setSheet] = useState<SheetKey>(null);
+  const [focus, setFocus] = useState<HubSection | null>(null);
   const [autoSheet, setAutoSheet] = useState(false);
-  const nInterests = useInterests((x) => x.selected.length);
+  const nInterests = useInterests((x) => x.selected.length + x.custom.length);
   const [mod, setMod] = useState<(typeof modules)[number] | null>(null);
-  const [newAuto, setNewAuto] = useState('');
-  const [newGoal, setNewGoal] = useState('');
-  const [edit, setEdit] = useState<{ kind: 'auto' | 'goal'; id: string; t: string; p: string } | null>(null);
-  const [confirmAll, setConfirmAll] = useState(false);
   const sc = computeScores();
   const main = goals.slice().sort((a, b) => b.p - a.p)[0];
-  const openTasks = tasks.filter((x) => !x.done);
-  const activePriv = Object.keys(privacy).filter((k) => privacy[k]);
-  const close = () => { setSheet(null); setEdit(null); setConfirmAll(false); };
-  const open = (k: SheetKey) => { setEdit(null); setConfirmAll(false); setSheet(k); };
-
-  const addAuto = () => { const v = newAuto.trim(); if (!v) { toast('Scrivi il nome dell\'automazione'); return; } life.addAuto(v); setNewAuto(''); toast('Automazione aggiunta'); };
-  const addGoal = () => { const v = newGoal.trim(); if (!v) { toast('Scrivi il titolo dell\'obiettivo'); return; } life.addGoal(v); setNewGoal(''); toast('Obiettivo aggiunto'); };
-  const delAuto = (id: string) => { const r = life.delAuto(id); if (r) showUndoToast('Automazione eliminata', () => life.restoreAuto(r.auto, r.idx)); };
-  const delGoal = (id: string) => {
-    const idx = life.goals.findIndex((g) => g.id === id); const g = life.goals[idx];
-    if (!g) return; life.delGoal(id); showUndoToast('Obiettivo eliminato', () => life.restoreGoal(g, idx));
-  };
-  const delTask = (id: string) => {
-    const idx = life.tasks.findIndex((x) => x.id === id); const tk = life.delTask(id);
-    if (tk) showUndoToast('Task eliminato', () => life.restoreTask(tk, idx));
-  };
-  const delNote = (id: string) => { const r = life.delNote(id); if (r) showUndoToast('Nota eliminata', () => life.restoreNote(r.note, r.idx)); };
-  const saveEdit = () => {
-    if (!edit) return;
-    const title = edit.t.trim();
-    if (!title) { toast('Il nome non può essere vuoto'); return; }
-    if (edit.kind === 'auto') life.renameAuto(edit.id, title);
-    else {
-      const p = parseInt(edit.p, 10);
-      life.patchGoal(edit.id, { t: title, ...(Number.isFinite(p) ? { p } : {}) });
-    }
-    setEdit(null); toast('Salvato');
-  };
-  const wipeAll = () => {
-    openTasks.forEach((x) => life.delTask(x.id));
-    life.notes.forEach((n) => life.delNote(n.id));
-    life.goals.forEach((g) => life.delGoal(g.id));
-    life.automations.forEach((a) => life.delAuto(a.id));
-    life.purgeTrash();
-    resetPrefs();
-    set({ privacy: Object.fromEntries(Object.keys(privacy).map((k) => [k, false])) });
-    setConfirmAll(false); toast('Memoria cancellata');
-  };
-
-  const editor = (
-    <View style={{ marginTop: 8 }}>
-      <Input value={edit?.t ?? ''} onChangeText={(v) => setEdit((e) => (e ? { ...e, t: v } : e))} placeholder="Nome" autoFocus />
-      {edit?.kind === 'goal' && <Input value={edit.p} onChangeText={(v) => setEdit((e) => (e ? { ...e, p: v.replace(/[^0-9]/g, '').slice(0, 3) } : e))} keyboardType="number-pad" placeholder="Percentuale (0-100)" />}
-      <Row gap={8}><Btn small style={{ flex: 1 }} title="Salva" onPress={saveEdit} /><Btn small ghost style={{ flex: 1 }} title="Annulla" onPress={() => setEdit(null)} /></Row>
-    </View>
-  );
-
-  const IconBtn = ({ name, label, onPress }: { name: string; label: string; onPress: () => void }) => (
-    <Pressable onPress={onPress} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText(label)} style={{ padding: 4 }}><Icon name={name} size={17} color={t.muted} stroke={2} /></Pressable>
-  );
+  const sum = summarize(useChoices());
+  const close = () => setSheet(null);
+  const openHub = (f: HubSection | null) => { setFocus(f); setSheet('know'); };
 
   return (
     <Page id="profile" title="Profilo & Memory">
@@ -125,11 +71,21 @@ export default function Profile() {
       </Card>
       <Card>
         <H>Cosa LifePilot sa di te</H>
-        <Item onPress={() => open('goals')}><Row><Body style={{ flex: 1 }}>Obiettivo principale · {main ? main.t : 'non ancora impostato'}</Body><Chev /></Row></Item>
+        <Body small muted style={{ marginBottom: 4 }}>Memoria, interessi e preferenze in un'unica schermata. Resta tutto sul tuo telefono.</Body>
+        <Item onPress={() => openHub('obiettivi')}><Row><Body style={{ flex: 1 }}>Obiettivo principale · {main ? main.t : 'non ancora impostato'}</Body><Chev /></Row></Item>
         <Item onPress={() => setAutoSheet(true)}><Row><Body style={{ flex: 1 }}>Automazioni attive · {automations.filter((a) => a.on).length}</Body><Chev /></Row></Item>
-        <Item onPress={() => open('interests')}><Row><Body style={{ flex: 1 }}>Interessi e città · {nInterests ? nInterests : 'non ancora scelti'}</Body><Chev /></Row></Item>
-        <Item last onPress={() => open('pref')}><Row><Body style={{ flex: 1 }}>Preferenza · {styleLabel(answerStyle)}</Body><Chev /></Row></Item>
-        <Btn small ghost style={{ marginTop: 10 }} title="Gestisci memoria" onPress={() => open('memory')} />
+        <Item onPress={() => openHub('interessi')}><Row><Body style={{ flex: 1 }}>Interessi e città · {nInterests ? nInterests : 'non ancora scelti'}</Body><Chev /></Row></Item>
+        <Item last onPress={() => openHub('preferenze')}><Row><Body style={{ flex: 1 }}>Preferenza · {styleLabel(answerStyle)}</Body><Chev /></Row></Item>
+        <Btn small ghost style={{ marginTop: 10 }} title="Vedi e gestisci tutto" onPress={() => openHub(null)} />
+      </Card>
+      <Card onPress={() => go('sharing')}>
+        <Row>
+          <View style={{ flex: 1 }}>
+            <H>Cosa condivido</H>
+            <Body small muted>{tl('Condivisi: {0} · Segreti: {1}. Vedi e cambia in ogni momento cosa è condiviso e con chi.', sum.shared, sum.secret)}</Body>
+          </View>
+          <Icon name="shield" size={22} color={t.accent} stroke={1.9} />
+        </Row>
       </Card>
       <Card onPress={() => go('settings')}>
         <H>Settings</H>
@@ -142,93 +98,9 @@ export default function Profile() {
         <Body small muted>Presenti nella mappa prodotto; richiedono backend, provider esterni e, per finanza/pagamenti, compliance dedicata.</Body>
       </Card>
 
-      {/* obiettivi */}
       <AutomationsSheet visible={autoSheet} onClose={() => setAutoSheet(false)} />
-      <Sheet visible={sheet === 'interests'} title="I tuoi interessi" onClose={close}><InterestsPicker /></Sheet>
-      <Sheet visible={sheet === 'goals'} title="I tuoi obiettivi" onClose={close}>
-        <Body small muted style={{ marginBottom: 6 }}>L'obiettivo principale è quello con il progresso più alto. Puoi cambiare titolo e percentuale o eliminarlo.</Body>
-        {goals.length === 0 ? <Empty text="Nessun obiettivo: aggiungine uno qui sotto." /> : goals.map((g, i) => (
-          <Item key={g.id} last={i === goals.length - 1}>
-            {edit?.kind === 'goal' && edit.id === g.id ? editor : (
-              <Row>
-                <View style={{ flex: 1 }}><Body bold>{g.t}</Body><Body small muted>Progresso {g.p}%</Body></View>
-                <IconBtn name="edit" label={`Modifica ${g.t}`} onPress={() => setEdit({ kind: 'goal', id: g.id, t: g.t, p: String(g.p) })} />
-                <XBtn label={`Elimina ${g.t}`} onPress={() => delGoal(g.id)} />
-              </Row>
-            )}
-          </Item>
-        ))}
-        <Sec>Nuovo obiettivo</Sec>
-        <Input value={newGoal} onChangeText={setNewGoal} placeholder="Es. Correre 10 km" onSubmitEditing={addGoal} />
-        <Btn title="Aggiungi obiettivo" icon="plus" onPress={addGoal} />
-      </Sheet>
-
-      {/* automazioni */}
-      <Sheet visible={sheet === 'autos'} title="Le tue automazioni" onClose={close}>
-        <Body small muted style={{ marginBottom: 6 }}>Attiva o disattiva ogni automazione, rinominala o eliminala.</Body>
-        {automations.length === 0 ? <Empty text="Nessuna automazione: aggiungine una qui sotto." /> : automations.map((a, i) => (
-          <Item key={a.id} last={i === automations.length - 1}>
-            {edit?.kind === 'auto' && edit.id === a.id ? editor : (
-              <Row>
-                <View style={{ flex: 1 }}><Body bold={a.on} muted={!a.on}>{a.t}</Body><Body small muted>{a.on ? 'Attiva' : 'Disattivata'}</Body></View>
-                <IconBtn name="edit" label={`Rinomina ${a.t}`} onPress={() => setEdit({ kind: 'auto', id: a.id, t: a.t, p: '' })} />
-                <XBtn label={`Elimina ${a.t}`} onPress={() => delAuto(a.id)} />
-                <Switch accessibilityLabel={translateText(`Interruttore ${a.t}`)} value={a.on} onValueChange={(v) => { life.toggleAuto(a.id, v); toast(`${a.t}: ${v ? 'attiva' : 'disattivata'}`); }} />
-              </Row>
-            )}
-          </Item>
-        ))}
-        <Sec>Nuova automazione</Sec>
-        <Input value={newAuto} onChangeText={setNewAuto} placeholder="Es. Riepilogo spese ogni domenica" onSubmitEditing={addAuto} />
-        <Btn title="Aggiungi automazione" icon="plus" onPress={addAuto} />
-      </Sheet>
-
-      {/* preferenze */}
-      <Sheet visible={sheet === 'pref'} title="Come vuoi le risposte" onClose={close}>
-        <Body small muted style={{ marginBottom: 6 }}>La scelta viene salvata e usata per adattare lo stile delle risposte.</Body>
-        {answerStyles.map((o, i) => (
-          <Item key={o.id} last={i === answerStyles.length - 1} onPress={() => { setStyle(o.id); toast(`Preferenza salvata: ${o.label}`); }}>
-            <Row>
-              <View style={{ flex: 1 }}><Body bold>{o.label}</Body><Body small muted>{o.hint}</Body></View>
-              {answerStyle === o.id ? <Icon name="check" size={18} color={t.positive} stroke={2.4} /> : null}
-            </Row>
-          </Item>
-        ))}
-      </Sheet>
-
-      {/* memoria */}
-      <Sheet visible={sheet === 'memory'} title="Memoria di LifePilot" onClose={close}>
-        <Body small muted>Qui vedi tutto ciò che l'app ricorda di te. Puoi cancellare le singole voci (con annulla) o tutto insieme.</Body>
-
-        <Sec>{`Task aperti · ${openTasks.length}`}</Sec>
-        {openTasks.length === 0 ? <Body small muted>Nessun task aperto.</Body> : openTasks.map((x) => <Row key={x.id} style={{ paddingVertical: 6 }}><Body small style={{ flex: 1 }} numberOfLines={2}>{x.t}</Body><XBtn label={`Elimina ${x.t}`} onPress={() => delTask(x.id)} /></Row>)}
-
-        <Sec>{`Note · ${notes.length}`}</Sec>
-        {notes.length === 0 ? <Body small muted>Nessuna nota.</Body> : notes.map((n) => <Row key={n.id} style={{ paddingVertical: 6 }}><Body small style={{ flex: 1 }} numberOfLines={2}>{n.text}</Body><XBtn label="Elimina nota" onPress={() => delNote(n.id)} /></Row>)}
-
-        <Sec>{`Obiettivi · ${goals.length}`}</Sec>
-        {goals.length === 0 ? <Body small muted>Nessun obiettivo.</Body> : goals.map((g) => <Row key={g.id} style={{ paddingVertical: 6 }}><Body small style={{ flex: 1 }}>{g.t} · {g.p}%</Body><XBtn label={`Elimina ${g.t}`} onPress={() => delGoal(g.id)} /></Row>)}
-
-        <Sec>{`Automazioni · ${automations.length}`}</Sec>
-        {automations.length === 0 ? <Body small muted>Nessuna automazione.</Body> : automations.map((a) => <Row key={a.id} style={{ paddingVertical: 6 }}><Body small style={{ flex: 1 }}>{a.t} · {a.on ? 'attiva' : 'disattivata'}</Body><XBtn label={`Elimina ${a.t}`} onPress={() => delAuto(a.id)} /></Row>)}
-
-        <Sec>Preferenze</Sec>
-        <Row style={{ paddingVertical: 6 }}>
-          <Body small style={{ flex: 1 }}>Stile risposte · {styleLabel(answerStyle)}</Body>
-          {answerStyle !== DEFAULT_STYLE ? <XBtn label="Ripristina la preferenza" onPress={() => { resetPrefs(); toast('Preferenza ripristinata'); }} color={t.muted} /> : null}
-        </Row>
-
-        <Sec>{`Privacy attive · ${activePriv.length}`}</Sec>
-        {activePriv.length === 0 ? <Body small muted>Nessun consenso attivo.</Body> : activePriv.map((k) => (
-          <Row key={k} style={{ paddingVertical: 6 }}><Body small style={{ flex: 1 }}>{k}</Body><Btn small ghost title="Disattiva" onPress={() => { set({ privacy: { ...privacy, [k]: false } }); toast(`${k} disattivato`); }} /></Row>
-        ))}
-
-        {confirmAll ? (
-          <View style={{ marginTop: 18 }}>
-            <Body small color={t.danger} style={{ marginBottom: 8 }}>Verranno cancellati task aperti, note, obiettivi, automazioni e preferenze, e disattivati i consensi privacy. Non si può annullare.</Body>
-            <Row gap={8}><Btn danger style={{ flex: 1 }} title="Sì, cancella tutto" onPress={wipeAll} /><Btn ghost style={{ flex: 1 }} title="Annulla" onPress={() => setConfirmAll(false)} /></Row>
-          </View>
-        ) : <Btn danger style={{ marginTop: 18 }} icon="trash" title="Cancella tutta la memoria" onPress={() => setConfirmAll(true)} />}
+      <Sheet visible={sheet === 'know'} title="Cosa LifePilot sa di te" onClose={close}>
+        <KnowledgeHub key={focus ?? 'all'} focus={focus} onOpenAutomations={() => { setSheet(null); setAutoSheet(true); }} />
       </Sheet>
 
       {/* moduli futuri */}

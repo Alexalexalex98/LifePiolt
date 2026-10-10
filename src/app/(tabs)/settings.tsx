@@ -11,6 +11,7 @@ import { WorkHoursSheet } from '@/components/plan';
 import { Body, Btn, Card, H, Input, Item, Link, Page, Pill, Row, Select, Sheet, Toggle, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { exportBackup, pickBackup, restoreBackup, STORE_LABELS, wipeAllData, type BackupPreview } from '@/lib/backup';
+import { JourneyCard } from '@/components/home/HomeBlocks';
 import { formatErrors, logError, useErrorLog } from '@/lib/errorLog';
 import { useSectionNames, useT } from '@/lib/i18n';
 import { go } from '@/lib/nav';
@@ -150,6 +151,8 @@ export default function Settings() {
 
   return (
     <Page id="settings" title={names.settings} back>
+      <JourneyCard />
+
       <Card>
         <H>{tr('stNavCustomizeTitle')}</H>
         <Body small muted style={{ marginBottom: 10 }}>{tr('stNavCustomizeDesc')}</Body>
@@ -258,6 +261,7 @@ export default function Settings() {
         <H>{tr('stPrivacyCenterTitle')}</H>
         {Object.keys(app.privacy).map((k) => <Toggle key={k} label={tr({ 'AI Memory': 'stPrivAiMemory', 'Dati salute': 'stPrivHealth', 'Dati finanziari': 'stPrivFinance', Posizione: 'stPrivLocation' }[k] ?? k)} value={app.privacy[k]} onChange={(v) => { set({ privacy: { ...app.privacy, [k]: v } }); toast(`${k} ${v ? 'collegato' : 'disconnesso'}`); }} />)}
         <View style={{ gap: 8, marginTop: 10 }}>
+          <Btn small ghost icon="shield" title="Cosa condivido" onPress={() => go('sharing')} />
           <Btn small ghost title="Privacy e permessi" onPress={() => go('privacy')} />
           <Btn small ghost title="Segnalazioni e utenti bloccati" onPress={() => go('reports')} />
           <Btn small ghost title={tr('stExportBtn')} onPress={exportData} />

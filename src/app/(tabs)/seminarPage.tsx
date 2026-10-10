@@ -4,6 +4,7 @@ import { Pressable, Share, View } from 'react-native';
 import { LiveAccess } from '@/components/live/LiveAccess';
 import { EnrollmentBox, Price, SPONSORED_TEXT, modeLabel, useSeminarEnrollment } from '@/components/market';
 import { Badge, ModButton, UserAvatar, openSheet } from '@/components/network';
+import { E2eNote } from '@/components/PrivacyContent';
 import { Body, Btn, Card, Chev, Empty, H, IL, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { enrollSeminar, hasEnded, seminarFacts, useNow } from '@/lib/enroll';
@@ -51,6 +52,7 @@ export default function SeminarPage() {
           <IL icon={s.mode === 'presenza' ? 'location' : 'video'}>{s.place || modeLabel(s.mode)}</IL>
           {f.seats > 0 && <IL icon="users">{f.seatsLeft === 0 ? 'Posti esauriti' : `${f.seatsLeft} posti liberi su ${f.seats}`}</IL>}
           <IL icon="euro"><Price n={s.price} /></IL>
+          <E2eNote />
         </View>
       </Card>
 

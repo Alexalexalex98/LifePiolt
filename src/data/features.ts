@@ -1,3 +1,5 @@
+import { featureLevel } from '../lib/tour.ts';
+
 /** Elenco di tutto quello che si può fare con LifePilot. Ogni voce apre la funzione (page) o la prova con un comando all'assistente (cmd). */
 export type Feature = { title: string; text: string; page?: string; cmd?: string };
 export type FeatureGroup = { id: string; title: string; tagline: string; icon: string; color: string; items: Feature[] };
@@ -97,8 +99,8 @@ export const featureGroups: FeatureGroup[] = [
 export const featureCount = featureGroups.reduce((s, g) => s + g.items.length, 0);
 
 /* ---------- guida a piccoli pezzi ---------- */
-export type FlatFeature = Feature & { groupId: string; groupTitle: string; color: string; icon: string };
-export const allFeatures: FlatFeature[] = featureGroups.flatMap((g) => g.items.map((f) => ({ ...f, groupId: g.id, groupTitle: g.title, color: g.color, icon: g.icon })));
+export type FlatFeature = Feature & { groupId: string; groupTitle: string; color: string; icon: string; level: number };
+export const allFeatures: FlatFeature[] = featureGroups.flatMap((g) => g.items.map((f) => ({ ...f, groupId: g.id, groupTitle: g.title, color: g.color, icon: g.icon, level: featureLevel(g.id, f.page) })));
 
 /** Giorni (dal primo avvio) in cui la guida completa compare all'apertura. */
 export const FULL_GUIDE_DAYS = 3;
@@ -112,11 +114,16 @@ export function dayIndex(ts: number): number {
 
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 
-/** Una funzione diversa ogni giorno, a salti per variare area (stesso risultato per tutto il giorno). */
-export function featureOfDay(ts: number = Date.now()): FlatFeature {
-  const n = allFeatures.length;
+/**
+ * Una funzione diversa ogni giorno, a salti per variare area (stesso risultato per tutto il giorno).
+ * Con `maxLevel` propone solo funzioni già sbloccate dal percorso graduale (default: tutte).
+ */
+export function featureOfDay(ts: number = Date.now(), maxLevel = 99): FlatFeature {
+  const pool = maxLevel >= 99 ? allFeatures : allFeatures.filter((f) => f.level <= maxLevel);
+  const list = pool.length ? pool : allFeatures;
+  const n = list.length;
   const stride = gcd(7, n) === 1 ? 7 : 1;
-  return allFeatures[(((dayIndex(ts) * stride) % n) + n) % n];
+  return list[(((dayIndex(ts) * stride) % n) + n) % n];
 }
 
 /**

@@ -1,6 +1,8 @@
 import * as ImagePicker from 'expo-image-picker';
 
 import { buildAgenda } from '@/lib/chatShare';
+import { agendaAllows } from '@/lib/dataCatalog';
+import { readChoices } from '@/store/sharing';
 import { bestMatch } from './nlp';
 import { useChat } from '@/store/chat';
 import { dayKey } from '@/lib/format';
@@ -48,6 +50,8 @@ export function makeEnv(): Env {
     financeReport, healthReport, moodReport,
     people: () => Object.values(useChat.getState().chats).filter((c) => !c.archived).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)).map((c) => c.name),
     shareAgenda: (person, range, mode) => {
+      // rispetta "Cosa condivido": il livello massimo scelto per l'agenda
+      if (!agendaAllows(readChoices().plan_agenda, mode)) return t('Non l\'ho inviata: nelle impostazioni "Cosa condivido" la tua agenda non può essere condivisa in questa modalità. Puoi cambiarlo da Profilo > Cosa condivido.');
       const chat = useChat.getState();
       const target = bestMatch(person, Object.values(chat.chats), (c) => c.name, 0.4);
       const me = useApp.getState().account.name;

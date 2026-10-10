@@ -39,7 +39,8 @@ const text = () => page.evaluate(() => document.body.innerText);
 const flat = async () => (await text()).replace(/\n/g, ' | ');
 const wait = (ms) => page.waitForTimeout(ms);
 async function closeGuide() {
-  const b = page.getByText('Inizia', { exact: true });
+  // il tour guidato si chiude con "Salta il tour" (o "Inizia" all'ultimo passo)
+  const b = page.getByText('Salta il tour', { exact: true });
   if (await b.count()) { await b.last().click({ timeout: 2500 }).catch(() => {}); await wait(300); }
 }
 async function open(path, ms = 1300) {
@@ -73,10 +74,22 @@ try {
   await page.getByPlaceholder('Il tuo nome').fill('Alex');
   await page.getByText('Esplora con dati demo').click();
   await wait(2800);
-  check('guida all\'apertura: compare dopo l\'onboarding', (await page.getByText('Inizia', { exact: true }).count()) > 0);
+  check('tour: compare dopo l\'onboarding', (await page.getByText('Salta il tour', { exact: true }).count()) > 0);
+  check('tour: primo passo di benvenuto', /Benvenuto, Alex/.test(await text()) && /Passo 1 di 6/.test(await text()));
+  await page.getByText('Avanti', { exact: true }).last().click(); await wait(500);
+  check('tour: secondo passo (umore)', /Come ti senti oggi/.test(await text()) && /Passo 2 di 6/.test(await text()));
   await closeGuide();
-  check('guida chiusa con "Inizia"', (await page.getByText('Inizia', { exact: true }).count()) === 0);
+  check('tour chiuso con "Salta il tour"', (await page.getByText('Salta il tour', { exact: true }).count()) === 0);
   check('home dopo onboarding', /Alex/.test(await text()));
+  check('home semplice: Prossimo impegno e Altro', /Prossimo impegno/.test(await text()) && /Altro/.test(await text()));
+
+  // ---------- percorso graduale: aree bloccate ----------
+  log('Percorso graduale');
+  where = 'blocco';
+  await page.goto(BASE + '/lifefinance', { waitUntil: 'networkidle' }); await wait(1300);
+  check('area bloccata: scheda "Si sblocca presto"', /Si sblocca presto/.test(await text()) && /Sblocca ora/.test(await text()), (await text()).slice(0, 200));
+  await page.getByText('Sblocca tutte le funzioni', { exact: true }).last().click(); await wait(700);
+  check('sblocca tutto: la scheda si chiude', !/Si sblocca presto/.test(await text()));
 
   // ---------- pagine principali ----------
   log('Pagine');
