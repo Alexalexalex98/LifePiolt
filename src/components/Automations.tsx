@@ -61,7 +61,7 @@ export function AutomationsSheet({ visible, onClose }: { visible: boolean; onClo
 
   return (
     <Sheet visible={visible} title="Automazioni" onClose={onClose}>
-      <Body small muted>Le automazioni con un orario ti mandano una notifica sul telefono. Le altre sono promemoria: {DESCRIPTIVE_NOTE}</Body>
+      <Body small muted>Le automazioni con un orario ti mandano una notifica sul telefono. Le altre sono promemoria: ti avvisano, ma l'azione la confermi tu.</Body>
 
       <Text accessibilityRole="header" style={{ color: t.text, fontWeight: '800', fontSize: 15, marginTop: 16, marginBottom: 6 }}>Le tue automazioni</Text>
       {automations.length === 0 && <Body small muted>Nessuna automazione attiva. Aggiungi una di quelle consigliate qui sotto.</Body>}

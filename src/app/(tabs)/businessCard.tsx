@@ -1,9 +1,9 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Pressable, Switch, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { UserAvatar, openSheet } from '@/components/network';
-import { Body, Card, H, Input, Item, Page, Row } from '@/components/ui';
+import { Body, Card, H, Input, Item, Page, Row, Switch } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { hashStr, mulberry32 } from '@/lib/format';
 import { bioFor } from '@/lib/network';
@@ -35,7 +35,7 @@ export default function BusinessCard() {
   const Field = ({ label, k, vis, numeric }: { label: string; k: keyof MyCard; vis: keyof MyCard; numeric?: boolean }) => (
     <Item><Row><Body style={{ flex: 1 }}>{label}</Body>
       <Input keyboardType={numeric ? 'number-pad' : 'default'} defaultValue={String(c[k] ?? '')} style={{ width: 130, padding: 7, marginBottom: 0 }} onChangeText={(v) => set({ [k]: v } as Partial<MyCard>)} />
-      <Switch value={!!c[vis]} onValueChange={(v) => set({ [vis]: v } as Partial<MyCard>)} trackColor={{ true: '#4f7cff', false: t.inputBorder }} thumbColor="#fff" />
+      <Switch value={!!c[vis]} onValueChange={(v) => set({ [vis]: v } as Partial<MyCard>)} />
     </Row></Item>
   );
 

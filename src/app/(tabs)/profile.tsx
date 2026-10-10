@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Pressable, Switch, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { UserAvatar } from '@/components/network';
 import { AutomationsSheet } from '@/components/Automations';
 import { InterestsPicker } from '@/components/InterestsPicker';
 import { useInterests } from '@/store/interests';
 
-import { Body, Btn, Card, Chev, Empty, H, Input, Item, Metric, Page, Pill, Row, Sheet, Tag, XBtn } from '@/components/ui';
+import { Body, Btn, Card, Chev, Empty, H, Input, Item, Metric, Page, Pill, Row, Sheet, Switch, Tag, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
@@ -173,7 +173,7 @@ export default function Profile() {
                 <View style={{ flex: 1 }}><Body bold={a.on} muted={!a.on}>{a.t}</Body><Body small muted>{a.on ? 'Attiva' : 'Disattivata'}</Body></View>
                 <IconBtn name="edit" label={`Rinomina ${a.t}`} onPress={() => setEdit({ kind: 'auto', id: a.id, t: a.t, p: '' })} />
                 <XBtn label={`Elimina ${a.t}`} onPress={() => delAuto(a.id)} />
-                <Switch accessibilityLabel={translateText(`Interruttore ${a.t}`)} value={a.on} onValueChange={(v) => { life.toggleAuto(a.id, v); toast(`${a.t}: ${v ? 'attiva' : 'disattivata'}`); }} trackColor={{ true: '#4f7cff', false: t.inputBorder }} thumbColor="#fff" />
+                <Switch accessibilityLabel={translateText(`Interruttore ${a.t}`)} value={a.on} onValueChange={(v) => { life.toggleAuto(a.id, v); toast(`${a.t}: ${v ? 'attiva' : 'disattivata'}`); }} />
               </Row>
             )}
           </Item>

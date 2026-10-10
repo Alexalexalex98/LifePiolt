@@ -25,6 +25,15 @@ type State = {
   recent: { q: string; kind: 'viaggio' | 'luogo' | 'altro'; ts: number }[];
   /** luogo d'origine/posizione abituale (città) usato per i calcoli di viaggio */
   homeCity: string;
+  /** interessi scritti a mano (quelli che non corrispondono al catalogo) */
+  custom: { id: string; label: string }[];
+  /** voci dedotte (ricerche, viaggi, obiettivi...) che l'utente ha tolto: non ricompaiono */
+  dismissed: string[];
+  addCustom: (label: string) => void;
+  renameCustom: (id: string, label: string) => void;
+  removeCustom: (id: string) => void;
+  dismiss: (key: string) => void;
+  undismiss: (key: string) => void;
   toggle: (id: InterestId) => void;
   addRecent: (q: string, kind?: 'viaggio' | 'luogo' | 'altro') => void;
   setHomeCity: (c: string) => void;
@@ -36,9 +45,16 @@ export const useInterests = create<State>()(
     selected: [],
     recent: [],
     homeCity: '',
+    custom: [],
+    dismissed: [],
+    addCustom: (label) => set((s) => { const l = label.trim().slice(0, 60); return !l || s.custom.some((c) => c.label.toLowerCase() === l.toLowerCase()) ? s : { custom: [...s.custom, { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), label: l }] }; }),
+    renameCustom: (id, label) => set((s) => ({ custom: s.custom.map((c) => (c.id === id ? { ...c, label: label.trim().slice(0, 60) || c.label } : c)) })),
+    removeCustom: (id) => set((s) => ({ custom: s.custom.filter((c) => c.id !== id) })),
+    dismiss: (key) => set((s) => (s.dismissed.includes(key) ? s : { dismissed: [...s.dismissed, key] })),
+    undismiss: (key) => set((s) => ({ dismissed: s.dismissed.filter((k) => k !== key) })),
     toggle: (id) => set((s) => ({ selected: s.selected.includes(id) ? s.selected.filter((x) => x !== id) : [...s.selected, id] })),
     addRecent: (q, kind = 'altro') => set((s) => ({ recent: [{ q: q.trim(), kind, ts: Date.now() }, ...s.recent.filter((r) => r.q.toLowerCase() !== q.trim().toLowerCase())].slice(0, 40) })),
     setHomeCity: (homeCity) => set({ homeCity }),
-    reset: () => set({ selected: [], recent: [], homeCity: '' }),
+    reset: () => set({ selected: [], recent: [], homeCity: '', custom: [], dismissed: [] }),
   })),
 );

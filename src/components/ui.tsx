@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useEffect, useState, type ReactNode } from 'react';
-import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Animated, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
@@ -286,6 +286,31 @@ export function Input(props: TextInputProps & { flex?: number }) {
   );
 }
 
+/** Interruttore dell'app: stesso aspetto su iPhone e Android, colori del tema (nessun verde di sistema). */
+export function Switch({ value, onValueChange, accessibilityLabel }: { value: boolean; onValueChange?: (v: boolean) => void; accessibilityLabel?: string }) {
+  const t = useTheme();
+  const reduce = useReduceMotion();
+  const x = useRef(new Animated.Value(value ? 1 : 0)).current;
+  useEffect(() => {
+    if (reduce) x.setValue(value ? 1 : 0);
+    else Animated.timing(x, { toValue: value ? 1 : 0, duration: 140, useNativeDriver: false }).start();
+  }, [value, reduce, x]);
+  const left = x.interpolate({ inputRange: [0, 1], outputRange: [3, 23] });
+  const handler = safely(onValueChange);
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
+      accessibilityLabel={accessibilityLabel}
+      onPress={() => handler?.(!value)}
+      hitSlop={8}
+      style={{ width: 52, height: 32, borderRadius: 16, justifyContent: 'center', backgroundColor: value ? t.accent : t.inputBorder, direction: 'ltr' }}
+    >
+      <Animated.View style={{ position: 'absolute', left, width: 26, height: 26, borderRadius: 13, backgroundColor: value ? t.onText : (t.mode === 'light' ? '#ffffff' : t.muted) }} />
+    </Pressable>
+  );
+}
+
 export function Toggle({ label, value, onChange, hint }: { label: ReactNode; value: boolean; onChange: (v: boolean) => void; hint?: string }) {
   const t = useTheme();
   return (
@@ -294,7 +319,7 @@ export function Toggle({ label, value, onChange, hint }: { label: ReactNode; val
         {typeof label === 'string' ? <Body>{label}</Body> : label}
         {hint ? <Body small muted>{hint}</Body> : null}
       </View>
-      <Switch value={value} onValueChange={safely(onChange)} accessibilityLabel={typeof label === 'string' ? translateText(label) : undefined} trackColor={{ true: t.accent, false: t.inputBorder }} thumbColor={t.mode === 'light' ? '#fff' : '#f4f6f8'} />
+      <Switch value={value} onValueChange={onChange} accessibilityLabel={typeof label === 'string' ? translateText(label) : undefined} />
     </View>
   );
 }

@@ -1,5 +1,5 @@
 {
- "count": 4436,
+ "count": 4455,
  "byFile": {
   "src/app/(tabs)/ai.tsx": 24,
   "src/app/(tabs)/applicantView.tsx": 54,
@@ -59,7 +59,7 @@
   "src/components/FinanceOverview.tsx": 54,
   "src/components/GoalProgress.tsx": 16,
   "src/components/Inbox.tsx": 4,
-  "src/components/InterestsPicker.tsx": 3,
+  "src/components/InterestsPicker.tsx": 16,
   "src/components/JobsHub.tsx": 20,
   "src/components/LanguagePicker.tsx": 7,
   "src/components/MediaPickerField.tsx": 8,
@@ -139,6 +139,7 @@
   "src/lib/i18n.ts": 4,
   "src/lib/jobFiles.ts": 2,
   "src/lib/jobFit.ts": 4,
+  "src/lib/knowledge.ts": 14,
   "src/lib/liveRoom.ts": 39,
   "src/lib/modRules.ts": 17,
   "src/lib/moodAnalysis.ts": 57,
@@ -175,5 +176,5 @@
   "src/store/network.ts": 15,
   "src/store/prefs.ts": 6
  },
- "withPlaceholders": 634
+ "withPlaceholders": 637
 }
