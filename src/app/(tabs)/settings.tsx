@@ -15,6 +15,8 @@ import { formatErrors, logError, useErrorLog } from '@/lib/errorLog';
 import { useSectionNames, useT } from '@/lib/i18n';
 import { go } from '@/lib/nav';
 import { cancelAll, refreshBriefings, requestPermission } from '@/lib/notify';
+import { KIND_ORDER, KINDS, kindEnabled } from '@/lib/notifyKinds';
+import { LEAD_OPTIONS, normalizePrefs } from '@/lib/reminders';
 import { areaColors, Icon } from '@/lib/icons';
 import { navCatalog, useApp, type Appearance } from '@/store/app';
 import { useFin } from '@/store/finance';
@@ -80,6 +82,16 @@ export default function Settings() {
     }
     set({ briefing: next });
     void refreshBriefings();
+    toast('Preferenza aggiornata');
+  }
+
+  const rem = normalizePrefs(app.reminders);
+  async function setRem(patch: Partial<typeof rem>) {
+    if (patch.on === true) {
+      const r = await requestPermission();
+      if (!r.ok) { toast(r.message); alertT('Notifiche non attive', r.message); return; }
+    }
+    set({ reminders: { ...rem, ...patch } });
     toast('Preferenza aggiornata');
   }
 
@@ -187,6 +199,14 @@ export default function Settings() {
         {app.briefing.morning && <Row><Body small muted>Orario</Body><Select value={app.briefing.morningAt} options={timeOptions(5, 11)} onChange={(v) => void setBrief('morning', { morningAt: v })} /></Row>}
         <Toggle label="Riepilogo serale" hint="Notifica sul telefono con il bilancio della giornata" value={app.briefing.evening} onChange={(v) => void setBrief('evening', { evening: v })} />
         {app.briefing.evening && <Row><Body small muted>Orario</Body><Select value={app.briefing.eveningAt} options={timeOptions(17, 23)} onChange={(v) => void setBrief('evening', { eveningAt: v })} /></Row>}
+        <Toggle label="Promemoria impegni" hint="Una notifica prima di ogni impegno con un orario" value={rem.on} onChange={(v) => void setRem({ on: v })} />
+        {rem.on && <Row><Body small muted>Anticipo</Body><Select value={`${rem.leadMin} min prima`} title="Anticipo" options={LEAD_OPTIONS.map((m) => `${m} min prima`)} onChange={(v) => void setRem({ leadMin: parseInt(v, 10) })} /></Row>}
+        {rem.on && <Toggle label="Avviso di partenza con tragitto" hint="Se l'impegno ha un luogo, ti dice a che ora partire (serve la città di casa nel profilo)" value={rem.depart} onChange={(v) => void setRem({ depart: v })} />}
+        <Body bold style={{ marginTop: 14 }}>Tipi di notifica</Body>
+        <Body small muted>Silenzia un tipo senza perdere gli altri: ad esempio i mi piace, ma non le richieste dei tuoi servizi.</Body>
+        {KIND_ORDER.map((k) => (
+          <Toggle key={k} label={KINDS[k].label} hint={KINDS[k].hint} value={kindEnabled(app.notifKinds, k)} onChange={(v) => { set({ notifKinds: { ...(app.notifKinds ?? {}), [k]: v } }); toast('Preferenza aggiornata'); }} />
+        ))}
       </Card>
 
       <Card>

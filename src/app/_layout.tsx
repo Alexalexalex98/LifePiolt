@@ -30,11 +30,13 @@ import { useContext } from '@/store/context';
 import { useAssistant } from '@/store/assistant';
 import { useDiscover } from '@/store/discover';
 import { useInterests } from '@/store/interests';
+import { useLive } from '@/store/live';
+import { lockPortrait } from '@/lib/orientation';
 
 SplashScreen.preventAutoHideAsync();
 installGlobalErrors();
 
-const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, useInterests];
+const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, useInterests, useLive];
 const allHydrated = () => stores.every((s) => s.persist.hasHydrated());
 
 export { ErrorScreen as ErrorBoundary } from '@/components/ErrorScreen';
@@ -63,6 +65,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (!ready) return;
     useFin.getState().rollMonth();
+    void lockPortrait();
     // versioni vecchie salvavano "Italiano": normalizzo; alla prima installazione uso la lingua del telefono
     const app = useApp.getState();
     if (!app.onboarded && !app.demo && app.language === 'it' && !app.account.name) {

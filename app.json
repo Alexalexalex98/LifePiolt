@@ -3,7 +3,7 @@
     "name": "LifePilot",
     "slug": "lifepilot",
     "version": "0.1.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "lifepilot",
     "userInterfaceStyle": "automatic",
@@ -16,8 +16,8 @@
         "NSCalendarsUsageDescription": "LifePilot legge il tuo calendario per importare gli eventi nel Plan e aggiunge eventi solo quando lo scegli tu.",
         "NSCalendarsFullAccessUsageDescription": "LifePilot legge il tuo calendario per importare gli eventi nel Plan e aggiunge eventi solo quando lo scegli tu.",
         "NSLocationWhenInUseUsageDescription": "LifePilot usa la posizione quando scegli di condividerla in una chat e, se vuoi, per mostrarti il meteo della tua città.",
-        "NSCameraUsageDescription": "LifePilot usa la fotocamera per scattare foto e video da inviare nelle chat.",
-        "NSMicrophoneUsageDescription": "LifePilot usa il microfono per registrare i messaggi vocali nelle chat.",
+        "NSCameraUsageDescription": "LifePilot usa la fotocamera per scattare foto da inviare nelle chat e per mostrare il tuo video quando tieni un seminario o una videochiamata.",
+        "NSMicrophoneUsageDescription": "LifePilot usa il microfono per i messaggi vocali nelle chat e per farti sentire quando tieni un seminario o una videochiamata.",
         "NSPhotoLibraryUsageDescription": "LifePilot accede alle foto per inviarle nelle chat.",
         "NSContactsUsageDescription": "LifePilot accede ai contatti solo quando scegli di condividerne uno in una chat."
       },
@@ -119,7 +119,15 @@
           "color": "#8fa4ff"
         }
       ],
-      "expo-document-picker"
+      "expo-document-picker",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "LifePilot usa la fotocamera per mostrare il tuo video quando tieni un seminario o una videochiamata.",
+          "microphonePermission": "LifePilot usa il microfono per farti sentire quando tieni un seminario o una videochiamata.",
+          "recordAudioAndroid": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

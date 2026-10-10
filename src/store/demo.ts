@@ -17,6 +17,26 @@ import { useContext } from './context';
 import { useAssistant } from './assistant';
 import { usePrefs } from './prefs';
 
+/** Notifiche demo variegate (servizio, seminario, messaggio, lavoro, promemoria, sociale, LifePoints, finanza) per vedere le categorie. */
+function demoExtraNotifs(me: string) {
+  const d = shortDate(0);
+  const n = (id: number, type: string, text: string, extra: Record<string, unknown> = {}, read = false, urgent = false) => ({ id, type, text, urgent, read, date: d, ...extra });
+  return [
+    n(9001, 'booking', 'Dott.ssa Chiara V. ha richiesto una seduta di psicologia con te', { slot: '17:30', service: 'Consulenza psicologica', ref: `service:${me}`, kind: 'servizio' }, false, true),
+    n(9002, 'booking', 'Paolo D. ha prenotato una sessione di coaching con te', { slot: '09:00', service: 'Coaching', ref: `service:${me}`, kind: 'servizio' }),
+    n(9003, 'seminar', 'Nuova iscrizione al tuo seminario «Fondamenti di pricing per startup»', { ref: 'seminar:2' }),
+    n(9004, 'message', 'Elena F. ti ha scritto: «Ci sentiamo domani per il programma?»'),
+    n(9005, 'job', 'Giulia M. ha inviato la candidatura per la tua offerta di lavoro'),
+    n(9006, 'reminder', 'Riunione con il team tra 15 minuti'),
+    n(9007, 'like', 'Marta S. ha messo mi piace al tuo post su AURA'),
+    n(9008, 'like', 'Omar K. ha messo mi piace al tuo post su AURA'),
+    n(9009, 'like', 'Ines L. ha messo mi piace al tuo post sulla roadmap'),
+    n(9010, 'comment', 'Luca Ferri ha commentato il tuo post sulla roadmap'),
+    n(9011, 'donation', 'Anna C. ti ha donato il suo LifePoint di oggi'),
+    n(9012, 'finance', 'La bolletta della luce scade tra 3 giorni'),
+  ];
+}
+
 /** Sostituisce il nome del prototipo con quello dell'utente e le date relative con date reali. */
 function personalise<T>(data: T, me: string): T {
   return JSON.parse(JSON.stringify(data), (_k, v) => {
@@ -136,7 +156,7 @@ export function applyDemo(me: string, email = '') {
   useNet.setState({
     lifePoints: 2840, ledger: n.ledger, identity: { verified: true, country: 'Svizzera', birthYear: 1998 }, following: n.following, suggested: n.suggested,
     posts: n.posts, communities: n.communities, providers: n.providers, ideas: n.ideas, seminars: n.seminars,
-    notifications: n.notifications, dailyHistory: n.dailyHistory,
+    notifications: [...demoExtraNotifs(me), ...n.notifications], dailyHistory: n.dailyHistory,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cards: n.cards.map((c: any) => ({ ...c, holder: me })), defaultCard: n.cards[0]?.id ?? null,
     bio: 'Founder di Life SA · costruisco LifePilot', myCard: { ...n.myCard, email: email || n.myCard.email },

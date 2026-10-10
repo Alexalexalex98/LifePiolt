@@ -24,7 +24,7 @@ export type Enrollment = {
 export type Ledger = { type: 'spend' | 'topup'; desc: string; amount: number; date: string };
 export type Msg = { from: string; text: string; date: string };
 export type GroupChat = { id: number; name: string; members: string[]; msgs: Msg[] };
-export type Notif = { id: number; type: string; text: string; urgent: boolean; read: boolean; date: string; slot?: string; service?: string; addedToCalendar?: boolean };
+export type Notif = { id: number; type: string; text: string; urgent: boolean; read: boolean; date: string; slot?: string; service?: string; addedToCalendar?: boolean; kind?: string; ref?: string };
 export type Card = { id: number; brand: string; last4: string; holder: string; expiry: string };
 export type Club = { fee: number; desc: string; communityId: number; members: string[] };
 export type MyCard = {
@@ -76,7 +76,7 @@ type NetState = {
   setPref: (k: keyof NetState['prefs'], v: string) => void;
   spend: (amount: number, desc: string, payee?: string) => boolean;
   earn: (amount: number, desc: string) => void;
-  notify: (type: string, text: string, urgent?: boolean) => void;
+  notify: (type: string, text: string, urgent?: boolean, extra?: { kind?: string; ref?: string }) => void;
   toggleFollow: (name: string) => boolean;
   toggleMuteAuthor: (name: string) => boolean;
   toggleMuteTopic: (tag: string) => boolean;
@@ -143,7 +143,15 @@ export const useNet = create<NetState>()(
       return true;
     },
     earn: (amount, desc) => set((s) => ({ lifePoints: s.lifePoints + amount, ledger: [{ type: 'topup', desc, amount, date: weekdayShortDate() }, ...s.ledger] })),
-    notify: (type, text, urgent) => set((s) => ({ notifications: [{ id: Date.now() + Math.floor(Math.random() * 1000), type, text, urgent: !!urgent, read: false, date: weekdayShortDate() }, ...s.notifications] })),
+    notify: (type, text, urgent, extra) => {
+      set((s) => ({ notifications: [{ id: Date.now() + Math.floor(Math.random() * 1000), type, text, urgent: !!urgent, read: false, date: weekdayShortDate(), ...(extra?.kind ? { kind: extra.kind } : {}), ...(extra?.ref ? { ref: extra.ref } : {}) }, ...s.notifications] }));
+      // notifica locale immediata per i tipi importanti (difensiva: non blocca mai l'app)
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const m = require('@/lib/notify');
+        void m.pushForNotif({ type, text, urgent: !!urgent, kind: extra?.kind });
+      } catch { /* notifiche non disponibili */ }
+    },
     toggleFollow: (name) => { set((s) => ({ following: toggle(s.following, name) })); return get().following.includes(name); },
     toggleMuteAuthor: (name) => { set((s) => ({ mutedAuthors: toggle(s.mutedAuthors, name) })); return get().mutedAuthors.includes(name); },
     toggleMuteTopic: (tag) => { set((s) => ({ mutedTopics: toggle(s.mutedTopics, tag) })); return get().mutedTopics.includes(tag); },

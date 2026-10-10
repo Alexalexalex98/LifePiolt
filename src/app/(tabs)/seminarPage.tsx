@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { Pressable, Share, View } from 'react-native';
 
+import { LiveAccess } from '@/components/live/LiveAccess';
 import { EnrollmentBox, Price, SPONSORED_TEXT, modeLabel, useSeminarEnrollment } from '@/components/market';
 import { Badge, ModButton, UserAvatar, openSheet } from '@/components/network';
 import { Body, Btn, Card, Chev, Empty, H, IL, Page, Row } from '@/components/ui';
@@ -85,6 +86,8 @@ export default function SeminarPage() {
         <Body small>{s.price ? `Prezzo: ${s.price} LP. Ti iscrivi senza pagare; i LifePoints vengono addebitati solo dopo il seminario, quando confermi di aver partecipato.` : 'Gratuito. Dopo il seminario ti chiederemo comunque di confermare la partecipazione.'}</Body>
         <Body small muted style={{ marginTop: 8 }}>{s.cancelPolicy || 'Puoi annullare l\'iscrizione fino all\'inizio.'}</Body>
       </Card>
+
+      <LiveAccess kind="seminar" refId={String(s.id)} title={s.title} host={s.host} dataMode={s.mode} startsAt={f.startsAt} durationMin={f.durationMin} isHost={isHost} enrolled={!!activeEnr && activeEnr.status === 'enrolled'} />
 
       {isHost ? (
         <Card>

@@ -35,6 +35,8 @@ export function NavBar({ state }: BottomTabBarProps) {
     if (weakest && (pageVisits[best] || 0) > (pageVisits[weakest] || 0) * 1.5 && !dismissedNav.includes(`${weakest}>${best}`)) suggestion = { out: weakest, inn: best };
   }
 
+  // la stanza live è a tutto schermo: nessuna barra di navigazione
+  if (current === 'liveRoom') return null;
   return (
     <View>
       {suggestion && (

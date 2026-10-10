@@ -2,6 +2,8 @@ import Constants from 'expo-constants';
 import type * as NotificationsType from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { buildPush, decidePush, dedupeKey, KIND_ORDER, KINDS, kindEnabled } from '@/lib/notifyKinds';
+import { ID_PREFIX, planReminders } from '@/lib/reminders';
 import { useApp } from '@/store/app';
 
 /**
@@ -51,6 +53,27 @@ async function ensureChannel() {
   try {
     await Notifications.setNotificationChannelAsync(CHANNEL, { name: 'Briefing giornalieri', importance: Notifications.AndroidImportance.DEFAULT, description: 'Riepilogo del mattino e della sera' });
   } catch { /* ignore */ }
+  await ensureKindChannels();
+}
+
+/** Un canale Android per categoria (id stabili: nome, importanza, suono e vibrazione diversi). */
+let kindChannelsDone = false;
+async function ensureKindChannels() {
+  if (kindChannelsDone || Platform.OS !== 'android') return;
+  kindChannelsDone = true;
+  for (const k of KIND_ORDER) {
+    const c = KINDS[k].channel;
+    try {
+      await Notifications.setNotificationChannelAsync(c.id, {
+        name: c.name,
+        description: c.description,
+        importance: Notifications.AndroidImportance[c.importance],
+        sound: c.sound ? 'default' : null,
+        enableVibrate: !!c.vibration,
+        ...(c.vibration ? { vibrationPattern: c.vibration } : {}),
+      });
+    } catch { /* ignore */ }
+  }
 }
 
 /** Chiede il permesso se serve. Restituisce true se le notifiche sono consentite. */
@@ -145,6 +168,8 @@ function content(kind: 'morning' | 'evening'): Brief {
  */
 export async function refreshBriefings(): Promise<void> {
   if (!isSupported()) return;
+  startReminderSync();
+  void refreshReminders();
   try {
     ensureHandler();
     const b = useApp.getState().briefing;
@@ -160,5 +185,100 @@ export async function refreshBriefings(): Promise<void> {
       const c = content(kind);
       await scheduleDaily(id, h, m, c.title, c.body);
     }
+  } catch { /* mai bloccare l'app per una notifica */ }
+}
+
+// ---------- promemoria degli impegni ----------
+
+let remBusy = false;
+let remAgain = false;
+
+/**
+ * Riprogramma i promemoria degli impegni (anticipo + "Parti alle ..."): cancella i vecchi `lp-ev-*` e crea quelli
+ * calcolati da planReminders. Non chiede mai il permesso da sola. Mai bloccante.
+ */
+export async function refreshReminders(): Promise<void> {
+  if (!isSupported()) return;
+  if (remBusy) { remAgain = true; return; }
+  remBusy = true;
+  try {
+    do {
+      remAgain = false;
+      ensureHandler();
+      const app = useApp.getState();
+      const st = await Notifications.getPermissionsAsync();
+      const existing = await Notifications.getAllScheduledNotificationsAsync();
+      for (const n of existing) if (n.identifier.startsWith(ID_PREFIX)) await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => undefined);
+      const wanted = st.status === 'granted' && app.reminders?.on !== false && kindEnabled(app.notifKinds, 'promemoria');
+      if (!wanted) continue;
+      await ensureKindChannels();
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const events = (require('@/store/life') as typeof import('@/store/life')).useLife.getState().events;
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const homeCity = (require('@/store/interests') as typeof import('@/store/interests')).useInterests.getState().homeCity;
+      const plan = planReminders(events, { now: Date.now(), prefs: app.reminders, homeCity });
+      const channelId = KINDS.promemoria.channel.id;
+      for (const p of plan) {
+        try {
+          await Notifications.scheduleNotificationAsync({
+            identifier: p.id,
+            content: { title: p.title, body: p.body, sound: true, data: { kind: 'promemoria', day: p.day, idx: p.idx } },
+            trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(p.at), ...(Platform.OS === 'android' ? { channelId } : {}) },
+          });
+        } catch { /* una notifica non programmabile non ferma le altre */ }
+      }
+    } while (remAgain);
+  } catch { /* mai bloccare l'app per una notifica */ } finally { remBusy = false; }
+}
+
+let syncStarted = false;
+/** Riprogramma i promemoria quando cambiano impegni, preferenze o città di casa (con debounce). Idempotente. */
+export function startReminderSync(): void {
+  if (syncStarted || !isSupported()) return;
+  syncStarted = true;
+  try {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const later = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => { void refreshReminders(); }, 2000); };
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { useLife } = require('@/store/life') as typeof import('@/store/life');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { useInterests } = require('@/store/interests') as typeof import('@/store/interests');
+    useLife.subscribe((s, p) => { if (s.events !== p.events) later(); });
+    useInterests.subscribe((s, p) => { if (s.homeCity !== p.homeCity) later(); });
+    useApp.subscribe((s, p) => { if (s.reminders !== p.reminders || s.notifKinds !== p.notifKinds) later(); });
+  } catch { syncStarted = false; }
+}
+
+// ---------- notifica locale immediata per le notifiche in-app importanti ----------
+
+const recentPush = new Map<string, number>();
+
+/**
+ * Chiamata da useNet.notify: se la categoria è abilitata ed è importante (servizio, seminario, messaggio, lavoro,
+ * punto giornaliero LifePoints) emette subito una notifica locale col canale della categoria. Evita doppioni
+ * (stessa notifica entro un minuto). Difensiva: non lancia mai.
+ */
+export async function pushForNotif(n: { type: string; text: string; urgent?: boolean; kind?: string }): Promise<void> {
+  try {
+    if (!isSupported()) return;
+    const app = useApp.getState();
+    if (!app.notif?.push) return;
+    const d = decidePush(n, app.notifKinds);
+    if (!d.push) return;
+    const key = dedupeKey(n.type, n.text);
+    const now = Date.now();
+    const last = recentPush.get(key);
+    if (last !== undefined && now - last < 60000) return;
+    recentPush.set(key, now);
+    if (recentPush.size > 50) for (const [k, t0] of recentPush) if (now - t0 > 60000) recentPush.delete(k);
+    ensureHandler();
+    const st = await Notifications.getPermissionsAsync();
+    if (st.status !== 'granted') return;
+    await ensureKindChannels();
+    const p = buildPush(n);
+    await Notifications.scheduleNotificationAsync({
+      content: { title: p.title, body: p.body, sound: p.sound, interruptionLevel: p.passive ? 'passive' : 'active', data: { kind: p.kind } },
+      trigger: Platform.OS === 'android' ? { channelId: p.channelId } : null,
+    });
   } catch { /* mai bloccare l'app per una notifica */ }
 }

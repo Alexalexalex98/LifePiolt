@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { Pressable, Share, View } from 'react-native';
 
+import { LiveAccess } from '@/components/live/LiveAccess';
 import { EnrollmentBox, Price, datedSlots, modeLabel } from '@/components/market';
 import { Badge, MediaBlock, ModButton, UserAvatar } from '@/components/network';
 import { Body, Btn, Card, Chev, Empty, H, IL, Item, Page, Row } from '@/components/ui';
@@ -31,6 +32,9 @@ export default function ServicePage() {
   const slots = datedSlots(p);
   const mine = enrollments.filter((e) => e.kind === 'service' && e.host === p.name && e.status !== 'declined');
   const r = ratingFor(p.name);
+  // sessione per la videochiamata: la prossima prenotazione dell'utente oppure, per il professionista, il prossimo slot libero
+  const nextBooking = [...mine].filter((e) => e.status === 'enrolled' && e.startsAt + e.durationMin * 60000 > Date.now()).sort((a, b) => a.startsAt - b.startsAt)[0];
+  const live = isMine ? (slots[0] ? { startsAt: slots[0].ts, durationMin: info.durationMin } : null) : nextBooking ? { startsAt: nextBooking.startsAt, durationMin: nextBooking.durationMin } : { startsAt: null as number | null, durationMin: info.durationMin };
 
   return (
     <Page id="servicePage" title={p.role} back right={<Row gap={10}><Btn small ghost icon="share" title="Condividi" onPress={() => Share.share({ message: `${p.role} con ${p.name} su LifePilot` })} />{!isMine && <ModButton kind="service" refId={p.name} label={`${p.role} · ${p.name}`} author={p.name} />}</Row>}>
@@ -47,6 +51,8 @@ export default function ServicePage() {
         </View>
         <MediaBlock media={p.media} seed={p.name + p.role} />
       </Card>
+
+      {live && <LiveAccess kind="service" refId={p.name} title={p.role} host={p.name} dataMode={info.mode} startsAt={live.startsAt} durationMin={live.durationMin} isHost={isMine} enrolled={!!nextBooking} guest={isMine ? 'Cliente' : undefined} />}
 
       <Card>
         <H>Cosa offre</H>
