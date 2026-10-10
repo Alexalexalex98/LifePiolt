@@ -1,0 +1,20 @@
+{
+  "_comment": "ATTENZIONE: tutti i numeri sono STIME DI PARTENZA, NON listini. Vanno verificati sui listini ufficiali di ogni fornitore prima di qualunque uso reale e aggiornati qui (e poi sul server). Valuta neutra: 1 unita' = 1 CHF di costo stimato. Nessun valore e' un fatto verificato.",
+  "currency": "unita neutra (circa CHF)",
+  "verification": { "status": "stima da verificare", "date": "", "source": "" },
+  "prices": {
+    "claude":        { "chat": { "unit": "1k_token", "in": 0.003, "out": 0.015 }, "reasoning": { "unit": "1k_token", "in": 0.003, "out": 0.015 }, "vision_read": { "unit": "1k_token", "in": 0.003, "out": 0.015 }, "translate": { "unit": "1k_token", "in": 0.003, "out": 0.015 }, "summarize": { "unit": "1k_token", "in": 0.003, "out": 0.015 }, "document_create": { "unit": "document", "per": 0.12 }, "web_search": { "unit": "search", "per": 0.02 } },
+    "gpt":           { "chat": { "unit": "1k_token", "in": 0.0025, "out": 0.01 }, "reasoning": { "unit": "1k_token", "in": 0.0025, "out": 0.01 }, "vision_read": { "unit": "1k_token", "in": 0.0025, "out": 0.01 }, "translate": { "unit": "1k_token", "in": 0.0025, "out": 0.01 }, "summarize": { "unit": "1k_token", "in": 0.0025, "out": 0.01 }, "document_create": { "unit": "document", "per": 0.10 }, "web_search": { "unit": "search", "per": 0.03 } },
+    "gemini":        { "chat": { "unit": "1k_token", "in": 0.0012, "out": 0.005 }, "reasoning": { "unit": "1k_token", "in": 0.0012, "out": 0.005 }, "vision_read": { "unit": "1k_token", "in": 0.0012, "out": 0.005 }, "translate": { "unit": "1k_token", "in": 0.0012, "out": 0.005 }, "summarize": { "unit": "1k_token", "in": 0.0012, "out": 0.005 }, "document_create": { "unit": "document", "per": 0.06 }, "web_search": { "unit": "search", "per": 0.015 } },
+    "mistral":       { "chat": { "unit": "1k_token", "in": 0.0005, "out": 0.0015 }, "reasoning": { "unit": "1k_token", "in": 0.0005, "out": 0.0015 }, "translate": { "unit": "1k_token", "in": 0.0005, "out": 0.0015 }, "summarize": { "unit": "1k_token", "in": 0.0005, "out": 0.0015 }, "document_create": { "unit": "document", "per": 0.03 } },
+    "gpt_image":     { "image_generate": { "unit": "image", "per": 0.04 }, "image_edit": { "unit": "image", "per": 0.05 } },
+    "imagen":        { "image_generate": { "unit": "image", "per": 0.03 }, "image_edit": { "unit": "image", "per": 0.04 } },
+    "midjourney":    { "image_generate": { "unit": "image", "per": 0.05 } },
+    "suno":          { "music_generate": { "unit": "song", "per": 0.10 } },
+    "elevenlabs":    { "text_to_speech": { "unit": "audio_minute", "per": 0.15 }, "speech_to_text": { "unit": "audio_minute", "per": 0.01 } },
+    "whisper":       { "speech_to_text": { "unit": "audio_minute", "per": 0.006 } },
+    "claude_agent":  { "agent_task": { "unit": "agent_step", "per": 0.05 } },
+    "openai_agents": { "agent_task": { "unit": "agent_step", "per": 0.04 } },
+    "perplexity":    { "web_search": { "unit": "search", "per": 0.01 }, "chat": { "unit": "1k_token", "in": 0.001, "out": 0.001 } }
+  }
+}

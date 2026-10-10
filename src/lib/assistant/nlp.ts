@@ -168,6 +168,9 @@ export function withoutSpans(raw: string, spans: Span[]): string {
 /** Parole da togliere per ottenere il titolo di ciò che si vuole aggiungere. */
 const fillers = /\b(per favore|per piacere|gentilmente|potresti|puoi|vorrei|voglio|dovresti|ti chiedo di|mi serve|devo|ricordami di|ricordami|aggiungi|aggiungimi|aggiungere|inserisci|inserire|metti|mettimi|segna|segnami|programma|pianifica|fissa|fissami|prenota|crea|creami|nuovo|nuova|un|una|uno|il|lo|la|l'|i|gli|le|al|alla|allo|ai|nel|nella|nell'|sul|sulla|sull'|piano|nel piano|nel mio piano|al mio piano|al piano|in calendario|nel calendario|sul calendario|calendario|agenda|nell'agenda|nella mia agenda|impegno|evento|appuntamento|promemoria|task|attivita|cosa da fare|nota|appunto|di|da|per|a|ad|in|con|e|che|mio|mia|miei|mie|quando|dove|please|remind me to|remind me|remember to|don't forget to|could you|can you|would you|i want to|i need to|i would like to|i'd like to|i have|(?:to|in|into|on|onto) (?:my |the )?(?:plan|calendar|agenda|schedule)|add|put|schedule|set up|book|create|new|an|the|to|my|calendar|event|appointment|reminder|at|on|for|into)\b/g;
 export function extractTitle(raw: string, spans: Span[], extraStrip?: RegExp): string {
+  // un titolo tra virgolette resta IDENTICO a come è stato scritto (anche con «con», «la»...): è il modo in cui il lessico multilingua passa i titoli
+  const quoted = /["“«]([^"”»]{1,80})["”»]/.exec(raw)?.[1]?.trim();
+  if (quoted) return quoted.charAt(0).toUpperCase() + quoted.slice(1);
   let s = withoutSpans(raw, spans);
   if (extraStrip) s = s.replace(extraStrip, ' ');
   // tieni il testo originale (con maiuscole e accenti) delle parole rimaste

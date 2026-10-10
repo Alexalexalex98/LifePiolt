@@ -1,0 +1,38 @@
+{
+  "_comment": "ESEMPIO DA DECIDERE: piani e limiti sono valori di partenza ragionevoli, non una decisione di prodotto ne' di prezzo. Ogni limite: scope = compiti coperti (oppure 'tokens' per i token stimati di tutti i compiti testuali), window = 'day' (giorno locale, si azzera a mezzanotte) oppure 'rolling' con hours (finestra mobile), max = massimo, unit = come lo scrive l'interfaccia.",
+  "plans": {
+    "free": {
+      "label": "Gratis", "example": true,
+      "limits": [
+        { "id": "songs_day", "scope": ["music_generate"], "window": "day", "max": 2, "unit": "canzoni" },
+        { "id": "images_day", "scope": ["image_generate", "image_edit"], "window": "day", "max": 5, "unit": "immagini" },
+        { "id": "docs_day", "scope": ["document_create"], "window": "day", "max": 3, "unit": "documenti" },
+        { "id": "agents_day", "scope": ["agent_task"], "window": "day", "max": 2, "unit": "richieste agenti" },
+        { "id": "tokens_5h", "scope": "tokens", "window": "rolling", "hours": 5, "max": 30000, "unit": "token" }
+      ],
+      "budget": { "day": 0.5, "month": 8 }
+    },
+    "plus": {
+      "label": "Plus", "example": true,
+      "limits": [
+        { "id": "songs_day", "scope": ["music_generate"], "window": "day", "max": 10, "unit": "canzoni" },
+        { "id": "images_day", "scope": ["image_generate", "image_edit"], "window": "day", "max": 40, "unit": "immagini" },
+        { "id": "docs_day", "scope": ["document_create"], "window": "day", "max": 20, "unit": "documenti" },
+        { "id": "agents_day", "scope": ["agent_task"], "window": "day", "max": 15, "unit": "richieste agenti" },
+        { "id": "tokens_5h", "scope": "tokens", "window": "rolling", "hours": 5, "max": 200000, "unit": "token" }
+      ],
+      "budget": { "day": 3, "month": 50 }
+    },
+    "pro": {
+      "label": "Pro", "example": true,
+      "limits": [
+        { "id": "songs_day", "scope": ["music_generate"], "window": "day", "max": 40, "unit": "canzoni" },
+        { "id": "images_day", "scope": ["image_generate", "image_edit"], "window": "day", "max": 200, "unit": "immagini" },
+        { "id": "docs_day", "scope": ["document_create"], "window": "day", "max": 100, "unit": "documenti" },
+        { "id": "agents_day", "scope": ["agent_task"], "window": "day", "max": 80, "unit": "richieste agenti" },
+        { "id": "tokens_5h", "scope": "tokens", "window": "rolling", "hours": 5, "max": 1000000, "unit": "token" }
+      ],
+      "budget": { "day": 15, "month": 250 }
+    }
+  }
+}

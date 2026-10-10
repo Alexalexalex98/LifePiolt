@@ -1,0 +1,102 @@
+/**
+ * Comprensione in 12 lingue, offline e onesta.
+ * `understand(text, lang)` riconosce la lingua, e per le 10 lingue oltre a italiano/inglese traduce il comando in un comando CANONICO IN INGLESE
+ * che l'assistente locale (src/lib/assistant) esegue senza modifiche. È un lessico, non una comprensione generale: se non è sicuro non indovina.
+ */
+import { fold } from './fold.ts';
+import { extractWhen } from './when.ts';
+import { applyRules, hitsOf, titleOf, type Ctx, type Span } from './rules.ts';
+import { detectLang, scriptOf } from './detect.ts';
+import { rx } from './build.ts';
+import { LEXICONS } from './lex/index.ts';
+import type { Concept, Understood } from './types.ts';
+
+export { detectLang, scriptOf } from './detect.ts';
+export type { Understood } from './types.ts';
+export const NATIVE_ENGINE_LANGS = ['it', 'en'];
+
+export type UnderstandOpts = {
+  /** true se l'utente ha scelto la lingua del messaggio (voce con lingua scelta): non si rileva */
+  forced?: boolean;
+  /** lingua dell'app: preferita quando il rilevamento è incerto */
+  appLang?: string;
+};
+
+const QUOTE = /[«“"„「『][^»”"」』]{1,80}[»”"」』]/u;
+
+export function understand(text: string, lang: string, opts: UnderstandOpts = {}): Understood {
+  const raw = (text ?? '').trim();
+  if (!raw) return { status: 'unknown', lang };
+  const target = opts.forced ? lang : detectLang(raw, opts.appLang ?? lang).lang;
+  if (target === 'it' || target === 'en' || !LEXICONS[target as keyof typeof LEXICONS]) {
+    // una lingua che non conosciamo: se è it/en passa com'è; altrimenti non indovino
+    return target === 'it' || target === 'en' ? { status: 'passthrough', text: raw, lang: target } : { status: 'unknown', lang: target };
+  }
+  const lex = LEXICONS[target as keyof typeof LEXICONS];
+  const fd = fold(raw, lex.script);
+  let f = fd.f;
+  const all: Span[] = [];
+
+  // titolo tra virgolette: resta identico
+  let quoted: string | undefined;
+  const q = QUOTE.exec(f);
+  if (q) {
+    const a = q.index, b = q.index + q[0].length;
+    quoted = fd.src.slice(fd.map[a + 1], fd.map[b - 1]).trim();
+    f = f.slice(0, a) + ' '.repeat(b - a) + f.slice(b);
+    all.push([a, b]);
+  }
+
+  const { when, f: f2 } = extractWhen(lex, f);
+  all.push(...when.spans);
+  const hit = hitsOf(lex, f2);
+  const spans: Span[] = [...all];
+  for (const s of Object.values(hit.h)) if (s && s[1] > s[0]) spans.push(s);
+
+  // persona (condivisione agenda)
+  let person: string | undefined;
+  if (hit.personSpan) {
+    const [x, y] = hit.personSpan;
+    person = fd.src.slice(fd.map[x], fd.map[y]).trim();
+    person = person.charAt(0).toLocaleUpperCase() + person.slice(1);
+    spans.push(hit.personSpan);
+  }
+
+  const richTitle = (strip: Concept[]) => {
+    const cut: Span[] = [...all];
+    const pol = hit.h.polite; if (pol && pol[1] > pol[0]) cut.push(pol);
+    for (const k of strip) { const s = hit.h[k]; if (s && s[1] > s[0]) cut.push(s); }
+    for (const [k, s] of Object.entries(hit.h)) if (k.startsWith('page:') || k.startsWith('mood:')) { void s; }
+    return titleOf({ lex, fd }, cut);
+  };
+
+  // parole non spiegate (per capire se la frase è davvero un comando semplice)
+  const leftover = titleOf({ lex, fd }, spans);
+  const words = !leftover ? 0 : lex.spaced ? leftover.split(/\s+/).length : Math.ceil(leftover.length / 2);
+
+  const c: Ctx = { lex, fd, f: f2, h: hit.h, page: hit.page, mood: hit.mood, w: when, quoted, person, all, words };
+
+  // rinomina: "X in Y"
+  if ((hit.h.rename) && hit.h.into) {
+    const r = hit.h.rename, i = (() => { const m = rx(lex, lex.c.into!).exec(f2.slice(r[1])); return m ? ([r[1] + m.index, r[1] + m.index + m[0].length] as Span) : null; })();
+    if (i) {
+      const rest: Span[] = [...all];
+      for (const k of ['polite', 'rename', 'task', 'event'] as Concept[]) { const s = hit.h[k]; if (s && s[1] > s[0]) rest.push(s); }
+      const old = titleOf({ lex, fd }, rest, 0, i[0]);
+      const neu = titleOf({ lex, fd }, rest, i[1]);
+      if (old && neu) c.rn = { old, neu };
+    }
+  }
+
+  const m = applyRules(c, richTitle);
+  if (!m) {
+    // solo data/ora (risposta a "quando?")
+    const only = (when.any || when.hint) && !leftover.trim() && !Object.keys(hit.h).some((k) => k !== 'polite');
+    if (only) {
+      const en = [when.day, when.start && when.end ? `from ${when.start} to ${when.end}` : when.start ? `at ${when.start}` : '', when.dur ? `for ${when.dur}` : ''].filter(Boolean).join(' ');
+      if (en) return { status: 'translated', text: en, lang: target, intent: 'when.only', confidence: 0.8 };
+    }
+    return { status: 'unknown', lang: target };
+  }
+  return { status: m.confidence >= 0.7 ? 'translated' : 'confirm', text: m.text, lang: target, intent: m.intent, confidence: m.confidence };
+}
