@@ -257,3 +257,30 @@ export function estimateIncomes(movements: { date: string; amount: number; label
   return out;
 }
 
+/**
+ * Spese fisse previste (costi ricorrenti mensili) non ancora comparse nei movimenti del mese: si assume il giorno 28.
+ * E' una stima dichiarata come tale, serve solo a non sopravvalutare la liquidita'.
+ */
+export function estimateFixedOutflows(
+  recurring: { name: string; amount: number; freq: 'monthly' | 'yearly' }[],
+  currentMonthLabels: string[],
+  today: string,
+  horizonDays = 70,
+): { date: string; amount: number; label: string }[] {
+  const out: { date: string; amount: number; label: string }[] = [];
+  const seen = currentMonthLabels.map((l) => l.toLowerCase());
+  const y = +today.slice(0, 4), m = +today.slice(5, 7);
+  for (const b of recurring) {
+    if (b.freq !== 'monthly' || !(b.amount > 0)) continue;
+    const already = seen.some((l) => l.includes(b.name.trim().toLowerCase()));
+    for (let k = 0; k < 4; k++) {
+      const mm = ((m - 1 + k) % 12) + 1, yy = y + Math.floor((m - 1 + k) / 12);
+      const date = `${String(yy).padStart(4, '0')}-${String(mm).padStart(2, '0')}-28`;
+      const dd = diffDays(today, date);
+      if (dd < 0 || dd > horizonDays) continue;
+      if (k === 0 && already) continue;
+      out.push({ date, amount: b.amount, label: b.name });
+    }
+  }
+  return out;
+}

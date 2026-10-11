@@ -78,7 +78,7 @@ export function detectLang(folded: string): BillLang {
 type Amt = { value: number; line: number; start: number; end: number; raw: string; cur?: string; score: number; ambiguous?: boolean; decimals: boolean };
 
 const CUR = "(?:\\b(?:CHF|EUR|USD|GBP|SFr|Fr)\\.?|[€$£])";
-const NUM = "(?:\\d{1,3}(?:[.'\\u2019]\\d{3})+(?:[.,]\\d{1,2}|[.,]-)?|\\d{1,3}(?: \\d{3})+[.,]\\d{2}|\\d+(?:[.,]\\d{1,2}|[.,]-)?)";
+const NUM = "(?:\\d{1,3}(?:[.,'\\u2019]\\d{3})+(?:[.,]\\d{1,2}|[.,]-)?|\\d{1,3}(?: \\d{3})+[.,]\\d{2}|\\d+(?:[.,]\\d{1,2}|[.,]-)?)";
 const AMT_RE = () => new RegExp(`(${CUR})?\\s*(-?${NUM})(?![\\d]|[.,]\\d)(?:\\s*(${CUR})(?![A-Za-z]))?`, 'gi');
 
 function curCode(c?: string): string | undefined {
@@ -147,7 +147,7 @@ function kwScore(f: string): number {
 
 const MONTHS: Record<string, number> = {
   gennaio: 1, gen: 1, febbraio: 2, feb: 2, marzo: 3, mar: 3, aprile: 4, apr: 4, maggio: 5, mag: 5, giugno: 6, giu: 6, luglio: 7, lug: 7, agosto: 8, ago: 8, settembre: 9, sett: 9, set: 9, ottobre: 10, ott: 10, novembre: 11, nov: 11, dicembre: 12, dic: 12,
-  january: 1, jan: 1, february: 2, march: 3, april: 4, may: 5, june: 6, jun: 6, july: 7, jul: 7, august: 8, aug: 8, september: 9, sep: 9, october: 10, oct: 10, december: 12, dec: 12,
+  january: 1, jan: 1, february: 2, march: 3, april: 4, may: 5, june: 6, jun: 6, july: 7, jul: 7, august: 8, aug: 8, september: 9, sep: 9, october: 10, oct: 10, november: 11, december: 12, dec: 12,
   januar: 1, janner: 1, februar: 2, marz: 3, mai: 5, juni: 6, juli: 7, oktober: 10, okt: 10, dezember: 12, dez: 12,
   janvier: 1, janv: 1, fevrier: 2, fevr: 2, mars: 3, avril: 4, avr: 4, juin: 6, juillet: 7, juil: 7, aout: 8, septembre: 9, octobre: 10, decembre: 12,
 };

@@ -10,9 +10,9 @@ let known: boolean | undefined;
 export function billReviewExists(): boolean {
   if (known !== undefined) return known;
   try {
-    const req = require as unknown as { context?: (dir: string, deep: boolean, re: RegExp) => Ctx };
-    if (typeof req.context !== 'function') return (known = true);
-    known = req.context('../../app/(tabs)', false, /^\.\/billReview\.tsx?$/).keys().length > 0;
+    // Metro risolve `require.context` in fase di build: deve restare una chiamata letterale
+    // @ts-expect-error `require.context` è fornito da Metro, non dai tipi di Node
+    known = (require.context('../../app/(tabs)', false, /^\.\/billReview\.tsx?$/) as Ctx).keys().length > 0;
   } catch { known = true; }
   return known;
 }

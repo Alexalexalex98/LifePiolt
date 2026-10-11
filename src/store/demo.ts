@@ -1,7 +1,9 @@
 import seed from '@/data/network-seed.json';
 import { seedMarketplace } from '@/data/marketSeed';
 import { demoAutomations, demoBills, demoDoneTasks, demoDrive, demoEvents, demoGoals, demoHealth, demoInsights, demoMonths, demoNotes, demoTasks } from '@/data/seed';
-import { shortDate } from '@/lib/format';
+import { demoInvoices } from '@/lib/bills/demo';
+import { todayIso } from '@/lib/bills/dates';
+import { shortDate, uid } from '@/lib/format';
 import { defaultBudget, defaultCategories, defaultWatchlist, useFin } from './finance';
 import { ensureDates, useHealth } from './health';
 import { seedJobs } from '@/data/jobsSeed';
@@ -147,7 +149,7 @@ export function applyDemo(me: string, email = '') {
   { const j = seedJobs(me); useJobs.setState({ jobs: j.jobs, applications: j.applications, practice: j.practice, practicals: j.practicals }); useNet.setState((st) => ({ votes: { ...st.votes, ...j.votes } })); }
   const months = demoMonths();
   useFin.setState({
-    months, insights: demoInsights(), savingsPct: 6.5, bills: demoBills(), cash: 5000, stocks: defaultWatchlist(true),
+    months, insights: demoInsights(), savingsPct: 6.5, bills: demoBills(), invoices: demoInvoices(todayIso(), uid), cash: 5000, stocks: defaultWatchlist(true),
     tax: { married: false, children: false, banks: ['UBS'], docs: {} },
     budget: defaultBudget(6500, true, defaultCategories, months),
   });

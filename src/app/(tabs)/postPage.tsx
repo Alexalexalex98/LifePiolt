@@ -36,6 +36,7 @@ export default function PostPage() {
   const scroller = useRef<ScrollView>(null);
   const commentsTop = useRef(0);
   const rowY = useRef<Record<number, number>>({});
+  const rowRefs = useRef<Record<number, unknown>>({});
   const pendingFocus = useRef<number | null>(null);
   const glow = useRef(new Animated.Value(0)).current;
   const [flashIdx, setFlashIdx] = useState<number | null>(null);
@@ -43,7 +44,12 @@ export default function PostPage() {
     const y = rowY.current[i];
     if (y === undefined) return;
     pendingFocus.current = null;
-    scroller.current?.scrollTo({ y: Math.max(0, commentsTop.current + y - 90), animated: !reduce });
+    const to = (yy: number) => scroller.current?.scrollTo({ y: Math.max(0, yy - 90), animated: !reduce });
+    // posizione reale dentro lo ScrollView (il contenuto sopra, come le immagini, puo' cambiare altezza dopo il primo layout)
+    const node = rowRefs.current[i] as unknown as { measureLayout?: (rel: unknown, ok: (x: number, y: number) => void, err: () => void) => void } | null;
+    const inner = (scroller.current as unknown as { getInnerViewRef?: () => unknown } | null)?.getInnerViewRef?.();
+    if (node?.measureLayout && inner) node.measureLayout(inner, (_x, yy) => to(yy), () => to(commentsTop.current + y));
+    else to(commentsTop.current + y);
     setFlashIdx(i);
     glow.setValue(1);
     if (reduce) setTimeout(() => setFlashIdx(null), 2200);
@@ -125,7 +131,7 @@ export default function PostPage() {
               <Text style={{ color: t.muted, fontSize: 15, textAlign: 'center' }}>Ancora nessun commento: scrivi il primo.</Text>
             </View>
           ) : comments.map((c) => (
-            <Animated.View key={c.i} onLayout={(e) => { rowY.current[c.i] = e.nativeEvent.layout.y; if (pendingFocus.current === c.i) focusComment(c.i); }} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 12, backgroundColor: flashIdx === c.i ? glow.interpolate({ inputRange: [0, 1], outputRange: ['rgba(0,0,0,0)', t.accent + '40'] }) : 'transparent' }}>
+            <Animated.View key={c.i} ref={(r) => { rowRefs.current[c.i] = r; }} onLayout={(e) => { rowY.current[c.i] = e.nativeEvent.layout.y; if (pendingFocus.current === c.i) focusComment(c.i); }} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 12, backgroundColor: flashIdx === c.i ? glow.interpolate({ inputRange: [0, 1], outputRange: ['rgba(0,0,0,0)', t.accent + '40'] }) : 'transparent' }}>
               <UserAvatar name={c.author} size={34} />
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={{ color: t.text, fontSize: 14.5, lineHeight: 21 }}><Text style={{ fontWeight: '800' }} onPress={() => go('userProfile', { name: c.author })}>{c.author} </Text>{c.text}</Text>
