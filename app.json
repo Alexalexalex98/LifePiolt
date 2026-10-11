@@ -140,6 +140,11 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "description": "LifePilot: salute, finanze, obiettivi, viaggi e persone in un posto solo, con un assistente che ti conosce."
+    "description": "LifePilot: salute, finanze, obiettivi, viaggi e persone in un posto solo, con un assistente che ti conosce.",
+    "extra": {
+      "eas": {
+        "projectId": "b374c0a3-8d3d-4021-9a00-1e78bc824dd9"
+      }
+    }
   }
 }
