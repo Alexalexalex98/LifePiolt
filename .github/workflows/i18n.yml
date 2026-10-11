@@ -1,0 +1,87 @@
+name: i18n
+
+# Rigenera src/i18n/source.json, traduce automaticamente le chiavi mancanti (se c'e' una chiave API tra i secret)
+# e committa i cataloghi aggiornati. Senza secret fa solo il controllo (avviso, non blocca).
+# Secret da creare: GitHub > Settings > Secrets and variables > Actions > New repository secret
+#   ANTHROPIC_API_KEY  (consigliato)   oppure   DEEPL_API_KEY / GOOGLE_TRANSLATE_API_KEY
+#   (opzionali: LIBRETRANSLATE_URL, LIBRETRANSLATE_KEY; variabile ANTHROPIC_MODEL per cambiare modello)
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: i18n-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  i18n:
+    # niente loop: salta i commit del bot e quelli marcati [skip ci]
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}
+      GOOGLE_TRANSLATE_API_KEY: ${{ secrets.GOOGLE_TRANSLATE_API_KEY }}
+      LIBRETRANSLATE_URL: ${{ secrets.LIBRETRANSLATE_URL }}
+      LIBRETRANSLATE_KEY: ${{ secrets.LIBRETRANSLATE_KEY }}
+      ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Estrai le stringhe italiane
+        run: npm run i18n:extract
+
+      - name: Test del sistema di traduzione
+        run: node --experimental-strip-types --test tests/i18nCatalog.test.mjs tests/i18nTranslate.test.mjs
+
+      - name: Ci sono traduzioni mancanti?
+        id: status
+        run: |
+          if node scripts/translate-i18n.mjs --check > /tmp/i18n-check.txt; then echo "missing=false" >> "$GITHUB_OUTPUT"; else echo "missing=true" >> "$GITHUB_OUTPUT"; fi
+          cat /tmp/i18n-check.txt
+
+      - name: Controlla se c'e' una chiave API
+        id: key
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ] || [ -n "$DEEPL_API_KEY" ] || [ -n "$GOOGLE_TRANSLATE_API_KEY" ] || [ -n "$LIBRETRANSLATE_URL" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Avviso, traduzioni mancanti e nessun secret
+        if: steps.status.outputs.missing == 'true' && steps.key.outputs.present != 'true'
+        run: echo "::warning title=i18n::Mancano traduzioni ma non c'e' nessun secret (ANTHROPIC_API_KEY o DEEPL_API_KEY). Vedi docs/i18n.md."
+
+      # i secret non sono disponibili nelle pull request da fork; il commit del bot avviene solo su push
+      - name: Traduci le chiavi mancanti
+        id: translate
+        if: steps.status.outputs.missing == 'true' && steps.key.outputs.present == 'true' && github.event_name == 'push'
+        continue-on-error: true
+        run: npm run i18n:translate -- --yes
+
+      - name: Commit dei cataloghi aggiornati
+        if: github.event_name == 'push' && steps.key.outputs.present == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/i18n/locales/*.json src/i18n/source.json src/i18n/source.meta.json
+          if git diff --cached --quiet; then echo "Nessuna modifica da committare"; else
+            git commit -m "chore(i18n): traduzioni automatiche [skip ci]"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      - name: Esito della traduzione
+        if: steps.translate.outcome == 'failure'
+        run: |
+          echo "::error title=i18n::Alcune voci non sono state tradotte (fallite o lingua non coperta dal provider). Vedi il log del passo precedente."
+          exit 1

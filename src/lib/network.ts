@@ -120,21 +120,21 @@ export function convertAmount(chf: number, currency: string): number {
 }
 export type { Idea };
 
-/* ---------- voto consentito solo dopo una partecipazione confermata ---------- */
-export const VOTE_BLOCK_MSG = 'Puoi votare solo dopo aver partecipato a un servizio o seminario di questa persona.';
+/* ---------- voto consentito a chi si è iscritto almeno una volta (seminario, servizio; il LifeClub è gestito in lib/profile/actions) ---------- */
+export const VOTE_BLOCK_MSG = 'Puoi votare solo se ti sei iscritto almeno una volta a un seminario, a un servizio o a un LifeClub di questa persona.';
 
-/** true se `me` ha una partecipazione confermata (non ancora usata per votare) a un seminario/servizio di `target`. */
+/** true se `me` ha un'iscrizione (non rifiutata, non ancora usata per votare) a un seminario/servizio di `target`. */
 export function canVote(me: string, target: string): boolean {
   if (!target || target === me) return false;
-  return useNet.getState().enrollments.some((e) => e.host === target && e.status === 'attended' && !e.voted);
+  return useNet.getState().enrollments.some((e) => e.host === target && e.status !== 'declined' && !e.voted);
 }
 
 /** Motivo per cui non si puo' votare (null se si puo'). */
 export function voteBlockReason(me: string, target: string): string | null {
   if (target === me) return 'Non puoi votare te stesso.';
   if (canVote(me, target)) return null;
-  const done = useNet.getState().enrollments.some((e) => e.host === target && e.status === 'attended' && e.voted);
-  return done ? 'Hai già votato per la tua partecipazione a un servizio o seminario di questa persona. Potrai votare di nuovo dopo la prossima partecipazione confermata.' : VOTE_BLOCK_MSG;
+  const done = useNet.getState().enrollments.some((e) => e.host === target && e.status !== 'declined' && e.voted);
+  return done ? 'Hai già votato con la tua iscrizione a questa persona. Potrai votare di nuovo con una nuova iscrizione.' : VOTE_BLOCK_MSG;
 }
 
 /** Registra il voto e lo associa alla partecipazione (un voto per partecipazione). */
@@ -145,7 +145,7 @@ export function castVote(me: string, target: string, stars: number): boolean {
     let used = false;
     return {
       votes: { ...s.votes, [target]: { ...cur, [stars]: (cur[stars] || 0) + 1 } },
-      enrollments: s.enrollments.map((e) => { if (!used && e.host === target && e.status === 'attended' && !e.voted) { used = true; return { ...e, voted: true }; } return e; }),
+      enrollments: s.enrollments.map((e) => { if (!used && e.host === target && e.status !== 'declined' && !e.voted) { used = true; return { ...e, voted: true }; } return e; }),
     };
   });
   return true;

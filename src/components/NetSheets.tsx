@@ -12,7 +12,10 @@ import { paidCancel, freeCancel } from '@/data/marketSeed';
 import { confirmAttendance, hasEnded } from '@/lib/enroll';
 import { ConflictSheet } from '@/lib/planBooking';
 import { fmtRange, nextDays, timeOptions, tsOf } from '@/lib/when';
-import { VOTE_BLOCK_MSG, canVote, castVote, convertAmount, cryptoRates, isVoteReasonRelevant, rateIdeaDetailed, ratingFor, textSimilarity, voteBlockReason } from '@/lib/network';
+import { VOTE_BLOCK_MSG, convertAmount, cryptoRates, isVoteReasonRelevant, rateIdeaDetailed, textSimilarity } from '@/lib/network';
+import { castProfileVote, profileVoteBlock, skillStatesOf } from '@/lib/profile/actions';
+import { ReputationDetail, SkillChip } from '@/components/profile/ProfileParts';
+import { HONESTY_NOTICE, quota } from '@/lib/profile/skills';
 import { useApp } from '@/store/app';
 import { newId, topicList, useNet } from '@/store/network';
 import { showUndoToast, toast } from '@/store/toast';
@@ -140,12 +143,12 @@ function NetSheetInner() {
     case 'promoteSeminar': { title = 'Promuovi seminario'; body = <PromoteView id={p.id} />; break; }
     case 'vote': {
       title = 'Vota ' + p.name;
-      const why = voteBlockReason(me, p.name);
+      const why = profileVoteBlock(me, p.name);
       body = why ? (
         <>
           <IL icon="info" bold>Voto non disponibile</IL>
           <Body small style={{ marginTop: 10 }}>{why}</Body>
-          <Body small muted style={{ marginTop: 8 }}>Così le valutazioni vengono solo da chi ha provato davvero il servizio o seguito il seminario.</Body>
+          <Body small muted style={{ marginTop: 8 }}>Così le valutazioni vengono solo da chi ha davvero un legame con la persona: un seminario, un servizio o un LifeClub.</Body>
           <Btn ghost style={{ marginTop: 14 }} title="Ho capito" onPress={close} />
         </>
       ) : <VoteView name={p.name} />;
@@ -158,15 +161,8 @@ function NetSheetInner() {
     }
     case 'confirmAttendance': { title = 'Conferma partecipazione'; body = <ConfirmAttendanceView id={p.id} />; break; }
     case 'rating': {
-      title = 'Voti di ' + p.name;
-      const r = ratingFor(p.name);
-      body = !r.count ? <Empty text="Nessun voto ancora." /> : (
-        <>
-          <Metric big>{r.avg}/5</Metric>
-          <Body small muted style={{ marginBottom: 10 }}>{r.count} voti totali</Body>
-          {[5, 4, 3, 2, 1].map((s) => { const n = r.counts[s] || 0; return <Item key={s}><Row><Body>{s} stelle</Body><Body small muted>{n}</Body></Row><Progress value={r.count ? Math.round((n / r.count) * 100) : 0} /></Item>; })}
-        </>
-      );
+      title = 'Voto complessivo di ' + p.name;
+      body = <ReputationDetail name={p.name} onClose={close} />;
       break;
     }
     case 'createClub': { title = 'Crea il tuo LifeClub'; body = <CreateClubView />; break; }
@@ -221,18 +217,14 @@ function NetSheetInner() {
     case 'addCard': { title = 'Aggiungi carta'; body = <AddCardView />; break; }
     case 'cv': {
       const name = p.name;
-      const mine = name === me;
-      title = 'CV completo';
+      const states = skillStatesOf(name, me);
+      const q = quota(states);
+      title = 'Competenze di ' + name;
       body = (
         <>
-          <Row style={{ justifyContent: 'flex-start', marginBottom: 14 }}><UserAvatar name={name} size={40} /><View><Body bold>{name}</Body><Body small muted>{mine ? net.myCard.profession : 'Membro della community LifeNetwork'}</Body></View></Row>
-          {mine ? (
-            <>
-              <Body small muted>FORMAZIONE</Body><Item><Body small>{net.myCard.schools || '—'}</Body></Item>
-              <Body small muted style={{ marginTop: 12 }}>ESPERIENZA</Body><Item><Body small>{net.myCard.experience || '—'}</Body></Item>
-              <Body small muted style={{ marginTop: 12 }}>COMMENTI AZIENDALI</Body><Item><Body small>{net.myCard.companyComments}</Body></Item>
-            </>
-          ) : <Body small muted>{name} non ha reso pubblico un CV completo su LifeNetwork.</Body>}
+          <Row style={{ justifyContent: 'flex-start', marginBottom: 14 }}><UserAvatar name={name} size={40} /><View><Body bold>{name}</Body><Body small muted>{q.total ? tl('{0} su {1} competenze verificate', q.verified, q.total) : 'Nessuna competenza dichiarata'}</Body></View></Row>
+          {states.map((s2) => <Item key={s2.id}><Row><Body style={{ flex: 1 }}>{s2.label}</Body><SkillChip s={s2} /></Row></Item>)}
+          <Body small muted style={{ marginTop: 12 }}>Niente curriculum: contano le competenze. {HONESTY_NOTICE}</Body>
         </>
       );
       break;
@@ -480,14 +472,14 @@ function VoteView({ name }: { name: string }) {
   const [stars, setStars] = useState(0); const [reason, setReason] = useState('');
   return (
     <>
-      <Body small color={t.positive} style={{ marginBottom: 6 }}>Grazie per aver partecipato: com'è andata?</Body>
+      <Body small color={t.positive} style={{ marginBottom: 6 }}>Com'è andata con questa persona?</Body>
       <Body small muted>Il voto resta aggregato (si vede la media e la distribuzione, non chi ha votato). Il motivo che scrivi qui viene controllato prima di pubblicare il voto: deve essere pertinente, non un riempitivo.</Body>
       <Row style={{ justifyContent: 'center', marginVertical: 16 }} gap={12}>{[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setStars(n)}><Icon name="star" size={32} color={t.text} fill={n <= stars ? t.text : 'none'} /></Pressable>)}</Row>
       <Input multiline style={{ minHeight: 70 }} placeholder="Perché dai questo voto? (obbligatorio)" value={reason} onChangeText={setReason} />
       <Btn title="Invia voto" onPress={() => {
         if (!stars) { toast('Seleziona da 1 a 5 stelle'); return; }
         if (!isVoteReasonRelevant(reason)) { toast('Il motivo non sembra abbastanza pertinente: spiega meglio perché dai questo voto'); return; }
-        if (!castVote(me, name, stars)) { close(); toast(VOTE_BLOCK_MSG); return; }
+        if (!castProfileVote(me, name, stars)) { close(); toast(VOTE_BLOCK_MSG); return; }
         close(); toast('Voto pubblicato');
       }} />
     </>
@@ -528,23 +520,11 @@ function EditProfileView() {
 }
 
 function VerificationView() {
-  const net = useNet();
   const close = useNetSheet((s) => s.close);
-  const [country, setCountry] = useState(''); const [year, setYear] = useState('');
   return (
     <>
-      <Body small muted>Per accedere a LifeNetwork serve confermare l'età minima (di norma 16 anni, o l'età prevista dal tuo paese). Qui dichiari i tuoi dati: la verifica con un documento vero richiederà un provider di identity verification.</Body>
-      <Input style={{ marginTop: 10 }} placeholder="Paese del documento (es. Svizzera)" value={country} onChangeText={setCountry} />
-      <Input keyboardType="number-pad" placeholder="Anno di nascita" value={year} onChangeText={setYear} />
-      <Btn title="Verifica" onPress={() => {
-        const c = country.trim() || 'Svizzera', y = parseInt(year);
-        if (!y) { toast('Inserisci un anno di nascita valido'); return; }
-        const age = new Date().getFullYear() - y;
-        const minAge = /stati uniti|usa/i.test(c) ? 18 : 16;
-        if (age < minAge) { close(); toast(`Età minima non raggiunta per ${c} (richiesti ${minAge} anni)`); return; }
-        net.patch({ identity: { verified: true, country: c, birthYear: y } });
-        close(); toast('Identità verificata, benvenuto su LifeNetwork');
-      }} />
+      <Body small muted>Per pubblicare, vendere e offrire servizi su LifeNetwork serve un documento: ogni account è collegato a una persona reale. Il resto dell’app funziona anche senza.</Body>
+      <Btn style={{ marginTop: 12 }} icon="lock" title="Verifica con un documento" onPress={() => { close(); go('identityVerify'); }} />
     </>
   );
 }
@@ -622,7 +602,7 @@ function NewPostView() {
   );
 }
 
-void IdeaCard; void weekdayShortDate; void canVote;
+void IdeaCard; void weekdayShortDate;
 
 
 /** Segnala / Nascondi / Blocca utente per un contenuto della rete. */

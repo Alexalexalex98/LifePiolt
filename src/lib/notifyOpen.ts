@@ -9,6 +9,7 @@ import { buildRef, parseRef, readPushData, routeFor, type Route } from '@/lib/no
 import { isUnlocked, pageLevel } from '@/lib/tour';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
+import { useClub } from '@/store/club';
 import { useJobs } from '@/store/jobs';
 import { useNet } from '@/store/network';
 import { useTour } from '@/store/tour';
@@ -59,6 +60,9 @@ export function resolveRef(ref: string | null | undefined): Resolved {
       const c = useChat.getState().chats[p.id];
       // le chat dm: si creano da sole all'apertura; gruppi e altre chat devono esistere
       return c || p.id.startsWith('dm:') ? route : { missing: true };
+    }
+    case 'club': case 'clubcontent': {
+      return useClub.getState().clubs[p.id] ? route : { missing: true };
     }
     case 'job': {
       const js = useJobs.getState();

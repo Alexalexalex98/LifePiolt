@@ -33,7 +33,9 @@ import { useContext } from '@/store/context';
 import { useAssistant } from '@/store/assistant';
 import { useDiscover } from '@/store/discover';
 import { useAiRouter } from '@/store/aiRouter';
+import { useIdentity } from '@/store/identity';
 import { useInterests } from '@/store/interests';
+import { useClub } from '@/store/club';
 import { useSharing } from '@/store/sharing';
 import { useTour } from '@/store/tour';
 import { useLive } from '@/store/live';
@@ -42,7 +44,7 @@ import { lockPortrait } from '@/lib/orientation';
 SplashScreen.preventAutoHideAsync();
 installGlobalErrors();
 
-const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, useInterests, useLive, useSharing, useTour, useAiRouter];
+const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, useInterests, useIdentity, useLive, useSharing, useTour, useAiRouter];
 const allHydrated = () => stores.every((s) => s.persist.hasHydrated());
 
 export { ErrorScreen as ErrorBoundary } from '@/components/ErrorScreen';

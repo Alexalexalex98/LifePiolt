@@ -45,3 +45,6 @@ example
 # env
 .env
 .env.*
+
+# i18n translation report/cache
+.i18n-cache/

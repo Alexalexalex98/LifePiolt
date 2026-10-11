@@ -1,0 +1,20 @@
+{
+  "_note": "STIMA DA VERIFICARE: tariffe indicative in USD, controllare i listini ufficiali prima di spendere. Modificabili qui o con --price-per-mchar=NN.",
+  "currency": "USD",
+  "anthropic": {
+    "defaultModel": "claude-haiku-4-5",
+    "models": {
+      "claude-haiku-4-5": { "inputPerMTok": 1, "outputPerMTok": 5 },
+      "claude-sonnet-4-5": { "inputPerMTok": 3, "outputPerMTok": 15 }
+    },
+    "fallbackModel": { "inputPerMTok": 3, "outputPerMTok": 15 },
+    "charsPerToken": 3.5,
+    "promptOverheadTokensPerBatch": 1500,
+    "perItemOverheadTokens": 10,
+    "outputTokenFactor": { "default": 1.2, "en": 0.9, "es": 1.05, "fr": 1.1, "de": 1.15, "pt": 1.05, "zh": 1.0, "hi": 2.2, "ar": 1.6, "ru": 1.5, "ja": 1.2, "id": 1.0 }
+  },
+  "deepl": { "perMChars": 25, "freeCharsPerMonth": 500000 },
+  "google": { "perMChars": 20, "freeCharsPerMonth": 500000 },
+  "libretranslate": { "perMChars": 0 },
+  "mock": { "perMChars": 0 }
+}

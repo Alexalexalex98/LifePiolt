@@ -28,6 +28,17 @@ export type RsvpAnswer = 'yes' | 'maybe' | 'no';
 export type EventShare = { title: string; day: string; time: string; durationMin: number; place?: string; description?: string; rsvp: Record<string, RsvpAnswer> };
 export type Poll = { q: string; multi: boolean; options: { id: string; t: string; votes: string[] }[] };
 
+/** Messaggi dei LifeClub: domanda/risposta/annuncio collegati a una lezione (link che apre il contenuto al punto giusto). */
+export type ClubMsgMeta = {
+  kind: 'question' | 'answer' | 'announce' | 'content';
+  courseId?: string; lessonId?: string; lessonTitle?: string;
+  /** es. «Lezione 3 · 3:42» */
+  label?: string;
+  sec?: number; page?: number; para?: number;
+  /** commento gemello nello store dei club */
+  commentId?: string;
+};
+
 export type ChatMessage = {
   id: string;
   chatId: string;
@@ -55,13 +66,18 @@ export type ChatMessage = {
   /** persone che hanno importato la scheda (agenda/task/nota) nel proprio piano */
   importedBy?: string[];
   expiresAt?: number;
+  /** LifeClub: collegamento alla lezione e messaggio fissato dal creatore */
+  club?: ClubMsgMeta;
+  pinned?: boolean;
   viewOnce?: boolean;
   played?: boolean;
 };
 
 export type Chat = {
-  id: string; // dm:<nome> oppure g:<id>
-  type: 'dm' | 'group';
+  id: string; // dm:<nome>, g:<id> oppure club:<clubId>
+  type: 'dm' | 'group' | 'club';
+  /** solo type 'club': il LifeClub a cui appartiene la chat (permessi di scrittura nello store dei club) */
+  clubId?: string;
   name: string;
   members: string[];
   admins: string[];
@@ -97,6 +113,7 @@ export const reactionIcon = (r: string) => (legacy[r] ?? r);
 
 export const dmId = (name: string) => `dm:${name}`;
 export const groupChatId = (id: string | number) => `g:${id}`;
+export const clubChatId = (clubId: string) => `club:${clubId}`;
 
 type ChatState = {
   chats: Record<string, Chat>;
@@ -106,6 +123,8 @@ type ChatState = {
 
   ensureDm: (name: string, me: string) => string;
   createGroup: (name: string, members: string[], me: string, description?: string) => string;
+  /** crea (se manca) il canale di un LifeClub nelle chat */
+  ensureClubChat: (clubId: string, name: string, owner: string, me: string, description?: string) => string;
   patchChat: (id: string, p: Partial<Chat>) => void;
   deleteChat: (id: string) => void;
   clearChat: (id: string, keepStarred?: boolean) => void;
@@ -156,6 +175,14 @@ export const useChat = create<ChatState>()(
       const chat: Chat = { id: gid, type: 'group', name, members: [me, ...members.filter((m) => m !== me)], admins: [me], description, lastRead: Date.now(), createdAt: Date.now() };
       set((s) => ({ chats: { ...s.chats, [gid]: chat }, messages: { ...s.messages, [gid]: [sys(gid, `${me} ha creato il gruppo "${name}"`)] } }));
       return gid;
+    },
+    ensureClubChat: (clubId, name, owner, me, description) => {
+      const id = clubChatId(clubId);
+      const cur = get().chats[id];
+      if (cur) { if (cur.name !== name || cur.archived) set((s) => ({ chats: { ...s.chats, [id]: { ...s.chats[id], name, archived: false } } })); return id; }
+      const chat: Chat = { id, type: 'club', clubId, name, members: [...new Set([owner, me])], admins: [owner], description, lastRead: Date.now(), createdAt: Date.now() };
+      set((s) => ({ chats: { ...s.chats, [id]: chat }, messages: { ...s.messages, [id]: [sys(id, `Benvenuto nel canale di «${name}»`)] } }));
+      return id;
     },
     patchChat: (id, p) => set((s) => (s.chats[id] ? { chats: { ...s.chats, [id]: { ...s.chats[id], ...p } } } : s)),
     deleteChat: (id) => set((s) => { const chats = { ...s.chats }; const messages = { ...s.messages }; delete chats[id]; delete messages[id]; return { chats, messages }; }),

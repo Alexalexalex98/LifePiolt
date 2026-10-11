@@ -1,0 +1,908 @@
+{
+ "_note": "Glossario i18n. protected = nomi che non si traducono (mascherati con token). style = registro per lingua. terms = termini fissi: tr[lang][0] e' la forma preferita (istruzione al motore), tutte le forme elencate sono accettate dal controllo post-traduzione (confronto case-insensitive per sottostringa: usa radici per le lingue flesse). I controlli sul glossario sono avvisi. keepVerbatim = chiavi copiate identiche in ogni lingua (marchi, nomi di aziende, parole chiave inglesi/francesi/indonesiane usate come prompt). assistantCommandPatterns = chiavi che sono comandi per l'assistente: nelle lingue diverse dall'inglese si copia la traduzione inglese (l'assistente capisce solo italiano e inglese).",
+ "protected": [
+  "LifePilot",
+  "LifePoints",
+  "LifeNetwork",
+  "LifeClub",
+  "LifeChat",
+  "LifeHealth",
+  "LifeTask",
+  "LifeNotes",
+  "LifeDrive",
+  "LifeTravel",
+  "LifeFinance",
+  "Theia",
+  "Apple Health",
+  "Apple Watch",
+  "Google Calendar",
+  "Google Maps",
+  "Google",
+  "Expo Go",
+  "Expo",
+  "Wi-Fi",
+  "Bluetooth",
+  "IBAN",
+  "PDF",
+  "CSV",
+  "ICS",
+  "QR",
+  "CHF",
+  "LP",
+  "Netflix",
+  "Spotify",
+  "WhatsApp",
+  "Instagram",
+  "Facebook",
+  "LinkedIn",
+  "iCloud",
+  "iPhone",
+  "Android",
+  "iOS",
+  "Siri",
+  "Zoom",
+  "Teams"
+ ],
+ "style": {
+  "en": {
+   "formality": "prefer_less",
+   "note": "informal second person (\"you\"), friendly, concise app tone."
+  },
+  "es": {
+   "formality": "prefer_less",
+   "note": "informal \"tu\" form, neutral Spanish understandable in Spain and Latin America."
+  },
+  "fr": {
+   "formality": "prefer_less",
+   "note": "informal \"tu\" form."
+  },
+  "de": {
+   "formality": "prefer_less",
+   "note": "informal \"du\" form."
+  },
+  "pt": {
+   "formality": "prefer_less",
+   "note": "Brazilian Portuguese, informal \"voce\" (no \"tu\" conjugation)."
+  },
+  "zh": {
+   "note": "Simplified Chinese; avoid the pronoun when possible; concise."
+  },
+  "hi": {
+   "note": "Use \"aap\" (polite) form; keep common English tech terms in Devanagari transliteration as in Indian apps."
+  },
+  "ar": {
+   "note": "Clear Modern Standard Arabic, neutral gender wherever possible."
+  },
+  "ru": {
+   "formality": "prefer_more",
+   "note": "Use the polite \"vy\" (formal-friendly) form consistently."
+  },
+  "ja": {
+   "formality": "prefer_more",
+   "note": "Polite desu/masu style; short noun phrases for buttons and labels."
+  },
+  "id": {
+   "note": "Friendly neutral Indonesian (\"kamu\" or impersonal), avoid slang."
+  }
+ },
+ "keepVerbatim": [
+  "(?:numero fattura|numero bolletta|numero documento|rechnungsnummer|rechnungs-?nr\\.?|n\\u00b0\\s?de facture|invoice\\s*(?:no|number|nr|#)\\.?|n\\. fattura|nr\\. fattura|invoice id)\\s*[:#]?\\s*",
+  "(Expo Go)",
+  "(LifePilot {0})",
+  "{0} {1} CHF",
+  "{0}{1} CHF",
+  "Acea",
+  "add \"{0}\" to my plan",
+  "add task \"{0}\"",
+  "Agenzia delle Entrate",
+  "Allianz",
+  "Alpiq",
+  "Amazon Prime",
+  "American Express",
+  "Android {0}",
+  "Anthropic",
+  "Apple Health",
+  "Apple Inc.",
+  "Atupri",
+  "Axpo",
+  "Baloise",
+  "Bearer {0}",
+  "booking date",
+  "Central Budget Inn",
+  "Claude",
+  "Claude (Anthropic)",
+  "completed date",
+  "Concordia",
+  "credit chf",
+  "date comptable",
+  "date de valeur",
+  "debit chf",
+  "Disney+",
+  "Downtown Central",
+  "Edison",
+  "Enel",
+  "Energia Ticino SA",
+  "Eni",
+  "Eni Plenitude",
+  "Excel",
+  "Fastweb",
+  "find in my",
+  "Gemini",
+  "Gemini (Google)",
+  "Generali",
+  "Google",
+  "GPT (OpenAI)",
+  "Grand Palazzo",
+  "Groupe E",
+  "Groupe Mutuel",
+  "Helsana",
+  "Hera",
+  "Iliad",
+  "Imagen",
+  "Imagen (Google)",
+  "individual amount",
+  "iOS {0}",
+  "Iren",
+  "Life Score",
+  "LifeClub · {0} LP",
+  "Mastercard",
+  "Menlo",
+  "Microsoft Corp.",
+  "Midjourney",
+  "Mistral",
+  "Mistral AI",
+  "Mobiliar",
+  "Mobilnet Telefonia SA",
+  "money in",
+  "money out",
+  "move it",
+  "my data",
+  "my day",
+  "my notes",
+  "my plan",
+  "near me",
+  "Nestlé SA",
+  "Netflix",
+  "NVIDIA Corp.",
+  "Ocean View Suites",
+  "octane render",
+  "paid in",
+  "paid out",
+  "Perplexity",
+  "photo realistic",
+  "pixel art",
+  "plan my",
+  "Poste Italiane",
+  "privacy:AI Memory",
+  "privacy:Dati finanziari",
+  "privacy:Dati salute",
+  "privacyInv:Profilo privato",
+  "Quick Stay Express",
+  "Quickline",
+  "ray tracing",
+  "remind me",
+  "Repower",
+  "Romande Energie",
+  "Salt",
+  "Sanitas",
+  "search my",
+  "Serafe",
+  "Servizi Idrici Valle SA",
+  "sharp focus",
+  "Smart Saver Rooms",
+  "Sorgenia",
+  "Spotify",
+  "started date",
+  "Suno",
+  "Sunrise",
+  "Swica",
+  "Swisscom",
+  "Sympany",
+  "system-ui, -apple-system, Segoe UI, sans-serif",
+  "Tesla Inc.",
+  "The Fern Boutique",
+  "Theia",
+  "today summary",
+  "trade date",
+  "transaction date",
+  "Traveler's Hub Hostel",
+  "trending on artstation",
+  "UBS Group AG",
+  "unreal engine",
+  "value date",
+  "Vaudoise",
+  "Visa",
+  "Visana",
+  "Vodafone",
+  "weekly report",
+  "what should i do",
+  "Whisper",
+  "Whisper (OpenAI)",
+  "Wingo",
+  "Word",
+  "Yallo",
+  "Zurich"
+ ],
+ "assistantCommandPatterns": [
+  "^\"?(aggiungi |annulla|sposta|cerca |trova |ricordami|pianificami|rinomina |segna |cosa |com'e |come mi sento|ho speso|vicino a me|analisi dei|analizza |componi |disegna |rendi |scrivi una nota)"
+ ],
+ "terms": [
+  {
+   "it": "Impegno",
+   "match": "\\bimpegn[oi]\\b",
+   "tr": {
+    "en": [
+     "appointment",
+     "event"
+    ],
+    "es": [
+     "cita",
+     "evento",
+     "compromiso",
+     "agenda"
+    ],
+    "fr": [
+     "rendez-vous",
+     "événement",
+     "rdv"
+    ],
+    "de": [
+     "Termin"
+    ],
+    "pt": [
+     "compromisso",
+     "evento"
+    ],
+    "zh": [
+     "日程",
+     "事项"
+    ],
+    "hi": [
+     "अपॉइंटमेंट",
+     "इवेंट",
+     "अपॉइन्टमेंट"
+    ],
+    "ar": [
+     "موعد",
+     "مواعيد",
+     "المواعيد"
+    ],
+    "ru": [
+     "событи",
+     "встреч",
+     "дел"
+    ],
+    "ja": [
+     "予定"
+    ],
+    "id": [
+     "jadwal",
+     "janji",
+     "acara"
+    ]
+   },
+   "note": "calendar appointment/event of the user"
+  },
+  {
+   "it": "Task",
+   "match": "\\btask\\b",
+   "tr": {
+    "en": [
+     "task",
+     "to-do"
+    ],
+    "es": [
+     "tarea"
+    ],
+    "fr": [
+     "tâche"
+    ],
+    "de": [
+     "Aufgabe"
+    ],
+    "pt": [
+     "tarefa"
+    ],
+    "zh": [
+     "任务"
+    ],
+    "hi": [
+     "टास्क",
+     "कार्य"
+    ],
+    "ar": [
+     "مهم",
+     "مهام"
+    ],
+    "ru": [
+     "задач"
+    ],
+    "ja": [
+     "タスク"
+    ],
+    "id": [
+     "tugas",
+     "task"
+    ]
+   },
+   "note": "to-do item"
+  },
+  {
+   "it": "Piano",
+   "match": "\\b(?:piano|plan)\\b",
+   "tr": {
+    "en": [
+     "plan",
+     "agenda"
+    ],
+    "es": [
+     "agenda",
+     "plan"
+    ],
+    "fr": [
+     "agenda",
+     "plan"
+    ],
+    "de": [
+     "plan",
+     "agenda"
+    ],
+    "pt": [
+     "agenda",
+     "plano"
+    ],
+    "zh": [
+     "计划",
+     "日程"
+    ],
+    "hi": [
+     "प्लान",
+     "एजेंडा"
+    ],
+    "ar": [
+     "الأجندة",
+     "الخطة",
+     "خطة"
+    ],
+    "ru": [
+     "план",
+     "расписание",
+     "повестк"
+    ],
+    "ja": [
+     "プラン",
+     "予定",
+     "アジェンダ"
+    ],
+    "id": [
+     "agenda",
+     "rencana"
+    ]
+   },
+   "check": false,
+   "note": "app section \"Plan\" = personal agenda/plan; not a subscription plan"
+  },
+  {
+   "it": "Colloquio",
+   "match": "\\bcolloqu[io]\\b",
+   "tr": {
+    "en": [
+     "interview"
+    ],
+    "es": [
+     "entrevista"
+    ],
+    "fr": [
+     "entretien"
+    ],
+    "de": [
+     "Vorstellungsgespräch",
+     "Gespräch"
+    ],
+    "pt": [
+     "entrevista"
+    ],
+    "zh": [
+     "面试"
+    ],
+    "hi": [
+     "इंटरव्यू",
+     "साक्षात्कार"
+    ],
+    "ar": [
+     "مقابلة",
+     "مقابلات"
+    ],
+    "ru": [
+     "собеседовани"
+    ],
+    "ja": [
+     "面接"
+    ],
+    "id": [
+     "wawancara"
+    ]
+   },
+   "note": "job interview"
+  },
+  {
+   "it": "Bolletta",
+   "match": "\\bbollett[ae]\\b",
+   "tr": {
+    "en": [
+     "bill",
+     "utility"
+    ],
+    "es": [
+     "factura",
+     "recibo"
+    ],
+    "fr": [
+     "facture"
+    ],
+    "de": [
+     "Rechnung"
+    ],
+    "pt": [
+     "conta",
+     "fatura"
+    ],
+    "zh": [
+     "账单"
+    ],
+    "hi": [
+     "बिल"
+    ],
+    "ar": [
+     "فاتورة",
+     "فواتير"
+    ],
+    "ru": [
+     "счёт",
+     "счет",
+     "платеж",
+     "платёж",
+     "коммунал"
+    ],
+    "ja": [
+     "請求書",
+     "公共料金",
+     "料金"
+    ],
+    "id": [
+     "tagihan"
+    ]
+   },
+   "note": "utility bill"
+  },
+  {
+   "it": "Fattura",
+   "match": "\\bfattur[ae]\\b",
+   "tr": {
+    "en": [
+     "invoice"
+    ],
+    "es": [
+     "factura"
+    ],
+    "fr": [
+     "facture"
+    ],
+    "de": [
+     "Rechnung"
+    ],
+    "pt": [
+     "fatura",
+     "nota fiscal"
+    ],
+    "zh": [
+     "发票",
+     "账单"
+    ],
+    "hi": [
+     "इनवॉइस",
+     "बिल",
+     "चालान"
+    ],
+    "ar": [
+     "فاتورة",
+     "فواتير"
+    ],
+    "ru": [
+     "счёт",
+     "счет",
+     "инвойс",
+     "накладн"
+    ],
+    "ja": [
+     "請求書",
+     "インボイス"
+    ],
+    "id": [
+     "faktur",
+     "tagihan"
+    ]
+   },
+   "note": "invoice (commercial document)"
+  },
+  {
+   "it": "Fornitore",
+   "match": "\\bfornitor[ei]\\b",
+   "tr": {
+    "en": [
+     "provider",
+     "supplier",
+     "vendor"
+    ],
+    "es": [
+     "proveedor"
+    ],
+    "fr": [
+     "fournisseur"
+    ],
+    "de": [
+     "Anbieter",
+     "Lieferant"
+    ],
+    "pt": [
+     "fornecedor",
+     "provedor"
+    ],
+    "zh": [
+     "提供方",
+     "供应商",
+     "服务商",
+     "提供商"
+    ],
+    "hi": [
+     "प्रदाता",
+     "आपूर्तिकर्ता",
+     "सप्लायर",
+     "वेंडर"
+    ],
+    "ar": [
+     "مزوّد",
+     "مزود",
+     "مورّد",
+     "مورد"
+    ],
+    "ru": [
+     "провайдер",
+     "поставщик",
+     "поставщик"
+    ],
+    "ja": [
+     "プロバイダ",
+     "サプライヤー",
+     "仕入先",
+     "事業者",
+     "提供元"
+    ],
+    "id": [
+     "penyedia",
+     "pemasok",
+     "vendor",
+     "supplier"
+    ]
+   },
+   "note": "service/utility provider or supplier"
+  },
+  {
+   "it": "Diretta",
+   "match": "\\bin diretta\\b|^diretta\\b",
+   "tr": {
+    "en": [
+     "live"
+    ],
+    "es": [
+     "en vivo",
+     "en directo",
+     "directo"
+    ],
+    "fr": [
+     "en direct",
+     "direct",
+     "live"
+    ],
+    "de": [
+     "live"
+    ],
+    "pt": [
+     "ao vivo",
+     "live",
+     "transmissão"
+    ],
+    "zh": [
+     "直播"
+    ],
+    "hi": [
+     "लाइव"
+    ],
+    "ar": [
+     "مباشر",
+     "بث"
+    ],
+    "ru": [
+     "прямой эфир",
+     "прямом эфире",
+     "прям",
+     "эфир",
+     "лайв",
+     "live"
+    ],
+    "ja": [
+     "ライブ",
+     "生配信"
+    ],
+    "id": [
+     "langsung",
+     "live"
+    ]
+   },
+   "note": "live stream/broadcast"
+  },
+  {
+   "it": "Umore",
+   "match": "\\bumore\\b",
+   "tr": {
+    "en": [
+     "mood"
+    ],
+    "es": [
+     "ánimo",
+     "estado de ánimo",
+     "humor"
+    ],
+    "fr": [
+     "humeur"
+    ],
+    "de": [
+     "Stimmung"
+    ],
+    "pt": [
+     "humor"
+    ],
+    "zh": [
+     "情绪",
+     "心情"
+    ],
+    "hi": [
+     "मूड"
+    ],
+    "ar": [
+     "المزاج",
+     "المزاج"
+    ],
+    "ru": [
+     "настроени"
+    ],
+    "ja": [
+     "気分"
+    ],
+    "id": [
+     "suasana hati",
+     "mood"
+    ]
+   },
+   "note": "mood tracker section"
+  },
+  {
+   "it": "Salute",
+   "match": "\\bsalute\\b",
+   "tr": {
+    "en": [
+     "health"
+    ],
+    "es": [
+     "salud"
+    ],
+    "fr": [
+     "santé"
+    ],
+    "de": [
+     "Gesundheit"
+    ],
+    "pt": [
+     "saúde"
+    ],
+    "zh": [
+     "健康"
+    ],
+    "hi": [
+     "हेल्थ",
+     "स्वास्थ्य"
+    ],
+    "ar": [
+     "الصحة",
+     "صحة"
+    ],
+    "ru": [
+     "здоровь"
+    ],
+    "ja": [
+     "ヘルス",
+     "健康"
+    ],
+    "id": [
+     "kesehatan"
+    ]
+   },
+   "note": "health section"
+  },
+  {
+   "it": "Finanze",
+   "match": "\\bfinanze\\b",
+   "tr": {
+    "en": [
+     "finance"
+    ],
+    "es": [
+     "finanzas"
+    ],
+    "fr": [
+     "finances"
+    ],
+    "de": [
+     "Finanzen"
+    ],
+    "pt": [
+     "finanças"
+    ],
+    "zh": [
+     "财务",
+     "理财"
+    ],
+    "hi": [
+     "फाइनेंस",
+     "वित्त"
+    ],
+    "ar": [
+     "المالية",
+     "المالي"
+    ],
+    "ru": [
+     "финанс"
+    ],
+    "ja": [
+     "ファイナンス",
+     "財務",
+     "お金"
+    ],
+    "id": [
+     "keuangan"
+    ]
+   },
+   "note": "finance section"
+  },
+  {
+   "it": "Obiettivo",
+   "match": "\\bobiettiv[oi]\\b",
+   "tr": {
+    "en": [
+     "goal"
+    ],
+    "es": [
+     "objetivo",
+     "meta"
+    ],
+    "fr": [
+     "objectif"
+    ],
+    "de": [
+     "Ziel"
+    ],
+    "pt": [
+     "meta",
+     "objetivo"
+    ],
+    "zh": [
+     "目标"
+    ],
+    "hi": [
+     "लक्ष्य"
+    ],
+    "ar": [
+     "الهدف",
+     "الأهداف",
+     "أهداف"
+    ],
+    "ru": [
+     "цел"
+    ],
+    "ja": [
+     "目標"
+    ],
+    "id": [
+     "tujuan",
+     "target"
+    ]
+   },
+   "note": "personal goal"
+  },
+  {
+   "it": "Promemoria",
+   "match": "\\bpromemoria\\b",
+   "tr": {
+    "en": [
+     "reminder"
+    ],
+    "es": [
+     "recordatorio"
+    ],
+    "fr": [
+     "rappel"
+    ],
+    "de": [
+     "Erinnerung"
+    ],
+    "pt": [
+     "lembrete"
+    ],
+    "zh": [
+     "提醒"
+    ],
+    "hi": [
+     "रिमाइंडर",
+     "याद"
+    ],
+    "ar": [
+     "تذكير",
+     "تذكيرات"
+    ],
+    "ru": [
+     "напоминани"
+    ],
+    "ja": [
+     "リマインダー"
+    ],
+    "id": [
+     "pengingat"
+    ]
+   },
+   "note": "reminder"
+  },
+  {
+   "it": "Impostazioni",
+   "match": "\\bimpostazion[ei]\\b",
+   "tr": {
+    "en": [
+     "settings"
+    ],
+    "es": [
+     "ajustes",
+     "configuración"
+    ],
+    "fr": [
+     "réglages",
+     "paramètres"
+    ],
+    "de": [
+     "Einstellung"
+    ],
+    "pt": [
+     "configura"
+    ],
+    "zh": [
+     "设置"
+    ],
+    "hi": [
+     "सेटिंग"
+    ],
+    "ar": [
+     "الإعدادات",
+     "إعدادات"
+    ],
+    "ru": [
+     "настройк"
+    ],
+    "ja": [
+     "設定"
+    ],
+    "id": [
+     "pengaturan"
+    ]
+   },
+   "note": "settings"
+  }
+ ]
+}

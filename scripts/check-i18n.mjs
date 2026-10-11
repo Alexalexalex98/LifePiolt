@@ -23,6 +23,9 @@ for (const lang of LANGS) {
   if (!fs.existsSync(file)) { console.log(`[${lang}] file mancante`); continue; }
   let cat;
   try { cat = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { console.log(`[${lang}] JSON non valido: ${e.message}`); fail = true; continue; }
+  // override manuali (src/i18n/overrides/<lang>.json): hanno la precedenza e contano come tradotti
+  const ovFile = path.join(ROOT, `src/i18n/overrides/${lang}.json`);
+  if (fs.existsSync(ovFile)) { try { cat = { ...cat, ...JSON.parse(fs.readFileSync(ovFile, 'utf8')) }; } catch (e) { console.log(`[${lang}] override non valido: ${e.message}`); fail = true; } }
   const keys = Object.keys(cat);
   const present = source.filter((k) => k in cat);
   const missing = source.filter((k) => !(k in cat));

@@ -18,18 +18,20 @@
  *   points:<txId>                      LifePoints
  *   event:<YYYY-MM-DD>:<indice>        il Plan sul giorno dell'impegno
  *   bill:<id>                          dettaglio bolletta (se la schermata non esiste: Plan)
+ *   club:<clubId>                      pagina del LifeClub
+ *   clubcontent:<clubId>:<lezione>[:<secondi>]   lettore della lezione, al minuto indicato
  *   reminder  system
  */
 
 export type RefKind =
   | 'post' | 'comment' | 'like' | 'follow' | 'mention' | 'reply' | 'idea' | 'community' | 'chat'
-  | 'seminar' | 'service' | 'booking' | 'job' | 'points' | 'event' | 'bill' | 'reminder' | 'system';
+  | 'seminar' | 'service' | 'booking' | 'job' | 'points' | 'event' | 'bill' | 'reminder' | 'system' | 'club' | 'clubcontent';
 
 /** [minimo, massimo] di argomenti per tipo. */
 const ARITY: Record<RefKind, [number, number]> = {
   post: [1, 1], comment: [2, 2], like: [1, 3], follow: [1, 1], mention: [2, 2], reply: [2, 2],
   idea: [1, 1], community: [1, 1], chat: [1, 2], seminar: [1, 1], service: [1, 1], booking: [1, 1], job: [1, 1],
-  points: [1, 1], event: [2, 2], bill: [1, 1], reminder: [0, 1], system: [0, 1],
+  points: [1, 1], event: [2, 2], bill: [1, 1], reminder: [0, 1], system: [0, 1], club: [1, 1], clubcontent: [2, 3],
 };
 export const REF_KINDS = Object.keys(ARITY) as RefKind[];
 
@@ -118,6 +120,8 @@ export function routeFor(ref: string | null | undefined): Route {
     case 'event':
       return DAY.test(a[0]) && INDEX.test(a[1]) ? ok('plan', { day: a[0], idx: a[1] }) : invalid;
     case 'bill': return ok('billDetail', { id: a[0] }, { dynamic: 'bill', fallback: { page: 'plan', params: {} } });
+    case 'club': return ok('clubPage', { id: a[0] });
+    case 'clubcontent': return INDEX.test(a[2] ?? '0') ? ok('clubContent', a[2] ? { id: a[0], lesson: a[1], t: a[2] } : { id: a[0], lesson: a[1] }) : invalid;
     case 'reminder': return ok('plan', {});
     case 'system': return ok('notificationsPage', {});
   }

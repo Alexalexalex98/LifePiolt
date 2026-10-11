@@ -7,6 +7,7 @@ import { fmtClock, previewOf, reactionIcon, type ChatMessage } from '@/store/cha
 import { AgendaCard, EventCard, NoteCard, SlotsCard, TasksCard } from './cards';
 import { ContactCard, FileCard, LinkText, LocationCard, MediaThumb, PollCard, Ticks, VoiceBubble, senderColor, useChatColors } from './parts';
 import { translateText } from '@/i18n/core';
+import { ClubMsgCard } from '@/components/club/ClubMsgCard';
 
 type Props = {
   m: ChatMessage;
@@ -95,6 +96,7 @@ export const Bubble = memo(function Bubble(p: Props) {
                 <Text numberOfLines={2} style={{ color: c.meta, fontSize: 13 }}>{previewOf(p.quoted)}</Text>
               </Pressable>
             )}
+            {!m.deletedForAll && (m.club || m.pinned || p.quoted?.club?.kind === 'question') ? <ClubMsgCard m={m} me={p.me} quoted={p.quoted} /> : null}
             {body}
             {mediaOnly ? <View style={{ position: 'absolute', end: 8, bottom: 6, backgroundColor: '#0007', borderRadius: 8, paddingHorizontal: 5, flexDirection: 'row', gap: 3 }}><Text style={{ color: '#fff', fontSize: 11 }}>{fmtClock(m.ts)}</Text>{mine && <Ticks status={m.status} />}</View> : meta}
             {reactions.length > 0 && (
