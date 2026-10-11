@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { Text } from '@/components/T';
 import { Body, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { fmtDate, formatMoney } from '@/i18n/format';
+import { currentCurrency, fmtDate, formatMoney } from '@/i18n/format';
 import { t } from '@/i18n/core';
 import { buildPlan, estimateFixedOutflows, estimateIncomes, type Advice, type PlanInput, type PlanResult } from '@/lib/bills/plan';
 import { diffDays, mkIso, todayIso } from '@/lib/bills/dates';
@@ -13,7 +13,6 @@ import { readable } from '@/lib/a11y';
 import { parseMonthLabel } from '@/lib/financeRecap';
 import { Icon } from '@/lib/icons';
 import { monthEnd, useFin, type FinMonth } from '@/store/finance';
-import { currentCurrency } from '@/i18n/format';
 
 export const money = (a: number, cur?: string) => formatMoney(a, { currency: cur ?? currentCurrency(), decimals: 2 });
 const isoDate = (iso: string) => new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10), 12);
@@ -32,12 +31,12 @@ export function dueText(daysToDue: number): string {
 
 export function adviceText(a: Advice): string {
   switch (a.code) {
-    case 'overdue_now': return t('E\' scaduta: paga appena puoi per evitare altri solleciti.');
-    case 'tight': return t('Il margine per il bonifico e\' gia\' consumato: conviene pagare oggi.');
-    case 'wait_income': return t('Il {0} e\' attesa un\'entrata: potresti pagare dopo, restando entro la scadenza.', fmtDayShort(a.date));
+    case 'overdue_now': return t('È scaduta: paga appena puoi per evitare altri solleciti.');
+    case 'tight': return t('Il margine per il bonifico è già consumato: conviene pagare oggi.');
+    case 'wait_income': return t('Il {0} è attesa un\'entrata: potresti pagare dopo, restando entro la scadenza.', fmtDayShort(a.date));
     case 'penalty_first': return t('Ha penali o interessi in caso di ritardo: pagala per prima.');
     case 'can_postpone': return t('Non ha penali dichiarate: se serve, puoi pagarla dopo le altre.');
-    case 'split': return t('L\'importo e\' alto: puoi chiedere una rateizzazione e dividerla in rate.');
+    case 'split': return t('L\'importo è alto: puoi chiedere una rateizzazione e dividerla in rate.');
   }
 }
 

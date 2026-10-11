@@ -257,7 +257,7 @@ function classifyKind(f: string, head: string, issuer: string): Field<BillKind> 
     for (const [re, w] of rules) {
       const g = new RegExp(re.source, 'g');
       const hits = f.match(g) ?? [];
-      if (hits.length) { s += w * Math.min(3, hits.length); if (!term) term = hits[0]; }
+      if (hits.length) { s += w * Math.min(3, hits.length); if (!term) term = hits[0] ?? ''; }
       if (re.test(head)) s += w;
       if (re.test(issuer)) s += w;
     }
@@ -461,7 +461,7 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
     if (c.hit.ambiguousOrder) {
       cf = 'media';
       note = t('Data ambigua: potrebbe essere anche il {0}', c.hit.alt ?? '');
-      ambiguities.push(t('La data «{0}» e\' ambigua (gg/mm o mm/gg): ho letto {1}, potrebbe essere {2}.', c.hit.raw, c.hit.iso, c.hit.alt ?? ''));
+      ambiguities.push(t('La data «{0}» è ambigua (gg/mm o mm/gg): ho letto {1}, potrebbe essere {2}.', c.hit.raw, c.hit.iso, c.hit.alt ?? ''));
     }
     return field(c.hit.iso, cf, snippet(lines[c.line], c.hit.start, c.hit.end), c.hit.raw, note);
   };
@@ -476,7 +476,7 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
     const others = [...new Set(pool.map((c) => c.hit.iso))].filter((x) => x !== pick.hit.iso);
     if (others.length) {
       if (dueDate.confidence === 'alta') dueDate.confidence = 'media';
-      ambiguities.push(t('Ho trovato piu\' scadenze ({0}): ho scelto {1}, controlla.', [pick.hit.iso, ...others].join(', '), pick.hit.iso));
+      ambiguities.push(t('Ho trovato più scadenze ({0}): ho scelto {1}, controlla.', [pick.hit.iso, ...others].join(', '), pick.hit.iso));
     }
   }
 
@@ -562,9 +562,9 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
     const distinctTop = new Set(sorted.filter((a) => a.score >= 9 && a.score >= best.score - 0.9).map((a) => a.value));
     let conf: Confidence = best.score >= 9 ? 'alta' : best.score >= 4 ? 'media' : 'bassa';
     let note: string | undefined;
-    if (distinctTop.size > 1 && conf === 'alta') { conf = 'media'; note = t('Piu\' importi sembrano il totale: controlla'); ambiguities.push(t('Ci sono piu\' importi che sembrano il totale da pagare: {0}.', [...distinctTop].join(', '))); }
+    if (distinctTop.size > 1 && conf === 'alta') { conf = 'media'; note = t('Più importi sembrano il totale: controlla'); ambiguities.push(t('Ci sono più importi che sembrano il totale da pagare: {0}.', [...distinctTop].join(', '))); }
     if (best.ambiguous) { if (conf === 'alta') conf = 'media'; ambiguities.push(t('L\'importo «{0}» potrebbe avere un altro separatore dei decimali: controlla.', best.raw)); }
-    if (conf === 'bassa') note = t('Non ho trovato la scritta «totale da pagare»: e\' l\'importo piu\' probabile, controlla');
+    if (conf === 'bassa') note = t('Non ho trovato la scritta «totale da pagare»: è l\'importo più probabile, controlla');
     amount = field(best.value, conf, snippet(lines[best.line], best.start, best.end), best.raw, note);
     const seen = new Set<number>();
     sorted.forEach((a) => { if (!seen.has(a.value) && seen.size < 5) { seen.add(a.value); draftBase.amountAlternatives.push({ value: a.value, source: snippet(lines[a.line], a.start, a.end), score: Math.round(a.score * 10) / 10 }); } });
@@ -610,7 +610,7 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
     if (bestI) {
       iban = field(formatIban(bestI.v.iban), bestI.v.valid ? 'alta' : 'bassa', lines[bestI.li].trim().slice(0, 120), bestI.raw.trim());
       qrIban = bestI.v.qrIban;
-      if (!bestI.v.valid) warnings.push(t('L\'IBAN letto non supera il controllo di validita\' (cifre di controllo): verifica ogni cifra prima di pagare.'));
+      if (!bestI.v.valid) warnings.push(t('L\'IBAN letto non supera il controllo di validità (cifre di controllo): verifica ogni cifra prima di pagare.'));
     }
   }
 
@@ -629,7 +629,7 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
         if (c) {
           reference = field(formatQrr(c.ref), c.valid ? 'alta' : 'bassa', ln.trim().slice(0, 120), qm[1]);
           referenceType = 'QRR';
-          if (!c.valid) warnings.push(t('Il riferimento QR non supera la cifra di controllo (modulo 10): puo\' essere un errore di lettura, verifica.'));
+          if (!c.valid) warnings.push(t('Il riferimento QR non supera la cifra di controllo (modulo 10): può essere un errore di lettura, verifica.'));
           break;
         }
       }
@@ -650,7 +650,7 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
       if (m && /\d{4}/.test(m[1])) { reference = field(m[1].trim(), 'media', lines[li].trim().slice(0, 120), m[1].trim()); referenceType = 'ALTRO'; break; }
     }
   }
-  if (qrIban && referenceType !== 'QRR') warnings.push(t('E\' un QR-IBAN: serve il riferimento QR (27 cifre) per accreditare il pagamento. Non l\'ho trovato.'));
+  if (qrIban && referenceType !== 'QRR') warnings.push(t('È un QR-IBAN: serve il riferimento QR (27 cifre) per accreditare il pagamento. Non l\'ho trovato.'));
 
   // ---- PagoPA
   let pagopa: Field<string> | undefined;
@@ -759,9 +759,9 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
   // ---- controlli di coerenza
   if (!amount) warnings.push(t('Non trovo l\'importo da pagare: inseriscilo a mano.'));
   if (!dueDate) warnings.push(t('Non trovo la scadenza: inseriscila a mano, senza non posso programmare i promemoria.'));
-  if (dueDate && issueDate && diffDays(issueDate.value, dueDate.value) < -1) warnings.push(t('La scadenza ({0}) e\' prima della data del documento ({1}): controlla le date.', dueDate.value, issueDate.value));
-  if (dueDate && today && diffDays(today, dueDate.value) < 0) warnings.push(t('La scadenza e\' gia\' passata: il pagamento e\' in ritardo.'));
-  if (dueDate && today && diffDays(today, dueDate.value) > 400) warnings.push(t('La scadenza e\' fra piu\' di un anno: controlla l\'anno.'));
+  if (dueDate && issueDate && diffDays(issueDate.value, dueDate.value) < -1) warnings.push(t('La scadenza ({0}) è prima della data del documento ({1}): controlla le date.', dueDate.value, issueDate.value));
+  if (dueDate && today && diffDays(today, dueDate.value) < 0) warnings.push(t('La scadenza è già passata: il pagamento è in ritardo.'));
+  if (dueDate && today && diffDays(today, dueDate.value) > 400) warnings.push(t('La scadenza è fra più di un anno: controlla l\'anno.'));
 
   const out: BillDraft = {
     ...draftBase,

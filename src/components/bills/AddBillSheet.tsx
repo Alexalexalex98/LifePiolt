@@ -32,7 +32,7 @@ export function AddBillSheet({ visible, onClose }: { visible: boolean; onClose: 
   const [busy, setBusy] = useState(false);
 
   const close = () => { setPaste(false); setText(''); onClose(); };
-  const open = (params: Record<string, string>) => { close(); go('billReview', params); };
+  const open = (params: Record<string, string>) => { close(); go('billReview', { ...params, k: String(Date.now()) }); };
 
   async function viaPicker(kind: 'file' | 'camera' | 'gallery') {
     if (busy) return;

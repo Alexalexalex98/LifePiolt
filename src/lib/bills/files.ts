@@ -5,7 +5,7 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
-import { Platform } from 'react-native';
+import { Platform, Share } from 'react-native';
 
 import { t } from '@/i18n/core';
 import { fmtBytes } from '@/lib/docCheck';
@@ -68,16 +68,16 @@ export async function readLocally(f: PickedBill): Promise<LocalRead> {
     const k = fileKind(f);
     if (k === 'text') {
       const text = await readPickedText({ uri: f.uri, file: f.file });
-      return text.trim().length > 10 ? { kind: 'text', text } : { kind: 'error', message: t('Il file di testo e\' vuoto.') };
+      return text.trim().length > 10 ? { kind: 'text', text } : { kind: 'error', message: t('Il file di testo è vuoto.') };
     }
     if (k === 'pdf') {
       const r = extractPdfText(await readBytes(f));
-      if (r.ok) return { kind: 'text', text: r.text, note: r.quality === 'incerta' ? t('Il testo del PDF e\' stato letto in modo incerto: controlla bene i campi.') : undefined };
-      if (r.reason === 'encrypted') return { kind: 'no_text', why: 'pdf_encrypted', message: t('Il PDF e\' protetto da password: non posso leggerlo sul telefono. Compila i campi a mano guardando il documento.') };
-      if (r.reason === 'no_text') return { kind: 'no_text', why: 'pdf_scan', message: t('Questo PDF e\' una scansione (non contiene testo): sul telefono non c\'e\' ancora un lettore di immagini. Compila i campi a mano guardando il documento, oppure scegli di leggerlo con un\'AI esterna.') };
+      if (r.ok) return { kind: 'text', text: r.text, note: r.quality === 'incerta' ? t('Il testo del PDF è stato letto in modo incerto: controlla bene i campi.') : undefined };
+      if (r.reason === 'encrypted') return { kind: 'no_text', why: 'pdf_encrypted', message: t('Il PDF è protetto da password: non posso leggerlo sul telefono. Compila i campi a mano guardando il documento.') };
+      if (r.reason === 'no_text') return { kind: 'no_text', why: 'pdf_scan', message: t('Questo PDF è una scansione (non contiene testo): sul telefono non c\'è ancora un lettore di immagini. Compila i campi a mano guardando il documento, oppure scegli di leggerlo con un\'AI esterna.') };
       return { kind: 'error', message: t('Non sono riuscito a leggere il PDF.') };
     }
-    if (k === 'image') return { kind: 'no_text', why: 'image', message: t('Una foto non contiene testo leggibile dal telefono (non c\'e\' ancora un lettore di immagini offline). Compila i campi a mano guardando la foto, oppure scegli di leggerla con un\'AI esterna.') };
+    if (k === 'image') return { kind: 'no_text', why: 'image', message: t('Una foto non contiene testo leggibile dal telefono (non c\'è ancora un lettore di immagini offline). Compila i campi a mano guardando la foto, oppure scegli di leggerla con un\'AI esterna.') };
     return { kind: 'no_text', why: 'other', message: t('Formato non supportato per la lettura automatica. Compila i campi a mano.') };
   } catch { return { kind: 'error', message: t('Non sono riuscito a leggere il file.') }; }
 }
@@ -115,4 +115,13 @@ export function dropBillFile(driveId?: string, uri?: string) {
   const gone = life.drive.filter((d) => (driveId && d.id === driveId) || (uri && d.uri === uri && d.folder === BILL_FOLDER));
   gone.forEach((g) => life.delFile(g.id));
   return gone;
+}
+
+/** Apre il file originale: sul web in una nuova scheda, sul telefono con il foglio di condivisione di sistema. */
+export function openBillFile(f: { uri: string; name: string }): boolean {
+  try {
+    if (Platform.OS === 'web') { (globalThis as { open?: (u: string, t: string) => unknown }).open?.(f.uri, '_blank'); return true; }
+    void Share.share({ message: f.name, url: f.uri });
+    return true;
+  } catch { return false; }
 }

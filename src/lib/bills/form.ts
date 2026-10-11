@@ -50,7 +50,7 @@ export function formFromDraft(d: BillDraft, defaultCurrency = 'CHF'): BillForm {
 }
 
 export type FormErrors = Partial<Record<keyof BillForm, string>>;
-export type FormValue = Omit<Invoice, 'id' | 'state' | 'remind' | 'createdAt' | 'history'>;
+export type FormValue = Omit<Invoice, 'id' | 'state' | 'remind' | 'createdAt' | 'history' | 'dueDate'> & { dueDate: string };
 
 /** Valida e converte il modulo. Servono almeno fornitore, importo e scadenza (senza scadenza non si possono programmare i promemoria). */
 export function validateForm(f: BillForm): { ok: boolean; errors: FormErrors; value?: FormValue } {

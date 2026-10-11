@@ -73,7 +73,7 @@ export function planBillReminders(invoices: Invoice[], prefs: BillPrefs, o: Remi
         if (prefs.d1) mk('d1', -1, tDue, tr('{0}: {1} scade domani', label, money));
         if (prefs.d0) mk('d0', 0, tDue, tr('{0}: {1} scade oggi, paga per evitare solleciti', label, money));
         if (prefs.overdue) {
-          const late = tr('{0}: {1} e\' scaduta, paga per evitare solleciti', label, money);
+          const late = tr('{0}: {1} è scaduta, paga per evitare solleciti', label, money);
           mk('o1', 1, tOver, late); mk('o4', 4, tOver, late); mk('o7', 7, tOver, late);
         }
       }
