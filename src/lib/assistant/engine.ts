@@ -506,7 +506,7 @@ export class Assistant {
   }
 
   private agendaShare(raw: string): Reply {
-    const m = /\b(?:con|a|with|to)\s+([A-ZÀ-Ý][\p{L}.' -]+?)(?:\s+(?:per|di|da|questa|domani|oggi|solo|dettagli|con|for|this|tomorrow|today|only|details|with|and)\b|[?.!]*$)/u.exec(raw);
+    const m = /\b(?:con|a|with|to)\s+([\p{Lu}\p{Lo}][\p{L}\p{M}.' -]*?)(?:\s+(?:per|di|da|questa|domani|oggi|solo|dettagli|con|for|this|tomorrow|today|only|details|with|and)\b|[?.!]*$)/u.exec(raw);
     const person = m?.[1]?.trim();
     const n = norm(raw);
     const range = /oggi|today/.test(n) ? 'oggi' : /domani|tomorrow/.test(n) ? 'domani' : '7 giorni';

@@ -6,7 +6,6 @@ import { companyView, displayName, type Interview, type Share, type Slot } from 
 import { useApp } from '@/store/app';
 import { useJobs, type Application, type Job } from '@/store/jobs';
 import { useNet } from '@/store/network';
-import { toast } from '@/store/toast';
 
 /**
  * Azioni del flusso colloquio con i loro effetti collaterali (notifiche, Plan, promemoria).

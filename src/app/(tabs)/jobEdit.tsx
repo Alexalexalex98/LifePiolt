@@ -30,8 +30,7 @@ export default function JobEdit() {
   const [per, setPer] = useState(3);
   const [custom, setCustom] = useState<Question[]>(existing?.custom ?? []);
   const [limit, setLimit] = useState(existing?.timeLimitMin ?? 25);
-  const [blind, setBlind] = useState(existing?.blind ?? true);
-  const [tw, setTw] = useState(String(Math.round((existing?.trustWeight ?? 0.2) * 100)));
+    const [tw, setTw] = useState(String(Math.round((existing?.trustWeight ?? 0.2) * 100)));
   const [qSheet, setQSheet] = useState(false);
   const [editQ, setEditQ] = useState<Question | undefined>();
   const [libSheet, setLibSheet] = useState(false);
@@ -60,7 +59,7 @@ export default function JobEdit() {
     }
     if (picked.some((k) => isCustomSkill(k) && !skillLabel(k).trim())) { toast('Una competenza personalizzata non ha nome'); return; }
     const reqs = picked.map((skill) => ({ skill, ...sel[skill] }));
-    const base = { owner: me, company: company.trim(), title: title.trim(), description: desc.trim(), location: loc.trim(), kind, pay: pay.trim(), reqs, custom, practical: practical ? { ...practical, title: practical.title.trim(), instructions: practical.instructions.trim(), deliverables: practical.deliverables.trim() } : undefined, timeLimitMin: limit, blind, trustWeight: Number(tw) / 100 };
+    const base = { owner: me, company: company.trim(), title: title.trim(), description: desc.trim(), location: loc.trim(), kind, pay: pay.trim(), reqs, custom, practical: practical ? { ...practical, title: practical.title.trim(), instructions: practical.instructions.trim(), deliverables: practical.deliverables.trim() } : undefined, timeLimitMin: limit, blind: true, trustWeight: Number(tw) / 100 };
     if (existing) { useJobs.getState().updateJob(existing.id, { ...base }); toast('Offerta aggiornata'); go('jobDetail', { id: existing.id }); return; }
     const questionIds = pickQuestions(bank, picked.filter((k) => !isCustomSkill(k)), per, Date.now() % 100000).map((q) => q.id);
     const jid = useJobs.getState().createJob({ ...base, questionIds });
@@ -124,10 +123,10 @@ export default function JobEdit() {
       <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Regole</Body>
       <Card>
         <Row><Body small>Tempo massimo del test a domande</Body><Stepper value={limit} min={5} max={240} step={5} suffix=" min" onChange={setLimit} /></Row>
-        <Toggle label="Candidature alla cieca" hint="Vedi competenze e affidabilità, non nome né foto, finché non scegli di invitare. Riduce i pregiudizi." value={blind} onChange={setBlind} />
-        <Body small muted style={{ marginTop: 6, marginBottom: 6 }}>Peso dell’affidabilità nel punteggio finale</Body>
+        <Body small muted style={{ marginBottom: 8 }}>Candidature sempre “alla cieca”: vedi solo il nome (nome e iniziale del cognome), i punteggi per competenza e le risposte. Il contatto si sblocca solo se il candidato accetta un colloquio in videochiamata e risponde alla tua chiamata. Nessun CV, foto o documento.</Body>
+        <Body small muted style={{ marginTop: 6, marginBottom: 6 }}>Peso dell’atteggiamento (dal test) nel punteggio finale</Body>
         <Seg options={['0', '10', '20', '30']} value={tw} onChange={setTw} />
-        <Body small muted style={{ marginTop: 6 }}>{tw}% affidabilità · {100 - Number(tw)}% competenze</Body>
+        <Body small muted style={{ marginTop: 6 }}>{tw}% atteggiamento · {100 - Number(tw)}% competenze</Body>
       </Card>
 
       <Card>

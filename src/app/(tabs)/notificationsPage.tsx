@@ -10,6 +10,7 @@ import { go } from '@/lib/nav';
 import { groupNotifs, kindOf, KIND_ORDER, KINDS, unreadByKind, type KindId, type NotifGroup } from '@/lib/notifyKinds';
 import { useApp } from '@/store/app';
 import { useLife } from '@/store/life';
+import { useJobs } from '@/store/jobs';
 import { useNet, type Notif } from '@/store/network';
 import { toast } from '@/store/toast';
 
@@ -20,6 +21,11 @@ function openTarget(n: Notif, me: string, hasMyService: boolean) {
   const [what, id] = (n.ref ?? '').split(':');
   if (what === 'service' && id) return go('servicePage', { name: id });
   if (what === 'seminar' && id) return go('seminarPage', { id });
+  if (what === 'job' && id) {
+    const a = useJobs.getState().applications.find((x) => x.id === id);
+    const j = a && useJobs.getState().jobs.find((x) => x.id === a.jobId);
+    return go(a && j ? (j.owner === me ? 'applicantView' : 'interviewView') : 'lifenetwork', a ? { id } : undefined);
+  }
   if (kindOf(n) === 'servizio') return hasMyService ? go('servicePage', { name: me }) : go('lifenetwork');
   if (kindOf(n) === 'seminario') return go('lifenetwork');
   if (kindOf(n) === 'messaggio') return go('messagesPage');

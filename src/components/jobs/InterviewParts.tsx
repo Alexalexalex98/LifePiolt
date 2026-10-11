@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { isValidElement, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
@@ -41,7 +41,7 @@ export function Fact({ icon, children, tone }: { icon: string; children: React.R
   return (
     <Row style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginTop: 6 }} gap={8}>
       <Icon name={icon} size={16} color={tone ?? t.muted} />
-      <View style={{ flex: 1 }}>{typeof children === 'string' ? <Body small>{children}</Body> : children}</View>
+      <View style={{ flex: 1 }}>{isValidElement(children) ? children : <Body small>{children}</Body>}</View>
     </Row>
   );
 }

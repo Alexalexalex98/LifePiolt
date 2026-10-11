@@ -9,7 +9,9 @@ import { Avatar, Body, Btn, Card, Empty, Page, Pill, Row, Sheet } from '@/compon
 import { skillLabel } from '@/data/skillBank';
 import { fmtLimit } from '@/lib/hiring';
 import { useTheme } from '@/hooks/use-theme';
-import { fitOfApplication, fitOfPerson, statusLabel } from '@/lib/jobFit';
+import { fitOfApplication, fitOfPerson } from '@/lib/jobFit';
+import { candidateStatus, candidateStatusLabel, companyStatusLabel, companyView } from '@/lib/interview';
+import { PrivacyCard } from '@/components/jobs/InterviewParts';
 import { go, goBack } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { jobQuestions, profileOf, useJobs } from '@/store/jobs';
@@ -34,7 +36,7 @@ export default function JobDetail() {
   const nQ = jobQuestions(job).length;
   const myFit = !mine ? fitOfPerson(job, me, me) : null;
   const myProf = profileOf(me);
-  const shown = ranked.filter((r) => filter === 'Tutti' || (filter === 'Preferiti' ? r.a.status === 'shortlist' || r.a.status === 'invited' : filter === 'Da valutare' ? r.a.result.pending.length > 0 : true));
+  const shown = ranked.filter((r) => filter === 'Tutti' || (filter === 'Preferiti' ? r.a.status === 'shortlist' || r.a.status === 'invited' || (!!r.a.iv && r.a.iv.stage !== 'declined' && r.a.iv.stage !== 'expired') : filter === 'Da valutare' ? r.a.result.pending.length > 0 : true));
 
   return (
     <Page id="jobDetail" back>
@@ -48,7 +50,7 @@ export default function JobDetail() {
         {job.reqs.map((r) => mine
           ? <Row key={r.skill} style={{ marginBottom: 8 }}><Body small bold style={{ flex: 1 }}>{skillLabel(r.skill)}</Body><Body small muted>importanza {r.weight}/5 · minimo {r.min}</Body></Row>
           : <SkillRow key={r.skill} skill={r.skill} value={myProf.skills[r.skill]?.score ?? null} min={r.min} note={`importanza ${r.weight}/5`} />)}
-        <Body small muted>Il test dura circa {job.timeLimitMin} minuti ({nQ} domande).{job.practical ? ` Poi c’è una prova pratica con file (${fmtLimit(job.practical.limitMin)}, il tempo parte quando scarichi il test).` : ''} {job.blind ? 'Candidature alla cieca: chi assume non vede nome né foto finché non ti invita.' : ''}</Body>
+        <Body small muted>Il test dura circa {job.timeLimitMin} minuti ({nQ} domande).{job.practical ? ` Poi c’è una prova pratica con file (${fmtLimit(job.practical.limitMin)}, il tempo parte quando scarichi il test).` : ''} Chi assume vede solo il tuo nome, i punteggi e le tue risposte: nient’altro.</Body>
       </Card>
 
       {!mine && (
@@ -62,12 +64,12 @@ export default function JobDetail() {
           )}
           {myApp ? (
             <Card>
-              <Body bold>La tua candidatura: {statusLabel[myApp.status]}</Body>
+              <Body bold>La tua candidatura: {candidateStatusLabel(candidateStatus(myApp.status, myApp.iv))}</Body>
               {myApp.feedback ? <Body small style={{ marginTop: 6 }}>Messaggio di {job.owner}: “{myApp.feedback}”</Body> : null}
-              {myApp.status === 'invited' && <Btn small style={{ marginTop: 8 }} title={`Scrivi a ${job.owner}`} onPress={() => go('conversationPage', { id: 'dm:' + job.owner })} />}
+              <Btn small style={{ marginTop: 8 }} title="Apri la candidatura" onPress={() => go('interviewView', { id: myApp.id })} />
               {myApp.result.pending.length > 0 && <Body small muted style={{ marginTop: 6 }}>Alcune risposte aperte sono in attesa di valutazione.</Body>}
             </Card>
-          ) : job.status === 'open' ? <Btn title="Fai il test e candidati" onPress={() => go('jobTest', { job: job.id })} /> : null}
+          ) : job.status === 'open' ? <><PrivacyCard /><Btn title="Fai il test e candidati" onPress={() => go('jobTest', { job: job.id })} /></> : null}
         </>
       )}
 
@@ -79,15 +81,15 @@ export default function JobDetail() {
           <Row style={{ marginTop: 10, marginBottom: 6 }}><Body bold>{ranked.length} {ranked.length === 1 ? 'candidato' : 'candidati'}</Body></Row>
           <Row style={{ flexWrap: 'wrap', justifyContent: 'flex-start', marginBottom: 6 }} gap={6}>{['Tutti', 'Preferiti', 'Da valutare'].map((f) => <Pill key={f} label={f} on={filter === f} onPress={() => setFilter(f)} />)}</Row>
           {shown.length === 0 ? <Card><Empty text="Nessun candidato per ora." /></Card> : shown.map(({ a, n, fit }) => {
-            const hidden = job.blind && !a.revealed;
+            const view = companyView(a.candidate, a.iv);
             return (
               <Card key={a.id} onPress={() => go('applicantView', { id: a.id })}>
                 <Row style={{ alignItems: 'flex-start' }}>
                   <Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}>
-                    {hidden ? <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: t.item, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.muted, fontWeight: '800' }}>#{n}</Text></View> : <Avatar name={a.candidate} size={38} />}
+                    <Avatar name={view.name} size={38} />
                     <View style={{ flex: 1 }}>
-                      <Body bold>{hidden ? `Candidato #${n}` : a.candidate}</Body>
-                      <Body small muted>{statusLabel[a.status]}{a.result.pending.length ? ' · da valutare' : ''}</Body>
+                      <Body bold>{view.name}</Body>
+                      <Body small muted>{companyStatusLabel(a.status, a.iv)}{a.result.pending.length ? ' · da valutare' : ''}</Body>
                     </View>
                   </Row>
                   <View style={{ alignItems: 'flex-end' }}><Text style={{ color: scoreTone(fit.overall, t), fontSize: 24, fontWeight: '800' }}>{fit.overall}</Text><Body small muted>adeguatezza</Body></View>
@@ -95,7 +97,7 @@ export default function JobDetail() {
                 {(() => { const rl = runLabel(job, runs.find((x) => x.jobId === job.id && x.candidate === a.candidate)); return rl ? <Body small color={rl.tone === 'ok' ? t.positive : rl.tone === 'warn' ? t.warn : rl.tone === 'bad' ? t.danger : t.muted} style={{ marginTop: 6 }}>{rl.text}</Body> : null; })()}
                 <Row style={{ flexWrap: 'wrap', justifyContent: 'flex-start', marginTop: 8 }} gap={6}>
                   {job.reqs.map((r) => { const v = a.result.skillScores[r.skill] ?? null; return <Text key={r.skill} style={{ color: v != null && v >= r.min ? t.positive : t.danger, fontSize: 11, backgroundColor: t.item, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>{skillLabel(r.skill).split(' ')[0]} {v ?? '—'}</Text>; })}
-                  {fit.trust != null && <Text style={{ color: scoreTone(fit.trust, t), fontSize: 11, backgroundColor: t.item, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>Affidabilità {fit.trust}</Text>}
+                  {fit.trust != null && <Text style={{ color: scoreTone(fit.trust, t), fontSize: 11, backgroundColor: t.item, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>Atteggiamento {fit.trust}</Text>}
                 </Row>
               </Card>
             );

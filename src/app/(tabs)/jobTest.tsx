@@ -13,7 +13,8 @@ import { pickFiles, pickImages } from '@/lib/jobFiles';
 import { go, goBack } from '@/lib/nav';
 import type { Answer, TestResult } from '@/lib/hiring';
 import { useApp } from '@/store/app';
-import { jobQuestions, practiceQuestions, useJobs } from '@/store/jobs';
+import { checkQuestions, jobQuestions, practiceQuestions, useJobs } from '@/store/jobs';
+import { PrivacyCard } from '@/components/jobs/InterviewParts';
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
 import { translateText } from '@/i18n/core';
@@ -22,12 +23,14 @@ const fmt = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.max
 
 export default function JobTest() {
   const t = useTheme();
-  const { job: jobId, skill } = useLocalSearchParams<{ job?: string; skill?: string }>();
+  const { job: jobId, skill, check: checkParam } = useLocalSearchParams<{ job?: string; skill?: string; check?: string }>();
+  const [chkApp = '', chkId = ''] = (checkParam ?? '').split(':');
+  const chk = useJobs((s) => s.applications.find((a) => a.id === chkApp)?.checks?.find((c) => c.id === chkId));
   const me = useApp((s) => s.account.name);
   const job = useJobs((s) => s.jobs.find((j) => j.id === jobId));
   const already = useJobs((s) => !!jobId && s.applications.some((a) => a.jobId === jobId && a.candidate === me));
-  const questions: Question[] = useMemo(() => (job ? jobQuestions(job) : skill ? practiceQuestions(skill) : []), [job, skill]);
-  const limitSec = job ? job.timeLimitMin * 60 : skill === 'atteggiamento' ? 12 * 60 : 8 * 60;
+  const questions: Question[] = useMemo(() => (chk ? checkQuestions(chk) : job ? jobQuestions(job) : skill ? practiceQuestions(skill) : []), [job, skill, chk]);
+  const limitSec = chk ? chk.timeLimitMin * 60 : job ? job.timeLimitMin * 60 : skill === 'atteggiamento' ? 12 * 60 : 8 * 60;
 
   const [stage, setStage] = useState<'intro' | 'run' | 'done'>('intro');
   const [i, setI] = useState(0);
@@ -51,10 +54,11 @@ export default function JobTest() {
   useEffect(() => { if (stage === 'run' && left <= 0) finish(answersRef.current); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [left, stage]);
 
   if (!questions.length) return <Page id="jobTest" back><Body muted>Test non trovato.</Body></Page>;
+  if (chk && chk.status !== 'accepted' && stage !== 'done') return <Page id="jobTest" back title="Verifica"><Body>Questa verifica non è più disponibile.</Body><Btn style={{ marginTop: 12 }} title="Torna alla candidatura" onPress={() => go('interviewView', { id: chkApp })} /></Page>;
   if (job && already && stage !== 'done') return <Page id="jobTest" back title="Già inviato"><Body>Hai già completato il test per questa offerta. Puoi seguire lo stato dalla pagina dell’offerta.</Body><Btn style={{ marginTop: 12 }} title="Torna all’offerta" onPress={() => go('jobDetail', { id: job.id })} /></Page>;
 
   const q = questions[i];
-  const title = job ? job.title : skill === 'atteggiamento' ? 'Prova di atteggiamento' : skillLabel(skill ?? '');
+  const title = chk ? chk.title : job ? job.title : skill === 'atteggiamento' ? 'Prova di atteggiamento' : skillLabel(skill ?? '');
 
   function commit(skip = false): Answer[] {
     const a: Answer = { qid: q.id, value: skip ? null : cur, ms: Date.now() - qStart.current, ...(!skip && curFiles.length ? { files: curFiles } : {}) };
@@ -63,7 +67,10 @@ export default function JobTest() {
   }
   function finish(all: Answer[]) {
     if (stage === 'done') return;
-    if (job) {
+    if (chk) {
+      if (!useJobs.getState().submitCheckTest(chkApp, chkId, all)) { toast('Non riesco a inviare la verifica'); return; }
+      setResult(useJobs.getState().applications.find((x) => x.id === chkApp)?.checks?.find((c) => c.id === chkId)?.result ?? null);
+    } else if (job) {
       const id = useJobs.getState().apply(job.id, me, all);
       if (!id) { toast('Candidatura già inviata'); return; }
       setResult(useJobs.getState().applications.find((x) => x.id === id)?.result ?? null);
@@ -86,14 +93,16 @@ export default function JobTest() {
           <Body bold>{questions.length} domande · {fmtLimit(Math.round(limitSec / 60))}</Body>
           <Body small muted style={{ marginTop: 6 }}>{job ? `Per l’offerta “${job.title}” di ${job.company}. ` : ''}Si risponde una domanda alla volta e non si può tornare indietro. Alcune domande hanno una risposta giusta, altre misurano come ti comporteresti: rispondi come faresti davvero, non come pensi “si debba” rispondere. Le risposte incoerenti lo rendono visibile.{questions.some((x) => x.limitSec) ? ' Alcune domande hanno un tempo proprio: allo scadere si passa alla successiva.' : ''}{job?.practical ? ` Dopo il test trovi nella pagina dell’offerta la prova pratica (${job.practical.title}): il suo tempo parte solo quando scarichi i file.` : ''}</Body>
         </Card>
-        {job && (
-          <Card>
-            <Body bold>Cosa vede chi assume</Body>
-            <Body small muted style={{ marginTop: 4 }}>• I tuoi punteggi per ogni competenza richiesta e l’indice di affidabilità (con le sue componenti).{'\n'}• I tempi di risposta e le tue risposte alle domande aperte.{'\n'}• {job.blind ? 'Il tuo nome e la tua foto restano nascosti finché non ti invitano.' : 'Il tuo nome e la tua foto.'}{'\n'}Non vengono richiesti scuola, età, foto o curriculum.</Body>
-            <Pressable onPress={() => setConsent(!consent)} style={{ paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}><Icon name={consent ? 'checksquare' : 'square'} size={20} color={consent ? t.accent : t.muted} /><Text style={{ color: t.text, flex: 1 }}>Accetto che questi dati siano visibili a {job.owner}</Text></Pressable>
-          </Card>
+        {job && !chk && (
+          <>
+            <PrivacyCard />
+            <Card>
+              <Pressable onPress={() => setConsent(!consent)} accessibilityRole="checkbox" accessibilityState={{ checked: consent }} style={{ paddingVertical: 4, flexDirection: 'row', alignItems: 'center', gap: 10 }}><Icon name={consent ? 'checksquare' : 'square'} size={20} color={consent ? t.accent : t.muted} /><Text style={{ color: t.text, flex: 1 }}>Accetto che {job.owner} veda questi dati (solo il mio nome e le mie prove)</Text></Pressable>
+              <Body small muted style={{ marginTop: 6 }}>Finché non c’è il server, candidature e inviti funzionano solo tra utenti demo su questo telefono. Puoi ritirare la candidatura quando vuoi.</Body>
+            </Card>
+          </>
         )}
-        <Btn title="Inizia" disabled={!!job && !consent} onPress={() => { qStart.current = Date.now(); setQLeft(questions[0].limitSec ?? null); setStage('run'); }} />
+        <Btn title="Inizia" disabled={!!job && !chk && !consent} onPress={() => { qStart.current = Date.now(); setQLeft(questions[0].limitSec ?? null); setStage('run'); }} />
       </Page>
     );
   }
@@ -102,8 +111,8 @@ export default function JobTest() {
     return (
       <Page id="jobTest" title="Fatto">
         <Card>
-          <Body bold style={{ fontSize: 18 }}>{job ? 'Candidatura inviata' : 'Prova completata'}</Body>
-          <Body small muted style={{ marginTop: 4 }}>{job ? `${job.owner} vedrà questi risultati.` : 'Il risultato è stato aggiunto al tuo profilo competenze.'}</Body>
+          <Body bold style={{ fontSize: 18 }}>{chk ? 'Verifica inviata' : job ? 'Candidatura inviata' : 'Prova completata'}</Body>
+          <Body small muted style={{ marginTop: 4 }}>{chk ? 'L’azienda vedrà il risultato, aggiunto alle tue competenze per questa candidatura.' : job ? `${job.owner} vedrà questi risultati.` : 'Il risultato è stato aggiunto al tuo profilo competenze.'}</Body>
         </Card>
         {result && (
           <Card>
@@ -112,7 +121,7 @@ export default function JobTest() {
             {result.flags.map((f) => <Body key={f} small color={t.warn} style={{ marginTop: 4 }}>{f}</Body>)}
           </Card>
         )}
-        <Btn title={job ? 'Vai all’offerta' : 'Vedi il mio profilo'} onPress={() => (job ? go('jobDetail', { id: job.id }) : go('skillProfile'))} />
+        <Btn title={chk ? 'Torna alla candidatura' : job ? 'Vai alla mia candidatura' : 'Vedi il mio profilo'} onPress={() => (chk ? go('interviewView', { id: chkApp }) : job ? go('interviewView', { id: useJobs.getState().applications.find((a) => a.jobId === job.id && a.candidate === me)?.id ?? '' }) : go('skillProfile'))} />
         <Btn ghost style={{ marginTop: 8 }} title="Chiudi" onPress={goBack} />
       </Page>
     );

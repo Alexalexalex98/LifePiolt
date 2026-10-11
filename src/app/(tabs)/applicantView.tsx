@@ -11,7 +11,7 @@ import { skillLabel, traitLabel, traits } from '@/data/skillBank';
 import { useTheme } from '@/hooks/use-theme';
 import { deadlineOf, fmtDuration, fmtLimit, levelOf } from '@/lib/hiring';
 import { callWindow, canCall, checkStatusLabel, CHECK_KIND_LABEL, companyStatusLabel, companyView, contactVisible, OUTCOME_REASONS, retryUntil } from '@/lib/interview';
-import { answerIncoming, callCandidate, acceptCounterSlot, cancelCallNow, fmtSlot, finishWith, isDemo, rejectIncoming, simulateCandidateAccepts } from '@/lib/interviewActions';
+import { answerIncoming, callCandidate, acceptCounterSlot, cancelCallNow, demoStartSoon, fmtSlot, finishWith, isDemo, rejectIncoming, simulateCandidateAccepts } from '@/lib/interviewActions';
 import { attitudeOfApplication, fitOfApplication, scoresOfApplication } from '@/lib/jobFit';
 import { useNow } from '@/lib/enroll';
 import { go } from '@/lib/nav';
@@ -19,7 +19,6 @@ import { fmtDateTime, fmtHour } from '@/lib/when';
 import { useApp } from '@/store/app';
 import { CHECK_PRACTICAL_QID, PRACTICAL_QID, checkQuestions, questionsOfApp, useJobs } from '@/store/jobs';
 import { toast } from '@/store/toast';
-import { Pressable } from 'react-native';
 
 const fmtMs = (ms: number) => (ms >= 60000 ? `${Math.floor(ms / 60000)} min ${Math.round((ms % 60000) / 1000)} s` : `${Math.round(ms / 1000)} s`);
 
@@ -120,6 +119,7 @@ export default function ApplicantView() {
               <Btn style={{ marginTop: 10 }} icon="phone" title={iv.stage === 'missed' ? `Richiama ${view.name}` : `Chiama ${view.name}`} disabled={!can?.ok} onPress={doCall} />
             )}
             {iv.stage !== 'calling' && !can?.ok && can?.reason === 'too_early' && <Body small muted style={{ marginTop: 6 }}>Potrai chiamare dalle {fmtHour(win!.opens)}.</Body>}
+            {demo && iv.stage !== 'calling' && !can?.ok && <Btn small ghost style={{ marginTop: 8 }} title="Anteprima: porta il colloquio a tra 2 minuti" onPress={() => demoStartSoon(app.id)} />}
             <Body small muted style={{ marginTop: 8 }}>Il candidato ha scelto quali contatti sbloccare e può cambiare idea fino alla chiamata. Li vedrai solo se risponde.</Body>
           </>
         )}
@@ -309,4 +309,3 @@ function LiveNotes({ appId, checkId, notes, score, done }: { appId: string; chec
     </View>
   );
 }
-void Pressable;

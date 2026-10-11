@@ -6,7 +6,9 @@ import { Text } from '@/components/T';
 
 import { Body, Input, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { sendToAssistant } from '@/lib/assistant/run';
+import { runAction, sendTheia } from '@/lib/assistant/theiaFlow';
+import { Composer, type ComposerSend } from '@/components/theia/Composer';
+import { MessageFooter, MessageImages } from '@/components/theia/MessageExtras';
 import { Icon } from '@/lib/icons';
 import { GENERALE, foldersOf, migrateOldChat, searchLog, useAssistant, type AMsg } from '@/store/assistant';
 import { useApp } from '@/store/app';
@@ -23,7 +25,6 @@ export default function LifeChat() {
   const name = useApp((s) => s.assistantName);
   // si parte sempre da "Generale": un'unica grande chat con tutto quello che ci si è detti
   const [section, setSection] = useState(GENERALE);
-  const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
   const [q, setQ] = useState('');
@@ -54,12 +55,22 @@ export default function LifeChat() {
   const results = useMemo(() => (searching && q.trim() ? searchLog(log, q) : []), [log, q, searching]);
   const lastAi = [...shown].reverse().find((m) => m.who === 'ai');
 
-  async function send(v?: string) {
-    const msg = (v ?? text).trim();
-    if (!msg || busy) return;
-    setText(''); setBusy(true);
-    try { await sendToAssistant(msg, { topic: section !== GENERALE ? section : undefined }); } finally { setBusy(false); }
+  const appLang = useApp((s) => s.language);
+
+  async function deliver(m: ComposerSend) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await sendTheia({ text: m.text, lang: m.lang, appLang, forced: m.forced, source: m.source, images: m.images, topic: section !== GENERALE ? section : undefined });
+    } finally { setBusy(false); }
     // se la domanda cambia argomento resto in Generale, che mostra tutto
+    setTimeout(() => list.current?.scrollToEnd({ animated: true }), 60);
+  }
+  const send = (v: string) => deliver({ text: v, images: [], source: 'typed', lang: appLang, forced: false });
+  async function act(id: string, a: Parameters<typeof runAction>[1]) {
+    if (busy) return;
+    setBusy(true);
+    try { await runAction(id, a); } finally { setBusy(false); }
     setTimeout(() => list.current?.scrollToEnd({ animated: true }), 60);
   }
 
@@ -121,7 +132,9 @@ export default function LifeChat() {
                 <View style={{ marginVertical: 4 }}>
                   <View style={{ alignSelf: me ? 'flex-end' : 'flex-start', maxWidth: '88%', backgroundColor: me ? '#e6ebf3' : t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: me ? 0 : 1, borderRadius: 18, padding: 12 }}>
                     {item.image ? <Image source={{ uri: item.image }} style={{ width: 160, height: 100, borderRadius: 10, marginBottom: 6 }} contentFit="cover" /> : null}
-                    <Text selectable style={{ color: me ? '#111' : t.text, fontSize: 15, lineHeight: 21 }}>{item.text}</Text>
+                    {item.ext?.images?.length ? <MessageImages uris={item.ext.images} me={me} /> : null}
+                    {item.text ? <Text selectable style={{ color: me ? '#111' : t.text, fontSize: 15, lineHeight: 21 }}>{item.text}</Text> : null}
+                    <MessageFooter ext={item.id === lastAi?.id ? item.ext : item.ext} me={me} onAction={(a) => void act(item.id, a)} />
                     {item.source === 'theia' && <Text style={{ color: me ? '#556' : t.muted, fontSize: 10, marginTop: 4 }}>da {name} sulla schermata</Text>}
                   </View>
                   {item.id === lastAi?.id && item.chips?.length ? (
@@ -131,12 +144,7 @@ export default function LifeChat() {
               );
             }}
           />
-          <Row style={{ paddingTop: 10, paddingBottom: 6, alignItems: 'flex-start' }}>
-            <Input flex={1} placeholder={section === GENERALE ? 'Scrivi un comando o una domanda…' : `Scrivi in ${section}…`} value={text} onChangeText={setText} onSubmitEditing={() => send()} returnKeyType="send" style={{ marginBottom: 0 }} />
-            <Pressable onPress={() => send()} disabled={busy || !text.trim()} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: busy || !text.trim() ? 0.4 : 1, marginStart: 8 }} accessibilityLabel={translateText("Invia")}>
-              <Icon name="arrow-up" size={20} color={t.onText} stroke={2.4} />
-            </Pressable>
-          </Row>
+          <Composer appLang={appLang} busy={busy} placeholder={section === GENERALE ? 'Scrivi un comando o una domanda…' : `Scrivi in ${section}…`} onSend={(m) => void deliver(m)} />
         </>
       )}
     </Page>

@@ -9,10 +9,10 @@
  */
 
 export type LiveRole = 'host' | 'viewer';
-export type LiveKind = 'seminar' | 'service';
+export type LiveKind = 'seminar' | 'service' | 'interview';
 /** broadcast = un relatore e tanti spettatori; call = videochiamata a due (servizi 1-a-1). */
 export type LiveMode = 'broadcast' | 'call';
-export const modeFor = (kind: LiveKind): LiveMode => (kind === 'service' ? 'call' : 'broadcast');
+export const modeFor = (kind: LiveKind): LiveMode => (kind === 'service' || kind === 'interview' ? 'call' : 'broadcast');
 
 export const MIN = 60000;
 /** La stanza si apre (sala d'attesa) 10 minuti prima dell'inizio. */

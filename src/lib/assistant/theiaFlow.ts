@@ -151,6 +151,6 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
       return;
     }
     case 'ask-ai': case 'retry':
-      await delegate({ text: action.kind === 'retry' ? action.text : action.text, lang: action.lang, source: action.source, images: action.kind === 'retry' ? action.images : undefined });
+      await delegate({ text: action.text, lang: action.lang, source: action.source, images: action.kind === 'retry' ? action.images : undefined });
   }
 }

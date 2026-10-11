@@ -1,5 +1,6 @@
 import { bank, questionById, type FileRef, type Question } from './skillBank';
 import { gradeTest, pickQuestions, type Answer } from '../lib/hiring';
+import { createInvite } from '../lib/interview';
 import { PRACTICAL_QID, practicalQuestion, type Application, type Job, type PracticalRun, type PracticeResult } from '../store/jobs';
 
 /** Dati di esempio per la modalità demo: offerte, candidature e prove già svolte. */
@@ -60,6 +61,15 @@ export function seedJobs(me: string) {
   people.slice(0, 4).forEach(([name, level, seed], i) => {
     const answers = answersFor(qs(mine), level, seed * 17);
     applications.push({ id: `app-${i}`, jobId: mine.id, candidate: name, submittedAt: now - (i + 1) * 0.6 * DAY, answers, openScores: {}, result: gradeTest(qs(mine), answers), status: i === 0 ? 'shortlist' : 'submitted' });
+  });
+
+  // la mia candidatura a un'offerta altrui, con un invito al colloquio ricevuto (anteprima: l'azienda e' un utente demo)
+  const other = jobs.find((j) => j.id === 'job-support')!;
+  const myAns = answersFor(qs(other), 0.8, 77);
+  const slotAt = (d: number, h: number) => { const x = new Date(now + d * DAY); x.setHours(h, 0, 0, 0); return x.getTime(); };
+  applications.push({
+    id: 'app-me', jobId: other.id, candidate: me, submittedAt: now - 1.5 * DAY, answers: myAns, openScores: {}, result: gradeTest(qs(other), myAns), status: 'submitted',
+    iv: createInvite({ slots: [{ start: slotAt(1, 10), durationMin: 30 }, { start: slotAt(2, 15), durationMin: 30 }], tz: 'Europe/Zurich', lang: 'Italiano', message: 'Ciao! Il tuo test ci è piaciuto: ci farebbe piacere conoscerti in una breve videochiamata.', now: now - 0.5 * DAY }) ?? undefined,
   });
 
   const practicals: PracticalRun[] = [];

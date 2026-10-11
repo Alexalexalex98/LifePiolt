@@ -6,7 +6,7 @@
 import { fold } from './fold.ts';
 import { extractWhen } from './when.ts';
 import { applyRules, hitsOf, titleOf, type Ctx, type Span } from './rules.ts';
-import { detectLang, scriptOf } from './detect.ts';
+import { detectLang } from './detect.ts';
 import { rx } from './build.ts';
 import { LEXICONS } from './lex/index.ts';
 import type { Concept, Understood } from './types.ts';

@@ -6,7 +6,8 @@ import { SkillRow, scoreTone } from '@/components/jobs';
 import { Body, Btn, Card, Empty, Row, Seg, Chev } from '@/components/ui';
 import { skillLabel } from '@/data/skillBank';
 import { useTheme } from '@/hooks/use-theme';
-import { fitOfPerson, statusLabel } from '@/lib/jobFit';
+import { fitOfPerson } from '@/lib/jobFit';
+import { candidateStatus, candidateStatusLabel } from '@/lib/interview';
 import { go } from '@/lib/nav';
 import { trustFor } from '@/lib/trust';
 import { useApp } from '@/store/app';
@@ -65,7 +66,8 @@ export function JobsHub() {
 
       {tab === 'Candidature' && (myApps.length === 0 ? <Card><Empty text="Non ti sei ancora candidato: scegli un’offerta e fai il test." /></Card> : myApps.map((a) => {
         const j = jobs.find((x) => x.id === a.jobId);
-        return j ? <Card key={a.id} onPress={() => go('jobDetail', { id: j.id })}><Row><View style={{ flex: 1 }}><Body bold>{j.title}</Body><Body small muted>{j.company}</Body></View><Body small color={a.status === 'rejected' ? t.danger : a.status === 'invited' ? t.positive : t.muted}>{statusLabel[a.status]}</Body></Row></Card> : null;
+        const st = candidateStatus(a.status, a.iv);
+        return j ? <Card key={a.id} onPress={() => go('interviewView', { id: a.id })}><Row><View style={{ flex: 1 }}><Body bold>{j.title}</Body><Body small muted>{j.company}</Body></View><Body small color={st === 'rejected' || st === 'declined' || st === 'expired' || st === 'not_held' ? t.danger : st === 'evaluating' || st === 'shortlist' ? t.muted : t.positive}>{candidateStatusLabel(st)}</Body></Row></Card> : null;
       }))}
 
       {tab === 'Le mie offerte' && (

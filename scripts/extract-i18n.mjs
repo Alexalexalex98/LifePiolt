@@ -12,10 +12,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src');
 
 // File/cartelle esclusi (dati demo, cataloghi, test).
-const EXCLUDE_DIRS = ['src/i18n/locales', 'src/i18n/source', 'tests', 'node_modules'];
+const EXCLUDE_DIRS = ['src/lib/langLexicon', 'src/i18n/locales', 'src/i18n/source', 'tests', 'node_modules'];
 const EXCLUDE_FILES = new Set([
   'src/i18n/languages.ts', 'src/i18n/core.ts', 'src/i18n/apply.ts', 'src/i18n/catalogs.ts', 'src/lib/rn-shim.tsx', 'src/lib/rn-shim-pressable.tsx',
-  'src/data/seed.ts', 'src/data/marketSeed.ts', 'src/data/jobsSeed.ts', 'src/data/moodDemo.ts',
+  'src/data/seed.ts', 'src/lib/aiRouter/keywords.ts', 'src/data/marketSeed.ts', 'src/data/jobsSeed.ts', 'src/data/moodDemo.ts',
   'src/data/network-seed.json', 'src/data/translations.json', 'src/store/demo.ts',
 ]);
 

@@ -24,6 +24,7 @@ import { useLive } from '@/store/live';
 import { toast } from '@/store/toast';
 import { fmtHour } from '@/lib/when';
 import { t as tr } from '@/i18n/core';
+import { InterviewRoom } from '@/components/live/InterviewRoom';
 
 /** Tipo di rete (Wi-Fi / dati mobili) per il consiglio sui dati. Difensivo: se il modulo manca resta null. */
 function useNetType(): string | null {
@@ -45,7 +46,14 @@ function useNetType(): string | null {
  * Seminari = un relatore e tanti spettatori; servizi = videochiamata a due.
  * Il trasporto e' SIMULATO finche' non si collega un servizio di streaming (docs/live.md).
  */
+/** Colloquio di lavoro (1-a-1, chiama l'azienda) o stanza standard di seminari e servizi. */
 export default function LiveRoom() {
+  const q = useLocalSearchParams<{ kind?: string; ref?: string; title?: string }>();
+  if (q.kind === 'interview') return <InterviewRoom appId={String(q.ref ?? '')} title={String(q.title ?? 'Colloquio')} />;
+  return <StandardLiveRoom />;
+}
+
+function StandardLiveRoom() {
   const p = useLocalSearchParams<{ kind?: string; ref?: string; title?: string; host?: string; start?: string; dur?: string; guest?: string }>();
   const kind: LiveKind = p.kind === 'service' ? 'service' : 'seminar';
   const mode = modeFor(kind);

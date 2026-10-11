@@ -85,6 +85,13 @@
         }
       ],
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "LifePilot usa il microfono per i messaggi vocali nelle chat, per i comandi a voce a Theia e quando tieni un seminario o una videochiamata.",
+          "speechRecognitionPermission": "LifePilot usa il riconoscimento vocale per trasformare in testo i comandi che dai a voce a Theia. Il microfono è acceso solo mentre parli e nessun audio viene salvato."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "LifePilot accede alle foto per inviarle nelle chat.",
