@@ -1,79 +1,32 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Pressable, View } from 'react-native';
-import { Text } from '@/components/T';
+import { Share, View, useWindowDimensions } from 'react-native';
 
-import { UserAvatar, openSheet } from '@/components/network';
-import { Body, Card, H, Input, Item, Page, Row, Switch } from '@/components/ui';
-import { useTheme } from '@/hooks/use-theme';
-import { hashStr, mulberry32 } from '@/lib/format';
-import { bioFor } from '@/lib/network';
+import { FlipCard } from '@/components/profile/CardFace';
+import { useCardFor } from '@/components/profile/cardData';
+import { Body, Btn, Card, Page, Row } from '@/components/ui';
+import { go } from '@/lib/nav';
+import { HONESTY_NOTICE } from '@/lib/profile/skills';
 import { useApp } from '@/store/app';
-import { useNet, type MyCard } from '@/store/network';
+import { toast } from '@/store/toast';
 
+/** Biglietto da visita (sola lettura): si gira con un tocco. Solo nome, ruolo, attività, competenze e contatti condivisi. */
 export default function BusinessCard() {
-  const t = useTheme();
   const { name: param } = useLocalSearchParams<{ name?: string }>();
   const me = useApp((s) => s.account.name);
-  const net = useNet();
   const name = param || me;
-  const isMe = name === me;
-  const c = net.myCard;
-  const set = (patch: Partial<MyCard>) => net.patch({ myCard: { ...c, ...patch } });
-
-  const rows: [string, string | number][] = [];
-  if (isMe) {
-    if (c.showResidence) rows.push(['Residenza', c.residence]);
-    if (c.showBirthYear) rows.push(['Anno di nascita', c.birthYear]);
-    if (c.showProfession) rows.push(['Professione', c.profession]);
-    if (c.showPhone) rows.push(['Telefono', c.phone || '—']);
-    if (c.showEmail) rows.push(['Email', c.email]);
-  } else rows.push(['Professione', bioFor(name, me)]);
-
-  const rng = mulberry32(hashStr('qr' + name));
-  const cells = Array.from({ length: 100 }, () => rng() > 0.5);
-
-  const Field = ({ label, k, vis, numeric }: { label: string; k: keyof MyCard; vis: keyof MyCard; numeric?: boolean }) => (
-    <Item><Row><Body style={{ flex: 1 }}>{label}</Body>
-      <Input keyboardType={numeric ? 'number-pad' : 'default'} defaultValue={String(c[k] ?? '')} style={{ width: 130, padding: 7, marginBottom: 0 }} onChangeText={(v) => set({ [k]: v } as Partial<MyCard>)} />
-      <Switch value={!!c[vis]} onValueChange={(v) => set({ [vis]: v } as Partial<MyCard>)} />
-    </Row></Item>
-  );
-
+  const { design, data, qrText, isMe } = useCardFor(name);
+  const w = Math.min(useWindowDimensions().width - 32, 380);
   return (
     <Page id="businessCard" title="Biglietto da visita" back>
-      <Card style={{ alignItems: 'center', borderColor: '#3a2a5c' }}>
-        <UserAvatar name={name} size={68} />
-        <H>{name}</H>
-        <Body small muted>{isMe ? c.profession : bioFor(name, me)}</Body>
-        <View style={{ alignSelf: 'stretch', marginTop: 16 }}>
-          {rows.map(([l, v], i) => <Item key={l} last={i === rows.length - 1}><Row><Body muted>{l}</Body><Body bold>{String(v)}</Body></Row></Item>)}
-          {rows.length === 0 && <Body small muted>Nessun altro dato reso visibile.</Body>}
-        </View>
+      <View style={{ alignItems: 'center', marginTop: 10 }}><FlipCard design={design} data={data} width={w} qrText={qrText} /></View>
+      <Body small muted style={{ textAlign: 'center', marginTop: 12 }}>Tocca il biglietto per girarlo.</Body>
+      <Row style={{ marginTop: 14 }} gap={8}>
+        {isMe && <Btn style={{ flex: 1 }} icon="edit" title="Modifica" onPress={() => go('cardEditor')} />}
+        <Btn style={{ flex: 1 }} ghost icon="send" title="Condividi" onPress={() => { Share.share({ message: `${data.name}${data.role ? ' · ' + data.role : ''}${data.business ? ' · ' + data.business : ''}\n${qrText}` }).catch(() => toast('Condivisione non disponibile')); }} />
+      </Row>
+      <Card style={{ marginTop: 14 }}>
+        <Body small muted>Nel biglietto non ci sono scuole, titoli, storico lavorativo, età o indirizzo: contano le competenze. {HONESTY_NOTICE}</Body>
       </Card>
-      <Card style={{ alignItems: 'center' }}>
-        <Pressable onPress={() => openSheet('cv', { name })}>
-          <View style={{ width: 130, height: 130, backgroundColor: '#0e1219', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#2c2242', flexDirection: 'row', flexWrap: 'wrap' }}>
-            {cells.map((on, i) => <View key={i} style={{ width: '10%', height: '10%', backgroundColor: on ? '#f4f6f8' : 'transparent' }} />)}
-          </View>
-        </Pressable>
-        <Text onPress={() => openSheet('cv', { name })} style={{ color: '#c9b6ff', fontSize: 13, marginTop: 10 }}>Tocca per il CV completo</Text>
-        <Body small muted style={{ marginTop: 6, textAlign: 'center' }}>Il QR è illustrativo: la versione con codice davvero scansionabile richiede un profilo online.</Body>
-      </Card>
-      {isMe && (
-        <Card>
-          <H>Modifica biglietto</H>
-          <Field label="Residenza" k="residence" vis="showResidence" />
-          <Field label="Anno di nascita" k="birthYear" vis="showBirthYear" numeric />
-          <Field label="Professione" k="profession" vis="showProfession" />
-          <Field label="Telefono" k="phone" vis="showPhone" />
-          <Field label="Email" k="email" vis="showEmail" />
-          <Body small muted style={{ marginTop: 12, marginBottom: 4 }}>Contenuto visibile solo dietro al QR (formazione, esperienza, commenti aziendali):</Body>
-          <Input multiline style={{ minHeight: 60 }} defaultValue={c.schools} onChangeText={(v) => set({ schools: v })} />
-          <Input multiline style={{ minHeight: 60 }} defaultValue={c.experience} onChangeText={(v) => set({ experience: v })} />
-          <Input multiline style={{ minHeight: 60 }} defaultValue={c.companyComments} onChangeText={(v) => set({ companyComments: v })} />
-        </Card>
-      )}
-      <Text style={{ height: 0 }}>{''}</Text>
     </Page>
   );
 }

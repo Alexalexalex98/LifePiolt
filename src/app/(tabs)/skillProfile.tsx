@@ -56,6 +56,7 @@ export default function SkillProfile() {
             const st = candidateStatus(a.status, a.iv);
             return j ? <Card key={a.id} onPress={() => go('interviewView', { id: a.id })}><Row><View style={{ flex: 1 }}><Body bold>{j.title}</Body><Body small muted>{j.company}</Body><StatusTag text={candidateStatusLabel(st)} tone={st === 'shared' || st === 'scheduled' || st === 'calling' ? 'ok' : st === 'declined' || st === 'expired' || st === 'not_held' || st === 'rejected' ? 'bad' : 'muted'} /></View><Chev /></Row></Card> : null;
           })}
+          <Btn small ghost icon="star" style={{ marginTop: 6, marginBottom: 6 }} title="Dichiara e gestisci le competenze" onPress={() => go('skillVerify')} />
           <Body bold style={{ marginTop: 6, marginBottom: 8 }}>Verifica le tue competenze</Body>
           <Card>
             {[...skills, { id: 'atteggiamento', label: 'Atteggiamento (affidabilità, onestà, collaborazione)', icon: 'compass', desc: '9 scenari di lavoro reale.' }].map((s, i, arr) => {

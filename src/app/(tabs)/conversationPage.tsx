@@ -22,6 +22,9 @@ import { go, goBack } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { dayLabel, dmId, isMuted, previewOf, useChat, visibleMsgs, type ChatMessage, type Poll } from '@/store/chat';
 import { askTheiaAbout } from '@/store/theia';
+import { effectiveTier } from '@/lib/club';
+import { mkey, useClub } from '@/store/club';
+import { canSendInClub, simulateChatReply } from '@/store/clubFlow';
 import { dayKey } from '@/lib/format';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
@@ -46,6 +49,10 @@ export default function Conversation() {
   const st = useChat.getState;
   const msgs = useMemo(() => visibleMsgs(allMsgs, me), [allMsgs, me]);
   const list = useRef<FlatList<Row>>(null);
+  const club = useClub((s) => (chat?.clubId ? s.clubs[chat.clubId] : undefined));
+  const clubMember = useClub((s) => (chat?.clubId ? s.memberships[mkey(chat.clubId, me)] : undefined));
+  const [asQuestion, setAsQuestion] = useState(false);
+  const [, setTick] = useState(0);
 
   const [replyTo, setReplyTo] = useState<ChatMessage | undefined>();
   const [editing, setEditing] = useState<ChatMessage | undefined>();
@@ -94,6 +101,7 @@ export default function Conversation() {
     return out;
   }, [msgs, search, firstUnread, me]);
 
+  const pinnedMsg = useMemo(() => [...msgs].reverse().find((m) => m.pinned && !m.deletedForAll), [msgs]);
   const byId = useMemo(() => Object.fromEntries(msgs.map((m) => [m.id, m])), [msgs]);
   const mediaItems = useMemo(() => msgs.filter((m) => (m.kind === 'image' || m.kind === 'video') && !m.deletedForAll), [msgs]);
 
@@ -120,31 +128,42 @@ export default function Conversation() {
 
   const peer = chat?.type === 'dm' ? chat.name : '';
   const isBlocked = !!peer && blocked.includes(peer);
-  const left = chat?.type === 'group' && !chat.members.includes(me);
+  const left = (chat?.type === 'group' && !chat.members.includes(me)) || (chat?.type === 'club' && !!club && club.owner !== me && effectiveTier(clubMember) === 'none');
+  const clubGate = chat?.type === 'club' && club ? canSendInClub(club, allMsgs) : null;
+  const clubReason = chat?.type === 'club' ? (left ? 'Non sei più iscritto a questo LifeClub.' : clubGate && !clubGate.ok ? clubGate.reason : undefined) : undefined;
+  // in modalità lenta il conto alla rovescia si aggiorna da solo
+  useEffect(() => { if (!clubGate?.wait) return; const i = setInterval(() => setTick((n) => n + 1), 1000); return () => clearInterval(i); }, [clubGate?.wait]);
+  const gate = () => { if (chat?.type !== 'club' || !club) return true; const g = canSendInClub(club, useChat.getState().messages[id]); if (!g.ok) { toast(g.reason ?? 'Non puoi scrivere qui'); setTick((n) => n + 1); } return g.ok; };
   const title = chat?.name ?? '';
   const font = fontPx(settings.fontSize);
 
   /* ---- invio ---- */
   function afterSend(mid: string) {
+    if (chat?.type === 'club' && club) { if (demo && club.owner !== me && asQuestion) simulateChatReply(club, id, mid); return; }
     if (demo && chat?.type === 'dm') simulateDelivery(id, mid, chat.name, true);
     else if (demo && chat?.type === 'group') simulateDelivery(id, mid, chat.members.find((x) => x !== me) ?? '', false);
   }
   function sendText(text: string) {
+    if (!gate()) return;
     if (editing) { st().editMsg(id, editing.id, text); setEditing(undefined); setDraft(''); return; }
-    const mid = st().send(id, me, { kind: 'text', text, replyTo: replyTo?.id });
-    setReplyTo(undefined); setDraftState('');
+    const mid = st().send(id, me, { kind: 'text', text, replyTo: replyTo?.id, ...(chat?.type === 'club' && asQuestion ? { club: { kind: 'question' as const } } : {}) });
+    setReplyTo(undefined); setDraftState(''); setAsQuestion(false);
     afterSend(mid);
   }
   function sendPicked(p: Picked, caption?: string) {
+    if (!gate()) return;
     const mid = st().send(id, me, { kind: p.kind, media: p.media, location: p.location, contact: p.contact, text: caption, replyTo: replyTo?.id });
     setReplyTo(undefined); afterSend(mid);
   }
   function sendVoice(uri: string, durationMs: number, waveform: number[]) {
+    if (!gate()) return;
     const mid = st().send(id, me, { kind: 'audio', media: { uri, durationMs, waveform, mime: 'audio/m4a' }, replyTo: replyTo?.id });
     setReplyTo(undefined); afterSend(mid);
   }
-  function sendPoll(poll: Poll) { afterSend(st().send(id, me, { kind: 'poll', poll })); }
+  function sendPoll(poll: Poll) {
+    if (!gate()) return; afterSend(st().send(id, me, { kind: 'poll', poll })); }
   function sendShare(m: SharePayload) {
+    if (!gate()) return;
     const mid = st().send(id, me, { ...m, replyTo: replyTo?.id });
     afterSend(mid); setReplyTo(undefined);
     if (demo && m.kind === 'event' && chat) simulateRsvp(id, mid, chat.members.filter((x) => x !== me));
@@ -195,7 +214,7 @@ export default function Conversation() {
     const m = item.m;
     return (
       <Bubble
-        m={m} me={me} quoted={m.replyTo ? byId[m.replyTo] : undefined} isGroup={chat?.type === 'group'} showSender={item.showSender}
+        m={m} me={me} quoted={m.replyTo ? byId[m.replyTo] : undefined} isGroup={chat?.type === 'group' || chat?.type === 'club'} showSender={item.showSender}
         selected={selected.includes(m.id)} highlight={highlight === m.id} fontSize={font} starred={!!m.starredBy?.includes(me)}
         onPress={() => openMsg(m)} onLongPress={() => longPress(m)}
         onSwipeReply={() => { if (!m.deletedForAll && m.kind !== 'system') { setReplyTo(m); setEditing(undefined); } }}
@@ -234,10 +253,10 @@ export default function Conversation() {
           <>
             <Pressable onPress={goBack} hitSlop={10} accessibilityLabel={translateText("Indietro")}><Icon name="arrow-left" size={24} color={t.text} /></Pressable>
             <Pressable onPress={() => go('chatInfo', { id })} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              {chat.type === 'group' ? <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Icon name="users" size={19} color={t.text} /></View> : <UserAvatar name={title} size={38} />}
+              {chat.type === 'club' ? <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: '#e5a10033', alignItems: 'center', justifyContent: 'center' }}><Icon name="lifeclub" size={19} color={t.text} /></View> : chat.type === 'group' ? <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Icon name="users" size={19} color={t.text} /></View> : <UserAvatar name={title} size={38} />}
               <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={{ color: t.text, fontSize: 17, fontWeight: '700' }}>{title}</Text>
-                <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12 }}>{chat.type === 'group' ? chat.members.join(', ') : 'tocca per le info'}</Text>
+                <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12 }}>{chat.type === 'club' ? 'LifeClub · tocca per le info' : chat.type === 'group' ? chat.members.join(', ') : 'tocca per le info'}</Text>
               </View>
             </Pressable>
             <Pressable onPress={() => setMenu(true)} hitSlop={10} accessibilityLabel={translateText("Menu")}><Icon name="more" size={22} color={t.text} /></Pressable>
@@ -247,6 +266,11 @@ export default function Conversation() {
 
       {chat.disappearingSec ? <View style={{ backgroundColor: c.quoteBg, paddingVertical: 4 }}><Text style={{ color: c.meta, fontSize: 12, textAlign: 'center' }}>I messaggi scompaiono dopo {chat.disappearingSec >= 86400 * 30 ? '90 giorni' : chat.disappearingSec >= 86400 * 7 ? '7 giorni' : '24 ore'}</Text></View> : null}
 
+      {chat.type === 'club' && pinnedMsg && (
+        <Pressable onPress={() => jumpTo(pinnedMsg.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: t.card, borderBottomWidth: 1, borderBottomColor: t.border }} accessibilityLabel={translateText("Messaggio fissato")}>
+          <Icon name="pin" size={14} color={t.muted} /><Text numberOfLines={1} style={{ flex: 1, color: t.text, fontSize: 13 }}>{pinnedMsg.text}</Text>
+        </Pressable>
+      )}
       <FlatList
         ref={list}
         style={{ flex: 1, backgroundColor: wallColor(chat.wallpaper ?? settings.wallpaper, c) }}
@@ -268,16 +292,25 @@ export default function Conversation() {
       />
 
       <View style={{ paddingBottom: restingBottom(kb, insets.bottom) }}>
+        {chat.type === 'club' && !clubReason && club && club.owner !== me && (
+          <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 10, paddingTop: 6, alignItems: 'center' }}>
+            <Pressable onPress={() => setAsQuestion(!asQuestion)} accessibilityRole="button" accessibilityState={{ selected: asQuestion }} accessibilityLabel={translateText("Segna come domanda")} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: asQuestion ? '#e5a100' : t.chip }}>
+              <Icon name="help" size={13} color={asQuestion ? '#fff' : t.text} /><Text style={{ color: asQuestion ? '#fff' : t.text, fontSize: 12, fontWeight: '700' }}>Domanda</Text>
+            </Pressable>
+            <Text style={{ color: t.muted, fontSize: 11, flex: 1 }}>{club.chat.slowSec ? `Modalità lenta: un messaggio ogni ${club.chat.slowSec} s` : 'La domanda viene evidenziata per il creatore'}</Text>
+          </View>
+        )}
         <Composer
           me={me} draft={draft} enterSends={settings.enterSends} fontSize={font}
           replyTo={replyTo} editing={editing}
-          disabledReason={isBlocked ? `Hai bloccato ${peer}. Sbloccalo dalle info per scrivere.` : left ? 'Non sei più un membro di questo gruppo.' : undefined}
+          disabledReason={isBlocked ? `Hai bloccato ${peer}. Sbloccalo dalle info per scrivere.` : chat.type === 'club' ? clubReason : left ? 'Non sei più un membro di questo gruppo.' : undefined}
           onDraft={setDraft} onSendText={sendText} onSendPicked={sendPicked} onSendVoice={sendVoice} onSendPoll={sendPoll} onSendShare={sendShare}
           onCancelContext={() => { setReplyTo(undefined); if (editing) { setEditing(undefined); setDraft(''); } }}
         />
       </View>
 
-      <MessageActions m={actionMsg} me={me} onClose={() => setActionMsg(null)} onAction={onAction} />
+      <MessageActions m={actionMsg} me={me} onClose={() => setActionMsg(null)} onAction={onAction}
+        extra={chat.type === 'club' && club?.owner === me && actionMsg ? [{ label: actionMsg.pinned ? 'Togli dai fissati' : 'Fissa in alto', icon: 'pin', onPress: () => { const m = actionMsg; setActionMsg(null); st().messages[id]?.forEach((x) => { if (x.pinned && x.id !== m.id) st().patchMsg(id, x.id, { pinned: false }); }); st().patchMsg(id, m.id, { pinned: !m.pinned }); toast(m.pinned ? 'Messaggio non più fissato' : 'Messaggio fissato'); } }] : undefined} />
       <DeleteSheet msgs={deleting} me={me} onClose={() => setDeleting(null)} onDone={(mode) => {
         deleting?.forEach((m) => (mode === 'all' ? st().deleteForAll(id, m.id) : null));
         if (mode === 'me') st().deleteForMe(id, deleting?.map((m) => m.id) ?? [], me);
@@ -288,7 +321,7 @@ export default function Conversation() {
       <MediaViewer items={mediaItems} index={viewer} onClose={() => setViewer(null)} onDelete={(m) => { setViewer(null); setTimeout(() => setDeleting([m]), 350); }} />
 
       <Sheet visible={menu} title={title} onClose={() => setMenu(false)}>
-        <Item onPress={() => { setMenu(false); go('chatInfo', { id }); }}><IL icon="info">Info {chat.type === 'group' ? 'gruppo' : 'contatto'}</IL></Item>
+        <Item onPress={() => { setMenu(false); go('chatInfo', { id }); }}><IL icon="info">Info {chat.type === 'club' ? 'LifeClub' : chat.type === 'group' ? 'gruppo' : 'contatto'}</IL></Item>
         <Item onPress={() => { setMenu(false); setSearch(''); }}><IL icon="search">Cerca</IL></Item>
         <Item onPress={() => { setMenu(false); setSelected([msgs[msgs.length - 1]?.id].filter(Boolean) as string[]); }}><IL icon="checksquare">Seleziona messaggi</IL></Item>
         <Item onPress={() => { setMenu(false); go('starredPage', { id }); }}><IL icon="star">Messaggi importanti</IL></Item>

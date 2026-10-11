@@ -4,10 +4,10 @@ import { Text } from '@/components/T';
 
 import { SPONSORED_TEXT } from '@/components/market';
 import { IdeaCard, LpTag, type ModTarget, MediaViewer, UserAvatar, doContribute, openPurchaseConfirm, openSheet, useNetSheet } from '@/components/network';
-import { Body, Btn, Empty, IL, Input, Item, Link, Pill, Progress, Row, Select, Sheet, Toggle, Metric, Chev } from '@/components/ui';
+import { Body, Btn, IL, Input, Item, Link, Pill, Row, Select, Sheet, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, weekdayShortDate } from '@/lib/format';
-import { goBack, go } from '@/lib/nav';
+import { go } from '@/lib/nav';
 import { paidCancel, freeCancel } from '@/data/marketSeed';
 import { confirmAttendance, hasEnded } from '@/lib/enroll';
 import { ConflictSheet } from '@/lib/planBooking';

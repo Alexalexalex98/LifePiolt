@@ -1,3 +1,5 @@
+import { businessForJob } from '@/lib/profile/identity';
+import { useIdentity } from '@/store/identity';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -42,6 +44,7 @@ export default function JobDetail() {
     <Page id="jobDetail" back>
       <Text style={{ color: t.text, fontSize: 24, fontWeight: '800', marginTop: 10 }}>{job.title}</Text>
       <Body muted>{job.company} · {job.location} · {job.kind}{job.pay ? ` · ${job.pay}` : ''}</Body>
+      {(() => { const biz = businessForJob(useIdentity.getState().businesses, job); return biz ? <Body small muted onPress={() => go('businessPage', { id: biz.id })}>{`${biz.name} · di ${biz.owner}`}</Body> : <Body small muted>{`Pubblicata da ${job.owner}`}</Body>; })()}
       {job.status === 'closed' && <Body small color={t.warn} style={{ marginTop: 4 }}>Offerta chiusa</Body>}
       <Card style={{ marginTop: 10 }}><Body>{job.description || 'Nessuna descrizione.'}</Body></Card>
 

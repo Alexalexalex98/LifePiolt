@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { ClubChatPreview } from '@/components/club/ChatPreview';
-import { dayLong, money, perMonth } from '@/components/club/format';
+import { dayLong, perMonth } from '@/components/club/format';
 import { useClubSeed } from '@/components/club/hooks';
 import { LessonRow } from '@/components/club/LessonRow';
 import { Chip, CoverArt, PreviewNote, Stars } from '@/components/club/parts';
@@ -13,7 +13,7 @@ import { UserAvatar } from '@/components/network';
 import { Body, Btn, Card, Empty, H, Input, Page, Row, Seg, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { fmtInt } from '@/i18n/format';
-import { WRITE_LABEL, courseHasPremium, courseProgress, effectiveTier, hasPremium, lessonAccess, postVisible, qaRating, resumeLesson, sortedLessons, subInfo, subState, type Course, type MemberTier } from '@/lib/club';
+import { WRITE_LABEL, courseHasPremium, courseProgress, effectiveTier, hasPremium, lessonAccess, postVisible, qaRating, resumeLesson, sortedLessons, subInfo, type Course, type MemberTier } from '@/lib/club';
 import { confirmDelete } from '@/lib/confirm';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';

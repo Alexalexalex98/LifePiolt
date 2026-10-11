@@ -14,7 +14,7 @@ import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
 import { translateText } from '@/i18n/core';
 
-const FILTERS = ['Tutte', 'Non lette', 'Gruppi'] as const;
+const FILTERS = ['Tutte', 'Non lette', 'Gruppi', 'LifeClub'] as const;
 
 export default function MessagesPage() {
   const t = useTheme();
@@ -39,7 +39,7 @@ export default function MessagesPage() {
       // cercando si guarda in tutte le chat, archiviate comprese
       .filter((r) => (ql ? true : archived ? r.c.archived : !r.c.archived))
       .filter((r) => (ql ? r.c.name.toLowerCase().includes(ql) || !!r.hit : true))
-      .filter((r) => (filter === 'Non lette' && !archived ? r.unread : filter === 'Gruppi' && !archived ? r.c.type === 'group' : true)));
+      .filter((r) => (filter === 'Non lette' && !archived ? r.unread : filter === 'Gruppi' && !archived ? r.c.type === 'group' : filter === 'LifeClub' && !archived ? r.c.type === 'club' : true)));
   }, [chats, messages, q, filter, archived, me]);
 
   const archivedCount = Object.values(chats).filter((c) => c.archived).length;
@@ -81,22 +81,25 @@ export default function MessagesPage() {
         const pp = shown ? previewParts(shown) : null;
         const showDraft = !!c.draft && !q;
         const mineLast = shown?.from === me;
-        const emptyText = c.type === 'group' ? `${c.members.length} membri` : 'Nessun messaggio';
+        const emptyText = c.type === 'group' ? `${c.members.length} membri` : c.type === 'club' ? 'Canale del LifeClub' : 'Nessun messaggio';
         return (
           <Pressable key={c.id} onPress={() => open(c)} onLongPress={() => setSel(sel.includes(c.id) ? sel : [...sel, c.id])} delayLongPress={300}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 6, borderRadius: 14, backgroundColor: sel.includes(c.id) ? t.chip : 'transparent' }}
             accessibilityLabel={translateText(`${c.name}${unread ? ', non letto' : ''}`)}>
-            {c.type === 'group' ? <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Icon name="users" size={24} color={t.text} /></View> : <UserAvatar name={c.name} size={48} />}
+            {c.type === 'club' ? <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#e5a10033', alignItems: 'center', justifyContent: 'center' }}><Icon name="lifeclub" size={24} color={t.text} /></View> : c.type === 'group' ? <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Icon name="users" size={24} color={t.text} /></View> : <UserAvatar name={c.name} size={48} />}
             <View style={{ flex: 1 }}>
               <Row style={{ justifyContent: 'space-between' }}>
-                <Text numberOfLines={1} style={{ color: t.text, fontSize: 16, fontWeight: unread ? '800' : '600', flex: 1 }}>{c.name}</Text>
+                <Row gap={6} style={{ flex: 1, justifyContent: 'flex-start' }}>
+                  <Text numberOfLines={1} style={{ color: t.text, fontSize: 16, fontWeight: unread ? '800' : '600', flexShrink: 1 }}>{c.name}</Text>
+                  {c.type === 'club' && <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, backgroundColor: '#e5a10033' }}><Text style={{ color: '#b9892b', fontSize: 10, fontWeight: '800' }}>LifeClub</Text></View>}
+                </Row>
                 <Text style={{ color: unread && !muted ? t.accent : t.muted, fontSize: 12 }}>{shown ? listTime(shown.ts) : ''}</Text>
               </Row>
               <Row style={{ justifyContent: 'space-between' }} gap={6}>
                 <Row gap={4} style={{ flex: 1, justifyContent: 'flex-start' }}>
                   {showDraft ? <Text style={{ color: '#e5484d', fontSize: 14 }}>Bozza:</Text> : null}
                   {!showDraft && mineLast && shown && !shown.deletedForAll && shown.kind !== 'system' ? <Text style={{ color: shown.status === 'read' ? t.accent : t.muted, fontSize: 14 }}>{shown.status === 'read' ? 'Letto ·' : shown.status === 'delivered' ? 'Consegnato ·' : 'Inviato ·'}</Text> : null}
-                  {!showDraft && !mineLast && c.type === 'group' && shown && shown.kind !== 'system' ? <Text style={{ color: t.muted, fontSize: 14 }}>{shown.from}:</Text> : null}
+                  {!showDraft && !mineLast && (c.type === 'group' || c.type === 'club') && shown && shown.kind !== 'system' ? <Text style={{ color: t.muted, fontSize: 14 }}>{shown.from}:</Text> : null}
                   {!showDraft && pp?.icon ? <Icon name={pp.icon} size={14} color={t.muted} /> : null}
                   <Text numberOfLines={1} style={{ color: t.muted, fontSize: 14, flex: 1, fontWeight: unread ? '700' : '400' }}>{showDraft ? c.draft : pp ? pp.text : emptyText}</Text>
                 </Row>

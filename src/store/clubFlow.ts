@@ -161,6 +161,17 @@ export function simulateCreatorReply(club: Club, commentId: string, chatMsgId?: 
   }, 5000);
 }
 
+/** SOLO DEMO: risposta del creatore a una domanda scritta direttamente in chat. */
+export function simulateChatReply(club: Club, chatId: string, mid: string) {
+  const list = CANNED[club.id] ?? ['Grazie per la domanda, ti rispondo con calma appena possibile.'];
+  setTimeout(() => {
+    const chat = useChat.getState();
+    if (!chat.messages[chatId]?.some((m) => m.id === mid)) return;
+    chat.receive(chatId, club.owner, { kind: 'text', text: list[Math.floor(Math.random() * list.length)], replyTo: mid });
+    clubNotify(club, t('{0} ha risposto alla tua domanda', club.owner), buildRef('chat', chatId, undefined));
+  }, 5000);
+}
+
 /* ---------- chat ---------- */
 export type SendResult = { ok: boolean; reason?: string };
 

@@ -18,6 +18,8 @@ import { useApp } from '@/store/app';
 import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
+import { QaVote } from '@/components/profile/QaVote';
+import { qaPairs, qaRef } from '@/lib/profile/qa';
 import { t as tl, translateText } from '@/i18n/core';
 
 export default function PostPage() {
@@ -136,6 +138,7 @@ export default function PostPage() {
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={{ color: t.text, fontSize: 14.5, lineHeight: 21 }}><Text style={{ fontWeight: '800' }} onPress={() => go('userProfile', { name: c.author })}>{c.author} </Text>{c.text}</Text>
                 <Pressable onPress={() => reply(c.author)} hitSlop={{ top: 12, bottom: 12, left: 8, right: 24 }} accessibilityRole="button" accessibilityLabel={tl('Rispondi a {0}', c.author)}><Text style={{ color: t.muted, fontSize: 13, fontWeight: '700' }}>Rispondi</Text></Pressable>
+                {(() => { const qp = qaPairs(post.author, post.text, allComments).find((q) => q.index === c.i); return qp && qp.asker === me ? <QaVote from={me} to={c.author} refId={qaRef(key, c.i)} /> : null; })()}
               </View>
               {c.author !== me && <ModButton kind="comment" refId={`${key}#${c.i}`} label={c.text} author={c.author} size={18} />}
             </Animated.View>

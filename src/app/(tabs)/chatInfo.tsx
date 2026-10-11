@@ -17,6 +17,10 @@ import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 import { confirmDelete } from '@/lib/confirm';
 import { Icon } from '@/lib/icons';
+import { WRITE_LABEL, effectiveTier } from '@/lib/club';
+import { memberCounts, mkey, useClub } from '@/store/club';
+import { leaveClub } from '@/store/clubFlow';
+import { dayLong } from '@/components/club/format';
 
 const DISAPPEAR: [string, number][] = [['Disattivati', 0], ['24 ore', 86400], ['7 giorni', 7 * 86400], ['90 giorni', 90 * 86400]];
 
@@ -33,6 +37,8 @@ export default function ChatInfo() {
   const [sheet, setSheet] = useState<null | 'mute' | 'disappear' | 'wall' | 'clear' | 'delete' | 'leave' | 'add'>(null);
   const [member, setMember] = useState<string | null>(null);
 
+  const club = useClub((s) => (chat?.clubId ? s.clubs[chat.clubId] : undefined));
+  const memberships = useClub((s) => s.memberships);
   const msgs = useMemo(() => visibleMsgs(messages, me).filter((m) => !m.deletedForAll), [messages, me]);
   const media = msgs.filter((m) => m.kind === 'image' || m.kind === 'video');
   const docs = msgs.filter((m) => m.kind === 'file');
@@ -41,6 +47,10 @@ export default function ChatInfo() {
 
   if (!chat) return <Page id="chatInfo" back><Body muted>Chat non trovata.</Body></Page>;
   const isGroup = chat.type === 'group';
+  const isClub = chat.type === 'club' && !!club;
+  const clubOwner = isClub && club!.owner === me;
+  const clubMs = isClub ? Object.values(memberships).filter((x) => x.clubId === club!.id && x.user !== club!.owner && effectiveTier(x) !== 'none') : [];
+  const myM = isClub ? memberships[mkey(club!.id, me)] : undefined;
   const iAmAdmin = chat.admins.includes(me);
   const isBlocked = blocked.includes(chat.name);
   const muted = isMuted(chat);
@@ -56,11 +66,12 @@ export default function ChatInfo() {
   return (
     <Page id="chatInfo" back>
       <View style={{ alignItems: 'center', marginVertical: 14 }}>
-        {isGroup ? <View style={{ width: 92, height: 92, borderRadius: 46, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Icon name="users" size={44} color={t.text} /></View> : <UserAvatar name={chat.name} size={92} />}
+        {isClub ? <View style={{ width: 92, height: 92, borderRadius: 30, backgroundColor: '#e5a10033', alignItems: 'center', justifyContent: 'center' }}><Icon name="lifeclub" size={44} color={t.text} /></View> : isGroup ? <View style={{ width: 92, height: 92, borderRadius: 46, backgroundColor: '#5b8def33', alignItems: 'center', justifyContent: 'center' }}><Icon name="users" size={44} color={t.text} /></View> : <UserAvatar name={chat.name} size={92} />}
         <Text style={{ color: t.text, fontSize: 24, fontWeight: '800', marginTop: 10 }}>{chat.name}</Text>
-        <Body small muted>{isGroup ? `Gruppo · ${chat.members.length} partecipanti` : 'Contatto'}</Body>
-        {!isGroup && <Btn small ghost style={{ marginTop: 10 }} title="Vedi profilo" onPress={() => go('userProfile', { name: chat.name })} />}
-        {isGroup && chat.description ? <Body small style={{ marginTop: 8, textAlign: 'center' }}>{chat.description}</Body> : null}
+        <Body small muted>{isClub ? `LifeClub di ${club!.owner} · ${memberCounts({ memberships }, club!).subscribers} iscritti` : isGroup ? `Gruppo · ${chat.members.length} partecipanti` : 'Contatto'}</Body>
+        {isClub && <Btn small ghost style={{ marginTop: 10 }} title="Apri il LifeClub" onPress={() => go('clubPage', { id: club!.id })} />}
+        {!isGroup && !isClub && <Btn small ghost style={{ marginTop: 10 }} title="Vedi profilo" onPress={() => go('userProfile', { name: chat.name })} />}
+        {(isGroup || isClub) && chat.description ? <Body small style={{ marginTop: 8, textAlign: 'center' }}>{chat.description}</Body> : null}
       </View>
 
       <Card>
@@ -92,6 +103,24 @@ export default function ChatInfo() {
         <Item last onPress={() => { st().patchChat(id, { archived: !chat.archived }); toast(chat.archived ? 'Chat ripristinata' : 'Chat archiviata'); }}><Row><IL icon="archive">Archivia chat</IL><Body muted>{chat.archived ? 'Sì' : 'No'}</Body></Row></Item>
       </Card>
 
+      {isClub && (
+        <Card>
+          <Item><Row><IL icon="comment">Chi può scrivere</IL><Body muted>{WRITE_LABEL[club!.chat.write]}</Body></Row></Item>
+          {club!.chat.slowSec > 0 && <Item><Row><IL icon="timer">Modalità lenta</IL><Body muted>{`${club!.chat.slowSec} s`}</Body></Row></Item>}
+          {!clubOwner && myM && <Item last><Row><IL icon="lifeclub">La tua iscrizione</IL><Body muted>{myM.tier === 'premium' ? (myM.status === 'annullata' ? `Premium fino al ${dayLong(myM.endsAt)}` : 'Premium') : myM.tier === 'free' ? 'Gratis' : 'Follower'}</Body></Row></Item>}
+          {clubOwner && <Item last onPress={() => go('clubStudio', { id: club!.id })}><Row><IL icon="edit">Permessi e chat nello Studio</IL></Row></Item>}
+        </Card>
+      )}
+      {isClub && clubOwner && (
+        <Card>
+          <Body bold>{clubMs.length === 0 ? 'Nessun iscritto su questo telefono' : `${clubMs.length} iscritti su questo telefono`}</Body>
+          {clubMs.map((x, i) => (
+            <Item key={x.user} last={i === clubMs.length - 1} onPress={() => setMember(x.user)}>
+              <Row><Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}><UserAvatar name={x.user} size={32} /><Body>{x.user}</Body></Row>{x.mutedByOwner && <Text style={{ color: t.muted, fontSize: 11 }}>SILENZIATO</Text>}</Row>
+            </Item>
+          ))}
+        </Card>
+      )}
       {isGroup && (
         <Card>
           <Row><Body bold>{chat.members.length} partecipanti</Body>{iAmAdmin && <Pressable onPress={() => setSheet('add')}><Text style={{ color: t.accent, fontWeight: '700' }}>+ Aggiungi</Text></Pressable>}</Row>
@@ -107,9 +136,13 @@ export default function ChatInfo() {
         <Item onPress={exportChat}><IL icon="share">Esporta chat</IL></Item>
         {!isGroup && <Item onPress={() => { st().block(chat.name, !isBlocked); toast(isBlocked ? `${chat.name} sbloccato` : `${chat.name} bloccato`); }}><Body color={t.danger}>{isBlocked ? `Sblocca ${chat.name}` : `Blocca ${chat.name}`}</Body></Item>}
         <Item onPress={() => { useNet.getState().report(chat.name); toast('Segnalazione inviata, verrà valutata'); }}><Body color={t.danger}>Segnala {isGroup ? 'gruppo' : chat.name}</Body></Item>
-        <Item last={!isGroup} onPress={() => setSheet('clear')}><Body color={t.danger}>Svuota chat</Body></Item>
+        <Item last={!isGroup && !isClub} onPress={() => setSheet('clear')}><Body color={t.danger}>Svuota chat</Body></Item>
         {isGroup && <Item last onPress={() => setSheet('leave')}><Body color={t.danger}>Esci dal gruppo</Body></Item>}
-        <Item last onPress={() => setSheet('delete')}><Body color={t.danger}>Elimina chat</Body></Item>
+        {isClub && !clubOwner && <Item last onPress={() => {
+          const prev = myM;
+          confirmDelete(`la tua iscrizione a «${club!.name}»`, () => { const r = leaveClub(club!); toast(r.immediate ? 'Hai lasciato il LifeClub' : `Premium annullato: accesso fino al ${dayLong(r.endsAt)}`); if (r.immediate) go('messagesPage'); }, () => { useClub.getState().putMembership(prev, me, club!.id); }, { title: 'Uscire dal LifeClub?', okLabel: 'Esci', undoMessage: 'Hai lasciato il LifeClub' });
+        }}><Body color={t.danger}>Esci dal LifeClub</Body></Item>}
+        {!isClub && <Item last onPress={() => setSheet('delete')}><Body color={t.danger}>Elimina chat</Body></Item>}
       </Card>
 
       <MediaViewer items={media} index={viewer} onClose={() => setViewer(null)} />
@@ -139,9 +172,11 @@ export default function ChatInfo() {
       </Sheet>
       <Sheet visible={!!member} title={member ?? ''} onClose={() => setMember(null)}>
         <Item onPress={() => { const n = member!; setMember(null); const d = st().ensureDm(n, me); go('conversationPage', { id: d }); }}><Body>Scrivi a {member}</Body></Item>
+        {isClub && clubOwner && member && <Item onPress={() => { const mm = member; setMember(null); const on = !memberships[mkey(club!.id, mm)]?.mutedByOwner; useClub.getState().ownerMuteMember(club!.id, mm, on); toast(on ? `${mm} non può più scrivere` : `${mm} può scrivere di nuovo`); }}><Body>{memberships[mkey(club!.id, member)]?.mutedByOwner ? 'Riabilita a scrivere' : 'Silenzia in questa chat'}</Body></Item>}
+        {isClub && clubOwner && member && <Item onPress={() => { const mm = member; setMember(null); confirmDelete(`${mm} dal LifeClub`, () => useClub.getState().ownerRemoveMember(club!.id, mm), undefined, { okLabel: 'Rimuovi' }); }}><Body color={t.danger}>Rimuovi dal LifeClub</Body></Item>}
         <Item onPress={() => { const n = member!; setMember(null); go('userProfile', { name: n }); }}><Body>Vedi profilo</Body></Item>
-        {iAmAdmin && member && <Item onPress={() => { st().setAdmin(id, member, !chat.admins.includes(member)); setMember(null); }}><Body>{chat.admins.includes(member) ? 'Rimuovi come admin' : 'Rendi admin'}</Body></Item>}
-        {iAmAdmin && member && <Item last onPress={() => { const m = member; setMember(null); confirmDelete('questa persona dal gruppo', () => st().removeMember(id, m, me), undefined, { okLabel: 'Rimuovi' }); }}><Body color={t.danger}>Rimuovi dal gruppo</Body></Item>}
+        {!isClub && iAmAdmin && member && <Item onPress={() => { st().setAdmin(id, member, !chat.admins.includes(member)); setMember(null); }}><Body>{chat.admins.includes(member) ? 'Rimuovi come admin' : 'Rendi admin'}</Body></Item>}
+        {!isClub && iAmAdmin && member && <Item last onPress={() => { const m = member; setMember(null); confirmDelete('questa persona dal gruppo', () => st().removeMember(id, m, me), undefined, { okLabel: 'Rimuovi' }); }}><Body color={t.danger}>Rimuovi dal gruppo</Body></Item>}
       </Sheet>
     </Page>
   );

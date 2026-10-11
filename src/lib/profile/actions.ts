@@ -1,10 +1,9 @@
 import { skillLabel, customSkill, skills as skillBank } from '@/data/skillBank';
-import { hashStr } from '@/lib/format';
+import { hashStr, weekdayShortDate } from '@/lib/format';
 import { useIdentity } from '@/store/identity';
 import { profileOf, useJobs } from '@/store/jobs';
 import { useNet } from '@/store/network';
 import { useApp } from '@/store/app';
-import { weekdayShortDate } from '@/lib/format';
 import { receivedLPFor, postByKey } from '@/lib/network';
 import { can as canDo, type Action, type IdStatus } from './identity';
 import { canVoteProfile, computeReputation, profileVoteBlockReason, type Interactions, type Participation } from './reputation';

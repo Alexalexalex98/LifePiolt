@@ -165,10 +165,12 @@ export function SkillsSection({ name, me }: { name: string; me: string }) {
           </Item>
         ))}
       </Card>
+      {isMe && (
       <Row style={{ justifyContent: 'flex-start', marginTop: 8, alignItems: 'flex-start' }} gap={6}>
-        <Icon name="info" size={15} color={t.muted} />
-        <Body small muted style={{ flex: 1 }}>{HONESTY_NOTICE}</Body>
-      </Row>
+          <Icon name="info" size={15} color={t.muted} />
+          <Body small muted style={{ flex: 1 }}>{HONESTY_NOTICE}</Body>
+        </Row>
+        )}
       {isMe && incoming > 0 && <Btn small style={{ marginTop: 10 }} title={incoming === 1 ? '1 richiesta di verifica da rivedere' : tl('{0} richieste di verifica da rivedere', incoming)} onPress={() => go('skillVerify')} />}
     </View>
   );

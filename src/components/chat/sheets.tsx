@@ -17,7 +17,7 @@ const dt = (ts: number) => fmtDate(ts, { day: 'numeric', month: 'numeric', year:
 
 export type Action = 'reply' | 'copy' | 'forward' | 'star' | 'edit' | 'info' | 'delete' | 'select' | 'react' | 'theia' | 'task' | 'event' | 'note';
 
-export function MessageActions({ m, me, onClose, onAction }: { m: ChatMessage | null; me: string; onClose: () => void; onAction: (a: Action, emoji?: string) => void }) {
+export function MessageActions({ m, me, onClose, onAction, extra }: { m: ChatMessage | null; me: string; onClose: () => void; onAction: (a: Action, emoji?: string) => void; /** azioni aggiuntive (es. fissa nel LifeClub) */ extra?: { label: string; icon: string; onPress: () => void }[] }) {
   const t = useTheme();
   const name = useApp((x) => x.assistantName);
   if (!m) return <Sheet visible={false} title="" onClose={onClose}><View /></Sheet>;
@@ -46,6 +46,7 @@ export function MessageActions({ m, me, onClose, onAction }: { m: ChatMessage | 
       {!m.deletedForAll && row(starred ? 'Togli da importanti' : 'Segna come importante', 'star', 'star')}
       {row('Modifica', 'edit', 'edit', canEdit)}
       {mine && !m.deletedForAll && row('Info messaggio', 'info', 'info')}
+      {!m.deletedForAll && extra?.map((x) => <Item key={x.label} onPress={x.onPress}><IL icon={x.icon}>{x.label}</IL></Item>)}
       {row('Seleziona', 'select', 'checksquare')}
       <Item last onPress={() => onAction('delete')}><IL icon="trash" color={t.danger}>Elimina</IL></Item>
     </Sheet>

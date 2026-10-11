@@ -73,9 +73,17 @@ test('routeFor: destinazioni non valide', () => {
 });
 
 test('ogni tipo ha una rotta valida con argomenti corretti', () => {
-  const sample = { post: ['standalone:1'], comment: ['standalone:1', 0], like: ['standalone:1'], follow: ['A'], mention: ['standalone:1', 0], reply: ['standalone:1', 0], idea: ['1'], community: ['1'], chat: ['dm:A'], seminar: ['1'], service: ['A'], booking: ['1'], job: ['1'], points: ['1'], event: ['2026-01-01', 0], bill: ['1'], reminder: [], system: [] };
+  const sample = { post: ['standalone:1'], comment: ['standalone:1', 0], like: ['standalone:1'], follow: ['A'], mention: ['standalone:1', 0], reply: ['standalone:1', 0], idea: ['1'], community: ['1'], chat: ['dm:A'], seminar: ['1'], service: ['A'], booking: ['1'], job: ['1'], points: ['1'], event: ['2026-01-01', 0], bill: ['1'], reminder: [], system: [], club: ['club-1'], clubcontent: ['club-1', 'lez-1', 222] };
   assert.deepEqual(Object.keys(sample).sort(), [...REF_KINDS].sort());
   for (const [k, args] of Object.entries(sample)) assert.equal(routeFor(buildRef(k, ...args)).valid, true, k);
+});
+
+test('LifeClub: club e clubcontent', () => {
+  assert.deepEqual(routeFor('club:club-1'), { valid: true, page: 'clubPage', params: { id: 'club-1' } });
+  const r = routeFor(buildRef('clubcontent', 'club-1', 'lez-1', 222));
+  assert.equal(r.page, 'clubContent'); assert.deepEqual(r.params, { id: 'club-1', lesson: 'lez-1', t: '222' });
+  assert.equal(routeFor('clubcontent:club-1:lez-1:x').valid, false);
+  assert.equal(routeFor('clubcontent:club-1').valid, false);
 });
 
 test('postOf, isPostId e commonRef per i gruppi', () => {
