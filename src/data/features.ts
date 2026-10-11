@@ -1,7 +1,8 @@
 import { featureLevel } from '../lib/tour.ts';
+import { preferredGroups } from './areas.ts';
 
 /** Elenco di tutto quello che si può fare con LifePilot. Ogni voce apre la funzione (page) o la prova con un comando all'assistente (cmd). */
-export type Feature = { title: string; text: string; page?: string; cmd?: string };
+export type Feature = { title: string; text: string; page?: string; cmd?: string; /** funzione per pochi (es. chi investe): non è proposta come funzione del giorno se non l'hai scelta tra gli interessi */ niche?: boolean };
 export type FeatureGroup = { id: string; title: string; tagline: string; icon: string; color: string; items: Feature[] };
 
 export const featureGroups: FeatureGroup[] = [
@@ -17,7 +18,7 @@ export const featureGroups: FeatureGroup[] = [
     id: 'piano', title: 'Piano, task e obiettivi', tagline: 'Organizza giorni e mesi', icon: 'plan', color: '#7be0b0',
     items: [
       { title: 'Calendario e impegni', text: 'Aggiungi impegni, promemoria, ripetizioni e segna quelli importanti.', page: 'plan' },
-      { title: 'Pianifica il mese per me', text: 'Riempie il Plan nel tuo orario di lavoro con task e abitudini, lasciando slot liberi. Vedi l’anteprima e decidi tu.', cmd: 'pianificami il mese' },
+      { title: 'Pianifica il mese per me', text: 'Riempie il Plan con task e abitudini nei tuoi orari, lasciando slot liberi. Vedi l’anteprima e decidi tu.', cmd: 'pianificami il mese' },
       { title: 'Task, urgenze e scomposizione', text: 'Segna i task urgenti, scomponili in passi con ore stimate e programmali nel piano.', page: 'lifetask' },
       { title: 'Obiettivi e automazioni', text: 'Segui l’avanzamento e controlla ogni automazione dal Profilo.', page: 'plan' },
       { title: 'Avvisi di sovrapposizione', text: 'Ogni volta che un impegno si scontra con un altro: cambi giorno, sposti o tieni entrambi.', page: 'plan' },
@@ -46,14 +47,14 @@ export const featureGroups: FeatureGroup[] = [
     ],
   },
   {
-    id: 'finanze', title: 'Finanze', tagline: 'Soldi chiari, tasse comprese', icon: 'lifefinance', color: '#e0c97b',
+    id: 'finanze', title: 'Finanze', tagline: 'Spese, bollette e risparmi sotto controllo', icon: 'lifefinance', color: '#e0c97b',
     items: [
       { title: 'Movimenti, budget e categorie', text: 'Entrate e uscite, bollette, abbonamenti e linee guida in base allo stipendio.', page: 'lifefinance' },
       { title: 'Costi tipici di una persona', text: 'Aggiungi in un colpo solo le spese normali (affitto, cassa malati, trasporti…) con importi modificabili.', page: 'lifefinance' },
       { title: 'Importa i movimenti da CSV', text: 'Carichi l’estratto conto: riconosce date, importi e categorie, vedi l’anteprima e scarta i duplicati.', page: 'lifefinance' },
       { title: 'Avvisi di budget e spese ricorrenti', text: 'Ti avverte quando una categoria sfora e riconosce da sola abbonamenti e bollette.', page: 'lifefinance' },
-      { title: 'Previsioni e fondo emergenza', text: 'Stima dei mesi successivi e accantonamenti.', page: 'lifeforecast' },
-      { title: 'Azioni e portafoglio', text: 'Watchlist, ordini e portafoglio per allenarti.', page: 'stocks' },
+      { title: 'Previsioni di risparmio e fondo emergenza', text: 'Stima dei mesi successivi e accantonamenti. Se investi: simula anche come potrebbe crescere il tuo patrimonio.', page: 'lifeforecast', niche: true },
+      { title: 'Se investi: titoli e portafoglio', text: 'Watchlist, ordini e portafoglio simulati per allenarti, senza soldi veri.', page: 'stocks', niche: true },
       { title: 'Dichiarazione fiscale guidata', text: 'Carichi i documenti richiesti, li controlla e solo allora spunta la voce.', page: 'taxdecl' },
     ],
   },
@@ -118,12 +119,24 @@ const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
  * Una funzione diversa ogni giorno, a salti per variare area (stesso risultato per tutto il giorno).
  * Con `maxLevel` propone solo funzioni già sbloccate dal percorso graduale (default: tutte).
  */
-export function featureOfDay(ts: number = Date.now(), maxLevel = 99): FlatFeature {
-  const pool = maxLevel >= 99 ? allFeatures : allFeatures.filter((f) => f.level <= maxLevel);
+export function featureOfDay(ts: number = Date.now(), maxLevel = 99, opts: { areas?: string[]; hideNiche?: boolean } = {}): FlatFeature {
+  let pool = maxLevel >= 99 ? allFeatures : allFeatures.filter((f) => f.level <= maxLevel);
+  if (opts.hideNiche) { const base = pool.filter((f) => !f.niche); if (base.length) pool = base; }
+  const pref = preferredGroups(opts.areas);
+  const day = dayIndex(ts);
+  // chi ha scelto delle aree vede quelle a giorni alterni; le altre ruotano comunque (nessuna area è nascosta)
+  if (pref.length && day % 2 === 0) { const mine = pool.filter((f) => pref.includes(f.groupId)); if (mine.length) pool = mine; }
   const list = pool.length ? pool : allFeatures;
   const n = list.length;
   const stride = gcd(7, n) === 1 ? 7 : 1;
-  return list[(((dayIndex(ts) * stride) % n) + n) % n];
+  return list[(((day * stride) % n) + n) % n];
+}
+
+/** Gruppi della guida con le aree scelte per prime (ordine stabile per il resto). */
+export function orderedGroups(areas: string[] | undefined | null): FeatureGroup[] {
+  const pref = preferredGroups(areas);
+  if (!pref.length) return featureGroups;
+  return [...featureGroups].sort((a, b) => { const ia = pref.indexOf(a.id), ib = pref.indexOf(b.id); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
 }
 
 /**

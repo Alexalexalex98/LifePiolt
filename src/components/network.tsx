@@ -1,3 +1,4 @@
+import { buildRef } from '@/lib/notifyLinks';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Image, Modal, Pressable, View } from 'react-native';
@@ -221,7 +222,7 @@ export function doContribute(id: number, amt: number) {
   useNet.setState((s) => ({ ideas: s.ideas.map((i) => (i.id === id ? { ...i, raised } : i)) }));
   const after = Math.floor(((raised / idea.target) * 100) / 25) * 25;
   const me = useApp.getState().account.name;
-  if (idea.author === me && after > before && after > 0) useNet.getState().notify('goal', tl('"{0}" ha raggiunto il {1}% dell\'obiettivo', idea.title, after), after >= 100);
+  if (idea.author === me && after > before && after > 0) useNet.getState().notify('goal', tl('"{0}" ha raggiunto il {1}% dell\'obiettivo', idea.title, after), after >= 100, { kind: 'lifepoints', ref: buildRef('idea', id) });
   toast(tl('Hai versato {0} LP a "{1}"', formatCHF(amt), idea.title));
 }
 

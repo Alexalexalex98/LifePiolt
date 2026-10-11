@@ -9,15 +9,27 @@ import { travelMinutes } from './places.ts';
 
 export const LEAD_OPTIONS = [5, 10, 15, 30, 60] as const;
 export const DEFAULT_LEAD = 15;
-/** Finestra massima di programmazione (giorni) e tetto di notifiche (iOS ne accetta 64: il resto serve a briefing e automazioni). */
+/** Finestra massima di programmazione (giorni). */
 export const WINDOW_DAYS = 14;
-export const MAX_SCHEDULED = 50;
-/** Quanti minuti prima dell'ora di partenza arriva l'avviso "Parti alle ...". */
+/** Limite di notifiche programmate di iOS. */
+export const IOS_LIMIT = 64;
+/** Slot lasciati liberi ad altre funzioni (briefing mattino/sera + scadenze delle bollette). */
+export const RESERVED_SLOTS = 14;
+/** Tetto di notifiche dei promemoria impegni: IOS_LIMIT - RESERVED_SLOTS. */
+export const MAX_SCHEDULED = IOS_LIMIT - RESERVED_SLOTS;
+/** Quanti minuti prima dell'ora di partenza arriva l'avviso anticipato "Tra 15 minuti devi partire". */
 export const DEPART_HEADSUP = 15;
 export const ID_PREFIX = 'lp-ev-';
 
-export type ReminderPrefs = { on: boolean; leadMin: number; depart: boolean };
-export const DEFAULT_PREFS: ReminderPrefs = { on: true, leadMin: DEFAULT_LEAD, depart: true };
+export type ReminderKind = 'lead' | 'headsup' | 'depart' | 'start';
+
+/**
+ * Preferenze. `on` = interruttore generale; `lead` = avviso con anticipo (leadMin); `depart` = avvisi di partenza (richiede
+ * luogo + città di casa) con `headsup` (15 min prima di partire) e `leave` (alla partenza) disattivabili ciascuno;
+ * `start` = "Inizia ora" all'ora dell'impegno.
+ */
+export type ReminderPrefs = { on: boolean; leadMin: number; lead: boolean; depart: boolean; headsup: boolean; leave: boolean; start: boolean };
+export const DEFAULT_PREFS: ReminderPrefs = { on: true, leadMin: DEFAULT_LEAD, lead: true, depart: true, headsup: true, leave: true, start: true };
 
 /** Preferenze salvate da versioni precedenti (o mancanti) -> valori validi. */
 export function normalizePrefs(p?: Partial<ReminderPrefs> | null): ReminderPrefs {
@@ -25,12 +37,16 @@ export function normalizePrefs(p?: Partial<ReminderPrefs> | null): ReminderPrefs
   return {
     on: p?.on !== false,
     leadMin: (LEAD_OPTIONS as readonly number[]).includes(lead) ? lead : DEFAULT_LEAD,
+    lead: p?.lead !== false,
     depart: p?.depart !== false,
+    headsup: p?.headsup !== false,
+    leave: p?.leave !== false,
+    start: p?.start !== false,
   };
 }
 
 export type RemEvent = { time: string; title: string; place?: string; dur?: number; reminder?: boolean };
-export type Planned = { id: string; at: number; kind: 'lead' | 'depart'; day: string; idx: number; title: string; body: string };
+export type Planned = { id: string; at: number; kind: ReminderKind; day: string; idx: number; title: string; body: string };
 
 const TIME_RE = /^(\d{1,2}):(\d{2})$/;
 
@@ -45,26 +61,27 @@ export function startOf(day: string, time: string): number | null {
   return Number.isFinite(ms) ? ms : null;
 }
 
-export const reminderId = (day: string, idx: number, kind: 'lead' | 'depart') => `${ID_PREFIX}${day}-${idx}-${kind}`;
+export const reminderId = (day: string, idx: number, kind: ReminderKind) => `${ID_PREFIX}${day}-${idx}-${kind}`;
 
-/** Testo del promemoria con anticipo. */
+const withPlace = (txt: string, place?: string) => (place ? `${txt} · ${place}` : txt);
+
+/** Testo del promemoria con anticipo: titolo = nome dell'impegno. */
 export function leadText(ev: RemEvent, leadMin: number): { title: string; body: string } {
-  return {
-    title: t('Promemoria · {0}', ev.title),
-    body: ev.place ? t('Inizia tra {0} min, alle {1} · {2}.', leadMin, ev.time, ev.place) : t('Inizia tra {0} min, alle {1}.', leadMin, ev.time),
-  };
+  return { title: ev.title, body: withPlace(t('Inizia tra {0} min, alle {1}', leadMin, ev.time), ev.place) + '.' };
 }
 
-/** Testo dell'avviso di partenza. */
-export function departText(ev: RemEvent, travel: number, leaveBy: string): { title: string; body: string } {
-  const place = ev.place ?? '';
-  const sameName = place && ev.title.toLowerCase().includes(place.toLowerCase());
-  return {
-    title: t('Parti alle {0} · {1}', leaveBy, ev.title),
-    body: sameName
-      ? t('Per {0} servono circa {1} min: parti alle {2} per arrivare in tempo.', ev.title, travel, leaveBy)
-      : t('Per {0} ({1}) servono circa {2} min: parti alle {3} per arrivare in tempo.', ev.title, place, travel, leaveBy),
-  };
+/** "Inizia ora" all'ora di inizio. */
+export function startText(ev: RemEvent): { title: string; body: string } {
+  return { title: ev.title, body: withPlace(t('Inizia ora, alle {0}', ev.time), ev.place) + '.' };
+}
+
+/** Avviso anticipato di partenza ("tra 15 minuti devi partire") e avviso alla partenza. */
+export function departText(ev: RemEvent, travel: number, leaveBy: string, when: 'headsup' | 'depart', mins = DEPART_HEADSUP): { title: string; body: string } {
+  const place = (ev.place ?? '').trim();
+  const sameName = !!place && ev.title.toLowerCase().includes(place.toLowerCase());
+  const where = place && !sameName ? ` (${place})` : '';
+  if (when === 'headsup') return { title: ev.title, body: t('Tra {0} min devi partire, alle {1}. Servono circa {2} min{3}.', mins, leaveBy, travel, where) };
+  return { title: ev.title, body: t('Parti alle {0}: servono circa {1} min{2} per arrivare in tempo.', leaveBy, travel, where) };
 }
 
 export type PlanOptions = {
@@ -79,9 +96,10 @@ export type PlanOptions = {
 /**
  * Elenco ordinato delle notifiche da programmare. Regole:
  * - solo impegni con ora valida, futuri, entro la finestra, senza `reminder === false`;
- * - promemoria con anticipo configurabile (solo se l'istante è ancora futuro);
- * - se c'è un luogo e il tragitto è stimabile: avviso "Parti alle HH:MM" (arrivalPlan + BUFFER);
- * - al massimo `max` notifiche, le piu' vicine nel tempo.
+ * - 'lead': avviso con anticipo configurabile; 'start': "Inizia ora" all'ora esatta;
+ * - se c'è un luogo e il tragitto è stimabile: 'headsup' (15 min prima della partenza) e 'depart' (alla partenza);
+ * - mai nel passato; al massimo `max` notifiche (default MAX_SCHEDULED), le più vicine nel tempo.
+ * Gli id sono deterministici: lp-ev-<giorno>-<indice>-<tipo>.
  */
 export function planReminders(events: Record<string, RemEvent[]> | undefined | null, opts: PlanOptions): Planned[] {
   const prefs = normalizePrefs(opts.prefs);
@@ -91,6 +109,9 @@ export function planReminders(events: Record<string, RemEvent[]> | undefined | n
   const max = opts.max ?? MAX_SCHEDULED;
   const home = (opts.homeCity ?? '').trim();
   const out: Planned[] = [];
+  const add = (day: string, idx: number, kind: ReminderKind, at: number, text: { title: string; body: string }) => {
+    if (at > now + 1000) out.push({ id: reminderId(day, idx, kind), at, kind, day, idx, ...text });
+  };
 
   for (const day of Object.keys(events).sort()) {
     const list = events[day];
@@ -100,21 +121,19 @@ export function planReminders(events: Record<string, RemEvent[]> | undefined | n
       const start = startOf(day, ev.time);
       if (start === null || start <= now || start > horizon) return;
 
-      const leadAt = start - prefs.leadMin * 60000;
-      if (leadAt > now) out.push({ id: reminderId(day, idx, 'lead'), at: leadAt, kind: 'lead', day, idx, ...leadText(ev, prefs.leadMin) });
+      if (prefs.lead) add(day, idx, 'lead', start - prefs.leadMin * 60000, leadText(ev, prefs.leadMin));
+      if (prefs.start) add(day, idx, 'start', start, startText(ev));
 
       const place = (ev.place ?? '').trim();
       if (prefs.depart && place && home) {
         const travel = travelMinutes(home, place);
         if (travel > 0) {
           const leaveAt = start - (travel + BUFFER) * 60000;
+          const leaveBy = arrivalPlan(ev.time, travel, 0).leaveBy;
+          const e = { ...ev, place };
           const headsUp = leaveAt - DEPART_HEADSUP * 60000;
-          // se l'avviso anticipato è già passato ma la partenza è ancora futura, avvisa all'ora di partenza
-          const at = headsUp > now ? headsUp : leaveAt > now + 30000 ? leaveAt : null;
-          if (at !== null) {
-            const leaveBy = arrivalPlan(ev.time, travel, 0).leaveBy;
-            out.push({ id: reminderId(day, idx, 'depart'), at, kind: 'depart', day, idx, ...departText({ ...ev, place }, travel, leaveBy) });
-          }
+          if (prefs.headsup) add(day, idx, 'headsup', headsUp, departText(e, travel, leaveBy, 'headsup'));
+          if (prefs.leave) add(day, idx, 'depart', leaveAt, departText(e, travel, leaveBy, 'depart'));
         }
       }
     });

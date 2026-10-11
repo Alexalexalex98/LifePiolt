@@ -2,7 +2,9 @@ import Constants from 'expo-constants';
 import type * as NotificationsType from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { t } from '@/i18n/core';
 import { buildPush, decidePush, dedupeKey, KIND_ORDER, KINDS, kindEnabled } from '@/lib/notifyKinds';
+import { buildRef, pushData } from '@/lib/notifyLinks';
 import { ID_PREFIX, planReminders } from '@/lib/reminders';
 import { useApp } from '@/store/app';
 
@@ -32,23 +34,34 @@ const Notifications = new Proxy({} as typeof NotificationsType, {
   get(_t, k) { const m = load(); if (!m) throw new Error('notifiche non disponibili'); return (m as never)[k]; },
 });
 
+/** Il modulo nativo, o null dove non esiste (web, Expo Go su Android). Mai lancia. */
+export function native(): typeof NotificationsType | null {
+  return isSupported() ? load() : null;
+}
+
 /** True se questa piattaforma può schedulare notifiche locali. */
 export function isSupported(): boolean {
   return (Platform.OS === 'ios' || Platform.OS === 'android') && !androidExpoGo;
 }
 
 let handlerSet = false;
-function ensureHandler() {
+export function ensureHandler() {
   if (handlerSet) return;
   handlerSet = true;
   try {
+    // Android: con shouldPlaySound=false il banner a comparsa NON viene mostrato, nemmeno con priorita' alta (vedi i tipi di expo-notifications):
+    // il suono lo decide il canale della categoria, qui lo lascio sempre acceso per le notifiche importanti.
     Notifications.setNotificationHandler({
-      handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
+      handleNotification: async (n) => {
+        const k = (n?.request?.content?.data as { kind?: string } | undefined)?.kind;
+        const quiet = k === 'sociale' || k === 'sistema' || k === 'lifepoints';
+        return { shouldShowBanner: true, shouldShowList: true, shouldPlaySound: !quiet, shouldSetBadge: false };
+      },
     });
   } catch { /* non disponibile */ }
 }
 
-async function ensureChannel() {
+export async function ensureChannel() {
   if (Platform.OS !== 'android') return;
   try {
     await Notifications.setNotificationChannelAsync(CHANNEL, { name: 'Briefing giornalieri', importance: Notifications.AndroidImportance.DEFAULT, description: 'Riepilogo del mattino e della sera' });
@@ -58,7 +71,7 @@ async function ensureChannel() {
 
 /** Un canale Android per categoria (id stabili: nome, importanza, suono e vibrazione diversi). */
 let kindChannelsDone = false;
-async function ensureKindChannels() {
+export async function ensureKindChannels() {
   if (kindChannelsDone || Platform.OS !== 'android') return;
   kindChannelsDone = true;
   for (const k of KIND_ORDER) {
@@ -84,6 +97,8 @@ export async function requestPermission(): Promise<NotifyResult> {
     await ensureChannel();
     let st = await Notifications.getPermissionsAsync();
     if (st.status !== 'granted' && st.canAskAgain !== false) st = await Notifications.requestPermissionsAsync();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    try { (require('@/lib/notifyPermission') as typeof import('@/lib/notifyPermission')).syncPermission(st); } catch { /* ignore */ }
     if (st.status !== 'granted') return { ok: false, reason: 'denied', message: 'Permesso negato: abilita le notifiche per LifePilot dalle impostazioni del telefono.' };
     return { ok: true, message: 'Notifiche consentite' };
   } catch {
@@ -229,8 +244,9 @@ let remBusy = false;
 let remAgain = false;
 
 /**
- * Riprogramma i promemoria degli impegni (anticipo + "Parti alle ..."): cancella i vecchi `lp-ev-*` e crea quelli
- * calcolati da planReminders. Non chiede mai il permesso da sola. Mai bloccante.
+ * Riprogramma i promemoria degli impegni (anticipo, "Parti alle ...", "Inizia ora"): cancella i vecchi `lp-ev-*` e crea quelli
+ * calcolati da planReminders. Non chiede mai il permesso da sola (lo fa il flusso in notifyPermission). Mai bloccante.
+ * Ogni notifica porta `ref` = event:<giorno>:<indice>: il tocco apre il Plan su quel giorno.
  */
 export async function refreshReminders(): Promise<void> {
   if (!isSupported()) return;
@@ -257,7 +273,7 @@ export async function refreshReminders(): Promise<void> {
         try {
           await Notifications.scheduleNotificationAsync({
             identifier: p.id,
-            content: { title: p.title, body: p.body, sound: true, data: { kind: 'promemoria', day: p.day, idx: p.idx } },
+            content: { title: p.title, body: p.body, sound: true, data: { ...pushData(buildRef('event', p.day, p.idx), 'promemoria'), day: p.day, idx: p.idx, type: p.kind } },
             trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(p.at), ...(Platform.OS === 'android' ? { channelId } : {}) },
           });
         } catch { /* una notifica non programmabile non ferma le altre */ }
@@ -266,8 +282,17 @@ export async function refreshReminders(): Promise<void> {
   } catch { /* mai bloccare l'app per una notifica */ } finally { remBusy = false; }
 }
 
+/** Ricalcola tutto: promemoria impegni + briefing. Da chiamare dopo una concessione di permesso. */
+export async function refreshAll(): Promise<void> {
+  await refreshBriefings();
+  await refreshReminders();
+}
+
 let syncStarted = false;
-/** Riprogramma i promemoria quando cambiano impegni, preferenze o città di casa (con debounce). Idempotente. */
+/**
+ * Riprogramma i promemoria quando cambiano impegni, preferenze o città di casa (con debounce). Idempotente.
+ * Se compare un impegno con ora e le notifiche non sono ancora state chieste, propone il pre-prompt.
+ */
 export function startReminderSync(): void {
   if (syncStarted || !isSupported()) return;
   syncStarted = true;
@@ -278,10 +303,80 @@ export function startReminderSync(): void {
     const { useLife } = require('@/store/life') as typeof import('@/store/life');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useInterests } = require('@/store/interests') as typeof import('@/store/interests');
-    useLife.subscribe((s, p) => { if (s.events !== p.events) later(); });
+    const timed = (e: Record<string, { time: string }[]>) => Object.values(e ?? {}).reduce((n, l) => n + (Array.isArray(l) ? l.filter((x) => /^\d{1,2}:\d{2}$/.test(x?.time ?? '')).length : 0), 0);
+    useLife.subscribe((s, p) => {
+      if (s.events === p.events) return;
+      later();
+      try {
+        if (timed(s.events) > timed(p.events)) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          (require('@/lib/notifyPermission') as typeof import('@/lib/notifyPermission')).offerNotifications('event');
+        }
+      } catch { /* ignore */ }
+    });
     useInterests.subscribe((s, p) => { if (s.homeCity !== p.homeCity) later(); });
     useApp.subscribe((s, p) => { if (s.reminders !== p.reminders || s.notifKinds !== p.notifKinds) later(); });
   } catch { syncStarted = false; }
+}
+
+// ---------- diagnostica ----------
+
+export type ScheduledInfo = { id: string; title: string; body: string; at: number | null };
+
+/** Notifiche programmate sul telefono (per l'elenco di diagnostica in Impostazioni), in ordine di data. */
+export async function listScheduled(): Promise<{ ok: boolean; items: ScheduledInfo[]; message?: string }> {
+  if (!isSupported()) return { ok: false, items: [], message: 'Disponibile solo sull\'app installata.' };
+  try {
+    const all = await Notifications.getAllScheduledNotificationsAsync();
+    const items: ScheduledInfo[] = [];
+    for (const n of all) {
+      const tr = n.trigger as unknown as { value?: number; date?: number | string | Date; type?: string } | null;
+      let at: number | null = null;
+      if (tr && typeof tr.value === 'number') at = tr.value;
+      else if (tr && tr.date !== undefined) at = new Date(tr.date as never).getTime();
+      if (at === null || !Number.isFinite(at)) {
+        try { at = await Notifications.getNextTriggerDateAsync(n.trigger as never); } catch { at = null; }
+      }
+      items.push({ id: n.identifier, title: n.content.title ?? '', body: n.content.body ?? '', at: at && Number.isFinite(at) ? at : null });
+    }
+    items.sort((a, b) => (a.at ?? Infinity) - (b.at ?? Infinity));
+    return { ok: true, items };
+  } catch {
+    return { ok: false, items: [], message: 'Non riesco a leggere le notifiche programmate.' };
+  }
+}
+
+export const TEST_ID = 'lp-test';
+/** Notifica di prova tra `seconds` secondi. Porta al Plan (ref reminder). */
+export async function sendTest(seconds = 5): Promise<NotifyResult> {
+  return scheduleAt(TEST_ID, new Date(Date.now() + seconds * 1000), t('Notifica di prova'), t('Funziona: così ti avviserò prima dei tuoi impegni. Tocca per aprire.'), pushData(buildRef('reminder'), 'promemoria'), 'promemoria');
+}
+
+// ---------- tocco sulle notifiche di sistema ----------
+
+export type TapEvent = { id: string; data: unknown };
+
+/** Ascolta i tocchi sulle notifiche di sistema (app aperta o in background). Restituisce la funzione per smettere. */
+export function onNotificationTap(handler: (e: TapEvent) => void): () => void {
+  const N = native();
+  if (!N) return () => undefined;
+  try {
+    const sub = N.addNotificationResponseReceivedListener((r) => {
+      handler({ id: `${r.notification.request.identifier}|${r.notification.date}`, data: r.notification.request.content.data });
+    });
+    return () => { try { sub.remove(); } catch { /* ignore */ } };
+  } catch { return () => undefined; }
+}
+
+/** Tocco che ha avviato l'app da chiusa (cold start), se c'e'. */
+export async function lastTap(): Promise<TapEvent | null> {
+  const N = native();
+  if (!N) return null;
+  try {
+    const r = await N.getLastNotificationResponseAsync();
+    if (!r) return null;
+    return { id: `${r.notification.request.identifier}|${r.notification.date}`, data: r.notification.request.content.data };
+  } catch { return null; }
 }
 
 // ---------- notifica locale immediata per le notifiche in-app importanti ----------
@@ -291,9 +386,9 @@ const recentPush = new Map<string, number>();
 /**
  * Chiamata da useNet.notify: se la categoria è abilitata ed è importante (servizio, seminario, messaggio, lavoro,
  * punto giornaliero LifePoints) emette subito una notifica locale col canale della categoria. Evita doppioni
- * (stessa notifica entro un minuto). Difensiva: non lancia mai.
+ * (stessa notifica entro un minuto). Porta `ref` e `kind` (il tocco apre la destinazione esatta). Difensiva: non lancia mai.
  */
-export async function pushForNotif(n: { type: string; text: string; urgent?: boolean; kind?: string }): Promise<void> {
+export async function pushForNotif(n: { type: string; text: string; urgent?: boolean; kind?: string; ref?: string; id?: number }): Promise<void> {
   try {
     if (!isSupported()) return;
     const app = useApp.getState();
@@ -312,7 +407,7 @@ export async function pushForNotif(n: { type: string; text: string; urgent?: boo
     await ensureKindChannels();
     const p = buildPush(n);
     await Notifications.scheduleNotificationAsync({
-      content: { title: p.title, body: p.body, sound: p.sound, interruptionLevel: p.passive ? 'passive' : 'active', data: { kind: p.kind } },
+      content: { title: p.title, body: p.body, sound: p.sound, interruptionLevel: p.passive ? 'passive' : 'active', data: pushData(n.ref, p.kind, n.id) },
       trigger: Platform.OS === 'android' ? { channelId: p.channelId } : null,
     });
   } catch { /* mai bloccare l'app per una notifica */ }

@@ -24,7 +24,7 @@ import { toast } from '@/store/toast';
 
 export default function UserProfile() {
   const t = useTheme();
-  const { name: param } = useLocalSearchParams<{ name?: string }>();
+  const { name: param, follow: fromFollow } = useLocalSearchParams<{ name?: string; follow?: string }>();
   const me = useApp((s) => s.account.name);
   const demo = useApp((s) => s.demo);
   const net = useNet();
@@ -124,7 +124,7 @@ export default function UserProfile() {
           </>
         ) : (
           <>
-            <Btn style={{ flex: 1 }} ghost={fol} title={fol ? 'Già seguito' : 'Segui'} onPress={() => { const f = net.toggleFollow(name); toast(f ? 'Ora segui ' + name : 'Non segui più ' + name); }} />
+            <Btn style={{ flex: 1 }} ghost={fol} title={fol ? 'Già seguito' : fromFollow ? 'Segui anche tu' : 'Segui'} onPress={() => { const f = net.toggleFollow(name); toast(f ? 'Ora segui ' + name : 'Non segui più ' + name); }} />
             <Btn style={{ flex: 1 }} ghost title="Messaggio" onPress={() => go('conversationPage', { id: useChat.getState().ensureDm(name, me) })} />
           </>
         )}

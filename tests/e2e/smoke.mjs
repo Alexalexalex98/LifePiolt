@@ -134,7 +134,7 @@ try {
 
   // ---------- chat: scegli un orario e controlla il Plan ----------
   log('Chat: orario proposto');
-  await open('/conversationPage?id=g%3Ademo-aura', 1600);
+  await open('/conversationPage?id=g%3Ademo-team', 1600);
   const d = new Date(); d.setDate(d.getDate() + 2);
   const p2 = (n) => String(n).padStart(2, '0');
   const slotLabel = `${p2(d.getDate())}/${p2(d.getMonth() + 1)} · 10:00`;

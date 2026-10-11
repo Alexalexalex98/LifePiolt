@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import type * as SR from 'expo-speech-recognition';
 
-import { mapSpeechError, noTranscriber, type SpeechErrorCode, type SpeechEvent, type Transcriber } from './speechCore';
+import { formatRaw, mapNativeError, mapSpeechError, noTranscriber, type SpeechErrorCode, type SpeechEvent, type Transcriber, type VoiceDiag } from './speechCore';
 
 export * from './speechCore';
 
@@ -75,7 +75,7 @@ function webTransport(Ctor: new () => WebRec): SpeechTransport {
         }
         if (partial) onEvent({ type: 'partial', text: partial });
       };
-      r.onerror = (e) => { if (!cancelled) onEvent({ type: 'error', code: mapSpeechError(e.error) }); };
+      r.onerror = (e) => { lastError = formatRaw({ stage: 'ascolto', error: e.error }); if (!cancelled) onEvent({ type: 'error', code: mapSpeechError(e.error), raw: lastError }); };
       r.onend = () => { if (!cancelled) onEvent({ type: 'end' }); rec = null; };
       try { r.start(); } catch { throw 'busy' satisfies SpeechErrorCode; }
     },
@@ -98,43 +98,116 @@ function loadNative(): typeof SR | null {
   return nativeMod;
 }
 
+/** Ultimo errore della voce (testo grezzo), per il pannello "Diagnostica voce". Solo in memoria. */
+let lastError: string | null = null;
+export const getLastSpeechError = () => lastError;
+export const noteSpeechError = (raw: string) => { lastError = raw; };
+
+/** Se dopo questi ms il motore non ha ancora emesso 'start', l'utente vede un messaggio invece di un'attesa infinita. */
+const START_TIMEOUT_MS = 7000;
+
 function nativeTransport(M: typeof SR): SpeechTransport {
   const subs: { remove: () => void }[] = [];
   const clear = () => { subs.splice(0).forEach((s) => { try { s.remove(); } catch { /* già rimosso */ } }); };
   let cancelled = false;
+  let watchdog: ReturnType<typeof setTimeout> | null = null;
+  const stopWatchdog = () => { if (watchdog) { clearTimeout(watchdog); watchdog = null; } };
   const mod = M.ExpoSpeechRecognitionModule;
   return {
     kind: 'native',
     start: async ({ locale, onEvent }) => {
       cancelled = false;
+      // 1) permessi: SEMPRE richiesti a runtime prima di partire (Android: RECORD_AUDIO; iOS: microfono + riconoscimento)
       let perm;
-      try { perm = await mod.requestPermissionsAsync(); } catch { throw 'unavailable' satisfies SpeechErrorCode; }
-      if (!perm.granted) throw 'denied' satisfies SpeechErrorCode;
-      try { if (!mod.isRecognitionAvailable()) throw 'unavailable'; } catch (e) { throw (e === 'unavailable' ? e : 'unavailable') as SpeechErrorCode; }
-      clear();
+      try { perm = await mod.requestPermissionsAsync(); }
+      catch (e) { lastError = formatRaw({ stage: 'permessi', message: String(e) }); throw 'unavailable' satisfies SpeechErrorCode; }
+      if (!perm.granted) {
+        lastError = formatRaw({ stage: 'permessi', error: 'not-allowed', extra: `status=${perm.status}; canAskAgain=${perm.canAskAgain}${perm.restricted ? '; restricted=true' : ''}` });
+        throw (perm.canAskAgain === false ? 'denied_forever' : 'denied') satisfies SpeechErrorCode;
+      }
+      // 2) servizio di riconoscimento presente? (su Android manca o è disattivato senza app/servizi vocali di Google)
+      let available = false;
+      try { available = mod.isRecognitionAvailable(); } catch (e) { lastError = formatRaw({ stage: 'disponibilità', message: String(e) }); }
+      if (!available) {
+        let svc = '';
+        try { svc = mod.getSpeechRecognitionServices().join(',') || 'nessuno'; } catch { /* solo Android */ }
+        lastError = formatRaw({ stage: 'disponibilità', error: 'service-not-allowed', extra: `isRecognitionAvailable=false${svc ? `; servizi=${svc}` : ''}` });
+        throw (Platform.OS === 'android' ? 'service_missing' : 'unavailable') satisfies SpeechErrorCode;
+      }
+      clear(); stopWatchdog();
+      const fail = (code: SpeechErrorCode, raw: string) => { lastError = raw; stopWatchdog(); if (!cancelled) onEvent({ type: 'error', code, raw }); };
       subs.push(
-        mod.addListener('start', () => { if (!cancelled) onEvent({ type: 'started' }); }),
+        mod.addListener('start', () => { stopWatchdog(); if (!cancelled) onEvent({ type: 'started' }); }),
         mod.addListener('result', (e) => {
           if (cancelled) return;
           const top = [...e.results].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))[0]?.transcript ?? '';
           onEvent(e.isFinal ? { type: 'final', text: top } : { type: 'partial', text: top });
         }),
         mod.addListener('volumechange', (e) => { if (!cancelled) onEvent({ type: 'level', value: Math.max(0, e.value) / 10 }); }),
-        mod.addListener('error', (e) => { if (!cancelled) onEvent({ type: 'error', code: mapSpeechError(e.error) }); }),
-        mod.addListener('end', () => { if (!cancelled) onEvent({ type: 'end' }); clear(); }),
+        // NESSUN errore silenzioso: ogni codice del modulo diventa un messaggio chiaro + il dettaglio grezzo
+        mod.addListener('error', (e) => fail(mapNativeError(e.error, Platform.OS), formatRaw({ stage: 'ascolto', error: e.error, nativeCode: e.code, message: e.message }))),
+        mod.addListener('end', () => { stopWatchdog(); if (!cancelled) onEvent({ type: 'end' }); clear(); }),
       );
-      mod.start({
-        lang: locale,
-        interimResults: true,
-        continuous: false,
-        addsPunctuation: true,
-        // niente audio salvato: nessun `recordingOptions`
-        volumeChangeEventOptions: { enabled: true, intervalMillis: 120 },
-      });
+      watchdog = setTimeout(() => {
+        watchdog = null;
+        if (cancelled) return;
+        try { mod.abort(); } catch { /* già fermo */ }
+        fail('start_timeout', formatRaw({ stage: 'avvio', extra: `nessun evento 'start' entro ${START_TIMEOUT_MS / 1000}s` }));
+      }, START_TIMEOUT_MS);
+      try {
+        mod.start({
+          lang: locale,
+          interimResults: true,
+          // un solo enunciato: finisce da sé quando smetti di parlare (su Android 12- 'continuous' non esiste)
+          continuous: false,
+          // la punteggiatura automatica è affidabile solo su iOS (su Android richiede il riconoscimento sul telefono)
+          addsPunctuation: Platform.OS === 'ios',
+          // rete consentita: il riconoscimento sul telefono richiede modelli lingua installati che spesso mancano
+          requiresOnDeviceRecognition: false,
+          // niente audio salvato: nessun `recordingOptions`
+          volumeChangeEventOptions: { enabled: true, intervalMillis: 120 },
+        });
+      } catch (e) {
+        fail('unknown', formatRaw({ stage: 'avvio', message: String(e) }));
+      }
     },
     stop: () => { try { mod.stop(); } catch { /* già fermo */ } },
-    cancel: () => { cancelled = true; try { mod.abort(); } catch { /* già fermo */ } clear(); },
+    cancel: () => { cancelled = true; stopWatchdog(); try { mod.abort(); } catch { /* già fermo */ } clear(); },
   };
+}
+
+/** Raccoglie lo stato della voce per il pannello "Diagnostica voce". Non lancia mai. */
+export async function speechDiagnostics(locale: string): Promise<VoiceDiag> {
+  const d: VoiceDiag = {
+    platform: Platform.OS === 'android' ? `Android ${String(Platform.Version)}` : Platform.OS === 'ios' ? `iOS ${String(Platform.Version)}` : 'web',
+    expoGo: inExpoGo, moduleLoaded: false, available: null, onDevice: null, micGranted: null, micCanAskAgain: null, speechGranted: null,
+    services: [], defaultService: '', locale, localeSupported: null, lastError,
+  };
+  if (Platform.OS === 'web') {
+    d.moduleLoaded = !!webCtor(); d.available = d.moduleLoaded;
+    return d;
+  }
+  const M = loadNative();
+  if (!M) return d;
+  d.moduleLoaded = true;
+  const mod = M.ExpoSpeechRecognitionModule;
+  try { d.available = mod.isRecognitionAvailable(); } catch { /* resta null */ }
+  try { d.onDevice = mod.supportsOnDeviceRecognition(); } catch { /* resta null */ }
+  try {
+    const mic = await mod.getMicrophonePermissionsAsync();
+    d.micGranted = mic.granted; d.micCanAskAgain = mic.canAskAgain;
+    if (Platform.OS === 'ios') d.speechGranted = (await mod.getSpeechRecognizerPermissionsAsync()).granted;
+  } catch { /* resta null */ }
+  if (Platform.OS === 'android') {
+    try { d.services = mod.getSpeechRecognitionServices(); } catch { /* resta vuoto */ }
+    try { d.defaultService = mod.getDefaultRecognitionService().packageName; } catch { /* resta vuoto */ }
+    try {
+      const l = await mod.getSupportedLocales({});
+      const base = locale.slice(0, 2).toLowerCase();
+      if (l.locales.length) d.localeSupported = l.locales.some((x) => x.toLowerCase().startsWith(base));
+    } catch { /* Android 12- o servizio senza elenco */ }
+  }
+  return d;
 }
 
 /* ---------- selezione ---------- */

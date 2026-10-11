@@ -1,5 +1,7 @@
 /** Dati extra di un messaggio di Theia (immagini, provider, azioni). Tipi puri: nessun import dall'app. */
 
+import type { Att } from '../attachments.ts';
+
 export type ExtImage = { uri: string; mime: string; width?: number; height?: number };
 
 export type TheiaAction =
@@ -13,6 +15,8 @@ export type TheiaAction =
 
 export type TheiaExt = {
   images?: string[];
+  /** allegati non-immagine del messaggio dell'utente (documenti, testo, posizione, contatto, nota, impegno) */
+  attachments?: Att[];
   /** fornitore che ha risposto ("Risposto da: ...") */
   provider?: string;
   actions?: TheiaAction[];

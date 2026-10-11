@@ -1,12 +1,15 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
+import { Animated, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
 
 import { BOTTOM_CLEARANCE, MIN_HIT, radius, space, type as fs } from '@/constants/theme';
+import { KeyboardDock } from '@/components/KeyboardDock';
+import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
+import { growHeight, restingBottom, sheetMaxHeight } from '@/lib/keyboardInset';
 import { useTheme } from '@/hooks/use-theme';
 import { useSectionNames } from '@/lib/i18n';
 import { readable } from '@/lib/a11y';
@@ -134,13 +137,13 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
     </>
   );
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardDock style={{ backgroundColor: t.bg }}>
       {scroll ? (
         <ScrollView contentContainerStyle={{ padding: space.lg, paddingTop: insets.top + 10, paddingBottom: BOTTOM_CLEARANCE }} keyboardShouldPersistTaps="handled">{body}</ScrollView>
       ) : (
         <View style={{ flex: 1, padding: space.lg, paddingTop: insets.top + 10 }}>{body}</View>
       )}
-    </KeyboardAvoidingView>
+    </KeyboardDock>
   );
 }
 
@@ -273,15 +276,19 @@ export function Link({ children, onPress, danger, color }: { children: ReactNode
   );
 }
 
-export function Input(props: TextInputProps & { flex?: number }) {
+export function Input(props: TextInputProps & { flex?: number; /** se presente il campo cresce con il testo fino a questo numero di righe */ maxLines?: number }) {
   const t = useTheme();
-  const { flex, style, ...rest } = props;
+  const { flex, style, maxLines, onContentSizeChange, ...rest } = props;
+  const [contentH, setContentH] = useState<number | null>(null);
+  const grow = maxLines != null && maxLines > 1;
   return (
     <TextInput
       placeholderTextColor={t.muted}
       accessibilityLabel={(() => { const l = rest.accessibilityLabel ?? rest.placeholder; return l ? translateText(l) : l; })()}
       {...rest}
-      style={[{ backgroundColor: t.input, borderColor: t.inputBorder, color: t.text, borderWidth: 1, borderRadius: radius.field, padding: 13, fontSize: 16, marginBottom: 8 }, props.multiline && { minHeight: 110, textAlignVertical: 'top' }, flex != null && { flex }, style]}
+      multiline={grow ? true : rest.multiline}
+      onContentSizeChange={grow ? (e) => { setContentH(e.nativeEvent.contentSize.height); onContentSizeChange?.(e); } : onContentSizeChange}
+      style={[{ backgroundColor: t.input, borderColor: t.inputBorder, color: t.text, borderWidth: 1, borderRadius: radius.field, padding: 13, fontSize: 16, marginBottom: 8 }, props.multiline && !grow && { minHeight: 110, textAlignVertical: 'top' }, grow && { textAlignVertical: 'top', height: growHeight(contentH ?? 0, 21, 28, 1, maxLines) }, flex != null && { flex }, style]}
     />
   );
 }
@@ -383,6 +390,8 @@ export function Sheet({ visible, title, onClose, children }: { visible: boolean;
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const reduce = useReduceMotion();
+  const kb = useKeyboardInset();
+  const win = useWindowDimensions();
   const [shown, setShown] = useState(visible);
   useEffect(() => {
     if (!visible) {
@@ -397,19 +406,19 @@ export function Sheet({ visible, title, onClose, children }: { visible: boolean;
   const close = safely(onClose) ?? onClose;
   return (
     <Modal visible={shown} transparent animationType={reduce ? 'none' : 'slide'} onRequestClose={close} statusBarTranslucent>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <KeyboardDock>
         <Pressable style={{ flex: 1, backgroundColor: t.overlay }} onPress={close} accessibilityRole="button" accessibilityLabel={translateText('Chiudi')} />
-        <View accessibilityViewIsModal style={{ backgroundColor: t.sheet, borderTopLeftRadius: 26, borderTopRightRadius: 26, borderTopWidth: 1, borderTopColor: t.sheetBorder, maxHeight: '82%', paddingTop: 20 }}>
+        <View accessibilityViewIsModal style={{ backgroundColor: t.sheet, borderTopLeftRadius: 26, borderTopRightRadius: 26, borderTopWidth: 1, borderTopColor: t.sheetBorder, maxHeight: sheetMaxHeight(win.height, insets.top, kb.height), paddingTop: 20 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 }}>
             <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.lead, fontWeight: '700', flex: 1, marginEnd: 10 }} numberOfLines={2}>{title}</Text>
             <Btn small ghost title="Chiudi" onPress={onClose} />
           </View>
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: restingBottom(kb, insets.bottom) + 24 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
             {children}
           </ScrollView>
         </View>
         <ModalToast />
-      </KeyboardAvoidingView>
+      </KeyboardDock>
     </Modal>
   );
 }

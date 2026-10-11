@@ -181,7 +181,7 @@ export function SlotsSheet({ visible, onClose, onSend }: Common) {
   return (
     <Sheet visible={visible} title="Proponi degli orari" onClose={onClose}>
       <Body small muted style={{ marginBottom: 8 }}>Scegli 2–5 orari: chi riceve vota quelli che gli vanno bene e tu confermi il migliore. Vedi subito se un orario si scontra con un tuo impegno.</Body>
-      <Input placeholder="Per cosa? (es. Call su AURA)" value={title} onChangeText={setTitle} />
+      <Input placeholder="Per cosa? (es. Caffè con Marco)" value={title} onChangeText={setTitle} />
       <Row style={{ justifyContent: 'flex-start', marginBottom: 8, flexWrap: 'wrap' }} gap={6}>{DURS.map((d) => <Pill key={d} label={`${d} min`} on={dur === d} onPress={() => setDur(d)} />)}</Row>
       {opts.map((o) => {
         const conf = myConflicts(o.day, timeStr(o.min), dur);

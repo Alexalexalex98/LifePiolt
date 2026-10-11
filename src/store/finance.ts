@@ -1,7 +1,15 @@
+import { Platform } from 'react-native';
 import { create } from 'zustand';
 
+import { nextOccurrence } from '@/lib/bills/plan';
+import { DEFAULT_BILL_PREFS, type BillPrefs, type Invoice } from '@/lib/bills/types';
 import { hashStr, mulberry32, monthLabelOf, uid, weekdayShortDate } from '@/lib/format';
 import { persisted } from './persist';
+
+export type { BillPrefs, Invoice } from '@/lib/bills/types';
+/** Dati per annullare un pagamento registrato (vedi markInvoicePaid / undoInvoicePaid). */
+export type PaidToken = { prev: Invoice; nextId?: string };
+export type PayOpts = { date: string; amount: number; record: boolean; installment?: number };
 
 export type Movement = { date: string; label: string; amount: number };
 export type FinMonth = { label: string; start: number; locked: boolean; movements: Movement[] };
@@ -118,6 +126,9 @@ type FinState = {
   budget: Budget;
   guidelines: Record<string, number>;
   bills: Bill[];
+  /** Bollette e fatture da pagare (con scadenza, piano e promemoria). Separate dai costi ricorrenti `bills`. */
+  invoices: Invoice[];
+  billPrefs: BillPrefs;
   tax: TaxDecl;
   stocks: Stock[];
   cash: number;
@@ -139,6 +150,14 @@ type FinState = {
   restoreBill: (b: Bill, at: number) => void;
   restoreStock: (st: Stock, at: number) => void;
   restoreOrder: (o: PendingOrder) => void;
+  addInvoice: (v: Omit<Invoice, 'id' | 'state' | 'remind' | 'createdAt' | 'history'> & Partial<Pick<Invoice, 'remind' | 'state'>>, log?: string) => string;
+  patchInvoice: (id: string, patch: Partial<Invoice>, log?: string) => void;
+  delInvoice: (id: string) => { inv: Invoice; at: number } | null;
+  restoreInvoice: (inv: Invoice, at: number) => void;
+  /** Segna come pagata (o una rata). Opzionale: registra il movimento e crea la prossima scadenza se e' ricorrente. */
+  markInvoicePaid: (id: string, o: PayOpts) => PaidToken | null;
+  undoInvoicePaid: (tok: PaidToken) => void;
+  setBillPrefs: (p: Partial<BillPrefs>) => void;
   /** Aggiunge più bollette in un colpo, saltando i nomi già presenti. Restituisce quante ne ha aggiunte. */
   addBills: (list: Omit<Bill, 'id'>[]) => number;
   setTax: (p: Partial<TaxDecl>) => void;
@@ -168,6 +187,8 @@ const blank = () => ({
   budget: { salary: 0, saveToEmergency: true, alloc: {} } as Budget,
   guidelines: defaultGuidelines,
   bills: [] as Bill[],
+  invoices: [] as Invoice[],
+  billPrefs: { ...DEFAULT_BILL_PREFS },
   tax: { married: false, children: false, banks: [], docs: {} } as TaxDecl,
   stocks: defaultWatchlist(false),
   cash: 0,
@@ -199,6 +220,75 @@ export const useFin = create<FinState>()(
     restoreBill: (b, at) => set((s) => (s.bills.some((x) => x.id === b.id) ? s : { bills: (() => { const a = s.bills.slice(); a.splice(Math.min(at, a.length), 0, b); return a; })() })),
     restoreStock: (st, at) => set((s) => (s.stocks.some((x) => x.symbol === st.symbol) ? s : { stocks: (() => { const a = s.stocks.slice(); a.splice(Math.min(at, a.length), 0, st); return a; })() })),
     restoreOrder: (o) => set((s) => (s.orders.some((x) => x.id === o.id) ? s : { orders: [...s.orders, o] })),
+    addInvoice: (v, log) => {
+      const id = uid();
+      const now = new Date().toISOString();
+      const inv: Invoice = { remind: true, state: 'open', ...v, id, createdAt: now, history: [{ at: now, text: log ?? 'Aggiunta' }] };
+      set((st) => ({ invoices: [...st.invoices, inv] }));
+      return id;
+    },
+    patchInvoice: (id, patch, log) => set((st) => ({
+      invoices: st.invoices.map((i) => (i.id !== id ? i : { ...i, ...patch, history: log ? [...i.history, { at: new Date().toISOString(), text: log }] : i.history })),
+    })),
+    delInvoice: (id) => {
+      const list = get().invoices;
+      const at = list.findIndex((i) => i.id === id);
+      if (at < 0) return null;
+      set({ invoices: list.filter((i) => i.id !== id) });
+      return { inv: list[at], at };
+    },
+    restoreInvoice: (inv, at) => set((st) => (st.invoices.some((x) => x.id === inv.id) ? st : { invoices: (() => { const a = st.invoices.slice(); a.splice(Math.min(at, a.length), 0, inv); return a; })() })),
+    markInvoicePaid: (id, o) => {
+      const prev = get().invoices.find((i) => i.id === id);
+      if (!prev) return null;
+      const now = new Date().toISOString();
+      let inv: Invoice = { ...prev, history: [...prev.history] };
+      let fullyPaid = true;
+      if (o.installment != null && prev.installments?.[o.installment]) {
+        const ins = prev.installments.map((x, k) => (k === o.installment ? { ...x, paidAt: o.date } : x));
+        fullyPaid = ins.every((x) => x.paidAt);
+        inv.installments = ins;
+        inv.history.push({ at: now, text: `Rata ${o.installment + 1} di ${ins.length} pagata (${o.amount.toFixed(2)} ${prev.currency})` });
+        if (fullyPaid) { inv.state = 'paid'; inv.paidAt = o.date; inv.paidAmount = prev.amount; }
+      } else {
+        inv.state = 'paid'; inv.paidAt = o.date; inv.paidAmount = o.amount;
+        inv.history.push({ at: now, text: `Pagata (${o.amount.toFixed(2)} ${prev.currency})` });
+      }
+      let months = get().months;
+      if (o.record && months[0] && !months[0].locked) {
+        const dd = `${o.date.slice(8, 10)}/${o.date.slice(5, 7)}`;
+        const mv: Movement = { date: dd, label: `Bolletta · ${prev.issuer}`, amount: -Math.abs(o.amount) };
+        months = months.map((m, i) => (i === 0 ? { ...m, movements: [...m.movements, mv] } : m));
+        inv.movement = { month: months[0].label, date: mv.date, label: mv.label, amount: mv.amount };
+        inv.history.push({ at: now, text: 'Registrata come movimento' });
+      }
+      let nextId: string | undefined;
+      const list = get().invoices.map((i) => (i.id === id ? inv : i));
+      if (fullyPaid && prev.recurrence && !prev.installments?.length) {
+        const nx = nextOccurrence(prev);
+        const dup = nx && list.some((i) => i.state === 'open' && i.issuer === prev.issuer && i.dueDate && nx.dueDate && Math.abs(new Date(i.dueDate).getTime() - new Date(nx.dueDate).getTime()) < 12 * 86400000);
+        if (nx && !dup) {
+          nextId = uid();
+          list.push({ ...nx, id: nextId, createdAt: now, history: [{ at: now, text: 'Scadenza stimata dalla ricorrenza: aggiorna importo e data quando arriva il documento' }] });
+        }
+      }
+      set({ invoices: list, months });
+      return { prev, nextId };
+    },
+    undoInvoicePaid: (tok) => set((st) => {
+      let months = st.months;
+      const cur = st.invoices.find((i) => i.id === tok.prev.id);
+      const mvInfo = cur?.movement;
+      if (mvInfo) {
+        const mi = months.findIndex((m) => m.label === mvInfo.month);
+        if (mi >= 0) {
+          const k = months[mi].movements.findIndex((x) => x.date === mvInfo.date && x.label === mvInfo.label && x.amount === mvInfo.amount);
+          if (k >= 0) months = months.map((m, i) => (i === mi ? { ...m, movements: m.movements.filter((_, j) => j !== k) } : m));
+        }
+      }
+      return { months, invoices: st.invoices.filter((i) => i.id !== tok.nextId).map((i) => (i.id === tok.prev.id ? tok.prev : i)) };
+    }),
+    setBillPrefs: (p) => set((st) => ({ billPrefs: { ...st.billPrefs, ...p } })),
     setTax: (p) => set((s) => ({ tax: { ...s.tax, ...p } })),
     setTaxDoc: (k, f) => set((s) => {
       const docs = { ...s.tax.docs };
@@ -289,5 +379,15 @@ export const useFin = create<FinState>()(
     reset: () => set({ ...blank() }),
   })),
 );
+
+// Promemoria locali delle bollette: si riprogrammano da soli quando cambiano bollette o preferenze (solo nel telefono, in modo differito).
+if (Platform.OS !== 'web') {
+  setTimeout(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      (require('@/lib/bills/schedule') as typeof import('@/lib/bills/schedule')).startBillReminderSync();
+    } catch { /* promemoria non disponibili */ }
+  }, 2500);
+}
 
 export const holdings = (stocks: Stock[]) => stocks.filter((s) => s.shares > 0);

@@ -1,25 +1,33 @@
-import { Image } from 'expo-image';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, AppState, Pressable, ScrollView, View } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, Platform, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/T';
 
-import { Body, Btn, Input, Sheet } from '@/components/ui';
+import { Btn, Input } from '@/components/ui';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useTheme } from '@/hooks/use-theme';
 import { translateText } from '@/i18n/core';
 import { infoOf } from '@/i18n/languages';
-import { roomLeft } from '@/lib/assistant/imageCore';
 import { Icon } from '@/lib/icons';
 import {
-  createTransport, initialSpeech, isActive, isSpeechLang, liveText, localeFor, shouldAutoSend, speechErrorText, speechReducer, speechSupport,
+  createTransport, getLastSpeechError, getTranscriber, initialSpeech, isActive, isSpeechLang, liveText, localeFor, shouldAutoSend, speechReducer, speechSupport,
   type SpeechErrorCode, type SpeechTransport,
 } from '@/lib/speech';
+import { MAX_ATTACHMENTS, type Att } from '@/lib/attachments';
+import { PermissionError, explainDenied } from '@/lib/chatMedia';
+import { fmtDur } from '@/store/chat';
+import { toast } from '@/store/toast';
 import { useTheia } from '@/store/theia';
-import { MAX_IMAGES, pickFromGallery, takePhoto, type Attachment } from './images';
+import type { Attachment } from './images';
+import { AttachChip, BillChip } from './AttachChips';
+import { AttachSheet } from './AttachSheet';
 import { LangSheet } from './LangSheet';
 import { PrivacyBadge } from './PrivacyBadge';
+import { useVoiceNote } from './useVoiceNote';
+import { VoiceDiagSheet } from './VoiceDiagSheet';
+import { VoiceNotice } from './VoiceNotice';
 
-export type ComposerSend = { text: string; images: Attachment[]; source: 'typed' | 'voice'; lang: string; forced: boolean };
+/** `images` = foto (vanno al router come prima); `attachments` = tutto il resto (documenti, testo, posizione, contatto, nota, impegno). */
+export type ComposerSend = { text: string; images: Attachment[]; attachments?: Att[]; source: 'typed' | 'voice'; lang: string; forced: boolean };
 
 const BARS = 7;
 
@@ -46,7 +54,7 @@ function Wave({ level }: { level: number }) {
   );
 }
 
-/** Compositore di Theia: testo, microfono in 12 lingue, allegati immagine (fotocamera/galleria, max 4). */
+/** Compositore di Theia: testo (cresce fino a 5 righe), microfono in 12 lingue, allegati come in Claude (foto, file, testo, posizione, contatto, nota, impegno). */
 export function Composer({ appLang, busy, placeholder, onSend }: {
   appLang: string; busy: boolean; placeholder: string; onSend: (m: ComposerSend) => void;
 }) {
@@ -54,15 +62,17 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
   const auto = useTheia((s) => s.voiceAuto);
   const setAuto = useTheia((s) => s.setVoiceAuto);
   const [text, setText] = useState('');
-  const [images, setImages] = useState<Attachment[]>([]);
+  const [atts, setAtts] = useState<Att[]>([]);
   const [over, setOver] = useState<string | null>(null); // lingua scelta al volo
   const [speech, dispatch] = useReducer(speechReducer, initialSpeech);
-  const [err, setErr] = useState<string | null>(null);
+  const [voiceErr, setVoiceErr] = useState<{ code: SpeechErrorCode; raw?: string } | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [diagOpen, setDiagOpen] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const transport = useRef<SpeechTransport | null>(null);
   const voiceFrom = useRef<string | null>(null); // lingua della trascrizione nel campo di testo
+  const note = useVoiceNote();
   const lang = over ?? appLang;
   const speechLang = isSpeechLang(lang) ? lang : 'it';
   const active = isActive(speech);
@@ -82,16 +92,20 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
     return () => { sub.remove(); transport.current?.cancel(); };
   }, [stopAll]);
 
-  const fail = useCallback((code: SpeechErrorCode) => { setErr(translateText(speechErrorText(code))); say(translateText(speechErrorText(code))); }, [say]);
+  const fail = useCallback((code: SpeechErrorCode, raw?: string) => {
+    setVoiceErr({ code, raw: raw ?? getLastSpeechError() ?? undefined });
+    say(translateText('Voce non disponibile'));
+  }, [say]);
 
   const send = useCallback((m: Partial<ComposerSend> & { text: string }) => {
-    onSend({ text: m.text, images: m.images ?? images, source: m.source ?? 'typed', lang: m.lang ?? lang, forced: m.forced ?? over != null });
-    setText(''); setImages([]); setOver(null); setHint(null); setErr(null); voiceFrom.current = null;
-  }, [onSend, images, lang, over]);
+    const images: Attachment[] = atts.filter((a) => a.kind === 'image' && a.uri).map((a) => ({ id: a.id, uri: a.uri!, mime: a.mime ?? 'image/jpeg', width: a.width, height: a.height }));
+    onSend({ text: m.text, images: m.images ?? images, attachments: atts.filter((a) => a.kind !== 'image'), source: m.source ?? 'typed', lang: m.lang ?? lang, forced: m.forced ?? over != null });
+    setText(''); setAtts([]); setOver(null); setHint(null); setVoiceErr(null); voiceFrom.current = null;
+  }, [onSend, atts, lang, over]);
 
   // fine dell'ascolto: invio automatico oppure trascrizione nel campo per conferma
   useEffect(() => {
-    if (speech.phase === 'error' && speech.error) { fail(speech.error); dispatch({ type: 'reset' }); return; }
+    if (speech.phase === 'error' && speech.error) { fail(speech.error, speech.rawError); dispatch({ type: 'reset' }); return; }
     if (speech.phase !== 'done' || !speech.result) return;
     const res = speech.result;
     dispatch({ type: 'reset' });
@@ -107,28 +121,50 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speech.phase]);
 
+  /** Il tasto dà SEMPRE un riscontro: parte l'ascolto oppure compare un messaggio che spiega cosa fare. */
   async function startVoice() {
-    setErr(null); setHint(null);
-    if (!sup.ok) { fail(sup.reason); return; }
-    const tr = createTransport();
-    if (!tr) { fail('unavailable'); return; }
-    transport.current = tr;
-    const locale = localeFor(speechLang);
-    dispatch({ type: 'start', locale });
-    say(`${translateText('Sto ascoltando')}: ${infoOf(speechLang).native}`);
-    try { await tr.start({ locale, onEvent: dispatch }); }
-    catch (c) { transport.current = null; dispatch({ type: 'error', code: typeof c === 'string' ? (c as SpeechErrorCode) : 'unknown' }); }
-  }
-
-  async function addImages(fn: (room: number) => Promise<Attachment[]>) {
-    setAttachOpen(false); setErr(null);
+    setVoiceErr(null); setHint(null);
     try {
-      const got = await fn(roomLeft(images.length));
-      if (got.length) setImages((cur) => [...cur, ...got].slice(0, MAX_IMAGES));
-    } catch (e) { setErr(e instanceof Error ? e.message : translateText('Non riesco ad aprire le immagini.')); }
+      if (!sup.ok) { fail(sup.reason, `piattaforma=${Platform.OS}; ${sup.reason}`); return; }
+      const tr = createTransport();
+      if (!tr) { fail('unavailable'); return; }
+      transport.current = tr;
+      const locale = localeFor(speechLang);
+      dispatch({ type: 'start', locale });
+      say(`${translateText('Sto ascoltando')}: ${infoOf(speechLang).native}`);
+      try { await tr.start({ locale, onEvent: dispatch }); }
+      catch (c) {
+        transport.current = null;
+        dispatch({ type: 'cancel' });
+        fail(typeof c === 'string' ? (c as SpeechErrorCode) : 'unknown', typeof c === 'string' ? undefined : String(c));
+      }
+    } catch (e) {
+      transport.current = null; dispatch({ type: 'cancel' });
+      fail('unknown', String(e));
+    }
   }
 
-  const canSend = !busy && !active && (text.trim().length > 0 || images.length > 0);
+  async function startNote() {
+    setVoiceErr(null); setHint(null);
+    try { await note.start(); }
+    catch (e) {
+      if (e instanceof PermissionError) explainDenied(e.message, e.canAskAgain);
+      else toast(Platform.OS === 'web' ? 'La registrazione richiede l\'app sul telefono o un browser con microfono' : 'Impossibile avviare la registrazione');
+    }
+  }
+  async function stopNote() {
+    const n = await note.stop();
+    if (!n) { toast('Registrazione troppo breve'); return; }
+    const tcr = getTranscriber();
+    if (tcr.available) {
+      try { const txt = await tcr.transcribe(n.uri, localeFor(speechLang)); if (txt.trim()) { setText((p) => (p.trim() ? `${p.trim()} ${txt}` : txt)); note.discard(); } }
+      catch { setHint(translateText('Non sono riuscita a trascrivere l\'audio: resta salvato sul telefono.')); }
+    }
+  }
+
+  function addAtts(list: Att[]) { setAtts((cur) => [...cur, ...list].slice(0, MAX_ATTACHMENTS)); }
+
+  const canSend = !busy && !active && !note.recording && (text.trim().length > 0 || atts.length > 0);
   const doSend = () => {
     if (!canSend) return;
     const fromVoice = voiceFrom.current != null && text.trim().length > 0;
@@ -137,6 +173,7 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
   const circle = (bg: string, on = true) => ({ width: 46, height: 46, borderRadius: 23, backgroundColor: bg, alignItems: 'center' as const, justifyContent: 'center' as const, opacity: on ? 1 : 0.4 });
   const native = infoOf(lang).native;
   const live = liveText(speech, speechLang);
+  const bills = atts.filter((a) => a.billish && a.kind !== 'image');
 
   return (
     <View style={{ paddingTop: 8 }}>
@@ -153,11 +190,18 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
         </Pressable>
       </View>
 
-      {err ? (
-        <View accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ backgroundColor: t.dangerBg, borderRadius: 12, padding: 10, marginBottom: 6, flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
-          <Icon name="alert" size={16} color={t.danger} stroke={2} />
-          <Text style={{ color: t.danger, fontSize: 13, lineHeight: 18, flex: 1 }}>{err}</Text>
-          <Pressable onPress={() => setErr(null)} accessibilityRole="button" accessibilityLabel={translateText('Chiudi')} hitSlop={10}><Icon name="x" size={16} color={t.danger} stroke={2.2} /></Pressable>
+      {voiceErr ? <VoiceNotice code={voiceErr.code} raw={voiceErr.raw} onClose={() => setVoiceErr(null)} onRetry={() => void startVoice()} onRecord={() => { setVoiceErr(null); void startNote(); }} onDiag={() => setDiagOpen(true)} /> : null}
+
+      {note.recording ? (
+        <View accessibilityLiveRegion="polite" style={{ backgroundColor: t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: 1, borderRadius: 16, padding: 12, marginBottom: 6, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: t.danger }} />
+          <Text style={{ color: t.text, fontSize: 14, fontWeight: '700', flex: 1 }}>{translateText('Registro un audio')} · {fmtDur(note.ms)}</Text>
+          <Btn small icon="check" title="Fatto" onPress={() => void stopNote()} />
+        </View>
+      ) : note.saved ? (
+        <View style={{ backgroundColor: t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: 1, borderRadius: 12, padding: 10, marginBottom: 6, gap: 6 }}>
+          <Text style={{ color: t.text, fontSize: 13, lineHeight: 18 }}>{translateText('Audio salvato solo sul tuo telefono')} ({fmtDur(note.saved.durationMs)}). {translateText('La trascrizione richiede il servizio di trascrizione (non ancora collegato)')}.</Text>
+          <View style={{ flexDirection: 'row' }}><Btn small ghost icon="trash" title="Elimina audio" onPress={note.discard} /></View>
         </View>
       ) : null}
 
@@ -182,33 +226,38 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
 
       {hint ? <Text accessibilityLiveRegion="polite" style={{ color: t.muted, fontSize: 12, marginBottom: 4 }}>{hint}</Text> : null}
 
-      {images.length ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }} style={{ marginBottom: 4 }}>
-          {images.map((im, i) => (
-            <View key={im.id} style={{ width: 64, height: 64 }}>
-              <Image source={{ uri: im.uri }} accessible accessibilityRole="image" accessibilityLabel={`${translateText('Immagine allegata')} ${i + 1}/${images.length}`} style={{ width: 64, height: 64, borderRadius: 10, backgroundColor: t.item }} contentFit="cover" />
-              <Pressable
-                onPress={() => setImages((cur) => cur.filter((x) => x.id !== im.id))}
-                accessibilityRole="button"
-                accessibilityLabel={`${translateText('Rimuovi immagine')} ${i + 1}`}
-                hitSlop={10}
-                style={{ position: 'absolute', top: -6, end: -6, width: 22, height: 22, borderRadius: 11, backgroundColor: t.text, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="x" size={12} color={t.bg} stroke={2.6} />
-              </Pressable>
-            </View>
-          ))}
-        </ScrollView>
+      {atts.length ? (
+        <View style={{ marginBottom: 4 }}>
+          <ScrollView horizontal keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 8, paddingEnd: 8 }}>
+            {atts.map((a) => <AttachChip key={a.id} a={a} onRemove={() => setAtts((cur) => cur.filter((x) => x.id !== a.id))} />)}
+          </ScrollView>
+          {bills.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>{bills.map((a) => <BillChip key={a.id} a={a} />)}</View> : null}
+        </View>
       ) : null}
 
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-        <Pressable onPress={() => setAttachOpen(true)} disabled={active || images.length >= MAX_IMAGES} accessibilityRole="button" accessibilityLabel={translateText('Allega immagini')} accessibilityState={{ disabled: active || images.length >= MAX_IMAGES }} style={circle(t.chip, !active && images.length < MAX_IMAGES)}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+        <Pressable onPress={() => setAttachOpen(true)} disabled={active || note.recording} accessibilityRole="button" accessibilityLabel={translateText('Allega')} accessibilityState={{ disabled: active || note.recording }} style={circle(t.chip, !active && !note.recording)}>
           <Icon name="paperclip" size={20} color={t.text} stroke={2} />
         </Pressable>
-        <Input flex={1} placeholder={placeholder} value={text} onChangeText={(v) => { setText(v); if (!v) voiceFrom.current = null; }} onSubmitEditing={doSend} returnKeyType="send" editable={!active} style={{ marginBottom: 0, minWidth: 0 }} />
+        <Input
+          flex={1}
+          placeholder={placeholder}
+          value={text}
+          onChangeText={(v) => { setText(v); if (!v) voiceFrom.current = null; }}
+          onSubmitEditing={Platform.OS === 'web' ? doSend : undefined}
+          returnKeyType={Platform.OS === 'web' ? 'send' : 'default'}
+          // su telefono Invio va a capo e il campo cresce fino a 5 righe; sul web Invio invia
+          maxLines={Platform.OS === 'web' ? undefined : 5}
+          editable={!active}
+          style={{ marginBottom: 0, minWidth: 0 }}
+        />
         <Pressable
-          onPress={active ? stopAll : startVoice}
+          onPress={active ? stopAll : () => void startVoice()}
+          onLongPress={() => setDiagOpen(true)}
+          delayLongPress={500}
           accessibilityRole="button"
           accessibilityLabel={active ? translateText('Ferma l\'ascolto') : `${translateText('Parla a Theia')} (${native})`}
+          accessibilityHint={translateText('Tieni premuto per la diagnostica della voce')}
           accessibilityState={{ selected: active }}
           style={circle(active ? t.danger : t.chip)}>
           <Icon name={active ? 'square' : 'mic'} size={active ? 16 : 20} color={active ? t.onText : t.text} stroke={2} />
@@ -218,15 +267,8 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
         </Pressable>
       </View>
 
-      {!sup.ok ? <Text style={{ color: t.muted, fontSize: 11, marginTop: 6 }}>{translateText(speechErrorText(sup.reason))}</Text> : null}
-
-      <Sheet visible={attachOpen} title="Allega immagini" onClose={() => setAttachOpen(false)}>
-        <Body muted small style={{ marginBottom: 10 }}>Fino a 4 immagini. Restano sul tuo telefono: non vengono inviate a nessuno senza il tuo consenso.</Body>
-        <View style={{ gap: 8 }}>
-          <Btn icon="camera" title="Scatta una foto" onPress={() => void addImages(takePhoto)} />
-          <Btn ghost icon="image" title="Scegli dalla galleria" onPress={() => void addImages(pickFromGallery)} />
-        </View>
-      </Sheet>
+      <AttachSheet visible={attachOpen} onClose={() => setAttachOpen(false)} current={atts} onAdd={addAtts} />
+      <VoiceDiagSheet visible={diagOpen} onClose={() => setDiagOpen(false)} locale={localeFor(speechLang)} />
       <LangSheet visible={langOpen} onClose={() => setLangOpen(false)} value={lang} appLang={appLang} onPick={(c) => setOver(c === appLang ? null : c)} auto={auto} onAuto={setAuto} />
     </View>
   );

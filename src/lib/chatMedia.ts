@@ -3,10 +3,28 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
+import { alertT } from '@/lib/alert';
 import { uid } from '@/lib/format';
 import type { Media, MsgKind } from '@/store/chat';
+
+/** Permesso negato: porta con sé se si può richiedere ancora (altrimenti si manda l'utente nelle impostazioni). */
+export class PermissionError extends Error {
+  canAskAgain: boolean;
+  constructor(message: string, canAskAgain = true) { super(message); this.name = 'PermissionError'; this.canAskAgain = canAskAgain; }
+}
+
+/** Apre le impostazioni dell'app (permessi). Sul web non esiste: non fa nulla. */
+export async function openAppSettings(): Promise<void> {
+  try { await Linking.openSettings(); } catch { /* nessuna schermata di impostazioni disponibile */ }
+}
+
+/** Avviso con pulsante "Apri impostazioni" quando un permesso è negato per sempre; altrimenti un avviso semplice. */
+export function explainDenied(message: string, canAskAgain = false) {
+  if (canAskAgain || Platform.OS === 'web') { alertT('Permesso necessario', message); return; }
+  alertT('Permesso negato', message, [{ text: 'Annulla', style: 'cancel' }, { text: 'Apri impostazioni', onPress: () => void openAppSettings() }]);
+}
 
 export type Picked = { kind: MsgKind; media?: Media; location?: { lat: number; lng: number; label?: string }; contact?: { name: string; phone?: string } };
 
@@ -40,7 +58,7 @@ export async function pickFromGallery(): Promise<Picked[]> {
 
 export async function takePhoto(): Promise<Picked[]> {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
-  if (!perm.granted) throw new Error('Permesso fotocamera negato: abilitalo da Impostazioni.');
+  if (!perm.granted) throw new PermissionError('Permesso fotocamera negato: abilitalo da Impostazioni.', perm.canAskAgain);
   const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['images', 'videos'], quality: 0.8 });
   return r.canceled ? [] : r.assets.map(fromAsset);
 }
@@ -51,9 +69,17 @@ export async function pickDocument(): Promise<Picked[]> {
   return r.assets.map((a) => ({ kind: 'file' as const, media: { uri: persistFile(a.uri, a.name), name: a.name, size: a.size, mime: a.mimeType } }));
 }
 
+/** Legge un file di testo (txt, csv, md) in locale. Su web usa fetch. Restituisce null se non riesce. */
+export async function readTextFile(uri: string): Promise<string | null> {
+  try {
+    if (Platform.OS === 'web') return await (await fetch(uri)).text();
+    return await new File(uri).text();
+  } catch { return null; }
+}
+
 export async function currentLocation(): Promise<Picked> {
   const perm = await Location.requestForegroundPermissionsAsync();
-  if (!perm.granted) throw new Error('Permesso posizione negato: abilitalo da Impostazioni.');
+  if (!perm.granted) throw new PermissionError('Permesso posizione negato: abilitalo da Impostazioni.', perm.canAskAgain);
   const p = await Location.getCurrentPositionAsync({});
   let label: string | undefined;
   try {
@@ -65,7 +91,7 @@ export async function currentLocation(): Promise<Picked> {
 
 export async function pickContact(): Promise<Picked | null> {
   const perm = await Contacts.requestPermissionsAsync();
-  if (!perm.granted) throw new Error('Permesso contatti negato: abilitalo da Impostazioni.');
+  if (!perm.granted) throw new PermissionError('Permesso contatti negato: abilitalo da Impostazioni.', perm.canAskAgain);
   const c = await Contacts.presentContactPickerAsync();
   if (!c) return null;
   return { kind: 'contact', contact: { name: c.name || [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Contatto', phone: c.phoneNumbers?.[0]?.number } };

@@ -15,11 +15,11 @@ export const categories = ['General', 'Business', 'Finance', 'Health', 'Fitness'
 
 export const catReplies: Record<string, string> = {
   General: 'Posso organizzare la giornata, collegare obiettivi e note, o rispondere su qualsiasi area della tua vita.',
-  Business: 'Agente Business: posso preparare piani, analizzare una decisione o strutturare i prossimi passi su Life/AURA.',
+  Business: 'Agente Lavoro: posso preparare piani, analizzare una decisione o strutturare i prossimi passi del tuo lavoro o di un progetto.',
   Finance: 'Agente Finance: posso leggere il budget, segnalare spese fuori pattern o proiettare il cash flow del mese.',
   Health: 'Agente Health: posso leggere sonno, HRV e attività per proporre aggiustamenti alla routine.',
   Fitness: "Agente Fitness: posso adattare il piano di allenamento in base a recupero e obiettivi.",
-  Study: 'Agente Study: posso creare un piano di ripasso o tracciare i progressi verso Tedesco C1.',
+  Study: 'Agente Study: posso creare un piano di ripasso o tracciare i progressi verso un obiettivo di studio.',
   Mind: 'Agente Mind: posso leggere umore e journal e suggerire una pausa o un esercizio di respirazione.',
   Casa: 'Agente Casa: posso tracciare bollette, scadenze di affitto e lavori da organizzare.',
   Viaggi: 'Agente Viaggi: posso aiutarti con itinerario, checklist e prenotazioni di un viaggio.',

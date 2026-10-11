@@ -6,38 +6,19 @@ import { useTheme } from '@/hooks/use-theme';
 import { confirmDelete } from '@/lib/confirm';
 import { dayKey } from '@/lib/format';
 import { Icon } from '@/lib/icons';
-import { go } from '@/lib/nav';
 import { groupNotifs, kindOf, KIND_ORDER, KINDS, unreadByKind, type KindId, type NotifGroup } from '@/lib/notifyKinds';
-import { useApp } from '@/store/app';
+import { commonRef } from '@/lib/notifyLinks';
+import { openNotif, openRef, refOfNotif } from '@/lib/notifyOpen';
 import { useLife } from '@/store/life';
-import { useJobs } from '@/store/jobs';
 import { useNet, type Notif } from '@/store/network';
 import { toast } from '@/store/toast';
+import { t as tl } from '@/i18n/core';
 
 type Filter = 'all' | KindId;
-
-/** Apre la schermata collegata alla notifica (richiesta di servizio, seminario, ...). */
-function openTarget(n: Notif, me: string, hasMyService: boolean) {
-  const [what, id] = (n.ref ?? '').split(':');
-  if (what === 'service' && id) return go('servicePage', { name: id });
-  if (what === 'seminar' && id) return go('seminarPage', { id });
-  if (what === 'job' && id) {
-    const a = useJobs.getState().applications.find((x) => x.id === id);
-    const j = a && useJobs.getState().jobs.find((x) => x.id === a.jobId);
-    return go(a && j ? (j.owner === me ? 'applicantView' : 'interviewView') : 'lifenetwork', a ? { id } : undefined);
-  }
-  if (kindOf(n) === 'servizio') return hasMyService ? go('servicePage', { name: me }) : go('lifenetwork');
-  if (kindOf(n) === 'seminario') return go('lifenetwork');
-  if (kindOf(n) === 'messaggio') return go('messagesPage');
-  if (kindOf(n) === 'lifepoints') return go('lifepointsPage');
-  if (kindOf(n) === 'promemoria') return go('plan');
-  return go('lifenetwork');
-}
 
 export default function Notifications() {
   const t = useTheme();
   const net = useNet();
-  const me = useApp((s) => s.account.name);
   const addEvents = useLife((s) => s.addEvents);
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -49,7 +30,7 @@ export default function Notifications() {
   }, [list]);
   const unread = useMemo(() => unreadByKind(list), [list]);
   const totalUnread = list.filter((n) => !n.read).length;
-  const hasMyService = net.providers.some((p) => p.name === me);
+  const [open, setOpen] = useState<string[]>([]);
 
   const markRead = (ids: number[]) => net.patch({ notifications: net.notifications.map((n) => (ids.includes(n.id) ? { ...n, read: true } : n)) });
   const remove = (g: NotifGroup<Notif>) => {
@@ -73,8 +54,18 @@ export default function Notifications() {
     const info = KINDS[g.kind];
     const n = g.first;
     const isService = g.kind === 'servizio';
+    // destinazione: la notifica singola, oppure quella comune del gruppo (stesso post); se diverse il gruppo si espande
+    const refs = g.items.map((x) => refOfNotif(x));
+    const common = g.items.length > 1 ? commonRef(refs) : null;
+    const expandable = g.items.length > 1 && !common;
+    const expanded = open.includes(g.key);
+    const go1 = () => {
+      if (expandable) { setOpen((v) => (v.includes(g.key) ? v.filter((k) => k !== g.key) : [...v, g.key])); markRead(g.ids); return; }
+      markRead(g.ids);
+      if (common) openRef(common, { nid: n.id, fallbackPage: 'notificationsPage' }); else openNotif(n);
+    };
     return (
-      <Card key={g.key} onPress={() => markRead(g.ids)} accent={isService ? info.color : undefined} style={isService && !g.read ? { borderColor: info.color + '88' } : undefined}>
+      <Card key={g.key} onPress={go1} accent={isService ? info.color : undefined} style={isService && !g.read ? { borderColor: info.color + '88' } : undefined}>
         <Row style={{ alignItems: 'flex-start' }}>
           <Row style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'flex-start' }} gap={8}>
             {!g.read && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: info.color, marginTop: 7 }} />}
@@ -85,15 +76,22 @@ export default function Notifications() {
               {g.items.length > 1 && g.actors.length > 1 && <Body small muted>{g.items.length} notifiche raggruppate</Body>}
             </View>
           </Row>
-          <View style={{ alignItems: 'flex-end', gap: 6 }}>
-            {n.urgent && !g.read && <Body small color={t.danger}>Urgente</Body>}
-            <Press onPress={() => remove(g)} accessibilityLabel="Elimina notifica" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}><Icon name="trash" size={16} color={t.muted} stroke={2} /></Press>
-          </View>
+          {n.urgent && !g.read && <Body small color={t.danger}>Urgente</Body>}
         </Row>
         <Body small muted style={{ marginTop: 6 }}>{n.date}{isService && n.service ? ` · ${n.service}` : ''}{isService && n.slot ? ` · ${n.slot}` : ''}</Body>
+        {expanded && (
+          <View style={{ marginTop: 8, gap: 2 }}>
+            {g.items.map((x) => (
+              <Press key={x.id} onPress={() => { markRead([x.id]); openNotif(x); }} accessibilityLabel={x.text} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingVertical: 6, borderTopWidth: 1, borderTopColor: t.item }}>
+                <View style={{ flex: 1 }}><Body small bold={!x.read}>{x.text}</Body><Body small muted>{x.date}</Body></View>
+                <Icon name="chevron-right" size={16} color={t.muted} stroke={2} />
+              </Press>
+            ))}
+          </View>
+        )}
         {isService && (
           <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={8}>
-            <Btn small icon="arrow-right" title="Apri richiesta" onPress={() => { markRead(g.ids); openTarget(n, me, hasMyService); }} />
+            <Btn small icon="arrow-right" title="Apri richiesta" onPress={() => { markRead(g.ids); openNotif(n); }} />
             {n.type === 'booking' && !n.addedToCalendar && n.slot && (
               <Btn small ghost icon="plan" title="Aggiungi al calendario" onPress={() => {
                 addEvents(dayKey(), [{ time: n.slot ?? '--:--', title: `${n.service ?? 'Sessione'} con ${n.text.split(' ha')[0]}` }]);
@@ -104,6 +102,16 @@ export default function Notifications() {
           </Row>
         )}
         {isService && n.addedToCalendar && <Body small color={t.positive} style={{ marginTop: 8 }}>Aggiunta al calendario</Body>}
+        <Row style={{ marginTop: 10, flexWrap: 'wrap' }} gap={8}>
+          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
+            {!g.read && <Btn small ghost icon="check" title="Segna come letta" onPress={() => markRead(g.ids)} />}
+            <Btn small ghost danger icon="trash" title="Elimina" label="Elimina notifica" onPress={() => remove(g)} />
+          </Row>
+          <Row style={{ justifyContent: 'flex-end' }} gap={4}>
+            <Body small bold color={info.color}>{expandable ? (expanded ? 'Chiudi' : tl('Mostra ({0})', g.items.length)) : 'Apri'}</Body>
+            <Icon name={expandable && expanded ? 'chevron' : 'chevron-right'} size={16} color={info.color} stroke={2.2} />
+          </Row>
+        </Row>
       </Card>
     );
   };

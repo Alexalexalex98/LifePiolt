@@ -1,12 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
-import { Pressable, ScrollView, Share, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, ScrollView, Share, View, useWindowDimensions } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 
 import { LIKE, MediaArea, useHeartBurst } from '@/components/feed/FeedPost';
 import { IconBtn, RingAvatar } from '@/components/feed/parts';
 import { ModButton, UserAvatar, openMedia, openSheet } from '@/components/network';
 import { Body, Btn, Card, Empty, Page } from '@/components/ui';
+import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useTheme } from '@/hooks/use-theme';
 import { weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
@@ -22,13 +23,40 @@ import { t as tl, translateText } from '@/i18n/core';
 export default function PostPage() {
   const t = useTheme();
   const win = useWindowDimensions().width;
-  const { key } = useLocalSearchParams<{ key?: string }>();
+  // da una notifica: `commentId` (indice del commento da mostrare), `focus` ('comment' | 'like'), `actor` (chi ha messo mi piace), `at` (rinnova l'apertura)
+  const { key, commentId, focus, actor, at: openedAt } = useLocalSearchParams<{ key?: string; commentId?: string; focus?: string; actor?: string; at?: string }>();
   const me = useApp((a) => a.account.name);
   const net = useNet();
   const [text, setText] = useState('');
   const input = useRef<{ focus?: () => void } | null>(null);
   const { heart, flash } = useHeartBurst();
   const visible = useVisible();
+  // scorre fino al commento indicato dalla notifica e lo evidenzia per un attimo
+  const reduce = useReduceMotion();
+  const scroller = useRef<ScrollView>(null);
+  const commentsTop = useRef(0);
+  const rowY = useRef<Record<number, number>>({});
+  const pendingFocus = useRef<number | null>(null);
+  const glow = useRef(new Animated.Value(0)).current;
+  const [flashIdx, setFlashIdx] = useState<number | null>(null);
+  const focusComment = (i: number) => {
+    const y = rowY.current[i];
+    if (y === undefined) return;
+    pendingFocus.current = null;
+    scroller.current?.scrollTo({ y: Math.max(0, commentsTop.current + y - 90), animated: !reduce });
+    setFlashIdx(i);
+    glow.setValue(1);
+    if (reduce) setTimeout(() => setFlashIdx(null), 2200);
+    else Animated.timing(glow, { toValue: 0, duration: 2200, useNativeDriver: false }).start(() => setFlashIdx(null));
+  };
+  useEffect(() => {
+    const n = commentId !== undefined && /^\d+$/.test(commentId) ? Number(commentId) : null;
+    pendingFocus.current = n;
+    if (n === null) return;
+    const h = setTimeout(() => { if (pendingFocus.current !== n) return; if (rowY.current[n] !== undefined) focusComment(n); else setTimeout(() => { if (pendingFocus.current === n) { pendingFocus.current = null; toast('Questo commento non è più disponibile'); } }, 600); }, 350);
+    return () => clearTimeout(h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, commentId, openedAt]);
   const post = key ? postByKey(key) : null;
   if (key && post && !visible('post', key, post.author)) return <Page id="postPage" title="Post" back><Card><Empty text="Hai nascosto o segnalato questo post, oppure l’autore è bloccato. Lo trovi in Segnalazioni inviate." /><Btn small ghost style={{ marginTop: 10 }} title="Segnalazioni inviate" onPress={() => go('reports')} /></Card></Page>;
   if (!key || !post) return <Page id="postPage" title="Post" back><Card><Empty text="Post non trovato: potrebbe essere stato rimosso." /></Card></Page>;
@@ -50,7 +78,7 @@ export default function PostPage() {
 
   return (
     <Page id="postPage" scroll={false} back>
-      <ScrollView style={{ flex: 1, marginHorizontal: -16 }} contentContainerStyle={{ paddingTop: 10, paddingBottom: 24 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scroller} style={{ flex: 1, marginHorizontal: -16 }} contentContainerStyle={{ paddingTop: 10, paddingBottom: 24 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingBottom: 10, gap: 10 }}>
           <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minHeight: 48 }} onPress={() => go('userProfile', { name: post.author })} accessibilityRole="link" accessibilityLabel={tl('Profilo di {0}', post.author)}>
             <RingAvatar name={post.author} size={40} />
@@ -74,6 +102,7 @@ export default function PostPage() {
         </View>
 
         <View style={{ paddingHorizontal: 14, gap: 8 }}>
+          {focus && actor ? <Body small bold color={LIKE}>{tl(commentId !== undefined && commentId !== '' ? '{0} ha messo mi piace a un commento di questo post' : '{0} ha messo mi piace a questo post', actor)}</Body> : null}
           <Text style={{ color: t.text, fontSize: 15, fontWeight: '800' }}>{tl(post.likes === 1 ? 'Piace a {0} persona' : 'Piace a {0} persone', post.likes)}</Text>
           {post.tag ? (
             post.community
@@ -88,7 +117,7 @@ export default function PostPage() {
         </View>
 
         <View style={{ height: 1, backgroundColor: t.item, marginTop: 18, marginBottom: 6 }} />
-        <View style={{ paddingHorizontal: 14 }}>
+        <View style={{ paddingHorizontal: 14 }} onLayout={(e) => { commentsTop.current = e.nativeEvent.layout.y; }}>
           <Text accessibilityRole="header" style={{ color: t.text, fontSize: 17, fontWeight: '800', marginVertical: 10 }}>{tl('Commenti ({0})', comments.length)}</Text>
           {comments.length === 0 ? (
             <View style={{ alignItems: 'center', paddingVertical: 28, gap: 8 }}>
@@ -96,19 +125,19 @@ export default function PostPage() {
               <Text style={{ color: t.muted, fontSize: 15, textAlign: 'center' }}>Ancora nessun commento: scrivi il primo.</Text>
             </View>
           ) : comments.map((c) => (
-            <View key={c.i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 }}>
+            <Animated.View key={c.i} onLayout={(e) => { rowY.current[c.i] = e.nativeEvent.layout.y; if (pendingFocus.current === c.i) focusComment(c.i); }} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 12, backgroundColor: flashIdx === c.i ? glow.interpolate({ inputRange: [0, 1], outputRange: ['rgba(0,0,0,0)', t.accent + '40'] }) : 'transparent' }}>
               <UserAvatar name={c.author} size={34} />
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={{ color: t.text, fontSize: 14.5, lineHeight: 21 }}><Text style={{ fontWeight: '800' }} onPress={() => go('userProfile', { name: c.author })}>{c.author} </Text>{c.text}</Text>
                 <Pressable onPress={() => reply(c.author)} hitSlop={{ top: 12, bottom: 12, left: 8, right: 24 }} accessibilityRole="button" accessibilityLabel={tl('Rispondi a {0}', c.author)}><Text style={{ color: t.muted, fontSize: 13, fontWeight: '700' }}>Rispondi</Text></Pressable>
               </View>
               {c.author !== me && <ModButton kind="comment" refId={`${key}#${c.i}`} label={c.text} author={c.author} size={18} />}
-            </View>
+            </Animated.View>
           ))}
         </View>
       </ScrollView>
 
-      <View style={{ marginHorizontal: -16, paddingStart: 14, paddingEnd: 70, paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.item, backgroundColor: t.bg, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: -8 }}>
+      <View style={{ marginHorizontal: -16, paddingStart: 14, paddingEnd: 14, paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.item, backgroundColor: t.bg, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: -8 }}>
         <UserAvatar name={me} size={32} />
         <TextInput ref={input as never} value={text} onChangeText={setText} placeholder="Scrivi un commento…" placeholderTextColor={t.muted} accessibilityLabel={translateText('Scrivi un commento…')} returnKeyType="send" onSubmitEditing={send} style={{ flex: 1, minHeight: 44, borderRadius: 999, backgroundColor: t.input, borderWidth: 1, borderColor: t.inputBorder, color: t.text, fontSize: 15.5, paddingHorizontal: 16, paddingVertical: 8, outlineStyle: 'none' } as never} />
         <Pressable onPress={send} accessibilityRole="button" accessibilityLabel={translateText('Commenta')} accessibilityState={{ disabled: !canSend }} style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: canSend ? t.text : t.chip }}>

@@ -44,6 +44,9 @@ export type SpeechErrorCode =
   | 'unavailable'     // il riconoscimento non c'è su questo dispositivo/browser
   | 'needs_build'     // richiede la build dell'app (non Expo Go)
   | 'no_service'      // servizio di trascrizione non ancora collegato
+  | 'denied_forever'  // permesso negato e il sistema non lo chiede più: solo dalle impostazioni
+  | 'service_missing' // Android: il servizio di riconoscimento vocale (Google) manca o è disattivato
+  | 'start_timeout'   // il riconoscimento non è partito entro pochi secondi
   | 'unknown';
 
 /** Converte i codici di errore del modulo nativo e della Web Speech API nei nostri. */
@@ -71,9 +74,44 @@ export function speechErrorText(code: SpeechErrorCode): string {
     case 'busy': return 'Il microfono è già in uso. Riprova tra un attimo.';
     case 'unavailable': return 'Il riconoscimento vocale non è disponibile su questo dispositivo o browser. Puoi scrivere il comando.';
     case 'needs_build': return 'La voce su questo telefono richiede la build dell\'app: in Expo Go non è disponibile. Puoi scrivere il comando.';
+    case 'denied_forever': return 'Il permesso del microfono è stato negato e il telefono non lo richiede più: aprilo dalle impostazioni di LifePilot e attiva Microfono.';
+    case 'service_missing': return 'Questo telefono non ha un servizio di riconoscimento vocale attivo. Installa o abilita il servizio vocale di Google, poi riprova.';
+    case 'start_timeout': return 'Il riconoscimento vocale non è partito. Di solito il servizio vocale di Google è assente o disattivato: controllalo, oppure registra un audio.';
     case 'no_service': return 'Il servizio di trascrizione non è ancora collegato: per ora la voce funziona solo dove il telefono la riconosce da solo. Puoi scrivere il comando.';
     default: return 'Non sono riuscita ad ascoltarti. Riprova oppure scrivi il comando.';
   }
+}
+
+/**
+ * Errori del modulo nativo (expo-speech-recognition) -> nostri codici, tenendo conto della piattaforma.
+ * Su Android `service-not-allowed` vuol dire "nessun servizio di riconoscimento utilizzabile"; su iOS è il permesso Riconoscimento vocale disattivato.
+ */
+export function mapNativeError(raw: string | undefined | null, os: 'ios' | 'android' | 'web' | string): SpeechErrorCode {
+  const r = (raw ?? '').toLowerCase();
+  if (r === 'service-not-allowed') return os === 'android' ? 'service_missing' : 'denied';
+  if (r === 'client' && os === 'android') return 'service_missing';
+  return mapSpeechError(raw);
+}
+
+/** Azioni che l'interfaccia può offrire sotto un errore. */
+export type SpeechAction = 'settings' | 'install_service' | 'record_note' | 'retry';
+
+export function speechActions(code: SpeechErrorCode): SpeechAction[] {
+  switch (code) {
+    case 'denied': return ['retry', 'settings'];
+    case 'denied_forever': return ['settings'];
+    case 'service_missing': return ['install_service', 'record_note'];
+    case 'start_timeout': return ['install_service', 'record_note', 'retry'];
+    case 'unavailable': case 'needs_build': case 'unsupported_lang': return ['record_note'];
+    case 'no_speech': case 'busy': case 'offline': case 'unknown': return ['retry'];
+    default: return [];
+  }
+}
+
+/** Dettaglio grezzo dell'errore, da copiare per la diagnosi. */
+export type SpeechRaw = { stage?: string; error?: string; message?: string; nativeCode?: number; extra?: string };
+export function formatRaw(r: SpeechRaw): string {
+  return [r.stage && `stage=${r.stage}`, r.error && `error=${r.error}`, r.nativeCode != null && `code=${r.nativeCode}`, r.message && `message=${r.message}`, r.extra].filter(Boolean).join('; ');
 }
 
 /** Errori dopo i quali ha senso riprovare subito con lo stesso pulsante. */
@@ -94,6 +132,8 @@ export type SpeechState = {
   /** livello del microfono 0..1 per l'onda */
   level: number;
   error?: SpeechErrorCode;
+  /** dettaglio grezzo dell'errore (codice del modulo, messaggio): per il pulsante "Dettagli" */
+  rawError?: string;
   /** trascrizione pronta (phase = 'done') */
   result?: string;
 };
@@ -105,7 +145,7 @@ export type SpeechEvent =
   | { type: 'final'; text: string }
   | { type: 'level'; value: number }
   | { type: 'end' }
-  | { type: 'error'; code: SpeechErrorCode }
+  | { type: 'error'; code: SpeechErrorCode; raw?: string }
   | { type: 'cancel' }
   | { type: 'reset' };
 
@@ -142,7 +182,7 @@ export function speechReducer(s: SpeechState, e: SpeechEvent): SpeechState {
       if (s.phase === 'idle') return s;
       // se un errore "soft" arriva dopo aver già sentito qualcosa, il testo si tiene
       if ((e.code === 'no_speech' || e.code === 'unknown') && (s.final || s.partial)) return speechReducer(s, { type: 'end' });
-      return { ...s, phase: 'error', error: e.code, partial: '', level: 0 };
+      return { ...s, phase: 'error', error: e.code, ...(e.raw ? { rawError: e.raw } : null), partial: '', level: 0 };
     case 'cancel':
       return { ...initialSpeech, locale: s.locale };
     case 'reset':
@@ -197,6 +237,51 @@ export type VoiceMode = 'confirm' | 'auto';
 /** Decide se la trascrizione va inviata subito o mostrata per conferma. */
 export function shouldAutoSend(mode: VoiceMode, text: string, minChars = 2): boolean {
   return mode === 'auto' && text.trim().length >= minChars;
+}
+
+/* ---------- diagnostica ---------- */
+
+export type VoiceDiag = {
+  platform: string;
+  expoGo: boolean;
+  moduleLoaded: boolean;
+  /** isRecognitionAvailable(); null = non verificabile */
+  available: boolean | null;
+  onDevice: boolean | null;
+  micGranted: boolean | null;
+  micCanAskAgain: boolean | null;
+  speechGranted: boolean | null;
+  services: string[];
+  defaultService: string;
+  locale: string;
+  localeSupported: boolean | null;
+  lastError: string | null;
+};
+
+const yn = (v: boolean | null) => (v == null ? 'non verificabile' : v ? 'sì' : 'no');
+
+/** Righe del pannello "Diagnostica voce" (testo sorgente italiano). `ok` colora la riga: true verde, false rosso, undefined neutro. */
+export function diagLines(d: VoiceDiag): { label: string; value: string; ok?: boolean }[] {
+  return [
+    { label: 'Piattaforma', value: d.platform + (d.expoGo ? ' (Expo Go)' : '') },
+    { label: 'Modulo vocale caricato', value: d.moduleLoaded ? 'sì' : 'no', ok: d.moduleLoaded },
+    { label: 'Servizio di riconoscimento disponibile', value: yn(d.available), ok: d.available ?? undefined },
+    { label: 'Riconoscimento sul telefono (offline)', value: yn(d.onDevice) },
+    { label: 'Permesso microfono', value: d.micGranted == null ? 'non verificabile' : d.micGranted ? 'concesso' : d.micCanAskAgain === false ? 'negato (solo dalle impostazioni)' : 'non concesso', ok: d.micGranted ?? undefined },
+    { label: 'Permesso riconoscimento vocale', value: yn(d.speechGranted), ok: d.speechGranted ?? undefined },
+    { label: 'Lingua', value: d.locale },
+    { label: 'Lingua supportata', value: yn(d.localeSupported), ok: d.localeSupported ?? undefined },
+    { label: 'Servizio predefinito', value: d.defaultService || 'nessuno' },
+    { label: 'Servizi trovati', value: d.services.length ? d.services.join(', ') : 'nessuno' },
+    { label: 'Ultimo errore', value: d.lastError || 'nessuno' },
+  ];
+}
+
+export const diagText = (d: VoiceDiag) => diagLines(d).map((l) => `${l.label}: ${l.value}`).join('\n');
+
+/** Pacchetto Google da installare/abilitare: Android 13+ "Servizi vocali di Google", prima l'app Google. */
+export function speechServicePackage(androidApi: number | undefined): string {
+  return (androidApi ?? 0) >= 33 ? 'com.google.android.tts' : 'com.google.android.googlequicksearchbox';
 }
 
 /* ---------- servizio di trascrizione (predisposto, non collegato) ---------- */

@@ -9,7 +9,8 @@ import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useTheme } from '@/hooks/use-theme';
 import { TourHost } from '@/components/tour/TourHost';
 import { useUnlockedLevel } from '@/components/tour/hooks';
-import { dayIndex, featureCount, featureGroups, featureOfDay, type Feature } from '@/data/features';
+import { dayIndex, featureCount, featureGroups, featureOfDay, orderedGroups, type Feature } from '@/data/features';
+import { useInterests } from '@/store/interests';
 import { featureLevel } from '@/lib/tour';
 import { useTour } from '@/store/tour';
 import { sendToAssistant } from '@/lib/assistant/run';
@@ -52,6 +53,7 @@ function GuideLayer() {
   const reduce = useReduceMotion();
   const name = useApp((s) => s.account.name);
   const level = useUnlockedLevel();
+  const areas = useInterests((s) => s.areas);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   // installazioni esistenti: al massimo la funzione del giorno (una al giorno), se l'utente l'ha attivata
@@ -66,7 +68,7 @@ function GuideLayer() {
   const tryIt = tryFeature;
 
   if (mode === 'bite') {
-    const f = featureOfDay(Date.now(), level);
+    const f = featureOfDay(Date.now(), level, { areas, hideNiche: !areas?.includes('investire') });
     return (
       <Sheet visible={open} title="Funzione del giorno" onClose={hide}>
         <Text style={{ color: f.color, fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' }}>{f.groupTitle}</Text>
@@ -94,7 +96,7 @@ function GuideLayer() {
               <Btn small style={{ marginTop: 10, alignSelf: 'flex-start' }} icon="check" title="Mostra tutte le funzioni" onPress={() => { useTour.getState().unlockEverything(); toast('Tutte le funzioni sono sbloccate'); }} />
             </View>
           )}
-          {featureGroups.map((g) => {
+          {orderedGroups(areas).map((g) => {
             const on = openGroup === g.id;
             return (
               <View key={g.id} style={{ backgroundColor: t.card, borderColor: on ? g.color : t.border, borderWidth: on ? 1.5 : 1, borderRadius: 20, marginBottom: 10, overflow: 'hidden' }}>
@@ -140,7 +142,8 @@ function GuideLayer() {
 export function DiscoverCard() {
   const t = useTheme();
   const level = useUnlockedLevel();
-  const f = featureOfDay(Date.now(), level);
+  const areas = useInterests((s) => s.areas);
+  const f = featureOfDay(Date.now(), level, { areas, hideNiche: !areas?.includes('investire') });
   const [open, setOpen] = useState(false);
   const group = featureGroups.find((g) => g.title === f.groupTitle);
   const others = group ? group.items.filter((x) => x.title !== f.title && featureLevel(group.id, x.page) <= level) : [];

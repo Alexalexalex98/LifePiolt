@@ -20,7 +20,7 @@ Limiti utili: App Store, nome 30 caratteri, sottotitolo 30, parole chiave 100 (s
 
 **Descrizione completa**
 
-LifePilot mette in un posto solo le cose che di solito sono sparse in dieci app: impegni, task, obiettivi, salute, umore, budget, note, viaggi e messaggi. Un assistente integrato ti aiuta a decidere cosa fare adesso e a tenere il piano in ordine.
+LifePilot mette in un posto solo le cose che di solito sono sparse in dieci app: impegni, task, obiettivi, salute, umore, budget, note, viaggi e messaggi. Un assistente integrato ti aiuta a decidere cosa fare adesso e a tenere il piano in ordine. È pensata per chiunque: studenti, famiglie, lavoratori, pensionati, chi viaggia o chi vuole solo avere più ordine nelle giornate.
 
 PIANO E TASK
 - Calendario con i tuoi impegni e importazione dal calendario del telefono.
@@ -38,8 +38,8 @@ SALUTE E UMORE
 - Registra l'umore con un tocco e scopri come cambia con meteo, impegni, sonno e spese.
 
 FINANZE
-- Movimenti, budget e bollette in un colpo d'occhio.
-- Previsioni a 10 anni e simulatore di portafoglio: sono simulazioni, non consulenza finanziaria e non muovono denaro vero.
+- Spese, bollette, abbonamenti e budget mensile in un colpo d'occhio, con avvisi quando una categoria sfora.
+- Previsioni di risparmio e, se ti interessa, un simulatore di investimenti: sono simulazioni, non consulenza finanziaria e non muovono denaro vero.
 
 NOTE, FILE E VIAGGI
 - Note, file e foto organizzati in cartelle.
@@ -75,7 +75,7 @@ LifePilot non sostituisce un medico, un consulente finanziario o un consulente f
 
 **Full description**
 
-LifePilot brings together what is usually scattered across ten apps: events, tasks, goals, health, mood, budget, notes, travel and messages. A built-in assistant helps you decide what to do next and keeps your plan tidy.
+LifePilot brings together what is usually scattered across ten apps: events, tasks, goals, health, mood, budget, notes, travel and messages. A built-in assistant helps you decide what to do next and keeps your plan tidy. It is made for everyone: students, families, employees, retirees, travellers, or anyone who just wants more order in their days.
 
 PLAN AND TASKS
 - A calendar with your events, plus import from your phone's calendar.
@@ -93,8 +93,8 @@ HEALTH AND MOOD
 - Log your mood in one tap and see how it changes with weather, events, sleep and spending.
 
 FINANCE
-- Transactions, budget and bills at a glance.
-- 10-year projections and a portfolio simulator: these are simulations, not financial advice, and they never move real money.
+- Spending, bills, subscriptions and a monthly budget at a glance, with alerts when a category goes over.
+- Savings projections and, if you are interested, an investment simulator: these are simulations, not financial advice, and they never move real money.
 
 NOTES, FILES AND TRAVEL
 - Notes, files and photos organised in folders.

@@ -33,6 +33,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "versionCode": 1,
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "android.permission.READ_CALENDAR",
         "android.permission.WRITE_CALENDAR",
@@ -42,7 +43,10 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_CONTACTS",
         "android.permission.POST_NOTIFICATIONS",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
       ],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -88,7 +92,13 @@
         "expo-speech-recognition",
         {
           "microphonePermission": "LifePilot usa il microfono per i messaggi vocali nelle chat, per i comandi a voce a Theia e quando tieni un seminario o una videochiamata.",
-          "speechRecognitionPermission": "LifePilot usa il riconoscimento vocale per trasformare in testo i comandi che dai a voce a Theia. Il microfono è acceso solo mentre parli e nessun audio viene salvato."
+          "speechRecognitionPermission": "LifePilot usa il riconoscimento vocale per trasformare in testo i comandi che dai a voce a Theia. Il microfono è acceso solo mentre parli e nessun audio viene salvato.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox",
+            "com.google.android.tts",
+            "com.google.android.as",
+            "com.samsung.android.bixby.agent"
+          ]
         }
       ],
       [
@@ -123,7 +133,9 @@
       [
         "expo-notifications",
         {
-          "color": "#8fa4ff"
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#8fa4ff",
+          "defaultChannel": "lp-promemoria"
         }
       ],
       "expo-document-picker",
@@ -140,7 +152,7 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "description": "LifePilot: salute, finanze, obiettivi, viaggi e persone in un posto solo, con un assistente che ti conosce.",
+    "description": "LifePilot: organizza giornate, salute, soldi, viaggi e persone in un posto solo, con un assistente che ti conosce.",
     "extra": {
       "eas": {
         "projectId": "b374c0a3-8d3d-4021-9a00-1e78bc824dd9"

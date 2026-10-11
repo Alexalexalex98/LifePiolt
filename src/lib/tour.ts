@@ -42,9 +42,9 @@ export const LEVELS: LevelDef[] = [
     how: 'Comincia con un solo dato, per esempio le ore di sonno di stanotte. Più giorni registri, più i grafici diventano utili.',
   },
   {
-    level: 4, id: 'finanze', title: 'Finanze', short: 'Movimenti, budget e previsioni', pages: ['lifefinance', 'lifeforecast', 'taxdecl', 'stocks', 'portfolio'], prevUsed: ['health'], days: 3, openPage: 'lifefinance',
-    intro: 'Entrate, uscite e budget in un posto solo, con avvisi quando una categoria sfora.',
-    how: 'Aggiungi un movimento oppure importa l\'estratto conto da CSV. Previsioni e tasse arrivano dopo.',
+    level: 4, id: 'finanze', title: 'Finanze', short: 'Spese, bollette, risparmi e budget', pages: ['lifefinance', 'lifeforecast', 'taxdecl', 'stocks', 'portfolio'], prevUsed: ['health'], days: 3, openPage: 'lifefinance',
+    intro: 'Spese, bollette e risparmi in un posto solo, con un budget mensile e un avviso quando una categoria sfora.',
+    how: 'Aggiungi una spesa oppure importa l\'estratto conto da CSV. Se investi: più avanti trovi anche Previsioni, Stock e Portafoglio.',
   },
   {
     level: 5, id: 'viaggi', title: 'Viaggi e Drive', short: 'Vacanze, itinerari, documenti e ricevute', pages: ['lifetravel', 'lifedrive'], prevUsed: ['finance'], days: 4, openPage: 'lifetravel',
@@ -202,7 +202,7 @@ export type TourStep = {
 
 export function welcomeSteps(mode: TourMode | null): TourStep[] {
   return [
-    { id: 'hello', title: 'Benvenuto, {0}', text: 'Ti mostro solo 3 cose, con calma. Tutto il resto dell\'app arriva piano piano, quando sei pronto.' },
+    { id: 'hello', title: 'Benvenuto, {0}', text: 'Organizza giornate, salute, soldi, viaggi e persone in un posto solo. Ti mostro solo 3 cose, con calma: il resto arriva piano piano, quando sei pronto.' },
     { id: 'mood', target: 'home.mood', title: 'Come ti senti oggi', text: 'Un tocco al giorno: LifePilot lo confronta con meteo, sonno, impegni e spese per capire cosa ti fa stare meglio.' },
     { id: 'today', target: 'home.next', title: 'La tua giornata', text: 'Qui vedi il prossimo impegno di oggi. Se non hai ancora nulla in programma, lo aggiungi da qui.' },
     {

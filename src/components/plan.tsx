@@ -104,7 +104,7 @@ export function SmartTaskSheet({ visible, onClose }: { visible: boolean; onClose
     <Sheet visible={visible} title={draft ? 'Scomposizione' : 'Nuovo task'} onClose={close}>
       {!draft ? (
         <>
-          <Input placeholder="Es. Creare il business plan per Life" value={text} onChangeText={setText} />
+          <Input placeholder="Es. Preparare la presentazione per lunedì" value={text} onChangeText={setText} />
           <Select value={recLabels[recurring]} options={Object.values(recLabels)} onChange={(v) => setRecurring((Object.keys(recLabels) as (keyof typeof recLabels)[]).find((k) => recLabels[k] === v) ?? 'none')} />
           <Btn title="Scomponi con AI" onPress={() => { const x = text.trim(); if (!x) return; setDraft({ t: x, subtasks: decomposeTextToSteps(x).map((s) => ({ ...s, done: false, type: 'lavoro' as const })) }); }} />
           <Btn small ghost style={{ marginTop: 8 }} title="Aggiungi come task singolo" onPress={() => { const x = text.trim(); if (!x) return; addTask({ t: x, done: false, recurring }); toast(recurring === 'none' ? 'Task aggiunto' : 'Task ricorrente aggiunto'); close(); }} />

@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { AutomationsCard, AutomationsSheet } from '@/components/Automations';
 import { CalendarImportSheet } from '@/components/CalendarImportSheet';
 import { CalendarPanel, VacationSheet } from '@/components/CalendarViews';
+import { NotifBanner } from '@/components/NotifPrompt';
 import { GoalProgress } from '@/components/GoalProgress';
 import { DaySheet, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet } from '@/components/plan';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Pill, Progress, Row, Sheet } from '@/components/ui';
@@ -23,6 +25,9 @@ export default function Plan() {
   const { tasks, goals, vacRange, vacations, trash, setVacRange, addGoal, bumpGoal, delGoal, restoreGoal, delVacation, restoreVacation, restoreFromTrash, purgeTrash } = useLife();
   const wh = useApp((s) => s.workHours);
   const [day, setDay] = useState<string | null>(null);
+  // da una notifica ('event:<giorno>:<indice>') si apre direttamente il giorno dell'impegno
+  const { day: dayParam, at: openedAt } = useLocalSearchParams<{ day?: string; idx?: string; at?: string }>();
+  useEffect(() => { if (dayParam && isKey(dayParam)) setDay(dayParam); }, [dayParam, openedAt]);
   const [selectMode, setSelectMode] = useState(false);
   const [taskSheet, setTaskSheet] = useState(false);
   const [openTask, setOpenTask] = useState<string | null>(null);
@@ -61,6 +66,7 @@ export default function Plan() {
 
   return (
     <Page id="plan" title="Plan">
+      <NotifBanner />
       <Card>
         <CalendarPanel selectMode={selectMode} onPickDay={pick} onOpenBand={(id) => setVacId(id)} />
         <Row style={{ marginTop: 12 }}>
@@ -178,7 +184,7 @@ export default function Plan() {
       <TaskBreakdownSheet taskId={openTask} onClose={() => setOpenTask(null)} />
       <WorkHoursSheet key={`${wh.start}${wh.end}${whSheet}`} visible={whSheet} onClose={() => setWhSheet(false)} />
       <Sheet visible={goalSheet} title="Nuovo obiettivo" onClose={() => setGoalSheet(false)}>
-        <Input placeholder="Es. Tedesco C1" value={goalText} onChangeText={setGoalText} />
+        <Input placeholder="Es. Imparare lo spagnolo" value={goalText} onChangeText={setGoalText} />
         <Btn title="Aggiungi" onPress={() => { if (!goalText.trim()) return; addGoal(goalText.trim()); setGoalText(''); setGoalSheet(false); toast('Obiettivo creato'); }} />
       </Sheet>
       <AutomationsSheet visible={autoSheet} onClose={() => setAutoSheet(false)} />

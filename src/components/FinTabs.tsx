@@ -7,10 +7,10 @@ import { useSectionNames } from '@/lib/i18n';
 import { go } from '@/lib/nav';
 
 const tabs = [
-  { page: 'stocks', n: 'Stock' },
   { page: 'lifefinance', n: 'Finanza personale' },
   { page: 'lifeforecast', n: 'Previsioni future' },
   { page: 'taxdecl', n: 'Dichiarazione fiscale' },
+  { page: 'stocks', n: 'Stock' }, // per chi investe: in fondo, non è la prima cosa che vede chi apre le Finanze
 ];
 
 /** Quattro schede in griglia 2x2 con larghezze uguali: nessuna etichetta spezzata male a 320pt. */

@@ -21,6 +21,10 @@ export type InterestId = (typeof INTEREST_CATALOG)[number]['id'];
 
 type State = {
   selected: InterestId[];
+  /** aree scelte nell'onboarding ("Cosa ti interessa di più?", saltabile): ordinano esempi e funzioni in evidenza, non nascondono nulla */
+  areas: string[];
+  setAreas: (a: string[]) => void;
+  toggleArea: (id: string) => void;
   /** ricerche recenti (persone, viaggi, luoghi): utili per capire cosa interessa */
   recent: { q: string; kind: 'viaggio' | 'luogo' | 'altro'; ts: number }[];
   /** luogo d'origine/posizione abituale (città) usato per i calcoli di viaggio */
@@ -43,6 +47,9 @@ type State = {
 export const useInterests = create<State>()(
   persisted<State>('interests', (set) => ({
     selected: [],
+    areas: [],
+    setAreas: (areas) => set({ areas: [...new Set(areas)] }),
+    toggleArea: (id) => set((s) => ({ areas: s.areas.includes(id) ? s.areas.filter((x) => x !== id) : [...s.areas, id] })),
     recent: [],
     homeCity: '',
     custom: [],
@@ -55,6 +62,6 @@ export const useInterests = create<State>()(
     toggle: (id) => set((s) => ({ selected: s.selected.includes(id) ? s.selected.filter((x) => x !== id) : [...s.selected, id] })),
     addRecent: (q, kind = 'altro') => set((s) => ({ recent: [{ q: q.trim(), kind, ts: Date.now() }, ...s.recent.filter((r) => r.q.toLowerCase() !== q.trim().toLowerCase())].slice(0, 40) })),
     setHomeCity: (homeCity) => set({ homeCity }),
-    reset: () => set({ selected: [], recent: [], homeCity: '', custom: [], dismissed: [] }),
+    reset: () => set({ selected: [], areas: [], recent: [], homeCity: '', custom: [], dismissed: [] }),
   })),
 );

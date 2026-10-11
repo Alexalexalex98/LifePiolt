@@ -577,7 +577,7 @@ export class Assistant {
   /* ---------- note, obiettivi, umore ---------- */
   private noteAdd(raw: string): Reply {
     const text = (/:\s*(.+)$/s.exec(raw)?.[1] ?? raw.replace(/^.*?\b(?:nota|appunto|memo|note)\b[:\s]*/i, '')).trim();
-    if (!text) return { handled: true, text: t('Cosa scrivo nella nota? Per esempio "scrivi una nota: idee per AURA".') };
+    if (!text) return { handled: true, text: t('Cosa scrivo nella nota? Per esempio "scrivi una nota: idee per il weekend".') };
     this.env.addNote(text);
     return { handled: true, text: t('Nota salvata in LifeNotes.'), chips: [this.ch('Apri note')] };
   }
@@ -641,7 +641,7 @@ export class Assistant {
       text: [
         t('Posso fare tutto questo, e lo faccio io senza AI:'),
         t('• Piano: "aggiungi riunione al piano domani alle 15", "sposta la riunione a venerdì", "elimina la riunione di domani", "che impegni ho domani?", "quando sono libero venerdì?"'),
-        t('• Organizzazione: "pianificami il mese", "cosa devo fare adesso?", "segna il business plan come urgente", "segna chiamata investitori come importante", dì "scegli tu" e scelgo io l’orario migliore'),
+        t('• Organizzazione: "pianificami il mese", "cosa devo fare adesso?", "segna la relazione come urgente", "segna la visita dal dentista come importante", dì "scegli tu" e scelgo io l’orario migliore'),
         t('• Ricorrenze e luoghi: "ogni martedì alle 18 palestra", "riunione a Zurigo domani alle 11" (ti avviso se i tempi di viaggio non bastano), "a che ora è il dentista?", poi "spostala a venerdì"'),
         t('• Scadenze: "aggiungi task relazione entro venerdì", "il task relazione scade lunedì"'),
         t('• Ripianifica e briefing: "ripianifica le sessioni saltate", "riepilogo della giornata"'),
@@ -735,7 +735,7 @@ export class Assistant {
         const title = raw.replace(/^urgent[e]?:\s*/i, '').trim();
         if (title) { const id = this.env.addTask(title.charAt(0).toUpperCase() + title.slice(1)); this.env.setTaskUrgent(id, true); this.pushUndo(t('task urgente'), () => this.env.delTask(id)); return { handled: true, text: t('Aggiunto il task urgente «{0}».', title), chips: [this.ch('Annulla')] }; }
       }
-      return { handled: true, text: t('Quale task è urgente? Dimmi il nome: per esempio "segna business plan come urgente".'), chips: this.openTasks().slice(0, 4).map((x) => this.ch('Segna «{0}» urgente', x.t)) };
+      return { handled: true, text: t('Quale task è urgente? Dimmi il nome: per esempio "segna la relazione come urgente".'), chips: this.openTasks().slice(0, 4).map((x) => this.ch('Segna «{0}» urgente', x.t)) };
     }
     const was = !!tk.urgent;
     const off = /non (e|è)? ?urgent|togli (l')?urgenza|not urgent|(remove|clear) (the )?urgency|unmark/.test(n);
@@ -745,7 +745,7 @@ export class Assistant {
   }
   private eventImportant(raw: string): Reply {
     const f = this.findEvent(raw.replace(/\b(important[ei]?|come|segna|metti|imposta|rendi|marca|mark|set|make|flag|as)\b/gi, ' '));
-    if (!f) return { handled: true, text: t('Quale impegno è importante? Dimmi il nome, per esempio "segna chiamata investitori come importante".') };
+    if (!f) return { handled: true, text: t('Quale impegno è importante? Dimmi il nome, per esempio "segna la visita dal dentista come importante".') };
     const was = !!f.ev.important;
     this.env.setEventImportant(f.day, f.ev, !was);
     this.pushUndo(t('importanza'), () => this.env.setEventImportant(f.day, f.ev, was));

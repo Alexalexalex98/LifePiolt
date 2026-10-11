@@ -8,82 +8,84 @@ const daysAgoKey = (n: number) => { const d = new Date(); d.setDate(d.getDate() 
 const doneCounts = [0, 2, 1, 3, 0, 1, 2, 4, 1, 2, 3, 2, 0, 1, 3, 2, 4, 1, 3, 2, 3, 4]; // andamento in crescita
 export const demoDoneTasks = (): Task[] => {
   const out: Task[] = [];
-  const names = ['Rispondere alle email', 'Chiamata con il fornitore', 'Revisione budget', 'Allenamento', 'Studio tedesco', 'Preparare la riunione', 'Aggiornare la roadmap', 'Pagare le fatture', 'Sistemare le note', 'Pianificare la settimana'];
+  const names = ['Rispondere alle email', 'Prenotare il tavolo per sabato', 'Controllare il budget del mese', 'Allenamento', 'Studiare spagnolo', 'Preparare la riunione', 'Mettere in ordine la scrivania', 'Pagare le bollette', 'Sistemare le note', 'Pianificare la settimana'];
   doneCounts.forEach((c, i) => { for (let k = 0; k < c; k++) out.push({ id: uid(), t: names[out.length % names.length], done: true, doneAt: daysAgoKey(doneCounts.length - 1 - i) }); });
   return out;
 };
 export const demoTasks = (): Task[] => [
-  { id: uid(), t: 'Completare architettura prodotto', done: false },
-  { id: uid(), t: 'Review dashboard', done: false },
-  { id: uid(), t: '30 min di studio', done: false },
+  { id: uid(), t: 'Fare la spesa', done: false },
+  { id: uid(), t: 'Prenotare il dentista', done: false },
+  { id: uid(), t: 'Rinnovare l’assicurazione auto', done: false },
+  { id: uid(), t: 'Preparare la riunione di lunedì', done: false },
 ];
 const goalHist = (end: number, start: number) => Array.from({ length: 15 }, (_, i) => ({ d: daysAgoKey(14 - i), p: Math.round(start + ((end - start) * i) / 14) }));
 export const demoGoals = (): Goal[] => [
-  { id: uid(), t: 'LifePilot MVP', p: 70, hist: goalHist(70, 52) }, { id: uid(), t: 'Tedesco C1', p: 72, hist: goalHist(72, 70) }, { id: uid(), t: 'Fitness 4× settimana', p: 75, hist: goalHist(75, 60) },
+  { id: uid(), t: 'Correre 10 km', p: 70, hist: goalHist(70, 52) }, { id: uid(), t: 'Imparare lo spagnolo', p: 72, hist: goalHist(72, 70) },
+  { id: uid(), t: 'Risparmiare per le vacanze', p: 75, hist: goalHist(75, 60) }, { id: uid(), t: 'Leggere 12 libri', p: 50, hist: goalHist(50, 38) },
 ];
 export const demoAutomations = (): Automation[] => [
-  { id: uid(), t: 'Briefing ogni mattina', on: true }, { id: uid(), t: 'Review settimanale', on: true },
+  { id: uid(), t: 'Riepilogo ogni mattina', on: true }, { id: uid(), t: 'Bilancio settimanale', on: true },
 ];
 
 const noteTexts: [string, number][] = [
-  ["Riunione fornitori AURA rimandata a giovedì alle 15:00. Devo preparare il confronto prezzi tra i tre fornitori PCB e la disponibilità di stock per l'early-bird. Portare anche i dati sui tempi di consegna, perché uno dei tre ha margini molto più stretti degli altri e potrebbe diventare un collo di bottiglia se la campagna va oltre le aspettative.\n\nDa chiedere esplicitamente: garanzie sui tempi di consegna in caso di picco ordini, possibilità di uno stock minimo di sicurezza tenuto in Svizzera, e condizioni di pagamento a 30/60/90 giorni. Portare anche le specifiche aggiornate del sensore per evitare fraintendimenti come l'ultima volta.", 9],
-  ['Nome possibile per il secondo prodotto Life: LifeGuard oppure Vero. Da testare con un piccolo sondaggio informale prima di deciderlo. Deve suonare bene sia in italiano che in inglese, e non deve scontrarsi con marchi già registrati in Svizzera o UE.\n\nAltre opzioni emerse durante il brainstorming: LifeShield, Custode, Sentinel. Nessuna convince del tutto. Vero ha il vantaggio di essere corto e facile da pronunciare in più lingue, ma va verificato se il dominio è libero.', 8],
-  ["Lista spesa: pane, uova, caffè, frutta, detersivo lavatrice. Passare anche in farmacia per il cambio filtri. Non dimenticare l'acqua frizzante.\n\nSe c'è tempo, passare anche dal ferramenta per le viti che mancano per il supporto del monitor in ufficio, e controllare se hanno ancora la vernice usata l'ultima volta per il locale.", 7],
-  ['Bozza ritornello nuova canzone Dæmon: parla di maschere che diventano volti veri. Il tono deve restare cupo ma non teatrale. Provare ad abbassare il registro nella seconda strofa.\n\nIdea per il bridge: un cambio di ritmo più lento, quasi sussurrato, prima di tornare al ritornello con un arrangiamento più pieno. Da provare in studio con la nuova interfaccia audio prima di fissare la struttura definitiva.', 6],
-  ["Contatti raccolti alla fiera tech di Zurigo: tre potenziali investitori interessati ad AURA e un fornitore di sensori più economico del nostro attuale. Da richiamare entro fine settimana, prima che si raffreddi l'interesse.\n\nUno dei tre investitori lavora già con altre startup hardware svizzere e potrebbe portare anche contatti utili per la parte di produzione, non solo capitale. Da preparare un pitch deck aggiornato prima della chiamata.", 5],
-  ["Promemoria: rinnovo assicurazione del locale Élite Caffè scade il 30 settembre. Chiedere anche un preventivo aggiornato con la nuova polizza per i danni da terzi.\n\nConfrontare almeno due-tre offerte diverse prima di rinnovare automaticamente con lo stesso broker: l'anno scorso il premio è salito senza una spiegazione chiara, vale la pena verificare se conviene cambiare.", 4],
-  ['Feedback dei beta tester su LifePilot: apprezzano molto il calendario collegato alle finanze, ma vogliono notifiche push vere. Due persone hanno chiesto una modalità offline.\n\nUn tester ha anche segnalato che la dashboard è troppo densa su schermi piccoli e vorrebbe poter nascondere le card che non usa. Da tenere in considerazione per la prossima iterazione del prototipo.', 3],
-  ['Idee regalo compleanno: cuffie da studio, un buono per un corso di fotografia, oppure qualcosa legato alla musica. Decidere entro la prossima settimana.\n\nSe si opta per le cuffie, meglio chiedere prima quale modello usa già in studio per non regalarne uno doppione. Il corso di fotografia potrebbe essere l\'opzione più originale delle tre.', 2],
-  ['Appunti dal colloquio con il potenziale socio per il reparto hardware: esperienza in elettronica di consumo, disponibile part-time da novembre. Chiedere referenze prima di procedere.\n\nBuona impressione generale, ma serve capire meglio le aspettative economiche prima di fare una proposta concreta. Da programmare un secondo incontro con anche qualcun altro del team presente.', 1],
-  ["Libri da leggere quest'anno: un libro sul trading di materie prime, una biografia imprenditoriale, e qualcosa di narrativa per staccare. Iniziare da quello più corto.\n\nChiedere consiglio anche a chi lavora già nel trading per capire se ci sono testi più tecnici e aggiornati rispetto ai classici che si trovano di solito nelle liste generiche online.", 0],
+  ["Riunione di lunedì alle 9:30: portare i numeri del mese e la lista delle cose rimaste aperte. Preparare tre slide al massimo e le domande da fare al responsabile sul calendario delle ferie.\n\nDa ricordare: confermare con Marco chi presenta la parte sul nuovo orario, e stampare l'ordine del giorno per chi non porta il portatile.", 9],
+  ['Ricetta pasta al limone: 320 g di spaghetti, 2 limoni (buccia e succo), 40 g di burro, parmigiano, pepe nero. Sciogliere il burro, aggiungere la buccia, mantecare con un mestolo di acqua di cottura.\n\nVariante veloce per la sera: aggiungere una manciata di rucola e qualche gamberetto. Pronta in 15 minuti, piace anche ai bambini.', 8],
+  ["Lista spesa: pane, uova, caffè, frutta, detersivo lavatrice. Passare anche in farmacia per il cambio filtri. Non dimenticare l'acqua frizzante.\n\nSe c'è tempo, passare anche dal ferramenta per le viti che mancano per la mensola del salotto, e controllare se hanno ancora la vernice usata l'ultima volta.", 7],
+  ['Idee per le vacanze estive: Lisbona per una settimana a luglio, oppure il Portogallo del sud con un po\' di mare. Controllare i voli con anticipo e vedere se conviene un appartamento invece dell\'hotel.\n\nBudget indicativo: voli 450 CHF in due, alloggio 90 CHF a notte, 60 CHF al giorno per mangiare e muoversi. Decidere entro fine mese per prenotare a un buon prezzo.', 6],
+  ["Spagnolo, parole della settimana: la sobremesa (il tempo a tavola dopo mangiato), quedar (darsi appuntamento), echar de menos (sentire la mancanza). Ripassare 10 minuti ogni sera.\n\nPer la prossima lezione: preparare tre frasi per ordinare al ristorante e una breve presentazione di sé. Provare a guardare un episodio di una serie con i sottotitoli in spagnolo.", 5],
+  ["Promemoria: rinnovo dell'assicurazione auto in scadenza il 30 del mese. Chiedere un preventivo aggiornato e confrontarlo con almeno altre due offerte prima di rinnovare in automatico.\n\nL'anno scorso il premio è salito senza una spiegazione chiara: vale la pena controllare se conviene cambiare, o almeno chiedere uno sconto per gli anni senza incidenti.", 4],
+  ['Programma corsa verso i 10 km: tre uscite a settimana, una lunga la domenica. Questa settimana 6 km piano, 5 km a ritmo medio, 8 km lungo il lago.\n\nSe il ginocchio dà fastidio, ridurre la distanza e fare stretching dopo. Comprare le scarpe nuove prima della gara di primavera e provarle su qualche uscita corta.', 3],
+  ["Idee regalo per il compleanno di Giulia: un buono per un corso di cucina, un libro di ricette, oppure una gita in giornata sul lago. Decidere entro la prossima settimana.\n\nPer la mamma: una pianta da balcone e una cena insieme. Per Tommaso: il libro sulla corsa in montagna che aveva guardato in libreria.", 2],
+  ["Appunti dalla visita medica: tutto nella norma, ripetere le analisi del sangue tra sei mesi. Consigliato camminare almeno 30 minuti al giorno e bere più acqua durante il lavoro in ufficio.\n\nChiedere alla cassa malati se il controllo dal dentista è coperto in parte, e conservare la ricevuta della visita.", 1],
+  ["Libri da leggere quest'anno: un romanzo storico, una biografia, un giallo per l'estate e qualcosa sul sonno e le abitudini. Iniziare da quello più corto.\n\nObiettivo: 12 libri in dodici mesi, quindi uno al mese. Tenere il libro sul comodino e il telefono in un'altra stanza, così la lettura prima di dormire diventa un'abitudine.", 0],
 ];
 export const demoNotes = (): Note[] => noteTexts.map(([text, ago]) => ({ id: uid(), text, date: shortDate(ago) }));
 
 const driveRows: [string, string, string, number][] = [
-  ['Contratto locazione.pdf', '1.2 MB', 'Documenti', 8], ['Referto analisi sangue.pdf', '340 KB', 'Salute', 6], ['Ricevuta settembre.jpg', '2.1 MB', 'Ricevute', 4],
-  ['Foto locale Élite Caffè.jpg', '3.4 MB', 'Foto', 5], ['Pitch deck AURA v3.pdf', '5.6 MB', 'Business', 7], ['Foto team fiera Zurigo.jpg', '2.8 MB', 'Foto', 4],
-  ['Fattura fornitore PCB.pdf', '210 KB', 'Ricevute', 8], ['Referto cassa malati.pdf', '180 KB', 'Salute', 3],
-  ['Foto vetrina Élite Caffè estate.jpg', '2.9 MB', 'Foto', 15], ['Foto prototipo AURA v2.jpg', '4.1 MB', 'Foto', 14], ['Foto backstage shooting Dæmon.jpg', '3.7 MB', 'Foto', 13],
-  ['Foto riunione team Life SA.jpg', '2.4 MB', 'Foto', 12], ['Foto stand fiera tech Zurigo.jpg', '3.1 MB', 'Foto', 4], ['Foto lago Lugano tramonto.jpg', '5.2 MB', 'Foto', 11],
-  ['Foto pranzo con investitori.jpg', '2.6 MB', 'Foto', 4], ['Foto sopralluogo nuovo locale.jpg', '3.9 MB', 'Foto', 10], ['Foto packaging AURA campione.jpg', '2.2 MB', 'Foto', 9],
-  ['Foto serata lancio Élite Caffè.jpg', '4.5 MB', 'Foto', 2], ['Foto viaggio Zermatt.jpg', '6.1 MB', 'Foto', 1], ['Foto studio registrazione.jpg', '3.3 MB', 'Foto', 5],
+  ['Contratto di affitto.pdf', '1.2 MB', 'Documenti', 8], ['Referto analisi sangue.pdf', '340 KB', 'Salute', 6], ['Ricevuta settembre.jpg', '2.1 MB', 'Ricevute', 4],
+  ['Foto cena di famiglia.jpg', '3.4 MB', 'Foto', 5], ['Preventivo assicurazione auto.pdf', '260 KB', 'Documenti', 7], ['Contratto di lavoro.pdf', '480 KB', 'Lavoro', 9],
+  ['Fattura dentista.pdf', '210 KB', 'Ricevute', 8], ['Referto cassa malati.pdf', '180 KB', 'Salute', 3],
+  ['Foto terrazza in estate.jpg', '2.9 MB', 'Foto', 15], ['Foto gita sul lago.jpg', '4.1 MB', 'Foto', 14], ['Foto mezza maratona.jpg', '3.7 MB', 'Foto', 13],
+  ['Foto pranzo con i colleghi.jpg', '2.4 MB', 'Foto', 12], ['Foto escursione in montagna.jpg', '3.1 MB', 'Foto', 4], ['Foto lago Lugano tramonto.jpg', '5.2 MB', 'Foto', 11],
+  ['Foto compleanno di Giulia.jpg', '2.6 MB', 'Foto', 4], ['Foto casa nuova.jpg', '3.9 MB', 'Foto', 10], ['Foto torta fatta in casa.jpg', '2.2 MB', 'Foto', 9],
+  ['Foto serata con gli amici.jpg', '4.5 MB', 'Foto', 2], ['Foto viaggio Zermatt.jpg', '6.1 MB', 'Foto', 1], ['Foto domenica al parco.jpg', '3.3 MB', 'Foto', 5],
   ['Foto weekend in famiglia.jpg', '2.7 MB', 'Foto', 0],
 ];
 export const demoDrive = (): DriveFile[] => driveRows.map(([n, s, folder, ago]) => ({ id: uid(), n, s, folder, date: shortDate(ago) }));
 
-/** Plan dei prossimi 7 giorni: impegni realistici con fasce libere evidenti (pomeriggi e sere in parte vuoti). */
+/** Plan dei prossimi 7 giorni: impegni quotidiani con fasce libere evidenti (pomeriggi e sere in parte vuoti). */
 export const demoEvents = (): Record<string, CalEvent[]> => {
   const k = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return dayKey(d); };
   return {
     [k(0)]: [
-      { time: '09:00', title: 'Allenamento' }, { time: '11:30', title: 'Meeting team' },
-      { time: '14:00', title: 'Deep work' }, { time: '18:30', title: 'Review giornata' },
+      { time: '09:00', title: 'Allenamento' }, { time: '11:30', title: 'Riunione di team' },
+      { time: '14:00', title: 'Lavoro concentrato' }, { time: '18:30', title: 'Bilancio della giornata' },
     ],
     [k(1)]: [
-      { time: '08:00', title: 'Colazione con investitore' }, { time: '10:00', title: 'Call fornitore PCB' },
-      { time: '12:00', title: 'Pranzo con Marco T.' }, { time: '15:00', title: 'Revisione roadmap LifePilot', dur: 90 },
+      { time: '08:00', title: 'Colazione con Marta' }, { time: '10:00', title: 'Visita medica' },
+      { time: '12:00', title: 'Pranzo con Marco T.' }, { time: '15:00', title: 'Preparare la riunione di lunedì', dur: 90 },
       { time: '19:30', title: 'Cena in famiglia', dur: 120 },
     ],
     [k(2)]: [
-      { time: '09:30', title: 'Studio in sala prove (Dæmon)', dur: 120 }, { time: '11:30', title: 'Call con il commercialista' },
-      { time: '14:30', title: 'Sopralluogo Élite Caffè', dur: 90 }, { time: '20:30', title: 'Cena con Giulia', dur: 90 },
+      { time: '09:30', title: 'Corsa lungo il lago e colazione', dur: 120 }, { time: '11:30', title: 'Telefonata all’assicurazione' },
+      { time: '14:30', title: 'Visita a un appartamento', dur: 90 }, { time: '20:30', title: 'Cena con Giulia', dur: 90 },
     ],
     [k(3)]: [
       { time: '08:00', title: 'Allenamento' }, { time: '13:00', title: 'Pranzo in famiglia', dur: 90 }, { time: '16:00', title: 'Spesa e commissioni' },
     ],
     [k(4)]: [
-      { time: '11:30', title: 'Brunch con Tommaso', dur: 90 }, { time: '17:00', title: 'Studio tedesco', dur: 60 },
+      { time: '11:30', title: 'Brunch con Tommaso', dur: 90 }, { time: '17:00', title: 'Studio dello spagnolo', dur: 60 },
     ],
     [k(5)]: [
-      { time: '09:00', title: 'Allenamento' }, { time: '10:30', title: 'Riunione team Life SA', dur: 90 },
-      { time: '14:00', title: 'Deep work AURA', dur: 120 }, { time: '20:00', title: 'Telefonata ai genitori', dur: 30 },
+      { time: '09:00', title: 'Allenamento' }, { time: '10:30', title: 'Riunione di team', dur: 90 },
+      { time: '14:00', title: 'Lavoro concentrato', dur: 120 }, { time: '20:00', title: 'Telefonata ai genitori', dur: 30 },
     ],
     [k(6)]: [
-      { time: '09:30', title: 'Meeting fornitori AURA', dur: 90 }, { time: '15:00', title: 'Call con la banca' }, { time: '19:00', title: 'Partita a calcetto', dur: 90 },
+      { time: '09:30', title: 'Colloquio con il responsabile', dur: 90 }, { time: '15:00', title: 'Appuntamento in banca' }, { time: '19:00', title: 'Partita a calcetto', dur: 90 },
     ],
     [k(7)]: [
-      { time: '09:00', title: 'Allenamento' }, { time: '11:00', title: 'Review settimanale' },
-      { time: '14:00', title: 'Colloquio socio reparto hardware' }, { time: '17:30', title: 'Aperitivo con il team', dur: 90 },
+      { time: '09:00', title: 'Allenamento' }, { time: '11:00', title: 'Bilancio della settimana' },
+      { time: '14:00', title: 'Dentista' }, { time: '17:30', title: 'Aperitivo con i colleghi', dur: 90 },
     ],
   };
 };

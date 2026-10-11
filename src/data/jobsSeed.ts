@@ -33,26 +33,26 @@ export function seedJobs(me: string) {
     id, owner, company, title, description, location, kind, pay, reqs: skills.map(([skill, weight, min]) => ({ skill, weight, min })),
     questionIds: pickQuestions(bank, skills.map((s) => s[0]), per, 11).map((q) => q.id), custom: [], timeLimitMin: 25, blind: true, trustWeight: 0.2, status: 'open', createdAt: now - 3 * DAY, ...extra,
   });
-  const mine = mk('job-aura', me, 'Life SA', 'Addetto vendite B2B', 'Cerchiamo una persona che porti AURA a negozi e aziende: capire il bisogno, spiegare con onestà, chiudere. Non ti chiediamo il CV: ti chiediamo di dimostrarci come lavori.', 'Lugano · ibrido', 'Tempo pieno', 'CHF 4’800–6’000 / mese', [['vendite', 4, 70], ['clienti', 2, 60], ['organizzazione', 1, 50]], 3, { createdAt: now - 6 * DAY, custom: [] });
+  const mine = mk('job-shop', me, 'Bottega del Lago', 'Addetto/a alle vendite in negozio', 'Cerchiamo una persona che accolga i clienti del nostro negozio di articoli sportivi: capire cosa cercano, consigliare con onestà, concludere la vendita. Non ti chiediamo il CV: ti chiediamo di dimostrarci come lavori.', 'Lugano · in negozio', 'Tempo pieno', 'CHF 4’200–5’000 / mese', [['vendite', 4, 70], ['clienti', 2, 60], ['organizzazione', 1, 50]], 3, { createdAt: now - 6 * DAY, custom: [] });
   mine.questionIds = [...mine.questionIds, 'v5'].filter((x, i, a) => a.indexOf(x) === i);
   mine.trustWeight = 0.25;
   mine.custom = [
-    { id: 'ja-c1', skill: 'vendite', kind: 'number', prompt: 'Un negozio compra 12 licenze a 49 CHF/mese e ottiene il 15% di sconto sul totale. Quanto paga al mese? (formula: 12 x 49 x 0,85)', answer: 499.8, tolAbs: 0.5, unit: 'CHF', w: 2, secs: 90 },
+    { id: 'ja-c1', skill: 'vendite', kind: 'number', prompt: 'Una cliente compra 12 articoli da 49 CHF e ottiene il 15% di sconto sul totale. Quanto paga? (formula: 12 x 49 x 0,85)', answer: 499.8, tolAbs: 0.5, unit: 'CHF', w: 2, secs: 90 },
   ];
-  mine.practical = { title: 'Piano per un cliente nuovo', instructions: 'Leggi la scheda del cliente (file allegato). Prepara un piano di primo contatto: obiettivo, 3 domande da fare, come gestisci l’obiezione sul prezzo, prossimi passi.', deliverables: 'Un documento (PDF o Word) di 1-2 pagine con il piano.', files: [demoFile('Scheda_cliente_Rossi_Sport.txt', 'CLIENTE: Rossi Sport (negozio di quartiere, 4 dipendenti)\nBisogno: prenotazioni via telefono, molte telefonate perse.\nBudget dichiarato: circa 40 CHF/mese.\nObiezione prevista: \"Abbiamo sempre fatto con il quaderno\".\n(File di esempio per la modalità demo.)\n')], limitMin: 60, skill: 'vendite', weight: 3 };
+  mine.practical = { title: 'Accogliere un cliente nuovo', instructions: 'Leggi la scheda del cliente (file allegato). Prepara un piano per il primo incontro: obiettivo, 3 domande da fare, come gestisci l’obiezione sul prezzo, prossimi passi.', deliverables: 'Un documento (PDF o Word) di 1-2 pagine con il piano.', files: [demoFile('Scheda_cliente_Famiglia_Rossi.txt', 'CLIENTE: Famiglia Rossi (genitori e figlio di 9 anni)\nBisogno: una bicicletta per il figlio, da usare per andare a scuola.\nBudget dichiarato: circa 300 CHF.\nObiezione prevista: \"Online costa meno\".\n(File di esempio per la modalità demo.)\n')], limitMin: 60, skill: 'vendite', weight: 3 };
   const jobs: Job[] = [
     mine,
-    mk('job-support', 'Nadia P.', 'Fridge Lab', 'Assistenza clienti', 'Rispondi a clienti e negozi che usano i nostri frigoriferi di quartiere. Servono calma, chiarezza e voglia di risolvere.', 'Zurigo · da remoto', 'Part-time', 'CHF 32 / ora', [['clienti', 4, 70], ['scrittura', 3, 60], ['organizzazione', 1, 40]], 3),
-    mk('job-data', 'Marco T.', 'Skillswap', 'Analista dati junior', 'Leggi numeri di prodotto e dici al team cosa fare. Cerchiamo ragionamento e chiarezza, non un titolo.', 'Milano · ibrido', 'Tempo pieno', 'EUR 2’400–3’000 / mese', [['analisi', 4, 70], ['problem', 3, 60], ['scrittura', 1, 50], ['custom:Excel avanzato', 2, 50]], 2, {
+    mk('job-support', 'Nadia P.', 'Casa Verde', 'Assistenza clienti', 'Rispondi a clienti e negozi che usano il nostro servizio di consegna a domicilio. Servono calma, chiarezza e voglia di risolvere.', 'Zurigo · da remoto', 'Part-time', 'CHF 32 / ora', [['clienti', 4, 70], ['scrittura', 3, 60], ['organizzazione', 1, 40]], 3),
+    mk('job-data', 'Marco T.', 'Cooperativa Alpina', 'Assistente amministrativo/a', 'Leggi tabelle e numeri del mese e dici al team cosa notare. Cerchiamo ragionamento e chiarezza, non un titolo.', 'Milano · ibrido', 'Tempo pieno', 'EUR 2’400–3’000 / mese', [['analisi', 4, 70], ['problem', 3, 60], ['scrittura', 1, 50], ['custom:Excel avanzato', 2, 50]], 2, {
       custom: [
         { id: 'jd-c1', skill: 'analisi', kind: 'number', prompt: 'Guarda il grafico degli incassi mensili. Di quanti punti percentuali sono cresciuti gli incassi da Aprile a Giugno?', unit: '%', answer: 22, tol: 0.02, w: 2, limitSec: 240, chart: { type: 'line', title: 'Incassi mensili', unit: 'migliaia di CHF', labels: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'], series: [{ name: 'Incassi', values: [42, 45, 48, 50, 56, 61] }] } },
         { id: 'jd-c2', skill: 'analisi', kind: 'mc', prompt: 'Il grafico mostra la quota di ordini per canale. Quale affermazione è corretta?', w: 1, chart: { type: 'pie', title: 'Ordini per canale', unit: '%', labels: ['Negozio', 'Online', 'Telefono', 'Altro'], series: [{ name: 'Quota', values: [46, 31, 15, 8] }] }, options: [{ t: 'Online e telefono insieme superano il negozio', score: 100 }, { t: 'Il telefono è il secondo canale', score: 0 }, { t: 'Il negozio vale più della metà degli ordini', score: 0 }, { t: 'Altro vale più del telefono', score: 0 }] },
-        { id: 'jd-c3', skill: 'problem', kind: 'number', prompt: 'Un abbonamento costa 49 CHF/mese, il costo variabile è 9 CHF per cliente e il costo fisso è 2450 CHF/mese. Quanti clienti servono per andare in pari? Arrotonda per eccesso. Formula: clienti = costo fisso / (prezzo - costo variabile).', answer: 62, tolAbs: 0, w: 3 },
+        { id: 'jd-c3', skill: 'problem', kind: 'number', prompt: 'Un corso costa 49 CHF a persona, ogni partecipante comporta 9 CHF di spese e il costo fisso del corso è 2450 CHF. Quanti partecipanti servono per andare in pari? Arrotonda per eccesso. Formula: partecipanti = costo fisso / (prezzo - spese per partecipante).', answer: 62, tolAbs: 0, w: 3 },
         { id: 'jd-c4', skill: 'custom:Excel avanzato', kind: 'file', prompt: 'Carica un file Excel con una tabella pivot che riassume le vendite per canale e mese, con un grafico.', rubric: 'Pivot corretta, totali, grafico leggibile, formule non fisse.', w: 2, limitSec: 900 },
       ],
-      practical: { title: 'Analisi vendite Q3', instructions: 'Scarica il file con le vendite di luglio-settembre per canale. Calcola il totale per canale, la crescita del trimestre e indica in 5 righe cosa consiglieresti al team.', deliverables: 'Un file Excel con i calcoli e una sintesi in PDF o nel foglio.', files: [demoFile('Vendite_Q3.csv', SALES_CSV, 'text/csv')], limitMin: 90, skill: 'analisi', weight: 3 },
+      practical: { title: 'Analisi vendite Q3', instructions: 'Scarica il file con le vendite di luglio-settembre per canale. Calcola il totale per canale, la crescita del trimestre e indica in 5 righe cosa noti.', deliverables: 'Un file Excel con i calcoli e una sintesi in PDF o nel foglio.', files: [demoFile('Vendite_Q3.csv', SALES_CSV, 'text/csv')], limitMin: 90, skill: 'analisi', weight: 3 },
     }),
-    mk('job-coach', 'Luca Ferri', 'Ferri Coaching', 'Collaboratore vendite freelance', 'Porti nuovi clienti a un programma di coaching: provvigione sulle vendite.', 'Da remoto', 'Freelance', 'Provvigione 15%', [['vendite', 3, 60], ['scrittura', 2, 50]], 3),
+    mk('job-coach', 'Luca Ferri', 'Centro Benessere Lugano', 'Accoglienza e prenotazioni', 'Accogli i clienti del centro, gestisci agenda e prenotazioni e rispondi a domande e messaggi.', 'Lugano · in sede', 'Part-time', 'CHF 30 / ora', [['clienti', 3, 60], ['organizzazione', 2, 50]], 3),
   ];
 
   const people: [string, number, number][] = [['Giulia M.', 0.9, 1], ['Sara B.', 0.78, 2], ['Tommaso V.', 0.62, 3], ['Federica L.', 0.45, 4], ['David K.', 0.7, 5]];
@@ -84,8 +84,8 @@ export function seedJobs(me: string) {
       a.result = gradeTest([...qs(mine), pq], a.answers);
     }
   };
-  run(0, 5, 48, 'Obiettivo: fissare una demo di 20 minuti.\nDomande: quante telefonate perdete a settimana? cosa fate oggi? chi prenota?\nPrezzo: confronto con il costo di una telefonata persa.\n');
-  run(1, 6, 83, 'Obiettivo: capire il bisogno prima di parlare di prezzo.\nProssimi passi: prova gratuita di 14 giorni.\n');
+  run(0, 5, 48, 'Obiettivo: capire che uso farà della bici e proporre il modello giusto.\nDomande: quanti chilometri al giorno? su che strada? chi la userà?\nPrezzo: confronto con il costo di un modello economico che dura poco.\n');
+  run(1, 6, 83, 'Obiettivo: capire il bisogno prima di parlare di prezzo.\nProssimi passi: prova su strada di 15 minuti.\n');
   run(2, 4, null, '');
 
   const practice: PracticeResult[] = [];

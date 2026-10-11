@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { featureOfDay, guideMode, dayIndex, allFeatures, FULL_GUIDE_DAYS } from '../src/data/features.ts';
+import { featureOfDay, guideMode, dayIndex, allFeatures, orderedGroups, featureGroups, FULL_GUIDE_DAYS } from '../src/data/features.ts';
+import { AREA_CATALOG, preferredGroups } from '../src/data/areas.ts';
 
 const at = (y, m, d, h = 10) => new Date(y, m - 1, d, h).getTime();
 
@@ -20,4 +21,21 @@ test('funzione del giorno: stabile nel giorno, diversa il giorno dopo, copre tut
   const seen = new Set();
   for (let i = 0; i < allFeatures.length; i++) seen.add(featureOfDay(at(2026, 1, 1 + i)).title);
   assert.equal(seen.size, allFeatures.length);
+});
+
+test('aree di interesse: le scelte vengono per prime, nessuna area sparisce', () => {
+  assert.equal(AREA_CATALOG.length, 8);
+  assert.deepEqual(preferredGroups([]), []);
+  assert.deepEqual(orderedGroups([]).map((g) => g.id), featureGroups.map((g) => g.id));
+  const o = orderedGroups(['salute', 'viaggi']);
+  assert.deepEqual(o.slice(0, 2).map((g) => g.id), ['salute', 'vita']);
+  assert.equal(o.length, featureGroups.length);
+});
+
+test('funzione del giorno: senza interesse per investire non propone Stock/Portafoglio', () => {
+  assert.ok(allFeatures.some((f) => f.niche), 'esistono funzioni per chi investe');
+  for (let i = 0; i < 60; i++) assert.ok(!featureOfDay(at(2026, 1, 1 + i), 99, { hideNiche: true }).niche);
+  const withAreas = new Set();
+  for (let i = 0; i < 20; i++) withAreas.add(featureOfDay(at(2026, 3, 1 + i), 99, { areas: ['salute'], hideNiche: true }).groupId);
+  assert.ok(withAreas.has('salute') && withAreas.size > 1, 'le aree scelte compaiono ma le altre ruotano');
 });

@@ -7,9 +7,12 @@ import { AppState, View } from 'react-native';
 import { autoSyncIfConnected } from '@/lib/healthkit';
 import { resyncCalendars } from '@/lib/calendarImport';
 import { refreshBriefings } from '@/lib/notify';
+import { startPermissionWatch } from '@/lib/notifyPermission';
+import { useNotificationTaps } from '@/lib/notifyOpen';
 import { refreshWeather } from '@/lib/weather';
 
 import { ErrorBanner, installGlobalErrors } from '@/components/ErrorBanner';
+import { NotifPromptHost } from '@/components/NotifPrompt';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { ToastHost } from '@/components/ui';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
@@ -65,6 +68,9 @@ export default function RootLayout() {
     return () => unsubs.forEach((u) => u());
   }, []);
 
+  // tocco su una notifica di sistema (anche ad app chiusa) -> destinazione esatta, appena l'app e' pronta
+  useNotificationTaps(ready, onboarded);
+
   useEffect(() => {
     if (!ready) return;
     useFin.getState().rollMonth();
@@ -78,8 +84,9 @@ export default function RootLayout() {
     void autoSyncIfConnected();
     void refreshWeather();
     void refreshBriefings();
+    startPermissionWatch();
     void resyncCalendars();
-    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); /* riprogramma anche al cambio di fuso orario/ora legale */ useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
     return () => sub.remove();
   }, [ready]);
 
@@ -97,6 +104,7 @@ export default function RootLayout() {
         </Stack.Protected>
       </Stack>
       <OfflineBanner />
+      <NotifPromptHost />
       <ToastHost />
       <ErrorBanner />
     </View>

@@ -8,7 +8,10 @@ import { Body, Input, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { runAction, sendTheia } from '@/lib/assistant/theiaFlow';
 import { Composer, type ComposerSend } from '@/components/theia/Composer';
+import { MessageAttachments } from '@/components/theia/AttachChips';
 import { MessageFooter, MessageImages } from '@/components/theia/MessageExtras';
+import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
+import { shouldScrollToEnd } from '@/lib/keyboardInset';
 import { Icon } from '@/lib/icons';
 import { GENERALE, foldersOf, migrateOldChat, searchLog, useAssistant, type AMsg } from '@/store/assistant';
 import { useApp } from '@/store/app';
@@ -31,6 +34,16 @@ export default function LifeChat() {
   const list = useRef<FlatList<AMsg>>(null);
 
   useEffect(() => { migrateOldChat(); }, []);
+  // quando la tastiera si apre (o cambia altezza) l'ultimo messaggio resta in vista, sopra la barra di scrittura
+  const kb = useKeyboardInset();
+  const prevKb = useRef({ visible: false, height: 0 });
+  useEffect(() => {
+    const doScroll = shouldScrollToEnd(prevKb.current, kb);
+    prevKb.current = { visible: kb.visible, height: kb.height };
+    if (!doScroll) return;
+    const tm = setTimeout(() => list.current?.scrollToEnd({ animated: true }), 120);
+    return () => clearTimeout(tm);
+  }, [kb.visible, kb.height]); // eslint-disable-line react-hooks/exhaustive-deps
   // una scheda (es. suggerimento di Theia) può aprire la chat già con un comando da eseguire
   const { ask } = useLocalSearchParams<{ ask?: string }>();
   useEffect(() => {
@@ -61,7 +74,7 @@ export default function LifeChat() {
     if (busy) return;
     setBusy(true);
     try {
-      await sendTheia({ text: m.text, lang: m.lang, appLang, forced: m.forced, source: m.source, images: m.images, topic: section !== GENERALE ? section : undefined });
+      await sendTheia({ text: m.text, lang: m.lang, appLang, forced: m.forced, source: m.source, images: m.images, attachments: m.attachments, topic: section !== GENERALE ? section : undefined });
     } finally { setBusy(false); }
     // se la domanda cambia argomento resto in Generale, che mostra tutto
     setTimeout(() => list.current?.scrollToEnd({ animated: true }), 60);
@@ -133,6 +146,7 @@ export default function LifeChat() {
                   <View style={{ alignSelf: me ? 'flex-end' : 'flex-start', maxWidth: '88%', backgroundColor: me ? '#e6ebf3' : t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: me ? 0 : 1, borderRadius: 18, padding: 12 }}>
                     {item.image ? <Image source={{ uri: item.image }} style={{ width: 160, height: 100, borderRadius: 10, marginBottom: 6 }} contentFit="cover" /> : null}
                     {item.ext?.images?.length ? <MessageImages uris={item.ext.images} me={me} /> : null}
+                    {item.ext?.attachments?.length ? <MessageAttachments items={item.ext.attachments} me={me} /> : null}
                     {item.text ? <Text selectable style={{ color: me ? '#111' : t.text, fontSize: 15, lineHeight: 21 }}>{item.text}</Text> : null}
                     <MessageFooter ext={item.id === lastAi?.id ? item.ext : item.ext} me={me} onAction={(a) => void act(item.id, a)} />
                     {item.source === 'theia' && <Text style={{ color: me ? '#556' : t.muted, fontSize: 10, marginTop: 4 }}>da {name} sulla schermata</Text>}

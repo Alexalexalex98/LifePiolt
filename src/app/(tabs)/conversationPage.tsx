@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,6 +11,9 @@ import { MediaViewer, fontPx, useChatColors, wallColor } from '@/components/chat
 import { DeleteSheet, InfoSheet, MessageActions, PickChatsSheet, copyText, type Action } from '@/components/chat/sheets';
 import { UserAvatar } from '@/components/network';
 import { Body, Item, Sheet, IL } from '@/components/ui';
+import { KeyboardDock } from '@/components/KeyboardDock';
+import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
+import { restingBottom, shouldScrollToEnd } from '@/lib/keyboardInset';
 import { useTheme } from '@/hooks/use-theme';
 import type { Picked } from '@/lib/chatMedia';
 import { searchText } from '@/lib/chatList';
@@ -31,6 +34,7 @@ export default function Conversation() {
   const t = useTheme();
   const c = useChatColors();
   const insets = useSafeAreaInsets();
+  const kb = useKeyboardInset();
   const params = useLocalSearchParams<{ id?: string; type?: string; key?: string; jump?: string }>();
   const id = params.id ?? (params.type === 'group' ? `g:${params.key}` : dmId(params.key ?? ''));
   const me = useApp((s) => s.account.name);
@@ -95,6 +99,15 @@ export default function Conversation() {
 
   // resta in fondo all'apertura e a ogni nuovo messaggio, anche quando le schede (agenda, inviti...) si disegnano dopo
   const stick = useRef(true);
+  // quando la tastiera si apre (o cambia altezza) l'ultimo messaggio resta in vista, sopra la barra di scrittura
+  const prevKb = useRef({ visible: false, height: 0 });
+  useEffect(() => {
+    const doScroll = shouldScrollToEnd(prevKb.current, kb) && !search;
+    prevKb.current = { visible: kb.visible, height: kb.height };
+    if (!doScroll) return;
+    const tm = setTimeout(() => list.current?.scrollToEnd({ animated: true }), 120);
+    return () => clearTimeout(tm);
+  }, [kb.visible, kb.height, search]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (search || params.jump) return; stick.current = true; const tm = setTimeout(() => { stick.current = false; }, 1500); return () => clearTimeout(tm); }, [id, msgs.length, search, params.jump]);
   useEffect(() => { if (params.jump) setTimeout(() => jumpTo(params.jump!), 300); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [params.jump]);
 
@@ -197,7 +210,7 @@ export default function Conversation() {
   if (!chat) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardDock style={{ backgroundColor: t.bg }}>
       {/* intestazione */}
       <View style={{ paddingTop: insets.top + 6, paddingBottom: 8, paddingHorizontal: 10, backgroundColor: t.card, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderBottomColor: t.border }}>
         {selected.length ? (
@@ -254,7 +267,7 @@ export default function Conversation() {
         onLayout={() => { if (stick.current && !search) list.current?.scrollToEnd({ animated: false }); }}
       />
 
-      <View style={{ paddingBottom: insets.bottom }}>
+      <View style={{ paddingBottom: restingBottom(kb, insets.bottom) }}>
         <Composer
           me={me} draft={draft} enterSends={settings.enterSends} fontSize={font}
           replyTo={replyTo} editing={editing}
@@ -283,6 +296,6 @@ export default function Conversation() {
         <Item onPress={() => { setMenu(false); st().patchChat(id, { archived: !chat.archived }); toast(chat.archived ? 'Chat ripristinata' : 'Chat archiviata'); if (!chat.archived) goBack(); }}><IL icon="archive">{chat.archived ? 'Ripristina dagli archivi' : 'Archivia chat'}</IL></Item>
         <Item last onPress={() => { setMenu(false); go('chatSettings'); }}><IL icon="gear">Impostazioni chat</IL></Item>
       </Sheet>
-    </KeyboardAvoidingView>
+    </KeyboardDock>
   );
 }

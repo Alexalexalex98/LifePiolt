@@ -290,14 +290,14 @@ function NewIdeaView() {
   const [media, setMedia] = useState<NetMedia | null>(null);
   return (
     <>
-      <Body small muted>Titolare: {me} (le pagine idea sono sempre legate a un titolare, come nel registro di commercio).</Body>
+      <Body small muted>Titolare: {me} (le pagine idea sono sempre legate a chi le pubblica).</Body>
       <Input style={{ marginTop: 8 }} placeholder="Titolo dell'idea" value={title} onChangeText={setTitle} />
-      <Input multiline placeholder="Descrivi l'idea: problema, mercato, come funziona…" value={desc} onChangeText={setDesc} />
+      <Input multiline placeholder="Descrivi l'idea: di cosa si tratta, a chi serve, come funziona…" value={desc} onChangeText={setDesc} />
       <MediaPickerField value={media} onChange={setMedia} />
       <Body small muted style={{ marginVertical: 8 }}>Chi contribuisce riceve in cambio…</Body>
       <View style={{ flexDirection: 'row', marginBottom: 8 }}><Pill label="Importo libero" on={type === 'libero'} onPress={() => setType('libero')} /><Pill label="Importo fisso" on={type === 'fisso'} onPress={() => setType('fisso')} /></View>
       {type === 'fisso' && <Input keyboardType="decimal-pad" placeholder="Importo fisso in LP" value={fixed} onChangeText={setFixed} />}
-      <Input multiline style={{ minHeight: 60 }} placeholder="Cosa riceve in cambio: prodotto, sconto, equity, ringraziamento…" value={reward} onChangeText={setReward} />
+      <Input multiline style={{ minHeight: 60 }} placeholder="Cosa riceve in cambio: un ringraziamento, un prodotto, uno sconto, un invito…" value={reward} onChangeText={setReward} />
       <Btn title="Pubblica e fai valutare dall'AI" onPress={() => {
         const ti = title.trim(), de = desc.trim();
         if (!ti || !de) { toast('Compila titolo e descrizione'); return; }
@@ -507,7 +507,7 @@ function CreateClubView() {
         const f = parseFloat(fee.replace(',', '.'));
         if (!Number.isFinite(f) || f <= 0) { toast('Inserisci una quota valida'); return; }
         const cid = newId();
-        net.patch({ communities: [{ id: cid, name: me + ' Club', topic: 'Business', owner: me, openPosting: false, members: [me], posts: [], desc: desc.trim() || undefined, ts: Date.now() }, ...net.communities], clubs: { ...net.clubs, [me]: { fee: f, desc: desc.trim(), communityId: cid, members: [me] } } });
+        net.patch({ communities: [{ id: cid, name: me + ' Club', topic: 'Mind', owner: me, openPosting: false, members: [me], posts: [], desc: desc.trim() || undefined, ts: Date.now() }, ...net.communities], clubs: { ...net.clubs, [me]: { fee: f, desc: desc.trim(), communityId: cid, members: [me] } } });
         close(); toast('LifeClub creato');
       }} />
     </>
@@ -607,7 +607,7 @@ function NewPostView() {
   const net = useNet();
   const me = useApp((s) => s.account.name);
   const close = useNetSheet((s) => s.close);
-  const [text, setText] = useState(''); const [tag, setTag] = useState('Business'); const [media, setMedia] = useState<NetMedia | null>(null);
+  const [text, setText] = useState(''); const [tag, setTag] = useState(topicList[0]); const [media, setMedia] = useState<NetMedia | null>(null);
   return (
     <>
       <Input multiline placeholder="Cosa vuoi condividere?" value={text} onChangeText={setText} />

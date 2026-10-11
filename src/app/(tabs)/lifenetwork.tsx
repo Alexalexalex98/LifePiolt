@@ -203,7 +203,7 @@ export default function LifeNetwork() {
             )}
             {curTab === 'Idee' && (
               <>
-                <Body small muted style={{ marginBottom: 12 }}>Ogni idea è legata a un titolare, come nel registro di commercio. Se ne pubblichi una simile a una già esistente, viene segnalata come correlata a quella creata prima.</Body>
+                <Body small muted style={{ marginBottom: 12 }}>Ogni idea è legata a chi la pubblica. Se ne pubblichi una simile a una già esistente, viene segnalata come correlata a quella creata prima.</Body>
                 <Input placeholder="Cerca idee…" value={ideaQ} onChangeText={setIdeaQ} />
                 <Btn small ghost icon="plus" style={{ marginBottom: 16, alignSelf: 'flex-start' }} title="Crea la tua idea" onPress={() => openSheet('newIdea')} />
               </>

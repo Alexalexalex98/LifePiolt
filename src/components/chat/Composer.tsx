@@ -6,7 +6,7 @@ import { Text, TextInput } from '@/components/T';
 
 import { Body, Btn, Input, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { currentLocation, persistFile, pickContact, pickDocument, pickFromGallery, takePhoto, toWaveform, type Picked } from '@/lib/chatMedia';
+import { PermissionError, currentLocation, explainDenied, persistFile, pickContact, pickDocument, pickFromGallery, takePhoto, toWaveform, type Picked } from '@/lib/chatMedia';
 import { uid } from '@/lib/format';
 import { fmtDur, previewOf, type ChatMessage, type Poll } from '@/store/chat';
 import { toast } from '@/store/toast';
@@ -78,7 +78,7 @@ export function Composer(p: Props) {
   async function startRec(): Promise<boolean> {
     try {
       const perm = await requestRecordingPermissionsAsync();
-      if (!perm.granted) { toast('Permesso microfono negato: abilitalo da Impostazioni'); return false; }
+      if (!perm.granted) { explainDenied('Permesso microfono negato: abilitalo dalle impostazioni del telefono.', perm.canAskAgain); return false; }
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
       await recorder.prepareToRecordAsync();
       levels.current = []; setLive([]); setMs(0);
@@ -118,7 +118,8 @@ export function Composer(p: Props) {
       if (list.every((x) => x.kind === 'image' || x.kind === 'video')) { setCaption(''); setPreview(list); }
       else list.forEach((x) => p.onSendPicked(x));
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'Operazione non riuscita');
+      if (e instanceof PermissionError) explainDenied(e.message, e.canAskAgain);
+      else toast(e instanceof Error ? e.message : 'Operazione non riuscita');
     }
   }
 
@@ -153,7 +154,7 @@ export function Composer(p: Props) {
             blurOnSubmit={p.enterSends}
             onSubmitEditing={p.enterSends ? sendText : undefined}
             returnKeyType={p.enterSends ? 'send' : 'default'}
-            style={{ flex: 1, color: t.text, fontSize: p.fontSize, maxHeight: 120, paddingHorizontal: 8, paddingTop: 9, paddingBottom: 9 }}
+            style={{ flex: 1, color: t.text, fontSize: p.fontSize, maxHeight: Math.round(p.fontSize * 1.3 * 5) + 18, paddingHorizontal: 8, paddingTop: 9, paddingBottom: 9 }}
           />
           {!p.editing && <Pressable onPress={() => setAttach(true)} hitSlop={6} style={{ paddingVertical: 10, paddingStart: 6 }} accessibilityLabel={translateText("Allega")}><Icon name="paperclip" size={22} color={t.muted} /></Pressable>}
           {!p.editing && !has && <Pressable onPress={() => run(takePhoto)} hitSlop={6} style={{ paddingVertical: 10, paddingStart: 10 }} accessibilityLabel={translateText("Fotocamera")}><Icon name="camera" size={22} color={t.muted} /></Pressable>}

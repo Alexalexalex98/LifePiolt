@@ -4,6 +4,7 @@ import { Text } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Body, Btn, Card, Row, Sheet, Item, Chev, Press } from '@/components/ui';
+import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useTheme } from '@/hooks/use-theme';
 import { translate, sectionNamesFor } from '@/lib/i18n';
 import { Icon, areaColors } from '@/lib/icons';
@@ -27,6 +28,7 @@ export function navLabelFor(id: string, language: Parameters<typeof translate>[0
 export function NavBar({ state }: BottomTabBarProps) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const kb = useKeyboardInset();
   const { navItems, pageVisits, dismissedNav, language, set } = useApp();
   const tourMode = useTour((s) => s.mode), tourLevel = useTour((s) => s.level), tourAll = useTour((s) => s.allUnlocked);
   const lockedPage = (id: string) => !isUnlocked({ mode: tourMode, level: tourLevel, allUnlocked: tourAll }, id);
@@ -43,6 +45,8 @@ export function NavBar({ state }: BottomTabBarProps) {
 
   // la stanza live è a tutto schermo: nessuna barra di navigazione
   if (current === 'liveRoom') return null;
+  // con la tastiera aperta la barra di navigazione sparisce: lo spazio serve alla barra di scrittura
+  if (kb.visible && !kb.floating) return null;
   return (
     <View>
       {suggestion && (

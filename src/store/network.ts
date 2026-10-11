@@ -32,7 +32,7 @@ export type MyCard = {
   phone: string; showPhone: boolean; email: string; showEmail: boolean; schools: string; experience: string; companyComments: string;
 };
 
-export const topicList = ['Business', 'Fitness', 'Lingue', 'Mind', 'Genitori', 'Musica', 'Viaggi', 'Cucina', 'Tech'];
+export const topicList = ['Fitness', 'Cucina', 'Viaggi', 'Lingue', 'Mind', 'Genitori', 'Libri', 'Musica', 'Casa', 'Soldi', 'Lavoro', 'Tech'];
 
 type NetState = {
   lifePoints: number;
@@ -147,12 +147,13 @@ export const useNet = create<NetState>()(
     },
     earn: (amount, desc) => set((s) => ({ lifePoints: s.lifePoints + amount, ledger: [{ type: 'topup', desc, amount, date: weekdayShortDate() }, ...s.ledger] })),
     notify: (type, text, urgent, extra) => {
-      set((s) => ({ notifications: [{ id: Date.now() + Math.floor(Math.random() * 1000), type, text, urgent: !!urgent, read: false, date: weekdayShortDate(), ...(extra?.kind ? { kind: extra.kind } : {}), ...(extra?.ref ? { ref: extra.ref } : {}) }, ...s.notifications] }));
+      const nid = Date.now() + Math.floor(Math.random() * 1000);
+      set((s) => ({ notifications: [{ id: nid, type, text, urgent: !!urgent, read: false, date: weekdayShortDate(), ...(extra?.kind ? { kind: extra.kind } : {}), ...(extra?.ref ? { ref: extra.ref } : {}) }, ...s.notifications] }));
       // notifica locale immediata per i tipi importanti (difensiva: non blocca mai l'app)
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const m = require('@/lib/notify');
-        void m.pushForNotif({ type, text, urgent: !!urgent, kind: extra?.kind });
+        void m.pushForNotif({ type, text, urgent: !!urgent, kind: extra?.kind, ref: extra?.ref, id: nid });
       } catch { /* notifiche non disponibili */ }
     },
     toggleFollow: (name) => { set((s) => ({ following: toggle(s.following, name) })); return get().following.includes(name); },

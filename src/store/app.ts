@@ -30,7 +30,9 @@ type AppState = {
   currencyManual: boolean;
   notif: { push: boolean; calendar: boolean; finance: boolean; health: boolean; digest: boolean; email: boolean };
   /** promemoria degli impegni: anticipo in minuti (5/10/15/30/60) e avviso di partenza con tragitto */
-  reminders: { on: boolean; leadMin: number; depart: boolean };
+  reminders: Partial<import('@/lib/reminders').ReminderPrefs>;
+  /** pre-prompt dei permessi di notifica: quante volte l'hai già visto e quando (per non insistere) */
+  notifAsk: { times: number; lastAt: number };
   /** categorie di notifica silenziate (false = silenziata; mancante = attiva), vedi lib/notifyKinds.ts */
   notifKinds: Record<string, boolean>;
   /** briefing locali: riepilogo del mattino e della sera (orari HH:MM) */
@@ -63,7 +65,8 @@ const initial = {
   currency: 'CHF',
   currencyManual: false,
   notif: { push: false, calendar: true, finance: true, health: false, digest: false, email: false },
-  reminders: { on: true, leadMin: 15, depart: true },
+  reminders: { on: true, leadMin: 15, lead: true, depart: true, headsup: true, leave: true, start: true } as Partial<import('@/lib/reminders').ReminderPrefs>,
+  notifAsk: { times: 0, lastAt: 0 },
   notifKinds: {} as Record<string, boolean>,
   briefing: { morning: false, morningAt: '07:45', evening: false, eveningAt: '20:30' },
   security: { twofa: false, lock: false },

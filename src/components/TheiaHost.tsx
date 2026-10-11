@@ -10,6 +10,7 @@ import { captureScreen } from 'react-native-view-shot';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Body, Btn, Input, ModalToast, Pill, Row, Sheet } from '@/components/ui';
+import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useTheme } from '@/hooks/use-theme';
 import { sendToAssistant } from '@/lib/assistant/run';
 import { go } from '@/lib/nav';
@@ -115,8 +116,9 @@ export function TheiaFab() {
     onPanResponderRelease: () => { pos.flattenOffset(); },
   })).current;
   const selecting = useSelect((x) => !!x.uri);
+  const kb = useKeyboardInset();
   // nelle chat il pulsante coprirebbe il microfono e il campo messaggio: lì si usa il menu del messaggio
-  if (open || selecting || /conversationPage|liveRoom|\/ai$/.test(pathname)) return null;
+  if (open || selecting || kb.visible || /conversationPage|liveRoom|postPage|\/ai$/.test(pathname)) return null;
 
   async function shot() {
     // lo scatto è silenzioso: il pulsante sparisce per un attimo e l'utente vede subito la schermata "ferma", pronta per la selezione

@@ -23,8 +23,8 @@ export const TRASH_DAYS = 30;
 const freshTrash = (l: TrashItem[]) => l.filter((x) => Date.now() - x.at < TRASH_DAYS * 86400000);
 export type ChatMsg = { who: 'me' | 'ai'; text: string };
 
-export const driveFolders = ['Documenti', 'Ricevute', 'Salute', 'Foto', 'Business', 'Altro'];
-export const driveFolderColors: Record<string, string> = { Documenti: '#7bb8e0', Ricevute: '#e0c97b', Salute: '#ff9d9d', Foto: '#b96bff', Business: '#7be0b0', Altro: '#8e98a8' };
+export const driveFolders = ['Documenti', 'Ricevute', 'Salute', 'Foto', 'Lavoro', 'Altro'];
+export const driveFolderColors: Record<string, string> = { Documenti: '#7bb8e0', Ricevute: '#e0c97b', Salute: '#ff9d9d', Foto: '#b96bff', Lavoro: '#7be0b0', 'Bollette e fatture': '#e0b97b', Altro: '#8e98a8' };
 
 export function detectFileFolder(name: string): string {
   const low = name.toLowerCase();
@@ -32,7 +32,7 @@ export function detectFileFolder(name: string): string {
   if (/contratto|locazione|affitto|accordo|documento|id[a-z]?\b/.test(low)) return 'Documenti';
   if (/ricevuta|fattura|scontrino/.test(low)) return 'Ricevute';
   if (/referto|analisi|esame|medic|cassa malati/.test(low)) return 'Salute';
-  if (/aura|life sa|pitch|investit|fornitor/.test(low)) return 'Business';
+  if (/lavoro|stipendio|busta paga|ufficio|colloquio/.test(low)) return 'Lavoro';
   return 'Altro';
 }
 
