@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
-import { LpTag, UserAvatar, openSheet } from '@/components/network';
+import { LpTag, UserAvatar, contribute, openSheet } from '@/components/network';
 import { SPONSORED_TEXT, modeLabel, statusOf, useSeminarEnrollment } from '@/components/market';
 import { useTheme } from '@/hooks/use-theme';
 import { fmtDate } from '@/i18n/format';
@@ -17,7 +17,6 @@ import { fmtHour, pubLabel } from '@/lib/when';
 import { useVisible } from '@/lib/moderation';
 import { useApp } from '@/store/app';
 import { useNet, type Idea, type Seminar } from '@/store/network';
-import { contribute } from '@/components/network';
 import { dateBadgeParts, raisedPct } from './feedLogic.ts';
 import { heroPaletteFor } from './feedColors.ts';
 import { ArtShapes, FEED_GUTTER, FEED_RADIUS, PressScale, SoftPill } from './parts';

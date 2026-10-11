@@ -36,7 +36,7 @@ export const fr: LexData = {
   hintMorning: r`matin|matinee`, hintAfternoon: r`apres-midi|apres midi`, hintEvening: r`soir|soiree`,
   c: {
     polite: r`s'il te plait|s'il vous plait|stp|svp|peux-tu|peux tu|pourrais-tu|pourrais tu|pourrais|tu peux|vous pouvez|je veux|je voudrais|j'aimerais|j'ai besoin de|dis-moi|dis moi|hey|j'ai|je dois`,
-    add: r`ajoute*|ajouter|rajoute*|cree|creer|cree-moi|mets|mettre|mets-moi|noter|inscris|inscrire|programme|programmer|planifie|planifier|reserve*|fixe|fixer|nouveau|nouvelle|rappelle-moi de|rappelle-moi|rappelle moi`,
+    add: r`ajoute*|ajouter|rajoute*|cree|creer|cree-moi|mets|mettre|mets-moi|noter|inscris|inscrire|programme|programmer|planifie|planifier|reserve*|fixe|fixer|nouveau|nouvelle|nouvel|rappelle-moi de|rappelle-moi|rappelle moi`,
     del: r`supprime*|efface*|enleve*|retire*|annule*|elimine*|ote|vire`,
     move: r`deplace*|decale*|repousse*|reporte*|reprogramme*|avance*|change(?:r)? (?:l'|la |le )?(?:heure|jour|date)|modifie(?:r)? (?:l'|la |le )?(?:heure|jour|date)`,
     done: r`j'ai fini|j'ai termine|j'ai fait|j'ai complete|c'est fait|c'est termine|fini|termine|marque(?:r)? (?:comme )?(?:fait|termine|finie?|accompli)\p{L}*|coche*|valide*`,

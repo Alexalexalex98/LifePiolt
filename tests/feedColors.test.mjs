@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { contrast } from '../src/lib/a11y.ts';
-import { DARK_PALETTES, LIGHT_PALETTES, paletteFor, heroPaletteFor, seedHash, textCardFontSize, artShapes } from '../src/components/feed/feedColors.ts';
+import { contrast, over } from '../src/lib/a11y.ts';
+import { DARK_PALETTES, LIGHT_PALETTES, paletteFor, heroPaletteFor, seedHash, textCardFontSize, artShapes, GLOW_PEAK_MAX } from '../src/components/feed/feedColors.ts';
 
 const mix = (a, b) => '#' + [1, 3, 5].map((i) => Math.round((parseInt(a.slice(i, i + 2), 16) + parseInt(b.slice(i, i + 2), 16)) / 2).toString(16).padStart(2, '0')).join('');
 
@@ -15,6 +15,15 @@ for (const [name, list] of [['scuro', DARK_PALETTES], ['chiaro', LIGHT_PALETTES]
     }
   });
 }
+
+test('aloni decorativi: anche con due aloni sovrapposti il testo resta >= 4.5:1 (scuro: aloni bianchi sullo sfondo)', () => {
+  const glow = '#ffffff' + Math.round(GLOW_PEAK_MAX * 2 * 255).toString(16).padStart(2, '0');
+  for (const p of DARK_PALETTES) for (const bg of [p.from, p.to, mix(p.from, p.to)]) {
+    assert.ok(contrast(p.text, over(glow, bg)) >= 4.5, `${p.name} testo su ${bg} con alone`);
+    assert.ok(contrast(p.sub, over(glow, bg)) >= 4.5, `${p.name} sub su ${bg} con alone`);
+  }
+  for (let i = 0; i < 100; i++) for (const sh of artShapes('s' + i)) assert.ok(sh.o <= GLOW_PEAK_MAX + 1e-9);
+});
 
 test('alto contrasto: testo puro e contrasto >= 7:1', () => {
   for (const tone of ['dark', 'light']) {

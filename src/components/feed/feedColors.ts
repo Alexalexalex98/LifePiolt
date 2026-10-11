@@ -15,14 +15,14 @@ export function seedHash(s: string): number {
 
 /** Tema scuro: gradienti profondi e ricchi, testo bianco. */
 export const DARK_PALETTES: FeedPalette[] = [
-  { name: 'indaco', from: '#3b3f9e', to: '#1a1d52', text: '#ffffff', sub: '#e1e4ff' },
-  { name: 'viola', from: '#5b3a9e', to: '#2a1760', text: '#ffffff', sub: '#e9e0ff' },
-  { name: 'prugna', from: '#8a2f5e', to: '#3f1534', text: '#ffffff', sub: '#ffe1ee' },
-  { name: 'oceano', from: '#1f6f86', to: '#0e3446', text: '#ffffff', sub: '#d8f2fa' },
-  { name: 'cobalto', from: '#2f56b8', to: '#16275e', text: '#ffffff', sub: '#dde6ff' },
-  { name: 'rame', from: '#9a4f1e', to: '#4a230c', text: '#ffffff', sub: '#ffe8d6' },
-  { name: 'pino', from: '#1f6a57', to: '#0f3a35', text: '#ffffff', sub: '#d9f5ec' },
-  { name: 'ardesia', from: '#4a4f7a', to: '#22243f', text: '#ffffff', sub: '#e4e6fa' },
+  { name: 'indaco', from: '#34378c', to: '#1a1d52', text: '#ffffff', sub: '#e1e4ff' },
+  { name: 'viola', from: '#4e3188', to: '#2a1760', text: '#ffffff', sub: '#e9e0ff' },
+  { name: 'prugna', from: '#7a2954', to: '#3f1534', text: '#ffffff', sub: '#ffe1ee' },
+  { name: 'oceano', from: '#13495b', to: '#0e3446', text: '#ffffff', sub: '#d8f2fa' },
+  { name: 'cobalto', from: '#213f87', to: '#16275e', text: '#ffffff', sub: '#dde6ff' },
+  { name: 'rame', from: '#733a16', to: '#4a230c', text: '#ffffff', sub: '#ffe8d6' },
+  { name: 'carminio', from: '#6e2030', to: '#3a0f18', text: '#ffffff', sub: '#ffe2e7' },
+  { name: 'ardesia', from: '#383c5e', to: '#22243f', text: '#ffffff', sub: '#e4e6fa' },
 ];
 
 /** Tema chiaro: pastelli morbidi, testo quasi nero. */
@@ -61,9 +61,12 @@ export function textCardFontSize(len: number): number {
   return 17;
 }
 
+/** Opacità massima di un alone: due aloni sovrapposti (0.18) devono ancora lasciare il testo a >= 4.5:1 (vedi test). */
+export const GLOW_PEAK_MAX = 0.09;
+
 /** Forme morbide (cerchi traslucidi) per i segnaposto foto: deterministiche, in coordinate 0..1. */
 export function artShapes(seed: string): { cx: number; cy: number; r: number; o: number }[] {
   let h = seedHash(seed + 'art');
   const next = () => { h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0; h = Math.imul(h ^ (h >>> 12), 0x297a2d39) >>> 0; return ((h ^ (h >>> 15)) >>> 0) / 4294967296; };
-  return [0, 1, 2].map((i) => ({ cx: 0.15 + next() * 0.7, cy: 0.15 + next() * 0.7, r: 0.22 + next() * 0.3 - i * 0.03, o: 0.1 + next() * 0.12 }));
+  return [0, 1, 2].map((i) => ({ cx: 0.15 + next() * 0.7, cy: 0.15 + next() * 0.7, r: 0.22 + next() * 0.3 - i * 0.03, o: 0.05 + next() * (GLOW_PEAK_MAX - 0.05) }));
 }

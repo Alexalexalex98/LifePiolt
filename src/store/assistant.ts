@@ -4,10 +4,13 @@ import { uid } from '@/lib/format';
 import { t } from '@/i18n/core';
 import { norm, topicOf } from '@/lib/assistant/nlp';
 import { useLife } from './life';
+import type { TheiaExt } from '@/lib/assistant/theiaExt';
 import { persisted } from './persist';
 
 export const GENERALE = 'Generale';
-export type AMsg = { id: string; who: 'me' | 'ai'; text: string; ts: number; topic: string; chips?: string[]; source?: 'chat' | 'theia'; image?: string };
+export type AMsg = { id: string; who: 'me' | 'ai'; text: string; ts: number; topic: string; chips?: string[]; source?: 'chat' | 'theia'; image?: string;
+  /** immagini allegate, provider della risposta, azioni (riprova, conferma...): vedi theiaExt.ts */
+  ext?: TheiaExt };
 
 type AState = {
   /** UN'unica conversazione con tutto quello che ci si è detti; le sezioni mostrano solo i pezzi con lo stesso argomento. */
@@ -16,6 +19,7 @@ type AState = {
   current: string;
   push: (m: Omit<AMsg, 'id' | 'ts' | 'topic'> & { topic?: string }) => AMsg;
   setChips: (id: string, chips: string[] | undefined) => void;
+  patchMsg: (id: string, p: Partial<AMsg>) => void;
   delMsg: (id: string) => void;
   clearTopic: (topic: string) => void;
   reset: () => void;
@@ -64,6 +68,7 @@ export const useAssistant = create<AState>()(
       set({ log: [...st.log.slice(-1999), msg], current: topic });
       return msg;
     },
+    patchMsg: (id, p) => set((s) => ({ log: s.log.map((x) => (x.id === id ? { ...x, ...p } : x)) })),
     setChips: (id, chips) => set((s) => ({ log: s.log.map((x) => (x.id === id ? { ...x, chips } : x)) })),
     delMsg: (id) => set((s) => ({ log: s.log.filter((x) => x.id !== id) })),
     clearTopic: (topic) => set((s) => ({ log: s.log.filter((x) => x.topic !== topic) })),

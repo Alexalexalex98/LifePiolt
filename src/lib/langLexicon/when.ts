@@ -57,7 +57,7 @@ function clockFrom(lex: LexData, g: Record<string, string | undefined>, hint: Hi
 }
 
 /** Estrae data/ora/durata/ricorrenza da un testo piegato `f0` e lo restituisce con quelle parti sostituite da spazi. */
-export function extractWhen(lex: LexData, f0: string): { when: WhenOut; f: string } {
+export function extractWhen(lex: LexData, f0: string, protect: [number, number][] = []): { when: WhenOut; f: string } {
   let f = f0;
   const w: WhenOut = { spans: [], any: false };
   const take = (m: RegExpExecArray | null) => {
@@ -101,10 +101,10 @@ export function extractWhen(lex: LexData, f0: string): { when: WhenOut; f: strin
   // 3) durata (prima degli orari: "2h" è una durata se c'è «per/pendant/für...»)
   {
     const m = first(lex.dur);
-    if (m && m.groups?.n !== undefined) {
-      const n = numOf(lex, m.groups.n);
+    if (m && (m.groups?.n !== undefined || m.groups?.dual !== undefined)) {
+      const n = m.groups?.dual !== undefined ? 2 : numOf(lex, m.groups?.n);
       if (n != null && n > 0) {
-        const isMin = rx(lex, lex.unitMin).test(m.groups.u ?? '');
+        const isMin = rx(lex, lex.unitMin).test(m.groups?.u ?? m.groups?.dual ?? '');
         w.dur = isMin ? `${n} minute${n === 1 ? '' : 's'}` : `${n} hour${n === 1 ? '' : 's'}`;
         take(m);
       }
@@ -161,11 +161,14 @@ export function extractWhen(lex: LexData, f0: string): { when: WhenOut; f: strin
   }
   // 6) fascia (dopo aver tolto gli orari, per non mangiarne le parole)
   if (hint0) {
-    w.hint = hint0;
     for (const [src, h] of [[lex.hintEvening, 'evening'], [lex.hintAfternoon, 'afternoon'], [lex.hintMorning, 'morning']] as const) {
       if (h !== hint0) continue;
       const m = rx(lex, src).exec(f);
-      if (m) { w.spans.push([m.index, m.index + m[0].length]); f = blank(f, m.index, m.index + m[0].length); w.any = true; }
+      if (m) {
+        const a = m.index, b = m.index + m[0].length;
+        if (protect.some(([x, y]) => a < y && x < b)) continue; // fa parte del nome di un impegno
+        w.hint = hint0; w.spans.push([a, b]); f = blank(f, a, b); w.any = true;
+      } else w.hint = hint0;
     }
   }
   return { when: w, f };

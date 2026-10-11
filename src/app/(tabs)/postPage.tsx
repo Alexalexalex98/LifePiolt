@@ -108,7 +108,7 @@ export default function PostPage() {
         </View>
       </ScrollView>
 
-      <View style={{ marginHorizontal: -16, paddingHorizontal: 14, paddingVertical: 8, paddingEnd: 70, borderTopWidth: 1, borderTopColor: t.item, backgroundColor: t.bg, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: -8 }}>
+      <View style={{ marginHorizontal: -16, paddingStart: 14, paddingEnd: 70, paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.item, backgroundColor: t.bg, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: -8 }}>
         <UserAvatar name={me} size={32} />
         <TextInput ref={input as never} value={text} onChangeText={setText} placeholder="Scrivi un commento…" placeholderTextColor={t.muted} accessibilityLabel={translateText('Scrivi un commento…')} returnKeyType="send" onSubmitEditing={send} style={{ flex: 1, minHeight: 44, borderRadius: 999, backgroundColor: t.input, borderWidth: 1, borderColor: t.inputBorder, color: t.text, fontSize: 15.5, paddingHorizontal: 16, paddingVertical: 8, outlineStyle: 'none' } as never} />
         <Pressable onPress={send} accessibilityRole="button" accessibilityLabel={translateText('Commenta')} accessibilityState={{ disabled: !canSend }} style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: canSend ? t.text : t.chip }}>

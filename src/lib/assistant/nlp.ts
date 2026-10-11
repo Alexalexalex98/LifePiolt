@@ -186,7 +186,11 @@ export function extractTitle(raw: string, spans: Span[], extraStrip?: RegExp): s
 /** Somiglianza fra una frase e il titolo di un task/impegno (parole in comune, 0..1). */
 export function similarity(query: string, title: string): number {
   const stop = new Set(['il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'una', 'di', 'da', 'a', 'in', 'con', 'per', 'del', 'della', 'e', 'al', 'alla', 'task', 'impegno', 'evento', 'riunione', 'the', 'an', 'of', 'to', 'with', 'for', 'and', 'at', 'on', 'meeting', 'event', 'my']);
-  const toks = (x: string) => norm(x).replace(/[^a-z0-9' ]/g, ' ').split(' ').filter((w) => w.length > 1 && !stop.has(w));
+  // Unicode: cirillico, arabo, devanagari, cinese... (prima solo a-z, e i titoli non latini non si trovavano mai)
+  const toks = (x: string) => norm(x).replace(/[^\p{L}\p{N}' ]/gu, ' ').split(' ').filter((w) => w.length > 1 && !stop.has(w));
+  // scritture senza spazi (cinese, giapponese): contenimento reciproco
+  const nq = norm(query), nt = norm(title);
+  if (/[\u3040-\u30ff\u3400-\u9fff]/.test(nq + nt) && Math.min(nq.length, nt.length) >= 2 && (nq.includes(nt) || nt.includes(nq))) return 0.9;
   const q = toks(query), t = toks(title);
   if (!q.length || !t.length) return 0;
   const hit = q.filter((w) => t.some((x) => x === w || (w.length > 3 && x.startsWith(w.slice(0, 4))) || (x.length > 3 && w.startsWith(x.slice(0, 4))))).length;

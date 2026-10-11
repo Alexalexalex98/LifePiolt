@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, View, type LayoutChangeEvent } from 'react-native';
+import { Animated, Easing, Pressable, ScrollView, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 
 import { UserAvatar } from '@/components/network';
@@ -15,6 +15,7 @@ import { NATIVE, PressScale } from './parts';
 export function NetHeader({ balance, query, onQuery, placeholder }: { balance: number; query: string; onQuery: (v: string) => void; placeholder: string }) {
   const t = useTheme();
   const reduce = useReduceMotion();
+  const narrow = useWindowDimensions().width < 360;
   const [open, setOpen] = useState(false);
   const a = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -35,10 +36,10 @@ export function NetHeader({ balance, query, onQuery, placeholder }: { balance: n
   }
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, gap: 8 }}>
-      <Text accessibilityRole="header" numberOfLines={1} style={{ color: t.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6, flexShrink: 1 }}>LifeNetwork</Text>
+      <Text accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ color: t.text, fontSize: narrow ? 23 : 28, fontWeight: '800', letterSpacing: -0.6, flexShrink: 1 }}>LifeNetwork</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={translateText('Cerca persone su LifeNetwork…')} style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}><Icon name="search" size={23} color={t.text} stroke={2} /></Pressable>
-        <PressScale onPress={() => go('lifepointsPage')} label={`${translateText('Il tuo saldo')}: ${formatCHF(balance)} LifePoints`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 13, borderRadius: 999, backgroundColor: t.chip }}>
+        <PressScale onPress={() => go('lifepointsPage')} label={`${translateText('Il tuo saldo')}: ${formatCHF(balance)} LifePoints`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: narrow ? 10 : 13, borderRadius: 999, backgroundColor: t.chip }}>
           <Icon name="coin" size={18} color={t.accent} stroke={1.9} />
           <Text style={{ color: t.text, fontSize: 15, fontWeight: '800' }}>{formatCHF(balance)}</Text>
         </PressScale>
@@ -66,7 +67,8 @@ export function NetTabs({ tabs, value, onChange }: { tabs: { key: string; label:
     ]).start();
     sv.current?.scrollTo({ x: Math.max(0, p.x - 40), animated: !reduce });
   };
-  useEffect(() => { move(value); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [value]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { move(value); }, [value]);
   const onLay = (k: string) => (e: LayoutChangeEvent) => {
     const { x: lx, width } = e.nativeEvent.layout;
     pos[k] = { x: lx, w: width };
@@ -94,13 +96,14 @@ export function NetTabs({ tabs, value, onChange }: { tabs: { key: string; label:
 /** Riga "Cosa vuoi condividere?" con avatar, in stile compositore. Il tocco apre il compositore esistente. */
 export function Composer({ me, onPress, onPhoto }: { me: string; onPress: () => void; onPhoto?: () => void }) {
   const t = useTheme();
+  const narrow = useWindowDimensions().width < 340;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 }}>
       <UserAvatar name={me} size={38} />
       <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={translateText('Cosa vuoi condividere?')} style={({ pressed }) => ({ flex: 1, minHeight: 44, borderRadius: 999, borderWidth: 1, borderColor: t.border, backgroundColor: t.cardAlt, justifyContent: 'center', paddingHorizontal: 16, opacity: pressed ? 0.7 : 1 })}>
         <Text numberOfLines={1} style={{ color: t.muted, fontSize: 15 }}>Cosa vuoi condividere?</Text>
       </Pressable>
-      <Pressable onPress={onPhoto ?? onPress} accessibilityRole="button" accessibilityLabel={translateText('Nuovo post')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="image" size={24} color={t.accent} stroke={1.9} /></Pressable>
+      {!narrow && <Pressable onPress={onPhoto ?? onPress} accessibilityRole="button" accessibilityLabel={translateText('Nuovo post')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="image" size={24} color={t.accent} stroke={1.9} /></Pressable>}
     </View>
   );
 }

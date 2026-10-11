@@ -46,7 +46,7 @@ export function rx(lex: LexData, src: string, bounded = true): RegExp {
     .replace(/\u0004/g, '\\p{L}').replace(/\u0001/g, c.numRe)
     .replace(/\u0002/g, groups('w', lex.weekdays, lex))
     .replace(/\u0003/g, groups('mo', lex.months, lex));
-  if (lex.spaced && bounded) out = `(?<!${WORD})(?:${out})(?!${WORD})`;
+  if (lex.spaced && bounded) out = `(?<!${WORD})${lex.script === 'arabic' ? '(?:ال|بال|لل|وال|فال|كال|و)?' : ''}(?:${out})(?!${WORD})`;
   const re = new RegExp(out, 'u');
   c.cache.set(key, re);
   return re;

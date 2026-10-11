@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Animated, Easing, Platform, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { Text } from '@/components/T';
 
 import { UserAvatar } from '@/components/network';
@@ -9,7 +10,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Icon } from '@/lib/icons';
 import { useApp } from '@/store/app';
 import { translateText } from '@/i18n/core';
-import { artShapes, heroPaletteFor, paletteFor, textCardFontSize, type FeedPalette } from './feedColors.ts';
+import { artShapes, paletteFor, seedHash, textCardFontSize, type FeedPalette } from './feedColors.ts';
 
 export const NATIVE = Platform.OS !== 'web';
 /** Raggio unico di tutte le carte del feed (carte speciali, pillole, badge): coerente con radius.lg del tema. */
@@ -67,28 +68,39 @@ export function RingAvatar({ name, size = 40 }: { name: string; size?: number })
   );
 }
 
-/** Aloni morbidi (cerchi concentrici molto traslucidi, deterministici) sopra un gradiente: danno profondità senza immagini. */
-export function ArtShapes({ seed, size }: { seed: string; size: number }) {
+/** Aloni morbidi (gradienti radiali traslucidi, deterministici) sopra un gradiente: danno profondità senza immagini. Un solo SVG per carta. */
+export function ArtShapes({ seed }: { seed: string; size?: number }) {
+  const h = seedHash(seed);
+  const shapes = artShapes(seed);
   return (
     <View pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, end: 0, bottom: 0, overflow: 'hidden' }}>
-      {artShapes(seed).map((s, i) => [1, 0.8, 0.6, 0.4, 0.22].map((k, j) => {
-        const r = s.r * size * 1.15 * k;
-        return <View key={`${i}-${j}`} style={{ position: 'absolute', start: s.cx * size - r, top: s.cy * size - r, width: r * 2, height: r * 2, borderRadius: r, backgroundColor: '#ffffff', opacity: s.o * 0.32 }} />;
-      }))}
+      <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <Defs>
+          {shapes.map((s, i) => (
+            <RadialGradient key={i} id={`ag${h}-${i}`} cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor="#ffffff" stopOpacity={s.o} />
+              <Stop offset="1" stopColor="#ffffff" stopOpacity={0} />
+            </RadialGradient>
+          ))}
+        </Defs>
+        {shapes.map((s, i) => <Circle key={i} cx={s.cx * 100} cy={s.cy * 100} r={s.r * 150} fill={`url(#ag${h}-${i})`} />)}
+      </Svg>
     </View>
   );
 }
 
 /** Segnaposto foto/video: gradiente + forme morbide, con play per i video. */
 export function ArtPlaceholder({ seed, width, height, video }: { seed: string; width: number; height: number; video?: boolean }) {
-  const p = heroPaletteFor(seed);
+  const { tone, hc } = useFeedTone();
+  const p = paletteFor(seed + 'foto', tone, hc);
+  const ink = tone === 'light' ? '16,21,29' : '255,255,255';
   return (
     <LinearGradient colors={[p.from, p.to]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={{ width, height, alignItems: 'center', justifyContent: 'center' }}>
       <ArtShapes seed={seed} size={width} />
       {video ? (
-        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(0,0,0,0.38)', alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={28} color="#fff" fill="#fff" /></View>
+        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(0,0,0,0.42)', alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={28} color="#fff" fill="#fff" /></View>
       ) : (
-        <Icon name="image" size={34} color="rgba(255,255,255,0.55)" stroke={1.5} />
+        <Icon name="image" size={34} color={`rgba(${ink},0.6)`} stroke={1.5} />
       )}
     </LinearGradient>
   );

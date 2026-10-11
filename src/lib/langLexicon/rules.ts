@@ -65,7 +65,7 @@ export function hitsOf(lex: LexData, f: string): { h: Partial<Record<Concept, Sp
   return { h, page, mood, personSpan };
 }
 
-const EDGE_PUNCT = /^[\s,.;:!?¿¡،؛؟。、，！？\-–—]+|[\s,.;:!?¿¡،؛؟。、，！？\-–—]+$/gu;
+const EDGE_PUNCT = /^[\s,.;:!?¿¡،؛؟。、，！？：；\-–—]+|[\s,.;:!?¿¡،؛؟。、，！？：；\-–—]+$/gu;
 
 /** Ritaglia dal testo ORIGINALE [a,b) del piatto togliendo `cut` e le parole funzionali ai bordi. */
 export function titleOf(c: Pick<Ctx, 'lex' | 'fd'>, cut: Span[], a = 0, b?: number): string {
@@ -124,14 +124,14 @@ export const RULES: Rule[] = [
   { intent: 'keepboth', w: 10, ok: (c) => has(c, 'keepboth'), strip: [], build: () => 'keep both' },
   { intent: 'hello', w: 8, ok: (c) => has(c, 'hello'), strip: [], build: () => 'hello' },
   { intent: 'thanks', w: 8, ok: (c) => has(c, 'thanks'), strip: [], build: () => 'thanks' },
-  { intent: 'open', w: 7, ok: (c) => !!c.page && any(c, 'open') && !any(c, 'add', 'del') && !c.w.day, strip: [], build: (c) => `open ${PAGE_EN[c.page!]}` },
+  { intent: 'open', w: 7, ok: (c) => !!c.page && any(c, 'open') && !any(c, 'add', 'del') && !c.w.day && !(c.h.notif && c.h.on) && !c.h.dark && !c.h.light, strip: [], build: (c) => `open ${PAGE_EN[c.page!]}` },
   { intent: 'resched', w: 7, ok: (c) => has(c, 'resched'), strip: [], build: () => 'reschedule my skipped sessions' },
   { intent: 'event.recurring', w: 7, ok: (c) => !!c.w.recur && !any(c, 'del', 'show', 'done', 'task'), strip: ['add', 'cal', 'plan'], needsTitle: true, free: true, build: (c, t) => sp(c.w.recur, c.w.start ? (c.w.start === 'midnight' ? 'at midnight' : `at ${c.w.start}`) : '', c.w.dur ? `for ${c.w.dur}` : '', qt(t)) },
   { intent: 'profile.photo', w: 6, ok: (c) => has(c, 'profile', 'photo'), strip: [], build: () => 'change my profile photo' },
   { intent: 'profile.private', w: 6, ok: (c) => has(c, 'profile', 'priv'), strip: [], build: () => 'make my profile private' },
   { intent: 'profile.public', w: 6, ok: (c) => has(c, 'profile', 'pub'), strip: [], build: () => 'make my profile public' },
   { intent: 'briefing', w: 6, ok: (c) => has(c, 'briefing'), strip: [], build: () => 'daily summary' },
-  { intent: 'plan.fill', w: 6, ok: (c) => has(c, 'plan') && (any(c, 'month', 'week', 'dayN') || (!!c.w.day && ['today', 'tomorrow', 'this week', 'next week'].includes(c.w.day) && c.words <= 1)) && !any(c, 'task', 'del', 'event') && !c.w.start, strip: [], build: (c) => `plan my ${c.h.month ? 'month' : c.h.week || c.w.day?.endsWith('week') ? 'week' : c.w.day === 'tomorrow' ? 'tomorrow' : c.w.day === 'today' ? 'day' : 'day'}`.replace('plan my tomorrow', 'plan tomorrow') },
+  { intent: 'plan.fill', w: 6, ok: (c) => has(c, 'plan') && (any(c, 'month', 'week', 'dayN') || (!!c.w.day && ['today', 'tomorrow', 'this week', 'next week'].includes(c.w.day) && c.words <= 1)) && !any(c, 'task', 'del', 'event', 'show', 'qHave') && !c.w.start, strip: [], build: (c) => `plan my ${c.h.month ? 'month' : c.h.week || c.w.day?.endsWith('week') ? 'week' : c.w.day === 'tomorrow' ? 'tomorrow' : c.w.day === 'today' ? 'day' : 'day'}`.replace('plan my tomorrow', 'plan tomorrow') },
   { intent: 'task.next', w: 5, ok: (c) => has(c, 'nowQ'), strip: [], build: () => 'what should I do now?' },
   { intent: 'task.urgent', w: 5, ok: (c) => has(c, 'urgent') && !any(c, 'add', 'del'), strip: ['urgent', 'mark', 'task'], needsTitle: true, free: true, build: (_c, t) => `mark ${qt(t)} as urgent` },
   { intent: 'event.important', w: 5, ok: (c) => has(c, 'important') && any(c, 'mark', 'add') && !any(c, 'task'), strip: ['important', 'mark', 'event'], needsTitle: true, free: true, build: (_c, t) => `mark ${qt(t)} as important` },
@@ -144,7 +144,7 @@ export const RULES: Rule[] = [
   { intent: 'health.report', w: 4, ok: (c) => has(c, 'health') && !any(c, 'open', 'add', 'del', 'task', 'event'), strip: [], build: () => 'health summary' },
   { intent: 'agenda.share', w: 4, ok: (c) => has(c, 'share') && any(c, 'cal', 'free'), strip: [], build: (c) => sp('share my agenda', c.person ? `with ${c.person}` : '', c.w.day === 'today' || c.w.day === 'tomorrow' ? c.w.day : '') },
   { intent: 'agenda.free', w: 4, ok: (c) => has(c, 'free') && !any(c, 'add', 'del', 'share'), strip: [], build: (c) => sp('when am I free', at(c)) + '?' },
-  { intent: 'event.move', w: 4, ok: (c) => has(c, 'move') && !any(c, 'task'), strip: ['move', 'event', 'cal'], needsTitle: true, free: true, build: (c, t) => sp('move', qt(t), 'to', at(c)) },
+  { intent: 'event.move', w: 4, ok: (c) => has(c, 'move') && !any(c, 'task'), strip: ['move', 'cal'], needsTitle: true, free: true, build: (c, t) => sp('move', qt(t), 'to', at(c)) },
   { intent: 'event.rename', w: 4.2, ok: (c) => has(c, 'rename') && !any(c, 'task') && !!c.rn, strip: [], free: true, build: (c) => `rename meeting ${qt(c.rn!.old)} to ${qt(c.rn!.neu)}` },
   { intent: 'event.delete', w: 4, ok: (c) => has(c, 'del') && any(c, 'event', 'cal') && !any(c, 'task'), strip: ['del', 'cal'], needsTitle: true, free: true, build: (_c, t) => `delete ${qt(t)} from my plan` },
   { intent: 'task.done', w: 4, ok: (c) => has(c, 'done') && !any(c, 'add'), strip: ['done', 'task'], needsTitle: true, free: true, build: (_c, t) => `I finished ${qt(t)}` },
@@ -164,6 +164,7 @@ export const RULES: Rule[] = [
   { intent: 'task.add', w: 3, ok: (c) => has(c, 'add', 'task'), strip: ['add', 'task', 'cal', 'plan', 'due'], needsTitle: true, free: true, build: (c, t) => sp('add task', qt(t), c.w.day ? `by ${c.w.day}` : '') },
   { intent: 'event.add', w: 3, ok: (c) => (has(c, 'add') && any(c, 'cal', 'event')) || (has(c, 'add') && (!!c.w.day || !!c.w.start) && !any(c, 'task', 'note', 'goal')), strip: ['add', 'cal', 'plan', 'write'], free: true, build: (c, t) => sp('add', t ? qt(t) : 'event', 'to my plan', at(c)) },
   { intent: 'event.add', w: 2.5, ok: (c) => has(c, 'event') && (!!c.w.day || !!c.w.start) && !any(c, 'add', 'del', 'move', 'show', 'qHave', 'qWhen', 'task', 'done'), strip: ['cal', 'plan'], free: true, weak: false, build: (c, t) => sp('add', t ? qt(t) : 'event', 'to my plan', at(c)) },
+  { intent: 'event.add.weak', w: 1.5, ok: (c) => (!!c.w.day || !!c.w.start) && !Object.keys(c.h).some((k) => k !== 'polite' && !k.startsWith('page:')), strip: ['cal', 'plan'], needsTitle: true, free: true, weak: true, build: (c, t) => sp('add', qt(t), 'to my plan', at(c)) },
   { intent: 'open.weak', w: 1, ok: (c) => !!c.page && c.words <= 1 && !any(c, 'add', 'del'), strip: [], weak: true, build: (c) => `open ${PAGE_EN[c.page!]}` },
 ];
 

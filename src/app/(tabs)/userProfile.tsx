@@ -50,12 +50,15 @@ export default function UserProfile() {
   const fol = net.following.includes(name);
   const others = net.suggested.filter((n) => n !== name);
   const tab = net.prefs.upTab;
-  const authorPosts = net.posts.filter((p) => p.author === name);
+  const authorPosts = [
+    ...net.posts.filter((p) => p.author === name).map((p) => ({ key: 'standalone:' + p.id, id: 's' + p.id, author: p.author, text: p.text, media: p.media, uri: p.uri })),
+    ...net.communities.flatMap((c) => c.posts.map((p, pi) => ({ key: `community:${c.id}:${pi}`, id: `c${c.id}:${pi}`, author: p.author, text: p.text, media: p.media ?? null, uri: p.uri })).filter((p) => p.author === name)),
+  ];
   const filtered = tab === 'Post' ? authorPosts : tab === 'Foto' ? authorPosts.filter((p) => p.media === 'photo') : authorPosts.filter((p) => p.media === 'video');
 
   const win = useWindowDimensions().width;
   const hc = useApp((s) => s.accessibility.highContrast);
-  const postCount = authorPosts.length + net.communities.reduce((n, c) => n + c.posts.filter((p) => p.author === name).length, 0);
+  const postCount = authorPosts.length;
   const followingCount = isMe ? net.following.length : demo ? 40 + (Math.abs(hashStr(name + 'seguiti')) % 220) : 0;
   const cell = Math.floor((win - 2) / 3);
   const tabs: { key: string; label: string; icon: string }[] = [{ key: 'Post', label: 'Post', icon: 'grid' }, { key: 'Foto', label: 'Foto', icon: 'image' }, { key: 'Video', label: 'Video', icon: 'video' }, { key: 'Idee', label: 'Idee', icon: 'sparkle' }];
@@ -66,7 +69,7 @@ export default function UserProfile() {
     </Pressable>
   );
   const thumb = (p: (typeof authorPosts)[number]) => {
-    const key = 'standalone:' + p.id;
+    const key = p.key;
     const pal = paletteFor(p.author + p.text, t.mode === 'light' ? 'light' : 'dark', hc);
     return (
       <Pressable key={p.id} onPress={() => go('postPage', { key })} accessibilityRole="button" accessibilityLabel={p.text} style={{ width: cell, height: cell, overflow: 'hidden' }}>

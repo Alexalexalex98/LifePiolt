@@ -37,7 +37,7 @@ export const es: LexData = {
   hintMorning: 'por la manana|de la manana|en la manana|a la manana|esta manana', hintAfternoon: 'por la tarde|de la tarde|en la tarde|esta tarde', hintEvening: 'por la noche|de la noche|en la noche|esta noche',
   c: {
     polite: 'por favor|porfa|puedes|podrias|podria|quiero|quisiera|me gustaria|necesito|ayudame a|oye|hey|dime|vamos a',
-    add: 'agrega*|anade*|anadir|anota*|apunta*|crea|crear|crea me|pon|ponme|poner|mete|inserta*|programa|programar|agendar|reserva*|incluye*|apunt[ae]me|recuerdame',
+    add: 'nuev[oa]|agrega*|anade*|anadir|anota*|apunta*|crea|crear|crea me|pon|ponme|poner|mete|inserta*|programa|programar|agendar|reserva*|incluye*|apunt[ae]me|recuerdame',
     del: 'elimina*|borra*|quita*|cancela*|suprime*|retira*|saca*|descarta*',
     move: 'mueve*|mover|muevelo|reprograma*|aplaza*|pospon*|posponer|adelanta*|traslada*|cambia(?:r)? (?:la |el )?(?:hora|dia|fecha|horario)|pasa(?:r)? (?:la|el)',
     done: 'termine|he terminado|he acabado|acabe|complete|he completado|completa|completado|hecho|marca(?:r)? (?:como )?(?:hech[oa]|complet\\p{L}+|terminad[oa])|tacha*|ya hice|ya termine|ya lo hice|ya esta hecho',

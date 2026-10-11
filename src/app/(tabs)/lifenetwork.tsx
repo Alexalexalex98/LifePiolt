@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/T';
 
@@ -58,12 +58,12 @@ export default function LifeNetwork() {
   const hydrated = useHydrated();
   // oggetti post stabili tra un render e l'altro: FeedPost è memoizzato e non si ridisegna senza motivo
   const stable = useRef(new Map<string, FeedPostData>()).current;
-  const keep = (id: string, p: FeedPostData): FeedPostData => {
+  const keep = useCallback((id: string, p: FeedPostData): FeedPostData => {
     const old = stable.get(id);
     if (old && (Object.keys(p) as (keyof FeedPostData)[]).every((k) => old[k] === p[k])) return old;
     stable.set(id, p);
     return p;
-  };
+  }, [stable]);
 
   // i messaggi si aprono dall'icona in alto: qui restano solo queste schede
   const tabs = ['Home', 'Lavoro', 'Community', 'Idee', 'Marketplace'];
@@ -91,8 +91,7 @@ export default function LifeNetwork() {
       const a = it.k === 'post' ? it.post.author : it.k === 'idea' ? it.idea.author : null;
       return a && followingList.includes(a);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [communities, posts, ideas, seminars, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible]);
+  }, [communities, posts, ideas, seminars, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep]);
 
   const data = useMemo<Item[]>(() => {
     if (curTab === 'Home') return feedItems.length ? feedItems : [{ k: 'empty', id: 'empty', text: '' }];
@@ -110,7 +109,6 @@ export default function LifeNetwork() {
       ? (providers.length ? providers.map((p): Item => ({ k: 'service', id: 'p' + p.name, p })) : [{ k: 'empty', id: 'empty', text: 'Ancora nessun professionista in elenco.' }])
       : (sorted.length ? sorted.map((s): Item => ({ k: 'seminar', id: 'm' + s.id, s })) : [{ k: 'empty', id: 'empty', text: 'Nessun seminario ancora.' }]);
     return [{ k: 'tools', id: 'tools' }, ...body];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curTab, feedItems, communities, commTopic, commQ, ideas, ideaQ, seminars, providers, prefs.marketFilter, visible]);
 
   if (!verified) {

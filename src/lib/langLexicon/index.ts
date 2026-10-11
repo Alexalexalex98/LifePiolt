@@ -47,9 +47,21 @@ export function understand(text: string, lang: string, opts: UnderstandOpts = {}
     all.push([a, b]);
   }
 
-  const { when, f: f2 } = extractWhen(lex, f);
+  // le parole che fanno parte di un impegno ("makan malam" = cena) non sono una fascia oraria
+  const protect: Span[] = [];
+  for (const k of ['event', 'cal', 'task'] as Concept[]) {
+    const src = lex.c[k]; if (!src) continue;
+    const re = new RegExp(rx(lex, src).source, 'gu');
+    for (let mm = re.exec(f); mm; mm = re.exec(f)) { if (!mm[0].length) { re.lastIndex++; continue; } protect.push([mm.index, mm.index + mm[0].length]); }
+  }
+  const { when, f: f2 } = extractWhen(lex, f, protect);
   all.push(...when.spans);
   const hit = hitsOf(lex, f2);
+  // "有什么安排" / "what's planned": la parola di azione dentro la domanda non è un comando
+  const qh = hit.h.qHave;
+  if (qh) for (const k of ['add', 'plan', 'write', 'mark'] as Concept[]) { const sp = hit.h[k]; if (sp && sp[0] < qh[1] && qh[0] < sp[1]) delete hit.h[k]; }
+  // "riepilogo di oggi": la frase contiene una parola di data, che sopra è stata tolta
+  if (!hit.h.briefing && lex.c.briefing && rx(lex, lex.c.briefing).test(f)) hit.h.briefing = [0, 0];
   const spans: Span[] = [...all];
   for (const s of Object.values(hit.h)) if (s && s[1] > s[0]) spans.push(s);
 
