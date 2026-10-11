@@ -129,6 +129,41 @@ export async function scheduleWeekly(id: string, weekday: number, hour: number, 
   }
 }
 
+/**
+ * Notifica locale una tantum a data/ora esatta. Sostituisce quella con lo stesso id, ignora date passate,
+ * non chiede il permesso (lo fa il flusso dedicato) e non lancia mai. `channelKind` = id di categoria (es. 'finanza').
+ */
+export async function scheduleAt(id: string, when: Date, title: string, body: string, data?: Record<string, unknown>, channelKind?: string): Promise<NotifyResult> {
+  if (!isSupported()) return { ok: false, reason: 'unsupported', message: 'Le notifiche sono disponibili solo sull\'app installata (non in Expo Go su Android).' };
+  const at = when instanceof Date ? when.getTime() : NaN;
+  if (!Number.isFinite(at) || at <= Date.now() + 1000) return { ok: false, reason: 'error', message: 'La data è già passata.' };
+  try {
+    ensureHandler();
+    const st = await Notifications.getPermissionsAsync();
+    if (st.status !== 'granted') return { ok: false, reason: 'denied', message: 'Le notifiche non sono consentite.' };
+    await ensureKindChannels();
+    const kind = channelKind && Object.prototype.hasOwnProperty.call(KINDS, channelKind) ? (channelKind as keyof typeof KINDS) : 'promemoria';
+    await Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined);
+    await Notifications.scheduleNotificationAsync({
+      identifier: id,
+      content: { title, body, sound: true, data: { kind, ...(data ?? {}) } },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at), ...(Platform.OS === 'android' ? { channelId: KINDS[kind].channel.id } : {}) },
+    });
+    return { ok: true, message: 'Notifica programmata' };
+  } catch {
+    return { ok: false, reason: 'error', message: 'Non sono riuscito a programmare la notifica.' };
+  }
+}
+
+/** Annulla tutte le notifiche programmate il cui id inizia con `prefix`. */
+export async function cancelByPrefix(prefix: string): Promise<void> {
+  if (!isSupported() || !prefix) return;
+  try {
+    const all = await Notifications.getAllScheduledNotificationsAsync();
+    for (const n of all) if (n.identifier.startsWith(prefix)) await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => undefined);
+  } catch { /* ignore */ }
+}
+
 export async function cancel(id: string): Promise<void> {
   if (!isSupported()) return;
   try { await Notifications.cancelScheduledNotificationAsync(id); } catch { /* ignore */ }
