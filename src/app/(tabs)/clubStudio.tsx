@@ -225,7 +225,7 @@ function ContentTab({ club }: { club: Club }) {
       </Sheet>
       <Sheet visible={!!secName} title="Nuova sezione" onClose={() => setSecName(null)}>
         <Input placeholder="Nome della sezione" value={secTitle} onChangeText={setSecTitle} maxLength={60} />
-        <Btn title="Aggiungi" disabled={!secTitle.trim()} onPress={() => { st().addSection(club.id, secName!.courseId, secTitle); setSecTitle(''); setSecName(null); }} />
+        <Btn title="Aggiungi" disabled={!secTitle.trim()} onPress={() => { if (secName) st().addSection(club.id, secName.courseId, secTitle); setSecTitle(''); setSecName(null); }} />
       </Sheet>
       <LessonEditor visible={!!editor} onClose={() => setEditor(null)} sectionId={editor?.sectionId ?? ''} lesson={editor?.lesson}
         onSave={(d) => {
