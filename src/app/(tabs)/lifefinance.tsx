@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
+import { BillsSection } from '@/components/bills/BillsSection';
 import { CsvImportSheet } from '@/components/CsvImportSheet';
 import { FinanceOverview } from '@/components/FinanceOverview';
 import { confirmDelete } from '@/lib/confirm';
@@ -185,6 +186,7 @@ export default function LifeFinance() {
       )}
       {tab === 'Bollette' && (
         <>
+      <BillsSection />
       <Card>
         <Row><View style={{ flex: 1 }}><Body bold>Importa movimenti</Body><Body small muted>Da un CSV o estratto conto della tua banca</Body></View><Btn small ghost icon="plus" title="Importa CSV" onPress={() => setCsvSheet(true)} /></Row>
       </Card>

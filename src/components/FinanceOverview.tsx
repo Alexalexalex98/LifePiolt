@@ -8,6 +8,7 @@ import { Body, Btn, Card, Empty, H, Item, Press, Row, Sheet } from '@/components
 import { useInk, useTheme } from '@/hooks/use-theme';
 import { currentCurrency, fmtDate, formatMoney } from '@/i18n/format';
 import { t, translateText } from '@/i18n/core';
+import { UpcomingBillsCard } from '@/components/bills/UpcomingBillsCard';
 import { Icon } from '@/lib/icons';
 import { alertsFor } from '@/lib/budgetState';
 import { analyze, buildRecap, parseMonthLabel, rateZone, type Analysis, type MonthStat, type RecapAction } from '@/lib/financeRecap';
@@ -246,6 +247,7 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
 
   return (
     <>
+      <UpcomingBillsCard onOpen={h.onBills} />
       {/* Recap a parole */}
       <Card accent={th.accent} style={{ padding: 18 }}>
         <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="note" size={18} color={th.accent} /><H style={{ marginBottom: 0 }}>Il tuo mese in parole</H></Row>
