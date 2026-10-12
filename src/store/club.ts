@@ -5,7 +5,7 @@ import {
   DAILY_VOTE_LIMIT, advance, canRate, canVoteAnswer, cancelFree, cancelPremium, effectiveTier, follow as followM, joinFree as joinFreeM, newMembership, pausePremium, resumePremium, sanitizePricing, startPremium,
   type AnswerVote, type BillingPlan, type ChatConfig, type Club, type ClubComment, type ClubPost, type Course, type Lesson, type LessonProgress, type Level, type Membership, type MemberTier, type Section, type Viewer, type VoteCheck,
 } from '@/lib/club';
-import { SEED_CLUBS, SEED_COMMENTS } from '@/data/clubSeed';
+import { SEED_CLUBS, SEED_COMMENTS, myDemoClub, myDemoComments } from '@/data/clubSeed';
 import { persisted } from './persist';
 
 type Rating = { stars: number; text?: string; ts: number };
@@ -13,6 +13,8 @@ type Rating = { stars: number; text?: string; ts: number };
 type State = {
   /** gli esempi (club demo) sono stati caricati */
   seeded: boolean;
+  /** il LifeClub di esempio di chi usa l'app e' stato creato (una sola volta) */
+  mineSeeded?: boolean;
   clubs: Record<string, Club>;
   /** chiave `${clubId}|${utente}` */
   memberships: Record<string, Membership>;
@@ -25,6 +27,7 @@ type State = {
   ratings: Record<string, Record<string, Rating>>;
 
   seedDemo: () => void;
+  seedMine: (owner: string) => void;
   createClub: (owner: string, p: Partial<Club> & { name: string }) => string;
   patchClub: (id: string, p: Partial<Club>) => void;
   setChatConfig: (id: string, p: Partial<ChatConfig>) => void;
@@ -71,7 +74,7 @@ type State = {
   reset: () => void;
 };
 
-const initial = { seeded: false, clubs: {} as Record<string, Club>, memberships: {} as Record<string, Membership>, progress: {} as Record<string, LessonProgress>, notes: {} as Record<string, string>, comments: [] as ClubComment[], votes: [] as AnswerVote[], ratings: {} as Record<string, Record<string, Rating>> };
+const initial = { seeded: false, mineSeeded: false, clubs: {} as Record<string, Club>, memberships: {} as Record<string, Membership>, progress: {} as Record<string, LessonProgress>, notes: {} as Record<string, string>, comments: [] as ClubComment[], votes: [] as AnswerVote[], ratings: {} as Record<string, Record<string, Rating>> };
 
 export const mkey = (clubId: string, user: string) => `${clubId}|${user}`;
 export const pkey = (user: string, lessonId: string) => `${user}|${lessonId}`;
@@ -93,6 +96,12 @@ export const useClub = create<State>()(
           clubs: { ...Object.fromEntries(SEED_CLUBS.map((c) => [c.id, c])), ...s.clubs },
           comments: [...SEED_COMMENTS, ...s.comments.filter((c) => !SEED_COMMENTS.some((x) => x.id === c.id))],
         }));
+      },
+      seedMine: (owner) => {
+        if (get().mineSeeded || !owner) return;
+        if (Object.values(get().clubs).some((c) => c.owner === owner)) { set({ mineSeeded: true }); return; }
+        const club = myDemoClub(owner);
+        set((s) => ({ mineSeeded: true, clubs: { ...s.clubs, [club.id]: club }, comments: [...myDemoComments(owner), ...s.comments] }));
       },
       createClub: (owner, p) => {
         const id = `club-${uid()}`;

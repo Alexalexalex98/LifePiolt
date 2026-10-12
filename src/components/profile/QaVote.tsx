@@ -21,7 +21,7 @@ export function QaVote({ from, to, refId }: { from: string; to: string; refId: s
   if (!open) {
     return (
       <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel="Vota questa risposta" hitSlop={{ top: 10, bottom: 10, left: 6, right: 20 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
-        <Icon name="star" size={14} color={t.warn} /><Text style={{ color: t.warn, fontSize: 13, fontWeight: '700' }}>Vota la risposta</Text>
+        <Icon name="award" size={14} color={t.accent} /><Text style={{ color: t.accent, fontSize: 13, fontWeight: '700' }}>Vota la risposta</Text>
       </Pressable>
     );
   }
@@ -43,7 +43,7 @@ export function QaVote({ from, to, refId }: { from: string; to: string; refId: s
         ))}
       </View>
       <View style={{ flexDirection: 'row', gap: 6 }}>
-        {[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setStars(n)} accessibilityRole="button" accessibilityLabel={`${n} stelle`} hitSlop={6}><Icon name="star" size={26} color={t.warn} fill={n <= stars ? t.warn : 'none'} /></Pressable>)}
+        {[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setStars(n)} accessibilityRole="button" accessibilityLabel={`${n} stelle`} hitSlop={6}><Icon name="award" size={26} color={n <= stars ? t.accent : t.border} fill={n <= stars ? t.accent : 'none'} /></Pressable>)}
       </View>
       <View style={{ flexDirection: 'row', gap: 14 }}>
         <Pressable onPress={send} accessibilityRole="button" style={{ minHeight: 36, justifyContent: 'center' }}><Text style={{ color: t.accent, fontWeight: '800' }}>Invia voto</Text></Pressable>

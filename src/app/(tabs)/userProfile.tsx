@@ -1,14 +1,16 @@
 import { useLocalSearchParams } from 'expo-router';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/T';
 
 import { ModButton, UserAvatar, openSheet } from '@/components/network';
-import { ProfileClubSection } from '@/components/club/ProfileClubSection';
-import { RingAvatar } from '@/components/feed/parts';
-import { FlipCard } from '@/components/profile/CardFace';
-import { useCardFor } from '@/components/profile/cardData';
-import { BusinessSection, IdBadge, LifePointsRow, SkillsSection, StatsBar } from '@/components/profile/ProfileParts';
-import { Body, Btn, Card, Chev, Page, Row } from '@/components/ui';
+import { paletteFor } from '@/components/feed/feedColors';
+import { chunk } from '@/components/feed/feedLogic';
+import { IdeaHero } from '@/components/feed/SpecialCards';
+import { ArtPlaceholder, ArtShapes, RingAvatar } from '@/components/feed/parts';
+import { IdBadge, LifePointsRow, StatsBar } from '@/components/profile/ProfileParts';
+import { Body, Btn, Card, Chev, Empty, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { hashStr } from '@/lib/format';
 import { Icon } from '@/lib/icons';
@@ -49,12 +51,36 @@ export default function UserProfile() {
   const pills: { key: string; label: string; icon: string; n: number }[] = [
     { key: 'post', label: 'Post', icon: 'image', n: postCount },
     { key: 'idee', label: 'Idee', icon: 'sparkle', n: ideasCount },
-    ...(sellCount > 0 ? [{ key: 'servizi', label: 'Servizi e seminari', icon: 'briefcase', n: sellCount }] : []),
+    ...(sellCount > 0 ? [{ key: 'servizi', label: 'Servizi', icon: 'briefcase', n: sellCount }] : []),
     ...(isMe ? [{ key: 'contributi', label: 'Contributi', icon: 'heart', n: given }] : []),
+    { key: 'altro', label: 'Altro', icon: 'more-h', n: -1 },
   ];
-  const { design, data, qrText } = useCardFor(name);
+  const hc = useApp((s) => s.accessibility.highContrast);
+  const tab = net.prefs.upTab;
+  const authorPosts = [
+    ...net.posts.filter((p) => p.author === name).map((p) => ({ key: 'standalone:' + p.id, id: 's' + p.id, author: p.author, text: p.text, media: p.media, uri: p.uri })),
+    ...net.communities.flatMap((c) => c.posts.map((p, pi) => ({ key: `community:${c.id}:${pi}`, id: `c${c.id}:${pi}`, author: p.author, text: p.text, media: p.media ?? null, uri: p.uri })).filter((p) => p.author === name)),
+  ];
+  const filtered = tab === 'Foto' ? authorPosts.filter((p) => p.media === 'photo') : tab === 'Video' ? authorPosts.filter((p) => p.media === 'video') : authorPosts;
+  const cell = Math.floor((win - 2) / 3);
+  const tabs: { key: string; label: string; icon: string }[] = [{ key: 'Post', label: 'Post', icon: 'grid' }, { key: 'Foto', label: 'Foto', icon: 'image' }, { key: 'Video', label: 'Video', icon: 'video' }, { key: 'Idee', label: 'Idee', icon: 'sparkle' }];
+  const thumb = (p: (typeof authorPosts)[number]) => {
+    const pal = paletteFor(p.author + p.text, t.mode === 'light' ? 'light' : 'dark', hc);
+    return (
+      <Pressable key={p.id} onPress={() => go('postPage', { key: p.key })} accessibilityRole="button" accessibilityLabel={p.text} style={{ width: cell, height: cell, overflow: 'hidden' }}>
+        {p.media && p.uri ? <Image source={{ uri: p.uri }} style={{ width: cell, height: cell }} contentFit="cover" />
+          : p.media ? <ArtPlaceholder seed={p.author + p.text} width={cell} height={cell} video={p.media === 'video'} />
+          : (
+            <LinearGradient colors={[pal.from, pal.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: cell, height: cell, padding: 10, justifyContent: 'center' }}>
+              <ArtShapes seed={p.author + p.text} size={cell} />
+              <Text numberOfLines={6} style={{ color: pal.text, fontSize: 12, lineHeight: 15, fontWeight: '800' }}>{p.text}</Text>
+            </LinearGradient>
+          )}
+        {p.media === 'video' && p.uri ? <View style={{ position: 'absolute', top: 6, end: 6 }}><Icon name="video" size={16} color="#fff" /></View> : null}
+      </Pressable>
+    );
+  };
   const role = bioFor(name, me);
-  const cardW = Math.min(win - 32, 360);
 
   return (
     <Page id="userProfile" back right={!isMe ? <ModButton kind="profile" refId={name} label={`Profilo di ${name}`} author={name} /> : undefined}>
@@ -99,7 +125,7 @@ export default function UserProfile() {
           <>
             <Btn style={{ flex: 1 }} ghost={fol} title={fol ? 'Già seguito' : fromFollow ? 'Segui anche tu' : 'Segui'} onPress={() => { const f = net.toggleFollow(name); toast(f ? 'Ora segui ' + name : 'Non segui più ' + name); }} />
             <Btn style={{ flex: 1 }} ghost title="Messaggio" onPress={() => go('conversationPage', { id: useChat.getState().ensureDm(name, me) })} />
-            <Btn ghost icon="star" title="Vota" onPress={() => openSheet('vote', { name })} />
+            <Btn ghost icon="award" title="Vota" onPress={() => openSheet('vote', { name })} />
           </>
         )}
       </View>
@@ -120,31 +146,35 @@ export default function UserProfile() {
       <View style={{ marginTop: 14 }}><LifePointsRow name={name} /></View>
 
       {/* pillole di contenuto: si aprono in un elenco dedicato */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 16 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 16 }}>
         {pills.map((p) => (
-          <Pressable key={p.key} onPress={() => go('profileContent', { name, kind: p.key })} accessibilityRole="button" accessibilityLabel={`${p.label}: ${p.n}`} style={{ minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 16 }}>
+          <Pressable key={p.key} onPress={() => (p.key === 'altro' ? go('profileMore', { name }) : go('profileContent', { name, kind: p.key }))} accessibilityRole="button" accessibilityLabel={p.n < 0 ? p.label : `${p.label}: ${p.n}`} style={{ minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 16 }}>
             <Icon name={p.icon} size={16} color={t.muted} />
-            <Text style={{ color: t.text, fontSize: 16, fontWeight: '800' }}>{p.n}</Text>
+            {p.n >= 0 && <Text style={{ color: t.text, fontSize: 16, fontWeight: '800' }}>{p.n}</Text>}
             <Text style={{ color: t.muted, fontSize: 13.5 }}>{p.label}</Text>
           </Pressable>
         ))}
-      </ScrollView>
-
-      <View style={{ marginTop: 22 }}><SkillsSection name={name} me={me} /></View>
-
-      <View style={{ marginTop: 22 }}>
-        <Row style={{ marginBottom: 10 }}>
-          <Text accessibilityRole="header" style={{ color: t.text, fontSize: 17, fontWeight: '800', flex: 1 }}>Biglietto da visita</Text>
-          {isMe ? <Btn small ghost icon="edit" title="Modifica" onPress={() => go('cardEditor')} /> : <Btn small ghost title="Apri" onPress={() => go('businessCard', { name })} />}
-        </Row>
-        <View style={{ alignItems: 'center' }}><FlipCard design={design} data={data} width={cardW} qrText={qrText} /></View>
-        <Body small muted style={{ marginTop: 8, textAlign: 'center' }}>Tocca il biglietto per girarlo. Solo nome, ruolo, attività, competenze e contatti che scegli di condividere.</Body>
       </View>
 
-      <View style={{ marginTop: 22 }}><BusinessSection name={name} me={me} /></View>
-
-      <View style={{ marginTop: 22 }}><ProfileClubSection owner={name} /></View>
-
+      <View accessibilityRole="tablist" style={{ flexDirection: 'row', marginTop: 18, marginHorizontal: -16, borderBottomWidth: 1, borderBottomColor: t.item }}>
+        {tabs.map((x) => {
+          const on = tab === x.key || (x.key === 'Post' && !['Foto', 'Video', 'Idee'].includes(tab));
+          return (
+            <Pressable key={x.key} onPress={() => net.setPref('upTab', x.key)} accessibilityRole="tab" accessibilityLabel={x.label} accessibilityState={{ selected: on }} style={{ flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderBottomColor: on ? t.text : 'transparent', marginBottom: -1 }}>
+              <Icon name={x.icon} size={22} color={on ? t.text : t.muted} stroke={on ? 2.2 : 1.8} />
+            </Pressable>
+          );
+        })}
+      </View>
+      {tab === 'Idee' ? (
+        <View style={{ paddingTop: 16 }}>
+          {(() => { const l = net.ideas.filter((i) => i.author === name); return l.length ? l.map((i) => <IdeaHero key={i.id} idea={i} inset={false} />) : <Empty text="Ancora nessuna idea pubblicata." />; })()}
+        </View>
+      ) : filtered.length ? (
+        <View style={{ marginHorizontal: -16, marginTop: 2, gap: 1 }}>
+          {chunk(filtered, 3).map((row, ri) => <View key={ri} style={{ flexDirection: 'row', gap: 1 }}>{row.map(thumb)}</View>)}
+        </View>
+      ) : <Empty text="Ancora nessun contenuto qui." />}
       {others.length > 0 && (
         <View style={{ marginTop: 22, marginBottom: 6 }}>
           <Body small muted style={{ marginBottom: 8 }}>{isMe ? 'Altri profili' : 'Potresti conoscere'}</Body>

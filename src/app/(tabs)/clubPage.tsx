@@ -87,7 +87,7 @@ export default function ClubPage() {
           <Text onPress={() => go('userProfile', { name: club.owner })} style={{ color: t.text, fontWeight: '700' }}>{club.owner}</Text>
           <Body small muted>{`Creatore · ${fmtInt(counts!.subscribers)} iscritti · ${fmtInt(counts!.followers)} follower`}</Body>
         </View>
-        {rv.length > 0 ? <Row gap={4}><Icon name="star" size={15} color="#f5b301" fill="#f5b301" /><Text style={{ color: t.text, fontWeight: '700' }}>{rr.rating.toFixed(1)}</Text><Body small muted>{`(${rv.length})`}</Body></Row> : null}
+        {rv.length > 0 ? <Row gap={4}><Icon name="award" size={15} color={t.accent} fill={t.accent} /><Text style={{ color: t.text, fontWeight: '700' }}>{rr.rating.toFixed(1)}</Text><Body small muted>{`(${rv.length})`}</Body></Row> : null}
       </Row>
       {club.categories.length > 0 && <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={6}>{club.categories.map((c) => <Chip key={c} label={c} />)}</Row>}
       {club.description ? <Body small style={{ marginTop: 10 }}>{club.description}</Body> : null}

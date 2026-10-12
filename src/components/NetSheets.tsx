@@ -474,7 +474,7 @@ function VoteView({ name }: { name: string }) {
     <>
       <Body small color={t.positive} style={{ marginBottom: 6 }}>Com'è andata con questa persona?</Body>
       <Body small muted>Il voto resta aggregato (si vede la media e la distribuzione, non chi ha votato). Il motivo che scrivi qui viene controllato prima di pubblicare il voto: deve essere pertinente, non un riempitivo.</Body>
-      <Row style={{ justifyContent: 'center', marginVertical: 16 }} gap={12}>{[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setStars(n)}><Icon name="star" size={32} color={t.text} fill={n <= stars ? t.text : 'none'} /></Pressable>)}</Row>
+      <Row style={{ justifyContent: 'center', marginVertical: 16 }} gap={12}>{[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setStars(n)}><Icon name="award" size={32} color={n <= stars ? t.accent : t.border} fill={n <= stars ? t.accent : 'none'} /></Pressable>)}</Row>
       <Input multiline style={{ minHeight: 70 }} placeholder="Perché dai questo voto? (obbligatorio)" value={reason} onChangeText={setReason} />
       <Btn title="Invia voto" onPress={() => {
         if (!stars) { toast('Seleziona da 1 a 5 stelle'); return; }

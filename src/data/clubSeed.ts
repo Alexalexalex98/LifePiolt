@@ -116,3 +116,48 @@ export const SEED_COMMENTS: ClubComment[] = [
   cm('sc6', 'club-corsa', 'co1', L(corsa, 0), 'Marco Valli', 'Se hanno meno di 800 km e la suola non è consumata, sì. Altrimenti meglio sostituirle.', 2380, { anchor: { kind: 'time', sec: 140 }, parentId: 'sc5' }),
   cm('sc7', 'club-spagnolo', 'es1', L(spagnolo, 0), 'Federica L.', 'Come si pronuncia la «j» di «jamón»?', 700, { anchor: { kind: 'time', sec: 190 }, isQuestion: true }),
 ];
+
+/* ---------- LifeClub di esempio di chi usa l'app (solo demo) ---------- */
+const orga: Course = {
+  id: 'my1', title: 'Organizzare la settimana senza stress', level: 'base', published: true, createdAt: T0,
+  description: 'Un metodo semplice per decidere cosa fare, quando farlo e cosa lasciare andare. Pochi minuti al giorno.',
+  sections: [sec('my1s1', 'Le basi', 0), sec('my1s2', 'Ogni giorno', 1)],
+  lessons: [
+    les('my1', 'my1s1', 'Perché le liste lunghe non funzionano', 'video', 'free', { durationSec: 340, preview: true, description: 'Tre domande per capire cosa conta davvero oggi.' }),
+    les('my1', 'my1s1', 'Il foglio della settimana', 'pdf', 'free', { pages: 2, text: 'Il foglio della settimana\n\nLunedì: scegli tre cose importanti. Scrivile in alto.\f\nVenerdì: guarda cosa è rimasto. Sposta, delega o cancella: non portarti dietro tutto.' }),
+    les('my1', 'my1s2', 'Cinque minuti al mattino', 'video', 'premium', { durationSec: 420, description: 'Come guardare agenda, task e spese prima di uscire di casa.' }),
+    les('my1', 'my1s2', 'Gli imprevisti: come lasciare spazio', 'audio', 'premium', { durationSec: 360 }),
+    les('my1', 'my1s2', 'Chiudere la giornata', 'testo', 'premium', { text: 'Prima di dormire, due minuti.\n\nCosa ho fatto? Cosa sposto a domani? C\'è qualcosa che mi pesa e che posso scrivere per toglierlo dalla testa?\n\nUna nota breve vale più di un\'ora di buoni propositi.' }),
+  ],
+};
+const denaro: Course = {
+  id: 'my2', title: 'Soldi di casa: da dove cominciare', level: 'base', published: true, createdAt: T0 + 86400000,
+  description: 'Entrate, spese fisse, scadenze e un piccolo margine. Senza fogli complicati.',
+  sections: [sec('my2s1', 'Il quadro', 0)],
+  lessons: [
+    les('my2', 'my2s1', 'Le tre voci che contano', 'testo', 'free', { text: 'Entrate fisse, spese fisse, tutto il resto.\n\nQuando sai quanto resta dopo le spese fisse, sai quanto puoi davvero spendere. Il resto sono dettagli.' }),
+    les('my2', 'my2s1', 'Bollette e scadenze: un calendario solo', 'video', 'premium', { durationSec: 510 }),
+  ],
+};
+
+export function myDemoClub(owner: string): Club {
+  return {
+    id: 'club-mio', owner, name: 'Vita organizzata', tagline: 'Piccoli metodi per giornate più leggere',
+    description: 'Contenuti pratici su tempo, soldi di casa e abitudini. Nella chat rispondo alle domande, anche sotto i video.',
+    cover: { c1: '#8fa4ff', c2: '#5b86e5' }, categories: ['Organizzazione', 'Soldi', 'Abitudini'],
+    pricing: { monthly: 6, currency: 'CHF', trialDays: 7, yearlyDiscountPct: 20 },
+    chat: { write: 'members', chosen: [], slowSec: 0, commentsWhenReadOnly: true },
+    courses: [orga, denaro], published: true, createdAt: T0,
+    posts: [
+      { id: 'po-my1', text: 'Benvenuti! Questa settimana provate il foglio della settimana e raccontatemi com\'è andata nella chat.', ts: T0 + 86400000, tier: 'free', pinned: true },
+      { id: 'po-my2', text: 'Nuova lezione per gli abbonati: cinque minuti al mattino.', ts: T0 + 3 * 86400000, tier: 'premium' },
+    ],
+    baseline: { followers: 58, free: 24, premium: 7 }, demoStats: { openQuestions: 2, avgCompletionPct: 54 },
+  };
+}
+export function myDemoComments(owner: string): ClubComment[] {
+  return [
+    cm('mc1', 'club-mio', 'my1', L(orga, 0), 'Giulia M.', 'Tre cose importanti al giorno sono poche o tante?', 600, { anchor: { kind: 'time', sec: 90 }, isQuestion: true }),
+    cm('mc2', 'club-mio', 'my1', L(orga, 0), 'Tommaso V.', 'Mi è piaciuta la parte su cosa lasciare andare.', 240, { anchor: { kind: 'time', sec: 210 }, likes: [owner] }),
+  ];
+}

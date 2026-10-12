@@ -86,11 +86,12 @@ export function LessonThread({ club, course, lesson, tier, pos, anchor, setAncho
 }
 
 function AuthorRating({ person }: { person: string }) {
+  const t = useTheme();
   const votes = useClub((s) => s.votes);
   const comments = useClub((s) => s.comments);
   const r = useMemo(() => qaScore(answerSignalsFor({ votes, comments }, person)), [votes, comments, person]);
   if (r.n === 0) return null;
-  return <Text style={{ color: '#b9892b', fontSize: 11, fontWeight: '700' }}>{`★ ${r.rating.toFixed(1)}`}</Text>;
+  return <Row gap={3}><Icon name="award" size={11} color={t.accent} /><Text style={{ color: t.accent, fontSize: 11, fontWeight: '700' }}>{r.rating.toFixed(1)}</Text></Row>;
 }
 
 function CommentItem({ c, club, replies, me, onSeek, replying, setReplying }: { c: ClubComment; club: Club; replies: ClubComment[]; me: string; onSeek: (a: Anchor) => void; replying: boolean; setReplying: (on: boolean) => void }) {

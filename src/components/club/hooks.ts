@@ -9,5 +9,7 @@ export function useClubSeed() {
   const me = useApp((s) => s.account.name);
   const seeded = useClub((s) => s.seeded);
   useEffect(() => { if (demo && !seeded) useClub.getState().seedDemo(); }, [demo, seeded]);
+  const mineSeeded = useClub((s) => s.mineSeeded);
+  useEffect(() => { if (demo && me && !mineSeeded) useClub.getState().seedMine(me); }, [demo, me, mineSeeded]);
   useEffect(() => { if (me) useClub.getState().advanceBilling(me); }, [me]);
 }

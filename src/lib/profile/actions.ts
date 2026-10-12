@@ -26,8 +26,11 @@ export function participationsOf(me: string, target: string): Participation[] {
   return list;
 }
 export const profileVoteBlock = (me: string, target: string): string | null => {
-  if (!canDo(identityStatusOf(me, me), 'vote')) return 'Per votare serve prima verificare la tua identità con un documento.';
-  return profileVoteBlockReason(me, target, participationsOf(me, target));
+  const idOk = canDo(identityStatusOf(me, me), 'vote');
+  const link = profileVoteBlockReason(me, target, participationsOf(me, target));
+  if (idOk) return link;
+  if (me === target) return link;
+  return link ? 'Mancano due cose: verificare la tua identità con un documento e iscriverti a un seminario, a un servizio o a un LifeClub di questa persona. I messaggi da soli non bastano.' : 'Per votare serve prima verificare la tua identità con un documento.';
 };
 
 /** Voto al profilo: consuma l'iscrizione (seminario / servizio) oppure l'appartenenza al LifeClub. */

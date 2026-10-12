@@ -145,7 +145,7 @@ export function EnrollmentBox({ e }: { e: Enrollment }) {
       {e.status === 'attended' && (
         <Row style={{ marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
           <Body small color={t.positive}>{e.price ? `Pagati ${e.price} LP a ${e.host}.` : 'Partecipazione registrata.'}</Body>
-          {voteOk ? <Btn small ghost icon="star" title={`Vota ${e.host}`} onPress={() => openSheet('vote', { name: e.host })} /> : e.voted ? <Body small muted>Hai già votato.</Body> : null}
+          {voteOk ? <Btn small ghost icon="award" title={`Vota ${e.host}`} onPress={() => openSheet('vote', { name: e.host })} /> : e.voted ? <Body small muted>Hai già votato.</Body> : null}
         </Row>
       )}
     </View>

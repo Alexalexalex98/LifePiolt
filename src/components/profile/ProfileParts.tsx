@@ -52,7 +52,7 @@ export function StatsBar({ followers, following, onFollowing, name }: { follower
       {sep}
       {block(String(following), 'Seguiti', onFollowing)}
       {sep}
-      {block(voteText, rep.votes ? tl('Voto · {0}', rep.votes === 1 ? tl('1 voto') : tl('{0} voti', rep.votes)) : 'Voto complessivo', () => openSheet('rating', { name }), <Icon name="star" size={17} color={t.warn} fill={t.warn} />, rep.score == null ? tl('Voto complessivo: nessun voto') : tl('Voto complessivo {0} su 5, basato su {1} voti', rep.score.toFixed(1), rep.votes))}
+      {block(voteText, rep.votes ? tl('Voto · {0}', rep.votes === 1 ? tl('1 voto') : tl('{0} voti', rep.votes)) : 'Voto complessivo', () => openSheet('rating', { name }), <Icon name="award" size={17} color={t.accent} />, rep.score == null ? tl('Voto complessivo: nessun voto') : tl('Voto complessivo {0} su 5, basato su {1} voti', rep.score.toFixed(1), rep.votes))}
     </View>
   );
 }
@@ -90,7 +90,7 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
       <Row gap={8} style={{ justifyContent: 'flex-start', alignItems: 'flex-end' }}>
         <Text style={{ color: t.text, fontSize: 38, fontWeight: '800' }}>{rep.score == null ? '–' : rep.score.toFixed(1)}</Text>
         <Text style={{ color: t.muted, fontSize: 16, marginBottom: 7 }}>/ 5</Text>
-        <Icon name="star" size={24} color={t.warn} fill={t.warn} />
+        <Icon name="award" size={24} color={t.accent} />
       </Row>
       <Body small muted>{rep.basedOn} · {rep.confidenceLabel}</Body>
       <Body bold style={{ marginTop: 16, marginBottom: 6 }}>Da cosa è composto</Body>

@@ -86,7 +86,7 @@ export function ServiceFeedCard({ p }: { p: Provider }) {
             <Text numberOfLines={2} style={{ color: g.sub, fontSize: 14 }}>{p.role}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.32)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}>
-            <Icon name="star" size={13} color="#ffd978" fill="#ffd978" stroke={1.4} /><Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '800' }}>{p.rating}</Text>
+            <Icon name="award" size={13} color="#ffd978" fill="#ffd978" stroke={1.4} /><Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '800' }}>{p.rating}</Text>
           </View>
         </LinearGradient>
         <View style={{ padding: 16, gap: 8 }}>

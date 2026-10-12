@@ -32,7 +32,7 @@ export function Stars({ value, onChange, size = 22 }: { value: number; onChange?
     <View style={{ flexDirection: 'row', gap: 2 }} accessibilityRole={onChange ? 'adjustable' : 'image'} accessibilityLabel={translateText(`${Math.round(value * 10) / 10} stelle su 5`)}>
       {[1, 2, 3, 4, 5].map((i) => (
         <Pressable key={i} disabled={!onChange} onPress={() => onChange?.(i)} hitSlop={4} accessibilityLabel={translateText(`${i} stelle`)}>
-          <Icon name="star" size={size} color={i <= Math.round(value) ? '#f5b301' : t.border} fill={i <= Math.round(value) ? '#f5b301' : 'none'} />
+          <Icon name="award" size={size} color={i <= Math.round(value) ? t.accent : t.border} fill={i <= Math.round(value) ? t.accent : 'none'} />
         </Pressable>
       ))}
     </View>
