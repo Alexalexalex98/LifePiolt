@@ -167,6 +167,7 @@ export function applyDemo(me: string, email = '') {
   });
   // chi offre servizi, seminari o un LifeClub ha già qualche voto (e quindi recensioni di esempio)
   { const offer = new Set<string>([...useNet.getState().providers.map((p) => p.name), ...useNet.getState().seminars.map((x) => x.host), 'Laura Conti', 'Marco Valli', 'Elena Serra', me]); const votes = { ...useNet.getState().votes }; offer.forEach((nm) => { if (votes[nm] && Object.values(votes[nm]).some((v) => v > 0)) return; const h = Math.abs(hashStr(nm)); votes[nm] = { 1: 0, 2: h % 2, 3: 1 + (h % 2), 4: 2 + (h % 3), 5: 4 + (h % 5) }; }); useNet.setState({ votes }); }
+  seedShops();
   seedMarketplace(me); // seminari, iscrizioni, descrizioni e date di pubblicazione
 }
 
@@ -205,4 +206,24 @@ function demoLpMoves() {
     [8, 5, 'earn', 'iscrizioni', 'Quota LifeClub · iscritti di settembre', 130],
   ];
   return rows.filter((r) => at(r[0], r[1]) <= now).map((r, i) => ({ id: `dm${i}`, ts: at(r[0], r[1]), kind: r[2], source: (r[3] || undefined) as 'giornaliero' | 'idee' | 'iscrizioni' | undefined, label: r[4], amount: r[5] }));
+}
+
+/** Due negozi di esempio (solo demo): prodotti in LifePoints e un'idea il cui contributo diventa sconto. */
+function seedShops() {
+  const mk = (shop: string, items: [string, string, number, number][]) => items.map(([name, desc, price, stock], i) => ({ id: `ds-${shop.replace(/\W/g, '')}-${i}`, shop, name, desc, price, stock, color: ['#6c8cff', '#e0866b', '#4fb58a', '#c9a24a', '#a46bd6', '#4fa7c9'][i % 6], ts: Date.now() - i * 86400000 }));
+  const products = [
+    ...mk('Anna Conti', [
+      ['Scarpe da corsa leggere', 'Tomaia traspirante e suola ammortizzata: pensate per le uscite di tutti i giorni.', 120, 8],
+      ['Calze tecniche (3 paia)', 'Cotone e fibra elastica, senza cuciture che danno fastidio.', 18, 30],
+      ['Borraccia in acciaio 750 ml', 'Mantiene fresco per 24 ore, tappo antigoccia.', 22, 15],
+      ['Zaino da corsa 10 L', 'Due tasche frontali per borracce e tasca impermeabile per il telefono.', 65, 5],
+    ]),
+    ...mk('Roberto Sala', [
+      ['Quaderno agenda 2027', 'Una pagina per giorno, copertina rigida e segnalibro.', 24, 40],
+      ['Penna stilografica', 'Pennino medio, ricaricabile con cartucce standard.', 35, 12],
+      ['Set di 6 evidenziatori', 'Colori tenui, non macchiano il retro del foglio.', 9, 60],
+    ]),
+  ];
+  const idea = { id: 9101, title: 'Nuovo modello di scarpe da corsa in materiali riciclati', desc: 'Vogliamo produrre un modello leggero con tomaia in plastica riciclata. Chi contribuisce riceve lo stesso importo di sconto nel nostro negozio.', author: 'Anna Conti', raised: 380, similarTo: null, rewardType: 'fisso' as const, fixedAmount: 50, rewardDesc: '50 LP di sconto sul paio di scarpe', target: 1000, ts: Date.now() - 3 * 86400000, media: null };
+  useNet.setState((st) => ({ products, ideas: st.ideas.some((i) => i.id === idea.id) ? st.ideas : [idea, ...st.ideas] }));
 }

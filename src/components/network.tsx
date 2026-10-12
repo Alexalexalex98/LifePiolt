@@ -223,6 +223,13 @@ export function doContribute(id: number, amt: number) {
   const after = Math.floor(((raised / idea.target) * 100) / 25) * 25;
   const me = useApp.getState().account.name;
   if (idea.author === me && after > before && after > 0) useNet.getState().notify('goal', tl('"{0}" ha raggiunto il {1}% dell\'obiettivo', idea.title, after), after >= 100, { kind: 'lifepoints', ref: buildRef('idea', id) });
+  // il contributo diventa sconto nel negozio di chi ha pubblicato l'idea
+  const meName = useApp.getState().account.name;
+  if (idea.author !== meName) {
+    useNet.setState((s) => ({ shopCredits: { ...(s.shopCredits ?? {}), [idea.author]: (s.shopCredits?.[idea.author] ?? 0) + amt } }));
+    toast(tl('Hai versato {0} LP a "{1}": hai {0} LP di sconto nel negozio di {2}', formatCHF(amt), idea.title, idea.author));
+    return;
+  }
   toast(tl('Hai versato {0} LP a "{1}"', formatCHF(amt), idea.title));
 }
 

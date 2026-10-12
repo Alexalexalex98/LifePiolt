@@ -5,8 +5,8 @@
 export type SectionId = 'badges' | 'stats' | 'lifepoints' | 'pills' | 'others' | 'grid';
 export const SECTION_IDS: SectionId[] = ['badges', 'stats', 'lifepoints', 'pills', 'others', 'grid'];
 export const SECTION_LABEL: Record<SectionId, string> = { badges: 'Traguardi', stats: 'Follower, seguiti e voto', lifepoints: 'LifePoints', pills: 'Pillole', others: 'Altri profili', grid: 'Post e contenuti' };
-export const PILL_IDS = ['post', 'idee', 'servizi', 'contributi', 'altro'] as const;
-export const PILL_LABEL: Record<string, string> = { post: 'Post', idee: 'Idee', servizi: 'Servizi', contributi: 'Contributi', altro: 'Altro' };
+export const PILL_IDS = ['post', 'idee', 'store', 'servizi', 'contributi', 'altro'] as const;
+export const PILL_LABEL: Record<string, string> = { post: 'Post', idee: 'Idee', store: 'Store', servizi: 'Servizi', contributi: 'Contributi', altro: 'Altro' };
 export const TAB_IDS = ['Post', 'Foto', 'Video', 'Idee'] as const;
 export const ACCENTS = ['#8fa4ff', '#6c8cff', '#7be0b0', '#ffb84f', '#ff8fa3', '#c792ea', '#4fd1c5', '#f6e05e'];
 export const BANNERS: { c1: string; c2: string }[] = [

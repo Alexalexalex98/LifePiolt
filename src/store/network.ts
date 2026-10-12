@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { uid, weekdayShortDate } from '@/lib/format';
+import type { Order, Product } from '@/lib/shop';
 import { withdrawFee, type LpMove, type LpSource } from '@/lib/lpStatement';
 import { persisted } from './persist';
 
@@ -47,6 +48,10 @@ type NetState = {
   lpConverted?: number;
   /** movimenti LifePoints con data, per il rendiconto fiscale */
   lpMoves?: LpMove[];
+  /** negozi: prodotti di tutti, ordini miei e sconti da contributo (per negozio) */
+  products?: Product[];
+  orders?: Order[];
+  shopCredits?: Record<string, number>;
   receivedPayments: Record<string, number>;
   following: string[];
   mutedAuthors: string[];
@@ -110,6 +115,9 @@ const blank = () => ({
   receivedLog: [] as { from: string; date: string }[],
   lpConverted: 0,
   lpMoves: [] as LpMove[],
+  products: [] as Product[],
+  orders: [] as Order[],
+  shopCredits: {} as Record<string, number>,
   receivedPayments: {} as Record<string, number>,
   following: [] as string[],
   mutedAuthors: [] as string[],
