@@ -62,7 +62,7 @@ export const featureGroups: FeatureGroup[] = [
     id: 'network', title: 'LifeNetwork', tagline: 'Community, seminari, servizi, lavoro', icon: 'lifenetwork', color: '#7c93c9',
     items: [
       { title: 'Community e post', text: 'Entra nelle community, apri i post, ingrandisci foto e video, commenta e dona LifePoints.', page: 'lifenetwork' },
-      { title: 'Seminari e servizi', text: 'Ti iscrivi prima, finisce nel Plan con avviso di conflitto e paghi in LifePoints solo dopo l’evento.', page: 'lifenetwork' },
+      { title: 'Seminari e servizi', text: 'Paghi in LifePoints al momento della prenotazione, finisce nel Plan con avviso di conflitto e puoi disdire fino a 24 ore prima.', page: 'lifenetwork' },
       { title: 'Voti onesti', text: 'Puoi votare solo chi hai davvero incontrato: niente partecipazione, niente voto.', page: 'lifenetwork' },
       { title: 'Lavoro con test di competenze', text: 'Chi assume crea test personalizzati (domande, grafici, file, prova pratica a tempo); tu mostri cosa sai fare, non un CV.', page: 'lifenetwork' },
       { title: 'LifePoints', text: 'Il tuo saldo, i premi e i pagamenti ricevuti.', page: 'lifepointsPage' },

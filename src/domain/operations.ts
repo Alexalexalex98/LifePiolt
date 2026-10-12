@@ -11,6 +11,7 @@ import type { PaidToken, PayOpts } from '@/store/finance';
 import { useFin } from '@/store/finance';
 import { useJobs } from '@/store/jobs';
 import { useLife, type CalEvent } from '@/store/life';
+import { weekdayShortDate } from '@/lib/format';
 import { newId, useNet, type Enrollment, type Provider, type Seminar } from '@/store/network';
 import type { Share } from '@/lib/interview';
 import { forgetKey, runOperation, type OpResult } from './operation.ts';
@@ -66,11 +67,13 @@ const slotSet = (name: string, slot: string, present: boolean) => useNet.setStat
 /** Iscrizione a un seminario: evento nel Plan + iscrizione + posti occupati; poi 'booking.confirmed'. */
 export function enrollSeminarOp(s: Seminar, plan: BookingPlan, facts: { startsAt: number; durationMin: number }, id = 'e' + newId()): OpResult {
   return runOperation('booking.seminar', [
+    // si paga PRIMA di occupare il posto: se il pagamento non va a buon fine non cambia nulla
+    { name: 'pagamento', stores: ['net'], run: () => { if (s.price > 0 && !useNet.getState().spend(s.price, `Seminario "${s.title}" di ${s.host}`, s.host, `enr:${id}`)) throw new Error('LifePoints insufficienti'); } },
     { name: 'plan', stores: ['life'], run: () => useLife.getState().addEvent(plan.day, { time: plan.time, title: plan.title, dur: plan.durationMin, ref: id }) },
     {
       name: 'iscrizione', stores: ['net'],
       run: () => {
-        const e: Enrollment = { id, kind: 'seminar', ref: String(s.id), title: s.title, host: s.host, price: s.price, startsAt: facts.startsAt, durationMin: facts.durationMin, status: 'enrolled', createdAt: Date.now() };
+        const e: Enrollment = { id, kind: 'seminar', ref: String(s.id), title: s.title, host: s.host, price: s.price, startsAt: facts.startsAt, durationMin: facts.durationMin, status: 'enrolled', createdAt: Date.now(), paid: s.price };
         useNet.setState((st) => ({ enrollments: [e, ...st.enrollments] }));
         bump(s.id, 1);
       },
@@ -81,11 +84,12 @@ export function enrollSeminarOp(s: Seminar, plan: BookingPlan, facts: { startsAt
 /** Prenotazione di un servizio: evento nel Plan + prenotazione + slot occupato; poi 'booking.confirmed'. */
 export function bookServiceOp(p: Provider, slot: string, plan: BookingPlan, startsAt: number, durationMin: number, id = 'e' + newId()): OpResult {
   return runOperation('booking.service', [
+    { name: 'pagamento', stores: ['net'], run: () => { if (p.price > 0 && !useNet.getState().spend(p.price, `Sessione "${p.role}" di ${p.name}`, p.name, `enr:${id}`)) throw new Error('LifePoints insufficienti'); } },
     { name: 'plan', stores: ['life'], run: () => useLife.getState().addEvent(plan.day, { time: plan.time, title: plan.title, dur: plan.durationMin, ref: id }) },
     {
       name: 'prenotazione', stores: ['net'],
       run: () => {
-        const e: Enrollment = { id, kind: 'service', ref: `${p.name}|${slot}`, title: p.role, host: p.name, price: p.price, startsAt, durationMin, status: 'enrolled', createdAt: Date.now(), slot };
+        const e: Enrollment = { id, kind: 'service', ref: `${p.name}|${slot}`, title: p.role, host: p.name, price: p.price, startsAt, durationMin, status: 'enrolled', createdAt: Date.now(), slot, paid: p.price };
         useNet.setState((st) => ({ enrollments: [e, ...st.enrollments] }));
         slotSet(p.name, slot, false);
       },
@@ -101,7 +105,7 @@ export function confirmAttendanceOp(id: string): { ok: boolean; reason?: 'missin
     {
       name: 'punti', stores: ['net'],
       run: () => {
-        if (enr.price > 0 && !useNet.getState().spend(enr.price, `${enr.kind === 'seminar' ? 'Seminario' : 'Sessione'} "${enr.title}" di ${enr.host}`, enr.host)) throw new Error('LifePoints insufficienti');
+        if (enr.paid == null && enr.price > 0 && !useNet.getState().spend(enr.price, `${enr.kind === 'seminar' ? 'Seminario' : 'Sessione'} "${enr.title}" di ${enr.host}`, enr.host)) throw new Error('LifePoints insufficienti');
       },
     },
     {
@@ -133,6 +137,19 @@ export function cancelEnrollmentOp(id: string): { enr: Enrollment; removal: Plan
   const r = runOperation<{ removal: PlanRemoval | null }>('booking.cancel', [
     { name: 'plan', stores: ['life'], run: (c) => { c.set('removal', removeEventByRef(id)); } },
     {
+      name: 'rimborso', stores: ['net'],
+      run: () => {
+        const paid = enr.paid ?? 0;
+        if (paid <= 0) return;
+        useNet.setState((st) => ({
+          lifePoints: st.lifePoints + paid,
+          receivedPayments: { ...st.receivedPayments, [enr.host]: Math.max(0, (st.receivedPayments[enr.host] || 0) - paid) },
+          lpMoves: (st.lpMoves ?? []).filter((m) => m.ref !== `enr:${id}`),
+          ledger: [{ type: 'topup' as const, desc: `Rimborso: ${enr.title}`, amount: paid, date: weekdayShortDate() }, ...st.ledger],
+        }));
+      },
+    },
+    {
       name: 'iscrizione', stores: ['net'],
       run: () => {
         useNet.setState((s) => ({ enrollments: s.enrollments.filter((e) => e.id !== id) }));
@@ -146,6 +163,7 @@ export function cancelEnrollmentOp(id: string): { enr: Enrollment; removal: Plan
 /** Annulla l'annullamento (undo): rimette iscrizione, posto/slot ed evento nel Plan. */
 export function restoreEnrollmentOp(enr: Enrollment, removal: PlanRemoval | null): OpResult {
   return runOperation('booking.restore', [
+    { name: 'pagamento', stores: ['net'], run: () => { if ((enr.paid ?? 0) > 0 && !useNet.getState().spend(enr.paid!, `${enr.kind === 'seminar' ? 'Seminario' : 'Sessione'} "${enr.title}" di ${enr.host}`, enr.host, `enr:${enr.id}`)) throw new Error('LifePoints insufficienti'); } },
     {
       name: 'iscrizione', stores: ['net'],
       run: () => {

@@ -1,4 +1,5 @@
 import { MAX_PRODUCT_PHOTOS, PRODUCT_COLORS, applyCredit, buyBlockReason, validateAddress, validateProduct, type Order, type Product } from '@/lib/shop';
+import { SIGNAL } from '@/lib/relevance';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { useNet } from '@/store/network';
@@ -51,6 +52,7 @@ export function buyProduct(productId: string, qty: number, address: string): { o
   const chat = useChat.getState();
   const id = chat.ensureDm(p.shop, me);
   chat.send(id, me, { kind: 'text', text: `Ordine ${order.id.slice(-6).toUpperCase()}: ${qty} × ${p.name} · ${total} LP${used ? ` (sconto ${used} LP)` : ''}. Spedizione a: ${order.address}` });
+  useNet.getState().signal(`${p.name} ${p.desc}`, SIGNAL.buy);
   return { ok: true, message: 'Ordine pagato: il negozio lo spedisce', orderId: order.id };
 }
 

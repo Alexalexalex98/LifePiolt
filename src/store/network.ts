@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 
 import { uid, weekdayShortDate } from '@/lib/format';
+import type { Participant } from '@/lib/booking';
 import { REACH_BOOST, type ReachKind } from '@/lib/reach';
+import { addSignal, type ThemeWeights } from '@/lib/relevance';
 import type { Order, Product } from '@/lib/shop';
 import { withdrawFee, type LpMove, type LpSource } from '@/lib/lpStatement';
 import { persisted } from './persist';
@@ -22,7 +24,7 @@ export type Seminar = {
 /** Iscrizione a un seminario o prenotazione di un servizio: si paga solo dopo, con la conferma di partecipazione. */
 export type Enrollment = {
   id: string; kind: 'seminar' | 'service'; ref: string; title: string; host: string; price: number;
-  startsAt: number; durationMin: number; status: 'enrolled' | 'attended' | 'declined'; voted?: boolean; createdAt: number; slot?: string;
+  startsAt: number; durationMin: number; status: 'enrolled' | 'attended' | 'declined'; voted?: boolean; createdAt: number; slot?: string; /** LifePoints pagati al momento della prenotazione */ paid?: number;
 };
 export type Ledger = { type: 'spend' | 'topup'; desc: string; amount: number; date: string };
 export type Msg = { from: string; text: string; date: string };
@@ -57,6 +59,10 @@ type NetState = {
   myContrib?: Record<number, number>;
   /** diffusione dei contenuti nel feed (non mostrata agli utenti) */
   reach?: Record<string, number>;
+  /** partecipanti ai miei seminari (chiave `seminar:<id>`): li vede solo chi organizza */
+  participants?: Record<string, Participant[]>;
+  /** temi che interessano a chi usa l'app (non mostrati): servono a ordinare le proposte */
+  themeWeights?: ThemeWeights;
   receivedPayments: Record<string, number>;
   following: string[];
   mutedAuthors: string[];
@@ -95,6 +101,7 @@ type NetState = {
   setPref: (k: keyof NetState['prefs'], v: string) => void;
   spend: (amount: number, desc: string, payee?: string, ref?: string) => boolean;
   bumpReach: (key: string, kind: ReachKind) => void;
+  signal: (text: string, strength: number) => void;
   /** ritira LifePoints in denaro: commissione del 5% solo sul ritiro */
   withdraw: (amount: number) => { ok: boolean; fee: number; net: number };
   /** registra un guadagno ricevuto (idee, iscrizioni, LifePoint giornaliero) */
@@ -126,6 +133,8 @@ const blank = () => ({
   shopCredits: {} as Record<string, number>,
   myContrib: {} as Record<number, number>,
   reach: {} as Record<string, number>,
+  participants: {} as Record<string, Participant[]>,
+  themeWeights: {} as ThemeWeights,
   receivedPayments: {} as Record<string, number>,
   following: [] as string[],
   mutedAuthors: [] as string[],
@@ -155,7 +164,7 @@ const blank = () => ({
   cards: [] as Card[],
   defaultCard: null as number | null,
   payCurrency: 'CHF',
-  prefs: { lnTab: 'Home', homeFilter: 'Per te', marketFilter: 'Servizi', upTab: 'Post', lpTab: 'Acquisti' },
+  prefs: { lnTab: 'Home', homeFilter: 'Per te', marketFilter: 'Per te', upTab: 'Post', lpTab: 'Acquisti' },
   suggested: [] as string[],
 });
 
@@ -205,6 +214,11 @@ export const useNet = create<NetState>()(
       const d = liked ? -1 : 1;
       const likedPosts = liked ? s.likedPosts.filter((k) => k !== key) : [...s.likedPosts, key];
       if (!liked) set((x) => ({ reach: { ...(x.reach ?? {}), [key]: (x.reach?.[key] ?? 0) + REACH_BOOST.like } }));
+      if (!liked) {
+        const [kind, a1, a2] = key.split(':');
+        const text = kind === 'standalone' ? s.posts.find((p) => p.id === Number(a1))?.text : s.communities.find((c) => c.id === Number(a1))?.posts[Number(a2)]?.text;
+        if (text) set((x) => ({ themeWeights: addSignal(x.themeWeights, text, 1) }));
+      }
       if (key.startsWith('standalone:')) {
         const id = Number(key.split(':')[1]);
         set({ likedPosts, posts: s.posts.map((p) => (p.id === id ? { ...p, likes: p.likes + d } : p)) });
@@ -214,6 +228,7 @@ export const useNet = create<NetState>()(
       }
     },
     toggleSavePost: (key) => { set((s) => ({ savedPosts: toggle(s.savedPosts ?? [], key) })); return (get().savedPosts ?? []).includes(key); },
+    signal: (text, strength) => set((s) => ({ themeWeights: addSignal(s.themeWeights, text, strength) })),
     bumpReach: (key, kind) => set((s) => ({ reach: { ...(s.reach ?? {}), [key]: (s.reach?.[key] ?? 0) + REACH_BOOST[kind] } })),
     addComment: (key, author, text) => set((s) => ({ comments: { ...s.comments, [key]: [...(s.comments[key] || []), { author, text }] }, reach: { ...(s.reach ?? {}), [key]: (s.reach?.[key] ?? 0) + REACH_BOOST.comment } })),
     donateDaily: (to) => {

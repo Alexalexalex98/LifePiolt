@@ -381,7 +381,7 @@ function NewSeminarView() {
   const [price, setPrice] = useState(''); const [seats, setSeats] = useState('');
   return (
     <>
-      <Body small muted style={{ marginBottom: 8 }}>Scrivi in modo chiaro e onesto: chi si iscrive deve capire cosa imparerà, quando e dove. Gli iscritti ti pagano solo dopo il seminario, quando confermano di aver partecipato.</Body>
+      <Body small muted style={{ marginBottom: 8 }}>Scrivi in modo chiaro e onesto: chi si iscrive deve capire cosa imparerà, quando e dove. Gli iscritti pagano al momento della prenotazione e solo allora occupano il posto. Solo tu vedi chi partecipa e chi ha pagato.</Body>
       <Input placeholder="Titolo del seminario" value={title} onChangeText={setTitle} />
       <Input multiline style={{ minHeight: 100 }} placeholder="Descrizione completa: di cosa parli, come si svolge, cosa non è (almeno 80 caratteri)" value={desc} onChangeText={setDesc} />
       <Input multiline style={{ minHeight: 60 }} placeholder="Cosa si impara: una voce per riga (facoltativo)" value={learn} onChangeText={setLearn} />
@@ -431,9 +431,10 @@ function ConfirmAttendanceView({ id }: { id: string }) {
   const e = net.enrollments.find((x) => x.id === id);
   if (!e) return <Body small muted>Iscrizione non trovata.</Body>;
   const noun = e.kind === 'seminar' ? 'seminario' : 'sessione';
+  const needsPay = e.paid == null && e.price > 0; // prenotazioni vecchie, non ancora pagate
   const done = () => {
     if (!confirmAttendance(id)) { close(); return; }
-    toast(e.price ? `Partecipazione confermata: -${e.price} LP, accreditati a ${e.host}` : 'Partecipazione confermata');
+    toast(needsPay ? `Partecipazione confermata: -${e.price} LP, accreditati a ${e.host}` : 'Partecipazione confermata');
     openSheet('vote', { name: e.host });
   };
   return (
@@ -441,13 +442,13 @@ function ConfirmAttendanceView({ id }: { id: string }) {
       <Item><Row><Body muted>{e.kind === 'seminar' ? 'Seminario' : 'Servizio'}</Body><Body bold style={{ flexShrink: 1, textAlign: endAlign() }}>{e.title}</Body></Row></Item>
       <Item><Row><Body muted>{e.kind === 'seminar' ? 'Relatore' : 'Professionista'}</Body><Body bold>{e.host}</Body></Row></Item>
       <Item><Row><Body muted>Quando</Body><Body bold style={{ flexShrink: 1, textAlign: endAlign() }}>{fmtRange(e.startsAt, e.durationMin)}</Body></Row></Item>
-      <Item last><Row><Body muted>Importo</Body><Body bold>{e.price ? `${e.price} LP` : 'Gratuito'}</Body></Row></Item>
+      <Item last><Row><Body muted>{needsPay ? 'Importo' : 'Pagamento'}</Body><Body bold>{e.price ? (needsPay ? `${e.price} LP` : `${e.price} LP · già pagati`) : 'Gratuito'}</Body></Row></Item>
       {step === 1 ? (
         <>
-          <Body small muted style={{ marginTop: 12 }}>{e.price ? `Confermando dichiari di aver partecipato al ${noun}. Solo a questo punto ${e.price} LP vengono addebitati sul tuo saldo e accreditati a ${e.host}.` : `Confermando dichiari di aver partecipato al ${noun}. Non verrà addebitato nulla.`}</Body>
+          <Body small muted style={{ marginTop: 12 }}>{needsPay ? `Confermando dichiari di aver partecipato al ${noun}. Solo a questo punto ${e.price} LP vengono addebitati sul tuo saldo e accreditati a ${e.host}.` : `Confermando dichiari di aver partecipato al ${noun}. Non verrà addebitato nulla: hai già pagato alla prenotazione.`}</Body>
           <Row style={{ marginTop: 14 }}>
             <Btn ghost style={{ flex: 1 }} title="Non ora" onPress={close} />
-            <Btn style={{ flex: 1 }} title={e.price ? 'Continua' : 'Conferma'} onPress={() => (e.price ? setStep(2) : done())} />
+            <Btn style={{ flex: 1 }} title={needsPay ? 'Continua' : 'Conferma'} onPress={() => (needsPay ? setStep(2) : done())} />
           </Row>
         </>
       ) : (

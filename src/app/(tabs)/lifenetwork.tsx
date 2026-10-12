@@ -5,7 +5,10 @@ import { Text } from '@/components/T';
 import { EmptyFeed, FeedSkeleton, FilterToggle, Composer, NetHeader, NetTabs } from '@/components/feed/Header';
 import { FeedPost, type FeedPostData } from '@/components/feed/FeedPost';
 import { byReach } from '@/lib/reach';
-import { CommunityCard, ServiceFeedCard } from '@/components/feed/TabCards';
+import { CommunityCard, ProductFeedCard, ServiceFeedCard } from '@/components/feed/TabCards';
+import { SIGNAL, addSignal, rankMixed, type ThemeWeights } from '@/lib/relevance';
+import type { Product } from '@/lib/shop';
+import { INTEREST_CATALOG, useInterests } from '@/store/interests';
 import { IdeaHero, QuoteCard, SeminarFeedCard } from '@/components/feed/SpecialCards';
 import { FEED_GUTTER, FEED_RADIUS } from '@/components/feed/parts';
 import { JobsHub } from '@/components/JobsHub';
@@ -28,6 +31,7 @@ type Item =
   | { k: 'idea'; id: string; idea: Idea }
   | { k: 'seminar'; id: string; s: Seminar }
   | { k: 'service'; id: string; p: Provider }
+  | { k: 'product'; id: string; p: Product }
   | { k: 'quote'; id: string; text: string; author: string }
   | { k: 'community'; id: string; cid: number }
   | { k: 'jobs'; id: string }
@@ -74,7 +78,17 @@ export default function LifeNetwork() {
   const following = prefs.homeFilter === 'Seguiti';
 
   const verified = net.identity.verified;
-  const { communities, posts, ideas, seminars, providers, hideIdeas, mutedIdeaAuthors, following: followingList, reach } = net;
+  const { communities, posts, ideas, seminars, providers, products, hideIdeas, mutedIdeaAuthors, following: followingList, reach } = net;
+
+  const interestLabels = useInterests((x) => x.selected);
+  const customInterests = useInterests((x) => x.custom);
+  const themeWeights = net.themeWeights;
+  const weights = useMemo<ThemeWeights>(() => {
+    let w: ThemeWeights = { ...(themeWeights ?? {}) };
+    for (const id of interestLabels) w = addSignal(w, INTEREST_CATALOG.find((c) => c.id === id)?.label ?? '', SIGNAL.interest);
+    for (const c of customInterests) w = addSignal(w, c.label, SIGNAL.interest);
+    return w;
+  }, [themeWeights, interestLabels, customInterests]);
 
   /* feed misto: stesso intreccio di prima (post, community, idee, seminari sponsorizzati, citazioni) */
   const feedItems = useMemo<Item[]>(() => {
@@ -111,12 +125,21 @@ export default function LifeNetwork() {
       const l = ideas.filter((i) => (i.title.toLowerCase().includes(ideaQ.toLowerCase()) || i.desc.toLowerCase().includes(ideaQ.toLowerCase())) && visible('idea', i.id, i.author));
       return [{ k: 'tools', id: 'tools' }, ...(l.length ? l.map((idea): Item => ({ k: 'idea', id: 'i' + idea.id, idea })) : [{ k: 'empty' as const, id: 'empty', text: 'Nessuna idea trovata.' }])];
     }
-    const sorted = [...seminars].sort((a, b) => ((a.startsAt ?? 9e15) < Date.now() ? 1e16 : 0) + (a.startsAt ?? 9e15) - (((b.startsAt ?? 9e15) < Date.now() ? 1e16 : 0) + (b.startsAt ?? 9e15)));
-    const body: Item[] = prefs.marketFilter === 'Servizi'
-      ? (providers.length ? providers.map((p): Item => ({ k: 'service', id: 'p' + p.name, p })) : [{ k: 'empty', id: 'empty', text: 'Ancora nessun professionista in elenco.' }])
-      : (sorted.length ? sorted.map((s): Item => ({ k: 'seminar', id: 'm' + s.id, s })) : [{ k: 'empty', id: 'empty', text: 'Nessun seminario ancora.' }]);
+    const upcoming = [...seminars].sort((a, b) => ((a.startsAt ?? 9e15) < Date.now() ? 1e16 : 0) + (a.startsAt ?? 9e15) - (((b.startsAt ?? 9e15) < Date.now() ? 1e16 : 0) + (b.startsAt ?? 9e15)));
+    const sellable = (products ?? []).filter((p) => p.stock > 0 || true);
+    // l'algoritmo mette in alto ciò che interessa di più (interessi, mi piace, cose aperte e comprate); i tipi restano mescolati
+    const semItems = upcoming.map((s): Item & { text: string; kind: string } => ({ k: 'seminar', id: 'm' + s.id, s, text: `${s.title} ${s.desc ?? ''}`, kind: 'seminario' }));
+    const svcItems = providers.map((p): Item & { text: string; kind: string } => ({ k: 'service', id: 'p' + p.name, p, text: `${p.role} ${p.name}`, kind: 'servizio' }));
+    const prodItems = sellable.map((p): Item & { text: string; kind: string } => ({ k: 'product', id: 'pr' + p.id, p, text: `${p.name} ${p.desc}`, kind: 'prodotto' }));
+    const strip = (xs: (Item & { text: string; kind: string })[]): Item[] => xs.map(({ text: _t, kind: _k, ...rest }) => rest as Item);
+    const f = prefs.marketFilter;
+    let body: Item[];
+    if (f === 'Servizi') body = svcItems.length ? strip(rankMixed(svcItems, weights)) : [{ k: 'empty', id: 'empty', text: 'Ancora nessun professionista in elenco.' }];
+    else if (f === 'Seminari') body = semItems.length ? strip(rankMixed(semItems, weights)) : [{ k: 'empty', id: 'empty', text: 'Nessun seminario ancora.' }];
+    else if (f === 'Prodotti') body = prodItems.length ? strip(rankMixed(prodItems, weights)) : [{ k: 'empty', id: 'empty', text: 'Ancora nessun prodotto: li pubblicano le attività con uno store.' }];
+    else { const all = [...semItems, ...svcItems, ...prodItems]; body = all.length ? strip(rankMixed(all, weights)) : [{ k: 'empty', id: 'empty', text: 'Ancora nessuna proposta.' }]; }
     return [{ k: 'tools', id: 'tools' }, ...body];
-  }, [curTab, feedItems, communities, commTopic, commQ, ideas, ideaQ, seminars, providers, prefs.marketFilter, visible]);
+  }, [curTab, feedItems, communities, commTopic, commQ, ideas, ideaQ, seminars, providers, products, weights, prefs.marketFilter, visible]);
 
   if (!verified) {
     return (
@@ -194,6 +217,7 @@ export default function LifeNetwork() {
       case 'idea': return <IdeaHero idea={item.idea} />;
       case 'seminar': return <SeminarFeedCard s={item.s} />;
       case 'service': return <ServiceFeedCard p={item.p} />;
+      case 'product': return <ProductFeedCard p={item.p} />;
       case 'quote': return <QuoteCard text={item.text} author={item.author} />;
       case 'community': {
         const c = net.communities.find((x) => x.id === item.cid);
@@ -224,9 +248,13 @@ export default function LifeNetwork() {
             )}
             {curTab === 'Marketplace' && (
               <>
-                {pillRow(['Seminari', 'Servizi'], prefs.marketFilter === 'Servizi' ? 'Servizi' : 'Seminari', (v) => setPref('marketFilter', v))}
-                {prefs.marketFilter === 'Servizi'
-                  ? <Body small muted style={{ marginBottom: 14 }}>Psicologi, personal trainer, insegnanti di lingua e altri professionisti. Apri un servizio per leggere cosa offre e scegliere una data: prenoti senza pagare e paghi in LifePoints solo dopo la sessione, quando confermi di aver partecipato.</Body>
+                {pillRow(['Per te', 'Seminari', 'Servizi', 'Prodotti'], ['Seminari', 'Servizi', 'Prodotti'].includes(prefs.marketFilter) ? prefs.marketFilter : 'Per te', (v) => setPref('marketFilter', v))}
+                {prefs.marketFilter === 'Prodotti'
+                  ? <Body small muted style={{ marginBottom: 14 }}>Prodotti dei negozi su LifePilot: li paghi in LifePoints e li spedisce direttamente il negozio. Dopo l'acquisto si apre una chat per resi e assistenza.</Body>
+                  : prefs.marketFilter === 'Per te'
+                  ? <Body small muted style={{ marginBottom: 14 }}>Prodotti, seminari e servizi scelti in base a ciò che ti interessa.</Body>
+                  : prefs.marketFilter === 'Servizi'
+                  ? <Body small muted style={{ marginBottom: 14 }}>Psicologi, personal trainer, insegnanti di lingua e altri professionisti. Apri un servizio per leggere cosa offre e scegliere una data: paghi in LifePoints al momento della prenotazione e solo allora lo slot è tuo.</Body>
                   : <>
                     <Body small muted style={{ marginBottom: 12 }}>Seminari gratuiti o a pagamento. Apri un seminario per vedere data, contenuti e relatore: ti iscrivi senza pagare e i LifePoints si addebitano solo dopo, quando confermi di aver partecipato. Promuoverli in home costa LifePoints.</Body>
                     <Btn small ghost icon="plus" style={{ marginBottom: 16, alignSelf: 'flex-start' }} title="Crea seminario" onPress={() => openSheet('newSeminar')} />

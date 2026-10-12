@@ -24,7 +24,7 @@ export const at = (dayOffset: number, time: string): number => {
 };
 
 export const freeCancel = 'Puoi annullare l\'iscrizione gratuitamente in qualsiasi momento fino all\'inizio: viene tolta anche dal tuo Plan. Non paghi nulla all\'iscrizione.';
-export const paidCancel = (price: number) => `Puoi annullare l'iscrizione gratuitamente fino all'inizio. Non paghi nulla ora: i ${price} LP vengono addebitati solo dopo il seminario, quando confermi di aver partecipato. Se non partecipi puoi indicarlo e non paghi.`;
+export const paidCancel = (price: number) => `Paghi ${price} LP al momento dell'iscrizione. Puoi disdire fino a 24 ore prima e ti rimborsiamo tutto; puoi sempre riprogrammare.`;
 
 type SeminarSeed = Omit<Seminar, 'cancelPolicy'> & { cancelPolicy?: string };
 
@@ -108,7 +108,7 @@ export function demoSeminars(me: string): Seminar[] {
 
 /* ---------- servizi ---------- */
 export type ServiceInfo = { desc: string; gets: string[]; durationMin: number; mode: 'online' | 'presenza'; place: string; language: string; forWho: string; cancel: string };
-const svcCancel = (price: number) => `Puoi annullare la prenotazione gratuitamente fino all'inizio della sessione e lo slot torna disponibile. Non paghi nulla ora: i ${price} LP vengono addebitati solo dopo la sessione, quando confermi di aver partecipato.`;
+const svcCancel = (price: number) => `Paghi ${price} LP al momento della prenotazione. Puoi disdire fino a 24 ore prima con rimborso intero e lo slot torna disponibile; puoi sempre riprogrammare.`;
 
 export const providerInfo: Record<string, ServiceInfo> = {
   'Alex': { desc: 'Allenamento alla corsa con un piano su misura: partiamo dal tuo livello e dal tuo obiettivo (5 o 10 km, o semplicemente correre con più piacere) e proviamo insieme riscaldamento, ritmo e tecnica. Se hai problemi di salute o dolori ricorrenti chiedi prima il parere del tuo medico.', gets: ['Una sessione di 45 minuti di corsa guidata', 'Consigli su ritmo, respirazione e tecnica', 'Un piano di allenamento di 4 settimane da seguire'], durationMin: 45, mode: 'presenza', place: 'Ritrovo sul lungolago (il punto esatto viene indicato dopo la prenotazione)', language: 'Italiano, English', forWho: 'Chi vuole iniziare a correre o aumentare la distanza, a qualsiasi livello.', cancel: svcCancel(20) },
@@ -167,6 +167,9 @@ export function seedMarketplace(me: string) {
   const enrollments: Enrollment[] = [{ id: enrId, kind: 'seminar', ref: String(past.id), title: past.title, host: past.host, price: past.price, startsAt: past.startsAt!, durationMin: past.durationMin!, status: 'enrolled', createdAt: at(-4, '12:00') }];
   const st = useNet.getState();
   useNet.setState({ seminars, enrollments, ...stampSeed({ posts: st.posts, communities: st.communities, ideas: st.ideas }) });
+  // partecipanti al mio seminario (id 2): li vede solo chi lo organizza
+  const mySem = seminars.find((x) => x.host === me && x.price > 0);
+  if (mySem) useNet.setState({ participants: { [`seminar:${mySem.id}`]: [['Giulia Moretti', -6, '18:20'], ['Marco Valli', -5, '09:05'], ['Elena Serra', -4, '21:40'], ['Tommaso V.', -2, '12:10'], ['Federica L.', -1, '16:30']].map(([name, d, h]) => ({ name: name as string, paid: mySem.price, paidAt: at(d as number, h as string) })) } });
   const mine = seminars.find((s) => s.host === me);
   const providers = useNet.getState().providers;
   const anna = providers.find((p) => p.name === 'Anna Conti');

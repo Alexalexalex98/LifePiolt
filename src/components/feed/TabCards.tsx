@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
@@ -13,6 +14,8 @@ import { go } from '@/lib/nav';
 import { fmtDateTime, fmtDuration } from '@/lib/when';
 import { useVisible } from '@/lib/moderation';
 import { useApp } from '@/store/app';
+import { SIGNAL } from '@/lib/relevance';
+import type { Product } from '@/lib/shop';
 import { useNet, type Community, type Provider } from '@/store/network';
 import { heroPaletteFor } from './feedColors.ts';
 import { ArtShapes, FEED_GUTTER, FEED_RADIUS, PressScale, SoftPill } from './parts';
@@ -106,6 +109,29 @@ export function ServiceFeedCard({ p }: { p: Provider }) {
             <View style={{ minHeight: 44, borderRadius: 14, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: own || disabled ? t.chip : t.text, opacity: disabled ? 0.6 : 1 }}>
               <Text style={{ color: own || disabled ? t.text : t.onText, fontSize: 14.5, fontWeight: '800' }}>{own ? 'Il tuo servizio' : 'Vedi e prenota'}</Text>
             </View>
+          </View>
+        </View>
+      </PressScale>
+    </View>
+  );
+}
+
+/** Prodotto di un negozio: copertina (foto o colore), nome, negozio e prezzo in LifePoints. */
+export function ProductFeedCard({ p }: { p: Product }) {
+  const t = useTheme();
+  const open = () => { useNet.getState().signal(p.name + ' ' + p.desc, SIGNAL.open); go('shopPage', { name: p.shop }); };
+  return (
+    <View style={{ marginHorizontal: FEED_GUTTER, marginBottom: 20 }}>
+      <PressScale onPress={open} to={0.985} label={tl('{0} nel negozio di {1}', p.name, p.shop)} style={{ borderRadius: FEED_RADIUS, overflow: 'hidden', backgroundColor: t.card, borderWidth: t.mode === 'light' ? 1 : 0, borderColor: t.border }}>
+        <View style={{ height: 150, backgroundColor: p.color, alignItems: 'center', justifyContent: 'center' }}>
+          {p.images?.[0] ? <Image source={{ uri: p.images[0] }} style={{ width: '100%', height: 150 }} contentFit="cover" /> : <Text style={{ color: '#fff', fontSize: 44, fontWeight: '800' }}>{p.name.trim().charAt(0).toUpperCase()}</Text>}
+        </View>
+        <View style={{ padding: 16, gap: 6 }}>
+          <Text numberOfLines={2} style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{p.name}</Text>
+          <Text style={{ color: t.muted, fontSize: 13.5 }}>{tl('Negozio di {0}', p.shop)}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>{p.price}</Text><LpTag size={15} /></View>
+            <Text style={{ color: p.stock > 0 ? t.muted : t.danger, fontSize: 12.5 }}>{p.stock > 0 ? tl('{0} disp.', p.stock) : 'Esaurito'}</Text>
           </View>
         </View>
       </PressScale>

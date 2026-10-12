@@ -3,10 +3,12 @@ import { Text } from '@/components/T';
 
 import { Badge, LpTag, MediaBlock, openSheet } from '@/components/network';
 import { providerInfoFor } from '@/data/marketSeed';
-import { Body, Btn, Card, Chev, IL, Row } from '@/components/ui';
+import { Body, Btn, Card, Chev, IL, Item, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF } from '@/lib/format';
-import { cancelEnrollment, declineAttendance, demoFinish, hasEnded, seminarFacts, useNow } from '@/lib/enroll';
+import { useState } from 'react';
+import { canCancel, canReschedule, hoursToCancelDeadline } from '@/lib/booking';
+import { cancelEnrollment, declineAttendance, demoFinish, hasEnded, otherSeminarDates, rescheduleSeminar, rescheduleService, seminarFacts, useNow } from '@/lib/enroll';
 import { go } from '@/lib/nav';
 import { canVote } from '@/lib/network';
 import { fmtDateTime, fmtDuration, fmtRange, nextOccurrence, pubLabel } from '@/lib/when';
@@ -115,6 +117,11 @@ export function EnrollmentBox({ e }: { e: Enrollment }) {
   const st = statusOf(e, now)!;
   const voteOk = canVote(me, e.host);
   const noun = e.kind === 'seminar' ? 'seminario' : 'sessione';
+  const [resched, setResched] = useState(false);
+  const cancelOk = canCancel(e.startsAt, now);
+  const prov = useNet((s) => s.providers.find((p) => p.name === e.host));
+  const options = e.kind === 'service' ? datedSlots(prov ?? ({ slots: [] } as unknown as Provider)).filter((x) => x.slot !== e.slot) : [];
+  const dates = e.kind === 'seminar' ? otherSeminarDates(e.id) : [];
   return (
     <View style={{ borderTopWidth: 1, borderTopColor: t.item, paddingTop: 12, marginTop: 12 }}>
       <Row style={{ alignItems: 'flex-start' }}>
@@ -126,22 +133,28 @@ export function EnrollmentBox({ e }: { e: Enrollment }) {
       </Row>
       {e.status === 'enrolled' && !ended && (
         <>
-          <Body small muted style={{ marginTop: 8 }}>{e.price ? `Non hai pagato nulla: i ${e.price} LP verranno addebitati solo dopo il ${noun}, quando confermerai la partecipazione.` : 'Gratuito: dopo il ' + noun + ' ti chiederemo di confermare la partecipazione.'} È nel tuo Plan.</Body>
+          <Body small muted style={{ marginTop: 8 }}>{e.paid ? `Hai pagato ${e.paid} LP alla prenotazione. ` : e.price ? '' : 'Gratuito. '}È nel tuo Plan. {cancelOk ? `Puoi disdire (con rimborso) fino a 24 ore prima: ancora ${Math.max(1, Math.floor(hoursToCancelDeadline(e.startsAt, now)))} ore.` : 'Non si può più disdire (meno di 24 ore): puoi ancora riprogrammare.'}</Body>
           <Row style={{ marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
-            <Btn small ghost danger icon="x" title={e.kind === 'seminar' ? 'Disiscriviti' : 'Annulla prenotazione'} onPress={() => cancelEnrollment(e.id)} />
+            {canReschedule(e, now) && <Btn small ghost icon="repeat" title="Riprogramma" onPress={() => setResched(true)} />}
+            <Btn small ghost danger icon="x" disabled={!cancelOk} title={e.kind === 'seminar' ? 'Disiscriviti' : 'Annulla prenotazione'} onPress={() => cancelEnrollment(e.id)} />
             {demo && <Btn small ghost icon="timer" title="Solo demo: segna come concluso" onPress={() => demoFinish(e.id)} />}
           </Row>
         </>
       )}
       {e.status === 'enrolled' && ended && (
         <>
-          <Body small style={{ marginTop: 8 }}>Il {noun} è terminato. Conferma di aver partecipato{e.price ? `: solo allora vengono addebitati ${e.price} LP e accreditati a ${e.host}` : ''}.</Body>
+          <Body small style={{ marginTop: 8 }}>Il {noun} è terminato. Conferma di aver partecipato{e.paid == null && e.price ? `: solo allora vengono addebitati ${e.price} LP e accreditati a ${e.host}` : ''}.</Body>
           <Row style={{ marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
             <Btn small icon="check" title="Conferma partecipazione" onPress={() => openSheet('confirmAttendance', { id: e.id })} />
             <Btn small ghost title="Non ho partecipato" onPress={() => declineAttendance(e.id)} />
           </Row>
         </>
       )}
+      <Sheet visible={resched} title="Riprogramma" onClose={() => setResched(false)}>
+        <Body small muted>Scegli un'altra data: non devi pagare di nuovo.</Body>
+        {e.kind === 'service' && (options.length ? options.map((o, i) => <Item key={o.slot} last={i === options.length - 1} onPress={() => { if (rescheduleService(e.id, o.slot)) setResched(false); }}><Row><Body style={{ flex: 1 }}>{fmtDateTime(o.ts)}</Body><Chev /></Row></Item>) : <Body small muted style={{ marginTop: 8 }}>Non ci sono altri orari liberi al momento.</Body>)}
+        {e.kind === 'seminar' && (dates.length ? dates.map((d, i) => <Item key={d.id} last={i === dates.length - 1} onPress={() => { if (rescheduleSeminar(e.id, d.id)) setResched(false); }}><Row><Body style={{ flex: 1 }}>{d.startsAt ? fmtDateTime(d.startsAt) : ''}</Body><Chev /></Row></Item>) : <Body small muted style={{ marginTop: 8 }}>Questo seminario non ha altre date: puoi disiscriverti fino a 24 ore prima.</Body>)}
+      </Sheet>
       {e.status === 'attended' && (
         <Row style={{ marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
           <Body small color={t.positive}>{e.price ? `Pagati ${e.price} LP a ${e.host}.` : 'Partecipazione registrata.'}</Body>

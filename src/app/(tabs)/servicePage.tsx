@@ -80,7 +80,7 @@ export default function ServicePage() {
 
       <Card>
         <H>Pagamento e annullamento</H>
-        <Body small>Prenoti senza pagare. I {p.price} LP vengono addebitati solo dopo la sessione, quando confermi di aver partecipato.</Body>
+        <Body small>Si paga subito: {p.price} LP alla prenotazione, poi lo slot è tuo. Puoi disdire (con rimborso) fino a 24 ore prima e riprogrammare quando vuoi.</Body>
         <Body small muted style={{ marginTop: 8 }}>{info.cancel}</Body>
       </Card>
 

@@ -9,6 +9,7 @@ import { useIdentity } from '@/store/identity';
 import { pickImage } from '@/lib/profile/pickImage';
 import { pickNetMedia } from '@/lib/netMedia';
 import { MAX_PRODUCT_PHOTOS } from '@/lib/shop';
+import { SIGNAL } from '@/lib/relevance';
 import { Body, Btn, Card, Empty, Input, Page, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { confirmDelete } from '@/lib/confirm';
@@ -71,7 +72,7 @@ export default function ShopPage() {
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 14 }}>
         {products.length === 0 ? <View style={{ width: '100%' }}><Empty text={isMe ? 'Il tuo negozio è vuoto: aggiungi il primo prodotto.' : 'Questo negozio non ha ancora prodotti.'} /></View> : products.map((p) => (
-          <Pressable key={p.id} onPress={() => { setOpenId(p.id); setQty(1); }} accessibilityRole="button" accessibilityLabel={`${p.name} ${p.price} LifePoints`} style={{ width: '47.5%', backgroundColor: t.card, borderRadius: 18, overflow: 'hidden', borderWidth: t.mode === 'light' ? 1 : 0, borderColor: t.border }}>
+          <Pressable key={p.id} onPress={() => { setOpenId(p.id); setQty(1); useNet.getState().signal(`${p.name} ${p.desc}`, SIGNAL.open); }} accessibilityRole="button" accessibilityLabel={`${p.name} ${p.price} LifePoints`} style={{ width: '47.5%', backgroundColor: t.card, borderRadius: 18, overflow: 'hidden', borderWidth: t.mode === 'light' ? 1 : 0, borderColor: t.border }}>
             <View style={{ height: 110, backgroundColor: p.color, alignItems: 'center', justifyContent: 'center' }}>{p.images?.[0] ? <Image source={{ uri: p.images[0] }} style={{ width: '100%', height: 110 }} contentFit="cover" /> : <Text style={{ color: '#fff', fontSize: 34, fontWeight: '800' }}>{p.name.trim().charAt(0).toUpperCase()}</Text>}</View>
             <View style={{ padding: 10, gap: 4 }}>
               <Text numberOfLines={2} style={{ color: t.text, fontSize: 14, fontWeight: '700', minHeight: 36 }}>{p.name}</Text>

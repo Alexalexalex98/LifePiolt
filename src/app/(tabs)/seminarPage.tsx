@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { Pressable, Share, View } from 'react-native';
 
 import { LiveAccess } from '@/components/live/LiveAccess';
+import { ParticipantsCard } from '@/components/ParticipantsCard';
 import { EnrollmentBox, Price, SPONSORED_TEXT, modeLabel, useSeminarEnrollment } from '@/components/market';
 import { Badge, ModButton, UserAvatar, openSheet } from '@/components/network';
 import { E2eNote } from '@/components/PrivacyContent';
@@ -85,24 +86,27 @@ export default function SeminarPage() {
 
       <Card>
         <H>Prezzo, pagamento e annullamento</H>
-        <Body small>{s.price ? `Prezzo: ${s.price} LP. Ti iscrivi senza pagare; i LifePoints vengono addebitati solo dopo il seminario, quando confermi di aver partecipato.` : 'Gratuito. Dopo il seminario ti chiederemo comunque di confermare la partecipazione.'}</Body>
+        <Body small>{s.price ? `Prezzo: ${s.price} LP. Si paga subito, alla prenotazione: poi il posto è tuo. Puoi disdire (con rimborso) fino a 24 ore prima e riprogrammare quando vuoi.` : 'Gratuito. Dopo il seminario ti chiederemo comunque di confermare la partecipazione.'}</Body>
         <Body small muted style={{ marginTop: 8 }}>{s.cancelPolicy || 'Puoi annullare l\'iscrizione fino all\'inizio.'}</Body>
       </Card>
 
       <LiveAccess kind="seminar" refId={String(s.id)} title={s.title} host={s.host} dataMode={s.mode} startsAt={f.startsAt} durationMin={f.durationMin} isHost={isHost} enrolled={!!activeEnr && activeEnr.status === 'enrolled'} />
 
       {isHost ? (
+        <>
         <Card>
           <H>Sei il relatore</H>
-          <Body small muted>{f.seats ? `Iscritti: ${f.joined} su ${f.seats} posti.` : `Iscritti: ${f.joined}.`} I LifePoints dei partecipanti ti vengono accreditati quando confermano la partecipazione.</Body>
+          <Body small muted>{f.seats ? `Iscritti: ${f.joined} su ${f.seats} posti.` : `Iscritti: ${f.joined}.`} I LifePoints ti arrivano al momento della prenotazione di ciascun partecipante.</Body>
           {!s.promoted && <Btn small ghost style={{ marginTop: 10, alignSelf: 'flex-start' }} title="Promuovi con LifePoints" onPress={() => openSheet('promoteSeminar', { id: s.id })} />}
         </Card>
+        <ParticipantsCard seminarId={s.id} host={s.host} />
+        </>
       ) : (
         <Card>
           <H>La tua iscrizione</H>
           {canEnroll && (
             <>
-              <Body small muted style={{ marginBottom: 10 }}>{s.price ? `Iscrizione senza pagamento. Pagherai ${s.price} LP solo dopo il seminario.` : 'Iscrizione gratuita.'} Verrà aggiunto al tuo Plan; se hai già un impegno nello stesso orario ti avviseremo prima.</Body>
+              <Body small muted style={{ marginBottom: 10 }}>{s.price ? `Pagherai ${s.price} LP adesso, prima di occupare il posto.` : 'Iscrizione gratuita.'} Verrà aggiunto al tuo Plan; se hai già un impegno nello stesso orario ti avviseremo prima.</Body>
               <Btn title="Iscriviti" icon="check" onPress={() => enrollSeminar(s, me)} />
             </>
           )}
