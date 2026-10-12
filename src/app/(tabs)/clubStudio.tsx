@@ -256,7 +256,7 @@ function PriceTab({ club }: { club: Club }) {
       <Card>
         <H>Sezione a pagamento</H>
         <Body small muted style={{ marginTop: 2, marginBottom: 10 }}>I tuoi follower pagano una quota mensile per le lezioni e gli annunci Premium. Lascia 0 per non avere una sezione a pagamento.</Body>
-        <Body small muted>{`Quota mensile (${p.currency})`}</Body>
+        <Body small muted>{'Quota mensile (LifePoints)'}</Body>
         <Input keyboardType="decimal-pad" placeholder="Es. 9" value={monthly} onChangeText={setMonthly} />
         <Body small muted>Giorni di prova gratuita (0-30)</Body>
         <Input keyboardType="number-pad" placeholder="Es. 7" value={trial} onChangeText={setTrial} />
@@ -273,7 +273,7 @@ function PriceTab({ club }: { club: Club }) {
       </Card>
       <Card>
         <H>Guadagni (dimostrativi)</H>
-        <Body small muted style={{ marginTop: 2 }}>{`Con ${rev.gross ? '' : 'nessun abbonato Premium: '}${money(rev.gross, draft.currency)} lordi al mese, commissione ${PLATFORM_FEE_PCT}% (${money(rev.fee, draft.currency)}), ti restano circa ${money(rev.net, draft.currency)}. È un calcolo di esempio: nessun pagamento reale avviene in questa versione.`}</Body>
+        <Body small muted style={{ marginTop: 2 }}>{`Con ${rev.gross ? '' : 'nessun abbonato Premium: '}${money(rev.gross, draft.currency)} lordi al mese, commissione ${PLATFORM_FEE_PCT}% (${money(rev.fee, draft.currency)}), ti restano circa ${money(rev.net, draft.currency)}. È un calcolo di esempio.`}</Body>
       </Card>
       <Card>
         <H>Cosa serve per incassare davvero</H>

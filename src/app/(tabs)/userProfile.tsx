@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Linking, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/T';
 
 import { ModButton, UserAvatar, openSheet } from '@/components/network';
@@ -17,6 +17,7 @@ import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { badgesFor, bioFor, followerCountFor } from '@/lib/network';
 import { identityStatusOf } from '@/lib/profile/actions';
+import { DEFAULT_LOOK, safeLink, visibleSections, type SectionId } from '@/lib/profile/look';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { useIdentity } from '@/store/identity';
@@ -31,6 +32,7 @@ export default function UserProfile() {
   const demo = useApp((s) => s.demo);
   const net = useNet();
   const idRec = useIdentity((s) => s.identity);
+  const storedLook = useIdentity((s) => s.look);
   const name = param || me;
   const isMe = name === me;
   const visible = useVisible();
@@ -55,15 +57,18 @@ export default function UserProfile() {
     ...(isMe ? [{ key: 'contributi', label: 'Contributi', icon: 'heart', n: given }] : []),
     { key: 'altro', label: 'Altro', icon: 'more-h', n: -1 },
   ];
+  const look = isMe ? storedLook ?? DEFAULT_LOOK : DEFAULT_LOOK;
+  const accent = look.accent ?? t.accent;
   const hc = useApp((s) => s.accessibility.highContrast);
-  const tab = net.prefs.upTab;
+  const visibleTabs = ['Post', 'Foto', 'Video', 'Idee'].filter((k) => !look.hiddenTabs.includes(k));
+  const tab = visibleTabs.includes(net.prefs.upTab) ? net.prefs.upTab : visibleTabs[0] ?? 'Post';
   const authorPosts = [
     ...net.posts.filter((p) => p.author === name).map((p) => ({ key: 'standalone:' + p.id, id: 's' + p.id, author: p.author, text: p.text, media: p.media, uri: p.uri })),
     ...net.communities.flatMap((c) => c.posts.map((p, pi) => ({ key: `community:${c.id}:${pi}`, id: `c${c.id}:${pi}`, author: p.author, text: p.text, media: p.media ?? null, uri: p.uri })).filter((p) => p.author === name)),
   ];
   const filtered = tab === 'Foto' ? authorPosts.filter((p) => p.media === 'photo') : tab === 'Video' ? authorPosts.filter((p) => p.media === 'video') : authorPosts;
   const cell = Math.floor((win - 2) / 3);
-  const tabs: { key: string; label: string; icon: string }[] = [{ key: 'Post', label: 'Post', icon: 'grid' }, { key: 'Foto', label: 'Foto', icon: 'image' }, { key: 'Video', label: 'Video', icon: 'video' }, { key: 'Idee', label: 'Idee', icon: 'sparkle' }];
+  const tabs: { key: string; label: string; icon: string }[] = [{ key: 'Post', label: 'Post', icon: 'grid' }, { key: 'Foto', label: 'Foto', icon: 'image' }, { key: 'Video', label: 'Video', icon: 'video' }, { key: 'Idee', label: 'Idee', icon: 'sparkle' }].filter((x) => !look.hiddenTabs.includes(x.key));
   const thumb = (p: (typeof authorPosts)[number]) => {
     const pal = paletteFor(p.author + p.text, t.mode === 'light' ? 'light' : 'dark', hc);
     return (
@@ -81,6 +86,66 @@ export default function UserProfile() {
     );
   };
   const role = bioFor(name, me);
+  const shownPills = pills.filter((p) => !look.hiddenPills.includes(p.key));
+  const link = isMe ? safeLink(look.link) : null;
+
+  const sections: Record<SectionId, React.ReactNode> = {
+    badges: badgesFor(name, me).length > 0 ? (
+      <View key="badges" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+        {badgesFor(name, me).map((b) => <View key={b} style={{ backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}><Text style={{ color: t.text, fontSize: 12.5, fontWeight: '600' }}>{b}</Text></View>)}
+      </View>
+    ) : null,
+    stats: (
+      <View key="stats" style={{ marginTop: 16 }}>
+        <StatsBar name={name} followers={followers} following={followingCount} onFollowing={isMe ? () => openSheet('following') : undefined} />
+      </View>
+    ),
+    lifepoints: <View key="lifepoints" style={{ marginTop: 14 }}><LifePointsRow name={name} isMe={isMe} /></View>,
+    pills: shownPills.length ? (
+      <View key="pills" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 16 }}>
+        {shownPills.map((p) => (
+          <Pressable key={p.key} onPress={() => (p.key === 'altro' ? go('profileMore', { name }) : go('profileContent', { name, kind: p.key }))} accessibilityRole="button" accessibilityLabel={p.n < 0 ? p.label : `${p.label}: ${p.n}`} style={{ minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 16 }}>
+            <Icon name={p.icon} size={16} color={accent} />
+            {p.n >= 0 && <Text style={{ color: t.text, fontSize: 16, fontWeight: '800' }}>{p.n}</Text>}
+            <Text style={{ color: t.muted, fontSize: 13.5 }}>{p.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    ) : null,
+    others: others.length > 0 ? (
+      <View key="others" style={{ marginTop: 20, marginBottom: 4 }}>
+        <Body small muted style={{ marginBottom: 8 }}>{isMe ? 'Altri profili' : 'Potresti conoscere'}</Body>
+        <ScrollView horizontal keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
+          {others.map((n) => <Pressable key={n} style={{ width: 66, minHeight: 44, alignItems: 'center' }} onPress={() => go('userProfile', { name: n })} accessibilityRole="link" accessibilityLabel={n}><UserAvatar name={n} size={52} /><Body small muted numberOfLines={1} style={{ marginTop: 4 }}>{n.split(' ')[0]}</Body></Pressable>)}
+        </ScrollView>
+      </View>
+    ) : null,
+    grid: tabs.length === 0 ? null : (
+      <View key="grid">
+        <View accessibilityRole="tablist" style={{ flexDirection: 'row', marginTop: 18, marginHorizontal: -16, borderBottomWidth: 1, borderBottomColor: t.item }}>
+          {tabs.map((x) => {
+            const on = tab === x.key;
+            return (
+              <Pressable key={x.key} onPress={() => net.setPref('upTab', x.key)} accessibilityRole="tab" accessibilityLabel={x.label} accessibilityState={{ selected: on }} style={{ flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderBottomColor: on ? accent : 'transparent', marginBottom: -1 }}>
+                <Icon name={x.icon} size={22} color={on ? accent : t.muted} stroke={on ? 2.2 : 1.8} />
+              </Pressable>
+            );
+          })}
+        </View>
+        {tab === 'Idee' ? (
+          <View style={{ paddingTop: 16 }}>
+            {(() => { const l = net.ideas.filter((i) => i.author === name); return l.length ? l.map((i) => <IdeaHero key={i.id} idea={i} inset={false} />) : <Empty text="Ancora nessuna idea pubblicata." />; })()}
+          </View>
+        ) : filtered.length ? (
+          <View style={{ marginHorizontal: -16, marginTop: 2, gap: 1 }}>
+            {chunk(filtered, 3).map((row, ri) => <View key={ri} style={{ flexDirection: 'row', gap: 1 }}>{row.map(thumb)}</View>)}
+          </View>
+        ) : <Empty text="Ancora nessun contenuto qui." />}
+      </View>
+    ),
+  };
+  const nameSize = look.nameSize === 'S' ? 20 : look.nameSize === 'L' ? 27 : 23;
+  const headline = isMe ? (look.headline || net.bio || 'Il tuo profilo') : role;
 
   return (
     <Page id="userProfile" back right={!isMe ? <ModButton kind="profile" refId={name} label={`Profilo di ${name}`} author={name} /> : undefined}>
@@ -95,30 +160,34 @@ export default function UserProfile() {
         </Card>
       )}
 
-      {/* intestazione: avatar, nome, identità, ruolo */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8 }}>
-        <RingAvatar name={name} size={72} />
-        <View style={{ flex: 1, gap: 3 }}>
-          <Text accessibilityRole="header" style={{ color: t.text, fontSize: 23, fontWeight: '800', letterSpacing: -0.3 }}>{name}</Text>
-          <IdBadge status={status} preview={isMe && !!idRec.preview} />
-          <Text style={{ color: t.muted, fontSize: 13.5 }} numberOfLines={2}>{isMe ? (net.bio || 'Il tuo profilo') : role}</Text>
-        </View>
-      </View>
-      {badgesFor(name, me).length > 0 && (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
-          {badgesFor(name, me).map((b) => <View key={b} style={{ backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}><Text style={{ color: t.text, fontSize: 12.5, fontWeight: '600' }}>{b}</Text></View>)}
+      {look.banner && isMe && (
+        <View style={{ height: 110, borderRadius: 18, overflow: 'hidden', marginTop: 8 }}>
+          {look.banner.uri ? <Image source={{ uri: look.banner.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : <LinearGradient colors={[look.banner.c1, look.banner.c2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }} />}
         </View>
       )}
-
-      {/* barra alta: Follower · Seguiti · Voto complessivo */}
-      <View style={{ marginTop: 16 }}>
-        <StatsBar name={name} followers={followers} following={followingCount} onFollowing={isMe ? () => openSheet('following') : undefined} />
+      {/* intestazione: avatar, nome con icona di verifica, ruolo */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: look.banner && isMe ? -28 : 8 }}>
+        <View style={{ borderRadius: 50, borderWidth: look.banner && isMe ? 3 : 0, borderColor: t.bg }}><RingAvatar name={name} size={72} color={accent} /></View>
+        <View style={{ flex: 1, gap: 3, paddingTop: look.banner && isMe ? 30 : 0 }}>
+          <Row gap={4} style={{ justifyContent: 'flex-start' }}>
+            <Text accessibilityRole="header" numberOfLines={1} style={{ color: t.text, fontSize: nameSize, fontWeight: '800', letterSpacing: -0.3, flexShrink: 1 }}>{name}</Text>
+            {(!isMe || look.showVerified) && <IdBadge status={status} preview={isMe && !!idRec.preview} />}
+          </Row>
+          <Text style={{ color: t.muted, fontSize: 13.5 }} numberOfLines={2}>{headline}</Text>
+        </View>
       </View>
+      {isMe && (look.place || link) ? (
+        <Row gap={14} style={{ justifyContent: 'flex-start', marginTop: 8, flexWrap: 'wrap' }}>
+          {look.place ? <Row gap={4}><Icon name="location" size={14} color={t.muted} /><Body small muted>{look.place}</Body></Row> : null}
+          {link ? <Pressable onPress={() => Linking.openURL(link).catch(() => toast('Non riesco ad aprire il link'))} accessibilityRole="link" hitSlop={8}><Row gap={4}><Icon name="link" size={14} color={accent} /><Text numberOfLines={1} style={{ color: accent, fontSize: 13, fontWeight: '600', maxWidth: 220 }}>{look.link.replace(/^https?:\/\//i, '')}</Text></Row></Pressable> : null}
+        </Row>
+      ) : null}
+      {isMe && look.headline && net.bio ? <Text style={{ color: t.text, fontSize: 14.5, lineHeight: 21, marginTop: 8 }}>{net.bio}</Text> : null}
 
-      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
         {isMe ? (
           <>
-            <Btn style={{ flex: 1 }} ghost title="Modifica profilo" onPress={() => openSheet('editProfile')} />
+            <Btn style={{ flex: 1 }} ghost title="Modifica profilo" onPress={() => go('editProfile')} />
             <Btn style={{ flex: 1 }} ghost icon="briefcase" title="Biglietto" onPress={() => go('cardEditor')} />
           </>
         ) : (
@@ -143,46 +212,7 @@ export default function UserProfile() {
         </Card>
       )}
 
-      <View style={{ marginTop: 14 }}><LifePointsRow name={name} isMe={isMe} /></View>
-
-      {/* pillole di contenuto: si aprono in un elenco dedicato */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 16 }}>
-        {pills.map((p) => (
-          <Pressable key={p.key} onPress={() => (p.key === 'altro' ? go('profileMore', { name }) : go('profileContent', { name, kind: p.key }))} accessibilityRole="button" accessibilityLabel={p.n < 0 ? p.label : `${p.label}: ${p.n}`} style={{ minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 16 }}>
-            <Icon name={p.icon} size={16} color={t.muted} />
-            {p.n >= 0 && <Text style={{ color: t.text, fontSize: 16, fontWeight: '800' }}>{p.n}</Text>}
-            <Text style={{ color: t.muted, fontSize: 13.5 }}>{p.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <View accessibilityRole="tablist" style={{ flexDirection: 'row', marginTop: 18, marginHorizontal: -16, borderBottomWidth: 1, borderBottomColor: t.item }}>
-        {tabs.map((x) => {
-          const on = tab === x.key || (x.key === 'Post' && !['Foto', 'Video', 'Idee'].includes(tab));
-          return (
-            <Pressable key={x.key} onPress={() => net.setPref('upTab', x.key)} accessibilityRole="tab" accessibilityLabel={x.label} accessibilityState={{ selected: on }} style={{ flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderBottomColor: on ? t.text : 'transparent', marginBottom: -1 }}>
-              <Icon name={x.icon} size={22} color={on ? t.text : t.muted} stroke={on ? 2.2 : 1.8} />
-            </Pressable>
-          );
-        })}
-      </View>
-      {tab === 'Idee' ? (
-        <View style={{ paddingTop: 16 }}>
-          {(() => { const l = net.ideas.filter((i) => i.author === name); return l.length ? l.map((i) => <IdeaHero key={i.id} idea={i} inset={false} />) : <Empty text="Ancora nessuna idea pubblicata." />; })()}
-        </View>
-      ) : filtered.length ? (
-        <View style={{ marginHorizontal: -16, marginTop: 2, gap: 1 }}>
-          {chunk(filtered, 3).map((row, ri) => <View key={ri} style={{ flexDirection: 'row', gap: 1 }}>{row.map(thumb)}</View>)}
-        </View>
-      ) : <Empty text="Ancora nessun contenuto qui." />}
-      {others.length > 0 && (
-        <View style={{ marginTop: 22, marginBottom: 6 }}>
-          <Body small muted style={{ marginBottom: 8 }}>{isMe ? 'Altri profili' : 'Potresti conoscere'}</Body>
-          <ScrollView horizontal keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
-            {others.map((n) => <Pressable key={n} style={{ width: 66, minHeight: 44, alignItems: 'center' }} onPress={() => go('userProfile', { name: n })} accessibilityRole="link" accessibilityLabel={n}><UserAvatar name={n} size={52} /><Body small muted numberOfLines={1} style={{ marginTop: 4 }}>{n.split(' ')[0]}</Body></Pressable>)}
-          </ScrollView>
-        </View>
-      )}
+      {visibleSections(look).map((id) => sections[id])}
     </Page>
   );
 }

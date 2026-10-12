@@ -9,9 +9,10 @@ import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { confirmDelete } from '@/lib/confirm';
 import { STATUS_LABEL, businessesOnProfile, type IdStatus } from '@/lib/profile/identity';
-import { lifePointsFor, reputationFor, skillStatesOf } from '@/lib/profile/actions';
+import { lifePointsFor, reputationFor, reviewsFor, skillStatesOf } from '@/lib/profile/actions';
 import { HONESTY_NOTICE, SKILL_STATUS_LABEL, isVerified, quota, type SkillState, type SkillStatus } from '@/lib/profile/skills';
 import { skillLabel } from '@/data/skillBank';
+import { useApp } from '@/store/app';
 import { useIdentity } from '@/store/identity';
 import { useJobs } from '@/store/jobs';
 import { useNet } from '@/store/network';
@@ -24,11 +25,14 @@ export function IdBadge({ status, preview }: { status: IdStatus; preview?: boole
   if (status === 'none') return null;
   const ok = status === 'verified';
   const color = ok ? t.positive : status === 'pending' ? t.warn : t.danger;
+  const label = STATUS_LABEL[status] + (preview && ok ? ' · Anteprima' : '');
   return (
-    <View accessibilityLabel={STATUS_LABEL[status]} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-      <Icon name={ok ? 'check' : status === 'pending' ? 'clock' : 'x'} size={13} color={color} stroke={2.6} />
-      <Text style={{ color, fontSize: 12.5, fontWeight: '700' }}>{STATUS_LABEL[status]}{preview && ok ? ' · Anteprima' : ''}</Text>
-    </View>
+    <Pressable onPress={() => toast(label)} hitSlop={10} accessibilityRole="button" accessibilityLabel={label} style={{ width: 26, height: 26, alignItems: 'center', justifyContent: 'center' }}>
+      <Icon name="profile" size={21} color={color} stroke={2} />
+      <View style={{ position: 'absolute', end: 0, bottom: 1, width: 12, height: 12, borderRadius: 6, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name={ok ? 'check' : status === 'pending' ? 'clock' : 'x'} size={8} color={t.onText} stroke={3.4} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -80,11 +84,16 @@ export function LifePointsRow({ name, isMe = false }: { name: string; isMe?: boo
 /* ---------- dettaglio del voto (contenuto della sheet) ---------- */
 export function ReputationDetail({ name, onClose }: { name: string; onClose: () => void }) {
   const t = useTheme();
+  const me = useApp((s) => s.account.name);
+  const demo = useApp((s) => s.demo);
+  const isMe = name === me;
   useNet((s) => s.votes);
   useIdentity((s) => s.qaVotes);
+  useIdentity((s) => s.reviews);
   const rep = reputationFor(name);
   const counts = useNet.getState().votes[name] ?? {};
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const reviews = reviewsFor(name, demo);
   return (
     <>
       <Row gap={8} style={{ justifyContent: 'flex-start', alignItems: 'flex-end' }}>
@@ -92,20 +101,31 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
         <Text style={{ color: t.muted, fontSize: 16, marginBottom: 7 }}>/ 5</Text>
         <Icon name="award" size={24} color={t.accent} />
       </Row>
-      <Body small muted>{rep.basedOn} · {rep.confidenceLabel}</Body>
-      <Body bold style={{ marginTop: 16, marginBottom: 6 }}>Da cosa è composto</Body>
-      {rep.parts.map((p) => (
-        <Item key={p.id}>
-          <Row><View style={{ flex: 1 }}><Body bold>{p.label}</Body><Body small muted>{p.note}</Body></View><View style={{ alignItems: 'flex-end' }}><Body bold>{p.avg == null ? '–' : p.avg.toFixed(1)}</Body><Body small muted>{p.id === 'interazioni' ? tl('{0} punti', p.n) : p.n === 1 ? tl('1 voto') : tl('{0} voti', p.n)}</Body></View></Row>
-        </Item>
-      ))}
+      <Body small muted>{rep.basedOn}{isMe ? ` · ${rep.confidenceLabel}` : ''}</Body>
+      {isMe && (
+        <>
+          <Body bold style={{ marginTop: 16, marginBottom: 6 }}>Da cosa è composto</Body>
+          {rep.parts.map((p) => (
+            <Item key={p.id}>
+              <Row><View style={{ flex: 1 }}><Body bold>{p.label}</Body><Body small muted>{p.note}</Body></View><View style={{ alignItems: 'flex-end' }}><Body bold>{p.avg == null ? '–' : p.avg.toFixed(1)}</Body><Body small muted>{p.id === 'interazioni' ? tl('{0} punti', p.n) : p.n === 1 ? tl('1 voto') : tl('{0} voti', p.n)}</Body></View></Row>
+            </Item>
+          ))}
+        </>
+      )}
       {total > 0 && (
         <>
           <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Voti al profilo</Body>
-          {[5, 4, 3, 2, 1].map((s) => { const n = counts[s] || 0; return <Item key={s}><Row><Body>{s === 1 ? '1 stella' : tl('{0} stelle', s)}</Body><Body small muted>{n}</Body></Row><Progress value={Math.round((n / total) * 100)} /></Item>; })}
+          {[5, 4, 3, 2, 1].map((s) => { const n = counts[s] || 0; return <Item key={s}><Row><Body>{s === 1 ? '1 voto' : tl('{0} voti', s)}</Body><Body small muted>{n}</Body></Row><Progress value={Math.round((n / total) * 100)} /></Item>; })}
         </>
       )}
-      <Body small muted style={{ marginTop: 12 }}>Con pochi voti il valore resta vicino a 3,5 e si assesta man mano che arrivano. Votano il profilo solo le persone iscritte almeno una volta a un seminario, servizio o LifeClub; le risposte le vota chi aveva fatto la domanda. Mi piace, salvataggi e LifePoint contano poco e hanno un tetto.</Body>
+      <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Recensioni</Body>
+      {reviews.length === 0 ? <Body small muted>Ancora nessuna recensione.</Body> : reviews.map((r, i) => (
+        <Item key={i} last={i === reviews.length - 1}>
+          <Row><Body bold style={{ flex: 1 }}>{r.from}</Body><Row gap={2}>{[1, 2, 3, 4, 5].map((n) => <Icon key={n} name="award" size={13} color={n <= r.stars ? t.accent : t.border} fill={n <= r.stars ? t.accent : 'none'} />)}</Row></Row>
+          {r.text ? <Body small style={{ marginTop: 4 }}>{r.text}</Body> : null}
+        </Item>
+      ))}
+      {isMe && <Body small muted style={{ marginTop: 12 }}>Con pochi voti il valore resta vicino a 3,5 e si assesta man mano che arrivano. Votano il profilo le persone che hanno avuto una conversazione vera con te o che si sono iscritte a un tuo seminario, servizio o LifeClub; le risposte le vota chi aveva fatto la domanda. Mi piace, salvataggi e LifePoint contano poco e hanno un tetto. Gli altri vedono solo i voti e le recensioni.</Body>}
       <Btn ghost style={{ marginTop: 12 }} title="Ho capito" onPress={onClose} />
     </>
   );

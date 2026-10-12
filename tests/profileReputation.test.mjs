@@ -71,6 +71,10 @@ test('scomposizione trasparente: tre parti', () => {
   assert.equal(r.parts[1].n, 1); assert.equal(r.parts[1].avg, 5);
   assert.equal(r.votes, 3);
 });
+test('una conversazione in chat dà diritto al voto (una volta)', () => {
+  assert.equal(R.canVoteProfile('Bea', 'Anna', [{ host: 'Anna', status: 'chat' }]), true);
+  assert.equal(R.canVoteProfile('Bea', 'Anna', [{ host: 'Anna', status: 'chat', voted: true }]), false);
+});
 test('chi può votare il profilo: basta essersi iscritti una volta', () => {
   const enrolled = [{ host: 'Anna', status: 'enrolled' }];
   assert.equal(R.canVoteProfile('Bea', 'Anna', enrolled), true);
@@ -78,7 +82,7 @@ test('chi può votare il profilo: basta essersi iscritti una volta', () => {
   assert.equal(R.canVoteProfile('Bea', 'Anna', [{ host: 'Anna', status: 'attended', voted: true }]), false);
   assert.equal(R.canVoteProfile('Anna', 'Anna', enrolled), false);
   assert.equal(R.canVoteProfile('Bea', 'Anna', []), false);
-  assert.match(R.profileVoteBlockReason('Bea', 'Anna', []), /almeno una volta/);
+  assert.match(R.profileVoteBlockReason('Bea', 'Anna', []), /conversazione vera in chat/);
   assert.match(R.profileVoteBlockReason('Bea', 'Anna', [{ host: 'Anna', status: 'attended', voted: true }]), /già votato/);
   assert.equal(R.profileVoteBlockReason('Bea', 'Anna', enrolled), null);
 });

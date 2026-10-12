@@ -12,7 +12,7 @@ import { paidCancel, freeCancel } from '@/data/marketSeed';
 import { confirmAttendance, hasEnded } from '@/lib/enroll';
 import { ConflictSheet } from '@/lib/planBooking';
 import { fmtRange, nextDays, timeOptions, tsOf } from '@/lib/when';
-import { VOTE_BLOCK_MSG, convertAmount, cryptoRates, isVoteReasonRelevant, rateIdeaDetailed, textSimilarity } from '@/lib/network';
+import { VOTE_BLOCK_MSG, cryptoRates, isVoteReasonRelevant, rateIdeaDetailed, textSimilarity } from '@/lib/network';
 import { castProfileVote, profileVoteBlock, skillStatesOf } from '@/lib/profile/actions';
 import { ReputationDetail, SkillChip } from '@/components/profile/ProfileParts';
 import { HONESTY_NOTICE, quota } from '@/lib/profile/skills';
@@ -203,18 +203,7 @@ function NetSheetInner() {
     }
     case 'editProfile': { title = 'Modifica profilo'; body = <EditProfileView />; break; }
     case 'verification': { title = 'Verifica identità'; body = <VerificationView />; break; }
-    case 'topup': { title = 'Carica LifePoints'; body = <TopUpView />; break; }
-    case 'cardPicker': {
-      title = 'Scegli carta';
-      body = (
-        <>
-          {net.cards.map((c) => <Item key={c.id} onPress={() => { net.patch({ defaultCard: c.id }); openSheet('topup'); }}><Row><View><Body>{c.brand} ···· {c.last4}</Body><Body small muted>{c.holder} · scad. {c.expiry}</Body></View>{c.id === net.defaultCard ? <Icon name="check" size={17} color={t.positive} stroke={2.4} /> : null}</Row></Item>)}
-          <Btn small ghost style={{ marginTop: 10 }} title="+ Aggiungi nuova carta" onPress={() => openSheet('addCard')} />
-        </>
-      );
-      break;
-    }
-    case 'addCard': { title = 'Aggiungi carta'; body = <AddCardView />; break; }
+    case 'topup': { title = 'Come ottenere LifePoints'; body = <TopUpView />; break; }
     case 'cv': {
       const name = p.name;
       const states = skillStatesOf(name, me);
@@ -473,13 +462,13 @@ function VoteView({ name }: { name: string }) {
   return (
     <>
       <Body small color={t.positive} style={{ marginBottom: 6 }}>Com'è andata con questa persona?</Body>
-      <Body small muted>Il voto resta aggregato (si vede la media e la distribuzione, non chi ha votato). Il motivo che scrivi qui viene controllato prima di pubblicare il voto: deve essere pertinente, non un riempitivo.</Body>
+      <Body small muted>Il tuo voto e la tua recensione compaiono sul profilo con il tuo nome. Il motivo viene controllato prima di pubblicare: deve essere pertinente, non un riempitivo.</Body>
       <Row style={{ justifyContent: 'center', marginVertical: 16 }} gap={12}>{[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setStars(n)}><Icon name="award" size={32} color={n <= stars ? t.accent : t.border} fill={n <= stars ? t.accent : 'none'} /></Pressable>)}</Row>
       <Input multiline style={{ minHeight: 70 }} placeholder="Perché dai questo voto? (obbligatorio)" value={reason} onChangeText={setReason} />
       <Btn title="Invia voto" onPress={() => {
         if (!stars) { toast('Seleziona da 1 a 5 stelle'); return; }
         if (!isVoteReasonRelevant(reason)) { toast('Il motivo non sembra abbastanza pertinente: spiega meglio perché dai questo voto'); return; }
-        if (!castProfileVote(me, name, stars)) { close(); toast(VOTE_BLOCK_MSG); return; }
+        if (!castProfileVote(me, name, stars, reason)) { close(); toast(VOTE_BLOCK_MSG); return; }
         close(); toast('Voto pubblicato');
       }} />
     </>
@@ -530,55 +519,14 @@ function VerificationView() {
 }
 
 function TopUpView() {
-  const net = useNet();
   const close = useNetSheet((s) => s.close);
-  const [amt, setAmt] = useState('');
-  const card = net.cards.find((c) => c.id === net.defaultCard) ?? net.cards[0];
-  const a = parseFloat(amt.replace(',', '.')) || 0;
-  const cur = net.payCurrency;
-  const isCrypto = !!cryptoRates[cur];
-  const note = !a ? '' : cur === 'CHF' ? tl('Addebito: {0} CHF', formatCHF(a)) : (isCrypto ? tl('Addebito indicativo: {0} {1} · tasso illustrativo, non di mercato', convertAmount(a, cur).toFixed(6), cur) : tl('Addebito indicativo: {0} {1} · include un margine di cambio del 2%', convertAmount(a, cur).toFixed(2), cur));
   return (
     <>
-      <Body small muted>Ricarica di prova: nessun pagamento reale è collegato. In versione pubblicata l'acquisto di LifePoints dovrà passare dai pagamenti in-app dello store.</Body>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginVertical: 12 }}>{[50, 100, 250].map((v) => <Pill key={v} label={`${v} LP`} onPress={() => setAmt(String(v))} />)}</View>
-      <Input keyboardType="decimal-pad" placeholder="Quanti LifePoints vuoi caricare?" value={amt} onChangeText={setAmt} />
-      <Body small muted style={{ marginBottom: 6 }}>Valuta di pagamento · 1 CHF = 1 LifePoint</Body>
-      <Select title="Valuta" value={cur} options={['CHF', 'EUR', 'USD', 'GBP', 'BTC', 'ETH']} onChange={(v) => net.patch({ payCurrency: v })} />
-      {note ? <Body small muted style={{ marginBottom: 12 }}>{note}</Body> : null}
-      <Body small muted style={{ marginBottom: 6 }}>Carta di pagamento</Body>
-      {card ? <Item onPress={() => openSheet('cardPicker')}><Row><View><Body>{card.brand} ···· {card.last4}</Body><Body small muted>{card.holder} · scad. {card.expiry}</Body></View><Body muted>Cambia</Body></Row></Item> : <Btn small ghost title="+ Aggiungi carta" onPress={() => openSheet('addCard')} />}
-      <Btn style={{ marginTop: 12 }} disabled={!card} title="Carica" onPress={() => {
-        if (!a || a <= 0) { toast('Inserisci un importo valido'); return; }
-        if (!card) { toast('Aggiungi prima una carta'); return; }
-        const rows: [string, string][] = [['Importo', formatCHF(a) + ' LP']];
-        if (cur !== 'CHF') rows.push(['Addebito', convertAmount(a, cur).toFixed(isCrypto ? 6 : 2) + ' ' + cur]);
-        rows.push(['Carta', card.brand + ' ···· ' + card.last4]);
-        close();
-        openPurchaseConfirm('Carica LifePoints', rows, () => { useNet.getState().earn(a, 'Ricarica LifePoints'); toast(`Hai caricato ${formatCHF(a)} LP`); }, 'lifepointsPage');
-      }} />
-    </>
-  );
-}
-
-function AddCardView() {
-  const net = useNet();
-  const me = useApp((s) => s.account.name);
-  const [brand, setBrand] = useState('Visa'); const [last4, setLast4] = useState(''); const [holder, setHolder] = useState(me); const [exp, setExp] = useState('');
-  return (
-    <>
-      <Body small muted>Bastano le ultime 4 cifre: non gestiamo mai il numero completo della carta.</Body>
-      <Select title="Circuito" value={brand} options={['Visa', 'Mastercard', 'American Express']} onChange={setBrand} />
-      <Input keyboardType="number-pad" maxLength={4} placeholder="Ultime 4 cifre" value={last4} onChangeText={setLast4} />
-      <Input placeholder="Intestatario" value={holder} onChangeText={setHolder} />
-      <Input placeholder="Scadenza MM/AA" value={exp} onChangeText={setExp} />
-      <Btn title="Salva carta" onPress={() => {
-        if (!/^\d{4}$/.test(last4)) { toast('Inserisci le ultime 4 cifre'); return; }
-        if (!holder.trim() || !exp.trim()) { toast('Completa tutti i campi'); return; }
-        const id = newId();
-        net.patch({ cards: [...net.cards, { id, brand, last4, holder: holder.trim(), expiry: exp.trim() }], defaultCard: id });
-        toast('Carta salvata'); openSheet('topup');
-      }} />
+      <Body small>Nell'app non esistono soldi veri: si usano solo i LifePoints, e non si comprano. Si guadagnano.</Body>
+      <Item><Row><Icon name="heart" size={18} /><Body style={{ flex: 1 }}>Ricevendo il LifePoint giornaliero da qualcuno che hai aiutato</Body></Row></Item>
+      <Item><Row><Icon name="lifeclub" size={18} /><Body style={{ flex: 1 }}>Con le quote del tuo LifeClub e le iscrizioni ai tuoi seminari e servizi</Body></Row></Item>
+      <Item last><Row><Icon name="lifenetwork" size={18} /><Body style={{ flex: 1 }}>Con i contributi alle tue idee e le ricompense dell'app</Body></Row></Item>
+      <Btn style={{ marginTop: 14 }} ghost title="Ho capito" onPress={close} />
     </>
   );
 }

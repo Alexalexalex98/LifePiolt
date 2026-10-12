@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { EMPTY_IDENTITY, resolveRequest, submitRequest, type Business, type DocType, type IdentityRecord } from '@/lib/profile/identity';
 import { respond, requestBlockReason, validateDeclare, type Declared, type VerifRequest } from '@/lib/profile/skills';
+import { DEFAULT_LOOK, sanitizeLook, type ProfileLook } from '@/lib/profile/look';
 import { qaBlockReason, type QaVote } from '@/lib/profile/reputation';
 import type { CardDesign } from '@/lib/profile/card';
 import { useNet } from './network';
@@ -13,6 +14,8 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
  * Identità, attività, biglietto da visita, competenze dichiarate e voti alle risposte. Salvato sul telefono.
  * Del documento d'identità NON si conserva nulla: qui c'è solo lo stato della richiesta (vedi docs/profile.md).
  */
+export type Review = { from: string; to: string; stars: number; text: string; ts: number };
+
 type State = {
   identity: IdentityRecord;
   businesses: Business[];
@@ -29,6 +32,12 @@ type State = {
   profileVoted: string[];
   /** creazione dell'account su questo telefono: serve per l'anzianità del votante */
   since: number;
+  /** persone votate grazie a una conversazione in chat (un voto per persona) */
+  chatVoted?: string[];
+  /** personalizzazione del profilo */
+  look?: ProfileLook;
+  /** recensioni (voto + motivazione) date da me; quelle ricevute dagli altri sono dimostrative */
+  reviews?: Review[];
 
   submitIdentity: (doc: DocType, got: Partial<Record<'front' | 'back', boolean>>, selfie: boolean, preview: boolean) => boolean;
   resolveIdentity: (ok: boolean, reason?: string) => void;
@@ -45,14 +54,18 @@ type State = {
   requestVerification: (by: string, to: string, skill: string, note?: string) => { ok: boolean; why?: string; id?: string };
   respondVerification: (id: string, accept: boolean) => boolean;
   castQa: (v: QaVote) => string | null;
+  addReview: (r: Review) => void;
+  patchLook: (p: Partial<ProfileLook>) => void;
   reset: () => void;
 };
 
-const blank = () => ({ identity: EMPTY_IDENTITY, businesses: [] as Business[], design: null as CardDesign | null, role: '', cardBusinessId: null as string | null, declared: [] as Declared[], requests: [] as VerifRequest[], qaVotes: [] as QaVote[], profileVoted: [] as string[], since: Date.now() });
+const blank = () => ({ identity: EMPTY_IDENTITY, businesses: [] as Business[], design: null as CardDesign | null, role: '', cardBusinessId: null as string | null, declared: [] as Declared[], requests: [] as VerifRequest[], qaVotes: [] as QaVote[], profileVoted: [] as string[], chatVoted: [] as string[], look: DEFAULT_LOOK, reviews: [] as Review[], since: Date.now() });
 
 export const useIdentity = create<State>()(
   persisted<State>('identity', (set, get) => ({
     ...blank(),
+    patchLook: (p) => set((s) => ({ look: sanitizeLook({ ...(s.look ?? DEFAULT_LOOK), ...p }) })),
+    addReview: (r) => set((s) => ({ reviews: [r, ...(s.reviews ?? [])].slice(0, 500) })),
     submitIdentity: (doc, got, selfie, preview) => {
       const rec = submitRequest(doc, got, selfie, Date.now(), preview);
       if (!rec) return false;

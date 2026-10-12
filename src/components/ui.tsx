@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,7 +15,7 @@ import { useSectionNames } from '@/lib/i18n';
 import { readable } from '@/lib/a11y';
 import { log } from '@/lib/log';
 import { areaColors, Icon } from '@/lib/icons';
-import { goBack, go } from '@/lib/nav';
+import { goBack, go, isFreshForward } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { installTextScale } from '@/lib/textScale';
 import { translateText } from '@/i18n/core';
@@ -109,6 +109,11 @@ function TopBar({ page }: { page: string }) {
   );
 }
 
+/** posizione di scorrimento per pagina+parametri: aprendo una pagina si parte dall'alto, tornando indietro si ritrova il punto */
+const scrollMemory = new Map<string, number>();
+/** nelle chat (con persone e con l'AI) si resta dove si era */
+const KEEP_SCROLL = ['ai', 'conversationPage'];
+
 const MAIN_TABS = ['index', 'home', 'ai', 'lifenetwork', 'lifefinance', 'profile'];
 
 export function Page({ id, title, back, children, right, scroll = true, noTop }: {
@@ -120,6 +125,16 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
   useEffect(() => { trackVisit(id === 'index' ? 'home' : id); }, [id, trackVisit]);
   // il pulsante indietro compare da solo su ogni pagina aperta con go() (non sulle 5 tab principali)
   const showBack = !MAIN_TABS.includes(id) && (back ?? !noTop);
+  const params = useLocalSearchParams();
+  const memKey = id + JSON.stringify(params);
+  const scrollRef = useRef<ScrollView>(null);
+  const keep = KEEP_SCROLL.includes(id);
+  useFocusEffect(useCallback(() => {
+    if (keep) return;
+    const y = isFreshForward() ? 0 : scrollMemory.get(memKey) ?? 0;
+    const tm = setTimeout(() => scrollRef.current?.scrollTo({ y, animated: false }), 0);
+    return () => clearTimeout(tm);
+  }, [memKey, keep]));
   const body = (
     <>
       {!noTop && <TopBar page={id} />}
@@ -140,7 +155,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
   return (
     <KeyboardDock style={{ backgroundColor: t.bg }}>
       {scroll ? (
-        <ScrollView contentContainerStyle={{ padding: space.lg, paddingTop: insets.top + 10, paddingBottom: BOTTOM_CLEARANCE }} keyboardShouldPersistTaps="handled">{body}</ScrollView>
+        <ScrollView ref={scrollRef} onScroll={keep ? undefined : (e) => scrollMemory.set(memKey, e.nativeEvent.contentOffset.y)} scrollEventThrottle={100} contentContainerStyle={{ padding: space.lg, paddingTop: insets.top + 10, paddingBottom: BOTTOM_CLEARANCE }} keyboardShouldPersistTaps="handled">{body}</ScrollView>
       ) : (
         <View style={{ flex: 1, padding: space.lg, paddingTop: insets.top + 10 }}>{body}</View>
       )}

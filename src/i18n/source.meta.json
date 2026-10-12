@@ -1,5 +1,5 @@
 {
- "count": 7275,
+ "count": 7287,
  "byFile": {
   "src/app/(tabs)/ai.tsx": 23,
   "src/app/(tabs)/aiSettings.tsx": 7,
@@ -19,6 +19,7 @@
   "src/app/(tabs)/communityProfile.tsx": 21,
   "src/app/(tabs)/conversationPage.tsx": 57,
   "src/app/(tabs)/diagnostics.tsx": 13,
+  "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
   "src/app/(tabs)/ideaProfile.tsx": 21,
   "src/app/(tabs)/identityVerify.tsx": 38,
@@ -64,7 +65,7 @@
   "src/app/(tabs)/stocks.tsx": 15,
   "src/app/(tabs)/syncSettings.tsx": 2,
   "src/app/(tabs)/taxdecl.tsx": 74,
-  "src/app/(tabs)/userProfile.tsx": 37,
+  "src/app/(tabs)/userProfile.tsx": 38,
   "src/app/onboarding.tsx": 10,
   "src/components/ArrivalAdvice.tsx": 8,
   "src/components/Automations.tsx": 37,
@@ -87,7 +88,7 @@
   "src/components/MediaPickerField.tsx": 8,
   "src/components/MoodChart.tsx": 6,
   "src/components/NavBar.tsx": 11,
-  "src/components/NetSheets.tsx": 264,
+  "src/components/NetSheets.tsx": 236,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 43,
   "src/components/PracticalCard.tsx": 53,
@@ -130,6 +131,7 @@
   "src/components/club/MediaStage.tsx": 8,
   "src/components/club/PremiumSheet.tsx": 20,
   "src/components/club/ProfileClubSection.tsx": 7,
+  "src/components/club/format.ts": 1,
   "src/components/club/parts.tsx": 3,
   "src/components/club/pickFile.ts": 2,
   "src/components/dashboard.tsx": 43,
@@ -311,9 +313,10 @@
   "src/lib/priority.ts": 15,
   "src/lib/privacyGate.ts": 24,
   "src/lib/privacyLog.ts": 9,
-  "src/lib/profile/actions.ts": 2,
+  "src/lib/profile/actions.ts": 8,
   "src/lib/profile/card.ts": 15,
   "src/lib/profile/identity.ts": 33,
+  "src/lib/profile/look.ts": 12,
   "src/lib/profile/pickImage.ts": 3,
   "src/lib/profile/qa.ts": 1,
   "src/lib/profile/reputation.ts": 20,
@@ -359,5 +362,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1010
+ "withPlaceholders": 1007
 }

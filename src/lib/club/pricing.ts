@@ -5,7 +5,7 @@ export const MAX_MONTHLY = 500;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Normalizza i prezzi inseriti dal creatore. */
-export function sanitizePricing(p: Partial<Pricing>, currency = 'CHF'): Pricing {
+export function sanitizePricing(p: Partial<Pricing>, currency = 'LP'): Pricing {
   const monthly = Math.min(MAX_MONTHLY, Math.max(0, r2(Number(p.monthly) || 0)));
   return {
     monthly,

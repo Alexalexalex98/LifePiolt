@@ -138,5 +138,5 @@ export function profileVoteBlockReason(me: string, target: string, parts: Partic
   if (me === target) return 'Non puoi votare te stesso.';
   if (canVoteProfile(me, target, parts)) return null;
   const done = parts.some((p) => p.host === target && p.status !== 'declined' && p.voted);
-  return done ? 'Hai già votato con la tua iscrizione a questa persona. Potrai votare di nuovo con una nuova iscrizione.' : 'Puoi votare solo dopo esserti iscritto almeno una volta a un seminario, a un servizio o a un LifeClub di questa persona. Messaggi e interazioni non bastano.';
+  return done ? 'Hai già votato con la tua iscrizione a questa persona. Potrai votare di nuovo con una nuova iscrizione.' : 'Puoi votare dopo aver avuto una conversazione vera in chat (con messaggi di entrambi) oppure dopo esserti iscritto a un seminario, a un servizio o a un LifeClub di questa persona.';
 }

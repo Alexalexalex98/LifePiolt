@@ -121,7 +121,7 @@ export function convertAmount(chf: number, currency: string): number {
 export type { Idea };
 
 /* ---------- voto consentito a chi si è iscritto almeno una volta (seminario, servizio; il LifeClub è gestito in lib/profile/actions) ---------- */
-export const VOTE_BLOCK_MSG = 'Puoi votare solo se ti sei iscritto almeno una volta a un seminario, a un servizio o a un LifeClub di questa persona.';
+export const VOTE_BLOCK_MSG = 'Puoi votare dopo una conversazione vera in chat o dopo esserti iscritto a un seminario, a un servizio o a un LifeClub di questa persona.';
 
 /** true se `me` ha un'iscrizione (non rifiutata, non ancora usata per votare) a un seminario/servizio di `target`. */
 export function canVote(me: string, target: string): boolean {

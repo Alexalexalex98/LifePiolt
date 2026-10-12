@@ -59,10 +59,10 @@ export function IconBtn({ icon, color, fill, size = 25, label, onPress, pop, sel
 }
 
 /** Avatar con anello sottile e sobrio (NON un effetto "storia"): 1.5px tinta tenue dell'accento. */
-export function RingAvatar({ name, size = 40 }: { name: string; size?: number }) {
+export function RingAvatar({ name, size = 40, color }: { name: string; size?: number; color?: string }) {
   const t = useTheme();
   return (
-    <View style={{ width: size + 8, height: size + 8, borderRadius: (size + 8) / 2, borderWidth: 1.5, borderColor: t.mode === 'light' ? t.border : t.accent + '66', alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: size + 8, height: size + 8, borderRadius: (size + 8) / 2, borderWidth: 1.5, borderColor: color ? color : t.mode === 'light' ? t.border : t.accent + '66', alignItems: 'center', justifyContent: 'center' }}>
       <UserAvatar name={name} size={size} />
     </View>
   );

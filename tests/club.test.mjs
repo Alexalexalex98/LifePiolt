@@ -53,7 +53,7 @@ test('prezzi', () => {
   assert.equal(C.yearlyPrice(p), 86.4);
   assert.equal(C.yearlyPerMonth(p), 7.2);
   assert.equal(C.hasYearly(p), true);
-  assert.deepEqual(C.sanitizePricing({ monthly: -4, trialDays: 99, yearlyDiscountPct: 90 }), { monthly: 0, currency: 'CHF', trialDays: 0, yearlyDiscountPct: 0 });
+  assert.deepEqual(C.sanitizePricing({ monthly: -4, trialDays: 99, yearlyDiscountPct: 90 }), { monthly: 0, currency: 'LP', trialDays: 0, yearlyDiscountPct: 0 });
   assert.equal(C.sanitizePricing({ monthly: 5000 }).monthly, C.MAX_MONTHLY);
   assert.equal(C.sanitizePricing({ monthly: 9, trialDays: 99, yearlyDiscountPct: 90 }).trialDays, 30);
   assert.equal(C.creatorNet(100), 100 - C.PLATFORM_FEE_PCT);

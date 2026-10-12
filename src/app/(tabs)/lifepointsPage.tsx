@@ -22,7 +22,7 @@ export default function LifePointsPage() {
       <Card style={{ alignItems: 'center' }}>
         <Body small muted>Il tuo saldo</Body>
         <Row gap={6}><Metric big>{formatCHF(net.lifePoints)}</Metric><LpTag size={28} /></Row>
-        <Btn style={{ marginTop: 12, alignSelf: 'stretch' }} title="+ Carica LifePoints" onPress={() => openSheet('topup')} />
+        <Btn style={{ marginTop: 12, alignSelf: 'stretch' }} ghost title="Come ottenere LifePoints" onPress={() => openSheet('topup')} />
       </Card>
       <Card style={{ alignItems: 'center' }}>
         <Body small muted style={{ marginBottom: 10 }}>Streak LifePoint giornaliero</Body>
@@ -35,14 +35,14 @@ export default function LifePointsPage() {
         <Item><Row><Body>LifePoint giornaliero donato</Body><Body bold>{weekDon.length}/7 giorni</Body></Row></Item>
         <Item last><Row><Body>Acquisti effettuati</Body><Body bold>{weekSpends.length}</Body></Row></Item>
       </Card>
-      <Seg options={['Acquisti', 'Ricariche', 'LifePoint giornaliero']} value={tab} onChange={(v) => net.setPref('lpTab', v)} />
+      <Seg options={['Acquisti', 'Guadagnati', 'LifePoint giornaliero']} value={tab} onChange={(v) => net.setPref('lpTab', v)} />
       {tab === 'Acquisti' && (() => {
         const rows = net.ledger.filter((l) => l.type === 'spend');
         return <Card>{rows.length ? rows.map((l, i) => <Item key={i} last={i === rows.length - 1}><Row><View style={{ flex: 1 }}><Body>{l.desc}</Body><Body small muted>{l.date}</Body></View><Amount n={l.amount} sign="-" color={t.danger} /></Row></Item>) : <Empty text="Ancora nessun acquisto: quando prenoti un servizio o sostieni un'idea, lo trovi qui." />}</Card>;
       })()}
-      {tab === 'Ricariche' && (() => {
+      {tab === 'Guadagnati' && (() => {
         const rows = net.ledger.filter((l) => l.type === 'topup');
-        return <Card>{rows.length ? rows.map((l, i) => <Item key={i} last={i === rows.length - 1}><Row><View style={{ flex: 1 }}><Body>{l.desc}</Body><Body small muted>{l.date}</Body></View><Amount n={l.amount} sign="+" color={t.positive} /></Row></Item>) : <Empty text={'Ancora nessuna ricarica: tocca "Carica LifePoints" qui sopra per iniziare.'} />}</Card>;
+        return <Card>{rows.length ? rows.map((l, i) => <Item key={i} last={i === rows.length - 1}><Row><View style={{ flex: 1 }}><Body>{l.desc}</Body><Body small muted>{l.date}</Body></View><Amount n={l.amount} sign="+" color={t.positive} /></Row></Item>) : <Empty text={'Ancora nessun LifePoint guadagnato.'} />}</Card>;
       })()}
       {tab === 'LifePoint giornaliero' && (
         <Card>{net.dailyHistory.length ? net.dailyHistory.map((d, i) => (
