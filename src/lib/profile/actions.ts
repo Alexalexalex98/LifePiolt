@@ -4,10 +4,11 @@ import { useChat, dmId } from '@/store/chat';
 import { useIdentity, type Review } from '@/store/identity';
 import { profileOf, useJobs } from '@/store/jobs';
 import { useNet } from '@/store/network';
+import { useClub } from '@/store/club';
 import { useApp } from '@/store/app';
 import { receivedLPFor, postByKey } from '@/lib/network';
 import { can as canDo, type Action, type IdStatus } from './identity';
-import { canVoteProfile, computeReputation, profileVoteBlockReason, type Interactions, type Participation } from './reputation';
+import { canVoteProfile, computeReputation, itemRating, type ItemVote, profileVoteBlockReason, type Interactions, type Participation } from './reputation';
 import { skillStates, type Declared, type Evidence, type SkillState } from './skills';
 
 /** Stato effettivo dell'identità: lo store dedicato, oppure il vecchio flag (profili demo e dati salvati prima). */
@@ -77,6 +78,7 @@ export function reputationFor(name: string) {
     target: name,
     direct: useNet.getState().votes[name],
     qa: id.qaVotes,
+    items: itemVotesFor(name),
     interactions: interactionsFor(name),
     now: Date.now(),
     sinceOf: (n) => (n === useApp.getState().account.name ? id.since : undefined),
@@ -149,4 +151,36 @@ export function ensureDemoVotes(me: string) {
   const cur = st.votes[me];
   if (cur && Object.values(cur).some((v) => v > 0)) return;
   useNet.setState({ votes: { ...st.votes, [me]: { 1: 0, 2: 1, 3: 1, 4: 3, 5: 6 } } });
+}
+
+/* ---------- valutazione di corsi, seminari e sedute ---------- */
+/** Valutazioni ai singoli corsi/seminari/sedute di `name`: quelle date su questo telefono e le valutazioni dei LifeClub che gestisce. */
+export function itemVotesFor(name: string): ItemVote[] {
+  const mine = (useIdentity.getState().itemVotes ?? []).filter((v) => v.to === name);
+  const club = useClub.getState();
+  const fromClubs: ItemVote[] = Object.values(club.clubs).filter((c) => c.owner === name).flatMap((c) => Object.entries(club.ratings[c.id] ?? {}).map(([user, r]) => ({ from: user, to: name, ref: `club:${c.id}`, stars: r.stars, ts: r.ts })));
+  return [...mine, ...fromClubs];
+}
+export const itemRatingOf = (ref: string): { avg: number | null; n: number } => {
+  const owner = ref.startsWith('seminar:') ? useNet.getState().seminars.find((s) => String(s.id) === ref.slice(8))?.host : ref.startsWith('service:') ? ref.slice(8) : ref.startsWith('club:') ? useClub.getState().clubs[ref.slice(5)]?.owner : undefined;
+  return itemRating(ref, owner ? itemVotesFor(owner) : [], Date.now());
+};
+/** Chi ha partecipato (confermato) a quel seminario o sessione può valutarlo; una sola valutazione per persona e per corso. */
+export function itemRateBlock(me: string, ref: string): string | null {
+  const st = useNet.getState();
+  const host = ref.startsWith('seminar:') ? st.seminars.find((s) => String(s.id) === ref.slice(8))?.host : ref.startsWith('service:') ? ref.slice(8) : undefined;
+  if (!host) return 'Non puoi valutare questo contenuto.';
+  if (host === me) return 'Non puoi valutare te stesso.';
+  const took = st.enrollments.some((e) => e.host === host && e.status === 'attended' && (ref.startsWith('seminar:') ? e.kind === 'seminar' && e.ref === ref.slice(8) : e.kind === 'service'));
+  if (!took) return 'Puoi valutare solo dopo aver partecipato e confermato.';
+  if ((useIdentity.getState().itemVotes ?? []).some((v) => v.from === me && v.ref === ref)) return 'Hai già valutato questo contenuto.';
+  return null;
+}
+export function rateItem(me: string, ref: string, stars: number): string | null {
+  const why = itemRateBlock(me, ref);
+  if (why) return why;
+  const st = useNet.getState();
+  const to = ref.startsWith('seminar:') ? st.seminars.find((s) => String(s.id) === ref.slice(8))!.host : ref.slice(8);
+  useIdentity.getState().addItemVote({ from: me, to, ref, stars: Math.max(1, Math.min(5, Math.round(stars))), ts: Date.now() });
+  return null;
 }

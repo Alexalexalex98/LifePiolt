@@ -34,9 +34,13 @@ export const INTERACTION_HALF = 60;
 const CAP_LIKES = 200, CAP_SAVES = 50, CAP_DONORS = 20;
 
 export type QaVote = { from: string; to: string; stars: number; ts: number; /** scambio votato (es. 'standalone:3#2') */ ref?: string; /** "utile / non utile": se false le stelle valgono al massimo 2 */ helpful?: boolean };
+/** Valutazione di un singolo corso, seminario, seduta o LifeClub di una persona: vale un terzo di un voto al profilo. */
+export const ITEM_WEIGHT = 1 / 3;
+export type ItemVote = { from: string; to: string; /** corso/seminario/seduta valutato (es. 'seminar:2', 'service:Anna', 'club:club-mio') */ ref: string; stars: number; ts: number };
+
 export type Interactions = { likes: number; saves: number; /** persone DIVERSE che hanno donato un LifePoint */ lpDonors: number };
 export type Confidence = 'nessuna' | 'bassa' | 'media' | 'alta';
-export type Part = { id: 'profilo' | 'risposte' | 'interazioni'; label: string; n: number; avg: number | null; weight: number; note: string };
+export type Part = { id: 'profilo' | 'risposte' | 'corsi' | 'interazioni'; label: string; n: number; avg: number | null; weight: number; note: string };
 export type Reputation = { score: number | null; votes: number; confidence: Confidence; confidenceLabel: string; parts: Part[]; basedOn: string };
 
 export const effectiveStars = (v: Pick<QaVote, 'stars' | 'helpful'>): number => {
@@ -79,6 +83,32 @@ export function validQaVotes(target: string, votes: QaVote[], now: number): QaVo
   return out;
 }
 
+/** Valutazioni a corsi/sedute valide per `target`: niente autovoti, una per persona e per corso (vale la prima), al massimo RATE_MAX in 24 ore per votante. */
+export function validItemVotes(target: string, votes: ItemVote[], now: number): ItemVote[] {
+  const sorted = [...votes].filter((v) => v && v.to === target && v.from && v.from !== target && v.ref && v.ts <= now + 60000).sort((a, b) => a.ts - b.ts);
+  const seen = new Set<string>();
+  const perVoter = new Map<string, number[]>();
+  const out: ItemVote[] = [];
+  for (const v of sorted) {
+    const key = `${v.from}|${v.ref}`;
+    if (seen.has(key)) continue;
+    const times = (perVoter.get(v.from) ?? []).filter((x) => v.ts - x < RATE_WINDOW_MS);
+    if (times.length >= RATE_MAX) continue;
+    seen.add(key);
+    perVoter.set(v.from, [...times, v.ts]);
+    out.push(v);
+  }
+  return out;
+}
+
+/** Media (1-5) di un singolo corso/seminario/seduta e numero di valutazioni. */
+export function itemRating(ref: string, votes: ItemVote[], now: number): { avg: number | null; n: number } {
+  const seen = new Set<string>();
+  const list = [...votes].filter((v) => v && v.ref === ref && v.from && v.from !== v.to && v.ts <= now + 60000).sort((a, b) => a.ts - b.ts).filter((v) => (seen.has(v.from) ? false : (seen.add(v.from), true)));
+  if (!list.length) return { avg: null, n: 0 };
+  return { avg: Math.round((list.reduce((a, v) => a + Math.max(1, Math.min(5, Math.round(v.stars))), 0) / list.length) * 10) / 10, n: list.length };
+}
+
 export function interactionPoints(i: Interactions): number {
   return Math.min(Math.max(0, i.likes), CAP_LIKES) + 2 * Math.min(Math.max(0, i.saves), CAP_SAVES) + 3 * Math.min(Math.max(0, i.lpDonors), CAP_DONORS);
 }
@@ -88,6 +118,8 @@ export type RepInput = {
   /** istogramma dei voti diretti { 1: n, ... 5: n } (store network, campo votes) */
   direct?: Partial<Record<number, number>>;
   qa?: QaVote[];
+  /** valutazioni ai singoli corsi/seminari/sedute della persona */
+  items?: ItemVote[];
   interactions?: Interactions;
   now: number;
   /** data di creazione dell'account del votante (ms), se nota */
@@ -108,6 +140,9 @@ export function computeReputation(i: RepInput): Reputation {
   const qa = validQaVotes(i.target, i.qa ?? [], i.now);
   let qw = 0, qsum = 0;
   for (const v of qa) { const w = ageWeight(i.sinceOf?.(v.from), i.now) ; qw += w; qsum += w * effectiveStars(v); }
+  const items = validItemVotes(i.target, i.items ?? [], i.now);
+  let isum = 0;
+  for (const v of items) isum += Math.max(1, Math.min(5, Math.round(v.stars)));
   const pts = interactionPoints(i.interactions ?? { likes: 0, saves: 0, lpDonors: 0 });
   const sat = pts / (pts + INTERACTION_HALF);
   const iw = INTERACTION_MAX_WEIGHT * sat;
@@ -115,13 +150,15 @@ export function computeReputation(i: RepInput): Reputation {
 
   const wProfile = dn;
   const wQa = QA_WEIGHT * qw;
-  const total = wProfile + wQa + iw;
-  const votes = dn + qa.length;
-  const score = votes === 0 && pts === 0 ? null : r1((K * PRIOR + dsum + QA_WEIGHT * qsum + iw * iAvg) / (K + total));
+  const wItems = ITEM_WEIGHT * items.length;
+  const total = wProfile + wQa + wItems + iw;
+  const votes = dn + qa.length + items.length;
+  const score = votes === 0 && pts === 0 ? null : r1((K * PRIOR + dsum + QA_WEIGHT * qsum + ITEM_WEIGHT * isum + iw * iAvg) / (K + total));
   const confidence: Confidence = votes === 0 && pts > 0 ? 'bassa' : confidenceOf(votes);
   const parts: Part[] = [
     { id: 'profilo', label: 'Profilo', n: dn, avg: dn ? r1(dsum / dn) : null, weight: r1(wProfile), note: 'Voti di chi si è iscritto almeno una volta a un tuo seminario, servizio o LifeClub.' },
     { id: 'risposte', label: 'Risposte', n: qa.length, avg: qw ? r1(qsum / qw) : null, weight: r1(wQa), note: 'Voti a singole risposte, dati solo da chi aveva fatto la domanda.' },
+    { id: 'corsi', label: 'Corsi e sedute', n: items.length, avg: items.length ? r1(isum / items.length) : null, weight: r1(wItems), note: 'Valutazioni a singoli seminari, sedute e corsi: contano un terzo di un voto al profilo.' },
     { id: 'interazioni', label: 'Interazioni', n: pts, avg: pts ? r1(iAvg) : null, weight: r1(iw), note: 'Mi piace, salvataggi e LifePoint ricevuti da persone diverse: contano poco e hanno un tetto.' },
   ];
   const basedOn = votes > 0 ? (votes === 1 ? 'Basato su 1 voto' : `Basato su ${votes} voti`) : pts > 0 ? 'Basato solo sulle interazioni' : 'Nessun voto ancora';

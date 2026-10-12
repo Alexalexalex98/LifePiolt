@@ -1,4 +1,5 @@
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Icon } from '@/lib/icons';
 import { Text } from '@/components/T';
 
 import { Badge, LpTag, MediaBlock, openSheet } from '@/components/network';
@@ -13,7 +14,10 @@ import { go } from '@/lib/nav';
 import { canVote } from '@/lib/network';
 import { fmtDateTime, fmtDuration, fmtRange, nextOccurrence, pubLabel } from '@/lib/when';
 import { useVisible } from '@/lib/moderation';
+import { itemRateBlock, itemRatingOf, rateItem } from '@/lib/profile/actions';
+import { useIdentity } from '@/store/identity';
 import { useApp } from '@/store/app';
+import { toast } from '@/store/toast';
 import { useNet, type Enrollment, type Provider, type Seminar } from '@/store/network';
 
 export const SPONSORED_TEXT = 'Sponsorizzato significa che il relatore ha pagato LifePoints per mettere questo seminario in evidenza nella home di LifeNetwork. Non vuol dire che sia verificato, consigliato o controllato da LifePilot: valuta tu descrizione, relatore e valutazioni prima di iscriverti.';
@@ -118,6 +122,12 @@ export function EnrollmentBox({ e }: { e: Enrollment }) {
   const voteOk = canVote(me, e.host);
   const noun = e.kind === 'seminar' ? 'seminario' : 'sessione';
   const [resched, setResched] = useState(false);
+  const [rate, setRate] = useState(false);
+  const [stars, setStars] = useState(0);
+  useIdentity((x) => x.itemVotes);
+  const itemRef = e.kind === 'seminar' ? `seminar:${e.ref}` : `service:${e.host}`;
+  const canRateItem = e.status === 'attended' && itemRateBlock(me, itemRef) === null;
+  const rated = e.status === 'attended' && (useIdentity.getState().itemVotes ?? []).some((v) => v.from === me && v.ref === itemRef);
   const cancelOk = canCancel(e.startsAt, now);
   const prov = useNet((s) => s.providers.find((p) => p.name === e.host));
   const options = e.kind === 'service' ? datedSlots(prov ?? ({ slots: [] } as unknown as Provider)).filter((x) => x.slot !== e.slot) : [];
@@ -151,6 +161,11 @@ export function EnrollmentBox({ e }: { e: Enrollment }) {
           </Row>
         </>
       )}
+      <Sheet visible={rate} title={e.kind === 'seminar' ? 'Valuta il seminario' : 'Valuta la sessione'} onClose={() => setRate(false)}>
+        <Body small muted>La valutazione riguarda questo {noun}, non la persona: pesa un terzo di un voto al profilo. Il voto alla persona lo dai a parte.</Body>
+        <Row style={{ justifyContent: 'center', marginVertical: 16 }} gap={12}>{[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setStars(n)} accessibilityRole="button" accessibilityLabel={`${n}`}><Icon name="award" size={32} color={n <= stars ? t.accent : t.border} fill={n <= stars ? t.accent : 'none'} /></Pressable>)}</Row>
+        <Btn title="Invia" disabled={!stars} onPress={() => { const why = rateItem(me, itemRef, stars); toast(why ?? 'Valutazione inviata'); setRate(false); }} />
+      </Sheet>
       <Sheet visible={resched} title="Riprogramma" onClose={() => setResched(false)}>
         <Body small muted>Scegli un'altra data: non devi pagare di nuovo.</Body>
         {e.kind === 'service' && (options.length ? options.map((o, i) => <Item key={o.slot} last={i === options.length - 1} onPress={() => { if (rescheduleService(e.id, o.slot)) setResched(false); }}><Row><Body style={{ flex: 1 }}>{fmtDateTime(o.ts)}</Body><Chev /></Row></Item>) : <Body small muted style={{ marginTop: 8 }}>Non ci sono altri orari liberi al momento.</Body>)}
@@ -159,9 +174,23 @@ export function EnrollmentBox({ e }: { e: Enrollment }) {
       {e.status === 'attended' && (
         <Row style={{ marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
           <Body small color={t.positive}>{e.price ? `Pagati ${e.price} LP a ${e.host}.` : 'Partecipazione registrata.'}</Body>
+          {canRateItem ? <Btn small icon="award" title={e.kind === 'seminar' ? 'Valuta il seminario' : 'Valuta la sessione'} onPress={() => { setStars(0); setRate(true); }} /> : rated ? <Body small muted>{e.kind === 'seminar' ? 'Hai valutato il seminario.' : 'Hai valutato la sessione.'}</Body> : null}
           {voteOk ? <Btn small ghost icon="award" title={`Vota ${e.host}`} onPress={() => openSheet('vote', { name: e.host })} /> : e.voted ? <Body small muted>Hai già votato.</Body> : null}
         </Row>
       )}
     </View>
+  );
+}
+
+/** Valutazione di un singolo seminario, seduta o corso (separata dal voto alla persona). */
+export function ItemRatingLine({ refKey, label }: { refKey: string; label: string }) {
+  const t = useTheme();
+  useIdentity((x) => x.itemVotes);
+  const r = itemRatingOf(refKey);
+  return (
+    <Row gap={6} style={{ justifyContent: 'flex-start', marginBottom: 10 }}>
+      <Icon name="award" size={15} color={t.accent} />
+      <Body small muted>{r.avg ? `${label}: ${r.avg.toFixed(1)}/5 (${r.n})` : `${label}: ancora nessuna valutazione`}</Body>
+    </Row>
   );
 }

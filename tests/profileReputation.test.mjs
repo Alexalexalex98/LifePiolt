@@ -64,9 +64,9 @@ test('interazioni: contano poco e saturano (anti-farming)', () => {
   assert.match(tante.basedOn, /interazioni/);
   assert.equal(R.interactionPoints({ likes: 1e6, saves: 1e6, lpDonors: 1e6 }), 200 + 100 + 60);
 });
-test('scomposizione trasparente: tre parti', () => {
+test('scomposizione trasparente: quattro parti', () => {
   const r = R.computeReputation({ target: 'Anna', direct: { 4: 2 }, qa: [qa('Bea', 5, 'a')], interactions: { likes: 20, saves: 2, lpDonors: 1 }, now: NOW, sinceOf: () => NOW - 100 * D });
-  assert.deepEqual(r.parts.map((p) => p.id), ['profilo', 'risposte', 'interazioni']);
+  assert.deepEqual(r.parts.map((p) => p.id), ['profilo', 'risposte', 'corsi', 'interazioni']);
   assert.equal(r.parts[0].n, 2); assert.equal(r.parts[0].avg, 4);
   assert.equal(r.parts[1].n, 1); assert.equal(r.parts[1].avg, 5);
   assert.equal(r.votes, 3);
@@ -85,4 +85,21 @@ test('chi può votare il profilo: basta essersi iscritti una volta', () => {
   assert.match(R.profileVoteBlockReason('Bea', 'Anna', []), /conversazione vera in chat/);
   assert.match(R.profileVoteBlockReason('Bea', 'Anna', [{ host: 'Anna', status: 'attended', voted: true }]), /già votato/);
   assert.equal(R.profileVoteBlockReason('Bea', 'Anna', enrolled), null);
+});
+
+test('valutazioni a corsi e sedute: un terzo di un voto al profilo, una per persona e per corso', () => {
+  const NOW = 1_800_000_000_000;
+  const it = (from, stars, ref, ts = NOW - 1000) => ({ from, to: 'Anna', stars, ts, ref });
+  const base = R.computeReputation({ target: 'Anna', direct: { 5: 3 }, now: NOW });
+  const withItems = R.computeReputation({ target: 'Anna', direct: { 5: 3 }, items: [it('A', 1, 'seminar:1'), it('B', 1, 'seminar:1'), it('C', 1, 'seminar:1')], now: NOW });
+  // tre voti bassi al corso pesano come UN solo voto basso al profilo
+  const oneDirect = R.computeReputation({ target: 'Anna', direct: { 5: 3, 1: 1 }, now: NOW });
+  assert.equal(withItems.score, oneDirect.score);
+  assert.ok(withItems.score < base.score);
+  assert.equal(withItems.parts.find((p) => p.id === 'corsi').n, 3);
+  assert.equal(R.ITEM_WEIGHT, 1 / 3);
+  // doppioni e autovoti scartati
+  assert.equal(R.validItemVotes('Anna', [it('A', 5, 'seminar:1'), it('A', 1, 'seminar:1'), { ...it('Anna', 5, 'seminar:2') }], NOW).length, 1);
+  assert.deepEqual(R.itemRating('seminar:1', [it('A', 5, 'seminar:1'), it('B', 4, 'seminar:1')], NOW), { avg: 4.5, n: 2 });
+  assert.deepEqual(R.itemRating('seminar:9', [], NOW), { avg: null, n: 0 });
 });

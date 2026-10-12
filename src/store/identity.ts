@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { EMPTY_IDENTITY, resolveRequest, submitRequest, type Business, type DocType, type IdentityRecord } from '@/lib/profile/identity';
 import { respond, requestBlockReason, validateDeclare, type Declared, type VerifRequest } from '@/lib/profile/skills';
 import { DEFAULT_LOOK, sanitizeLook, type ProfileLook } from '@/lib/profile/look';
-import { qaBlockReason, type QaVote } from '@/lib/profile/reputation';
+import { qaBlockReason, type ItemVote, type QaVote } from '@/lib/profile/reputation';
 import type { CardDesign } from '@/lib/profile/card';
 import { useNet } from './network';
 import { persisted } from './persist';
@@ -34,6 +34,8 @@ type State = {
   since: number;
   /** persone votate grazie a una conversazione in chat (un voto per persona) */
   chatVoted?: string[];
+  /** valutazioni date ai singoli corsi, seminari e sedute (un terzo di un voto al profilo) */
+  itemVotes?: ItemVote[];
   /** personalizzazione del profilo */
   look?: ProfileLook;
   /** recensioni (voto + motivazione) date da me; quelle ricevute dagli altri sono dimostrative */
@@ -55,16 +57,18 @@ type State = {
   respondVerification: (id: string, accept: boolean) => boolean;
   castQa: (v: QaVote) => string | null;
   addReview: (r: Review) => void;
+  addItemVote: (v: ItemVote) => void;
   patchLook: (p: Partial<ProfileLook>) => void;
   reset: () => void;
 };
 
-const blank = () => ({ identity: EMPTY_IDENTITY, businesses: [] as Business[], design: null as CardDesign | null, role: '', cardBusinessId: null as string | null, declared: [] as Declared[], requests: [] as VerifRequest[], qaVotes: [] as QaVote[], profileVoted: [] as string[], chatVoted: [] as string[], look: DEFAULT_LOOK, reviews: [] as Review[], since: Date.now() });
+const blank = () => ({ identity: EMPTY_IDENTITY, businesses: [] as Business[], design: null as CardDesign | null, role: '', cardBusinessId: null as string | null, declared: [] as Declared[], requests: [] as VerifRequest[], qaVotes: [] as QaVote[], profileVoted: [] as string[], chatVoted: [] as string[], itemVotes: [] as ItemVote[], look: DEFAULT_LOOK, reviews: [] as Review[], since: Date.now() });
 
 export const useIdentity = create<State>()(
   persisted<State>('identity', (set, get) => ({
     ...blank(),
     patchLook: (p) => set((s) => ({ look: sanitizeLook({ ...(s.look ?? DEFAULT_LOOK), ...p }) })),
+    addItemVote: (v) => set((s) => ({ itemVotes: [...(s.itemVotes ?? []).filter((x) => !(x.from === v.from && x.ref === v.ref)), v].slice(-1000) })),
     addReview: (r) => set((s) => ({ reviews: [r, ...(s.reviews ?? [])].slice(0, 500) })),
     submitIdentity: (doc, got, selfie, preview) => {
       const rec = submitRequest(doc, got, selfie, Date.now(), preview);

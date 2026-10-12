@@ -145,7 +145,7 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
           {isMe ? <Body small muted style={{ marginTop: 2 }}>{fmtDate(new Date(r.ts), { day: 'numeric', month: 'long', year: 'numeric' })}</Body> : null}
         </Item>
       ))}
-      {isMe && <Body small muted style={{ marginTop: 12 }}>Con pochi voti il valore resta vicino a 3,5 e si assesta man mano che arrivano. Votano il profilo le persone che hanno avuto una conversazione vera con te o che si sono iscritte a un tuo seminario, servizio o LifeClub; le risposte le vota chi aveva fatto la domanda. Mi piace, salvataggi e LifePoint contano poco e hanno un tetto. Gli altri vedono solo i voti e le recensioni.</Body>}
+      {isMe && <Body small muted style={{ marginTop: 12 }}>Con pochi voti il valore resta vicino a 3,5 e si assesta man mano che arrivano. Votano il profilo le persone che hanno avuto una conversazione vera con te o che si sono iscritte a un tuo seminario, servizio o LifeClub; le risposte le vota chi aveva fatto la domanda. Chi ha partecipato a un tuo seminario o a una tua seduta può anche valutarlo: quella valutazione pesa un terzo di un voto al profilo. Mi piace, salvataggi e LifePoint contano poco e hanno un tetto. Gli altri vedono solo i voti e le recensioni.</Body>}
       <Btn ghost style={{ marginTop: 12 }} title="Ho capito" onPress={onClose} />
     </>
   );

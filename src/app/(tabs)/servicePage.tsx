@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { Pressable, Share, View } from 'react-native';
 
 import { LiveAccess } from '@/components/live/LiveAccess';
-import { EnrollmentBox, Price, datedSlots, modeLabel } from '@/components/market';
+import { EnrollmentBox, ItemRatingLine, Price, datedSlots, modeLabel } from '@/components/market';
 import { Badge, MediaBlock, ModButton, UserAvatar } from '@/components/network';
 import { E2eNote } from '@/components/PrivacyContent';
 import { Body, Btn, Card, Chev, Empty, H, IL, Item, Page, Row } from '@/components/ui';
@@ -57,6 +57,7 @@ export default function ServicePage() {
       {live && <LiveAccess kind="service" refId={p.name} title={p.role} host={p.name} dataMode={info.mode} startsAt={live.startsAt} durationMin={live.durationMin} isHost={isMine} enrolled={!!nextBooking} guest={isMine ? 'Cliente' : undefined} />}
 
       <Card>
+        <ItemRatingLine refKey={`service:${p.name}`} label="Valutazione delle sedute" />
         <H>Cosa offre</H>
         <Body small>{info.desc}</Body>
         <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Cosa ottieni</Body>

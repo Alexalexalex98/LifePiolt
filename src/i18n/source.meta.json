@@ -1,5 +1,5 @@
 {
- "count": 7549,
+ "count": 7565,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 23,
@@ -59,8 +59,8 @@
   "src/app/(tabs)/reports.tsx": 1,
   "src/app/(tabs)/searchPage.tsx": 13,
   "src/app/(tabs)/security.tsx": 5,
-  "src/app/(tabs)/seminarPage.tsx": 40,
-  "src/app/(tabs)/servicePage.tsx": 27,
+  "src/app/(tabs)/seminarPage.tsx": 41,
+  "src/app/(tabs)/servicePage.tsx": 28,
   "src/app/(tabs)/settings.tsx": 108,
   "src/app/(tabs)/sharing.tsx": 2,
   "src/app/(tabs)/shopPage.tsx": 40,
@@ -161,7 +161,7 @@
   "src/components/live/Overlay.tsx": 12,
   "src/components/live/Panels.tsx": 28,
   "src/components/live/VideoSurface.tsx": 11,
-  "src/components/market.tsx": 44,
+  "src/components/market.tsx": 53,
   "src/components/network.tsx": 40,
   "src/components/plan.tsx": 102,
   "src/components/profile/CardFace.tsx": 9,
@@ -326,13 +326,13 @@
   "src/lib/priority.ts": 15,
   "src/lib/privacyGate.ts": 24,
   "src/lib/privacyLog.ts": 9,
-  "src/lib/profile/actions.ts": 13,
+  "src/lib/profile/actions.ts": 17,
   "src/lib/profile/card.ts": 15,
   "src/lib/profile/identity.ts": 33,
   "src/lib/profile/look.ts": 13,
   "src/lib/profile/pickImage.ts": 3,
   "src/lib/profile/qa.ts": 1,
-  "src/lib/profile/reputation.ts": 20,
+  "src/lib/profile/reputation.ts": 22,
   "src/lib/profile/skills.ts": 15,
   "src/lib/recurring.ts": 12,
   "src/lib/reminders.ts": 4,
@@ -377,5 +377,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1083
+ "withPlaceholders": 1084
 }
