@@ -15,26 +15,10 @@ import { decomposeTextToSteps } from '@/lib/taskDecompose';
 import { useApp } from '@/store/app';
 import { useLife, taskIsDone, type CalEvent, type Task } from '@/store/life';
 import { toast } from '@/store/toast';
+import { go } from '@/lib/nav';
 import { elapsedMs, fmtElapsed, isRunning, pauseTimer, startTimer } from '@/lib/taskTimer';
 import { t as tl, translateText } from '@/i18n/core';
 import { fmtDate } from '@/i18n/format';
-
-/** Timer del task: tempo che scorre, pausa/riprendi e "Ho finito" (completa il task con il tempo impiegato). */
-function TimerStrip({ task }: { task: Task }) {
-  const t = useTheme();
-  const { patchTask, toggleTask } = useLife();
-  const [now, setNow] = useState(Date.now());
-  const running = isRunning(task.timer);
-  useEffect(() => { if (!running) return; const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, [running]);
-  const ms = elapsedMs(task.timer, now);
-  return (
-    <Row style={{ marginTop: 8, backgroundColor: t.tile, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 }} gap={8}>
-      <Text style={{ color: running ? t.accent : t.text, fontSize: 18, fontWeight: '800', flex: 1 }}>{fmtElapsed(ms)}{running ? '' : '  in pausa'}</Text>
-      <Btn small ghost title={running ? 'Pausa' : 'Riprendi'} onPress={() => patchTask(task.id, { timer: running ? pauseTimer(task.timer, Date.now()) : startTimer(task.timer, Date.now()) })} />
-      <Btn small title="Ho finito" onPress={() => { const spent = fmtElapsed(elapsedMs(task.timer, Date.now())); patchTask(task.id, { timer: undefined }); const n = toggleTask(task.id, true); toast(n ?? tl('Completato in {0}', spent)); }} />
-    </Row>
-  );
-}
 
 /* ---------- riga task (Plan e LifeTask) ---------- */
 export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
@@ -85,7 +69,7 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
   }
   const running = isRunning(task.timer);
   const timerBtn = task.done ? null : (
-    <Pressable onPress={() => patchTask(task.id, { timer: running ? pauseTimer(task.timer, Date.now()) : startTimer(task.timer, Date.now()) })} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText(running ? 'Metti in pausa' : task.timer ? 'Riprendi il timer' : 'Avvia il timer')}>
+    <Pressable onPress={() => go('focus', { id: task.id })} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText(running ? 'Apri il timer in corso' : 'Concentrati su questo task')}>
       <Icon name={running ? 'pause' : 'play'} size={18} color={running ? t.accent : t.muted} fill={running ? t.accent : 'none'} />
     </Pressable>
   );
@@ -107,7 +91,6 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
         {urgentBtn}
         <Btn small ghost title="" label="Rimuovi" icon="x" onPress={remove} />
       </Row>
-      {task.timer && !task.done ? <TimerStrip task={task} /> : null}
     </Item>
   );
 }
