@@ -19,6 +19,7 @@ export type LMsg = {
   noteShare?: { title?: string; text?: string };
   slots?: { title?: string };
   event?: { title: string; place?: string; description?: string };
+  offer?: { title: string; price?: number };
 };
 export type LChat = { id: string; pinned?: boolean; createdAt: number; lastRead: number; markedUnread?: boolean };
 
@@ -43,6 +44,7 @@ export function previewParts(m: LMsg): { icon?: string; text: string } {
     case 'note': return { icon: 'note', text: m.noteShare?.title ? 'Nota: ' + m.noteShare.title : 'Nota' };
     case 'slots': return { icon: 'clock', text: 'Proposta orari: ' + (m.slots?.title ?? '') };
     case 'event': return { icon: 'calendar', text: 'Invito: ' + (m.event?.title ?? 'evento') };
+    case 'offer': return { icon: 'coin', text: 'Servizio da prenotare: ' + (m.offer?.title ?? '') };
     default: return { text: m.text ?? '' };
   }
 }

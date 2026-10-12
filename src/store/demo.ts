@@ -96,6 +96,10 @@ function seedChats(me: string) {
   add(tm, 'Tommaso V.', '', 5 * 3600000, { kind: 'slots', slots: { title: 'Allenamento in coppia', durationMin: 60, options: [{ id: 't1', day: dk(1), time: '12:00', votes: ['Tommaso V.'] }, { id: 't2', day: dk(3), time: '17:00', votes: ['Tommaso V.'] }, { id: 't3', day: dk(5), time: '09:00', votes: [] }] } });
   add(tm, 'Tommaso V.', '', 4 * 3600000, { kind: 'contact', contact: { name: 'Marta Bianchi (trasportatrice)', phone: '+41 79 555 01 22' } });
 
+  const ps = dm('Dott.ssa Anna Verdi', Date.now() - 1 * DAY);
+  add(ps, 'Dott.ssa Anna Verdi', 'Buongiorno, come d’accordo le propongo una seduta di psicoterapia. Può prenotarla e pagarla qui sotto.', 3 * 3600000);
+  add(ps, 'Dott.ssa Anna Verdi', '', 3 * 3600000 - 60000, { kind: 'offer', offer: { title: 'Seduta di psicoterapia', desc: 'Primo colloquio di conoscenza e definizione degli obiettivi.', price: 80, startsAt: (() => { const d = new Date(); d.setDate(d.getDate() + 3); d.setHours(17, 0, 0, 0); return d.getTime(); })(), durationMin: 50, mode: 'online' } });
+
   const el = dm('Elena Rossi', Date.now() - 2 * DAY);
   add(el, 'Elena Rossi', 'Buongiorno, per la dichiarazione dei redditi proponiamo questi orari di consulenza.', 8 * 3600000);
   add(el, 'Elena Rossi', '', 8 * 3600000 - 60000, { kind: 'slots', slots: { title: 'Consulenza fiscale', durationMin: 60, options: [{ id: 'e1', day: dk(2), time: '09:30', votes: [] }, { id: 'e2', day: dk(3), time: '14:00', votes: [] }, { id: 'e3', day: dk(6), time: '11:00', votes: [] }] } });

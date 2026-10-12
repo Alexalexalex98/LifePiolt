@@ -125,7 +125,8 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
   async function startVoice() {
     setVoiceErr(null); setHint(null);
     try {
-      if (!sup.ok) { fail(sup.reason, `piattaforma=${Platform.OS}; ${sup.reason}`); return; }
+      // senza riconoscimento vocale (es. Expo Go) il microfono registra direttamente, come nelle chat con le persone
+      if (!sup.ok) { if (Platform.OS !== 'web' && !getTranscriber().available) { void startNote(); return; } fail(sup.reason, `piattaforma=${Platform.OS}; ${sup.reason}`); return; }
       const tr = createTransport();
       if (!tr) { fail('unavailable'); return; }
       transport.current = tr;
@@ -156,6 +157,7 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
     const n = await note.stop();
     if (!n) { toast('Registrazione troppo breve'); return; }
     const tcr = getTranscriber();
+    if (!tcr.available) setHint(translateText('Audio registrato. In Expo Go non posso trascriverlo: scrivi il testo, oppure usa l\'app installata (build) per dettare.'));
     if (tcr.available) {
       try { const txt = await tcr.transcribe(n.uri, localeFor(speechLang)); if (txt.trim()) { setText((p) => (p.trim() ? `${p.trim()} ${txt}` : txt)); note.discard(); } }
       catch { setHint(translateText('Non sono riuscita a trascrivere l\'audio: resta salvato sul telefono.')); }

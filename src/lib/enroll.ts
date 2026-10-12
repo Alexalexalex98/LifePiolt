@@ -10,6 +10,7 @@ import { showUndoToast, toast } from '@/store/toast';
 import { t, t as tl } from '@/i18n/core';
 import { formatCHF } from '@/lib/format';
 import { go } from '@/lib/nav';
+import { useChat, type ChatMessage } from '@/store/chat';
 
 /**
  * Iscrizione a seminari e prenotazione di servizi.
@@ -73,6 +74,26 @@ export function bookService(p: Provider, slot: string, durationMin: number, me: 
     useNet.getState().signal(p.role + ' ' + p.name, SIGNAL.buy);
     toast(t('Prenotato con {0}: {1} LP bloccati fino alla fine. Aggiunto al Plan.', p.name, formatCHF(p.price)));
     if (p.price) go('invoice', { id: `enr:${id}` });
+  });
+}
+
+/** Prenotazione di un servizio proposto in chat: stessi passaggi di una prenotazione normale (LP bloccati fino alla fine, Plan, fattura). */
+export function bookOffer(chatId: string, m: ChatMessage, me: string): void {
+  const o = m.offer;
+  if (!o || o.booked) return;
+  if (m.from === me) { toast('Questa è la tua proposta'); return; }
+  if (o.startsAt <= Date.now()) { toast('Questa proposta è scaduta'); return; }
+  const block = bookingPayBlock(o.price, useNet.getState().lifePoints);
+  if (block) { toast(block); return; }
+  const id = 'e' + newId();
+  const req = { day: dayKeyOf(o.startsAt), time: hhmm(o.startsAt), durationMin: o.durationMin, title: `${o.title} con ${m.from}`, ref: id, verb: 'Prenota' };
+  const p: Provider = { name: m.from, role: o.title, price: o.price, rating: 0, tag: '', media: null, slots: [] };
+  checkPlanSlot(req, () => {
+    const r = bookServiceOp(p, '', req, o.startsAt, o.durationMin, id);
+    if (!r.ok) { toast('Non sono riuscito a completare la prenotazione: non è stato salvato nulla'); return; }
+    useChat.getState().patchMsg(chatId, m.id, { offer: { ...o, booked: { by: me, enrId: id } } });
+    toast(o.price ? t('Prenotato con {0}: {1} LP bloccati fino alla fine. Aggiunto al Plan.', m.from, formatCHF(o.price)) : 'Prenotato. Aggiunto al Plan.');
+    if (o.price) go('invoice', { id: `enr:${id}` });
   });
 }
 

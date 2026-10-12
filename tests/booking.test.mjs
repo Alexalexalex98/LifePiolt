@@ -58,3 +58,15 @@ test('senza interessi resta l\'ordine di partenza', () => {
   const items = [{ kind: 'a', text: 'x' }, { kind: 'b', text: 'y' }];
   assert.deepEqual(R.rankMixed(items, undefined).map((i) => i.text), ['x', 'y']);
 });
+
+test('proposta di servizio in chat: stati e validazione', () => {
+  const o = { startsAt: 100 * H };
+  assert.equal(B.offerState(o, 'Anna', 'Io', 50 * H), 'prenotabile');
+  assert.equal(B.offerState(o, 'Io', 'Io', 50 * H), 'tua');
+  assert.equal(B.offerState(o, 'Anna', 'Io', 101 * H), 'scaduta');
+  assert.equal(B.offerState({ ...o, booked: { by: 'Io' } }, 'Anna', 'Io', 50 * H), 'prenotata');
+  assert.equal(B.offerError({ title: 'Seduta', price: 80, startsAt: 100 * H, durationMin: 50 }, 50 * H), null);
+  assert.ok(B.offerError({ title: ' ', price: 80, startsAt: 100 * H, durationMin: 50 }, 50 * H));
+  assert.ok(B.offerError({ title: 'x', price: -1, startsAt: 100 * H, durationMin: 50 }, 50 * H));
+  assert.ok(B.offerError({ title: 'x', price: 5, startsAt: 10 * H, durationMin: 50 }, 50 * H));
+});

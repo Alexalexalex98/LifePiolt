@@ -1,5 +1,5 @@
 {
- "count": 7681,
+ "count": 7713,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 23,
@@ -32,7 +32,7 @@
   "src/app/(tabs)/jobEdit.tsx": 61,
   "src/app/(tabs)/jobTest.tsx": 47,
   "src/app/(tabs)/life.tsx": 14,
-  "src/app/(tabs)/lifedrive.tsx": 35,
+  "src/app/(tabs)/lifedrive.tsx": 44,
   "src/app/(tabs)/lifefinance.tsx": 86,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
@@ -125,10 +125,10 @@
   "src/components/bills/UpcomingBillsCard.tsx": 3,
   "src/components/bills/shared.tsx": 16,
   "src/components/chat/Bubble.tsx": 3,
-  "src/components/chat/Composer.tsx": 44,
+  "src/components/chat/Composer.tsx": 45,
   "src/components/chat/NewChat.tsx": 11,
-  "src/components/chat/ShareSheets.tsx": 69,
-  "src/components/chat/cards.tsx": 62,
+  "src/components/chat/ShareSheets.tsx": 76,
+  "src/components/chat/cards.tsx": 78,
   "src/components/chat/parts.tsx": 26,
   "src/components/chat/sheets.tsx": 34,
   "src/components/club/AnswerVote.tsx": 12,
@@ -186,7 +186,7 @@
   "src/components/sync/SyncStatusCard.tsx": 31,
   "src/components/theia/AttachChips.tsx": 7,
   "src/components/theia/AttachSheet.tsx": 26,
-  "src/components/theia/Composer.tsx": 23,
+  "src/components/theia/Composer.tsx": 24,
   "src/components/theia/LangSheet.tsx": 5,
   "src/components/theia/MessageExtras.tsx": 2,
   "src/components/theia/PrivacyBadge.tsx": 2,
@@ -267,7 +267,7 @@
   "src/lib/bills/pdfText.ts": 6,
   "src/lib/bills/reminders.ts": 18,
   "src/lib/bills/types.ts": 20,
-  "src/lib/booking.ts": 1,
+  "src/lib/booking.ts": 5,
   "src/lib/briefingCore.ts": 29,
   "src/lib/budgetAlerts.ts": 10,
   "src/lib/calendarColors.ts": 17,
@@ -275,7 +275,7 @@
   "src/lib/calendarLayout.ts": 1,
   "src/lib/calendarMap.ts": 5,
   "src/lib/chatEvent.ts": 7,
-  "src/lib/chatList.ts": 29,
+  "src/lib/chatList.ts": 31,
   "src/lib/chatMedia.ts": 10,
   "src/lib/chatShare.ts": 7,
   "src/lib/chatSim.ts": 8,
@@ -294,7 +294,7 @@
   "src/lib/diagnosticsReport.ts": 14,
   "src/lib/docCheck.ts": 42,
   "src/lib/e2eModel.ts": 37,
-  "src/lib/enroll.ts": 28,
+  "src/lib/enroll.ts": 31,
   "src/lib/errorLog.ts": 3,
   "src/lib/financeRecap.ts": 57,
   "src/lib/format.ts": 12,
@@ -385,5 +385,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1116
+ "withPlaceholders": 1123
 }

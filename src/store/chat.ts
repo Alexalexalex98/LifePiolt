@@ -5,7 +5,7 @@ import { uid } from '@/lib/format';
 import { persisted } from './persist';
 import { fmtDate, fmtTime, weekdayLong } from '@/i18n/format';
 
-export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'contact' | 'poll' | 'agenda' | 'tasks' | 'note' | 'slots' | 'event' | 'system';
+export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'contact' | 'poll' | 'agenda' | 'tasks' | 'note' | 'slots' | 'event' | 'offer' | 'system';
 export type MsgStatus = 'sending' | 'sent' | 'delivered' | 'read';
 
 export type Media = { uri: string; w?: number; h?: number; mime?: string; name?: string; size?: number; durationMs?: number; waveform?: number[] };
@@ -26,6 +26,8 @@ export type SlotsShare = { title: string; durationMin: number; options: { id: st
 /** Invito a un evento: chi riceve risponde partecipo / forse / non partecipo. */
 export type RsvpAnswer = 'yes' | 'maybe' | 'no';
 export type EventShare = { title: string; day: string; time: string; durationMin: number; place?: string; description?: string; rsvp: Record<string, RsvpAnswer> };
+/** Proposta di un servizio a pagamento mandata in chat da un professionista: chi riceve la paga e la prenota senza uscire dalla chat. */
+export type OfferShare = { title: string; desc?: string; price: number; startsAt: number; durationMin: number; mode: 'online' | 'presenza'; place?: string; /** chi l'ha prenotata e l'iscrizione collegata */ booked?: { by: string; enrId: string } };
 export type Poll = { q: string; multi: boolean; options: { id: string; t: string; votes: string[] }[] };
 
 /** Messaggi dei LifeClub: domanda/risposta/annuncio collegati a una lezione (link che apre il contenuto al punto giusto). */
@@ -63,6 +65,7 @@ export type ChatMessage = {
   noteShare?: NoteShare;
   slots?: SlotsShare;
   event?: EventShare;
+  offer?: OfferShare;
   /** persone che hanno importato la scheda (agenda/task/nota) nel proprio piano */
   importedBy?: string[];
   expiresAt?: number;
@@ -254,7 +257,7 @@ export const useChat = create<ChatState>()(
     forward: (toIds, msgs, me) => {
       toIds.forEach((to) => {
         msgs.forEach((m) => {
-          get().send(to, me, { kind: m.kind, text: m.text, media: m.media, location: m.location, contact: m.contact, poll: m.poll ? { ...m.poll, options: m.poll.options.map((o) => ({ ...o, votes: [] })) } : undefined, agenda: m.agenda, taskList: m.taskList, noteShare: m.noteShare, slots: m.slots ? { ...m.slots, confirmed: undefined, options: m.slots.options.map((o) => ({ ...o, votes: [] })) } : undefined, event: m.event ? { ...m.event, rsvp: {} } : undefined, forwarded: true });
+          get().send(to, me, { kind: m.kind, text: m.text, media: m.media, location: m.location, contact: m.contact, poll: m.poll ? { ...m.poll, options: m.poll.options.map((o) => ({ ...o, votes: [] })) } : undefined, agenda: m.agenda, taskList: m.taskList, noteShare: m.noteShare, slots: m.slots ? { ...m.slots, confirmed: undefined, options: m.slots.options.map((o) => ({ ...o, votes: [] })) } : undefined, event: m.event ? { ...m.event, rsvp: {} } : undefined, offer: m.offer ? { ...m.offer, booked: undefined } : undefined, forwarded: true });
         });
       });
     },

@@ -11,6 +11,8 @@ import { confirmDelete } from '@/lib/confirm';
 import { weekdayShortDate } from '@/lib/format';
 import { detectFileFolder, driveFolderColors, useLife, type DriveFile } from '@/store/life';
 import { toast } from '@/store/toast';
+import { useApp } from '@/store/app';
+import { useChat } from '@/store/chat';
 import { Icon } from '@/lib/icons';
 
 const fileFolders = ['Documenti', 'Ricevute', 'Bollette e fatture', 'Salute', 'Lavoro', 'Altro'];
@@ -28,6 +30,21 @@ export default function LifeDrive() {
   const [preview, setPreview] = useState<DriveFile | null>(null);
   const [upload, setUpload] = useState(false);
   const [name, setName] = useState('');
+  const [shareTo, setShareTo] = useState<DriveFile | null>(null);
+  const [who, setWho] = useState('');
+  const me = useApp((s) => s.account.name);
+  const chats = useChat((s) => s.chats), last = useChat((s) => s.messages);
+  const targets = Object.values(chats).filter((c) => c.type !== 'club' && (c.name ?? '').toLowerCase().includes(who.trim().toLowerCase()))
+    .sort((a, b) => ((last[b.id]?.slice(-1)[0]?.ts) ?? 0) - ((last[a.id]?.slice(-1)[0]?.ts) ?? 0));
+  function sendTo(chatId: string, label: string) {
+    const f = shareTo; if (!f) return;
+    useChat.getState().send(chatId, me, { kind: 'file', media: { uri: f.uri ?? '', name: f.n, mime: f.folder === 'Foto' ? 'image/jpeg' : undefined } });
+    setShareTo(null); setWho(''); toast(`«${f.n}» inviato a ${label}`);
+  }
+  function sendToNew() {
+    const n = who.trim(); if (!n) return;
+    sendTo(useChat.getState().ensureDm(n, me), n);
+  }
 
   const photos = drive.filter((f) => f.folder === 'Foto');
   const files = drive.filter((f) => f.folder !== 'Foto');
@@ -125,10 +142,23 @@ export default function LifeDrive() {
               <View style={{ paddingVertical: 36, alignItems: 'center', backgroundColor: t.input, borderRadius: 16, marginBottom: 14 }}><Icon name="file" size={40} color={t.muted} /></View>
             )}
             <Body small muted>{preview.folder} · {preview.s} · {preview.date}</Body>
-            <Btn small ghost style={{ marginTop: 14 }} title="Condividi" onPress={() => Share.share({ message: `File: ${preview.n}`, url: preview.uri })} />
+            <Btn small style={{ marginTop: 14 }} icon="send" title="Condividi con una persona" onPress={() => { const p = preview; setPreview(null); setShareTo(p); }} />
+            <Btn small ghost style={{ marginTop: 8 }} title="Condividi con altre app" onPress={() => Share.share({ message: `File: ${preview.n}`, url: preview.uri })} />
             <Btn small ghost style={{ marginTop: 8 }} title="Elimina" onPress={() => { const p = preview; setPreview(null); askDel(p); }} />
           </>
         )}
+      </Sheet>
+      <Sheet visible={!!shareTo} title={`Condividi «${shareTo?.n ?? ''}»`} onClose={() => { setShareTo(null); setWho(''); }}>
+        <Body small muted style={{ marginBottom: 8 }}>Scegli la chat a cui mandare il file, oppure scrivi il nome di una persona.</Body>
+        <Input placeholder="Cerca o scrivi un nome…" value={who} onChangeText={setWho} />
+        <Card>
+          {targets.length === 0 ? <Body small muted>Nessuna chat trovata.</Body> : targets.slice(0, 12).map((c, i) => (
+            <Item key={c.id} last={i === Math.min(targets.length, 12) - 1} onPress={() => sendTo(c.id, c.name ?? 'chat')}>
+              <Row><Body style={{ flex: 1 }}>{c.name}</Body><Body small muted>{c.type === 'group' ? 'Gruppo' : 'Chat'}</Body></Row>
+            </Item>
+          ))}
+        </Card>
+        {who.trim() && !targets.some((c) => (c.name ?? '').toLowerCase() === who.trim().toLowerCase()) ? <Btn style={{ marginTop: 10 }} title={`Invia a ${who.trim()}`} onPress={sendToNew} /> : null}
       </Sheet>
       <Sheet visible={upload} title="Aggiungi file o foto" onClose={() => setUpload(false)}>
         <View style={{ gap: 8 }}>

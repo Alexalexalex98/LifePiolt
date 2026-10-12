@@ -10,6 +10,9 @@ import { findPlanned, respondToEvent } from '@/lib/chatEvent';
 import { Icon } from '@/lib/icons';
 import { fmtDay, tsOf } from '@/lib/when';
 import { useChat, type ChatMessage } from '@/store/chat';
+import { offerState } from '@/lib/booking';
+import { bookOffer } from '@/lib/enroll';
+import { dayKeyOf, hhmm } from '@/lib/when';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
 import { useChatColors } from './parts';
@@ -236,6 +239,31 @@ export function SlotsCard({ m, me, chatId }: { m: ChatMessage; me: string; chatI
       })}
       {mine && !sl.confirmed && best === 0 && <Text style={{ color: c.meta, fontSize: 11 }}>Quando qualcuno vota potrai confermare l’orario.</Text>}
       {sl.confirmed && confirmedOpt && <Action icon="plus" label={inPlan(refOf(confirmedOpt.id)) ? 'Nel tuo piano' : 'Aggiungi al mio piano'} done={inPlan(refOf(confirmedOpt.id))} onPress={() => addToPlanWithCheck({ day: confirmedOpt.day, time: confirmedOpt.time, durationMin: sl.durationMin, title: sl.title, ref: refOf(confirmedOpt.id) }, () => { chat.markImported(chatId, m.id, me); toast('Aggiunto al tuo piano'); })} />}
+    </View>
+  );
+}
+
+/** Servizio a pagamento proposto in chat (es. una seduta): chi riceve vede prezzo, data e orario, e può pagare e prenotare qui. */
+export function OfferCard({ m, me, chatId }: { m: ChatMessage; me: string; chatId: string }) {
+  const c = useChatColors();
+  const t = useTheme();
+  useLife((s) => s.events);
+  const o = m.offer!;
+  const st = offerState(o, m.from, me, Date.now());
+  const conf = st === 'prenotabile' ? findConflicts(dayKeyOf(o.startsAt), hhmm(o.startsAt), o.durationMin).map((x) => `${x.ev.time} ${x.ev.title}`) : [];
+  return (
+    <View style={{ minWidth: 250 }}>
+      <Head icon="coin" title={o.title} sub={st === 'tua' ? 'La tua proposta di servizio' : `Proposta di ${m.from}`} />
+      <Text style={{ color: c.theirsText, fontSize: 14, fontWeight: '700' }}>{fmtDay(o.startsAt)}, {hhmm(o.startsAt)}</Text>
+      <Text style={{ color: c.meta, fontSize: 12, marginTop: 1 }}>{o.durationMin >= 60 && o.durationMin % 60 === 0 ? `${o.durationMin / 60} h` : `${o.durationMin} min`} · {o.mode === 'online' ? 'Online' : o.place ? `In presenza, ${o.place}` : 'In presenza'}</Text>
+      {o.desc ? <Text style={{ color: c.theirsText, fontSize: 13, marginTop: 6 }}>{o.desc}</Text> : null}
+      <Text style={{ color: c.theirsText, fontSize: 20, fontWeight: '800', marginTop: 8 }}>{o.price ? `${o.price} LP` : 'Gratuito'}</Text>
+      {o.price ? <Text style={{ color: c.meta, fontSize: 11 }}>Si paga alla prenotazione. I LifePoints restano bloccati e arrivano a {m.from} alla fine della sessione. Disdetta fino a 24 ore prima.</Text> : null}
+      {conf.length > 0 && <Text style={{ color: t.warn, fontSize: 11, marginTop: 6 }}>Attenzione: hai già {conf[0]}</Text>}
+      {st === 'prenotabile' && <Action icon="check" label={o.price ? `Paga ${o.price} LP e prenota` : 'Prenota'} onPress={() => bookOffer(chatId, m, me)} />}
+      {st === 'prenotata' && <Action icon="check" label={o.booked?.by === me ? 'Prenotata: è nel tuo Plan' : `Prenotata da ${o.booked?.by}`} done onPress={() => {}} />}
+      {st === 'scaduta' && <Text style={{ color: c.meta, fontSize: 12, marginTop: 8 }}>Proposta scaduta.</Text>}
+      {st === 'tua' && <Text style={{ color: c.meta, fontSize: 12, marginTop: 8 }}>Quando l’altra persona la prenota, la vedi qui e nel tuo Plan.</Text>}
     </View>
   );
 }

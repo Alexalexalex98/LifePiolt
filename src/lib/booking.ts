@@ -38,3 +38,19 @@ export function escrowState(e: EscrowLike, now: number): EscrowState {
   if (e.held === false || e.releasedAt || (e.held && now >= unlockAt(e))) return 'accreditato';
   return e.held ? 'bloccato' : 'accreditato';
 }
+
+/** Stato di una proposta di servizio mandata in chat. */
+export type OfferState = 'prenotabile' | 'prenotata' | 'scaduta' | 'tua';
+export function offerState(o: { startsAt: number; booked?: { by: string } }, from: string, viewer: string, now: number): OfferState {
+  if (o.booked) return 'prenotata';
+  if (from === viewer) return 'tua';
+  return o.startsAt <= now ? 'scaduta' : 'prenotabile';
+}
+/** Errore di compilazione di una proposta (null se valida). Il prezzo è in LifePoints, 0 = gratuito. */
+export function offerError(o: { title: string; price: number; startsAt: number; durationMin: number }, now: number): string | null {
+  if (!o.title.trim()) return 'Scrivi il nome del servizio';
+  if (!Number.isFinite(o.price) || o.price < 0) return 'Il prezzo non è valido';
+  if (o.startsAt <= now) return 'Scegli una data futura';
+  if (o.durationMin < 15) return 'La durata minima è 15 minuti';
+  return null;
+}
