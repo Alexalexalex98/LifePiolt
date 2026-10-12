@@ -161,7 +161,7 @@ export function applyDemo(me: string, email = '') {
     notifications: [...demoExtraNotifs(me), ...n.notifications], dailyHistory: n.dailyHistory,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cards: n.cards.map((c: any) => ({ ...c, holder: me })), defaultCard: n.cards[0]?.id ?? null,
-    receivedDaily: { [me]: 14 }, lpConverted: 300,
+    receivedDaily: { [me]: 14 }, lpConverted: 300, lpMoves: demoLpMoves(),
     receivedLog: Array.from({ length: 14 }, (_, i) => ({ from: ([...n.suggested, 'Marco Valli', 'Giulia Moretti', 'Elena Sanz'] as string[]).filter((x) => x !== me)[i % (n.suggested.length + 3 - 1)], date: `${i + 1} giorni fa` })),
     bio: 'Impiegato a Lugano · corro, cucino e imparo lo spagnolo', myCard: { ...n.myCard, email: email || n.myCard.email },
   });
@@ -182,4 +182,27 @@ export function resetAllData() {
   useFin.getState().reset();
   useTravel.getState().reset();
   usePrefs.getState().reset();
+}
+
+/** Movimenti LifePoints dimostrativi dell'anno in corso (per il rendiconto fiscale). */
+function demoLpMoves() {
+  const y = new Date().getFullYear();
+  const now = Date.now();
+  const at = (m: number, d: number) => new Date(y, m, d, 11).getTime();
+  const rows: [number, number, 'earn' | 'spend' | 'withdraw', string, string, number][] = [
+    [0, 8, 'earn', 'iscrizioni', 'Quota LifeClub · iscritti di gennaio', 96],
+    [1, 3, 'earn', 'giornaliero', 'LifePoints Giornalieri ricevuti', 6],
+    [1, 20, 'spend', '', 'Seminario "Organizzare il budget familiare"', 25],
+    [2, 6, 'earn', 'idee', 'Contributi alla tua idea', 140],
+    [2, 18, 'earn', 'iscrizioni', 'Sessione di consulenza', 40],
+    [3, 2, 'withdraw', '', 'Ritiro in denaro', 150],
+    [3, 25, 'earn', 'giornaliero', 'LifePoints Giornalieri ricevuti', 5],
+    [4, 14, 'earn', 'iscrizioni', 'Quota LifeClub · iscritti di maggio', 118],
+    [5, 9, 'spend', '', 'Sessione con un professionista', 30],
+    [6, 1, 'withdraw', '', 'Ritiro in denaro', 150],
+    [6, 22, 'earn', 'idee', 'Contributi alla tua idea', 60],
+    [7, 12, 'earn', 'giornaliero', 'LifePoints Giornalieri ricevuti', 7],
+    [8, 5, 'earn', 'iscrizioni', 'Quota LifeClub · iscritti di settembre', 130],
+  ];
+  return rows.filter((r) => at(r[0], r[1]) <= now).map((r, i) => ({ id: `dm${i}`, ts: at(r[0], r[1]), kind: r[2], source: (r[3] || undefined) as 'giornaliero' | 'idee' | 'iscrizioni' | undefined, label: r[4], amount: r[5] }));
 }

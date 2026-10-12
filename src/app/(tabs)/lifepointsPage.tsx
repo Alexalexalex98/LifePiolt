@@ -23,6 +23,7 @@ export default function LifePointsPage() {
         <Body small muted>Il tuo saldo</Body>
         <Row gap={6}><Metric big>{formatCHF(net.lifePoints)}</Metric><LpTag size={28} /></Row>
         <Btn style={{ marginTop: 12, alignSelf: 'stretch' }} ghost title="Come ottenere LifePoints" onPress={() => openSheet('topup')} />
+        <Btn style={{ marginTop: 8, alignSelf: 'stretch' }} ghost icon="file" title="Rendiconto per la dichiarazione" onPress={() => go('lpStatement')} />
       </Card>
       <Card style={{ alignItems: 'center' }}>
         <Body small muted style={{ marginBottom: 10 }}>Streak LifePoint giornaliero</Body>

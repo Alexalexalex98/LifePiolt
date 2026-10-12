@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { uid, weekdayShortDate } from '@/lib/format';
+import { withdrawFee, type LpMove, type LpSource } from '@/lib/lpStatement';
 import { persisted } from './persist';
 
 export type Post = { id: number; author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; uris?: string[] };
@@ -44,6 +45,8 @@ type NetState = {
   receivedLog?: { from: string; date: string }[];
   /** LifePoints che ho già riconvertito in denaro */
   lpConverted?: number;
+  /** movimenti LifePoints con data, per il rendiconto fiscale */
+  lpMoves?: LpMove[];
   receivedPayments: Record<string, number>;
   following: string[];
   mutedAuthors: string[];
@@ -81,6 +84,10 @@ type NetState = {
   patch: (p: Partial<NetState>) => void;
   setPref: (k: keyof NetState['prefs'], v: string) => void;
   spend: (amount: number, desc: string, payee?: string) => boolean;
+  /** ritira LifePoints in denaro: commissione del 5% solo sul ritiro */
+  withdraw: (amount: number) => { ok: boolean; fee: number; net: number };
+  /** registra un guadagno ricevuto (idee, iscrizioni, LifePoint giornaliero) */
+  logEarn: (amount: number, label: string, source: LpSource) => void;
   earn: (amount: number, desc: string) => void;
   notify: (type: string, text: string, urgent?: boolean, extra?: { kind?: string; ref?: string }) => void;
   toggleFollow: (name: string) => boolean;
@@ -102,6 +109,7 @@ const blank = () => ({
   receivedDaily: {} as Record<string, number>,
   receivedLog: [] as { from: string; date: string }[],
   lpConverted: 0,
+  lpMoves: [] as LpMove[],
   receivedPayments: {} as Record<string, number>,
   following: [] as string[],
   mutedAuthors: [] as string[],
@@ -147,11 +155,20 @@ export const useNet = create<NetState>()(
       set((s) => ({
         lifePoints: s.lifePoints - amount,
         ledger: [{ type: 'spend', desc, amount, date: weekdayShortDate() }, ...s.ledger],
+        lpMoves: [...(s.lpMoves ?? []), { id: `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, ts: Date.now(), kind: 'spend' as const, label: desc, amount }],
         receivedPayments: payee ? { ...s.receivedPayments, [payee]: (s.receivedPayments[payee] || 0) + amount } : s.receivedPayments,
       }));
       return true;
     },
-    earn: (amount, desc) => set((s) => ({ lifePoints: s.lifePoints + amount, ledger: [{ type: 'topup', desc, amount, date: weekdayShortDate() }, ...s.ledger] })),
+    earn: (amount, desc) => set((s) => ({ lifePoints: s.lifePoints + amount, ledger: [{ type: 'topup', desc, amount, date: weekdayShortDate() }, ...s.ledger], lpMoves: [...(s.lpMoves ?? []), { id: `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, ts: Date.now(), kind: 'earn' as const, source: 'altro' as const, label: desc, amount }] })),
+    logEarn: (amount, label, source) => set((s) => ({ lpMoves: [...(s.lpMoves ?? []), { id: `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, ts: Date.now(), kind: 'earn' as const, source, label, amount }] })),
+    withdraw: (amount) => {
+      const a = Math.floor(amount);
+      if (a <= 0 || get().lifePoints < a) return { ok: false, fee: 0, net: 0 };
+      const { fee, net } = withdrawFee(a);
+      set((s) => ({ lifePoints: s.lifePoints - a, lpConverted: (s.lpConverted ?? 0) + a, lpMoves: [...(s.lpMoves ?? []), { id: `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, ts: Date.now(), kind: 'withdraw' as const, label: 'Ritiro in denaro', amount: a }] }));
+      return { ok: true, fee, net };
+    },
     notify: (type, text, urgent, extra) => {
       const nid = Date.now() + Math.floor(Math.random() * 1000);
       set((s) => ({ notifications: [{ id: nid, type, text, urgent: !!urgent, read: false, date: weekdayShortDate(), ...(extra?.kind ? { kind: extra.kind } : {}), ...(extra?.ref ? { ref: extra.ref } : {}) }, ...s.notifications] }));

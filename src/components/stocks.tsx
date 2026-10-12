@@ -5,6 +5,7 @@ import { Text } from '@/components/T';
 import { LineChart } from '@/components/charts';
 import { Body, Btn, Card, Input, Item, Metric, Pill, Row, Select, Sheet, Tag, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
+import { confirmDelete } from '@/lib/confirm';
 import { useFin, type Stock } from '@/store/finance';
 import { toast } from '@/store/toast';
 import { formatMoney } from '@/i18n/format';
@@ -80,6 +81,7 @@ export function StockFlow({ flow, setFlow }: { flow: Flow; setFlow: (f: Flow) =>
           <Cell l="CAP. DI MERCATO" v={stock.mcap} /><Cell l="P/E" v={stock.pe} />
         </View>
         <Body small muted>Dati simulati, non collegati a un mercato reale.</Body>
+        <Btn small ghost danger icon="trash" style={{ marginTop: 10 }} title="Togli dalla watchlist" onPress={() => { const at = f.stocks.findIndex((x) => x.symbol === stock.symbol); close(); confirmDelete(`il titolo ${stock.symbol} dalla watchlist`, () => f.delStock(stock.symbol), () => f.restoreStock(stock, at)); }} />
       </>
     );
   } else if (stock && flow?.view === 'trade') {

@@ -13,6 +13,7 @@ import { checkDoc, fmtBytes, isImageFile, taxDocFolder, type DocCheck } from '@/
 import { dayKey, monthNames, weekdayShortDate } from '@/lib/format';
 import { persistFile } from '@/lib/chatMedia';
 import { Icon } from '@/lib/icons';
+import { go } from '@/lib/nav';
 import { TAX_DISCLAIMER, taxEventsToAdd, upcomingDeadlines } from '@/lib/taxDeadlines';
 import { taxDocOf, useFin, type TaxDocFile } from '@/store/finance';
 import { useLife } from '@/store/life';
@@ -201,6 +202,16 @@ export default function TaxDecl() {
         ))}
         <Btn style={{ marginTop: 12 }} icon="calendar" title="Aggiungi le scadenze fiscali al Plan" onPress={addDeadlines} />
         <Body small muted style={{ marginTop: 6 }}>Vengono inserite come impegni alle 09:00 con promemoria, senza duplicati.</Body>
+      </Card>
+      <Card onPress={() => go('lpStatement')}>
+        <Row>
+          <Icon name="coin" size={22} color={t.accent} />
+          <View style={{ flex: 1 }}>
+            <Body bold>Rendiconto LifePoints</Body>
+            <Body small muted>Guadagnati, usati e ritirati nell'anno, con la commissione del 5% sul ritiro.</Body>
+          </View>
+          <Icon name="chevron-right" size={18} color={t.muted} />
+        </Row>
       </Card>
       <Btn style={{ marginVertical: 6 }} title="Genera dichiarazione" onPress={() => setSummary(true)} />
 
