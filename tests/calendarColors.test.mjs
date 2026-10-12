@@ -45,3 +45,18 @@ test('testo del tema leggibile (>= 4.5:1) sullo sfondo tenue di ogni colore', ()
     }
   }
 });
+
+import { urgencyOf, colorIdOf as cid2 } from '../src/lib/calendarColors.ts';
+test('urgenza scelta da Theia: critico vicino = urgente, svago = leggero, scelta utente vince', () => {
+  const ctx = (day) => ({ today: '2026-10-12', day });
+  assert.equal(urgencyOf({ title: 'Visita medica' }, ctx('2026-10-13')), 'urgent');
+  assert.equal(urgencyOf({ title: 'Visita medica' }, ctx('2026-10-17')), 'soon');
+  assert.equal(urgencyOf({ title: 'Visita medica' }, ctx('2026-11-20')), 'normal');
+  assert.equal(urgencyOf({ title: 'Cena con Marta', }, ctx('2026-10-25')), 'light');
+  assert.equal(urgencyOf({ title: 'Riunione', important: true }, ctx('2026-10-12')), 'urgent');
+  assert.equal(urgencyOf({ title: 'Riunione' }, ctx('2026-10-12')), 'soon');
+  assert.equal(urgencyOf({ title: 'Riunione' }, ctx('2026-10-30')), 'normal');
+  assert.equal(urgencyOf({ title: 'Riunione' }, ctx('2026-10-01')), 'light');
+  assert.equal(cid2({ title: 'Visita medica', color: 'violet' }, ctx('2026-10-13')), 'violet');
+  assert.equal(cid2({ title: 'Lavoro su: tesi' }, ctx('2026-10-12')), 'violet');
+});

@@ -10,7 +10,7 @@ import { GoalProgress } from '@/components/GoalProgress';
 import { DaySheet, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet } from '@/components/plan';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Pill, Progress, Row, Sheet } from '@/components/ui';
 import { sendToAssistant } from '@/lib/assistant/run';
-import { daysBetween, isKey, parseKey, vacationBands } from '@/lib/calendarLayout';
+import { isKey, parseKey, vacationBands } from '@/lib/calendarLayout';
 import { confirmDelete } from '@/lib/confirm';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
@@ -39,8 +39,6 @@ export default function Plan() {
   const [vacId, setVacId] = useState<string | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
 
-  const range = vacRange?.end ? { start: vacRange.start, end: vacRange.end } : null;
-  const rangeText = range ? tl('Vacanza: {0}–{1} ({2} giorni)', dShort(range.start), dShort(range.end), daysBetween(range.start, range.end, true)) : '';
   const bandOf = (id: string) => vacationBands(vacations, vacRange).find((b) => b.id === id);
 
   function pick(key: string) {
@@ -65,23 +63,11 @@ export default function Plan() {
   const fresh = trash.filter((x) => Date.now() - x.at < TRASH_DAYS * 86400000);
 
   return (
-    <Page id="plan" title="Plan">
+    <Page id="plan" title="Plan" right={<Btn small ghost icon="calendar" title="Agenda" onPress={() => go('agenda')} />}>
       <NotifBanner />
       <Card>
         <CalendarPanel selectMode={selectMode} onPickDay={pick} onOpenBand={(id) => setVacId(id)} />
-        <Row style={{ marginTop: 12 }}>
-          <Btn small ghost title={selectMode ? 'Tocca inizio e fine…' : 'Seleziona giorni vacanza'} onPress={() => { setSelectMode(!selectMode); if (!selectMode) toast('Tocca il primo giorno di vacanza'); }} />
-          <Body small style={{ flexShrink: 1 }}>{rangeText}</Body>
-        </Row>
-        {range && !selectMode && (
-          <View style={{ marginTop: 10 }}>
-            <Btn icon="compass" title="Pianifica il viaggio" onPress={() => go('lifetravel', { start: range.start, end: range.end })} />
-            <Row style={{ justifyContent: 'flex-start', marginTop: 8 }} gap={8}>
-              <Btn small ghost title="Dai un nome / modifica" onPress={() => setVacId('range')} />
-              <Btn small ghost danger title="Annulla selezione" onPress={() => { const prev = vacRange; confirmDelete(tl('la vacanza selezionata ({0})', rangeText.replace(/^[^:]*: /, '')), () => setVacRange(null), () => setVacRange(prev), { undoMessage: 'Selezione rimossa' }); }} />
-            </Row>
-          </View>
-        )}
+        <Btn style={{ marginTop: 12 }} icon="compass" title="Pianifica le vacanze" onPress={() => go('vacationPlanner')} />
       </Card>
 
       <Card>
@@ -104,7 +90,7 @@ export default function Plan() {
         <H>Vacanze in programma</H>
         {vacations.length === 0 ? (
           <>
-            <Empty text="Nessuna vacanza pianificata. Genera un itinerario in LifeTravel per aggiungerla qui." />
+            <Empty text="Nessuna vacanza pianificata. Tocca «Pianifica le vacanze» per sceglierne le date." />
             <Btn small ghost title="Vai a LifeTravel" onPress={() => go('lifetravel')} />
           </>
         ) : vacations.map((v, i) => (
@@ -112,7 +98,7 @@ export default function Plan() {
             <Row>
               <View style={{ flex: 1 }}>
                 <Body bold>{v.dest}</Body>
-                <Body small muted>{isKey(v.start) && isKey(v.end) ? `${dShort(v.start)} – ${dShort(v.end)}` : v.month} · {v.days} giorni · {v.hotel}</Body>
+                <Body small muted>{isKey(v.start) && isKey(v.end) ? `${dShort(v.start)} – ${dShort(v.end)}` : v.month} · {v.days} giorni{v.hotel ? ` · ${v.hotel}` : ''}</Body>
               </View>
             </Row>
             <Row style={{ marginTop: 6, justifyContent: 'flex-start' }} gap={14}>

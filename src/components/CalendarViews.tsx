@@ -5,8 +5,8 @@ import { Text } from '@/components/T';
 import { Body, Btn, Input, Row, Seg, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { over } from '@/lib/a11y';
-import { KIND_LABEL, PALETTE, DEFAULT_COLOR_OF_KIND, colorIdOf, colorOf, tintOf, vacationColor, type ColorKind, type ColorMode } from '@/lib/calendarColors';
-import { addDays, agenda, bandsOnDay, daySummary, daysBetween, hourRange, isKey, layoutDay, monthGrid, parseKey, vacationBands, weekSegments, weekStart, ymd, type Band } from '@/lib/calendarLayout';
+import { KIND_LABEL, PALETTE, kindOf, DEFAULT_COLOR_OF_KIND, URGENCY_COLOR, URGENCY_LABEL, URGENCY_ORDER, colorIdOf, colorOf, tintOf, urgencyOf, vacationColor, type ColorKind, type ColorMode } from '@/lib/calendarColors';
+import { addDays, agenda, bandsOnDay, daysBetween, hourRange, isKey, layoutDay, monthGrid, parseKey, vacationBands, weekSegments, weekStart, ymd, type Band } from '@/lib/calendarLayout';
 import { confirmDelete } from '@/lib/confirm';
 import { dayKey } from '@/lib/format';
 import { Icon } from '@/lib/icons';
@@ -25,7 +25,9 @@ export function useCalColors() {
   return useMemo(() => ({
     mode,
     th,
-    of: (ev: { title: string; important?: boolean; ref?: string; color?: string }) => colorOf(ev, mode),
+    /** colore dell'impegno; con il giorno, Theia lo sceglie in base all'urgenza */
+    of: (ev: { title: string; important?: boolean; ref?: string; color?: string }, day?: string) => colorOf(ev, mode, day ? { today: dayKey(), day } : undefined),
+    urgency: (ev: { title: string; important?: boolean; ref?: string; color?: string }, day: string) => urgencyOf(ev, { today: dayKey(), day }),
     vac: vacationColor(mode),
     tint: (hex: string, s = 0.22) => tintOf(hex, th.card, s),
   }), [mode, th]);
@@ -39,13 +41,14 @@ export function useBands(): Band[] {
 }
 
 const cap = (x: string) => (x ? x.charAt(0).toUpperCase() + x.slice(1) : x);
-const VIEW_LABEL: Record<CalView, string> = { day: 'Agenda', week: 'Settimana', month: 'Mese', agenda: 'Elenco' };
-const VIEWS: CalView[] = ['day', 'week', 'month', 'agenda'];
+const VIEW_LABEL: Record<CalView, string> = { month: 'Mese', week: 'Settimana', agenda: 'Elenco' };
+const VIEWS: CalView[] = ['month', 'week', 'agenda'];
 
 /* ---------- pannello: selettore vista + legenda ---------- */
 export function CalendarPanel({ selectMode, onPickDay, onOpenBand }: { selectMode: boolean; onPickDay: (key: string) => void; onOpenBand: (id: string) => void }) {
   const th = useTheme();
-  const view = useCalPrefs((s) => s.view);
+  const storedView = useCalPrefs((s) => s.view);
+  const view: CalView = VIEWS.includes(storedView) ? storedView : 'month';
   const setView = useCalPrefs((s) => s.setView);
   const [offset, setOffset] = useState(0); // mesi (vista mese) o settimane (vista settimana)
   const now = new Date();
@@ -56,9 +59,8 @@ export function CalendarPanel({ selectMode, onPickDay, onOpenBand }: { selectMod
       : tl('Prossimi 14 giorni');
   return (
     <View>
-      <Seg options={VIEWS.map((v) => VIEW_LABEL[v])} value={VIEW_LABEL[view]} onChange={(l) => { setView(VIEWS.find((v) => VIEW_LABEL[v] === l) ?? 'day'); setOffset(0); }} />
-      {view === 'day' && <DayBook onPickDay={onPickDay} onOpenBand={onOpenBand} />}
-      {view !== 'day' && <Row style={{ marginBottom: 8 }}>
+      <Seg options={VIEWS.map((v) => VIEW_LABEL[v])} value={VIEW_LABEL[view]} onChange={(l) => { setView(VIEWS.find((v) => VIEW_LABEL[v] === l) ?? 'month'); setOffset(0); }} />
+      <Row style={{ marginBottom: 8 }}>
         {view !== 'agenda' ? (
           <Pressable onPress={() => setOffset(offset - 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText('Precedente')} style={{ padding: 6 }}><Icon name="arrow-left" size={18} color={th.text} /></Pressable>
         ) : <View style={{ width: 30 }} />}
@@ -68,7 +70,7 @@ export function CalendarPanel({ selectMode, onPickDay, onOpenBand }: { selectMod
         {view !== 'agenda' ? (
           <Pressable onPress={() => setOffset(offset + 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText('Successivo')} style={{ padding: 6 }}><Icon name="arrow-right" size={18} color={th.text} /></Pressable>
         ) : <View style={{ width: 30 }} />}
-      </Row>}
+      </Row>
       {view === 'month' && <MonthView offset={offset} selectMode={selectMode} onPickDay={onPickDay} onOpenBand={onOpenBand} />}
       {view === 'week' && <WeekView offset={offset} onPickDay={onPickDay} onOpenBand={onOpenBand} />}
       {view === 'agenda' && <AgendaView onPickDay={onPickDay} onOpenBand={onOpenBand} />}
@@ -82,11 +84,12 @@ export function Legend() {
   const c = useCalColors();
   const open = useCalPrefs((s) => s.legendOpen);
   const setOpen = useCalPrefs((s) => s.setLegend);
-  const kinds = Object.keys(DEFAULT_COLOR_OF_KIND) as ColorKind[];
+  const kinds = (Object.keys(DEFAULT_COLOR_OF_KIND) as ColorKind[]).filter((k) => k !== 'important' && k !== 'normal');
   return (
     <View style={{ marginTop: 10 }}>
       <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={translateText('Legenda colori')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6 }}>
         <View style={{ flexDirection: 'row', gap: 3 }}>
+          {URGENCY_ORDER.map((u) => <View key={u} style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: colorOf({ title: '', color: URGENCY_COLOR[u] }, c.mode) }} />)}
           {kinds.map((k) => <View key={k} style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: colorOf({ title: '', color: DEFAULT_COLOR_OF_KIND[k] }, c.mode) }} />)}
         </View>
         <Text style={{ color: c.th.muted, fontSize: 12, fontWeight: '600', flex: 1 }}>Legenda colori</Text>
@@ -94,6 +97,13 @@ export function Legend() {
       </Pressable>
       {open && (
         <View style={{ gap: 6, paddingVertical: 4 }}>
+          <Text style={{ color: c.th.muted, fontSize: 11 }}>Theia sceglie il colore in base all'urgenza:</Text>
+          {URGENCY_ORDER.map((u) => (
+            <View key={u} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ width: 22, height: 10, borderRadius: 5, backgroundColor: c.tint(colorOf({ title: '', color: URGENCY_COLOR[u] }, c.mode), 0.3), borderLeftWidth: 3, borderLeftColor: colorOf({ title: '', color: URGENCY_COLOR[u] }, c.mode) }} />
+              <Text style={{ color: c.th.text, fontSize: 12, flex: 1 }}>{URGENCY_LABEL[u]}</Text>
+            </View>
+          ))}
           {kinds.map((k) => (
             <View key={k} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <View style={{ width: 22, height: 10, borderRadius: 5, backgroundColor: c.tint(colorOf({ title: '', color: DEFAULT_COLOR_OF_KIND[k] }, c.mode), 0.3), borderLeftWidth: 3, borderLeftColor: colorOf({ title: '', color: DEFAULT_COLOR_OF_KIND[k] }, c.mode) }} />
@@ -104,14 +114,14 @@ export function Legend() {
             <View style={{ width: 22, height: 10, borderRadius: 5, backgroundColor: c.tint(c.vac, 0.35) }} />
             <Text style={{ color: c.th.text, fontSize: 12, flex: 1 }}>Vacanze</Text>
           </View>
-          <Text style={{ color: c.th.muted, fontSize: 11 }}>Puoi scegliere un colore diverso per ogni impegno aprendo il giorno.</Text>
+          <Text style={{ color: c.th.muted, fontSize: 11 }}>Puoi cambiare il colore di ogni impegno aprendo il giorno.</Text>
         </View>
       )}
     </View>
   );
 }
 
-/* ---------- vista mese ---------- */
+/* ---------- vista mese: nessun titolo nelle celle, solo colori (Theia li sceglie per urgenza) ---------- */
 function MonthView({ offset, selectMode, onPickDay, onOpenBand }: { offset: number; selectMode: boolean; onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
   const c = useCalColors();
   const th = c.th;
@@ -119,14 +129,18 @@ function MonthView({ offset, selectMode, onPickDay, onOpenBand }: { offset: numb
   const bands = useBands();
   const vacRange = useLife((s) => s.vacRange);
   const [w, setW] = useState(0);
+  const today = dayKey();
+  const [sel, setSel] = useState<string>(today);
   const now = new Date();
   const base = new Date(now.getFullYear(), now.getMonth() + offset, 1);
   const y = base.getFullYear(), m = base.getMonth();
   const rows = useMemo(() => monthGrid(y, m), [y, m]);
-  const today = dayKey();
   const cellW = w / 7;
-  const wide = cellW >= 44; // con celle larghe scrivo i titoli, altrimenti barrette colorate
-  const labelH = 13;
+  const CELL_H = 54;
+  const rank = (k: string, e: { title: string; important?: boolean; ref?: string; color?: string }) => URGENCY_ORDER.indexOf(c.urgency(e, k));
+  const selList = layoutDay(events[sel]);
+  const selItems = [...selList.placed.map((p) => ({ e: p.e, idx: p.idx })), ...selList.allDay];
+  const selBands = bandsOnDay(bands, sel);
   return (
     <View onLayout={(e) => setW(e.nativeEvent.layout.width)}>
       <View style={{ flexDirection: 'row', marginBottom: 4 }}>
@@ -134,58 +148,72 @@ function MonthView({ offset, selectMode, onPickDay, onOpenBand }: { offset: numb
       </View>
       {w > 0 && rows.map((row, ri) => {
         const segs = weekSegments(bands, row);
-        const lanes = segs.reduce((n, s) => Math.max(n, s.lane + 1), 0);
-        const eventsH = wide ? 16 + 3 * labelH + 12 : 16 + 10 + 12;
-        const rowH = eventsH + lanes * 13;
+        const lanes = segs.reduce((n, s2) => Math.max(n, s2.lane + 1), 0);
+        const rowH = CELL_H + lanes * 13;
         return (
-          <View key={ri} style={{ height: rowH, flexDirection: 'row', borderTopWidth: 1, borderTopColor: th.border }}>
+          <View key={ri} style={{ height: rowH, flexDirection: 'row' }}>
             {row.map((k, ci) => {
               if (!k) return <View key={ci} style={{ width: cellW }} />;
               const isToday = k === today;
-              const sum = daySummary(events[k], 3);
+              const isSel = k === sel;
+              const list = (events[k] ?? []).map((e) => ({ e, r: rank(k, e) })).sort((a, b2) => a.r - b2.r);
+              const top = list[0];
               const inSel = !!vacRange && k >= vacRange.start && k <= (vacRange.end ?? vacRange.start);
-              const names = sum.shown.map((x) => x.e.title).join(', ');
-              const a11y = sum.total ? tl('{0}: {1} impegni · {2}', fmtDate(parseKey(k), { weekday: 'long', day: 'numeric', month: 'long' }), sum.total, names) : fmtDate(parseKey(k), { weekday: 'long', day: 'numeric', month: 'long' });
+              const tintBg = top ? c.tint(c.of(top.e, k), top.r === 0 ? 0.2 : top.r === 1 ? 0.14 : 0.08) : inSel ? c.tint(c.vac, 0.1) : 'transparent';
+              const label = fmtDate(parseKey(k), { weekday: 'long', day: 'numeric', month: 'long' });
               return (
-                <Pressable key={ci} onPress={() => onPickDay(k)} accessibilityRole="button" accessibilityLabel={a11y} style={{ width: cellW, paddingHorizontal: 1, paddingTop: 2, backgroundColor: inSel ? c.tint(c.vac, 0.1) : 'transparent' }}>
-                  <View style={{ alignSelf: 'center', minWidth: 20, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? th.accent : 'transparent', marginBottom: 1 }}>
-                    <Text style={{ color: isToday ? th.onAccent : th.text, fontSize: 11, fontWeight: isToday ? '800' : '500' }}>{Number(k.slice(8))}</Text>
+                <Pressable key={ci} onPress={() => { setSel(k); if (selectMode) onPickDay(k); }} accessibilityRole="button" accessibilityState={{ selected: isSel }} accessibilityLabel={list.length ? tl('{0}: {1} impegni', label, list.length) : label}
+                  style={{ width: cellW - 3, height: CELL_H - 3, marginHorizontal: 1.5, marginTop: 1.5, borderRadius: 12, backgroundColor: tintBg, borderWidth: isSel ? 2 : 0, borderColor: th.text, alignItems: 'center', paddingTop: 4 }}>
+                  <View style={{ minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? th.accent : 'transparent' }}>
+                    <Text style={{ color: isToday ? th.onAccent : th.text, fontSize: 13, fontWeight: isToday || top ? '800' : '500' }}>{Number(k.slice(8))}</Text>
                   </View>
-                  {wide ? (
-                    <View style={{ gap: 1 }}>
-                      {sum.shown.map(({ e, idx }) => {
-                        const col = c.of(e);
-                        return (
-                          <View key={idx} style={{ height: labelH - 1, borderRadius: 3, borderLeftWidth: 2, borderLeftColor: col, backgroundColor: c.tint(col), justifyContent: 'center', paddingHorizontal: 2, overflow: 'hidden' }}>
-                            <Text numberOfLines={1} style={{ color: th.text, fontSize: 9, lineHeight: 11 }}>{e.title}</Text>
-                          </View>
-                        );
-                      })}
-                      {sum.more > 0 && <Text style={{ color: th.muted, fontSize: 9, fontWeight: '700', textAlign: 'center' }}>+{sum.more}</Text>}
-                    </View>
-                  ) : (
-                    <View style={{ gap: 2, alignItems: 'center' }}>
-                      <View style={{ flexDirection: 'row', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-                        {sum.shown.map(({ e, idx }) => <View key={idx} style={{ width: Math.max(6, cellW - 14) / (sum.shown.length > 1 ? 1.6 : 1), maxWidth: 14, height: 5, borderRadius: 3, backgroundColor: c.of(e) }} />)}
-                      </View>
-                      {sum.more > 0 && <Text style={{ color: th.muted, fontSize: 9, fontWeight: '700' }}>+{sum.more}</Text>}
-                    </View>
-                  )}
+                  <View style={{ flexDirection: 'row', gap: 3, marginTop: 4, alignItems: 'center' }}>
+                    {list.slice(0, 4).map(({ e }, i) => <View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: c.of(e, k) }} />)}
+                    {list.length > 4 ? <Text style={{ color: th.muted, fontSize: 9, fontWeight: '700' }}>+</Text> : null}
+                  </View>
                 </Pressable>
               );
             })}
-            {segs.map((s, si) => (
-              <Pressable key={si} pointerEvents={selectMode ? 'none' : 'auto'} onPress={() => onOpenBand(s.band.id)} accessibilityRole="button" accessibilityLabel={tl('Vacanza: {0}', s.band.name)}
-                style={{ position: 'absolute', left: s.col0 * cellW + (s.capL ? 2 : 0), width: (s.col1 - s.col0 + 1) * cellW - (s.capL ? 2 : 0) - (s.capR ? 2 : 0), bottom: 1 + s.lane * 13, height: 12, backgroundColor: c.tint(c.vac, 0.38), borderTopLeftRadius: s.capL ? 6 : 0, borderBottomLeftRadius: s.capL ? 6 : 0, borderTopRightRadius: s.capR ? 6 : 0, borderBottomRightRadius: s.capR ? 6 : 0, borderLeftWidth: s.capL ? 3 : 0, borderLeftColor: c.vac, justifyContent: 'center', paddingHorizontal: 3, overflow: 'hidden' }}>
-                <Text numberOfLines={1} style={{ color: th.text, fontSize: 9, fontWeight: '700', lineHeight: 11 }}>{s.band.name}</Text>
+            {segs.map((s2, si) => (
+              <Pressable key={si} pointerEvents={selectMode ? 'none' : 'auto'} onPress={() => onOpenBand(s2.band.id)} accessibilityRole="button" accessibilityLabel={tl('Vacanza: {0}', s2.band.name)}
+                style={{ position: 'absolute', left: s2.col0 * cellW + (s2.capL ? 2 : 0), width: (s2.col1 - s2.col0 + 1) * cellW - (s2.capL ? 2 : 0) - (s2.capR ? 2 : 0), bottom: 0 + s2.lane * 13, height: 12, backgroundColor: c.tint(c.vac, 0.38), borderRadius: 6, justifyContent: 'center', paddingHorizontal: 5, overflow: 'hidden' }}>
+                <Text numberOfLines={1} style={{ color: th.text, fontSize: 9, fontWeight: '700', lineHeight: 11 }}>{s2.band.name}</Text>
               </Pressable>
             ))}
           </View>
         );
       })}
+
+      {/* il giorno scelto: qui i titoli, nelle celle solo i colori */}
+      <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: th.border }}>
+        <Row style={{ marginBottom: 6 }}>
+          <Text style={{ color: th.text, fontWeight: '800', fontSize: 15, flex: 1 }}>{cap(fmtDate(parseKey(sel), { weekday: 'long', day: 'numeric', month: 'long' }))}</Text>
+          <Pressable onPress={() => onPickDay(sel)} hitSlop={8} accessibilityRole="button" style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: th.chip }}><Text style={{ color: th.text, fontSize: 13, fontWeight: '700' }}>Apri</Text></Pressable>
+        </Row>
+        {selBands.map((b) => (
+          <Pressable key={b.id} onPress={() => onOpenBand(b.id)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, backgroundColor: c.tint(c.vac, 0.25), marginBottom: 6 }}>
+            <Icon name="compass" size={14} color={th.text} /><Text numberOfLines={1} style={{ color: th.text, fontWeight: '700', fontSize: 13, flex: 1 }}>{b.name}</Text>
+          </Pressable>
+        ))}
+        {selItems.length === 0 && selBands.length === 0 ? <Text style={{ color: th.muted, fontSize: 13, paddingVertical: 6 }}>Giornata libera.</Text> : selItems.map(({ e, idx }) => {
+          const col = c.of(e, sel);
+          const u = kindIsPlain(e) ? URGENCY_LABEL[c.urgency(e, sel)] : '';
+          return (
+            <Pressable key={idx} onPress={() => onPickDay(sel)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, backgroundColor: c.tint(col, 0.16), marginBottom: 6 }}>
+              <View style={{ width: 5, alignSelf: 'stretch', borderRadius: 3, backgroundColor: col }} />
+              <View style={{ flex: 1 }}>
+                <Text numberOfLines={1} style={{ color: th.text, fontSize: 14, fontWeight: '700' }}>{e.title}</Text>
+                <Text numberOfLines={1} style={{ color: th.muted, fontSize: 12 }}>{e.time || tl('Tutto il giorno')}{e.place ? ` · ${e.place}` : ''}</Text>
+              </View>
+              {u ? <Text style={{ color: col, fontSize: 11, fontWeight: '800' }}>{u}</Text> : null}
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
+const kindIsPlain = (e: { title: string; important?: boolean; ref?: string; color?: string }) => !e.color && ['important', 'normal'].includes(kindOf(e));
 
 /* ---------- vista settimana ---------- */
 const HOUR_H = 40;
@@ -273,7 +301,7 @@ function WeekView({ offset, onPickDay, onOpenBand }: { offset: number; onPickDay
                     {layouts.map((l, ci) => (
                       <View key={ci} style={{ width: COL_W, paddingHorizontal: 2, gap: 1 }}>
                         {l.allDay.slice(0, 3).map(({ e, idx }) => {
-                          const col = c.of(e);
+                          const col = c.of(e, week[ci]);
                           return (
                             <Pressable key={idx} onPress={() => onPickDay(week[ci])} style={{ height: 14, borderLeftWidth: 2, borderLeftColor: col, backgroundColor: c.tint(col), borderRadius: 3, justifyContent: 'center', paddingHorizontal: 3 }}>
                               <Text numberOfLines={1} style={{ color: th.text, fontSize: 9, lineHeight: 11 }}>{e.title}</Text>
@@ -301,7 +329,7 @@ function WeekView({ offset, onPickDay, onOpenBand }: { offset: number; onPickDay
                         {weekday && hgt > 0 && <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top, height: hgt, backgroundColor: work }} />}
                         {hours.map((h, i) => <View key={h} pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: i * HOUR_H, height: 1, backgroundColor: th.border, opacity: 0.7 }} />)}
                         {layouts[ci].placed.map((p) => {
-                          const col = c.of(p.e);
+                          const col = c.of(p.e, k);
                           const tp = ((p.start - range.from * 60) / 60) * HOUR_H;
                           const hh = Math.max(18, ((p.end - p.start) / 60) * HOUR_H - 1);
                           const lw = (COL_W - 4) / p.lanes;
@@ -360,7 +388,7 @@ function AgendaView({ onPickDay, onOpenBand }: { onPickDay: (k: string) => void;
               </Pressable>
             ))}
             {d.items.map(({ e, idx }) => {
-              const col = c.of(e);
+              const col = c.of(e, d.day);
               return (
                 <Pressable key={idx} onPress={() => onPickDay(d.day)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: c.tint(col, 0.16), borderLeftWidth: 4, borderLeftColor: col, marginBottom: 4 }}>
                   <Text style={{ color: th.text, fontWeight: '700', fontSize: 12, width: 44 }}>{e.time}</Text>
@@ -509,7 +537,7 @@ function DayPage({ k, width, onPickDay, onOpenBand }: { k: string; width: number
               </Pressable>
             ))}
             {lay.allDay.map(({ e, idx }) => {
-              const col = c.of(e);
+              const col = c.of(e, k);
               return (
                 <Pressable key={idx} onPress={() => onPickDay(k)} accessibilityRole="button" style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: c.tint(col, 0.2), borderLeftWidth: 4, borderLeftColor: col }}>
                   <Text numberOfLines={1} style={{ color: th.text, fontSize: 12 }}>{e.title}</Text>
@@ -531,7 +559,7 @@ function DayPage({ k, width, onPickDay, onOpenBand }: { k: string; width: number
                 </View>
               ))}
               {lay.placed.map((p) => {
-                const col = c.of(p.e);
+                const col = c.of(p.e, k);
                 const tp = (p.start / 60) * BOOK_HOUR;
                 const hh = Math.max(26, ((p.end - p.start) / 60) * BOOK_HOUR - 2);
                 const lw = colW / p.lanes;
@@ -557,7 +585,7 @@ function DayPage({ k, width, onPickDay, onOpenBand }: { k: string; width: number
 }
 
 /** Agenda a pagine: si sfoglia con uno swipe (o con le frecce), una pagina per ogni giorno, con tutte le ore. */
-function DayBook({ onPickDay, onOpenBand }: { onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
+export function DayBook({ onPickDay, onOpenBand }: { onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
   const th = useTheme();
   const today = dayKey();
   const days = useMemo(() => Array.from({ length: BOOK_SPAN * 2 + 1 }, (_, i) => addDays(today, i - BOOK_SPAN)), [today]);

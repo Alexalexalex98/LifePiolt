@@ -50,15 +50,39 @@ export const KIND_LABEL: Record<ColorKind, string> = {
 
 export const paletteById = (id: string | undefined) => PALETTE.find((p) => p.id === id);
 
-/** Id del colore effettivo: quello scelto dall'utente se valido, altrimenti il default del tipo. */
-export function colorIdOf(ev: EvLike): string {
+/* ---------- urgenza: Theia sceglie il colore dagli impegni (regole locali, nessuna AI esterna) ---------- */
+export type Urgency = 'urgent' | 'soon' | 'normal' | 'light';
+export const URGENCY_COLOR: Record<Urgency, string> = { urgent: 'red', soon: 'orange', normal: 'blue', light: 'green' };
+export const URGENCY_LABEL: Record<Urgency, string> = { urgent: 'Urgente', soon: 'Presto', normal: 'Normale', light: 'Leggero' };
+export const URGENCY_ORDER: Urgency[] = ['urgent', 'soon', 'normal', 'light'];
+export type ColorCtx = { today: string; day: string };
+
+const CRITICAL = /\b(medic|dottor|dentist|ospedal|visita|esame|scadenz|tasse|fisco|dichiarazion|volo|aeroporto|colloquio|consegna|rata|bolletta|affitto|udienza|appello)/i;
+const LEISURE = /\b(cena|pranzo|caff[eè]|aperitivo|amici|film|cinema|palestra|corsa|yoga|relax|passeggiata|festa|compleanno|hobby|lettura|sport)/i;
+const keyDays = (a: string, b: string) => Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86400000);
+
+/** Quanto è urgente un impegno: importante o critico e vicino = urgente; importante o in arrivo = presto; svago = leggero. */
+export function urgencyOf(ev: EvLike, ctx: ColorCtx): Urgency {
+  const d = keyDays(ctx.today, ctx.day);
+  if (d < 0) return 'light'; // già passato
+  const critical = CRITICAL.test(ev.title);
+  if ((ev.important && d <= 1) || (critical && d <= 2)) return 'urgent';
+  if (ev.important || (critical && d <= 7) || d <= 1) return 'soon';
+  if (LEISURE.test(ev.title)) return 'light';
+  return 'normal';
+}
+
+/** Id del colore effettivo: quello scelto dall'utente se valido; con `ctx` (giorno e oggi) Theia lo sceglie in base all'urgenza; altrimenti il default del tipo. */
+export function colorIdOf(ev: EvLike, ctx?: ColorCtx): string {
   if (ev.color && paletteById(ev.color)) return ev.color;
-  return DEFAULT_COLOR_OF_KIND[kindOf(ev)];
+  const kind = kindOf(ev);
+  if (ctx && (kind === 'important' || kind === 'normal')) return URGENCY_COLOR[urgencyOf(ev, ctx)];
+  return DEFAULT_COLOR_OF_KIND[kind];
 }
 
 /** Colore pieno (#rrggbb) dell'impegno per il tema scuro o chiaro. */
-export function colorOf(ev: EvLike, mode: ColorMode = 'dark'): string {
-  const p = paletteById(colorIdOf(ev)) ?? PALETTE[5];
+export function colorOf(ev: EvLike, mode: ColorMode = 'dark', ctx?: ColorCtx): string {
+  const p = paletteById(colorIdOf(ev, ctx)) ?? PALETTE[5];
   return p[mode];
 }
 
