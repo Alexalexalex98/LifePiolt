@@ -34,6 +34,7 @@ export default function Orders() {
               <LpTag size={12} />
             </Row>
             <Row style={{ marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
+              <Btn small ghost icon="file" title="Fattura" onPress={() => go('invoice', { id: `ord:${o.id}` })} />
               <Btn small ghost icon="comment" title="Chat con il negozio" onPress={() => go('conversationPage', { id: openShopChat(o.shop) })} />
               {canReturn(o, now) && <Btn small ghost icon="repeat" title="Richiedi il reso" onPress={() => { setWhy(''); setRet(o.id); }} />}
             </Row>

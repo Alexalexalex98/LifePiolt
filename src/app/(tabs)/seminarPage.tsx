@@ -86,7 +86,7 @@ export default function SeminarPage() {
 
       <Card>
         <H>Prezzo, pagamento e annullamento</H>
-        <Body small>{s.price ? `Prezzo: ${s.price} LP. Si paga subito, alla prenotazione: poi il posto è tuo. Puoi disdire (con rimborso) fino a 24 ore prima e riprogrammare quando vuoi.` : 'Gratuito. Dopo il seminario ti chiederemo comunque di confermare la partecipazione.'}</Body>
+        <Body small>{s.price ? `Prezzo: ${s.price} LP. Si paga subito, alla prenotazione: i LifePoints restano bloccati fino alla fine e poi vanno al relatore. Il posto è tuo. Puoi disdire (con rimborso) fino a 24 ore prima e riprogrammare quando vuoi.` : 'Gratuito. Dopo il seminario ti chiederemo comunque di confermare la partecipazione.'}</Body>
         <Body small muted style={{ marginTop: 8 }}>{s.cancelPolicy || 'Puoi annullare l\'iscrizione fino all\'inizio.'}</Body>
       </Card>
 
@@ -96,7 +96,7 @@ export default function SeminarPage() {
         <>
         <Card>
           <H>Sei il relatore</H>
-          <Body small muted>{f.seats ? `Iscritti: ${f.joined} su ${f.seats} posti.` : `Iscritti: ${f.joined}.`} I LifePoints ti arrivano al momento della prenotazione di ciascun partecipante.</Body>
+          <Body small muted>{f.seats ? `Iscritti: ${f.joined} su ${f.seats} posti.` : `Iscritti: ${f.joined}.`} I LifePoints dei partecipanti restano bloccati e ti arrivano alla fine del seminario.</Body>
           {!s.promoted && <Btn small ghost style={{ marginTop: 10, alignSelf: 'flex-start' }} title="Promuovi con LifePoints" onPress={() => openSheet('promoteSeminar', { id: s.id })} />}
         </Card>
         <ParticipantsCard seminarId={s.id} host={s.host} />

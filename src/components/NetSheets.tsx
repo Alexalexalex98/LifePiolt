@@ -381,7 +381,7 @@ function NewSeminarView() {
   const [price, setPrice] = useState(''); const [seats, setSeats] = useState('');
   return (
     <>
-      <Body small muted style={{ marginBottom: 8 }}>Scrivi in modo chiaro e onesto: chi si iscrive deve capire cosa imparerà, quando e dove. Gli iscritti pagano al momento della prenotazione e solo allora occupano il posto. Solo tu vedi chi partecipa e chi ha pagato.</Body>
+      <Body small muted style={{ marginBottom: 8 }}>Scrivi in modo chiaro e onesto: chi si iscrive deve capire cosa imparerà, quando e dove. Gli iscritti pagano al momento della prenotazione e solo allora occupano il posto; i LifePoints restano bloccati fino alla fine e poi ti arrivano. Solo tu vedi chi partecipa e chi ha pagato.</Body>
       <Input placeholder="Titolo del seminario" value={title} onChangeText={setTitle} />
       <Input multiline style={{ minHeight: 100 }} placeholder="Descrizione completa: di cosa parli, come si svolge, cosa non è (almeno 80 caratteri)" value={desc} onChangeText={setDesc} />
       <Input multiline style={{ minHeight: 60 }} placeholder="Cosa si impara: una voce per riga (facoltativo)" value={learn} onChangeText={setLearn} />

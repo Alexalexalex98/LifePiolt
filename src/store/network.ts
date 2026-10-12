@@ -24,9 +24,9 @@ export type Seminar = {
 /** Iscrizione a un seminario o prenotazione di un servizio: si paga solo dopo, con la conferma di partecipazione. */
 export type Enrollment = {
   id: string; kind: 'seminar' | 'service'; ref: string; title: string; host: string; price: number;
-  startsAt: number; durationMin: number; status: 'enrolled' | 'attended' | 'declined'; voted?: boolean; createdAt: number; slot?: string; /** LifePoints pagati al momento della prenotazione */ paid?: number;
+  startsAt: number; durationMin: number; status: 'enrolled' | 'attended' | 'declined'; voted?: boolean; createdAt: number; slot?: string; /** LifePoints pagati al momento della prenotazione */ paid?: number; /** i LifePoints restano bloccati fino alla fine dell'evento */ held?: boolean; releasedAt?: number;
 };
-export type Ledger = { type: 'spend' | 'topup'; desc: string; amount: number; date: string };
+export type Ledger = { type: 'spend' | 'topup'; desc: string; amount: number; date: string; /** collegamento, es. 'enr:<id>' per un pagamento bloccato */ ref?: string };
 export type Msg = { from: string; text: string; date: string };
 export type GroupChat = { id: number; name: string; members: string[]; msgs: Msg[] };
 export type Notif = { id: number; type: string; text: string; urgent: boolean; read: boolean; date: string; slot?: string; service?: string; addedToCalendar?: boolean; kind?: string; ref?: string };
@@ -179,7 +179,7 @@ export const useNet = create<NetState>()(
       if (get().lifePoints < amount) return false;
       set((s) => ({
         lifePoints: s.lifePoints - amount,
-        ledger: [{ type: 'spend', desc, amount, date: weekdayShortDate() }, ...s.ledger],
+        ledger: [{ type: 'spend', desc, amount, date: weekdayShortDate(), ...(ref ? { ref } : {}) }, ...s.ledger],
         lpMoves: [...(s.lpMoves ?? []), { id: `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, ts: Date.now(), kind: 'spend' as const, label: desc, amount, ref }],
         receivedPayments: payee ? { ...s.receivedPayments, [payee]: (s.receivedPayments[payee] || 0) + amount } : s.receivedPayments,
       }));

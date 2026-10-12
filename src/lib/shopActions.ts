@@ -36,13 +36,14 @@ export function buyProduct(productId: string, qty: number, address: string): { o
   const p = (net.products ?? []).find((x) => x.id === productId);
   const total = p ? Math.round(p.price * qty * 100) / 100 : 0;
   const { used, pay } = applyCredit(total, creditFor(p?.shop ?? ''));
+  const orderId = newId('or');
   const addrErr = validateAddress(address);
   if (addrErr) return { ok: false, message: addrErr };
   const block = buyBlockReason(p, qty, net.lifePoints, pay);
   if (block || !p) return { ok: false, message: block ?? 'Prodotto non trovato.' };
   if (p.shop === me) return { ok: false, message: 'Non puoi comprare dal tuo negozio.' };
-  if (pay > 0 && !net.spend(pay, `Acquisto: ${p.name} · ${p.shop}`, p.shop)) return { ok: false, message: 'LifePoints insufficienti.' };
-  const order: Order = { id: newId('or'), shop: p.shop, buyer: me, productId: p.id, name: p.name, qty, total, credit: used, paid: pay, address: address.trim(), ts: Date.now(), status: 'pagato' };
+  if (pay > 0 && !net.spend(pay, `Acquisto: ${p.name} · ${p.shop}`, p.shop, `ord:${orderId}`)) return { ok: false, message: 'LifePoints insufficienti.' };
+  const order: Order = { id: orderId, shop: p.shop, buyer: me, productId: p.id, name: p.name, qty, total, credit: used, paid: pay, address: address.trim(), ts: Date.now(), status: 'pagato' };
   useNet.setState((s) => ({
     products: (s.products ?? []).map((x) => (x.id === p.id ? { ...x, stock: x.stock - qty } : x)),
     orders: [order, ...(s.orders ?? [])],

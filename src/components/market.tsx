@@ -133,8 +133,9 @@ export function EnrollmentBox({ e }: { e: Enrollment }) {
       </Row>
       {e.status === 'enrolled' && !ended && (
         <>
-          <Body small muted style={{ marginTop: 8 }}>{e.paid ? `Hai pagato ${e.paid} LP alla prenotazione. ` : e.price ? '' : 'Gratuito. '}È nel tuo Plan. {cancelOk ? `Puoi disdire (con rimborso) fino a 24 ore prima: ancora ${Math.max(1, Math.floor(hoursToCancelDeadline(e.startsAt, now)))} ore.` : 'Non si può più disdire (meno di 24 ore): puoi ancora riprogrammare.'}</Body>
+          <Body small muted style={{ marginTop: 8 }}>{e.paid ? `Hai pagato ${e.paid} LP alla prenotazione: restano bloccati fino alla fine e poi vanno a ${e.host}. ` : e.price ? '' : 'Gratuito. '}È nel tuo Plan. {cancelOk ? `Puoi disdire (con rimborso) fino a 24 ore prima: ancora ${Math.max(1, Math.floor(hoursToCancelDeadline(e.startsAt, now)))} ore.` : 'Non si può più disdire (meno di 24 ore): puoi ancora riprogrammare.'}</Body>
           <Row style={{ marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
+            <Btn small ghost icon="file" title="Fattura" onPress={() => go('invoice', { id: `enr:${e.id}` })} />
             {canReschedule(e, now) && <Btn small ghost icon="repeat" title="Riprogramma" onPress={() => setResched(true)} />}
             <Btn small ghost danger icon="x" disabled={!cancelOk} title={e.kind === 'seminar' ? 'Disiscriviti' : 'Annulla prenotazione'} onPress={() => cancelEnrollment(e.id)} />
             {demo && <Btn small ghost icon="timer" title="Solo demo: segna come concluso" onPress={() => demoFinish(e.id)} />}

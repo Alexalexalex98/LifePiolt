@@ -68,12 +68,12 @@ const slotSet = (name: string, slot: string, present: boolean) => useNet.setStat
 export function enrollSeminarOp(s: Seminar, plan: BookingPlan, facts: { startsAt: number; durationMin: number }, id = 'e' + newId()): OpResult {
   return runOperation('booking.seminar', [
     // si paga PRIMA di occupare il posto: se il pagamento non va a buon fine non cambia nulla
-    { name: 'pagamento', stores: ['net'], run: () => { if (s.price > 0 && !useNet.getState().spend(s.price, `Seminario "${s.title}" di ${s.host}`, s.host, `enr:${id}`)) throw new Error('LifePoints insufficienti'); } },
+    { name: 'pagamento', stores: ['net'], run: () => { if (s.price > 0 && !useNet.getState().spend(s.price, `Seminario "${s.title}" di ${s.host}`, undefined, `enr:${id}`)) throw new Error('LifePoints insufficienti'); } },
     { name: 'plan', stores: ['life'], run: () => useLife.getState().addEvent(plan.day, { time: plan.time, title: plan.title, dur: plan.durationMin, ref: id }) },
     {
       name: 'iscrizione', stores: ['net'],
       run: () => {
-        const e: Enrollment = { id, kind: 'seminar', ref: String(s.id), title: s.title, host: s.host, price: s.price, startsAt: facts.startsAt, durationMin: facts.durationMin, status: 'enrolled', createdAt: Date.now(), paid: s.price };
+        const e: Enrollment = { id, kind: 'seminar', ref: String(s.id), title: s.title, host: s.host, price: s.price, startsAt: facts.startsAt, durationMin: facts.durationMin, status: 'enrolled', createdAt: Date.now(), paid: s.price, held: s.price > 0 };
         useNet.setState((st) => ({ enrollments: [e, ...st.enrollments] }));
         bump(s.id, 1);
       },
@@ -84,12 +84,12 @@ export function enrollSeminarOp(s: Seminar, plan: BookingPlan, facts: { startsAt
 /** Prenotazione di un servizio: evento nel Plan + prenotazione + slot occupato; poi 'booking.confirmed'. */
 export function bookServiceOp(p: Provider, slot: string, plan: BookingPlan, startsAt: number, durationMin: number, id = 'e' + newId()): OpResult {
   return runOperation('booking.service', [
-    { name: 'pagamento', stores: ['net'], run: () => { if (p.price > 0 && !useNet.getState().spend(p.price, `Sessione "${p.role}" di ${p.name}`, p.name, `enr:${id}`)) throw new Error('LifePoints insufficienti'); } },
+    { name: 'pagamento', stores: ['net'], run: () => { if (p.price > 0 && !useNet.getState().spend(p.price, `Sessione "${p.role}" di ${p.name}`, undefined, `enr:${id}`)) throw new Error('LifePoints insufficienti'); } },
     { name: 'plan', stores: ['life'], run: () => useLife.getState().addEvent(plan.day, { time: plan.time, title: plan.title, dur: plan.durationMin, ref: id }) },
     {
       name: 'prenotazione', stores: ['net'],
       run: () => {
-        const e: Enrollment = { id, kind: 'service', ref: `${p.name}|${slot}`, title: p.role, host: p.name, price: p.price, startsAt, durationMin, status: 'enrolled', createdAt: Date.now(), slot, paid: p.price };
+        const e: Enrollment = { id, kind: 'service', ref: `${p.name}|${slot}`, title: p.role, host: p.name, price: p.price, startsAt, durationMin, status: 'enrolled', createdAt: Date.now(), slot, paid: p.price, held: p.price > 0 };
         useNet.setState((st) => ({ enrollments: [e, ...st.enrollments] }));
         slotSet(p.name, slot, false);
       },
@@ -143,7 +143,7 @@ export function cancelEnrollmentOp(id: string): { enr: Enrollment; removal: Plan
         if (paid <= 0) return;
         useNet.setState((st) => ({
           lifePoints: st.lifePoints + paid,
-          receivedPayments: { ...st.receivedPayments, [enr.host]: Math.max(0, (st.receivedPayments[enr.host] || 0) - paid) },
+          receivedPayments: enr.held ? st.receivedPayments : { ...st.receivedPayments, [enr.host]: Math.max(0, (st.receivedPayments[enr.host] || 0) - paid) },
           lpMoves: (st.lpMoves ?? []).filter((m) => m.ref !== `enr:${id}`),
           ledger: [{ type: 'topup' as const, desc: `Rimborso: ${enr.title}`, amount: paid, date: weekdayShortDate() }, ...st.ledger],
         }));
@@ -163,7 +163,7 @@ export function cancelEnrollmentOp(id: string): { enr: Enrollment; removal: Plan
 /** Annulla l'annullamento (undo): rimette iscrizione, posto/slot ed evento nel Plan. */
 export function restoreEnrollmentOp(enr: Enrollment, removal: PlanRemoval | null): OpResult {
   return runOperation('booking.restore', [
-    { name: 'pagamento', stores: ['net'], run: () => { if ((enr.paid ?? 0) > 0 && !useNet.getState().spend(enr.paid!, `${enr.kind === 'seminar' ? 'Seminario' : 'Sessione'} "${enr.title}" di ${enr.host}`, enr.host, `enr:${enr.id}`)) throw new Error('LifePoints insufficienti'); } },
+    { name: 'pagamento', stores: ['net'], run: () => { if ((enr.paid ?? 0) > 0 && !useNet.getState().spend(enr.paid!, `${enr.kind === 'seminar' ? 'Seminario' : 'Sessione'} "${enr.title}" di ${enr.host}`, enr.held ? undefined : enr.host, `enr:${enr.id}`)) throw new Error('LifePoints insufficienti'); } },
     {
       name: 'iscrizione', stores: ['net'],
       run: () => {

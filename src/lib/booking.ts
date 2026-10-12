@@ -26,3 +26,15 @@ export const canSeeParticipants = (viewer: string, host: string): boolean => !!v
 export function bookingPayBlock(price: number, balance: number): string | null {
   return price > 0 && balance < price ? 'LifePoints insufficienti: il pagamento va fatto prima di prenotare.' : null;
 }
+
+/* ---------- fondi bloccati fino alla fine ---------- */
+export type EscrowState = 'bloccato' | 'accreditato' | 'rimborsato' | 'nessuno';
+type EscrowLike = { paid?: number; held?: boolean; releasedAt?: number; startsAt: number; durationMin: number };
+/** Momento in cui i LifePoints vengono sbloccati e accreditati a chi organizza: la fine dell'evento. */
+export const unlockAt = (e: Pick<EscrowLike, 'startsAt' | 'durationMin'>): number => e.startsAt + e.durationMin * 60000;
+/** Stato del pagamento: bloccato dalla prenotazione alla fine dell'evento, poi accreditato al relatore. */
+export function escrowState(e: EscrowLike, now: number): EscrowState {
+  if (!e.paid || e.paid <= 0) return 'nessuno';
+  if (e.held === false || e.releasedAt || (e.held && now >= unlockAt(e))) return 'accreditato';
+  return e.held ? 'bloccato' : 'accreditato';
+}

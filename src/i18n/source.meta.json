@@ -1,5 +1,5 @@
 {
- "count": 7489,
+ "count": 7521,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 23,
@@ -27,6 +27,7 @@
   "src/app/(tabs)/index.tsx": 63,
   "src/app/(tabs)/interviewInvite.tsx": 28,
   "src/app/(tabs)/interviewView.tsx": 83,
+  "src/app/(tabs)/invoice.tsx": 13,
   "src/app/(tabs)/jobDetail.tsx": 38,
   "src/app/(tabs)/jobEdit.tsx": 61,
   "src/app/(tabs)/jobTest.tsx": 47,
@@ -37,7 +38,7 @@
   "src/app/(tabs)/lifehealth.tsx": 105,
   "src/app/(tabs)/lifenetwork.tsx": 39,
   "src/app/(tabs)/lifenotes.tsx": 3,
-  "src/app/(tabs)/lifepointsPage.tsx": 15,
+  "src/app/(tabs)/lifepointsPage.tsx": 21,
   "src/app/(tabs)/lifetask.tsx": 5,
   "src/app/(tabs)/lifetravel.tsx": 102,
   "src/app/(tabs)/liveRoom.tsx": 71,
@@ -46,7 +47,7 @@
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/noteedit.tsx": 18,
   "src/app/(tabs)/notificationsPage.tsx": 27,
-  "src/app/(tabs)/orders.tsx": 11,
+  "src/app/(tabs)/orders.tsx": 12,
   "src/app/(tabs)/plan.tsx": 50,
   "src/app/(tabs)/portfolio.tsx": 33,
   "src/app/(tabs)/postPage.tsx": 31,
@@ -59,7 +60,7 @@
   "src/app/(tabs)/searchPage.tsx": 13,
   "src/app/(tabs)/security.tsx": 5,
   "src/app/(tabs)/seminarPage.tsx": 40,
-  "src/app/(tabs)/servicePage.tsx": 28,
+  "src/app/(tabs)/servicePage.tsx": 27,
   "src/app/(tabs)/settings.tsx": 108,
   "src/app/(tabs)/sharing.tsx": 2,
   "src/app/(tabs)/shopPage.tsx": 40,
@@ -94,7 +95,7 @@
   "src/components/MediaPickerField.tsx": 8,
   "src/components/MoodChart.tsx": 6,
   "src/components/NavBar.tsx": 11,
-  "src/components/NetSheets.tsx": 252,
+  "src/components/NetSheets.tsx": 251,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 43,
   "src/components/ParticipantsCard.tsx": 6,
@@ -160,7 +161,7 @@
   "src/components/live/Overlay.tsx": 12,
   "src/components/live/Panels.tsx": 28,
   "src/components/live/VideoSurface.tsx": 11,
-  "src/components/market.tsx": 43,
+  "src/components/market.tsx": 44,
   "src/components/network.tsx": 40,
   "src/components/plan.tsx": 95,
   "src/components/profile/CardFace.tsx": 9,
@@ -303,6 +304,7 @@
   "src/lib/ideasActions.ts": 2,
   "src/lib/interview.ts": 67,
   "src/lib/interviewActions.ts": 23,
+  "src/lib/invoice.ts": 21,
   "src/lib/jobFiles.ts": 2,
   "src/lib/jobFit.ts": 3,
   "src/lib/knowledge.ts": 14,
@@ -375,5 +377,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1056
+ "withPlaceholders": 1071
 }

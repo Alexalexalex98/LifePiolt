@@ -31,7 +31,7 @@ export function ParticipantsCard({ seminarId, host }: { seminarId: number; host:
           </Item>
         ))}
       </View>
-      <Body small muted style={{ marginTop: 8 }}>Questo elenco lo vedi solo tu.</Body>
+      <Body small muted style={{ marginTop: 8 }}>Questo elenco lo vedi solo tu. I LifePoints restano bloccati fino alla fine del seminario.</Body>
     </Card>
   );
 }

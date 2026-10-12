@@ -9,6 +9,7 @@ import { newId, useNet, type Provider, type Seminar } from '@/store/network';
 import { showUndoToast, toast } from '@/store/toast';
 import { t, t as tl } from '@/i18n/core';
 import { formatCHF } from '@/lib/format';
+import { go } from '@/lib/nav';
 
 /**
  * Iscrizione a seminari e prenotazione di servizi.
@@ -52,7 +53,8 @@ export function enrollSeminar(s: Seminar, me: string): void {
     const r = enrollSeminarOp(s, req, { startsAt: f.startsAt!, durationMin: f.durationMin }, id);
     if (!r.ok) { toast('Non sono riuscito a completare l\'iscrizione: non è stato salvato nulla'); return; }
     useNet.getState().signal(s.title + ' ' + (s.desc ?? ''), SIGNAL.buy);
-    toast(s.price ? t('Iscrizione confermata: pagati {0} LP. Aggiunto al Plan.', formatCHF(s.price)) : 'Iscrizione confermata (gratuito). Aggiunto al Plan.');
+    toast(s.price ? t('Iscrizione confermata: {0} LP bloccati fino alla fine. Aggiunto al Plan.', formatCHF(s.price)) : 'Iscrizione confermata (gratuito). Aggiunto al Plan.');
+    if (s.price) go('invoice', { id: `enr:${id}` });
   });
 }
 
@@ -69,7 +71,8 @@ export function bookService(p: Provider, slot: string, durationMin: number, me: 
     const r = bookServiceOp(p, slot, req, startsAt, durationMin, id);
     if (!r.ok) { toast('Non sono riuscito a completare la prenotazione: non è stato salvato nulla'); return; }
     useNet.getState().signal(p.role + ' ' + p.name, SIGNAL.buy);
-    toast(t('Prenotato con {0}: pagati {1} LP. Aggiunto al Plan.', p.name, formatCHF(p.price)));
+    toast(t('Prenotato con {0}: {1} LP bloccati fino alla fine. Aggiunto al Plan.', p.name, formatCHF(p.price)));
+    if (p.price) go('invoice', { id: `enr:${id}` });
   });
 }
 
@@ -102,7 +105,7 @@ export function declineAttendance(id: string): void {
   if (!enr || enr.status !== 'enrolled') return;
   useNet.setState((s) => ({ enrollments: s.enrollments.map((e) => (e.id === id ? { ...e, status: 'declined' } : e)) }));
   if (enr.kind === 'service' && enr.slot) setSlot(enr.host, enr.slot, true);
-  toast('Segnato come non partecipato: nessun addebito');
+  toast('Segnato come non partecipato');
 }
 
 /** Solo demo: sposta la sessione nel passato per provare la conferma. */
