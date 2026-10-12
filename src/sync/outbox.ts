@@ -31,7 +31,8 @@ export class Outbox {
   has(id: string) { return this.records.has(id); }
   countByCollection(): Record<string, number> { const o: Record<string, number> = {}; for (const r of this.records.values()) o[r.collection] = (o[r.collection] ?? 0) + 1; return o; }
 
-  enqueue(rec: ChangeRecord): EnqueueResult {
+  /** `serverKnows`: il server conosce gia' l'entita' (per altre vie): una cancellazione non puo' annullarsi con la creazione in coda */
+  enqueue(rec: ChangeRecord, serverKnows = false): EnqueueResult {
     const k = ekey(rec);
     const prevId = this.latest.get(k);
     const prev = prevId ? this.records.get(prevId) : undefined;
@@ -40,7 +41,7 @@ export class Outbox {
       return { kind: 'added', record: rec };
     }
     if (rec.op === 'delete') {
-      if (prev.op === 'create' && !prev.afterDelete) { this.records.delete(prev.id); this.latest.delete(k); return { kind: 'annihilated' }; }
+      if (prev.op === 'create' && !prev.afterDelete && !serverKnows) { this.records.delete(prev.id); this.latest.delete(k); return { kind: 'annihilated' }; }
       const m: ChangeRecord = { ...prev, op: 'delete', fields: undefined, unset: undefined, hlc: rec.hlc };
       this.records.set(prev.id, m);
       return { kind: 'merged', record: m };

@@ -18,6 +18,7 @@ import { useInterests } from '@/store/interests';
 import { usePrivacyLog } from '@/store/privacyLog';
 import { useClub } from '@/store/club';
 import { useSharing } from '@/store/sharing';
+import { useSync } from '@/store/sync';
 import { useTour } from '@/store/tour';
 import { useCalPrefs } from '@/store/calprefs';
 import { useMod } from '@/store/moderation';
@@ -40,7 +41,7 @@ export { STORE_LABELS, type BackupPreview } from './backupCore';
 type Rehydratable = { persist: { rehydrate: () => Promise<void> | void; getOptions: () => { name?: string } }; getState: () => { reset?: () => void } };
 
 /** Tutti gli store persistenti (chiave AsyncStorage lp2-*). Se ne aggiungi uno nuovo, mettilo qui. */
-const STORES = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, usePrefs, useTheia, useInterests, useIdentity, useLive, useSharing, useTour, useAiRouter, usePrivacyLog, useClub, useCalPrefs, useMod] as unknown as Rehydratable[];
+const STORES = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, usePrefs, useTheia, useInterests, useIdentity, useLive, useSharing, useSync, useTour, useAiRouter, usePrivacyLog, useClub, useCalPrefs, useMod] as unknown as Rehydratable[];
 
 const version = () => Constants.expoConfig?.version ?? '';
 

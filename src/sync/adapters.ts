@@ -19,7 +19,7 @@ export type ApplyCtx = {
   /** slot posizionali del bucket (solo adattatori posizionali) */
   slots(bucket: string): Slot[];
 };
-export type ApplyResult<S> = { patch: Partial<S> | null; assigned: { id: string; bucket: string; key: string }[] };
+export type ApplyResult<S> = { patch: Partial<S> | null; assigned: { id: string; bucket: string; key: string }[]; /** solo posizionali: slot aggiornati e allineati all'array per i bucket toccati */ slots?: Map<string, Slot[]> };
 
 export interface Adapter<S = unknown> {
   /** true = le entita' non hanno id nello store: l'id si assegna con la tabella degli slot */
@@ -98,12 +98,15 @@ export function bucketedAdapter<S, E extends object>(o: BucketedOpts<S, E>): Ada
         op(nb).put.set(id, w);
       }
       const assigned: { id: string; bucket: string; key: string }[] = [];
+      const newSlots = new Map<string, Slot[]>();
       for (const [b, x] of ops) {
         const arr = rec[b] ?? [];
         const idx = new Map<string, number>();
         if (positional) for (const [id, j] of slotIndex(arr, b, ctx.slots(b))) idx.set(id, j);
         else arr.forEach((e, i) => idx.set(o.idOf!(e), i));
         const next = arr.slice();
+        const idAt: (string | undefined)[] = arr.map(() => undefined);
+        for (const [id, j] of idx) idAt[j] = id;
         const gone = new Set<number>();
         for (const id of x.del) { const i = idx.get(id); if (i !== undefined && !x.put.has(id)) gone.add(i); }
         let keyIdx: Map<string, number[]> | undefined;
@@ -124,15 +127,23 @@ export function bucketedAdapter<S, E extends object>(o: BucketedOpts<S, E>): Ada
           }
           const e = o.fromWire(id, w, i !== undefined && i < next.length ? next[i] : undefined);
           if (!e) continue;
-          if (i !== undefined && i < next.length) next[i] = e; else next.push(e);
+          if (i !== undefined && i < next.length) next[i] = e; else { next.push(e); idAt.push(id); i = next.length - 1; }
+          idAt[i] = id;
           assigned.push({ id, bucket: b, key: o.keyOf ? o.keyOf(e, b) : id });
         }
         // le entita' spostate di bucket (x.del con put in altro bucket) vanno tolte dal vecchio
         for (const id of x.del) { const i = idx.get(id); if (i !== undefined && x.put.has(id)) gone.add(i); }
         const out = gone.size ? next.filter((_, i) => !gone.has(i)) : next;
+        if (positional) {
+          const ids = gone.size ? idAt.filter((_, i) => !gone.has(i)) : idAt;
+          const keys = occurrenceKeys(out.map((e) => o.keyOf!(e, b)));
+          const sl: Slot[] = [];
+          ids.forEach((id, j) => { if (id !== undefined) sl.push({ id, key: keys[j] }); });
+          newSlots.set(b, sl);
+        }
         if (out.length === 0 && b !== '') delete rec[b]; else rec[b] = out;
       }
-      return { patch: ops.size ? o.set(rec) : null, assigned };
+      return { patch: ops.size ? o.set(rec) : null, assigned, ...(positional ? { slots: newSlots } : {}) };
     },
   };
 }

@@ -38,6 +38,8 @@ import { useDiscover } from '@/store/discover';
 import { useAiRouter } from '@/store/aiRouter';
 import { useIdentity } from '@/store/identity';
 import { useInterests } from '@/store/interests';
+import { useSync } from '@/store/sync';
+import { startSync } from '@/sync/bindings';
 import { usePrivacyLog } from '@/store/privacyLog';
 import { useClub } from '@/store/club';
 import { useSharing } from '@/store/sharing';
@@ -58,7 +60,7 @@ defineBackgroundTask();
 // effetti collaterali delle operazioni di dominio (promemoria, notifiche in-app, registro di uscita): src/domain/handlers.ts
 registerDomainHandlers();
 
-const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, useInterests, useIdentity, useLive, useSharing, useTour, useAiRouter, usePrivacyLog, useSecurity];
+const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, useInterests, useIdentity, useLive, useSharing, useSync, useTour, useAiRouter, usePrivacyLog, useSecurity];
 const allHydrated = () => stores.every((s) => s.persist.hasHydrated());
 
 export { ErrorScreen as ErrorBoundary } from '@/components/ErrorScreen';
@@ -98,6 +100,7 @@ export default function RootLayout() {
     } else if (normalizeLang(app.language) !== app.language) app.set({ language: normalizeLang(app.language) });
     SplashScreen.hideAsync();
     void autoSyncIfConnected();
+    startSync(); // sincronizzazione local-first: parte solo se l'utente l'ha abilitata, dopo un ritardo e senza bloccare
     void refreshWeather();
     void refreshBriefings();
     onAppStart();

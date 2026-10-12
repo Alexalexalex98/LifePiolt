@@ -13,7 +13,7 @@
 import type { Adapter } from './adapters.ts';
 import { ClockSkewError, createClock, hlcWall, type Clock } from './clock.ts';
 import { identityCodec, type PayloadCodec } from './codec.ts';
-import { newSnapshot, scanCollection, snapshotFromBaseline, snapshotHashes, snapshotSlots, type ScanResult, type Snapshot } from './diff.ts';
+import { hashWire, newSnapshot, scanCollection, snapshotFromBaseline, snapshotHashes, snapshotSlots, type ScanResult, type Snapshot } from './diff.ts';
 import { defaultRand, derivedId, uuidv7, type Rand } from './ids.ts';
 import { Outbox } from './outbox.ts';
 import { lastWrite, mergeRemote, metaAfterLocal, purgeTombstones } from './policy.ts';
@@ -35,6 +35,8 @@ export type SyncSettings = {
   devices: DeviceInfo[];
   massHold: Record<string, MassHold>;
   rejectedCount: number;
+  /** interruttore di sviluppo: usa il server finto in memoria */
+  devMock: boolean;
 };
 export type SyncData = {
   deviceId: string;
@@ -54,7 +56,7 @@ export type SyncState = SyncSettings & SyncData;
 export interface StateAccess { get(): SyncState; patch(p: Partial<SyncState>): void }
 
 export const emptySettings = (): SyncSettings => ({
-  enabled: {}, paused: false, transportName: 'disconnected', serverUrl: '', deviceName: '', conflicts: [], sentLog: [], lastResult: null, devices: [], massHold: {}, rejectedCount: 0,
+  enabled: {}, paused: false, transportName: 'disconnected', serverUrl: '', deviceName: '', conflicts: [], sentLog: [], lastResult: null, devices: [], massHold: {}, rejectedCount: 0, devMock: false,
 });
 export const emptyData = (deviceId = ''): SyncData => ({
   deviceId, seq: 0, hlc: '', cursor: null, backfill: [], seedPending: [], outbox: [], meta: {}, baseline: {}, idMap: {}, applied: [], skippedSchema: {},
@@ -66,7 +68,7 @@ export function memoryState(init: Partial<SyncState> = {}): StateAccess & { snap
 }
 
 // ---------- store ----------
-export interface StoreLike<S = any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+export interface StoreLike<S = any> {
   getState(): S;
   setState(partial: Partial<S>): void;
   subscribe(listener: (state: S, prev: S) => void): () => void;
@@ -113,7 +115,7 @@ export class SyncEngine {
   private snaps = new Map<string, Snapshot>();
   private seeded = new Set<string>();
   private dirty = new Set<string>();
-  private seedAbsorb = new Map<string, Set<string>>();
+  private seedAbsorb = new Map<string, Map<string, string | null>>();
   private held = new Map<string, string[]>();
   private outbox: Outbox;
   private clock: Clock;
@@ -326,7 +328,7 @@ export class SyncEngine {
         ...(m && lastWrite(m) ? { base: lastWrite(m) } : {}),
         ...(fields ? { fields } : {}), ...(unset && unset.length ? { unset } : {}), ...(fullWire ? { full: fullWire } : {}),
       };
-      const r = this.outbox.enqueue(rec);
+      const r = this.outbox.enqueue(rec, !!m?.s);
       if (r.kind === 'annihilated') delete metas[id];
       else metas[id] = metaAfterLocal(m, op, fields ? Object.keys(fields) : [], unset ?? [], hlc);
       n++; this.stats.captured++;
@@ -550,7 +552,17 @@ export class SyncEngine {
       const def = this.defOf(name);
       if (!def || !this.isAllowed(def) || !this.snaps.has(name) || !this.ready(def.store)) continue;
       this.seeded.add(name);
-      this.capture(name, this.seedAbsorb.get(name) ?? new Set());
+      // assorbo solo le entita' rimaste come le ha scritte il server: se l'utente le ha cambiate nel frattempo, la modifica locale parte
+      const applied = this.seedAbsorb.get(name) ?? new Map<string, string | null>();
+      const absorb = new Set<string>();
+      if (applied.size) {
+        const idx = def.adapter.index(this.deps.bindings[def.store].getState(), this.snaps.get(name)!.slots);
+        for (const [id, h] of applied) {
+          const e = idx.get(id);
+          if (h === null ? !e : !!e && hashWire(def.adapter.toWire(e.ref, e.bucket, id)) === h) absorb.add(id);
+        }
+      }
+      this.capture(name, absorb);
       this.seedAbsorb.delete(name);
     }
     this.deps.state.patch({ seedPending: this.st.seedPending.filter((n) => !this.seeded.has(n)) });
@@ -640,8 +652,6 @@ export class SyncEngine {
     for (const [id, w] of wires) { if (w) upserts.set(id, w); else deletes.add(id); }
     for (const [id, w] of copies) upserts.set(id, w);
     if (!upserts.size && !deletes.size) return applied;
-    const oldBucket = new Map<string, string | undefined>();
-    if (def.adapter.positional) for (const id of [...deletes, ...upserts.keys()]) oldBucket.set(id, locate(id)?.bucket);
     const res = def.adapter.apply(binding.getState(), upserts, deletes, {
       bucketOf: (id) => locate(id)?.bucket,
       slots: (b) => snap.slots.get(b) ?? [],
@@ -650,25 +660,15 @@ export class SyncEngine {
       this.applying = true;
       try { binding.setState(res.patch); } finally { this.applying = false; }
     }
-    // tabella degli slot per gli adattatori posizionali
-    if (def.adapter.positional) {
-      for (const id of deletes) { const b = oldBucket.get(id); if (b !== undefined) snap.slots.set(b, (snap.slots.get(b) ?? []).filter((s) => s.id !== id)); }
-      for (const a of res.assigned) {
-        const b0 = oldBucket.get(a.id);
-        if (b0 !== undefined && b0 !== a.bucket) snap.slots.set(b0, (snap.slots.get(b0) ?? []).filter((s) => s.id !== a.id));
-        const cur = snap.slots.get(a.bucket) ?? [];
-        const at = cur.findIndex((s) => s.id === a.id);
-        if (at >= 0) snap.slots.set(a.bucket, cur.map((s, i) => (i === at ? { id: a.id, key: a.key } : s))); // stessa posizione dell'array
-        else snap.slots.set(a.bucket, [...cur, { id: a.id, key: a.key }]);
-      }
-    }
+    // tabella degli slot per gli adattatori posizionali (allineata all'array dopo l'applicazione)
+    if (res.slots) for (const [b, l] of res.slots) snap.slots.set(b, l);
     const absorb = new Set([...upserts.keys(), ...deletes].filter((id) => !copies.has(id)));
     if (this.seeded.has(name)) {
       this.capture(name, absorb); // assorbe nello snapshot; le copie in conflitto escono come normali creazioni locali
       this.markHeavy(name);
     } else {
-      const s = this.seedAbsorb.get(name) ?? new Set<string>();
-      for (const id of absorb) s.add(id);
+      const s = this.seedAbsorb.get(name) ?? new Map<string, string | null>();
+      for (const id of absorb) s.set(id, upserts.has(id) ? hashWire(upserts.get(id) as Wire) : null);
       this.seedAbsorb.set(name, s);
     }
     if (newConflicts.length) {

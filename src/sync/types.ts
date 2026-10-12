@@ -63,6 +63,10 @@ export type EntityMeta = {
   b?: Hlc;
   /** HLC per campo (override) */
   f?: Record<string, Hlc>;
+  /** il server conosce gia' questa entita' (e' arrivata o e' stata aggiornata da remoto): una cancellazione locale va sempre inviata */
+  s?: true;
+  /** HLC dell'ultima creazione ricevuta su un'entita' gia' esistente (serve a decidere create contro delete) */
+  r?: Hlc;
   /** tombstone: HLC dell'eliminazione */
   d?: Hlc;
 };

@@ -26,7 +26,6 @@ export interface CollectionDef extends PolicyDef {
   /** se true: mai inviata senza un codec di cifratura end-to-end */
   requiresE2E?: boolean;
   tombstoneTtlDays?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adapter: Adapter<any>;
   /** crea il wire della "copia in conflitto" a partire dall'entita' vincente */
   conflictCopy?: (winner: Wire, field: string, loserValue: Json) => Wire;

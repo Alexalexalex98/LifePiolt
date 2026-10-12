@@ -29,7 +29,7 @@ export const DEFAULT_TOMBSTONE_TTL_DAYS = 90;
 /** HLC dell'ultima scrittura nota su un'entita' (campi o tombstone). */
 export function lastWrite(m: EntityMeta | undefined): Hlc | undefined {
   if (!m) return undefined;
-  let h = maxHlc(m.b, m.d);
+  let h = maxHlc(m.b, m.d, m.r);
   if (m.f) for (const k in m.f) h = maxHlc(h, m.f[k]);
   return h;
 }
@@ -64,7 +64,8 @@ export function mergeRemote(def: PolicyDef, localWire: Wire | undefined, meta: E
     if (m.d && m.d >= ch.hlc) return { wire: undefined, meta, changed: false, conflicts: [], ignored: 'stale' };
     // modifica locale piu' recente della cancellazione: con aggiornamenti completi (note) vince la modifica; con aggiornamenti parziali
     // vince la cancellazione, a meno che l'entita' sia stata ricreata dopo (create): cosi' tutti i dispositivi convergono
-    const localNewer = def.fullUpdates ? !!lw && lw > ch.hlc : !!m.b && m.b > ch.hlc;
+    const created = maxHlc(m.b, m.r);
+    const localNewer = def.fullUpdates ? !!lw && lw > ch.hlc : !!created && created > ch.hlc;
     // server-wins: se c'e' una modifica locale ancora in coda, l'ultima parola e' del server DOPO il suo invio (ordine del registro)
     if (serverWins && pending && localWire) return { wire: localWire, meta, changed: false, conflicts: [], ignored: 'newer-local' };
     if (!serverWins && localWire && localNewer && !m.d) return { wire: localWire, meta, changed: false, conflicts: [], ignored: 'newer-local' };
@@ -87,14 +88,16 @@ export function mergeRemote(def: PolicyDef, localWire: Wire | undefined, meta: E
   if (!local) {
     for (const k of Object.keys(fields)) out[k] = cloneJson(fields[k]);
     if (def.required?.some((r) => out[r] === undefined)) return { wire: undefined, meta, changed: false, conflicts: [], ignored: 'incomplete' };
-    return { wire: out, meta: { b: ch.hlc }, changed: true, conflicts: [] };
+    return { wire: out, meta: { b: ch.hlc, s: true }, changed: true, conflicts: [] };
   }
 
   if (def.policy === 'set') {
     const h = maxHlc(cur.b, ch.hlc);
-    return { wire: out, meta: { ...cur, b: h }, changed: false, conflicts: [] };
+    return { wire: out, meta: { ...cur, b: h, s: true }, changed: false, conflicts: [] };
   }
 
+  cur.s = true;
+  if (ch.op === 'create' && (!cur.r || ch.hlc > cur.r)) cur.r = ch.hlc;
   const setField = (k: string, h: Hlc) => { if (cur.b !== h) cur.f = { ...(cur.f ?? {}), [k]: h }; };
   for (const k of Object.keys(fields)) {
     const v = fields[k];

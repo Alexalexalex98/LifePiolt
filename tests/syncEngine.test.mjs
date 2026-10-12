@@ -549,7 +549,7 @@ const norm = (d) => {
   });
 };
 
-for (const seed of [1, 2, 3, 4, 5, 6]) {
+for (const seed of [1, 2, 3, 4, 5, 6, 21, 22]) {
   test(`convergenza: 3 dispositivi, operazioni casuali, guasti (perdite, duplicati, riordino, offline) - seed ${seed}`, async () => {
     const R = rng(seed * 7919);
     const clock = { t: T0 };

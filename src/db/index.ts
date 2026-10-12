@@ -66,7 +66,7 @@ export function getEngine(): KvEngine {
       backend: d,
       beforeFirstRead: () => d.runBeforeFirstRead(),
       notify,
-      debounceMs: Platform.OS === 'web' ? 250 : 500,
+      debounceMs: Platform.OS === 'web' ? 100 : 500,
       maxWaitMs: 3000,
       runIdle: Platform.OS === 'web' ? undefined : (fn) => { InteractionManager.runAfterInteractions(fn); },
     });

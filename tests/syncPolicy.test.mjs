@@ -29,7 +29,7 @@ test('LWW: l\'ordine di arrivo non conta (convergenza)', () => {
 test('create su entita\' sconosciuta applica tutti i campi; update parziale senza campi obbligatori viene ignorato', () => {
   const def = { policy: 'lww', required: ['t'] };
   const r = mergeRemote(def, undefined, undefined, { op: 'create', fields: { t: 'nuovo', done: false }, hlc: H(1) });
-  assert.deepEqual(r.wire, { t: 'nuovo', done: false }); assert.deepEqual(r.meta, { b: H(1) });
+  assert.deepEqual(r.wire, { t: 'nuovo', done: false }); assert.deepEqual(r.meta, { b: H(1), s: true });
   const bad = mergeRemote(def, undefined, undefined, { op: 'update', fields: { done: true }, hlc: H(2) });
   assert.equal(bad.ignored, 'incomplete'); assert.equal(bad.wire, undefined);
 });

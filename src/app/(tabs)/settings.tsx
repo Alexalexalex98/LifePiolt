@@ -255,6 +255,12 @@ export default function Settings() {
       </Card>
 
       <Card>
+        <H>Sincronizzazione</H>
+        <Body small muted style={{ marginBottom: 10 }}>Tieni allineati i tuoi dispositivi: scegli tu cosa sincronizzare. Di predefinito tutto resta solo sul telefono.</Body>
+        <Btn small ghost icon="repeat" title="Apri Sincronizzazione" onPress={() => go('syncSettings')} />
+      </Card>
+
+      <Card>
         <H>{tr('stPrivacyCenterTitle')}</H>
         {Object.keys(app.privacy).map((k) => <Toggle key={k} label={tr({ 'AI Memory': 'stPrivAiMemory', 'Dati salute': 'stPrivHealth', 'Dati finanziari': 'stPrivFinance', Posizione: 'stPrivLocation' }[k] ?? k)} value={app.privacy[k]} onChange={(v) => { set({ privacy: { ...app.privacy, [k]: v } }); toast(`${k} ${v ? 'collegato' : 'disconnesso'}`); }} />)}
         <View style={{ gap: 8, marginTop: 10 }}>

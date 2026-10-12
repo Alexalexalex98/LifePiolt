@@ -111,5 +111,5 @@ export function storeVersions(b: BackupFile): Record<string, number> {
 /** Etichette leggibili per l'anteprima. */
 export const STORE_LABELS: Record<string, string> = {
   app: 'Account e impostazioni', life: 'Task, obiettivi, note, file, calendario', health: 'Salute e umore', finance: 'Finanze', travel: 'Viaggi',
-  network: 'Network e LifePoints', chat: 'Messaggi', jobs: 'Lavoro', context: 'Meteo e contesto', assistant: 'Assistente', discover: 'Guida', prefs: 'Preferenze', theia: 'Suggerimenti', interests: 'Interessi', club: 'LifeClub', identity: 'Identità, attività e biglietto', sharing: 'Condivisione', aiRouter: 'Intelligenza di Theia', tour: 'Tutorial', live: 'Dirette', calprefs: 'Calendario', moderation: 'Moderazione', security: 'Sicurezza', privacyLog: 'Registro di uscita',
+  network: 'Network e LifePoints', chat: 'Messaggi', jobs: 'Lavoro', context: 'Meteo e contesto', assistant: 'Assistente', discover: 'Guida', prefs: 'Preferenze', theia: 'Suggerimenti', interests: 'Interessi', club: 'LifeClub', identity: 'Identità, attività e biglietto', sharing: 'Condivisione', sync: 'Sincronizzazione', aiRouter: 'Intelligenza di Theia', tour: 'Tutorial', live: 'Dirette', calprefs: 'Calendario', moderation: 'Moderazione', security: 'Sicurezza', privacyLog: 'Registro di uscita',
 };

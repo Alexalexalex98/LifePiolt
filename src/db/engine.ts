@@ -42,6 +42,7 @@ export class KvEngine {
   /** checksum dell'ultimo testo noto su disco per store: evita riscritture identiche (es. subito dopo l'idratazione) */
   private known = new Map<string, string>();
   private readyP: Promise<void> | null = null;
+  private readyDone = false;
   private timer: unknown = null;
   private firstPendingAt = 0;
   private flushing: Promise<void> | null = null;
@@ -75,6 +76,7 @@ export class KvEngine {
           }
         }
         const { values, bad, partial } = await this.backend.readAll();
+        this.readyDone = true;
         this.cache = values;
         for (const b of bad) this.bad.add(b);
         for (const p of partial ?? []) this.partial.add(p);
@@ -186,7 +188,8 @@ export class KvEngine {
     const run = async () => {
       if (this.flushing) await this.flushing.catch(() => undefined);
       if (!this.pending.size) { this.firstPendingAt = 0; return; }
-      await this.ready().catch(() => undefined);
+      // se gia' pronto non cedo il controllo: alla chiusura della pagina (web) la scrittura deve partire subito
+      if (!this.readyDone) await this.ready().catch(() => undefined);
       const epoch = this.epoch;
       const batch = this.pending;
       this.pending = new Map();
