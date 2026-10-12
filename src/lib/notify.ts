@@ -294,10 +294,45 @@ export async function refreshReminders(): Promise<void> {
   } catch (e) { log.warn('notify', 'Riprogrammazione promemoria fallita', errToString(e)); /* mai bloccare l'app per una notifica */ } finally { remBusy = false; }
 }
 
+export const PIN_ID = 'lp-urgent-pin';
+/**
+ * Notifica fissa «Urgenti oggi». Android: ongoing (non si scarta con uno swipe), canale silenzioso. iPhone: time-sensitive, resta nel centro
+ * notifiche e sul blocco schermo finché non viene tolta (una vera attività sul blocco schermo richiederebbe codice nativo: Live Activity).
+ */
+export async function refreshUrgentPin(): Promise<void> {
+  if (!isSupported()) return;
+  try {
+    ensureHandler();
+    const app = useApp.getState();
+    const st = await Notifications.getPermissionsAsync();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { useLife } = require('@/store/life') as typeof import('@/store/life');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { urgentPin } = require('@/lib/urgentPin') as typeof import('@/lib/urgentPin');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { dayKey } = require('@/lib/format') as typeof import('@/lib/format');
+    const life = useLife.getState();
+    const d = new Date();
+    const pin = st.status === 'granted' && app.reminders?.on !== false && app.reminders?.pin !== false ? urgentPin(life.events[dayKey()], life.tasks, d.getHours() * 60 + d.getMinutes()) : null;
+    await Notifications.dismissNotificationAsync(PIN_ID).catch(() => undefined);
+    await Notifications.cancelScheduledNotificationAsync(PIN_ID).catch(() => undefined);
+    if (!pin) return;
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('lp-urgent-pin', { name: 'Urgenti in vista', description: 'Impegni e task urgenti di oggi, sempre visibili', importance: Notifications.AndroidImportance.LOW, sound: null, enableVibrate: false });
+    }
+    await Notifications.scheduleNotificationAsync({
+      identifier: PIN_ID,
+      content: { title: t(pin.title), body: pin.body, sound: false, sticky: true, autoDismiss: false, interruptionLevel: 'timeSensitive', data: pushData(buildRef('event', dayKey(), 0), 'promemoria') },
+      trigger: Platform.OS === 'android' ? { channelId: 'lp-urgent-pin' } : null,
+    });
+  } catch (e) { log.warn('notify', 'Notifica urgenti non aggiornata', errToString(e)); }
+}
+
 /** Ricalcola tutto: promemoria impegni + briefing. Da chiamare dopo una concessione di permesso. */
 export async function refreshAll(): Promise<void> {
   await refreshBriefings();
   await refreshReminders();
+  await refreshUrgentPin();
 }
 
 let syncStarted = false;
@@ -310,6 +345,7 @@ export function startReminderSync(): void {
   syncStarted = true;
   try {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let pinTimer: ReturnType<typeof setTimeout> | undefined;
     const later = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => { void refreshReminders(); }, 2000); };
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useLife } = require('@/store/life') as typeof import('@/store/life');
@@ -326,8 +362,10 @@ export function startReminderSync(): void {
         }
       } catch { /* ignore */ }
     });
+    useLife.subscribe((s, p) => { if (s.tasks !== p.tasks || s.events !== p.events) { if (pinTimer) clearTimeout(pinTimer); pinTimer = setTimeout(() => { void refreshUrgentPin(); }, 1500); } });
+    void refreshUrgentPin();
     useInterests.subscribe((s, p) => { if (s.homeCity !== p.homeCity) later(); });
-    useApp.subscribe((s, p) => { if (s.reminders !== p.reminders || s.notifKinds !== p.notifKinds) later(); });
+    useApp.subscribe((s, p) => { if (s.reminders !== p.reminders || s.notifKinds !== p.notifKinds) { later(); void refreshUrgentPin(); } });
   } catch { syncStarted = false; }
 }
 

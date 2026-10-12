@@ -4,7 +4,7 @@ import { dayKey, minutesToTime, timeToMinutes, uid, weekdayShortDate } from '@/l
 import { persisted } from './persist';
 
 export type Subtask = { t: string; h: number; done: boolean; type: 'lavoro' | 'piacere'; doneAt?: string };
-export type Task = { id: string; t: string; done?: boolean; urgent?: boolean; due?: string; doneAt?: string; recurring?: 'none' | 'daily' | 'weekly'; subtasks?: Subtask[] };
+export type Task = { id: string; t: string; done?: boolean; urgent?: boolean; due?: string; doneAt?: string; recurring?: 'none' | 'daily' | 'weekly'; subtasks?: Subtask[]; /** tempo dedicato (avvia / pausa) */ timer?: { acc: number; since?: number } };
 /** metric/target/period (opzionali): obiettivo collegato ai dati, l'avanzamento si calcola da solo (vedi lib/goalData.ts). */
 export type Goal = { id: string; t: string; p: number; hist?: { d: string; p: number }[]; metric?: 'workouts' | 'steps' | 'sleep' | 'mindful' | 'exercise' | 'savings'; target?: number; period?: 'week' | 'month' };
 /** rule (opzionale): chiave della proposta e, se ha un orario, la notifica locale da pianificare (vedi lib/automationRuntime.ts). */

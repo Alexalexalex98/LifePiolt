@@ -11,7 +11,7 @@ import { uid } from '@/lib/format';
 import { fmtDur, previewOf, type ChatMessage, type Poll } from '@/store/chat';
 import { toast } from '@/store/toast';
 import { senderColor, useChatColors } from './parts';
-import { AgendaSheet, DriveSheet, EventSheet, OfferSheet, NoteSheet, SlotsSheet, TasksSheet, type SharePayload } from './ShareSheets';
+import { AgendaSheet, DriveSheet, EventSheet, OfferSheet, DocReqSheet, NoteSheet, SlotsSheet, TasksSheet, type SharePayload } from './ShareSheets';
 import { Icon } from '@/lib/icons';
 import { canShare, logOutflow } from '@/lib/privacyGateApp';
 import { useNet } from '@/store/network';
@@ -51,7 +51,7 @@ export function Composer(p: Props) {
   const t = useTheme();
   const c = useChatColors();
   const [attach, setAttach] = useState(false);
-  const [share, setShare] = useState<null | 'agenda' | 'tasks' | 'note' | 'slots' | 'drive' | 'event' | 'offer'>(null);
+  const [share, setShare] = useState<null | 'agenda' | 'tasks' | 'note' | 'slots' | 'drive' | 'event' | 'offer' | 'docreq'>(null);
   const [poll, setPoll] = useState(false);
   const [preview, setPreview] = useState<Picked[] | null>(null);
   const [caption, setCaption] = useState('');
@@ -214,6 +214,7 @@ export function Composer(p: Props) {
             ['tasks', 'Task', () => { setAttach(false); setShare('tasks'); }],
             ['clock', 'Proponi orari', () => { setAttach(false); setShare('slots'); }],
             ['calendar', 'Invito a evento', () => { setAttach(false); setShare('event'); }],
+            ['file', 'Richiedi documenti', () => { setAttach(false); setShare('docreq'); }],
             ['coin', 'Servizio a pagamento', () => { setAttach(false); setShare('offer'); }],
             ['poll', 'Sondaggio', () => { setAttach(false); setPoll(true); }],
             ['note', 'Nota', () => { setAttach(false); setShare('note'); }],
@@ -245,6 +246,7 @@ export function Composer(p: Props) {
       <AgendaSheet visible={share === 'agenda'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <TasksSheet visible={share === 'tasks'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <NoteSheet visible={share === 'note'} onClose={() => setShare(null)} onSend={p.onSendShare} />
+      <DocReqSheet visible={share === 'docreq'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <OfferSheet visible={share === 'offer'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <SlotsSheet visible={share === 'slots'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <EventSheet visible={share === 'event'} onClose={() => setShare(null)} onSend={p.onSendShare} />

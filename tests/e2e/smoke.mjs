@@ -81,7 +81,7 @@ try {
   await closeGuide();
   check('tour chiuso con "Salta il tour"', (await page.getByText('Salta il tour', { exact: true }).count()) === 0);
   check('home dopo onboarding', /Alex/.test(await text()));
-  check('home semplice: Prossimo impegno e Altro', /Prossimo impegno/.test(await text()) && /Altro/.test(await text()));
+  check('home semplice: quadro di oggi, impegni e Approfondimento', /il quadro di oggi/i.test(await text()) && /Prossimi impegni/.test(await text()) && /Approfondimento/.test(await text()));
 
   // ---------- percorso graduale: aree bloccate ----------
   log('Percorso graduale');

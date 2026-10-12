@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { Body, Btn, Row, Select, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -70,6 +70,7 @@ export function ReminderSettings() {
           <Toggle label="Parti alle ore…" hint={homeCity ? 'Se l\'impegno ha un luogo, ti dice a che ora partire' : 'Se l\'impegno ha un luogo, ti dice a che ora partire (imposta la città di casa nel profilo)'} value={rem.depart} onChange={(v) => set({ depart: v })} />
           {rem.depart && (
             <View style={{ paddingStart: 12 }}>
+              <Toggle label="Urgenti sempre in vista" hint={Platform.OS === 'android' ? 'Una notifica fissa con gli impegni e i task urgenti di oggi' : 'Gli urgenti di oggi restano nel centro notifiche e sul blocco schermo finché non li togli'} value={rem.pin} onChange={(v) => set({ pin: v })} />
               <Toggle label="15 minuti prima di partire" hint="Un primo avviso, così hai il tempo di prepararti" value={rem.headsup} onChange={(v) => set({ headsup: v })} />
               <Toggle label="Alla partenza" hint="Un avviso all'ora in cui devi uscire" value={rem.leave} onChange={(v) => set({ leave: v })} />
             </View>

@@ -43,7 +43,9 @@ export function resolveKeyboard(e: KbCoords, env: KbEnv): KbState {
   // finestra già rimpicciolita dal sistema (adjustResize che funziona): non raddoppiare lo spazio
   const shrink = num(env.baseWinH) && env.winH > 0 ? env.baseWinH - env.winH : 0;
   const resized = env.os === 'android' && shrink >= covered * 0.6;
-  return { visible: true, height: resized ? 0 : Math.round(covered), raw, floating: false, resized };
+  // Android: se la finestra si è ridotta solo in parte, si riserva soltanto il resto (mai due volte lo stesso spazio: la barra di scrittura finiva fuori vista)
+  const need = env.os === 'android' ? (shrink >= covered * 0.25 ? Math.max(0, covered - shrink) : covered) : covered;
+  return { visible: true, height: resized ? 0 : Math.round(need), raw, floating: false, resized };
 }
 
 /** Padding in fondo alla barra di scrittura: con tastiera aperta basta lo spazio della tastiera, a riposo serve l'area sicura. */

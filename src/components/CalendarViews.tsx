@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, View, type ViewToken } from 'react-native';
 
 import { Text } from '@/components/T';
@@ -122,7 +122,7 @@ export function Legend() {
 }
 
 /* ---------- vista mese: nessun titolo nelle celle, solo colori (Theia li sceglie per urgenza) ---------- */
-function MonthView({ offset, selectMode, onPickDay, onOpenBand }: { offset: number; selectMode: boolean; onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
+function MonthView({ offset, selectMode, onPickDay, onOpenBand, hideOpen, below, onSelect }: { offset: number; selectMode: boolean; onPickDay: (k: string) => void; onOpenBand: (id: string) => void; hideOpen?: boolean; below?: (sel: string) => ReactNode; onSelect?: (k: string) => void }) {
   const c = useCalColors();
   const th = c.th;
   const events = useLife((s) => s.events);
@@ -138,9 +138,6 @@ function MonthView({ offset, selectMode, onPickDay, onOpenBand }: { offset: numb
   const cellW = w / 7;
   const CELL_H = 54;
   const rank = (k: string, e: { title: string; important?: boolean; ref?: string; color?: string }) => URGENCY_ORDER.indexOf(c.urgency(e, k));
-  const selList = layoutDay(events[sel]);
-  const selItems = [...selList.placed.map((p) => ({ e: p.e, idx: p.idx })), ...selList.allDay];
-  const selBands = bandsOnDay(bands, sel);
   return (
     <View onLayout={(e) => setW(e.nativeEvent.layout.width)}>
       <View style={{ flexDirection: 'row', marginBottom: 4 }}>
@@ -162,7 +159,7 @@ function MonthView({ offset, selectMode, onPickDay, onOpenBand }: { offset: numb
               const tintBg = top ? c.tint(c.of(top.e, k), top.r === 0 ? 0.2 : top.r === 1 ? 0.14 : 0.08) : inSel ? c.tint(c.vac, 0.1) : 'transparent';
               const label = fmtDate(parseKey(k), { weekday: 'long', day: 'numeric', month: 'long' });
               return (
-                <Pressable key={ci} onPress={() => { setSel(k); if (selectMode) onPickDay(k); }} accessibilityRole="button" accessibilityState={{ selected: isSel }} accessibilityLabel={list.length ? tl('{0}: {1} impegni', label, list.length) : label}
+                <Pressable key={ci} onPress={() => { setSel(k); onSelect?.(k); if (selectMode) onPickDay(k); }} accessibilityRole="button" accessibilityState={{ selected: isSel }} accessibilityLabel={list.length ? tl('{0}: {1} impegni', label, list.length) : label}
                   style={{ width: cellW - 3, height: CELL_H - 3, marginHorizontal: 1.5, marginTop: 1.5, borderRadius: 12, backgroundColor: tintBg, borderWidth: isSel ? 2 : 0, borderColor: th.text, alignItems: 'center', paddingTop: 4 }}>
                   <View style={{ minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? th.accent : 'transparent' }}>
                     <Text style={{ color: isToday ? th.onAccent : th.text, fontSize: 13, fontWeight: isToday || top ? '800' : '500' }}>{Number(k.slice(8))}</Text>
@@ -184,11 +181,28 @@ function MonthView({ offset, selectMode, onPickDay, onOpenBand }: { offset: numb
         );
       })}
 
-      {/* il giorno scelto: qui i titoli, nelle celle solo i colori */}
+      <DayDetail sel={sel} onPickDay={onPickDay} hideOpen={hideOpen} />
+      {below ? below(sel) : null}
+    </View>
+  );
+}
+
+/** Il giorno scelto: qui i titoli, nelle celle solo i colori. Condiviso da vista mese, settimana e dal selettore dello spostamento. */
+function DayDetail({ sel, onPickDay, hideOpen }: { sel: string; onPickDay: (k: string) => void; hideOpen?: boolean }) {
+  const c = useCalColors();
+  const th = c.th;
+  const events = useLife((s) => s.events);
+  const bands = useBands();
+  const selList = layoutDay(events[sel]);
+  const selItems = [...selList.placed.map((p) => ({ e: p.e, idx: p.idx })), ...selList.allDay];
+  const selBands = bandsOnDay(bands, sel);
+  const onOpenBand = (_id: string) => onPickDay(sel);
+  return (
+    <>
       <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: th.border }}>
         <Row style={{ marginBottom: 6 }}>
           <Text style={{ color: th.text, fontWeight: '800', fontSize: 15, flex: 1 }}>{cap(fmtDate(parseKey(sel), { weekday: 'long', day: 'numeric', month: 'long' }))}</Text>
-          <Pressable onPress={() => onPickDay(sel)} hitSlop={8} accessibilityRole="button" style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: th.chip }}><Text style={{ color: th.text, fontSize: 13, fontWeight: '700' }}>Apri</Text></Pressable>
+          {hideOpen ? null : <Pressable onPress={() => onPickDay(sel)} hitSlop={8} accessibilityRole="button" style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: th.chip }}><Text style={{ color: th.text, fontSize: 13, fontWeight: '700' }}>Apri</Text></Pressable>}
         </Row>
         {selBands.map((b) => (
           <Pressable key={b.id} onPress={() => onOpenBand(b.id)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, backgroundColor: c.tint(c.vac, 0.25), marginBottom: 6 }}>
@@ -210,151 +224,83 @@ function MonthView({ offset, selectMode, onPickDay, onOpenBand }: { offset: numb
           );
         })}
       </View>
-    </View>
+    </>
   );
 }
 const kindIsPlain = (e: { title: string; important?: boolean; ref?: string; color?: string }) => !e.color && ['important', 'normal'].includes(kindOf(e));
 
-/* ---------- vista settimana ---------- */
-const HOUR_H = 40;
-const GUTTER = 32;
-const MAX_H = 520;
-
+/* ---------- vista settimana: come il mese, solo colore e ora; il giorno scelto si apre sotto ---------- */
 function WeekView({ offset, onPickDay, onOpenBand }: { offset: number; onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
   const c = useCalColors();
   const th = c.th;
   const events = useLife((s) => s.events);
   const bands = useBands();
-  const wh = useApp((s) => s.workHours);
-  const [tick, setTick] = useState(0);
-  const [w, setW] = useState(0);
-  const hRef = useRef<ScrollView>(null);
-  const vRef = useRef<ScrollView>(null);
-  useEffect(() => { const id = setInterval(() => setTick((x) => x + 1), 60000); return () => clearInterval(id); }, []);
-  const avail = Math.max(0, w - GUTTER);
-  // su schermi stretti si vedono ~4 giorni e si scorre; su schermi larghi tutti e 7
-  const COL_W = avail / 7 >= 80 ? avail / 7 : Math.max(62, Math.floor(avail / 4.6));
   const today = dayKey();
   const start = addDays(weekStart(today), offset * 7);
   const week = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
-  const range = useMemo(() => hourRange(week, events, wh), [week, events, wh]);
-  const hours = Array.from({ length: range.to - range.from }, (_, i) => range.from + i);
-  const gridH = hours.length * HOUR_H;
+  const [sel, setSel] = useState<string>(today);
+  const cur = week.includes(sel) ? sel : week.includes(today) ? today : week[0];
   const segs = weekSegments(bands, week);
-  const lanes = segs.reduce((n, s) => Math.max(n, s.lane + 1), 0);
-  const layouts = week.map((k) => layoutDay(events[k]));
-  const maxAllDay = layouts.reduce((n, l) => Math.max(n, l.allDay.length), 0);
-  const allDayH = lanes * 15 + Math.min(maxAllDay, 3) * 15 + 4;
-  const HEAD_H = 46;
-  const wsMin = (() => { const p = wh.start.split(':').map(Number); return (p[0] || 0) * 60 + (p[1] || 0); })();
-  const weMin = (() => { const p = wh.end.split(':').map(Number); return (p[0] || 0) * 60 + (p[1] || 0); })();
-  const work = over(th.accent + '18', th.card);
-  const d0 = new Date();
-  void tick;
-  const nowMin = d0.getHours() * 60 + d0.getMinutes();
-  const todayCol = week.indexOf(today);
-
-  useEffect(() => {
-    if (!w) return;
-    const tm = setTimeout(() => {
-      try {
-        hRef.current?.scrollTo({ x: Math.max(0, (todayCol < 0 ? 0 : todayCol - 1) * COL_W), animated: false });
-        const focus = todayCol >= 0 ? Math.max(range.from * 60, nowMin - 90) : Math.max(range.from * 60, wsMin);
-        if (HEAD_H + allDayH + gridH > MAX_H) vRef.current?.scrollTo({ y: Math.max(0, ((focus - range.from * 60) / 60) * HOUR_H), animated: false });
-      } catch { /* niente */ }
-    }, 60);
-    return () => clearTimeout(tm);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offset, w > 0]);
-
+  const lanes = segs.reduce((n, s2) => Math.max(n, s2.lane + 1), 0);
+  const MAXC = 6;
+  const rank = (k: string, e: { title: string; important?: boolean; ref?: string; color?: string }) => URGENCY_ORDER.indexOf(c.urgency(e, k));
   return (
-    <View onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-      {w > 0 && (
-        <ScrollView ref={vRef} nestedScrollEnabled style={{ maxHeight: MAX_H }} showsVerticalScrollIndicator>
-          <View style={{ flexDirection: 'row' }}>
-            {/* colonna ore fissa */}
-            <View style={{ width: GUTTER }}>
-              <View style={{ height: HEAD_H + allDayH }} />
-              <View style={{ height: gridH }}>
-                {hours.map((h, i) => <Text key={h} style={{ position: 'absolute', top: Math.max(0, i * HOUR_H - 6), right: 4, color: th.muted, fontSize: 10 }}>{String(h).padStart(2, '0')}</Text>)}
-              </View>
-            </View>
-            <ScrollView ref={hRef} horizontal nestedScrollEnabled showsHorizontalScrollIndicator style={{ flex: 1 }}>
-              <View style={{ width: 7 * COL_W }}>
-                {/* intestazione giorni */}
-                <View style={{ flexDirection: 'row', height: HEAD_H }}>
-                  {week.map((k, i) => {
-                    const isToday = k === today;
-                    return (
-                      <Pressable key={k} onPress={() => onPickDay(k)} accessibilityRole="button" accessibilityLabel={fmtDate(parseKey(k), { weekday: 'long', day: 'numeric', month: 'long' })} style={{ width: COL_W, alignItems: 'center', paddingVertical: 4 }}>
-                        <Text style={{ color: th.muted, fontSize: 11 }}>{weekdayNarrow((i + 1) % 7)}</Text>
-                        <View style={{ minWidth: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? th.accent : 'transparent' }}>
-                          <Text style={{ color: isToday ? th.onAccent : th.text, fontWeight: '700', fontSize: 13 }}>{Number(k.slice(8))}</Text>
-                        </View>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                {/* fasce vacanze e impegni senza orario */}
-                <View style={{ height: allDayH, borderTopWidth: 1, borderBottomWidth: 1, borderColor: th.border }}>
-                  <View style={{ flexDirection: 'row', position: 'absolute', top: lanes * 15 + 2, left: 0 }}>
-                    {layouts.map((l, ci) => (
-                      <View key={ci} style={{ width: COL_W, paddingHorizontal: 2, gap: 1 }}>
-                        {l.allDay.slice(0, 3).map(({ e, idx }) => {
-                          const col = c.of(e, week[ci]);
-                          return (
-                            <Pressable key={idx} onPress={() => onPickDay(week[ci])} style={{ height: 14, borderLeftWidth: 2, borderLeftColor: col, backgroundColor: c.tint(col), borderRadius: 3, justifyContent: 'center', paddingHorizontal: 3 }}>
-                              <Text numberOfLines={1} style={{ color: th.text, fontSize: 9, lineHeight: 11 }}>{e.title}</Text>
-                            </Pressable>
-                          );
-                        })}
-                      </View>
-                    ))}
-                  </View>
-                  {segs.map((s, si) => (
-                    <Pressable key={si} onPress={() => onOpenBand(s.band.id)} accessibilityRole="button" accessibilityLabel={tl('Vacanza: {0}', s.band.name)}
-                      style={{ position: 'absolute', top: 2 + s.lane * 15, left: s.col0 * COL_W + (s.capL ? 2 : 0), width: (s.col1 - s.col0 + 1) * COL_W - (s.capL ? 2 : 0) - (s.capR ? 2 : 0), height: 14, backgroundColor: c.tint(c.vac, 0.38), borderTopLeftRadius: s.capL ? 7 : 0, borderBottomLeftRadius: s.capL ? 7 : 0, borderTopRightRadius: s.capR ? 7 : 0, borderBottomRightRadius: s.capR ? 7 : 0, borderLeftWidth: s.capL ? 3 : 0, borderLeftColor: c.vac, justifyContent: 'center', paddingHorizontal: 4, overflow: 'hidden' }}>
-                      <Text numberOfLines={1} style={{ color: th.text, fontSize: 10, fontWeight: '700', lineHeight: 12 }}>{s.band.name}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {/* griglia oraria */}
-                <View style={{ height: gridH, flexDirection: 'row' }}>
-                  {week.map((k, ci) => {
-                    const weekday = ci < 5;
-                    const top = Math.max(0, ((wsMin - range.from * 60) / 60) * HOUR_H);
-                    const hgt = Math.max(0, ((weMin - wsMin) / 60) * HOUR_H);
-                    return (
-                      <Pressable key={k} onPress={() => onPickDay(k)} accessibilityLabel={fmtDate(parseKey(k), { weekday: 'long', day: 'numeric', month: 'long' })} style={{ width: COL_W, height: gridH, borderLeftWidth: 1, borderLeftColor: th.border }}>
-                        {weekday && hgt > 0 && <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top, height: hgt, backgroundColor: work }} />}
-                        {hours.map((h, i) => <View key={h} pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: i * HOUR_H, height: 1, backgroundColor: th.border, opacity: 0.7 }} />)}
-                        {layouts[ci].placed.map((p) => {
-                          const col = c.of(p.e, k);
-                          const tp = ((p.start - range.from * 60) / 60) * HOUR_H;
-                          const hh = Math.max(18, ((p.end - p.start) / 60) * HOUR_H - 1);
-                          const lw = (COL_W - 4) / p.lanes;
-                          return (
-                            <Pressable key={p.idx} onPress={() => onPickDay(k)} accessibilityRole="button" accessibilityLabel={`${p.e.time} ${p.e.title}`}
-                              style={{ position: 'absolute', top: tp, height: hh, left: 2 + p.lane * lw, width: lw - 1, borderRadius: 5, borderLeftWidth: 3, borderLeftColor: col, backgroundColor: c.tint(col, 0.3), paddingHorizontal: 3, paddingVertical: 1, overflow: 'hidden' }}>
-                              <Text numberOfLines={hh > 34 ? 3 : 1} style={{ color: th.text, fontSize: 10, lineHeight: 12, fontWeight: '600' }}>{p.e.title}</Text>
-                              {hh > 30 && <Text numberOfLines={1} style={{ color: th.muted, fontSize: 9 }}>{p.e.time}</Text>}
-                            </Pressable>
-                          );
-                        })}
-                        {ci === todayCol && nowMin >= range.from * 60 && nowMin <= range.to * 60 && (
-                          <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: ((nowMin - range.from * 60) / 60) * HOUR_H, height: 2, backgroundColor: th.danger }}>
-                            <View style={{ position: 'absolute', left: -3, top: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: th.danger }} />
-                          </View>
-                        )}
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            </ScrollView>
-          </View>
-        </ScrollView>
+    <View>
+      {lanes > 0 && (
+        <View style={{ height: lanes * 15, marginBottom: 4 }}>
+          {segs.map((s2, si) => (
+            <Pressable key={si} onPress={() => onOpenBand(s2.band.id)} accessibilityRole="button" accessibilityLabel={tl('Vacanza: {0}', s2.band.name)}
+              style={{ position: 'absolute', top: s2.lane * 15, left: `${(s2.col0 / 7) * 100}%`, width: `${((s2.col1 - s2.col0 + 1) / 7) * 100}%`, height: 14, backgroundColor: c.tint(c.vac, 0.38), borderRadius: 7, justifyContent: 'center', paddingHorizontal: 5, overflow: 'hidden' }}>
+              <Text numberOfLines={1} style={{ color: th.text, fontSize: 10, fontWeight: '700', lineHeight: 12 }}>{s2.band.name}</Text>
+            </Pressable>
+          ))}
+        </View>
       )}
+      <View style={{ flexDirection: 'row', gap: 3 }}>
+        {week.map((k, i) => {
+          const list = (events[k] ?? []).slice().sort((a, b2) => (a.time || '').localeCompare(b2.time || ''));
+          const top = list.slice().sort((a, b2) => rank(k, a) - rank(k, b2))[0];
+          const isToday = k === today, isSel = k === cur;
+          const label = fmtDate(parseKey(k), { weekday: 'long', day: 'numeric', month: 'long' });
+          return (
+            <Pressable key={k} onPress={() => setSel(k)} accessibilityRole="button" accessibilityState={{ selected: isSel }} accessibilityLabel={list.length ? tl('{0}: {1} impegni', label, list.length) : label}
+              style={{ flex: 1, minHeight: 150, borderRadius: 12, paddingVertical: 6, paddingHorizontal: 2, alignItems: 'center', backgroundColor: top ? c.tint(c.of(top, k), 0.1) : 'transparent', borderWidth: isSel ? 2 : 1, borderColor: isSel ? th.text : th.border }}>
+              <Text style={{ color: th.muted, fontSize: 10 }}>{weekdayNarrow((i + 1) % 7)}</Text>
+              <View style={{ minWidth: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? th.accent : 'transparent', marginBottom: 4 }}>
+                <Text style={{ color: isToday ? th.onAccent : th.text, fontWeight: '800', fontSize: 13 }}>{Number(k.slice(8))}</Text>
+              </View>
+              {list.slice(0, MAXC).map((e, j) => {
+                const col = c.of(e, k);
+                return (
+                  <View key={j} style={{ alignSelf: 'stretch', marginHorizontal: 1, marginBottom: 2, borderRadius: 5, backgroundColor: c.tint(col, 0.4), borderLeftWidth: 3, borderLeftColor: col, paddingVertical: 2, alignItems: 'center' }}>
+                    <Text style={{ color: th.text, fontSize: 9, fontWeight: '700' }}>{e.time || '·'}</Text>
+                  </View>
+                );
+              })}
+              {list.length > MAXC ? <Text style={{ color: th.muted, fontSize: 9, fontWeight: '700' }}>+{list.length - MAXC}</Text> : null}
+            </Pressable>
+          );
+        })}
+      </View>
+      <DayDetail sel={cur} onPickDay={onPickDay} />
+    </View>
+  );
+}
+
+/** Calendario per scegliere un giorno guardando tutti gli impegni (usato quando si sposta un impegno). `below` mostra altro sotto il giorno scelto. */
+export function PickCalendar({ onSelect, below }: { onSelect: (k: string) => void; below?: (sel: string) => ReactNode }) {
+  const th = useTheme();
+  const [offset, setOffset] = useState(0);
+  const now = new Date();
+  const label = fmtDate(new Date(now.getFullYear(), now.getMonth() + offset, 1), { month: 'long', year: 'numeric' });
+  return (
+    <View>
+      <Row style={{ marginBottom: 8 }}>
+        <Pressable onPress={() => setOffset(offset - 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText('Precedente')} style={{ padding: 6 }}><Icon name="arrow-left" size={18} color={th.text} /></Pressable>
+        <Text style={{ color: th.text, fontWeight: '700', fontSize: 16, textAlign: 'center', flex: 1 }}>{cap(label)}</Text>
+        <Pressable onPress={() => setOffset(offset + 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText('Successivo')} style={{ padding: 6 }}><Icon name="arrow-right" size={18} color={th.text} /></Pressable>
+      </Row>
+      <MonthView offset={offset} selectMode={false} hideOpen onSelect={onSelect} onPickDay={onSelect} onOpenBand={() => {}} below={below} />
     </View>
   );
 }

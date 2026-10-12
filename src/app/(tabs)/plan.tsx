@@ -14,7 +14,8 @@ import { isKey, parseKey, vacationBands } from '@/lib/calendarLayout';
 import { confirmDelete } from '@/lib/confirm';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
-import { TRASH_DAYS, useLife, type Goal, type Vacation } from '@/store/life';
+import { TRASH_DAYS, taskIsDone, useLife, type Goal, type Vacation } from '@/store/life';
+import { firstOpen } from '@/lib/taskTimer';
 import { toast } from '@/store/toast';
 import { fmtDate } from '@/i18n/format';
 import { t as tl } from '@/i18n/core';
@@ -113,7 +114,9 @@ export default function Plan() {
       <Card>
         <Row><H>Task</H><Btn small ghost title="+ Task" onPress={() => setTaskSheet(true)} /></Row>
         {tasks.length === 0 && <Empty text="Giornata leggera: nessun task in lista. Raccontami cosa devi fare e lo scomponiamo insieme." />}
-        {tasks.map((t) => <TaskRow key={t.id} task={t} onOpen={setOpenTask} />)}
+        {firstOpen(tasks, taskIsDone, 3).map((t) => <TaskRow key={t.id} task={t} onOpen={setOpenTask} />)}
+        {tasks.length > 0 && firstOpen(tasks, taskIsDone, 1).length === 0 && <Empty text="Hai completato tutti i task. Bel lavoro." />}
+        {tasks.length > 3 || tasks.some(taskIsDone) ? <Btn small ghost style={{ marginTop: 8 }} title={`Vedi tutti i task (${tasks.filter((x) => !taskIsDone(x)).length} da fare)`} onPress={() => go('lifetask')} /> : null}
       </Card>
 
       <Card>

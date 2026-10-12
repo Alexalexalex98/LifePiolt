@@ -20,6 +20,7 @@ export type LMsg = {
   slots?: { title?: string };
   event?: { title: string; place?: string; description?: string };
   offer?: { title: string; price?: number };
+  docReq?: { title: string };
 };
 export type LChat = { id: string; pinned?: boolean; createdAt: number; lastRead: number; markedUnread?: boolean };
 
@@ -45,6 +46,7 @@ export function previewParts(m: LMsg): { icon?: string; text: string } {
     case 'slots': return { icon: 'clock', text: 'Proposta orari: ' + (m.slots?.title ?? '') };
     case 'event': return { icon: 'calendar', text: 'Invito: ' + (m.event?.title ?? 'evento') };
     case 'offer': return { icon: 'coin', text: 'Servizio da prenotare: ' + (m.offer?.title ?? '') };
+    case 'docreq': return { icon: 'file', text: 'Richiesta documenti: ' + (m.docReq?.title ?? '') };
     default: return { text: m.text ?? '' };
   }
 }

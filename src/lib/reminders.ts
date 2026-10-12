@@ -28,8 +28,8 @@ export type ReminderKind = 'lead' | 'headsup' | 'depart' | 'start';
  * luogo + città di casa) con `headsup` (15 min prima di partire) e `leave` (alla partenza) disattivabili ciascuno;
  * `start` = "Inizia ora" all'ora dell'impegno.
  */
-export type ReminderPrefs = { on: boolean; leadMin: number; lead: boolean; depart: boolean; headsup: boolean; leave: boolean; start: boolean };
-export const DEFAULT_PREFS: ReminderPrefs = { on: true, leadMin: DEFAULT_LEAD, lead: true, depart: true, headsup: true, leave: true, start: true };
+export type ReminderPrefs = { on: boolean; leadMin: number; lead: boolean; depart: boolean; headsup: boolean; leave: boolean; start: boolean; /** notifica fissa con gli urgenti di oggi */ pin: boolean };
+export const DEFAULT_PREFS: ReminderPrefs = { on: true, leadMin: DEFAULT_LEAD, lead: true, depart: true, headsup: true, leave: true, start: true, pin: true };
 
 /** Preferenze salvate da versioni precedenti (o mancanti) -> valori validi. */
 export function normalizePrefs(p?: Partial<ReminderPrefs> | null): ReminderPrefs {
@@ -42,6 +42,7 @@ export function normalizePrefs(p?: Partial<ReminderPrefs> | null): ReminderPrefs
     headsup: p?.headsup !== false,
     leave: p?.leave !== false,
     start: p?.start !== false,
+    pin: p?.pin !== false,
   };
 }
 

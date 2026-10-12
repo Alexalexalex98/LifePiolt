@@ -1,8 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { useTheme } from '@/hooks/use-theme';
+import { Body, Btn, Item, Row, Sheet } from '@/components/ui';
+import { go } from '@/lib/nav';
 import { addToPlanWithCheck, findConflicts, removeFromPlan } from '@/lib/planBooking';
 import { dayLabelOf, importAgenda, importTasks, myConflicts } from '@/lib/chatShare';
 import { rsvpSummary } from '@/lib/chatList';
@@ -239,6 +241,47 @@ export function SlotsCard({ m, me, chatId }: { m: ChatMessage; me: string; chatI
       })}
       {mine && !sl.confirmed && best === 0 && <Text style={{ color: c.meta, fontSize: 11 }}>Quando qualcuno vota potrai confermare l’orario.</Text>}
       {sl.confirmed && confirmedOpt && <Action icon="plus" label={inPlan(refOf(confirmedOpt.id)) ? 'Nel tuo piano' : 'Aggiungi al mio piano'} done={inPlan(refOf(confirmedOpt.id))} onPress={() => addToPlanWithCheck({ day: confirmedOpt.day, time: confirmedOpt.time, durationMin: sl.durationMin, title: sl.title, ref: refOf(confirmedOpt.id) }, () => { chat.markImported(chatId, m.id, me); toast('Aggiunto al tuo piano'); })} />}
+    </View>
+  );
+}
+
+/** Richiesta di documenti: ogni voce si soddisfa da sola scegliendo un file di LifeDrive (o caricandone uno) e si manda uno per volta. */
+export function DocReqCard({ m, me, chatId }: { m: ChatMessage; me: string; chatId: string }) {
+  const c = useChatColors();
+  const t = useTheme();
+  const drive = useLife((s) => s.drive);
+  const [pick, setPick] = useState<string | null>(null);
+  const req = m.docReq!;
+  const mine = m.from === me;
+  const done = req.items.filter((i) => i.sentAs).length;
+  const send = (f: { n: string; uri?: string; folder: string }) => {
+    const item = req.items.find((i) => i.id === pick); if (!item) return;
+    useChat.getState().send(chatId, me, { kind: 'file', media: { uri: f.uri ?? '', name: f.n }, replyTo: m.id });
+    useChat.getState().patchMsg(chatId, m.id, { docReq: { ...req, items: req.items.map((i) => (i.id === item.id ? { ...i, sentAs: f.n } : i)) } });
+    setPick(null); toast(`«${f.n}» inviato`);
+  };
+  return (
+    <View style={{ minWidth: 250 }}>
+      <Head icon="file" title={req.title} sub={mine ? `Documenti richiesti · ${done}/${req.items.length} ricevuti` : `Richiesta di ${m.from} · ${done}/${req.items.length} inviati`} />
+      {req.items.map((i) => (
+        <View key={i.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 7 }}>
+          <Icon name={i.sentAs ? 'check' : 'square'} size={17} color={i.sentAs ? t.positive : c.meta} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: c.theirsText, fontSize: 14 }}>{i.name}</Text>
+            {i.sentAs ? <Text style={{ color: t.positive, fontSize: 11 }}>{mine ? `Ricevuto: ${i.sentAs}` : `Inviato: ${i.sentAs}`}</Text> : null}
+          </View>
+          {!mine && !i.sentAs ? <Pressable onPress={() => setPick(i.id)} onStartShouldSetResponder={() => true} accessibilityRole="button" style={{ backgroundColor: t.accent, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}><Text style={{ color: t.onText, fontWeight: '800', fontSize: 12 }}>Invia</Text></Pressable> : null}
+        </View>
+      ))}
+      {!mine && <Text style={{ color: c.meta, fontSize: 11, marginTop: 4 }}>Scegli tu cosa mandare, un documento alla volta.</Text>}
+      <Sheet visible={pick != null} title={`Invia: ${req.items.find((i) => i.id === pick)?.name ?? ''}`} onClose={() => setPick(null)}>
+        {drive.length === 0 ? <Body small muted>Non hai ancora file in LifeDrive: caricali da LifeDrive e torna qui.</Body> : drive.map((f, k) => (
+          <Item key={f.id} last={k === drive.length - 1} onPress={() => send(f)}>
+            <Row><Icon name={f.folder === 'Foto' ? 'image' : 'file'} size={18} color={t.accent} /><View style={{ flex: 1, marginStart: 10 }}><Body numberOfLines={1}>{f.n}</Body><Body small muted>{f.folder} · {f.s}</Body></View></Row>
+          </Item>
+        ))}
+        <Btn small ghost style={{ marginTop: 10 }} title="Apri LifeDrive per caricare un file" onPress={() => { setPick(null); go('lifedrive'); }} />
+      </Sheet>
     </View>
   );
 }

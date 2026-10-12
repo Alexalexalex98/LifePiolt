@@ -103,6 +103,7 @@ function seedChats(me: string) {
   const el = dm('Elena Rossi', Date.now() - 2 * DAY);
   add(el, 'Elena Rossi', 'Buongiorno, per la dichiarazione dei redditi proponiamo questi orari di consulenza.', 8 * 3600000);
   add(el, 'Elena Rossi', '', 8 * 3600000 - 60000, { kind: 'slots', slots: { title: 'Consulenza fiscale', durationMin: 60, options: [{ id: 'e1', day: dk(2), time: '09:30', votes: [] }, { id: 'e2', day: dk(3), time: '14:00', votes: [] }, { id: 'e3', day: dk(6), time: '11:00', votes: [] }] } });
+  add(el, 'Elena Rossi', '', 6 * 3600000, { kind: 'docreq', docReq: { title: 'Documenti per la dichiarazione', items: [{ id: 'd1', name: 'Certificato di salario' }, { id: 'd2', name: 'Estratti conto bancari' }, { id: 'd3', name: 'Ricevute della cassa malati' }] } });
   add(el, 'Elena Rossi', '', 7 * 3600000, { kind: 'tasks', taskList: { title: 'Documenti da portare', items: [{ t: 'Certificato di salario', done: false }, { t: 'Estratti conto bancari', done: false }, { t: 'Ricevute della cassa malati', done: false }] } });
 
   const cena = 'g:demo-cena';

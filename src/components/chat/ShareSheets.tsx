@@ -282,3 +282,28 @@ export function OfferSheet({ visible, onClose, onSend }: Common) {
     </Sheet>
   );
 }
+
+/* ---------- richiesta di documenti ---------- */
+export function DocReqSheet({ visible, onClose, onSend }: Common) {
+  const [title, setTitle] = useState('');
+  const [items, setItems] = useState<string[]>(['']);
+  return (
+    <Sheet visible={visible} title="Richiedi dei documenti" onClose={onClose}>
+      <Body small muted style={{ marginBottom: 8 }}>Elenca i documenti che ti servono: chi riceve sceglie cosa mandare e li invia uno alla volta, tu vedi quali sono arrivati.</Body>
+      <Input placeholder="Per cosa? (es. Dichiarazione dei redditi)" value={title} onChangeText={setTitle} />
+      {items.map((v, i) => (
+        <Row key={i} gap={6}>
+          <Input flex={1} placeholder={`Documento ${i + 1}`} value={v} onChangeText={(x) => setItems((l) => l.map((y, j) => (j === i ? x : y)))} />
+          {items.length > 1 && <Pressable onPress={() => setItems((l) => l.filter((_, j) => j !== i))} hitSlop={8}><Icon name="trash" size={18} color="#ff6b6b" /></Pressable>}
+        </Row>
+      ))}
+      {items.length < 10 && <Btn small ghost icon="plus" title="Aggiungi documento" onPress={() => setItems((l) => [...l, ''])} />}
+      <Btn style={{ marginTop: 10 }} icon="send" title="Invia richiesta" onPress={() => {
+        const names = items.map((x) => x.trim()).filter(Boolean);
+        if (!title.trim() || !names.length) { toast('Scrivi per cosa e almeno un documento'); return; }
+        onSend({ kind: 'docreq', docReq: { title: title.trim(), items: names.map((name) => ({ id: uid(), name })) } });
+        setTitle(''); setItems(['']); onClose();
+      }} />
+    </Sheet>
+  );
+}

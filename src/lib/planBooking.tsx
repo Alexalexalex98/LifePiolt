@@ -4,7 +4,9 @@ import { create } from 'zustand';
 
 import { Body, Btn, Item, Row, Select, Sheet } from '@/components/ui';
 import { timeToMinutes } from '@/lib/format';
-import { fmtDay, nextDays, timeOptions, tsOf } from '@/lib/when';
+import { fmtDay, timeOptions, tsOf } from '@/lib/when';
+import { PickCalendar } from '@/components/CalendarViews';
+import { dayKey } from '@/lib/format';
 import { useLife, type CalEvent } from '@/store/life';
 
 /**
@@ -133,21 +135,23 @@ export function ConflictSheet() {
 }
 
 function MoveView({ conflict, req, onBack, onMoved }: { conflict: PlanConflict; req: PlanRequest; onBack: () => void; onMoved: (day: string, time: string) => void }) {
-  const days = nextDays(14);
-  const [dayKeyV, setDayKeyV] = useState(days[0].key);
+  const today = dayKey();
+  const [day, setDay] = useState(today);
   const dur = conflict.ev.dur || DEFAULT_DUR;
-  const free = freeStartTimes(dayKeyV, dur, conflict, req);
+  const free = day < today ? [] : freeStartTimes(day, dur, conflict, req).filter((t) => day > today || timeToMinutes(t) > new Date().getHours() * 60 + new Date().getMinutes());
   const [time, setTime] = useState<string | null>(null);
   const chosen = time && free.includes(time) ? time : free[0];
-  const label = days.find((d) => d.key === dayKeyV)?.label ?? days[0].label;
   return (
     <>
-      <Body small muted style={{ marginBottom: 10 }}>Scegli quando spostare "{conflict.ev.title}" ({dur} min). Vengono proposti solo orari liberi.</Body>
-      <Select title="Nuovo giorno" value={label} options={days.map((d) => d.label)} onChange={(l) => { setDayKeyV(days.find((d) => d.label === l)!.key); setTime(null); }} />
-      {free.length ? <Select title="Nuovo orario" value={chosen} options={free} onChange={setTime} /> : <Body small color="#ffb84f" style={{ marginBottom: 10 }}>Nessun orario libero in questo giorno: scegline un altro.</Body>}
+      <Body small muted style={{ marginBottom: 10 }}>Scegli il giorno guardando tutti i tuoi impegni: sotto vedi quelli del giorno e gli orari liberi per "{conflict.ev.title}" ({dur} min).</Body>
+      <PickCalendar onSelect={(k) => { setDay(k); setTime(null); }} below={() => (
+        <View style={{ marginTop: 10 }}>
+          {free.length ? <Select title="Nuovo orario" value={chosen} options={free} onChange={setTime} /> : <Body small color="#ffb84f" style={{ marginBottom: 10 }}>Nessun orario libero in questo giorno: scegline un altro.</Body>}
+        </View>
+      )} />
       <Row style={{ marginTop: 8 }}>
         <Btn ghost style={{ flex: 1 }} title="Indietro" onPress={onBack} />
-        <Btn style={{ flex: 1 }} disabled={!free.length} title="Sposta e prosegui" onPress={() => onMoved(dayKeyV, chosen)} />
+        <Btn style={{ flex: 1 }} disabled={!free.length} title="Sposta e prosegui" onPress={() => onMoved(day, chosen)} />
       </Row>
     </>
   );

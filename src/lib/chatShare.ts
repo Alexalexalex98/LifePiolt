@@ -57,9 +57,11 @@ const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h
 
 /** Miei impegni che si sovrappongono a un orario (durata in minuti, default 60). */
 export function myConflicts(day: string, time: string, durationMin = 60): string[] {
-  const ev = useLife.getState().events[day] ?? [];
-  const s = toMin(time), e = s + durationMin;
-  return ev.filter((x) => { const a = toMin(x.time); return a < e && a + 30 > s; }).map((x) => `${x.time} ${x.title}`);
+  const life = useLife.getState();
+  const s = toMin(time), e = s + (durationMin || 60);
+  const vac = life.vacations.find((v) => v.start && v.end && day >= v.start && day <= v.end);
+  const list = (life.events[day] ?? []).filter((x) => { const a = toMin(x.time); return a < e && a + (x.dur || 60) > s; }).map((x) => `${x.time} ${x.title}`);
+  return vac ? [`Vacanza: ${vac.dest}`, ...list] : list;
 }
 
 /** Aggiunge al piano di chi riceve gli impegni di una scheda agenda (senza duplicati). Ritorna quanti ne ha aggiunti. */

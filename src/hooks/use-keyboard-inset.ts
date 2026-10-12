@@ -15,7 +15,9 @@ export function useKeyboardInset(): KeyboardInset {
   const [ev, setEv] = useState<{ c: KbCoords; d: number } | null>(null);
   // altezza della finestra a tastiera chiusa (serve a capire se il sistema l'ha già ridimensionata)
   const [baseH, setBaseH] = useState(win.height);
-  useEffect(() => { if (!ev) setBaseH(win.height); }, [ev, win.height, win.width]);
+  const [baseW, setBaseW] = useState(win.width);
+  // a tastiera chiusa si tiene l'altezza più grande vista (non quella ancora rimpicciolita mentre la tastiera sparisce); se ruota, si riparte
+  useEffect(() => { if (ev) return; if (win.width !== baseW) { setBaseW(win.width); setBaseH(win.height); } else setBaseH((h) => Math.max(h, win.height)); }, [ev, win.height, win.width, baseW]);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
