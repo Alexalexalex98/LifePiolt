@@ -142,14 +142,19 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
   const body = (
     <>
       {!noTop && <TopBar page={id} />}
-      {showBack && (
-        <Press onPress={goBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 14 }} accessibilityLabel="Indietro" style={{ alignSelf: 'flex-start', marginTop: 10 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: t.chip }}><Icon name="arrow-left" size={16} color={t.text} stroke={2.2} /><Text style={{ color: t.text, fontSize: fs.small, fontWeight: '600' }}>Indietro</Text></View>
-        </Press>
+      {(showBack || (sameAsTag && right)) && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, marginBottom: sameAsTag ? 10 : 0, gap: 10 }}>
+          {showBack ? (
+            <Press onPress={goBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 14 }} accessibilityLabel="Indietro" style={{ alignSelf: 'flex-start' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: t.chip }}><Icon name="arrow-left" size={16} color={t.text} stroke={2.2} /><Text style={{ color: t.text, fontSize: fs.small, fontWeight: '600' }}>Indietro</Text></View>
+            </Press>
+          ) : <View />}
+          {sameAsTag ? right : null}
+        </View>
       )}
-      {title && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: sameAsTag ? 'flex-end' : 'space-between', marginTop: sameAsTag ? 6 : 12, marginBottom: 8 }}>
-          {!sameAsTag && <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.title, fontWeight: '800', letterSpacing: -0.2, flexShrink: 1 }}>{title}</Text>}
+      {title && !sameAsTag && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 }}>
+          <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.title, fontWeight: '800', letterSpacing: -0.2, flexShrink: 1 }}>{title}</Text>
           {right}
         </View>
       )}
