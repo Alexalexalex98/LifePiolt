@@ -28,7 +28,7 @@ export default function Payments() {
   const demo = useApp((s) => s.demo);
   const { to: toParam, tab: tabParam } = useLocalSearchParams<{ to?: string; tab?: string }>();
   const balance = useNet((s) => s.lifePoints);
-  const mode = useNet((s) => s.receiveMode) ?? 'lp';
+  const mode: ReceiveMode = 'lp'; // nell'app si paga e si riceve solo in LifePoints
   const payments = useNet((s) => s.payments) ?? [];
   const people = useNet((s) => s.suggested);
   const [tab, setTab] = useState<Tab>((TABS as readonly string[]).includes(tabParam ?? '') ? (tabParam as Tab) : toParam ? 'Invia' : 'Ricevi');
@@ -45,7 +45,6 @@ export default function Payments() {
   const amount = num(reqAmt);
   const link = buildPayLink({ to: me, amount: amount || undefined, mode });
   const lp = (n: number, size = 14) => <Row gap={2}><Text style={{ color: t.text, fontWeight: '800', fontSize: size + 2 }}>{n}</Text><LpTag size={size} /></Row>;
-  const setMode = (m: ReceiveMode) => useNet.setState({ receiveMode: m });
 
   function readCode(text: string) {
     const r = parsePayLink(text);
@@ -78,11 +77,7 @@ export default function Payments() {
             <Input keyboardType="number-pad" placeholder="Se vuoto, lo sceglie chi paga" value={reqAmt} onChangeText={setReqAmt} />
             <Btn ghost icon="share" title="Condividi il codice" onPress={async () => { try { await Share.share({ message: link }); } catch { toast('Non riesco a condividere'); } }} />
           </Card>
-          <Card>
-            <H>Come vuoi ricevere?</H>
-            <Seg options={['LifePoints', 'Denaro']} value={mode === 'cash' ? 'Denaro' : 'LifePoints'} onChange={(v) => setMode(v === 'Denaro' ? 'cash' : 'lp')} />
-            <Body small muted>{mode === 'cash' ? tl('Il pagamento viene convertito subito in denaro, senza passare da Visa o Mastercard. Commissione del {0}% a tuo carico: su 100 LP ricevi {1}.', CASH_FEE_PCT, splitPayment(100, 'cash').net) : 'I LifePoints arrivano nel tuo saldo, senza nessuna commissione. Puoi usarli nell\'app o ritirarli quando vuoi (commissione del 5% solo al ritiro).'}</Body>
-          </Card>
+          <Card><Body small muted>Nell'app si paga e si riceve solo in LifePoints, senza commissioni. Il denaro entra solo per essere convertito in LifePoints.</Body></Card>
           {demo && <Btn ghost icon="coin" title="Solo demo: simula un pagamento ricevuto" onPress={() => { const r = receiveLP(people[0] ?? 'Marco T.', 40, { via: 'qr', note: 'Grazie!' }); toast(r ? (r.mode === 'cash' ? `Ricevuti ${r.net} in denaro (commissione ${r.fee})` : `Ricevuti ${r.amount} LP`) : 'Errore'); }} />}
         </>
       )}

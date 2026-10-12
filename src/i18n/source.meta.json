@@ -1,5 +1,5 @@
 {
- "count": 7766,
+ "count": 7763,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 23,
@@ -49,7 +49,7 @@
   "src/app/(tabs)/noteedit.tsx": 18,
   "src/app/(tabs)/notificationsPage.tsx": 27,
   "src/app/(tabs)/orders.tsx": 12,
-  "src/app/(tabs)/payments.tsx": 38,
+  "src/app/(tabs)/payments.tsx": 35,
   "src/app/(tabs)/plan.tsx": 52,
   "src/app/(tabs)/portfolio.tsx": 33,
   "src/app/(tabs)/postPage.tsx": 31,
@@ -388,5 +388,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1138
+ "withPlaceholders": 1137
 }
