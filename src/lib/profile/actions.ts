@@ -116,13 +116,19 @@ export const bankSkills = skillBank;
 export const skillIdFor = (label: string): string => skillBank.find((s) => s.label.toLowerCase() === label.trim().toLowerCase())?.id ?? customSkill(label);
 export const seedOf = (n: string) => Math.abs(hashStr(n));
 
-const DEMO_REVIEWS = [
+const DEMO_REVIEWS: [number, string][] = [
   [5, 'Disponibile e chiaro: mi ha aiutato a risolvere in una sera quello che rimandavo da settimane.'],
   [4, 'Molto utile, risposte puntuali. Avrei voluto qualche esempio in più.'],
   [5, 'Persona precisa e gentile, si vede che sa di cosa parla.'],
   [3, 'Buon contenuto, ma i tempi di risposta sono stati un po\' lunghi.'],
   [4, 'Consigli concreti e facili da applicare.'],
   [5, 'Mi sono sentito seguito dall\'inizio alla fine. Lo consiglio.'],
+  [5, 'Il seminario era ben organizzato, con esempi veri e tempo per le domande.'],
+  [4, 'Sessione di consulenza utile: in un\'ora ho avuto un piano chiaro da seguire.'],
+  [5, 'Il LifeClub è pieno di materiale pratico e nella chat risponde sempre, anche sotto i video.'],
+  [4, 'Lezioni brevi e ben fatte. Le schede da scaricare sono comodissime.'],
+  [5, 'Ha risposto alla mia domanda con calma e poi mi ha mandato anche un riferimento in più.'],
+  [3, 'Interessante ma un po\' veloce nella parte finale; mi sarebbe servito più tempo.'],
 ];
 /** Recensioni di una persona (voto + motivazione): quelle reali date su questo telefono e, in demo, alcune di esempio. */
 export function reviewsFor(name: string, demo: boolean): Review[] {
@@ -131,8 +137,8 @@ export function reviewsFor(name: string, demo: boolean): Review[] {
   const counts = useNet.getState().votes[name] ?? {};
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const authors = useNet.getState().suggested.filter((n) => n !== name);
-  const n = Math.min(total, 4, authors.length);
+  const n = Math.min(total, 8, authors.length);
   const base = Math.abs(hashStr(name + 'rev'));
-  const sample: Review[] = Array.from({ length: n }, (_, i) => { const [stars, text] = DEMO_REVIEWS[(base + i) % DEMO_REVIEWS.length]; return { from: authors[(base + i) % authors.length], to: name, stars: stars as number, text: text as string, ts: Date.now() - (i + 2) * 5 * 86400000 }; });
+  const sample: Review[] = Array.from({ length: n }, (_, i) => { const [stars, text] = DEMO_REVIEWS[(base + i * 5) % DEMO_REVIEWS.length]; return { from: authors[(base + i) % authors.length], to: name, stars, text, ts: Date.now() - (i + 2) * 5 * 86400000 }; });
   return [...real, ...sample];
 }

@@ -203,6 +203,32 @@ function NetSheetInner() {
     }
     case 'editProfile': { title = 'Modifica profilo'; body = <EditProfileView />; break; }
     case 'verification': { title = 'Verifica identità'; body = <VerificationView />; break; }
+    case 'lpDaily': {
+      title = 'LifePoints Giornalieri ricevuti';
+      const log = net.receivedLog ?? [];
+      body = log.length ? <>{log.map((l, i) => <Item key={i} last={i === log.length - 1} onPress={() => { close(); go('userProfile', { name: l.from }); }}><Row><UserAvatar name={l.from} size={30} /><Body style={{ flex: 1 }}>{l.from}</Body><Body small muted>{l.date}</Body></Row></Item>)}</> : <Body small muted>Nessuno te lo ha ancora donato.</Body>;
+      break;
+    }
+    case 'lpTotal': {
+      title = 'LifePoints complessivi ricevuti';
+      const raised = net.ideas.filter((i) => i.author === me).reduce((a, i) => a + i.raised, 0);
+      const daily = net.receivedDaily[me] || 0;
+      const pay = net.receivedPayments[me] || 0;
+      const total = raised + daily + pay;
+      const conv = Math.min(net.lpConverted ?? 0, total);
+      const row = (label: string, n: number, last?: boolean, bold?: boolean) => <Item last={last}><Row><Body bold={bold} style={{ flex: 1 }}>{label}</Body><Row gap={2}><Body bold>{formatCHF(n)}</Body><LpTag size={13} /></Row></Row></Item>;
+      body = (
+        <>
+          {row('Giornalieri', daily)}
+          {row('Contributi alle tue idee', raised)}
+          {row('Quote, iscrizioni e servizi', pay, true)}
+          <Body bold style={{ marginTop: 14, marginBottom: 4 }}>Riconversione in denaro</Body>
+          {row('Riconvertiti', conv)}
+          {row('Non riconvertiti', total - conv, true)}
+        </>
+      );
+      break;
+    }
     case 'topup': { title = 'Come ottenere LifePoints'; body = <TopUpView />; break; }
     case 'cv': {
       const name = p.name;

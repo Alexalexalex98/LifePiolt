@@ -67,7 +67,7 @@ export default function LifeNetwork() {
   }, [stable]);
 
   // i messaggi si aprono dall'icona in alto: qui restano solo queste schede
-  const tabs = ['Home', 'Lavoro', 'Community', 'Idee', 'Marketplace'];
+  const tabs = ['Home', 'Post', 'Marketplace', 'Community', 'Idee', 'Lavoro'];
   const tabLabel = (k: string) => ({ Home: tr('lnTabHome'), Community: tr('lnTabCommunity'), Idee: tr('lnTabIdeas'), Marketplace: tr('lnTabMarketplace') }[k] ?? k);
   const curTab = tabs.includes(prefs.lnTab) ? prefs.lnTab : 'Home';
   const following = prefs.homeFilter === 'Seguiti';
@@ -96,6 +96,10 @@ export default function LifeNetwork() {
 
   const data = useMemo<Item[]>(() => {
     if (curTab === 'Home') return feedItems.length ? feedItems : [{ k: 'empty', id: 'empty', text: '' }];
+    if (curTab === 'Post') {
+      const only = feedItems.filter((it) => it.k === 'post');
+      return only.length ? only : [{ k: 'empty', id: 'empty', text: 'Ancora nessun post.' }];
+    }
     if (curTab === 'Lavoro') return [{ k: 'jobs', id: 'jobs' }];
     if (curTab === 'Community') {
       const list = communities.filter((c) => (commTopic === 'Tutti' || c.topic === commTopic) && c.name.toLowerCase().includes(commQ.toLowerCase()) && visible('community', c.id, c.owner === 'system' ? undefined : c.owner));
@@ -164,6 +168,12 @@ export default function LifeNetwork() {
         )}
         <NetTabs tabs={tabs.map((k) => ({ key: k, label: tabLabel(k) }))} value={curTab} onChange={(k) => setPref('lnTab', k)} />
       </View>
+      {curTab === 'Post' && (
+        <View style={{ marginTop: 6 }}>
+          <Composer me={me} onPress={compose} />
+          <View style={{ height: 8 }} />
+        </View>
+      )}
       {curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
           <ClubStrip />
@@ -172,7 +182,7 @@ export default function LifeNetwork() {
           <View style={{ height: 8 }} />
         </View>
       )}
-      {curTab !== 'Home' && <View style={{ height: 14 }} />}
+      {curTab !== 'Home' && curTab !== 'Post' && <View style={{ height: 14 }} />}
     </View>
   );
 

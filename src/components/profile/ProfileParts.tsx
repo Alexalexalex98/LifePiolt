@@ -67,16 +67,21 @@ export function LifePointsRow({ name, isMe = false }: { name: string; isMe?: boo
   useNet((s) => s.receivedDaily);
   useNet((s) => s.dailyHistory);
   const lp = lifePointsFor(name);
+  const tile = (value: number, label: string, kind: 'lpTotal' | 'lpDaily') => {
+    const inner = (
+      <>
+        <Row gap={4} style={{ justifyContent: 'flex-start' }}><Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>{formatCHF(value)}</Text><LpTag size={14} /></Row>
+        <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }}>{label}</Text>
+      </>
+    );
+    const st = { flex: 1, backgroundColor: t.card, borderRadius: 18, padding: 14, borderWidth: t.mode === 'light' ? 1 : 0, borderColor: t.border } as const;
+    // solo il proprietario del profilo può aprire il dettaglio
+    return isMe ? <Pressable onPress={() => openSheet(kind)} accessibilityRole="button" accessibilityLabel={`${label}: ${formatCHF(value)}`} style={st}>{inner}</Pressable> : <View style={st}>{inner}</View>;
+  };
   return (
     <View style={{ flexDirection: 'row', gap: 10 }}>
-      <View style={{ flex: 1, backgroundColor: t.card, borderRadius: 18, padding: 14, borderWidth: t.mode === 'light' ? 1 : 0, borderColor: t.border }}>
-        <Row gap={4} style={{ justifyContent: 'flex-start' }}><Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>{formatCHF(lp.total)}</Text><LpTag size={14} /></Row>
-        <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }}>LifePoints ricevuti in tutto</Text>
-      </View>
-      <View style={{ flex: 1, backgroundColor: t.card, borderRadius: 18, padding: 14, borderWidth: t.mode === 'light' ? 1 : 0, borderColor: t.border }}>
-        <Row gap={4} style={{ justifyContent: 'flex-start' }}><Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>{lp.donors}</Text><LpTag size={14} /></Row>
-        <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }}>{isMe ? 'LifePoint giornalieri ricevuti: persone che hai aiutato' : 'LifePoint giornalieri ricevuti: persone aiutate'}</Text>
-      </View>
+      {tile(lp.total, 'LifePoints complessivi ricevuti', 'lpTotal')}
+      {tile(lp.donors, 'LifePoints Giornalieri ricevuti', 'lpDaily')}
     </View>
   );
 }

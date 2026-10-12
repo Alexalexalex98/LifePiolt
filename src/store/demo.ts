@@ -3,7 +3,7 @@ import { seedMarketplace } from '@/data/marketSeed';
 import { demoAutomations, demoBills, demoDoneTasks, demoDrive, demoEvents, demoGoals, demoHealth, demoInsights, demoMonths, demoNotes, demoTasks } from '@/data/seed';
 import { demoInvoices } from '@/lib/bills/demo';
 import { todayIso } from '@/lib/bills/dates';
-import { shortDate, uid } from '@/lib/format';
+import { hashStr, shortDate, uid } from '@/lib/format';
 import { defaultBudget, defaultCategories, defaultWatchlist, useFin } from './finance';
 import { ensureDates, useHealth } from './health';
 import { seedJobs } from '@/data/jobsSeed';
@@ -161,8 +161,12 @@ export function applyDemo(me: string, email = '') {
     notifications: [...demoExtraNotifs(me), ...n.notifications], dailyHistory: n.dailyHistory,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cards: n.cards.map((c: any) => ({ ...c, holder: me })), defaultCard: n.cards[0]?.id ?? null,
+    receivedDaily: { [me]: 14 }, lpConverted: 300,
+    receivedLog: Array.from({ length: 14 }, (_, i) => ({ from: ([...n.suggested, 'Marco Valli', 'Giulia Moretti', 'Elena Sanz'] as string[]).filter((x) => x !== me)[i % (n.suggested.length + 3 - 1)], date: `${i + 1} giorni fa` })),
     bio: 'Impiegato a Lugano · corro, cucino e imparo lo spagnolo', myCard: { ...n.myCard, email: email || n.myCard.email },
   });
+  // chi offre servizi, seminari o un LifeClub ha già qualche voto (e quindi recensioni di esempio)
+  { const offer = new Set<string>([...useNet.getState().providers.map((p) => p.name), ...useNet.getState().seminars.map((x) => x.host), 'Laura Conti', 'Marco Valli', 'Elena Serra', me]); const votes = { ...useNet.getState().votes }; offer.forEach((nm) => { if (votes[nm] && Object.values(votes[nm]).some((v) => v > 0)) return; const h = Math.abs(hashStr(nm)); votes[nm] = { 1: 0, 2: h % 2, 3: 1 + (h % 2), 4: 2 + (h % 3), 5: 4 + (h % 5) }; }); useNet.setState({ votes }); }
   seedMarketplace(me); // seminari, iscrizioni, descrizioni e date di pubblicazione
 }
 

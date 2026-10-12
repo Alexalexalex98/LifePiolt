@@ -40,6 +40,10 @@ type NetState = {
   identity: { verified: boolean; country: string; birthYear: number | null };
   reports: Record<string, number>;
   receivedDaily: Record<string, number>;
+  /** chi mi ha donato il LifePoint giornaliero (solo sul mio telefono) */
+  receivedLog?: { from: string; date: string }[];
+  /** LifePoints che ho già riconvertito in denaro */
+  lpConverted?: number;
   receivedPayments: Record<string, number>;
   following: string[];
   mutedAuthors: string[];
@@ -96,6 +100,8 @@ const blank = () => ({
   identity: { verified: false, country: '', birthYear: null as number | null },
   reports: {} as Record<string, number>,
   receivedDaily: {} as Record<string, number>,
+  receivedLog: [] as { from: string; date: string }[],
+  lpConverted: 0,
   receivedPayments: {} as Record<string, number>,
   following: [] as string[],
   mutedAuthors: [] as string[],
