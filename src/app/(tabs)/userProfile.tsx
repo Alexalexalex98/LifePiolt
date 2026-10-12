@@ -143,7 +143,7 @@ export default function UserProfile() {
         </Card>
       )}
 
-      <View style={{ marginTop: 14 }}><LifePointsRow name={name} /></View>
+      <View style={{ marginTop: 14 }}><LifePointsRow name={name} isMe={isMe} /></View>
 
       {/* pillole di contenuto: si aprono in un elenco dedicato */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 16 }}>

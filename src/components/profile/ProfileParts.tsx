@@ -58,7 +58,7 @@ export function StatsBar({ followers, following, onFollowing, name }: { follower
 }
 
 /* ---------- LifePoints ---------- */
-export function LifePointsRow({ name }: { name: string }) {
+export function LifePointsRow({ name, isMe = false }: { name: string; isMe?: boolean }) {
   const t = useTheme();
   useNet((s) => s.receivedDaily);
   useNet((s) => s.dailyHistory);
@@ -70,8 +70,8 @@ export function LifePointsRow({ name }: { name: string }) {
         <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }}>LifePoints ricevuti in tutto</Text>
       </View>
       <View style={{ flex: 1, backgroundColor: t.card, borderRadius: 18, padding: 14, borderWidth: t.mode === 'light' ? 1 : 0, borderColor: t.border }}>
-        <Row gap={4} style={{ justifyContent: 'flex-start' }}><Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>{lp.today}</Text><LpTag size={14} /></Row>
-        <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }}>{lp.donors ? tl('Donati oggi · {0} donatori in tutto', lp.donors) : 'Donati oggi'}</Text>
+        <Row gap={4} style={{ justifyContent: 'flex-start' }}><Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>{lp.donors}</Text><LpTag size={14} /></Row>
+        <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }}>{isMe ? 'LifePoint giornalieri ricevuti: persone che hai aiutato' : 'LifePoint giornalieri ricevuti: persone aiutate'}</Text>
       </View>
     </View>
   );
