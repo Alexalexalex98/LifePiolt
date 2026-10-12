@@ -1,5 +1,5 @@
 {
- "count": 7522,
+ "count": 7543,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 23,
@@ -163,7 +163,7 @@
   "src/components/live/VideoSurface.tsx": 11,
   "src/components/market.tsx": 44,
   "src/components/network.tsx": 40,
-  "src/components/plan.tsx": 95,
+  "src/components/plan.tsx": 102,
   "src/components/profile/CardFace.tsx": 9,
   "src/components/profile/ProfileParts.tsx": 41,
   "src/components/profile/QaVote.tsx": 11,
@@ -240,7 +240,7 @@
   "src/lib/analytics.ts": 64,
   "src/lib/analyticsData.ts": 30,
   "src/lib/arrival.ts": 8,
-  "src/lib/assistant/engine.ts": 209,
+  "src/lib/assistant/engine.ts": 223,
   "src/lib/assistant/env.ts": 7,
   "src/lib/assistant/nlp.ts": 9,
   "src/lib/assistant/reports.ts": 17,
@@ -321,7 +321,7 @@
   "src/lib/notifyKinds.ts": 45,
   "src/lib/notifyOpen.ts": 2,
   "src/lib/places.ts": 2,
-  "src/lib/planBooking.tsx": 19,
+  "src/lib/planBooking.tsx": 25,
   "src/lib/planner.ts": 5,
   "src/lib/priority.ts": 15,
   "src/lib/privacyGate.ts": 24,
@@ -377,5 +377,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1071
+ "withPlaceholders": 1082
 }

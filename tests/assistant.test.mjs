@@ -302,3 +302,57 @@ test('lingua attiva senza comandi (es. pt): avviso e chip canonici', async () =>
     const h = await a.handle('Ajuda'); assert.ok(h.handled && /Posso fare/.test(h.text));
   } finally { setActive('it'); }
 });
+
+test('«Metti riunione importante per il 15 dicembre» aggiunge un impegno importante (non chiede quale impegno è importante)', async () => {
+  const { env, st } = mkEnv(); const a = new Assistant(env);
+  const r = await a.handle('Metti riunione importante per il 15 dicembre');
+  assert.ok(!/Quale impegno è importante/.test(r.text), r.text);
+  assert.ok(/quando|slot/i.test(r.text), r.text);
+  await a.handle('10:00');
+  const ev = st.events['2026-12-15'].find((e) => /riunione/i.test(e.title));
+  assert.ok(ev && ev.time === '10:00' && ev.important === true && !/importante/i.test(ev.title), JSON.stringify(ev));
+});
+test('un titolo con una data è un impegno: «Riunione importante il 15 dicembre alle 10»', async () => {
+  const { env, st } = mkEnv(); const a = new Assistant(env);
+  await a.handle('Riunione importante il 15 dicembre alle 10');
+  assert.ok(st.events['2026-12-15'].some((e) => e.title === 'Riunione' && e.important));
+});
+test('avvisa se il giorno è in vacanza e chiede conferma', async () => {
+  const { env, st } = mkEnv();
+  env.vacations = () => [{ name: 'Vacanza 1', start: '2026-12-21', end: '2026-12-27' }];
+  const a = new Assistant(env);
+  const r = await a.handle('aggiungi dentista il 22 dicembre alle 10');
+  assert.ok(/in vacanza/i.test(r.text), r.text);
+  assert.ok(!st.events['2026-12-22']);
+  const r2 = await a.handle('Aggiungi comunque');
+  assert.ok(st.events['2026-12-22'].some((e) => /dentista/i.test(e.title)), r2.text);
+});
+test('avvisa se nel piano c\'è già qualcosa quel giorno', async () => {
+  const { env } = mkEnv(); const a = new Assistant(env);
+  const r = await a.handle('aggiungi riunione domani');
+  assert.ok(/hai già/i.test(r.text) && /Dentista/.test(r.text), r.text);
+});
+
+test('«Vacanza dal 21 al 27 dicembre» salva la vacanza nel Plan', async () => {
+  const { env } = mkEnv(); const saved = [];
+  env.addVacation = (v) => saved.push(v);
+  const a = new Assistant(env);
+  const r = await a.handle('Vacanza dal 21 al 27 dicembre');
+  assert.deepEqual(saved, [{ name: 'Vacanza', start: '2026-12-21', end: '2026-12-27' }], r.text);
+});
+test('comandi di tutti i giorni: sveglia al mattino, solo orario, «tra due ore», ora e data', async () => {
+  const { env, st } = mkEnv(); const a = new Assistant(env);
+  await a.handle('Metti una sveglia domani alle 6');
+  assert.ok(st.events['2026-10-08'].some((e) => /sveglia/i.test(e.title) && e.time === '06:00'));
+  await a.handle('Alle 17 chiamare Luca');
+  assert.ok(st.events['2026-10-07'].some((e) => /luca/i.test(e.title) && e.time === '17:00'));
+  await a.handle('Tra due ore ho una chiamata');
+  assert.ok(st.events['2026-10-07'].some((e) => /chiamata/i.test(e.title) && e.time === '12:00'));
+  const r = await a.handle('Che ore sono?');
+  assert.match(r.text, /10:00/);
+});
+test('«Cosa ho in programma questa settimana?» mostra gli impegni, non pianifica', async () => {
+  const { env } = mkEnv(); const a = new Assistant(env);
+  const r = await a.handle('Cosa ho in programma questa settimana?');
+  assert.ok(/dentista/i.test(r.text) && !/propongo/i.test(r.text), r.text);
+});

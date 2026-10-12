@@ -21,12 +21,21 @@ export type PlanConflict = { idx: number; ev: CalEvent; day: string };
 
 const span = (time: string, dur?: number) => { const s = timeToMinutes(time); return [s, s + (dur || DEFAULT_DUR)] as const; };
 
+/** Vacanza che copre il giorno (occupa tutta la giornata), se c'è. */
+export function vacationOn(day: string): { name: string; start: string; end: string } | null {
+  const v = useLife.getState().vacations.find((x) => x.start && x.end && day >= x.start && day <= x.end);
+  return v ? { name: v.dest, start: v.start!, end: v.end! } : null;
+}
+export const VACATION_REF = 'vacation';
+
 export function findConflicts(day: string, time: string, durationMin: number = DEFAULT_DUR, ignoreRef?: string): PlanConflict[] {
   const [s, e] = span(time, durationMin);
-  return (useLife.getState().events[day] || [])
+  const vac = vacationOn(day);
+  const vacConflict: PlanConflict[] = vac ? [{ idx: -1, day, ev: { time: '00:00', title: `Vacanza: ${vac.name}`, dur: 1440, ref: VACATION_REF } }] : [];
+  return [...vacConflict, ...(useLife.getState().events[day] || [])
     .map((ev, idx) => ({ ev, idx, day }))
     .filter(({ ev }) => !(ignoreRef && ev.ref === ignoreRef))
-    .filter(({ ev }) => { const [es, ee] = span(ev.time, ev.dur); return s < ee && es < e; });
+    .filter(({ ev }) => { const [es, ee] = span(ev.time, ev.dur); return s < ee && es < e; })];
 }
 
 /** Inserisce senza controlli (usare dopo findConflicts o dopo la scelta dell'utente). */
@@ -94,6 +103,18 @@ export function ConflictSheet() {
   const c = conflicts[0];
   if (!c) return <Sheet visible={false} title="" onClose={() => {}}><View /></Sheet>; // conflitto sparito nel frattempo
   const verb = req.verb || 'Iscriviti';
+  if (c.ev.ref === VACATION_REF) {
+    const vac = vacationOn(req.day);
+    const others = conflicts.length - 1;
+    return (
+      <Sheet visible title="Sei in vacanza" onClose={cancel}>
+        <Body>{vac ? `In quel periodo hai «${vac.name}» (dal ${vac.start.slice(8)}/${vac.start.slice(5, 7)} al ${vac.end.slice(8)}/${vac.end.slice(5, 7)}): la vacanza occupa tutta la giornata.` : 'In quel giorno sei in vacanza.'}{others > 0 ? ` Hai anche altri ${others} impegni nello stesso orario.` : ''}</Body>
+        <Body small muted style={{ marginTop: 8, marginBottom: 14 }}>Nuovo: {req.title} · {fmtDay(tsOf(req.day, req.time))}, {req.time}.</Body>
+        <Btn style={{ marginBottom: 8 }} title={`${verb} comunque`} onPress={proceed} />
+        <Btn ghost title="Annulla" onPress={cancel} />
+      </Sheet>
+    );
+  }
   return (
     <Sheet visible title={step === 'choose' ? 'Hai già un impegno' : 'Sposta ' + c.ev.title} onClose={cancel}>
       {step === 'choose' ? (

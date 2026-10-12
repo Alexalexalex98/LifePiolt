@@ -18,6 +18,9 @@ export function makeEnv(): Env {
   const life = () => useLife.getState();
   return {
     now: () => new Date(),
+    addVacation: (v) => { const a = new Date(v.start + 'T00:00:00'), b = new Date(v.end + 'T00:00:00'); life().addVacation({ dest: v.name, month: a.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }), hotel: '', price: 0, days: Math.round((b.getTime() - a.getTime()) / 86400000) + 1, flight: 0, start: v.start, end: v.end }); },
+    delVacation: (start, end) => { const l = life(); const v = l.vacations.find((x) => x.start === start && x.end === end); if (v) l.delVacation(v.id); },
+    vacations: () => life().vacations.filter((v) => v.start && v.end).map((v) => ({ name: v.dest, start: v.start!, end: v.end! })),
     events: () => life().events,
     addEvent: (day, ev) => { life().addEvent(day, { time: ev.time, title: ev.title, ...(ev.dur ? { dur: ev.dur } : {}), ...(ev.important ? { important: true } : {}), ...(ev.place ? { place: ev.place } : {}), ...(ev.ref ? { ref: ev.ref } : {}) }); },
     delEvent: (day, ev) => {

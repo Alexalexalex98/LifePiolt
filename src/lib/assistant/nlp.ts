@@ -213,11 +213,15 @@ export type Intent =
   | 'undo' | 'event.add' | 'event.move' | 'event.delete' | 'event.rename' | 'agenda.show' | 'agenda.free' | 'agenda.share'
   | 'task.add' | 'task.done' | 'task.delete' | 'task.rename' | 'task.list' | 'note.add' | 'goal.add'
   | 'mood.log' | 'mood.analysis' | 'profile.photo' | 'profile.private' | 'profile.public'
-  | 'finance.report' | 'health.report' | 'theme.dark' | 'theme.light' | 'hours.set' | 'notif.on' | 'notif.off' | 'open' | 'help' | 'plan.fill' | 'plan.reschedule' | 'event.recurring' | 'event.when' | 'task.due' | 'briefing' | 'task.next' | 'task.urgent' | 'event.important' | 'unknown';
+  | 'finance.report' | 'health.report' | 'theme.dark' | 'theme.light' | 'hours.set' | 'notif.on' | 'notif.off' | 'open' | 'help' | 'plan.fill' | 'plan.reschedule' | 'event.recurring' | 'event.when' | 'task.due' | 'briefing' | 'task.next' | 'task.urgent' | 'event.important' | 'vacation.add' | 'unknown';
 
 const R = (s: RegExp) => s;
 const WD_EN = 'monday|tuesday|wednesday|thursday|friday|saturday|sunday';
 const rules: { intent: Intent; test: RegExp; en?: RegExp; w?: number }[] = [
+  { intent: 'vacation.add', test: R(/\b(vacanza|vacanze|ferie)\b.*\b(dal|da)\b.*\b(al|a)\b/), en: R(/\b(vacation|holiday|holidays|leave)\b.*\bfrom\b.*\b(to|until|till)\b/), w: 9 },
+  { intent: 'agenda.show', test: R(/\b(cosa|che cosa|che|quali|quanti)\b.*\b(ho|hai|c'e|abbiamo)\b.*\bin (programma|agenda)\b|\bcosa ho in (programma|agenda)\b/), w: 8 },
+  { intent: 'task.add', test: R(/^(aggiungi|aggiungimi|metti|inserisci)\b.*\b(alla|nella|in) (lista|to-?do)\b/), w: 5 },
+  { intent: 'finance.report', test: R(/\b(mostrami|fammi vedere|vedi|fai vedere)\b.*\b(spese|soldi|budget|finanze)\b/), w: 5 },
   { intent: 'undo', test: R(/^(annulla|disfa|torna indietro|ripristina|annulla l'ultima|annulla tutto)\b|\bannulla (l'ultim|quello)/), en: R(/^(undo|revert|take (that|it) back|go back|cancel( that| it| the last( one)?)?)$|^undo\b|^cancel (that|it|the last)\b/), w: 5 },
   { intent: 'profile.photo', test: R(/\b(cambia|modifica|imposta|aggiorna|metti|carica|nuova)\b.*\b(foto|immagine)\b.*\b(profilo|avatar)\b|\b(foto|immagine) (del )?profilo\b/), en: R(/\bprofile (photo|picture|pic|image)\b|\b(change|update|set|upload|new)\b.*\b(avatar|profile pic\w*)\b/), w: 5 },
   { intent: 'profile.private', test: R(/(?=.*\b(profilo|account)\b)(?=.*\bprivat[oa]\b)\b(rendi|imposta|metti|voglio|fai|settalo)\b|\bprofilo privato\b|\bnascondi (il )?(mio )?profilo\b/), en: R(/\b(profile|account)\b.*\bprivate\b|\bprivate (profile|account)\b|\bhide my profile\b/), w: 5 },

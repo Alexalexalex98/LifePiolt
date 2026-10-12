@@ -15,6 +15,10 @@ export type Ev = { time: string; title: string; dur?: number; important?: boolea
 export type TaskLite = { id: string; t: string; done?: boolean; urgent?: boolean; due?: string };
 
 export interface Env {
+  /** vacanze del Plan (giorni interi occupati); opzionale */
+  vacations?(): { name: string; start: string; end: string }[];
+  addVacation?(v: { name: string; start: string; end: string }): void;
+  delVacation?(start: string, end: string): void;
   now(): Date;
   events(): Record<string, Ev[]>;
   addEvent(day: string, ev: Ev): void;
@@ -55,7 +59,7 @@ export type Reply = { text: string; chips?: string[]; navigate?: string; handled
 
 type Pending =
   | { kind: 'resched.confirm'; moves: { from: { day: string; ev: Ev }; to: { day: string; time: string } }[] }
-  | { kind: 'event.add'; recur?: 'weekly' | 'daily'; place?: string; title: string; day?: string; time?: string; dur: number; hint?: When['hint']; awaiting: 'title' | 'day' | 'time' | 'conflict'; conflicts?: { day: string; ev: Ev }[]; replacing?: { day: string; ev: Ev } }
+  | { kind: 'event.add'; recur?: 'weekly' | 'daily'; place?: string; important?: boolean; noticed?: boolean; info?: string; title: string; day?: string; time?: string; dur: number; hint?: When['hint']; awaiting: 'title' | 'day' | 'time' | 'conflict' | 'vacation'; conflicts?: { day: string; ev: Ev }[]; replacing?: { day: string; ev: Ev } }
   | { kind: 'event.move'; target: { day: string; ev: Ev }; day?: string; time?: string; dur: number; awaiting: 'when' }
   | { kind: 'confirm.photo' }
   | { kind: 'plan.confirm'; items: PlanItem[]; keep: number; scope: string }
@@ -147,11 +151,16 @@ export class Assistant {
     const s = toMin(time), e = s + dur;
     return this.evs(day).filter((x) => x !== ignore && !(ignore && x.time === ignore.time && x.title === ignore.title)).filter((x) => { const a = toMin(x.time); return a < e && s < a + (x.dur || DEF_DUR); }).map((ev) => ({ day, ev }));
   }
+  private vacationOn(day: string): { name: string; start: string; end: string } | null {
+    return (this.env.vacations?.() ?? []).find((v) => day >= v.start && day <= v.end) ?? null;
+  }
   private slotChips(day: string, dur: number, hint?: When['hint']): string[] {
     const wh = this.env.workHours();
     const now = this.env.now();
     const from = day === this.today() ? now.getHours() * 60 + Math.ceil(now.getMinutes() / 30) * 30 : 0;
-    const spans = freeSlots(this.evs(day), wh.start, wh.end, Math.max(30, dur), DEF_DUR, from);
+    // «sera»: anche dopo l'orario di lavoro
+    const whX = hint === 'sera' ? { start: '18:00', end: '22:00' } : wh;
+    const spans = freeSlots(this.evs(day), whX.start, whX.end, Math.max(30, dur), DEF_DUR, from);
     const out: string[] = [];
     spans.forEach((sp) => {
       for (let m = Math.ceil(sp.from / 30) * 30; m + dur <= sp.to; m += 60) {
@@ -206,12 +215,13 @@ export class Assistant {
       case 'plan.fill': return this.planFill(raw);
       case 'plan.reschedule': return this.reschedule();
       case 'briefing': return { handled: true, text: (() => { const b = this.env.briefing(); return `${b.title}\n${b.body}`; })(), chips: [this.ch('Cosa devo fare adesso?'), this.ch('Pianificami il mese')] };
+      case 'vacation.add': return this.vacationAdd(raw);
       case 'event.recurring': return this.startEventAdd(raw, true);
       case 'event.when': return this.eventWhen(raw);
       case 'task.due': return this.taskDue(raw);
       case 'task.next': return this.taskNext();
       case 'task.urgent': return this.taskUrgent(raw);
-      case 'event.important': return this.eventImportant(raw);
+      case 'event.important': return /\b(metti|aggiungi|inserisci|fissa|prenota|crea|organizza|add|put|schedule|book|create)\b/.test(nn) || (parseWhen(raw, this.env.now()).day && !this.findEvent(raw)) ? this.startEventAdd(raw) : this.eventImportant(raw);
       case 'event.add': return this.startEventAdd(raw);
       case 'event.move': return this.startEventMove(raw);
       case 'event.delete': return this.eventDelete(raw);
@@ -291,6 +301,13 @@ export class Assistant {
         return this.progressAdd();
       }
       if (p.awaiting === 'conflict') return this.resolveConflict(raw, w);
+      if (p.awaiting === 'vacation') {
+        if (/\b(cambia|altro giorno|change|another day)\b/.test(n)) { p.day = undefined; p.noticed = false; p.awaiting = 'day'; return { handled: true, text: t('Per quale giorno aggiungo «{0}»?', p.title), chips: this.dayChips() }; }
+        if (isYes(raw) || /\b(comunque|lo stesso|anyway)\b/.test(n)) return this.progressAdd();
+        if (w.day) { p.day = w.day; p.noticed = false; return this.progressAdd(); }
+        if (this.miss()) return null;
+        return { handled: true, text: t('Lo aggiungo comunque durante la vacanza, o cambiamo giorno?'), chips: [this.ch('Aggiungi comunque'), this.ch('Cambia giorno')] };
+      }
     }
     if (p.kind === 'event.move') {
       const w = parseWhen(raw, this.env.now());
@@ -316,14 +333,56 @@ export class Assistant {
     return { text: (raw.slice(0, m.index) + ' ' + raw.slice(m.index + m[0].length)).replace(/\s+/g, ' ').trim(), place: place.charAt(0).toUpperCase() + place.slice(1) };
   }
 
+  /** «tra due ore», «tra 30 minuti»: orario relativo a adesso. */
+  private relativeTime(raw: string): { day: string; time: string } | null {
+    const m = /\b(?:tra|fra|in)\s+(un|una|uno|due|tre|quattro|cinque|sei|dieci|quindici|venti|trenta|\d{1,3})\s+(ore|ora|minuti|minuto|min)\b/.exec(norm(raw));
+    if (!m) return null;
+    const words: Record<string, number> = { un: 1, una: 1, uno: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, dieci: 10, quindici: 15, venti: 20, trenta: 30 };
+    const n = /^\d+$/.test(m[1]) ? Number(m[1]) : words[m[1]];
+    if (!n) return null;
+    const at = new Date(this.env.now().getTime() + n * (m[2].startsWith('or') ? 60 : 1) * 60000);
+    return { day: dayKeyOf(at), time: `${pad(at.getHours())}:${pad(at.getMinutes() - (at.getMinutes() % 5))}` };
+  }
+
+  /** «Vacanza dal 21 al 27 dicembre»: salva una vacanza nel Plan (occupa tutta la giornata). */
+  private vacationAdd(raw: string): Reply {
+    const n = norm(raw);
+    const months = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+    const mm = new RegExp(`\\bdal?\\s+(\\d{1,2})(?:\\s+(${months.join('|')}))?\\s+(?:al?|fino al)\\s+(\\d{1,2})\\s+(${months.join('|')})`).exec(n);
+    if (!mm || !this.env.addVacation) return { handled: true, text: t('Dimmi le date, per esempio "vacanza dal 21 al 27 dicembre".') };
+    const m2 = months.indexOf(mm[4]);
+    const m1 = mm[2] ? months.indexOf(mm[2]) : m2;
+    const now = this.env.now();
+    const mk = (d: number, m: number, year: number) => `${year}-${pad(m + 1)}-${pad(d)}`;
+    let y = now.getFullYear();
+    let start = mk(Number(mm[1]), m1, y), end = mk(Number(mm[3]), m2, y);
+    if (end < this.today()) { y += 1; start = mk(Number(mm[1]), m1, y); end = mk(Number(mm[3]), m2, y); }
+    if (end < start) return { handled: true, text: t('Le date non tornano: il ritorno è prima della partenza.') };
+    const name = /\bferie\b/.test(n) ? t('Ferie') : t('Vacanza');
+    this.env.addVacation({ name, start, end });
+    this.pushUndo(t('vacanza'), () => this.env.delVacation?.(start, end));
+    const dm = (k: string) => `${k.slice(8)}/${k.slice(5, 7)}`;
+    const clash = Object.keys(this.env.events()).filter((d) => d >= start && d <= end && (this.env.events()[d] ?? []).length);
+    return { handled: true, text: t('Fatto: «{0}» dal {1} al {2}. Occupa tutta la giornata nel Plan.', name, dm(start), dm(end)) + (clash.length ? ' ' + t('Attenzione: in quei giorni hai già degli impegni ({0} giorni).', clash.length) : ''), chips: [this.ch('Annulla'), this.ch('Apri il piano')] };
+  }
+
   private startEventAdd(raw0: string, recurring = false): Reply {
-    const { text: raw, place } = this.splitPlace(raw0);
+    const impRe = /\b(important[ei]|urgente|importanti|important|urgent)\b/i;
+    const important = impRe.test(raw0);
+    const { text: rawP, place } = this.splitPlace(raw0);
+    const raw = rawP.replace(impRe, ' ').replace(/\s+/g, ' ').trim();
     const w = parseWhen(raw, this.env.now());
-    const title = extractTitle(raw, w.spans, /\b(aggiungi|metti|inserisci|segna|programma|pianifica|fissa|prenota|crea|organizza|ogni|tutti|tutte|i|le|giorni|giorno|settimana|settimane|sera|mattina|pomeriggio|al piano|nel piano|ho)\b|\bevery (day|week|evening|morning|afternoon|night|weekday)\b|\b(every|daily|weekly)\b/g);
+    const title = extractTitle(raw, w.spans, /\b(aggiungi|metti|inserisci|segna|programma|pianifica|fissa|prenota|crea|organizza|imposta|ricordami|ogni|tutti|tutte|i|le|giorni|giorno|settimana|settimane|sera|mattina|pomeriggio|al piano|nel piano|ho|per|il|un|una|uno|lo|la|tra|fra|ore|ora|minuti|minuto|due|tre)\b|\bevery (day|week|evening|morning|afternoon|night|weekday)\b|\b(every|daily|weekly)\b/g);
     const recur = recurring ? (/\bogni (giorno|sera|mattina|pomeriggio)\b|\btutti i giorni\b|\btutte le (sere|mattine)\b|\bevery (day|evening|morning|afternoon|night|weekday)\b|\bdaily\b/.test(norm(raw)) ? 'daily' : 'weekly') : undefined;
     let day = w.day;
+    const rel = this.relativeTime(raw0);
+    if (rel && !w.time) { w.time = rel.time; if (!day) day = rel.day; }
+    // solo un orario («alle 17 chiamare Luca»): oggi se è ancora davanti, altrimenti domani
+    if (!day && w.time) { const now = this.env.now(); day = toMin(w.time) > now.getHours() * 60 + now.getMinutes() ? this.today() : dayKeyOf(addDaysTo(now, 1)); }
+    // «sveglia alle 6»: è mattina
+    if (w.time && /\b(sveglia|colazione|alba|alarm)\b/i.test(raw0) && toMin(w.time) >= 12 * 60 && toMin(w.time) < 20 * 60) w.time = fmtMin(toMin(w.time) - 12 * 60);
     if (recur === 'daily' && !day) day = this.today();
-    this.pending = { kind: 'event.add', title, day, time: w.time, dur: w.durationMin ?? DEF_DUR, hint: w.hint, awaiting: 'title', recur, place };
+    this.pending = { kind: 'event.add', title, day, time: w.time, dur: w.durationMin ?? DEF_DUR, hint: w.hint, awaiting: 'title', recur, place, ...(important ? { important: true } : {}) };
     return this.progressAdd();
   }
 
@@ -331,12 +390,24 @@ export class Assistant {
     const p = this.pending as Extract<Pending, { kind: 'event.add' }>;
     if (!p.title) { p.awaiting = 'title'; return { handled: true, text: t('Come lo chiamo? Dimmi il titolo dell’impegno.') }; }
     if (!p.day) { p.awaiting = 'day'; return { handled: true, text: t('Per quale giorno aggiungo «{0}»?', p.title), chips: this.dayChips() }; }
+    if (!p.noticed) {
+      p.noticed = true;
+      const vac = this.vacationOn(p.day);
+      if (vac) {
+        p.awaiting = 'vacation';
+        const dm = (k: string) => `${k.slice(8)}/${k.slice(5, 7)}`;
+        return { handled: true, text: t('Attenzione: {0} sei in vacanza ({1}, dal {2} al {3}): la vacanza occupa tutta la giornata. Lo aggiungo comunque?', cap(this.label(p.day)), vac.name, dm(vac.start), dm(vac.end)), chips: [this.ch('Aggiungi comunque'), this.ch('Cambia giorno')] };
+      }
+      const have = this.evs(p.day);
+      if (have.length) p.info = t('{0} hai già: {1}.', cap(this.label(p.day)), have.slice(0, 3).map((e) => `«${e.title}» (${e.time})`).join(', ') + (have.length > 3 ? '…' : ''));
+    }
     if (!p.time) {
       p.awaiting = 'time';
       const chips = this.slotChips(p.day, p.dur, p.hint);
       const lab = cap(this.label(p.day));
-      if (!chips.length) return { handled: true, text: t('{0} non vedo slot liberi nel tuo orario di lavoro. Dimmi tu l\'ora oppure scegli un altro giorno.', lab), chips: [this.ch('Cambia giorno')] };
-      return { handled: true, text: t('Quando lo aggiungo? {0} ho questi slot liberi: {1}. Scegline uno o scrivi un orario.', lab, chips.join(', ')), chips };
+      const pre = p.info ? p.info + '\n' : '';
+      if (!chips.length) return { handled: true, text: pre + t('{0} non vedo slot liberi nel tuo orario di lavoro. Dimmi tu l\'ora oppure scegli un altro giorno.', lab), chips: [this.ch('Cambia giorno')] };
+      return { handled: true, text: pre + t('Quando lo aggiungo? {0} ho questi slot liberi: {1}. Scegline uno o scrivi un orario.', lab, chips.join(', ')), chips };
     }
     const conflicts = this.conflictsAt(p.day, p.time, p.dur, p.replacing?.ev);
     if (conflicts.length) {
@@ -383,7 +454,7 @@ export class Assistant {
 
   private commitAdd(silent = false): Reply {
     const p = this.pending as Extract<Pending, { kind: 'event.add' }>;
-    const ev: Ev = { time: p.time!, title: p.title, dur: p.dur, ...(p.place ? { place: p.place } : {}) };
+    const ev: Ev = { time: p.time!, title: p.title, dur: p.dur, ...(p.place ? { place: p.place } : {}), ...(p.important ? { important: true } : {}) };
     const day = p.day!;
     const warns = p.place ? travelWarnings(this.evs(day).map((e) => ({ time: e.time, title: e.title, dur: e.dur, place: e.place })), { time: ev.time, title: ev.title, dur: ev.dur, place: ev.place }) : [];
     if (p.recur) {
@@ -404,7 +475,8 @@ export class Assistant {
     this.lastEv = { day, ev };
     const end = fmtMin(toMin(ev.time) + p.dur);
     if (silent) return { handled: true, text: '' };
-    const done = p.place ? t('Fatto: «{0}» {1} dalle {2} alle {3} a {4}. Lo trovi nel Plan.', ev.title, this.label(day), ev.time, end, p.place) : t('Fatto: «{0}» {1} dalle {2} alle {3}. Lo trovi nel Plan.', ev.title, this.label(day), ev.time, end);
+    const done0 = p.place ? t('Fatto: «{0}» {1} dalle {2} alle {3} a {4}. Lo trovi nel Plan.', ev.title, this.label(day), ev.time, end, p.place) : t('Fatto: «{0}» {1} dalle {2} alle {3}. Lo trovi nel Plan.', ev.title, this.label(day), ev.time, end);
+    const done = ev.important ? `${done0} ${t('L\'ho segnato come importante.')}` : done0;
     return { handled: true, text: `${done}${warns.length ? '\n' + t('Attenzione: {0}', warns.join(' ')) : ''}`, chips: [this.ch('Annulla'), this.ch('Apri il piano')] };
   }
 
@@ -690,6 +762,10 @@ export class Assistant {
     const last = scope === 'oggi' ? t0 : scope === 'domani' ? dayKeyOf(addDaysTo(now, 1)) : scope === 'la settimana' ? dayKeyOf(addDaysTo(now, 7)) : '9999';
     const first = scope === 'domani' ? last : t0;
     items = items.filter((i) => i.day >= first && i.day <= last);
+    // i giorni di vacanza sono tutti occupati: non ci metto nulla
+    const beforeVac = items.length;
+    items = items.filter((i) => !this.vacationOn(i.day));
+    const skippedVac = beforeVac - items.length;
     if (!items.length) return { handled: true, text: t('Nel periodo scelto il piano è già pieno oppure non ci sono giorni lavorativi: non aggiungo nulla.') };
     this.pending = { kind: 'plan.confirm', items, keep: extraKeep, scope };
     const days = [...new Set(items.map((i) => i.day))];
@@ -699,7 +775,7 @@ export class Assistant {
     const freeTxt = freeH && freeM ? t('{0} h {1} min', freeH, freeM) : freeH ? t('{0} h', freeH) : t('{0} min', freeM);
     return {
       handled: true,
-      text: `${t('Ti propongo {0} impegni per {1}, dentro il tuo orario di lavoro ({2}–{3}): {4} sui tuoi task (i più urgenti per primi, quelli collegati ai tuoi appuntamenti prima della data) e le abitudini (pausa pranzo, lavoro profondo, pausa movimento, revisione della settimana). In ogni giornata lascio liberi almeno {5}.', items.length, scopeWord(scope), wh.start, wh.end, tasks, freeTxt)}\n\n${preview}${days.length > 3 ? '\n' + t('…e altri {0} giorni', days.length - 3) : ''}`,
+      text: `${t('Ti propongo {0} impegni per {1}, dentro il tuo orario di lavoro ({2}–{3}): {4} sui tuoi task (i più urgenti per primi, quelli collegati ai tuoi appuntamenti prima della data) e le abitudini (pausa pranzo, lavoro profondo, pausa movimento, revisione della settimana). In ogni giornata lascio liberi almeno {5}.', items.length, scopeWord(scope), wh.start, wh.end, tasks, freeTxt)}\n\n${preview}${days.length > 3 ? '\n' + t('…e altri {0} giorni', days.length - 3) : ''}${skippedVac ? '\n' + t('Ho saltato i giorni di vacanza.') : ''}`,
       chips: [this.ch('Applica'), this.ch('Più slot liberi'), this.ch('Annulla')],
     };
   }
@@ -828,6 +904,16 @@ export class Assistant {
   private fallback(raw: string): Reply {
     const tx = raw.trim().replace(/[?!.]+$/, '');
     const nr = norm(raw);
+    // domande semplici su ora e data
+    if (/^(che ore sono|che ora e|ora esatta|what time is it)\b/.test(nr)) { const d = this.env.now(); return { handled: true, text: t('Sono le {0}.', `${pad(d.getHours())}:${pad(d.getMinutes())}`) }; }
+    if (/^(che giorno e|che data e|quanti ne abbiamo|che giorno della settimana|what day is it|what is the date)\b/.test(nr)) return { handled: true, text: t('Oggi è {0}.', cap(this.label(this.today()))) };
+    // «Riunione importante il 15 dicembre»: un titolo con una data è un impegno da aggiungere
+    {
+      const w0 = parseWhen(raw, this.env.now());
+      if (!w0.day && !w0.time && this.relativeTime(raw) && nr.split(' ').length <= 9 && !/\?\s*$/.test(raw)) return this.startEventAdd(raw);
+      const words = nr.split(' ').filter(Boolean).length;
+      if ((w0.day || w0.time) && words <= 9 && !/\?\s*$/.test(raw) && !/^(che|cosa|come|quando|dove|perche|quanto|quanti|quale|quali|chi|what|how|when|where|why|who|which|is|are|do|does|can)\b/.test(nr)) return this.startEventAdd(raw);
+    }
     // "ho comprato il latte" -> task completato; "cancella il dentista" / "rinomina X in Y" senza dire se è un task o un impegno
     if (/^ho \w+(ato|uto|ito)\b/.test(nr) && this.openTasks().length) {
       const q = extractTitle(raw, [], /\b(ho|il|lo|la|le|i|gli)\b/g);

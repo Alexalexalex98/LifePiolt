@@ -4,6 +4,8 @@ import { Text } from '@/components/T';
 
 import { ColorPicker, bandsOnDay, useBands, useCalColors } from '@/components/CalendarViews';
 import { confirmDelete } from '@/lib/confirm';
+import { alertT } from '@/lib/alert';
+import { vacationOn } from '@/lib/planBooking';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Pill, Row, Select, Sheet, Toggle, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { dayKey, minutesToTime, pad2, timeToMinutes } from '@/lib/format';
@@ -328,9 +330,17 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
       <Toggle label="Ogni settimana (per questo mese)" value={weekly} onChange={setWeekly} />
       <Btn title="Aggiungi al calendario" onPress={() => {
         const ti = title.trim(); if (!ti) return;
+        const vac = vacationOn(day);
+        const have = (useLife.getState().events[day] ?? []).length;
+        const go = () => {
         const n = addEvent(day, { time: time.trim() || '--:--', title: ti, reminder: false, ...(place.trim() ? { place: place.trim() } : {}) }, weekly ? endOfMonth : undefined);
         setTitle(''); setPlace('');
         toast(n > 1 ? `Impegno aggiunto a ${n} date (ogni settimana)` : 'Impegno aggiunto');
+        };
+        // avviso: vacanza (tutta la giornata occupata) o impegni già presenti
+        if (vac) alertT('Sei in vacanza', `In questo giorno hai «${vac.name}»: la vacanza occupa tutta la giornata. Aggiungo comunque?`, [{ text: 'Annulla', style: 'cancel' }, { text: 'Aggiungi comunque', onPress: go }]);
+        else if (have > 0) alertT('Hai già impegni', `In questo giorno hai già ${have} ${have === 1 ? 'impegno' : 'impegni'}. Aggiungo comunque?`, [{ text: 'Annulla', style: 'cancel' }, { text: 'Aggiungi', onPress: go }]);
+        else go();
       }} />
     </Sheet>
   );
