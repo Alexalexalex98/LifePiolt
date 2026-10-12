@@ -2,7 +2,9 @@ import { t } from '@/i18n/core';
 import { confirmDelete } from '@/lib/confirm';
 import { dayKeyOf, fmtDateTime, fmtRange, hhmm } from '@/lib/when';
 import { addToPlanWithCheck, removeFromPlan, restoreToPlan } from '@/lib/planBooking';
-import { companyView, displayName, type Interview, type Share, type Slot } from '@/lib/interview';
+import { companyView, displayName, shareCount, type Interview, type Share, type Slot } from '@/lib/interview';
+import { acceptInterviewOp } from '@/domain/operations';
+import { logOutflow } from '@/lib/privacyGateApp';
 import { useApp } from '@/store/app';
 import { useJobs, type Application, type Job } from '@/store/jobs';
 import { useNet } from '@/store/network';
@@ -44,13 +46,20 @@ export function inviteCandidate(appId: string, input: { slots: Slot[]; tz: strin
 }
 
 export function acceptInvite(appId: string, slotIdx: number, share: Share): boolean {
-  const f = find(appId); if (!f) return false;
-  const ok = useJobs.getState().acceptInterview(appId, slotIdx, share);
-  if (!ok) return false;
-  const iv = find(appId)!.app.iv!;
+  if (!find(appId)) return false;
+  // operazione di dominio: stato del colloquio; Plan e notifiche seguono come handler di 'interview.accepted'
+  return acceptInterviewOp(appId, slotIdx, share);
+}
+
+/** Effetti dell'accettazione (handler di 'interview.accepted'): colloquio nel Plan di chi usa il telefono, avviso all'azienda, registro di uscita. */
+export function onInterviewAccepted(appId: string): void {
+  const f = find(appId); if (!f) return;
+  const iv = f.app.iv;
+  if (!iv) return;
   if (iv.chosen && (meName() === f.app.candidate || meName() === f.job.owner)) placeInMyPlan(f.app, f.job, iv.chosen);
-  if (f.job.owner === meName()) notifyMe(t('{0} ha accettato il colloquio: {1}.', displayName(f.app.candidate), fmtSlot(iv.chosen!)), appId);
-  return true;
+  if (f.job.owner === meName() && iv.chosen) notifyMe(t('{0} ha accettato il colloquio: {1}.', displayName(f.app.candidate), fmtSlot(iv.chosen)), appId);
+  // il candidato sceglie cosa far vedere all'azienda (il contatto si sblocca solo alla risposta): registro di uscita, solo metadati
+  if (meName() === f.app.candidate && iv.share) logOutflow('net_jobs', 'employer', { explicit: true, count: shareCount(iv.share) });
 }
 
 export function proposeAnother(appId: string, slot: Slot): boolean {

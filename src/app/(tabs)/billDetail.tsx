@@ -19,7 +19,8 @@ import { KIND_LABEL, RECURRENCE_LABEL } from '@/lib/bills/types';
 import { cancelBillReminders, previewReminders, refreshBillReminders } from '@/lib/bills/schedule';
 import { confirmDelete } from '@/lib/confirm';
 import { go } from '@/lib/nav';
-import { useFin, type PaidToken } from '@/store/finance';
+import { useFin } from '@/store/finance';
+import { payBill, undoPayBill } from '@/domain/operations';
 import { showUndoToast, toast } from '@/store/toast';
 
 function DataRow({ label, value, copy }: { label: string; value?: string; copy?: boolean }) {
@@ -97,14 +98,13 @@ export default function BillDetail() {
       {
         text: 'Conferma',
         onPress: () => {
-          const tok: PaidToken | null = useFin.getState().markInvoicePaid(inv!.id, { date: iso, amount: amt, record: payRecord && canRecord, installment: sheet?.installment });
-          if (!tok) return;
-          const after = useFin.getState().invoices.find((i) => i.id === inv!.id);
-          let removed: ReturnType<typeof removeBillFromCalendar> = [];
-          if (after?.state === 'paid') { void cancelBillReminders(inv!.id); removed = removeBillFromCalendar(inv!.id); }
+          // operazione di dominio: bolletta + movimento + scadenza dal calendario in blocco (rollback se un passo fallisce);
+          // promemoria e analisi si riallineano dagli handler di 'bill.paid'
+          const po = { date: iso, amount: amt, record: payRecord && canRecord, installment: sheet?.installment };
+          const res = payBill(inv!.id, po);
+          if (!res.ok) { toast(t('Non sono riuscito a registrare il pagamento: {0}', res.error)); return; }
           setCalTick((x) => x + 1);
-          void refreshBillReminders();
-          showUndoToast(t('Segnata come pagata'), () => { useFin.getState().undoInvoicePaid(tok); restoreBillEvents(removed); setCalTick((x) => x + 1); void refreshBillReminders(); });
+          showUndoToast(t('Segnata come pagata'), () => { undoPayBill(inv!.id, res, po); setCalTick((x) => x + 1); });
         },
       },
     ]);

@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { create } from 'zustand';
 import { fmtDate } from '@/i18n/format';
+import { log } from './log';
 
 /**
  * Registro locale degli ultimi errori dell'app.
@@ -75,6 +76,7 @@ export function logError(e: unknown, context?: string) {
   try {
     const entry = makeEntry(e, context);
     useErrorLog.getState().push(entry);
+    log.error('app', entry.message, [entry.screen, entry.stack].filter(Boolean).join(' | '));
     if (ERROR_URL) {
       void fetch(ERROR_URL, {
         method: 'POST',

@@ -13,6 +13,7 @@ import { growHeight, restingBottom, sheetMaxHeight } from '@/lib/keyboardInset';
 import { useTheme } from '@/hooks/use-theme';
 import { useSectionNames } from '@/lib/i18n';
 import { readable } from '@/lib/a11y';
+import { log } from '@/lib/log';
 import { areaColors, Icon } from '@/lib/icons';
 import { goBack, go } from '@/lib/nav';
 import { useApp } from '@/store/app';
@@ -25,7 +26,7 @@ installTextScale();
 
 /* ---------- tocchi sicuri ---------- */
 function failed(e: unknown) {
-  console.warn('azione fallita', e);
+  log.warn('ui', 'Azione fallita in un pulsante', e);
   toast('Qualcosa non ha funzionato');
 }
 /**

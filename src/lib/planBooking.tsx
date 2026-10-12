@@ -64,7 +64,7 @@ export function freeStartTimes(day: string, dur: number, moving: PlanConflict, p
   });
 }
 
-type Pending = { req: PlanRequest; onDone?: () => void; onCancel?: () => void } | null;
+type Pending = { req: PlanRequest; onDone?: () => void; onCancel?: () => void; /** true = non inserire l'evento: lo fa l'operazione di dominio in onDone */ noPlace?: boolean } | null;
 export const usePlanConflict = create<{ pending: Pending; step: 'choose' | 'move'; set: (p: Pending, step?: 'choose' | 'move') => void }>((set) => ({
   pending: null, step: 'choose', set: (pending, step = 'choose') => set({ pending, step }),
 }));
@@ -74,6 +74,15 @@ export function addToPlanWithCheck(req: PlanRequest, onDone?: () => void, onCanc
   usePlanConflict.getState().set({ req, onDone, onCancel });
 }
 
+/**
+ * Come addPlanWithCheck ma NON inserisce l'evento: controlla solo i conflitti (e fa scegliere all'utente) e poi chiama `onClear`,
+ * che deve inserire l'evento dentro un'operazione di dominio transazionale (src/domain/operations.ts).
+ */
+export function checkPlanSlot(req: PlanRequest, onClear: () => void, onCancel?: () => void) {
+  if (!findConflicts(req.day, req.time, req.durationMin, req.ref).length) { onClear(); return; }
+  usePlanConflict.getState().set({ req, onDone: onClear, onCancel, noPlace: true });
+}
+
 /** Foglio "Cosa vuoi fare?" in caso di sovrapposizione. Montato una sola volta (NetSheetHost). */
 export function ConflictSheet() {
   const { pending, step, set } = usePlanConflict();
@@ -81,7 +90,7 @@ export function ConflictSheet() {
   const { req } = pending;
   const conflicts = findConflicts(req.day, req.time, req.durationMin, req.ref);
   const cancel = () => { const cb = pending.onCancel; set(null); cb?.(); };
-  const proceed = () => { const p = pending; set(null); placeInPlan(p.req); p.onDone?.(); };
+  const proceed = () => { const p = pending; set(null); if (!p.noPlace) placeInPlan(p.req); p.onDone?.(); };
   const c = conflicts[0];
   if (!c) return <Sheet visible={false} title="" onClose={() => {}}><View /></Sheet>; // conflitto sparito nel frattempo
   const verb = req.verb || 'Iscriviti';

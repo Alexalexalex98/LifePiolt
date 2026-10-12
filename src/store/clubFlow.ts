@@ -1,4 +1,5 @@
 import { anchorLabel, canWriteChat, questionLabel, slowWait, sortedLessons, type Anchor, type BillingPlan, type Club, type ClubComment, type Course, type Lesson } from '@/lib/club';
+import { subscribeClubOp } from '@/domain/operations';
 import { buildRef } from '@/lib/notifyLinks';
 import { t } from '@/i18n/core';
 import { useApp } from './app';
@@ -44,21 +45,21 @@ function welcome(club: Club, chatId: string) {
 
 /** Segui: contenuti free, nessuna iscrizione. */
 export function followClub(club: Club) {
-  useClub.getState().follow(me(), club.id);
-  ensureChat(club);
+  const r = subscribeClubOp({ clubId: club.id, clubName: club.name, tier: 'follower', join: () => useClub.getState().follow(me(), club.id), chat: () => ensureChat(club) });
+  if (!r.ok) { toast('Non sono riuscito a completare l\'operazione: non è cambiato nulla'); return; }
   toast(t('Segui «{0}»', club.name));
 }
 
 export function joinFreeClub(club: Club) {
-  useClub.getState().joinFree(me(), club.id);
-  welcome(club, ensureChat(club));
+  const r = subscribeClubOp({ clubId: club.id, clubName: club.name, tier: 'free', join: () => useClub.getState().joinFree(me(), club.id), chat: () => ensureChat(club), welcome: (cid) => welcome(club, cid) });
+  if (!r.ok) { toast('Non sono riuscito a completare l\'iscrizione: non è cambiato nulla'); return; }
   toast(t('Ti sei iscritto a «{0}»', club.name));
 }
 
 /** DEMO: nessun addebito reale. */
 export function joinPremiumClub(club: Club, plan: BillingPlan) {
-  useClub.getState().joinPremium(me(), club.id, plan);
-  welcome(club, ensureChat(club));
+  const r = subscribeClubOp({ clubId: club.id, clubName: club.name, tier: 'premium', join: () => useClub.getState().joinPremium(me(), club.id, plan), chat: () => ensureChat(club), welcome: (cid) => welcome(club, cid) });
+  if (!r.ok) { toast('Non sono riuscito ad attivare Premium: non è cambiato nulla'); return; }
   toast(t('Premium attivato in anteprima: nessun addebito reale'));
 }
 

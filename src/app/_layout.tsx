@@ -4,6 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { AppState, View } from 'react-native';
 
+import { registerDomainHandlers } from '@/domain/handlers';
+import { defineBackgroundTask, onAppStart, onForeground } from '@/lib/background';
+import { startLogStorage } from '@/lib/logStorage';
 import { autoSyncIfConnected } from '@/lib/healthkit';
 import { resyncCalendars } from '@/lib/calendarImport';
 import { refreshBriefings } from '@/lib/notify';
@@ -35,16 +38,27 @@ import { useDiscover } from '@/store/discover';
 import { useAiRouter } from '@/store/aiRouter';
 import { useIdentity } from '@/store/identity';
 import { useInterests } from '@/store/interests';
+import { usePrivacyLog } from '@/store/privacyLog';
 import { useClub } from '@/store/club';
 import { useSharing } from '@/store/sharing';
 import { useTour } from '@/store/tour';
 import { useLive } from '@/store/live';
 import { lockPortrait } from '@/lib/orientation';
+import { DbNoticeBanner } from '@/components/security/DbNoticeBanner';
+import { LockGate } from '@/components/security/LockGate';
+import { scheduleMaintenance } from '@/db/diagnostics';
+import { useSecurity } from '@/db/securityStore';
+import { startSearchSync } from '@/lib/search';
 
 SplashScreen.preventAutoHideAsync();
 installGlobalErrors();
+startLogStorage();
+// il task in background va definito nello scope globale (deve esistere anche quando il sistema avvia l'app senza interfaccia)
+defineBackgroundTask();
+// effetti collaterali delle operazioni di dominio (promemoria, notifiche in-app, registro di uscita): src/domain/handlers.ts
+registerDomainHandlers();
 
-const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, useInterests, useIdentity, useLive, useSharing, useTour, useAiRouter];
+const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, useInterests, useIdentity, useLive, useSharing, useTour, useAiRouter, usePrivacyLog, useSecurity];
 const allHydrated = () => stores.every((s) => s.persist.hasHydrated());
 
 export { ErrorScreen as ErrorBoundary } from '@/components/ErrorScreen';
@@ -86,9 +100,12 @@ export default function RootLayout() {
     void autoSyncIfConnected();
     void refreshWeather();
     void refreshBriefings();
+    onAppStart();
     startPermissionWatch();
     void resyncCalendars();
-    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); /* riprogramma anche al cambio di fuso orario/ora legale */ useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
+    startSearchSync();
+    scheduleMaintenance();
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); onForeground(); /* riprogramma anche al cambio di fuso orario/ora legale */ useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
     return () => sub.remove();
   }, [ready]);
 
@@ -109,6 +126,8 @@ export default function RootLayout() {
       <NotifPromptHost />
       <ToastHost />
       <ErrorBanner />
+      <DbNoticeBanner />
+      <LockGate />
     </View>
   );
 }

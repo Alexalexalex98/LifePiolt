@@ -6,6 +6,7 @@
 import { AppState, Platform } from 'react-native';
 
 import { t } from '@/i18n/core';
+import { errToString, log } from '@/lib/log';
 import { formatMoney } from '@/i18n/format';
 import { cancelByPrefix, isSupported, scheduleAt } from '@/lib/notify';
 import { pushData } from '@/lib/notifyLinks';
@@ -48,7 +49,7 @@ export async function refreshBillReminders(): Promise<RefreshResult> {
         else res.failed++;
       }
     } while (again);
-  } catch { /* mai bloccare l'app per una notifica */ } finally { busy = false; }
+  } catch (e) { log.warn('notify', 'Riprogrammazione promemoria bollette fallita', errToString(e)); /* mai bloccare l'app per una notifica */ } finally { busy = false; }
   return res;
 }
 

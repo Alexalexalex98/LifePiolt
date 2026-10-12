@@ -15,7 +15,8 @@ import { useApp } from '@/store/app';
 import type { AgendaMode, ChatMessage } from '@/store/chat';
 import { taskIsDone, useLife } from '@/store/life';
 import { toast } from '@/store/toast';
-import { agendaAllows, optionOf } from '@/lib/dataCatalog';
+import { optionOf } from '@/lib/dataCatalog';
+import { canShare, guardedPayload } from '@/lib/privacyGateApp';
 import { go } from '@/lib/nav';
 import { useChoices } from '@/store/sharing';
 import { translateText } from '@/i18n/core';
@@ -39,9 +40,9 @@ export function AgendaSheet({ visible, onClose, onSend }: Common) {
   const [mode, setMode] = useState<AgendaMode>('liberi');
   // livello massimo scelto in "Cosa condivido": limita cosa si può inviare
   const shareChoices = useChoices();
-  const maxOpt = shareChoices.plan_agenda;
   const maxLabel = optionOf('plan_agenda', shareChoices)?.label ?? '';
-  const blocked = !agendaAllows(maxOpt, 'liberi');
+  const allows = (m: AgendaMode) => canShare('plan_agenda', 'chat:sheet', { mode: m, choices: shareChoices, log: false }).allowed;
+  const blocked = !allows('liberi');
   const [minSlot, setMinSlot] = useState(30);
   const [weekend, setWeekend] = useState(false);
   // fasce della giornata da mostrare: togli quelle in cui non vuoi essere disturbato
@@ -58,7 +59,7 @@ export function AgendaSheet({ visible, onClose, onSend }: Common) {
   return (
     <Sheet visible={visible} title="Condividi la tua agenda" onClose={onClose}>
       <Body small muted style={{ marginBottom: 6 }}>Cosa vuoi far vedere?</Body>
-      <Row style={{ justifyContent: 'flex-start', marginBottom: 6, flexWrap: 'wrap' }} gap={6}>{(Object.keys(modeInfo) as AgendaMode[]).map((m) => <Pill key={m} icon={m === 'dettagli' ? 'calendar' : m === 'occupato' ? 'eye' : 'clock'} label={modeInfo[m].label} on={mode === m} off={!agendaAllows(maxOpt, m === 'dettagli' ? 'dettagli' : m === 'occupato' ? 'occupato' : 'liberi')} onPress={() => setMode(m)} />)}</Row>
+      <Row style={{ justifyContent: 'flex-start', marginBottom: 6, flexWrap: 'wrap' }} gap={6}>{(Object.keys(modeInfo) as AgendaMode[]).map((m) => <Pill key={m} icon={m === 'dettagli' ? 'calendar' : m === 'occupato' ? 'eye' : 'clock'} label={modeInfo[m].label} on={mode === m} off={!allows(m)} onPress={() => setMode(m)} />)}</Row>
       <Row style={{ marginBottom: 8 }}>
         <Body small muted style={{ flex: 1 }}>{blocked ? 'Condiviso: no. Nelle impostazioni "Cosa condivido" l\'agenda è privata.' : `Condiviso: sì, al massimo "${maxLabel}" (impostazione "Cosa condivido").`}</Body>
         <Btn small ghost title="Cambia" onPress={() => { onClose(); go('sharing'); }} />
@@ -85,7 +86,7 @@ export function AgendaSheet({ visible, onClose, onSend }: Common) {
       <Body small bold style={{ marginTop: 4, marginBottom: 2 }}>Anteprima di ciò che verrà inviato</Body>
       {list && list.length ? list.slice(0, 10).map((it, i, arr) => <Item key={i} last={i === arr.length - 1}><Row><Body small bold style={{ width: 84 }}>{dayLabelOf(it.day)}</Body><Body small style={{ flex: 1 }} numberOfLines={1}>{it.text}</Body></Row></Item>) : <Body small muted>{mode === 'dettagli' ? 'Nessun impegno in questo periodo.' : 'Nessuno slot libero in questo periodo.'}</Body>}
       {list && list.length > 10 && <Body small muted>…e altri {list.length - 10}</Body>}
-      {!blocked && agendaAllows(maxOpt, mode === 'dettagli' ? 'dettagli' : mode === 'occupato' ? 'occupato' : 'liberi') && preview && (mode === 'dettagli' || !!preview.free?.length) && <Btn style={{ marginTop: 12 }} icon="send" title="Invia" onPress={() => { onSend({ kind: 'agenda', agenda: preview }); onClose(); }} />}
+      {!blocked && allows(mode) && preview && (mode === 'dettagli' || !!preview.free?.length) && <Btn style={{ marginTop: 12 }} icon="send" title="Invia" onPress={() => { const g = guardedPayload('plan_agenda', 'chat:sheet', preview, { mode, choices: shareChoices }); if (g.payload) onSend({ kind: 'agenda', agenda: g.payload }); onClose(); }} />}
     </Sheet>
   );
 }

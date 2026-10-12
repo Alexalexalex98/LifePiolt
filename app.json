@@ -61,6 +61,19 @@
     "plugins": [
       "expo-router",
       [
+        "expo-sqlite",
+        {
+          "useSQLCipher": true,
+          "enableFTS": true
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "LifePilot usa Face ID solo per sbloccare l'app quando attivi il blocco dalla pagina Sicurezza."
+        }
+      ],
+      [
         "expo-secure-store",
         {
           "faceIDPermission": false
@@ -139,6 +152,7 @@
         }
       ],
       "expo-document-picker",
+      "expo-background-task",
       [
         "expo-camera",
         {

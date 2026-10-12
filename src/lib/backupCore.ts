@@ -3,6 +3,8 @@
  * così si può testare con `node --experimental-strip-types`.
  */
 
+import { prepareStored, specFor } from '../db/migrations.ts';
+
 export const BACKUP_APP = 'LifePilot';
 export const BACKUP_FORMAT = 1;
 export const STORE_PREFIX = 'lp2-';
@@ -23,6 +25,10 @@ export type BackupPreview = {
   /** nome store (senza prefisso) -> numero di voci principali */
   items: Record<string, number>;
   totalItems: number;
+  /** store con campi non validi scartati in importazione (nome senza prefisso) */
+  repaired: string[];
+  /** il backup arriva da un'app con schema piu' vecchio: i dati sono stati portati alla versione corrente */
+  upgraded: boolean;
 };
 
 export type ValidateResult = { ok: true; backup: BackupFile; preview: BackupPreview } | { ok: false; error: string };
@@ -44,9 +50,9 @@ export function buildBackup(raw: Record<string, string | null | undefined>, appV
 
 export const serializeBackup = (b: BackupFile) => JSON.stringify(b, null, 1);
 
-export function backupFileName(now = new Date()) {
+export function backupFileName(now = new Date(), encrypted = false) {
   const p = (n: number) => String(n).padStart(2, '0');
-  return `lifepilot-backup-${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}.json`;
+  return `lifepilot-backup-${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}${encrypted ? '.lpbackup' : '.json'}`;
 }
 
 /** Conta le voci di uno store: somma degli elementi degli array di primo livello. */
@@ -67,10 +73,19 @@ export function validateBackup(text: string): ValidateResult {
   if (b.format > BACKUP_FORMAT) return { ok: false, error: 'Il backup viene da una versione più recente di LifePilot: aggiorna l\'app e riprova.' };
   if (!b.stores || typeof b.stores !== 'object' || Array.isArray(b.stores)) return { ok: false, error: 'Il backup è incompleto: mancano i dati.' };
   const clean: BackupFile['stores'] = {};
+  const repaired: string[] = [];
+  let upgraded = false;
   for (const [k, v] of Object.entries(b.stores)) {
     if (!k.startsWith(STORE_PREFIX)) return { ok: false, error: `Il backup contiene una voce non riconosciuta (${k.slice(0, 20)}).` };
     if (!v || typeof v !== 'object' || !v.state || typeof v.state !== 'object' || Array.isArray(v.state)) return { ok: false, error: `Il backup è danneggiato (${k}).` };
-    clean[k] = { state: v.state, version: typeof v.version === 'number' ? v.version : 0 };
+    const ver = typeof v.version === 'number' ? v.version : 0;
+    // stessa validazione e stessi schemi dell'idratazione: porta alla versione corrente e scarta i campi non validi
+    if (ver > specFor(k).version) return { ok: false, error: `Il backup contiene dati di una versione più recente di LifePilot (${k.slice(STORE_PREFIX.length)}): aggiorna l'app e riprova.` };
+    const prep = prepareStored(k, { state: v.state, version: ver });
+    if (!prep.ok) return { ok: false, error: `Il backup è danneggiato (${k}).` };
+    if (prep.report.dropped.length || prep.report.filtered) repaired.push(k.slice(STORE_PREFIX.length));
+    if (prep.migratedFrom !== undefined && prep.migratedFrom > 0) upgraded = true;
+    clean[k] = { state: prep.value.state, version: prep.value.version };
   }
   const keys = Object.keys(clean);
   if (!keys.length) return { ok: false, error: 'Il backup è vuoto.' };
@@ -80,7 +95,7 @@ export function validateBackup(text: string): ValidateResult {
   const items: Record<string, number> = {};
   let total = 0;
   for (const k of keys) { const c = countItems(clean[k].state); items[k.slice(STORE_PREFIX.length)] = c; total += c; }
-  return { ok: true, backup, preview: { createdAt: created, appVersion: backup.appVersion, storeCount: keys.length, sizeKB: Math.round(text.length / 102.4) / 10, items, totalItems: total } };
+  return { ok: true, backup, preview: { createdAt: created, appVersion: backup.appVersion, storeCount: keys.length, sizeKB: Math.round(text.length / 102.4) / 10, items, totalItems: total, repaired, upgraded } };
 }
 
 /** Coppie {chiave, json} da scrivere in AsyncStorage per ripristinare. */
@@ -88,8 +103,13 @@ export function toStorageEntries(b: BackupFile): [string, string][] {
   return Object.entries(b.stores).map(([k, v]) => [k, JSON.stringify({ state: v.state, version: v.version ?? 0 })]);
 }
 
+/** Versione dello schema per ogni voce (per la scrittura nel database). */
+export function storeVersions(b: BackupFile): Record<string, number> {
+  return Object.fromEntries(Object.entries(b.stores).map(([k, v]) => [k, v.version ?? 0]));
+}
+
 /** Etichette leggibili per l'anteprima. */
 export const STORE_LABELS: Record<string, string> = {
   app: 'Account e impostazioni', life: 'Task, obiettivi, note, file, calendario', health: 'Salute e umore', finance: 'Finanze', travel: 'Viaggi',
-  network: 'Network e LifePoints', chat: 'Messaggi', jobs: 'Lavoro', context: 'Meteo e contesto', assistant: 'Assistente', discover: 'Guida', prefs: 'Preferenze', theia: 'Suggerimenti', interests: 'Interessi', club: 'LifeClub', identity: 'Identità, attività e biglietto', sharing: 'Condivisione', aiRouter: 'Intelligenza di Theia', tour: 'Tutorial', live: 'Dirette', calprefs: 'Calendario',
+  network: 'Network e LifePoints', chat: 'Messaggi', jobs: 'Lavoro', context: 'Meteo e contesto', assistant: 'Assistente', discover: 'Guida', prefs: 'Preferenze', theia: 'Suggerimenti', interests: 'Interessi', club: 'LifeClub', identity: 'Identità, attività e biglietto', sharing: 'Condivisione', aiRouter: 'Intelligenza di Theia', tour: 'Tutorial', live: 'Dirette', calprefs: 'Calendario', moderation: 'Moderazione', security: 'Sicurezza', privacyLog: 'Registro di uscita',
 };

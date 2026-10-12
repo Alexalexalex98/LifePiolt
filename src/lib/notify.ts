@@ -3,6 +3,7 @@ import type * as NotificationsType from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { t } from '@/i18n/core';
+import { errToString, log } from '@/lib/log';
 import { buildPush, decidePush, dedupeKey, KIND_ORDER, KINDS, kindEnabled } from '@/lib/notifyKinds';
 import { buildRef, pushData } from '@/lib/notifyLinks';
 import { ID_PREFIX, planReminders } from '@/lib/reminders';
@@ -121,7 +122,8 @@ export async function scheduleDaily(id: string, hour: number, minute: number, ti
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute, ...(Platform.OS === 'android' ? { channelId: CHANNEL } : {}) },
     });
     return { ok: true, message: 'Notifica programmata' };
-  } catch {
+  } catch (e) {
+    log.warn('notify', 'Programmazione notifica fallita', errToString(e));
     return { ok: false, reason: 'error', message: 'Non sono riuscito a programmare la notifica.' };
   }
 }
@@ -139,7 +141,8 @@ export async function scheduleWeekly(id: string, weekday: number, hour: number, 
       trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday, hour, minute, ...(Platform.OS === 'android' ? { channelId: CHANNEL } : {}) },
     });
     return { ok: true, message: 'Notifica programmata' };
-  } catch {
+  } catch (e) {
+    log.warn('notify', 'Programmazione notifica fallita', errToString(e));
     return { ok: false, reason: 'error', message: 'Non sono riuscito a programmare la notifica.' };
   }
 }
@@ -165,7 +168,8 @@ export async function scheduleAt(id: string, when: Date, title: string, body: st
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at), ...(Platform.OS === 'android' ? { channelId: KINDS[kind].channel.id } : {}) },
     });
     return { ok: true, message: 'Notifica programmata' };
-  } catch {
+  } catch (e) {
+    log.warn('notify', 'Programmazione notifica fallita', errToString(e));
     return { ok: false, reason: 'error', message: 'Non sono riuscito a programmare la notifica.' };
   }
 }
@@ -235,7 +239,7 @@ export async function refreshBriefings(): Promise<void> {
       const c = content(kind);
       await scheduleDaily(id, h, m, c.title, c.body);
     }
-  } catch { /* mai bloccare l'app per una notifica */ }
+  } catch (e) { log.warn('notify', 'Riprogrammazione briefing fallita', errToString(e)); /* mai bloccare l'app per una notifica */ }
 }
 
 // ---------- promemoria degli impegni ----------
@@ -276,10 +280,10 @@ export async function refreshReminders(): Promise<void> {
             content: { title: p.title, body: p.body, sound: true, data: { ...pushData(buildRef('event', p.day, p.idx), 'promemoria'), day: p.day, idx: p.idx, type: p.kind } },
             trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(p.at), ...(Platform.OS === 'android' ? { channelId } : {}) },
           });
-        } catch { /* una notifica non programmabile non ferma le altre */ }
+        } catch (e) { log.warn('notify', 'Promemoria non programmabile', errToString(e)); /* una notifica non programmabile non ferma le altre */ }
       }
     } while (remAgain);
-  } catch { /* mai bloccare l'app per una notifica */ } finally { remBusy = false; }
+  } catch (e) { log.warn('notify', 'Riprogrammazione promemoria fallita', errToString(e)); /* mai bloccare l'app per una notifica */ } finally { remBusy = false; }
 }
 
 /** Ricalcola tutto: promemoria impegni + briefing. Da chiamare dopo una concessione di permesso. */

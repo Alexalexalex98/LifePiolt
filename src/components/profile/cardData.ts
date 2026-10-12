@@ -1,3 +1,4 @@
+import { canShare } from '@/lib/privacyGateApp';
 import { useMemo } from 'react';
 
 import { buildCardData, sanitizeDesign, type CardData, type CardDesign } from '@/lib/profile/card';
@@ -31,7 +32,7 @@ export function useCardFor(name: string): { design: CardDesign; data: CardData; 
     const skills = cardSkills(states, chosen).map((x) => x.label);
     if (isMe) {
       const biz = businesses.find((b) => b.id === bizId) ?? null;
-      const data = buildCardData({ name, legacy: card as unknown as Record<string, unknown>, role: role || undefined, business: biz?.name ?? '', skills, shareEmail: !!card.showEmail, sharePhone: !!card.showPhone });
+      const data = buildCardData({ name, legacy: card as unknown as Record<string, unknown>, role: role || undefined, business: biz?.name ?? '', skills, shareEmail: !!card.showEmail && canShare('acc_email', 'chat:card', { log: false }).allowed, sharePhone: !!card.showPhone && canShare('card_phone', 'chat:card', { log: false }).allowed });
       return { design, data, qrText: profileLink(name), isMe };
     }
     const p = providers.find((x) => x.name === name);

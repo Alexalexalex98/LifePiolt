@@ -1,8 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 
 import { buildAgenda } from '@/lib/chatShare';
-import { agendaAllows } from '@/lib/dataCatalog';
-import { readChoices } from '@/store/sharing';
+import { canShare, guardedPayload } from '@/lib/privacyGateApp';
 import { bestMatch } from './nlp';
 import { useChat } from '@/store/chat';
 import { dayKey } from '@/lib/format';
@@ -50,14 +49,20 @@ export function makeEnv(): Env {
     financeReport, healthReport, moodReport,
     people: () => Object.values(useChat.getState().chats).filter((c) => !c.archived).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)).map((c) => c.name),
     shareAgenda: (person, range, mode) => {
-      // rispetta "Cosa condivido": il livello massimo scelto per l'agenda
-      if (!agendaAllows(readChoices().plan_agenda, mode)) return t('Non l\'ho inviata: nelle impostazioni "Cosa condivido" la tua agenda non può essere condivisa in questa modalità. Puoi cambiarlo da Profilo > Cosa condivido.');
       const chat = useChat.getState();
       const target = bestMatch(person, Object.values(chat.chats), (c) => c.name, 0.4);
+      // rispetta "Cosa condivido": il livello massimo scelto per l'agenda (privacy gate unico)
+      const aud = `chat:${target?.id ?? 'new'}`;
+      if (!canShare('plan_agenda', aud, { mode, log: false }).allowed) {
+        guardedPayload('plan_agenda', aud, null, { mode });
+        return t('Non l\'ho inviata: nelle impostazioni "Cosa condivido" la tua agenda non può essere condivisa in questa modalità. Puoi cambiarlo da Profilo > Cosa condivido.');
+      }
       const me = useApp.getState().account.name;
-      const agenda = buildAgenda(range, mode);
-      if (!agenda) return null;
+      const built = buildAgenda(range, mode);
+      if (!built) return null;
       const id = target ? target.id : chat.ensureDm(person, me);
+      const agenda = guardedPayload('plan_agenda', `chat:${id}`, built, { mode }).payload;
+      if (!agenda) return null;
       chat.send(id, me, { kind: 'agenda', agenda });
       const how = mode === 'liberi' ? t('solo slot liberi, nessun titolo') : mode === 'occupato' ? t('solo occupato/libero, nessun titolo') : t('con i titoli');
       return t('Fatto: ho inviato la tua agenda a {0} ({1}).', target?.name ?? person, how);

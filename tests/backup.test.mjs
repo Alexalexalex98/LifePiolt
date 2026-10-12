@@ -4,7 +4,7 @@ import { buildBackup, serializeBackup, validateBackup, toStorageEntries, backupF
 
 const raw = {
   'lp2-app': JSON.stringify({ state: { onboarded: true, account: { name: 'Alex' } }, version: 0 }),
-  'lp2-life': JSON.stringify({ state: { tasks: [1, 2, 3], notes: [1] }, version: 0 }),
+  'lp2-life': JSON.stringify({ state: { tasks: [{ id: 'a' }, { id: 'b' }, { id: 'c' }], notes: [{ id: 'n' }] }, version: 0 }),
   'altra-chiave': JSON.stringify({ state: { x: 1 } }),
   'lp2-rotto': '{non json',
   'lp2-vuoto': null,
@@ -27,7 +27,7 @@ test('round trip: validate restituisce anteprima e dati identici', () => {
   assert.equal(v.preview.totalItems, 4);
   assert.equal(v.preview.appVersion, '1.0.0');
   const entries = toStorageEntries(v.backup);
-  assert.deepEqual(JSON.parse(entries.find(([k]) => k === 'lp2-life')[1]).state.tasks, [1, 2, 3]);
+  assert.deepEqual(JSON.parse(entries.find(([k]) => k === 'lp2-life')[1]).state.tasks, [{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
 });
 
 test('rifiuta file non LifePilot, non JSON, versione futura, vuoti o danneggiati', () => {

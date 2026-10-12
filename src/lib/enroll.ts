@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 
 import { dayKeyOf, hhmm, nextOccurrence } from '@/lib/when';
-import { addToPlanWithCheck, placeInPlan, removeFromPlan, restoreToPlan } from '@/lib/planBooking';
-import { newId, useNet, type Enrollment, type Provider, type Seminar } from '@/store/network';
+import { bookServiceOp, cancelEnrollmentOp, confirmAttendanceOp, enrollSeminarOp, restoreEnrollmentOp } from '@/domain/operations';
+import { checkPlanSlot, placeInPlan, removeFromPlan } from '@/lib/planBooking';
+import { newId, useNet, type Provider, type Seminar } from '@/store/network';
 import { showUndoToast, toast } from '@/store/toast';
 import { t } from '@/i18n/core';
 import { formatCHF } from '@/lib/format';
@@ -29,8 +30,6 @@ export function seminarFacts(s: Seminar) {
   return { startsAt: s.startsAt ?? null, durationMin, mode: s.mode ?? null, place: s.place ?? '', seats, joined, seatsLeft: seats ? Math.max(0, seats - joined) : null };
 }
 
-const bumpJoined = (id: number, d: number) =>
-  useNet.setState((st) => ({ seminars: st.seminars.map((x) => (x.id === id ? { ...x, joined: Math.max(0, (x.joined ?? 0) + d) } : x)) }));
 const setSlot = (name: string, slot: string, present: boolean) =>
   useNet.setState((st) => ({ providers: st.providers.map((p) => (p.name === name ? { ...p, slots: present ? (p.slots.includes(slot) ? p.slots : [...p.slots, slot]) : p.slots.filter((x) => x !== slot) } : p)) }));
 
@@ -43,14 +42,13 @@ export function enrollSeminar(s: Seminar, me: string): void {
   if (f.seatsLeft === 0) { toast('Posti esauriti'); return; }
   if (useNet.getState().enrollments.some((e) => e.kind === 'seminar' && e.ref === String(s.id) && e.status === 'enrolled')) return;
   const id = 'e' + newId();
-  addToPlanWithCheck(
-    { day: dayKeyOf(f.startsAt), time: hhmm(f.startsAt), durationMin: f.durationMin, title: 'Seminario: ' + s.title, ref: id, verb: 'Iscriviti' },
-    () => {
-      useNet.setState((st) => ({ enrollments: [{ id, kind: 'seminar', ref: String(s.id), title: s.title, host: s.host, price: s.price, startsAt: f.startsAt!, durationMin: f.durationMin, status: 'enrolled', createdAt: Date.now() }, ...st.enrollments] }));
-      bumpJoined(s.id, 1);
-      toast(s.price ? t('Iscrizione confermata. Pagherai {0} LP solo dopo il seminario. Aggiunto al Plan.', formatCHF(s.price)) : 'Iscrizione confermata (gratuito). Aggiunto al Plan.');
-    },
-  );
+  const req = { day: dayKeyOf(f.startsAt), time: hhmm(f.startsAt), durationMin: f.durationMin, title: 'Seminario: ' + s.title, ref: id, verb: 'Iscriviti' };
+  // operazione di dominio: evento nel Plan + iscrizione + posti, tutto o niente; notifica e promemoria arrivano dagli handler di 'booking.confirmed'
+  checkPlanSlot(req, () => {
+    const r = enrollSeminarOp(s, req, { startsAt: f.startsAt!, durationMin: f.durationMin }, id);
+    if (!r.ok) { toast('Non sono riuscito a completare l\'iscrizione: non è stato salvato nulla'); return; }
+    toast(s.price ? t('Iscrizione confermata. Pagherai {0} LP solo dopo il seminario. Aggiunto al Plan.', formatCHF(s.price)) : 'Iscrizione confermata (gratuito). Aggiunto al Plan.');
+  });
 }
 
 /** Prenotazione di una sessione con un professionista (nessun pagamento ora). */
@@ -59,31 +57,20 @@ export function bookService(p: Provider, slot: string, durationMin: number, me: 
   if (!startsAt) { toast('Slot non valido'); return; }
   if (p.name === me) { toast('Questo e\' il tuo servizio'); return; }
   const id = 'e' + newId();
-  addToPlanWithCheck(
-    { day: dayKeyOf(startsAt), time: hhmm(startsAt), durationMin, title: `${p.role} con ${p.name}`, ref: id, verb: 'Prenota' },
-    () => {
-      useNet.setState((st) => ({ enrollments: [{ id, kind: 'service', ref: `${p.name}|${slot}`, title: p.role, host: p.name, price: p.price, startsAt, durationMin, status: 'enrolled', createdAt: Date.now(), slot }, ...st.enrollments] }));
-      setSlot(p.name, slot, false);
-      toast(t('Prenotato con {0}. Pagherai {1} LP solo dopo la sessione. Aggiunto al Plan.', p.name, formatCHF(p.price)));
-    },
-  );
+  const req = { day: dayKeyOf(startsAt), time: hhmm(startsAt), durationMin, title: `${p.role} con ${p.name}`, ref: id, verb: 'Prenota' };
+  checkPlanSlot(req, () => {
+    const r = bookServiceOp(p, slot, req, startsAt, durationMin, id);
+    if (!r.ok) { toast('Non sono riuscito a completare la prenotazione: non è stato salvato nulla'); return; }
+    toast(t('Prenotato con {0}. Pagherai {1} LP solo dopo la sessione. Aggiunto al Plan.', p.name, formatCHF(p.price)));
+  });
 }
 
 /** Disiscrizione / annullamento prima dell'inizio: toglie l'evento dal Plan, con undo. */
 export function cancelEnrollment(id: string): void {
-  const st = useNet.getState();
-  const enr = st.enrollments.find((e) => e.id === id);
-  if (!enr || enr.status !== 'enrolled') return;
-  const removal = removeFromPlan(id);
-  useNet.setState((s) => ({ enrollments: s.enrollments.filter((e) => e.id !== id) }));
-  if (enr.kind === 'seminar') bumpJoined(Number(enr.ref), -1);
-  else if (enr.slot) setSlot(enr.host, enr.slot, true);
-  showUndoToast(enr.kind === 'seminar' ? 'Iscrizione annullata e rimossa dal Plan' : 'Prenotazione annullata e rimossa dal Plan', () => {
-    useNet.setState((s) => ({ enrollments: [enr, ...s.enrollments] }));
-    if (enr.kind === 'seminar') bumpJoined(Number(enr.ref), 1);
-    else if (enr.slot) setSlot(enr.host, enr.slot, false);
-    restoreToPlan(removal);
-  });
+  const done = cancelEnrollmentOp(id);
+  if (!done) return;
+  const { enr, removal } = done;
+  showUndoToast(enr.kind === 'seminar' ? 'Iscrizione annullata e rimossa dal Plan' : 'Prenotazione annullata e rimossa dal Plan', () => { restoreEnrollmentOp(enr, removal); });
 }
 
 /** Conferma di partecipazione dopo la fine: addebita l'utente e accredita il relatore/professionista (se a pagamento). */
@@ -91,12 +78,11 @@ export function confirmAttendance(id: string): boolean {
   const net = useNet.getState();
   const enr = net.enrollments.find((e) => e.id === id);
   if (!enr || enr.status !== 'enrolled' || !hasEnded(enr)) return false;
-  if (enr.price > 0 && !net.spend(enr.price, `${enr.kind === 'seminar' ? 'Seminario' : 'Sessione'} "${enr.title}" di ${enr.host}`, enr.host)) {
-    toast('LifePoints insufficienti: ricarica il saldo per confermare la partecipazione');
+  const r = confirmAttendanceOp(id); // addebito + accredito + stato: tutto o niente
+  if (!r.ok) {
+    if (r.reason === 'points') toast('LifePoints insufficienti: ricarica il saldo per confermare la partecipazione');
     return false;
   }
-  useNet.setState((s) => ({ enrollments: s.enrollments.map((e) => (e.id === id ? { ...e, status: 'attended' } : e)) }));
-  if (enr.kind === 'service' && enr.slot) setSlot(enr.host, enr.slot, true); // lo slot settimanale torna disponibile
   return true;
 }
 

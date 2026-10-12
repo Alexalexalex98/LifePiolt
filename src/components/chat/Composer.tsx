@@ -13,6 +13,7 @@ import { toast } from '@/store/toast';
 import { senderColor, useChatColors } from './parts';
 import { AgendaSheet, DriveSheet, EventSheet, NoteSheet, SlotsSheet, TasksSheet, type SharePayload } from './ShareSheets';
 import { Icon } from '@/lib/icons';
+import { canShare, logOutflow } from '@/lib/privacyGateApp';
 import { useNet } from '@/store/network';
 import { useApp } from '@/store/app';
 import { translateText } from '@/i18n/core';
@@ -21,7 +22,10 @@ import { translateText } from '@/i18n/core';
 function myCardContact() {
   const card = useNet.getState().myCard;
   const name = useApp.getState().account.name;
-  const bits = [card.showProfession && card.profession, card.showPhone && card.phone, card.showEmail && card.email].filter(Boolean) as string[];
+  // il privacy gate decide cosa del biglietto può uscire (le scelte "Cosa condivido" sono quelle dei flag show*)
+  const aud = 'chat:card';
+  const ok = (id: string, has: boolean, flag: boolean) => { if (!flag || !has || !canShare(id, aud, { log: false }).allowed) return false; logOutflow(id, aud); return true; };
+  const bits = [ok('card_work', !!card.profession, card.showProfession) && card.profession, ok('card_phone', !!card.phone, card.showPhone) && card.phone, ok('acc_email', !!card.email, card.showEmail) && card.email].filter(Boolean) as string[];
   return { name, phone: bits.join(' · ') || undefined };
 }
 

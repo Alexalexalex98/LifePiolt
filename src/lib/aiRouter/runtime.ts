@@ -4,7 +4,7 @@ import { useApp } from '@/store/app';
 import { useAiRouter } from '@/store/aiRouter';
 import { useLife } from '@/store/life';
 import { usePrefs } from '@/store/prefs';
-import { isSharedNow, readChoices } from '@/store/sharing';
+import { canShare, logOutflow } from '@/lib/privacyGateApp';
 
 import { createProxyClient } from './adapters/serverProxy.ts';
 import { planRequest, routeDetailed, type ConsentAnswer, type ConsentRequest, type Deps, type Plan, type Trace } from './pipeline.ts';
@@ -49,13 +49,13 @@ export function buildDeps(over: Partial<Deps> = {}): Deps {
   ensureTranslate();
   const st = useAiRouter.getState();
   const c = getClient();
-  const ch = readChoices();
+  const ai = (id: string) => canShare(id, 'router_ai', { log: false }).allowed;
   return {
     prefs: st.prefs, planId: st.planId, usage: st.usage, consents: st.consents, client: c,
     isConnected: () => c.isConfigured(),
     now: Date.now(),
     profile: { lang: useApp.getState().language || 'it', answerStyle: usePrefs.getState().answerStyle },
-    share: { memory: isSharedNow('ai_memory', ch), health: isSharedNow('health_activity', ch), finance: isSharedNow('fin_summary', ch) },
+    share: { memory: ai('ai_memory'), health: ai('health_activity'), finance: ai('fin_summary') },
     data: aiData(),
     askConsent,
     onSpent: (u, log) => { const s = useAiRouter.getState(); s.addUsage(u); s.addLog(log); },
@@ -65,7 +65,15 @@ export function buildDeps(over: Partial<Deps> = {}): Deps {
 }
 
 export async function routeWithRuntime(req: RouteRequest): Promise<RouteResult> {
-  try { return (await routeDetailed(req, buildDeps())).result; }
+  try {
+    const trace = await routeDetailed(req, buildDeps());
+    // registro di uscita: quali dati personali sono davvero partiti verso il fornitore (solo metadati)
+    if (trace.result.status === 'answered') {
+      const dataOf: Record<string, string> = { tasks: 'ai_memory', goals: 'ai_memory', notes: 'ai_memory', health: 'health_activity', finance: 'fin_summary' };
+      for (const it of trace.plan.context?.items ?? []) if (dataOf[it.key]) logOutflow(dataOf[it.key], 'router_ai', { count: it.count });
+    }
+    return trace.result;
+  }
   catch (e) { return { status: 'error', kind: 'chat', message: tx('Non sono riuscita a instradare la richiesta: {0}', e instanceof Error ? e.message : String(e)) }; }
 }
 

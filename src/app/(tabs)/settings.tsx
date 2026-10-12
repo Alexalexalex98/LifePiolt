@@ -260,6 +260,7 @@ export default function Settings() {
         <View style={{ gap: 8, marginTop: 10 }}>
           <Btn small ghost icon="shield" title="Cosa condivido" onPress={() => go('sharing')} />
           <Btn small ghost title="Privacy e permessi" onPress={() => go('privacy')} />
+          <Btn small ghost icon="lock" title="Sicurezza e archivio" onPress={() => go('security')} />
           <Btn small ghost title="Segnalazioni e utenti bloccati" onPress={() => go('reports')} />
           <Btn small ghost title={tr('stExportBtn')} onPress={exportData} />
           <Btn small ghost title={demoAsk ? 'Tocca ancora per confermare: sostituisce i tuoi dati' : 'Carica i dati demo (chat, piano, finanze...)'} onPress={() => { if (!demoAsk) { setDemoAsk(true); toast('Sostituisce i dati attuali con quelli di esempio. Fai prima un backup se ti servono.'); return; } applyDemo(app.account.name || 'Alex', app.account.email); set({ demo: true }); setDemoAsk(false); toast('Dati demo caricati: guarda Messaggi, Plan e Finanze'); }} />
@@ -274,6 +275,12 @@ export default function Settings() {
           <Btn small ghost disabled={busy} title="Esporta backup" onPress={() => void doExportBackup()} />
           <Btn small ghost disabled={busy} title="Ripristina da file" onPress={() => void doPickBackup()} />
         </View>
+      </Card>
+
+      <Card>
+        <H>Diagnostica</H>
+        <Body small muted style={{ marginBottom: 8 }}>Stato del telefono, permessi, notifiche programmate, log e registro di ciò che è uscito dal telefono.</Body>
+        <Btn small ghost icon="gear" title="Apri la diagnostica" onPress={() => go('diagnostics')} />
       </Card>
 
       <Card>
