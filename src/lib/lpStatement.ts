@@ -5,16 +5,16 @@
  */
 export const WITHDRAW_FEE_PCT = 5;
 
-export type LpSource = 'giornaliero' | 'idee' | 'iscrizioni' | 'altro';
-export const SOURCE_LABEL: Record<LpSource, string> = { giornaliero: 'LifePoints Giornalieri', idee: 'Contributi alle idee', iscrizioni: 'Quote, iscrizioni e servizi', altro: 'Altro' };
-export type LpMove = { id: string; ts: number; kind: 'earn' | 'spend' | 'withdraw'; source?: LpSource; label: string; amount: number; /** collegamento (es. 'idea:12') per annullare il movimento in caso di rimborso */ ref?: string };
+export type LpSource = 'giornaliero' | 'idee' | 'iscrizioni' | 'pagamenti' | 'altro';
+export const SOURCE_LABEL: Record<LpSource, string> = { giornaliero: 'LifePoints Giornalieri', idee: 'Contributi alle idee', iscrizioni: 'Quote, iscrizioni e servizi', pagamenti: 'Pagamenti ricevuti', altro: 'Altro' };
+export type LpMove = { id: string; ts: number; kind: 'earn' | 'spend' | 'withdraw'; source?: LpSource; label: string; amount: number; /** collegamento (es. 'idea:12') per annullare il movimento in caso di rimborso */ ref?: string; /** commissione % del ritiro (5% di norma; 2,5% se un pagamento ricevuto è convertito subito in denaro) */ feePct?: number };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Commissione e importo netto di un ritiro di `gross` LifePoints. */
-export function withdrawFee(gross: number): { fee: number; net: number } {
+export function withdrawFee(gross: number, pct: number = WITHDRAW_FEE_PCT): { fee: number; net: number } {
   const g = Math.max(0, Number.isFinite(gross) ? gross : 0);
-  const fee = r2((g * WITHDRAW_FEE_PCT) / 100);
+  const fee = r2((g * pct) / 100);
   return { fee, net: r2(g - fee) };
 }
 
@@ -29,13 +29,13 @@ export type Statement = {
 
 export function buildStatement(moves: LpMove[], from: number, to: number): Statement {
   const inP = moves.filter((m) => m && Number.isFinite(m.ts) && m.ts >= from && m.ts <= to && m.amount > 0).sort((a, b) => a.ts - b.ts);
-  const bySource: Record<LpSource, number> = { giornaliero: 0, idee: 0, iscrizioni: 0, altro: 0 };
+  const bySource: Record<LpSource, number> = { giornaliero: 0, idee: 0, iscrizioni: 0, pagamenti: 0, altro: 0 };
   const earnedItems = inP.filter((m) => m.kind === 'earn');
   earnedItems.forEach((m) => { bySource[m.source ?? 'altro'] = r2(bySource[m.source ?? 'altro'] + m.amount); });
   const earnedTotal = r2(earnedItems.reduce((a, m) => a + m.amount, 0));
   const spentItems = inP.filter((m) => m.kind === 'spend');
   const spentTotal = r2(spentItems.reduce((a, m) => a + m.amount, 0));
-  const wItems = inP.filter((m) => m.kind === 'withdraw').map((m) => ({ ...m, ...withdrawFee(m.amount) }));
+  const wItems = inP.filter((m) => m.kind === 'withdraw').map((m) => ({ ...m, ...withdrawFee(m.amount, m.feePct) }));
   const gross = r2(wItems.reduce((a, m) => a + m.amount, 0));
   const fee = r2(wItems.reduce((a, m) => a + m.fee, 0));
   return {
@@ -85,8 +85,8 @@ export type WithdrawInfo = {
 /** Quanto si può ritirare. Gli acquisti nell'app consumano prima i LifePoints non ritirabili (scelta prudente). */
 export function withdrawInfo(moves: LpMove[], donors: number, balance: number): WithdrawInfo {
   const earn = moves.filter((m) => m.kind === 'earn' && m.amount > 0);
-  const fromActivities = r2(earn.filter((m) => m.source === 'iscrizioni' || m.source === 'idee').reduce((a, m) => a + m.amount, 0));
-  const lockedEarned = r2(earn.filter((m) => m.source !== 'iscrizioni' && m.source !== 'idee').reduce((a, m) => a + m.amount, 0));
+  const fromActivities = r2(earn.filter((m) => m.source === 'iscrizioni' || m.source === 'idee' || m.source === 'pagamenti').reduce((a, m) => a + m.amount, 0));
+  const lockedEarned = r2(earn.filter((m) => m.source !== 'iscrizioni' && m.source !== 'idee' && m.source !== 'pagamenti').reduce((a, m) => a + m.amount, 0));
   const spent = r2(moves.filter((m) => m.kind === 'spend').reduce((a, m) => a + m.amount, 0));
   const withdrawn = r2(moves.filter((m) => m.kind === 'withdraw').reduce((a, m) => a + m.amount, 0));
   const dailyUnlocked = donors >= DAILY_DONORS_REQUIRED;

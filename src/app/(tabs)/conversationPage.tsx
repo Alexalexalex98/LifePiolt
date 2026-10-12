@@ -322,6 +322,7 @@ export default function Conversation() {
 
       <Sheet visible={menu} title={title} onClose={() => setMenu(false)}>
         <Item onPress={() => { setMenu(false); go('chatInfo', { id }); }}><IL icon="info">Info {chat.type === 'club' ? 'LifeClub' : chat.type === 'group' ? 'gruppo' : 'contatto'}</IL></Item>
+        {!!peer && <Item onPress={() => { setMenu(false); go('payments', { to: peer, tab: 'Invia' }); }}><IL icon="coin">Invia LifePoints</IL></Item>}
         <Item onPress={() => { setMenu(false); setSearch(''); }}><IL icon="search">Cerca</IL></Item>
         <Item onPress={() => { setMenu(false); setSelected([msgs[msgs.length - 1]?.id].filter(Boolean) as string[]); }}><IL icon="checksquare">Seleziona messaggi</IL></Item>
         <Item onPress={() => { setMenu(false); go('starredPage', { id }); }}><IL icon="star">Messaggi importanti</IL></Item>

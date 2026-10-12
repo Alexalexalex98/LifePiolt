@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { uid, weekdayShortDate } from '@/lib/format';
 import type { Participant } from '@/lib/booking';
+import type { PaymentRecord, ReceiveMode } from '@/lib/payments';
 import { REACH_BOOST, type ReachKind } from '@/lib/reach';
 import { addSignal, type ThemeWeights } from '@/lib/relevance';
 import type { Order, Product } from '@/lib/shop';
@@ -59,6 +60,9 @@ type NetState = {
   myContrib?: Record<number, number>;
   /** diffusione dei contenuti nel feed (non mostrata agli utenti) */
   reach?: Record<string, number>;
+  /** pagamenti tra persone (inviati e ricevuti) e come preferisco ricevere */
+  payments?: PaymentRecord[];
+  receiveMode?: ReceiveMode;
   /** partecipanti ai miei seminari (chiave `seminar:<id>`): li vede solo chi organizza */
   participants?: Record<string, Participant[]>;
   /** temi che interessano a chi usa l'app (non mostrati): servono a ordinare le proposte */
@@ -133,6 +137,8 @@ const blank = () => ({
   shopCredits: {} as Record<string, number>,
   myContrib: {} as Record<number, number>,
   reach: {} as Record<string, number>,
+  payments: [] as PaymentRecord[],
+  receiveMode: 'lp' as ReceiveMode,
   participants: {} as Record<string, Participant[]>,
   themeWeights: {} as ThemeWeights,
   receivedPayments: {} as Record<string, number>,

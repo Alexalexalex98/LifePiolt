@@ -34,6 +34,7 @@ export default function ProfileMore() {
         <Body small muted style={{ marginTop: 8, textAlign: 'center' }}>Tocca il biglietto per girarlo. Solo nome, ruolo, attività, competenze e contatti che scegli di condividere.</Body>
       </View>
 
+      {!isMe && <Btn style={{ marginTop: 18 }} icon="coin" title={`Invia LifePoints a ${name}`} onPress={() => go('payments', { to: name, tab: 'Invia' })} />}
       <View style={{ marginTop: 22 }}><BusinessSection name={name} me={me} /></View>
       <View style={{ marginTop: 22, marginBottom: 6 }}><ProfileClubSection owner={name} /></View>
     </Page>
