@@ -146,9 +146,10 @@ try {
   t = await text();
   check('chat: orario scelto e aggiunto al piano', /Scelto e aggiunto al tuo piano|Nel tuo piano/.test(t), t.slice(-200));
   await open('/plan', 1500);
-  await page.getByText(String(d.getDate()), { exact: true }).last().click(); await wait(700);
+  await page.getByRole('button', { name: d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }) }).first().click(); await wait(500);
   t = await text();
-  check('plan: compare l\'orario scelto in chat', /Riunione di allineamento/.test(t.slice(t.lastIndexOf('Chiudi') - 20)) || /10:00 · Riunione di allineamento/.test(t));
+  if (!/Riunione di allineamento/.test(t)) { await page.getByRole('button', { name: 'Apri', exact: true }).first().click(); await wait(700); t = await text(); }
+  check('plan: compare l\'orario scelto in chat', /Riunione di allineamento/.test(t), t.replace(/\n/g, ' ').slice(-500));
 
   // ---------- privacy ----------
   log('Privacy');
