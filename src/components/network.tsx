@@ -5,7 +5,8 @@ import { Image, Modal, Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 import { create } from 'zustand';
 
-import { Avatar, Body, Btn, Card, ModalToast, Row } from '@/components/ui';
+import { Avatar, Body, Btn, Card, ModalToast, Progress, Row } from '@/components/ui';
+import { daysLeft, ideaState, percentOf } from '@/lib/ideas';
 import { useInk, useTheme } from '@/hooks/use-theme';
 import { formatCHF, hashStr, weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
@@ -175,6 +176,21 @@ export function PostCard({ post, likeKey }: { post: { author: string; text: stri
   );
 }
 
+/** Avanzamento della raccolta: i LifePoints vanno al titolare solo se l'obiettivo si raggiunge entro la scadenza, altrimenti si rimborsa. */
+export function IdeaGoal({ idea }: { idea: Idea }) {
+  const t = useTheme();
+  const now = Date.now();
+  const st = ideaState(idea, now);
+  const left = daysLeft(idea, now);
+  const text = st === 'raggiunta' ? 'Obiettivo raggiunto' : st === 'scaduta' ? 'Raccolta chiusa: contributi rimborsati' : left == null ? '' : left === 1 ? 'Ultimo giorno' : tl('{0} giorni rimasti', left);
+  return (
+    <View style={{ marginBottom: 8 }}>
+      <Progress value={percentOf(idea)} color={st === 'raggiunta' ? t.positive : undefined} />
+      <Row style={{ marginTop: 4 }}><Body small muted>{tl('{0} di {1} LP', formatCHF(idea.raised), formatCHF(idea.target))}</Body><Body small muted>{text}</Body></Row>
+    </View>
+  );
+}
+
 export function IdeaCard({ idea }: { idea: Idea }) {
   const t = useTheme();
   const ideas = useNet((s) => s.ideas);
@@ -197,6 +213,7 @@ export function IdeaCard({ idea }: { idea: Idea }) {
       {idea.uri ? <MediaBlock media={idea.media ?? 'photo'} seed={idea.title} uri={idea.uri} /> : null}
       <Body small muted style={{ marginVertical: 6 }}>{idea.desc}</Body>
       <Body small color="#c9b6ff" style={{ marginBottom: 6 }}>{reward}</Body>
+      <IdeaGoal idea={idea} />
       <Row>
         <Body small muted onPress={() => go('userProfile', { name: idea.author })} style={{ textDecorationLine: 'underline' }}>Titolare: {idea.author}</Body>
         <Row gap={2}><Body bold>{formatCHF(idea.raised)} raccolti</Body><LpTag size={13} /></Row>
@@ -216,7 +233,10 @@ export function doContribute(id: number, amt: number) {
   const net = useNet.getState();
   const idea = net.ideas.find((x) => x.id === id);
   if (!idea) return;
-  if (!net.spend(amt, 'Contributo a "' + idea.title + '"', undefined)) { toast('LifePoints insufficienti'); return; }
+  if (ideaState(idea, Date.now()) !== 'raccolta') { toast(ideaState(idea, Date.now()) === 'raggiunta' ? 'Obiettivo già raggiunto: la raccolta è chiusa' : 'La raccolta di questa idea è scaduta'); return; }
+  if (!net.spend(amt, 'Contributo a "' + idea.title + '"', undefined, `idea:${id}`)) { toast('LifePoints insufficienti'); return; }
+  useNet.setState((s) => ({ myContrib: { ...(s.myContrib ?? {}), [id]: (s.myContrib?.[id] ?? 0) + amt } }));
+  useNet.getState().bumpReach(`idea:${id}`, 'idea');
   const before = Math.floor(((idea.raised / idea.target) * 100) / 25) * 25;
   const raised = idea.raised + amt;
   useNet.setState((s) => ({ ideas: s.ideas.map((i) => (i.id === id ? { ...i, raised } : i)) }));

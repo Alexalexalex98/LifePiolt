@@ -4,6 +4,7 @@ import { Text } from '@/components/T';
 
 import { EmptyFeed, FeedSkeleton, FilterToggle, Composer, NetHeader, NetTabs } from '@/components/feed/Header';
 import { FeedPost, type FeedPostData } from '@/components/feed/FeedPost';
+import { byReach } from '@/lib/reach';
 import { CommunityCard, ServiceFeedCard } from '@/components/feed/TabCards';
 import { IdeaHero, QuoteCard, SeminarFeedCard } from '@/components/feed/SpecialCards';
 import { FEED_GUTTER, FEED_RADIUS } from '@/components/feed/parts';
@@ -73,7 +74,7 @@ export default function LifeNetwork() {
   const following = prefs.homeFilter === 'Seguiti';
 
   const verified = net.identity.verified;
-  const { communities, posts, ideas, seminars, providers, hideIdeas, mutedIdeaAuthors, following: followingList } = net;
+  const { communities, posts, ideas, seminars, providers, hideIdeas, mutedIdeaAuthors, following: followingList, reach } = net;
 
   /* feed misto: stesso intreccio di prima (post, community, idee, seminari sponsorizzati, citazioni) */
   const feedItems = useMemo<Item[]>(() => {
@@ -83,7 +84,8 @@ export default function LifeNetwork() {
     const ideaItems: Item[] = hideIdeas ? [] : ideas.filter((i) => !mutedIdeaAuthors.includes(i.author) && visible('idea', i.id, i.author)).map((idea) => ({ k: 'idea', id: 'i' + idea.id, idea }));
     const sem: Item[] = seminars.filter((s) => s.promoted && visible('seminar', s.id, s.host)).map((s) => ({ k: 'seminar', id: 'm' + s.id, s }));
     const mot: Item[] = [{ k: 'quote', id: 'q0', text: tl('Il progresso non è lineare: anche un piccolo passo oggi conta.'), author: 'LifePilot' }, { k: 'quote', id: 'q1', text: tl('Non devi vedere tutta la scala, basta il primo gradino.'), author: 'LifePilot' }];
-    const pools = [standalone, comm, ideaItems, sem, mot].filter((p) => p.length);
+    const rk = (it: Item) => (it.k === 'post' ? it.likeKey : it.k === 'idea' ? `idea:${it.idea.id}` : '');
+    const pools = [byReach(standalone, rk, reach), byReach(comm, rk, reach), byReach(ideaItems, rk, reach), sem, mot].filter((p) => p.length);
     const feed: Item[] = [];
     let idx = 0;
     while (pools.some((p) => p.length)) { const pool = pools[idx % pools.length]; if (pool.length) feed.push(pool.shift()!); idx++; }
@@ -92,7 +94,7 @@ export default function LifeNetwork() {
       const a = it.k === 'post' ? it.post.author : it.k === 'idea' ? it.idea.author : null;
       return a && followingList.includes(a);
     });
-  }, [communities, posts, ideas, seminars, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep]);
+  }, [communities, posts, ideas, seminars, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep, reach]);
 
   const data = useMemo<Item[]>(() => {
     if (curTab === 'Home') return feedItems.length ? feedItems : [{ k: 'empty', id: 'empty', text: '' }];

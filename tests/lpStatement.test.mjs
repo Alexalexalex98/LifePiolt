@@ -38,3 +38,21 @@ test('testo condivisibile', () => {
   assert.match(t, /Commissione 5%: 5 LP/);
   assert.match(t, /Anna/);
 });
+
+test('ritiro: i Giornalieri si sbloccano solo con 1000 donatori diversi', () => {
+  const m = [
+    { id: 'a', ts: 1, kind: 'earn', source: 'giornaliero', label: 'g', amount: 40 },
+    { id: 'b', ts: 2, kind: 'earn', source: 'iscrizioni', label: 'c', amount: 100 },
+    { id: 'c', ts: 3, kind: 'spend', label: 's', amount: 30 },
+  ];
+  const w = S.withdrawInfo(m, 10, 500);
+  assert.equal(w.dailyUnlocked, false);
+  assert.equal(w.fromActivities, 100 - 0); // gli acquisti consumano prima i non ritirabili (40) poi 0 dalle attività... 30 < 40
+  assert.equal(w.withdrawable, 100);
+  assert.equal(w.locked, 10);
+  const u = S.withdrawInfo(m, 1000, 500);
+  assert.equal(u.dailyUnlocked, true);
+  assert.equal(u.withdrawable, 110);
+  assert.equal(S.withdrawInfo(m, 10, 20).withdrawable, 20); // mai oltre il saldo
+  assert.equal(S.withdrawInfo([], 5000, 100).withdrawable, 0);
+});

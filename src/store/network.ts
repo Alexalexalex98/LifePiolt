@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { uid, weekdayShortDate } from '@/lib/format';
+import { REACH_BOOST, type ReachKind } from '@/lib/reach';
 import type { Order, Product } from '@/lib/shop';
 import { withdrawFee, type LpMove, type LpSource } from '@/lib/lpStatement';
 import { persisted } from './persist';
@@ -10,7 +11,7 @@ export type CommPost = { author: string; text: string; media?: 'photo' | 'video'
 export type Community = { id: number; name: string; topic: string; owner: string; openPosting: boolean; members: string[]; posts: CommPost[]; desc?: string; rules?: string; ts?: number };
 export type Provider = { name: string; role: string; price: number; rating: number; tag: string; media: 'photo' | 'video' | null; slots: string[] };
 export type Booking = { id: string; provider: string; role: string; slot: string; price: number };
-export type Idea = { id: number; title: string; desc: string; author: string; raised: number; similarTo: number | null; rewardType: 'libero' | 'fisso'; fixedAmount: number | null; rewardDesc: string; target: number; ts?: number; media?: 'photo' | 'video' | null; uri?: string };
+export type Idea = { id: number; title: string; desc: string; author: string; raised: number; similarTo: number | null; rewardType: 'libero' | 'fisso'; fixedAmount: number | null; rewardDesc: string; target: number; ts?: number; /** durata della raccolta in giorni (max 90) */ days?: number; /** esito già registrato: pagata al titolare o rimborsata */ settled?: 'paid' | 'refunded'; media?: 'photo' | 'video' | null; uri?: string };
 export type SeminarMode = 'online' | 'presenza';
 /** I campi oltre a promoted sono opzionali solo per i dati salvati da versioni precedenti. */
 export type Seminar = {
@@ -52,6 +53,10 @@ type NetState = {
   products?: Product[];
   orders?: Order[];
   shopCredits?: Record<string, number>;
+  /** quanto ho versato a ogni idea (per il rimborso se non raggiunge l'obiettivo) */
+  myContrib?: Record<number, number>;
+  /** diffusione dei contenuti nel feed (non mostrata agli utenti) */
+  reach?: Record<string, number>;
   receivedPayments: Record<string, number>;
   following: string[];
   mutedAuthors: string[];
@@ -88,7 +93,8 @@ type NetState = {
 
   patch: (p: Partial<NetState>) => void;
   setPref: (k: keyof NetState['prefs'], v: string) => void;
-  spend: (amount: number, desc: string, payee?: string) => boolean;
+  spend: (amount: number, desc: string, payee?: string, ref?: string) => boolean;
+  bumpReach: (key: string, kind: ReachKind) => void;
   /** ritira LifePoints in denaro: commissione del 5% solo sul ritiro */
   withdraw: (amount: number) => { ok: boolean; fee: number; net: number };
   /** registra un guadagno ricevuto (idee, iscrizioni, LifePoint giornaliero) */
@@ -118,6 +124,8 @@ const blank = () => ({
   products: [] as Product[],
   orders: [] as Order[],
   shopCredits: {} as Record<string, number>,
+  myContrib: {} as Record<number, number>,
+  reach: {} as Record<string, number>,
   receivedPayments: {} as Record<string, number>,
   following: [] as string[],
   mutedAuthors: [] as string[],
@@ -158,12 +166,12 @@ export const useNet = create<NetState>()(
     ...blank(),
     patch: (p) => set(p),
     setPref: (k, v) => set((s) => ({ prefs: { ...s.prefs, [k]: v } })),
-    spend: (amount, desc, payee) => {
+    spend: (amount, desc, payee, ref) => {
       if (get().lifePoints < amount) return false;
       set((s) => ({
         lifePoints: s.lifePoints - amount,
         ledger: [{ type: 'spend', desc, amount, date: weekdayShortDate() }, ...s.ledger],
-        lpMoves: [...(s.lpMoves ?? []), { id: `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, ts: Date.now(), kind: 'spend' as const, label: desc, amount }],
+        lpMoves: [...(s.lpMoves ?? []), { id: `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, ts: Date.now(), kind: 'spend' as const, label: desc, amount, ref }],
         receivedPayments: payee ? { ...s.receivedPayments, [payee]: (s.receivedPayments[payee] || 0) + amount } : s.receivedPayments,
       }));
       return true;
@@ -196,6 +204,7 @@ export const useNet = create<NetState>()(
       const liked = s.likedPosts.includes(key);
       const d = liked ? -1 : 1;
       const likedPosts = liked ? s.likedPosts.filter((k) => k !== key) : [...s.likedPosts, key];
+      if (!liked) set((x) => ({ reach: { ...(x.reach ?? {}), [key]: (x.reach?.[key] ?? 0) + REACH_BOOST.like } }));
       if (key.startsWith('standalone:')) {
         const id = Number(key.split(':')[1]);
         set({ likedPosts, posts: s.posts.map((p) => (p.id === id ? { ...p, likes: p.likes + d } : p)) });
@@ -205,11 +214,12 @@ export const useNet = create<NetState>()(
       }
     },
     toggleSavePost: (key) => { set((s) => ({ savedPosts: toggle(s.savedPosts ?? [], key) })); return (get().savedPosts ?? []).includes(key); },
-    addComment: (key, author, text) => set((s) => ({ comments: { ...s.comments, [key]: [...(s.comments[key] || []), { author, text }] } })),
+    bumpReach: (key, kind) => set((s) => ({ reach: { ...(s.reach ?? {}), [key]: (s.reach?.[key] ?? 0) + REACH_BOOST[kind] } })),
+    addComment: (key, author, text) => set((s) => ({ comments: { ...s.comments, [key]: [...(s.comments[key] || []), { author, text }] }, reach: { ...(s.reach ?? {}), [key]: (s.reach?.[key] ?? 0) + REACH_BOOST.comment } })),
     donateDaily: (to) => {
       const today = weekdayShortDate();
       if (get().dailyPoint.lastGiven === today) return false;
-      set((s) => ({ dailyPoint: { lastGiven: today, to }, dailyHistory: [{ date: today, to }, ...s.dailyHistory], receivedDaily: { ...s.receivedDaily, [to]: (s.receivedDaily[to] || 0) + 1 } }));
+      set((s) => ({ reach: { ...(s.reach ?? {}), [`user:${to}`]: (s.reach?.[`user:${to}`] ?? 0) + REACH_BOOST.daily }, dailyPoint: { lastGiven: today, to }, dailyHistory: [{ date: today, to }, ...s.dailyHistory], receivedDaily: { ...s.receivedDaily, [to]: (s.receivedDaily[to] || 0) + 1 } }));
       return true;
     },
     reset: () => set({ ...blank() }),

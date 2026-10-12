@@ -11,6 +11,7 @@ import { LpTag, ModButton, UserAvatar, contribute, gradientFor, openMedia, openS
 import { Btn, Card, Empty, H, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF } from '@/lib/format';
+import { daysLeft, ideaState } from '@/lib/ideas';
 import { go } from '@/lib/nav';
 import { pubLabel } from '@/lib/when';
 import { rateIdea, scoreColor } from '@/lib/network';
@@ -69,6 +70,7 @@ export default function IdeaProfile() {
         </View>
         <Row style={{ marginTop: 8 }}>{[25, 50, 75, 100].map((m) => <Text key={m} style={{ flex: 1, textAlign: 'center', fontSize: 12.5, fontWeight: pct >= m ? '800' : '500', color: pct >= m ? t.positive : t.muted }}>{m}%</Text>)}</Row>
         <Text style={{ color: t.muted, fontSize: 13.5, lineHeight: 20, marginTop: 12 }}>{reward}</Text>
+        <Text style={{ color: t.muted, fontSize: 13, marginTop: 8 }}>{ideaState(idea, Date.now()) === 'raggiunta' ? tl('Obiettivo raggiunto') : ideaState(idea, Date.now()) === 'scaduta' ? tl('Raccolta chiusa: i contributi sono stati rimborsati') : (daysLeft(idea, Date.now()) == null ? '' : tl('{0} giorni rimasti. Se l\'obiettivo non viene raggiunto, i contributi vengono rimborsati.', daysLeft(idea, Date.now()) ?? 0))}</Text>
         <Btn style={{ marginTop: 16 }} icon="coin" title="Contribuisci con LifePoints" onPress={() => contribute(idea)} />
       </View>
 

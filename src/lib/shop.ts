@@ -2,7 +2,7 @@
  * Negozi su LifePilot (modulo PURO, nessun alias '@/'): prodotti, ordini pagati in LifePoints, sconto da contributo a un'idea, resi.
  * Il negozio spedisce direttamente: qui si tiene solo lo stato dell'ordine e il canale di chat per resi e assistenza.
  */
-export type Product = { id: string; shop: string; name: string; desc: string; /** prezzo in LifePoints */ price: number; stock: number; color: string; ts: number };
+export type Product = { id: string; shop: string; name: string; desc: string; /** prezzo in LifePoints */ price: number; stock: number; color: string; ts: number; /** foto (la prima è la copertina) e un video facoltativo */ images?: string[]; video?: string };
 export type OrderStatus = 'pagato' | 'spedito' | 'consegnato' | 'reso';
 export type Order = {
   id: string; shop: string; buyer: string; productId: string; name: string; qty: number;
@@ -36,6 +36,8 @@ export function canReturn(o: Pick<Order, 'ts' | 'status' | 'returnedAt'>, now: n
   if (statusAt(o, now) !== 'consegnato') return false;
   return now - (o.ts + DELIVER_AFTER_H * H) <= RETURN_DAYS * 24 * H;
 }
+
+export const MAX_PRODUCT_PHOTOS = 6;
 
 export function validateProduct(p: { name: string; price: number; stock: number }): string | null {
   if (p.name.trim().length < 2) return 'Scrivi il nome del prodotto.';

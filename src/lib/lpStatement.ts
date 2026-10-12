@@ -7,7 +7,7 @@ export const WITHDRAW_FEE_PCT = 5;
 
 export type LpSource = 'giornaliero' | 'idee' | 'iscrizioni' | 'altro';
 export const SOURCE_LABEL: Record<LpSource, string> = { giornaliero: 'LifePoints Giornalieri', idee: 'Contributi alle idee', iscrizioni: 'Quote, iscrizioni e servizi', altro: 'Altro' };
-export type LpMove = { id: string; ts: number; kind: 'earn' | 'spend' | 'withdraw'; source?: LpSource; label: string; amount: number };
+export type LpMove = { id: string; ts: number; kind: 'earn' | 'spend' | 'withdraw'; source?: LpSource; label: string; amount: number; /** collegamento (es. 'idea:12') per annullare il movimento in caso di rimborso */ ref?: string };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -65,4 +65,34 @@ export function statementText(s: Statement, year: number, name: string): string 
   [...s.earned.items, ...s.spent.items, ...s.withdrawn.items].sort((a, b) => a.ts - b.ts).forEach((m) => L.push(`${d(m.ts)} · ${m.kind === 'earn' ? '+' : '-'}${n2(m.amount)} LP · ${m.label}`));
   L.push('', 'Documento di riepilogo generato dall\'app: verifica sempre i dati con un consulente fiscale.');
   return L.join('\n');
+}
+
+/* ---------- chi può ritirare ---------- */
+/** Per ritirare i LifePoints Giornalieri ricevuti servono persone diverse che li hanno donati (soglia provvisoria, da rivedere). */
+export const DAILY_DONORS_REQUIRED = 1000;
+
+export type WithdrawInfo = {
+  /** i Giornalieri sono ritirabili solo con la soglia di donatori diversi */
+  dailyUnlocked: boolean; donors: number; required: number;
+  /** LifePoints ritirabili adesso (mai più del saldo) */
+  withdrawable: number;
+  /** guadagnati con servizi, iscrizioni, store o idee riuscite: sempre ritirabili */
+  fromActivities: number;
+  /** guadagnati con i Giornalieri e altro: ritirabili solo sbloccando la soglia */
+  locked: number;
+};
+
+/** Quanto si può ritirare. Gli acquisti nell'app consumano prima i LifePoints non ritirabili (scelta prudente). */
+export function withdrawInfo(moves: LpMove[], donors: number, balance: number): WithdrawInfo {
+  const earn = moves.filter((m) => m.kind === 'earn' && m.amount > 0);
+  const fromActivities = r2(earn.filter((m) => m.source === 'iscrizioni' || m.source === 'idee').reduce((a, m) => a + m.amount, 0));
+  const lockedEarned = r2(earn.filter((m) => m.source !== 'iscrizioni' && m.source !== 'idee').reduce((a, m) => a + m.amount, 0));
+  const spent = r2(moves.filter((m) => m.kind === 'spend').reduce((a, m) => a + m.amount, 0));
+  const withdrawn = r2(moves.filter((m) => m.kind === 'withdraw').reduce((a, m) => a + m.amount, 0));
+  const dailyUnlocked = donors >= DAILY_DONORS_REQUIRED;
+  const spentFromLocked = Math.min(spent, lockedEarned);
+  const lockedLeft = r2(lockedEarned - spentFromLocked);
+  const activitiesLeft = Math.max(0, r2(fromActivities - (spent - spentFromLocked) - withdrawn));
+  const pool = dailyUnlocked ? r2(activitiesLeft + lockedLeft) : activitiesLeft;
+  return { dailyUnlocked, donors, required: DAILY_DONORS_REQUIRED, withdrawable: Math.floor(Math.max(0, Math.min(pool, balance))), fromActivities: activitiesLeft, locked: dailyUnlocked ? 0 : lockedLeft };
 }

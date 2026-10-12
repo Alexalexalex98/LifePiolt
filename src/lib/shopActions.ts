@@ -1,4 +1,4 @@
-import { PRODUCT_COLORS, applyCredit, buyBlockReason, validateAddress, validateProduct, type Order, type Product } from '@/lib/shop';
+import { MAX_PRODUCT_PHOTOS, PRODUCT_COLORS, applyCredit, buyBlockReason, validateAddress, validateProduct, type Order, type Product } from '@/lib/shop';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { useNet } from '@/store/network';
@@ -9,11 +9,11 @@ export const productsOf = (shop: string): Product[] => (useNet.getState().produc
 export const creditFor = (shop: string): number => useNet.getState().shopCredits?.[shop] ?? 0;
 
 /** Il titolare aggiunge un prodotto al proprio negozio. Ritorna il messaggio d'errore o null. */
-export function addProduct(shop: string, p: { name: string; desc: string; price: number; stock: number }): string | null {
+export function addProduct(shop: string, p: { name: string; desc: string; price: number; stock: number; images?: string[]; video?: string }): string | null {
   const err = validateProduct(p);
   if (err) return err;
   const list = useNet.getState().products ?? [];
-  const prod: Product = { id: newId('pr'), shop, name: p.name.trim().slice(0, 60), desc: p.desc.trim().slice(0, 300), price: Math.round(p.price * 100) / 100, stock: p.stock, color: PRODUCT_COLORS[list.length % PRODUCT_COLORS.length], ts: Date.now() };
+  const prod: Product = { id: newId('pr'), shop, name: p.name.trim().slice(0, 60), desc: p.desc.trim().slice(0, 300), price: Math.round(p.price * 100) / 100, stock: p.stock, color: PRODUCT_COLORS[list.length % PRODUCT_COLORS.length], ts: Date.now(), images: (p.images ?? []).slice(0, MAX_PRODUCT_PHOTOS), video: p.video };
   useNet.setState({ products: [...list, prod] });
   return null;
 }

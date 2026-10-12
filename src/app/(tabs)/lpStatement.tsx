@@ -6,6 +6,7 @@ import { Body, Btn, Card, Empty, H, Item, Page, Row, Seg } from '@/components/ui
 import { useTheme } from '@/hooks/use-theme';
 import { fmtDate } from '@/i18n/format';
 import { SOURCE_LABEL, WITHDRAW_FEE_PCT, buildStatement, statementText, yearRange, type LpSource } from '@/lib/lpStatement';
+import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
@@ -72,6 +73,7 @@ export default function LpStatement() {
       </Card>
 
       <Btn icon="share" title="Condividi il rendiconto" onPress={share} />
+      <Btn ghost style={{ marginTop: 8 }} icon="coin" title="Ritira LifePoints" onPress={() => go('withdraw')} />
       <Body small muted style={{ marginTop: 10 }}>Riepilogo generato dall'app dai tuoi movimenti: controllalo sempre con un consulente fiscale.</Body>
     </Page>
   );

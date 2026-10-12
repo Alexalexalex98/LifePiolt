@@ -1,9 +1,14 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/T';
 
-import { LpTag, UserAvatar } from '@/components/network';
+import { Image } from 'expo-image';
+import { LpTag, UserAvatar, openMedia } from '@/components/network';
+import { useIdentity } from '@/store/identity';
+import { pickImage } from '@/lib/profile/pickImage';
+import { pickNetMedia } from '@/lib/netMedia';
+import { MAX_PRODUCT_PHOTOS } from '@/lib/shop';
 import { Body, Btn, Card, Empty, Input, Page, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { confirmDelete } from '@/lib/confirm';
@@ -33,6 +38,9 @@ export default function ShopPage() {
   const [address, setAddress] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [nm, setNm] = useState(''); const [ds, setDs] = useState(''); const [pr, setPr] = useState(''); const [st, setSt] = useState('1');
+  const hasBusiness = useIdentity((x) => x.businesses).some((b) => b.owner === me);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [video, setVideo] = useState<string | undefined>();
   const prod = products.find((p) => p.id === openId);
   const total = prod ? prod.price * qty : 0;
   const { used, pay } = applyCredit(total, credit);
@@ -51,13 +59,20 @@ export default function ShopPage() {
       {!isMe && credit > 0 && (
         <Card accent={t.positive}><Row><Icon name="check" size={18} color={t.positive} /><Body style={{ flex: 1 }}>{tl('Hai {0} LP di sconto da usare qui, grazie ai tuoi contributi alle idee.', credit)}</Body></Row></Card>
       )}
-      {isMe && <Btn style={{ marginTop: 12 }} icon="plus" title="Aggiungi un prodotto" onPress={() => setAddOpen(true)} />}
+      {isMe && !hasBusiness && (
+        <Card style={{ marginTop: 12 }}>
+          <Body bold>Lo store è per le attività</Body>
+          <Body small muted style={{ marginTop: 4 }}>Per aprire uno store crea prima la tua attività: poi potrai pubblicare i prodotti con foto e video e incassare in LifePoints.</Body>
+          <Btn small style={{ marginTop: 10 }} icon="briefcase" title="Crea la tua attività" onPress={() => go('businessCreate')} />
+        </Card>
+      )}
+      {isMe && hasBusiness && <Btn style={{ marginTop: 12 }} icon="plus" title="Aggiungi un prodotto" onPress={() => setAddOpen(true)} />}
       <Btn small ghost icon="file" style={{ marginTop: 8, alignSelf: 'flex-start' }} title="I miei ordini" onPress={() => go('orders')} />
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 14 }}>
         {products.length === 0 ? <View style={{ width: '100%' }}><Empty text={isMe ? 'Il tuo negozio è vuoto: aggiungi il primo prodotto.' : 'Questo negozio non ha ancora prodotti.'} /></View> : products.map((p) => (
           <Pressable key={p.id} onPress={() => { setOpenId(p.id); setQty(1); }} accessibilityRole="button" accessibilityLabel={`${p.name} ${p.price} LifePoints`} style={{ width: '47.5%', backgroundColor: t.card, borderRadius: 18, overflow: 'hidden', borderWidth: t.mode === 'light' ? 1 : 0, borderColor: t.border }}>
-            <View style={{ height: 110, backgroundColor: p.color, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 34, fontWeight: '800' }}>{p.name.trim().charAt(0).toUpperCase()}</Text></View>
+            <View style={{ height: 110, backgroundColor: p.color, alignItems: 'center', justifyContent: 'center' }}>{p.images?.[0] ? <Image source={{ uri: p.images[0] }} style={{ width: '100%', height: 110 }} contentFit="cover" /> : <Text style={{ color: '#fff', fontSize: 34, fontWeight: '800' }}>{p.name.trim().charAt(0).toUpperCase()}</Text>}</View>
             <View style={{ padding: 10, gap: 4 }}>
               <Text numberOfLines={2} style={{ color: t.text, fontSize: 14, fontWeight: '700', minHeight: 36 }}>{p.name}</Text>
               <Row>{lp(p.price)}<Text style={{ color: p.stock > 0 ? t.muted : t.danger, fontSize: 11.5 }}>{p.stock > 0 ? tl('{0} disp.', p.stock) : 'Esaurito'}</Text></Row>
@@ -69,7 +84,12 @@ export default function ShopPage() {
       <Sheet visible={!!prod} title={prod?.name ?? ''} onClose={() => setOpenId(null)}>
         {prod ? (
           <>
-            <View style={{ height: 120, borderRadius: 16, backgroundColor: prod.color, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}><Text style={{ color: '#fff', fontSize: 44, fontWeight: '800' }}>{prod.name.trim().charAt(0).toUpperCase()}</Text></View>
+            {(prod.images?.length || prod.video) ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ marginBottom: 10 }}>
+                {(prod.images ?? []).map((u, i) => <Pressable key={i} onPress={() => openMedia({ media: 'photo', seed: prod.name, uri: u })} accessibilityRole="button" accessibilityLabel={`${prod.name} ${i + 1}`}><Image source={{ uri: u }} style={{ width: 210, height: 150, borderRadius: 14 }} contentFit="cover" /></Pressable>)}
+                {prod.video ? <Pressable onPress={() => openMedia({ media: 'video', seed: prod.name, uri: prod.video })} accessibilityRole="button" accessibilityLabel="Guarda il video" style={{ width: 210, height: 150, borderRadius: 14, backgroundColor: prod.color, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={34} color="#fff" /></Pressable> : null}
+              </ScrollView>
+            ) : <View style={{ height: 120, borderRadius: 16, backgroundColor: prod.color, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}><Text style={{ color: '#fff', fontSize: 44, fontWeight: '800' }}>{prod.name.trim().charAt(0).toUpperCase()}</Text></View>}
             {prod.desc ? <Body>{prod.desc}</Body> : null}
             {isMe ? (
               <Btn style={{ marginTop: 12 }} ghost danger icon="trash" title="Togli dal negozio" onPress={() => { const p = prod; setOpenId(null); confirmDelete(`il prodotto «${p.name}»`, () => removeProduct(p.id), () => restoreProduct(p)); }} />
@@ -105,10 +125,15 @@ export default function ShopPage() {
         <Input multiline maxLines={4} placeholder="Descrizione" value={ds} onChangeText={setDs} />
         <Input keyboardType="decimal-pad" placeholder="Prezzo in LifePoints" value={pr} onChangeText={setPr} />
         <Input keyboardType="number-pad" placeholder="Quanti ne hai" value={st} onChangeText={setSt} />
+        <Row gap={8} style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }}>
+          {photos.map((u, i) => <Pressable key={i} onPress={() => setPhotos(photos.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel="Togli la foto"><Image source={{ uri: u }} style={{ width: 56, height: 56, borderRadius: 10 }} contentFit="cover" /></Pressable>)}
+          {photos.length < MAX_PRODUCT_PHOTOS && <Btn small ghost icon="image" title="Foto" onPress={async () => { const r = await pickImage('gallery', { aspect: [4, 3] }); if (r.error) toast(r.error); if (r.uri) setPhotos([...photos, r.uri]); }} />}
+          <Btn small ghost icon="video" title={video ? 'Video scelto' : 'Video'} onPress={async () => { try { const m = await pickNetMedia('video'); if (m) setVideo(m.uri); } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la libreria'); } }} />
+        </Row>
         <Btn title="Aggiungi al negozio" onPress={() => {
-          const err = addProduct(shop, { name: nm, desc: ds, price: parseFloat(pr.replace(',', '.')), stock: parseInt(st, 10) });
+          const err = addProduct(shop, { name: nm, desc: ds, price: parseFloat(pr.replace(',', '.')), stock: parseInt(st, 10), images: photos, video });
           if (err) { toast(err); return; }
-          setNm(''); setDs(''); setPr(''); setSt('1'); setAddOpen(false); toast('Prodotto aggiunto');
+          setNm(''); setDs(''); setPr(''); setSt('1'); setPhotos([]); setVideo(undefined); setAddOpen(false); toast('Prodotto aggiunto');
         }} />
       </Sheet>
     </Page>

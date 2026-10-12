@@ -1,4 +1,5 @@
 import { hashStr, mulberry32, shortDate } from '@/lib/format';
+import { ideaState } from '@/lib/ideas';
 import { totalUnread, useChat } from '@/store/chat';
 import { useNet, type Idea } from '@/store/network';
 
@@ -54,7 +55,7 @@ export function ratingFor(name: string) {
 
 export function receivedLPFor(name: string): number {
   const s = useNet.getState();
-  return s.ideas.filter((i) => i.author === name).reduce((a, i) => a + i.raised, 0) + (s.receivedDaily[name] || 0) + (s.receivedPayments[name] || 0);
+  return s.ideas.filter((i) => i.author === name && ideaState(i, Date.now()) === 'raggiunta').reduce((a, i) => a + i.raised, 0) + (s.receivedDaily[name] || 0) + (s.receivedPayments[name] || 0);
 }
 
 export function bioFor(name: string, me: string): string {

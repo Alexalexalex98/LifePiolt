@@ -129,6 +129,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
   const doubleLike = () => { flash(); if (!useNet.getState().likedPosts.includes(likeKey)) like(); };
   const single = () => { if (post.media) openMedia({ media: post.media, seed: post.author + post.text, uri: post.uri }); else go('postPage', { key: likeKey }); };
   const share = async () => {
+    if (likeKey) useNet.getState().bumpReach(likeKey, 'share');
     try { await Share.share({ message: tl('Post di {0} su LifePilot: {1}', post.author, post.text) }); } catch { toast('Condivisione non disponibile su questo dispositivo'); }
   };
   const onLayout = (e: LayoutChangeEvent) => { const x = Math.round(e.nativeEvent.layout.width); if (x && x !== w) setW(x); };

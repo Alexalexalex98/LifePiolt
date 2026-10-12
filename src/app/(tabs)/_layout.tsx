@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router/js-tabs';
 import { useEffect } from 'react';
+import { settleIdeas } from '@/lib/ideasActions';
 
 import { DiscoverHost } from '@/components/Discover';
 import { MenuSheet, NavBar } from '@/components/NavBar';
@@ -20,6 +21,7 @@ export default function TabsLayout() {
   const notifications = useNet((s) => s.notifications);
   const setBadges = useUI((s) => s.setBadges);
 
+  useEffect(() => { settleIdeas(); }, []);
   useEffect(() => {
     setBadges({ msg: unreadMessages(me), notif: notifications.filter((n) => !n.read).length });
   }, [me, chats, messages, notifications, setBadges]);

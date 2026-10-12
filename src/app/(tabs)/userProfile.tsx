@@ -48,13 +48,14 @@ export default function UserProfile() {
   const postCount = net.posts.filter((p) => p.author === name).length + net.communities.reduce((a, c) => a + c.posts.filter((p) => p.author === name).length, 0);
   const ideasCount = net.ideas.filter((i) => i.author === name).length;
   const sellCount = net.seminars.filter((x) => x.host === name).length + (net.providers.some((x) => x.name === name) ? 1 : 0);
+  const hasBusiness = useIdentity((x) => x.businesses).some((b) => b.owner === name);
   const shopCount = (net.products ?? []).filter((x) => x.shop === name).length;
   const given = isMe ? net.ledger.filter((l) => l.desc.startsWith('Contributo a')).length : 0;
   // contributi per ultimo, dopo ciò che si offre; servizi/seminari solo se offerti
   const pills: { key: string; label: string; icon: string; n: number }[] = [
     { key: 'post', label: 'Post', icon: 'image', n: postCount },
     { key: 'idee', label: 'Idee', icon: 'sparkle', n: ideasCount },
-    ...(shopCount > 0 || isMe ? [{ key: 'store', label: 'Store', icon: 'briefcase', n: shopCount }] : []),
+    ...(shopCount > 0 || (isMe && hasBusiness) ? [{ key: 'store', label: 'Store', icon: 'briefcase', n: shopCount }] : []),
     ...(sellCount > 0 ? [{ key: 'servizi', label: 'Servizi', icon: 'briefcase', n: sellCount }] : []),
     ...(isMe ? [{ key: 'contributi', label: 'Contributi', icon: 'heart', n: given }] : []),
     { key: 'altro', label: 'Altro', icon: 'more-h', n: -1 },

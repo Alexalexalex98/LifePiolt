@@ -7,6 +7,7 @@ import { IdeaCard, LpTag, type ModTarget, MediaViewer, UserAvatar, doContribute,
 import { Body, Btn, IL, Input, Item, Link, Pill, Row, Select, Sheet, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, weekdayShortDate } from '@/lib/format';
+import { IDEA_DEFAULT_DAYS, IDEA_MAX_DAYS, IDEA_PERIODS, ideaState } from '@/lib/ideas';
 import { go } from '@/lib/nav';
 import { paidCancel, freeCancel } from '@/data/marketSeed';
 import { confirmAttendance, hasEnded } from '@/lib/enroll';
@@ -211,7 +212,7 @@ function NetSheetInner() {
     }
     case 'lpTotal': {
       title = 'LifePoints complessivi ricevuti';
-      const raised = net.ideas.filter((i) => i.author === me).reduce((a, i) => a + i.raised, 0);
+      const raised = net.ideas.filter((i) => i.author === me && ideaState(i, Date.now()) === 'raggiunta').reduce((a, i) => a + i.raised, 0);
       const daily = net.receivedDaily[me] || 0;
       const pay = net.receivedPayments[me] || 0;
       const total = raised + daily + pay;
@@ -295,6 +296,7 @@ function NewIdeaView() {
   const [title, setTitle] = useState(''); const [desc, setDesc] = useState('');
   const [type, setType] = useState<'libero' | 'fisso'>('libero'); const [fixed, setFixed] = useState(''); const [reward, setReward] = useState('');
   const [media, setMedia] = useState<NetMedia | null>(null);
+  const [days, setDays] = useState<number>(IDEA_DEFAULT_DAYS); const [target, setTarget] = useState('500');
   return (
     <>
       <Body small muted>Titolare: {me} (le pagine idea sono sempre legate a chi le pubblica).</Body>
@@ -305,13 +307,18 @@ function NewIdeaView() {
       <View style={{ flexDirection: 'row', marginBottom: 8 }}><Pill label="Importo libero" on={type === 'libero'} onPress={() => setType('libero')} /><Pill label="Importo fisso" on={type === 'fisso'} onPress={() => setType('fisso')} /></View>
       {type === 'fisso' && <Input keyboardType="decimal-pad" placeholder="Importo fisso in LP" value={fixed} onChangeText={setFixed} />}
       <Input multiline style={{ minHeight: 60 }} placeholder="Cosa riceve in cambio: un ringraziamento, un prodotto, uno sconto, un invito…" value={reward} onChangeText={setReward} />
+      <Body small muted style={{ marginVertical: 8 }}>Obiettivo e durata della raccolta (al massimo {IDEA_MAX_DAYS} giorni). I LifePoints ti arrivano solo se raggiungi l'obiettivo: altrimenti chi ha contribuito viene rimborsato.</Body>
+      <Input keyboardType="number-pad" placeholder="Obiettivo in LP" value={target} onChangeText={setTarget} />
+      <View style={{ flexDirection: 'row', marginBottom: 8 }}>{IDEA_PERIODS.map((d) => <Pill key={d} label={tl('{0} giorni', d)} on={days === d} onPress={() => setDays(d)} />)}</View>
       <Btn title="Pubblica e fai valutare dall'AI" onPress={() => {
         const ti = title.trim(), de = desc.trim();
         if (!ti || !de) { toast('Compila titolo e descrizione'); return; }
         const fa = type === 'fisso' ? parseFloat(fixed.replace(',', '.')) : null;
         if (type === 'fisso' && (!fa || fa <= 0)) { toast('Inserisci un importo fisso valido'); return; }
+        const tg = Math.floor(parseFloat(target.replace(',', '.')) || 0);
+        if (tg < 10) { toast('L\'obiettivo deve essere di almeno 10 LP'); return; }
         const dup = net.ideas.find((x) => textSimilarity(x.title + ' ' + x.desc, ti + ' ' + de) > 0.35);
-        net.patch({ ideas: [...net.ideas, { id: newId(), title: ti, desc: de, author: me, raised: 0, similarTo: dup ? dup.id : null, rewardType: type, fixedAmount: fa, rewardDesc: reward.trim(), target: 500, ts: Date.now(), media: media?.media ?? null, uri: media?.uri }] });
+        net.patch({ ideas: [...net.ideas, { id: newId(), title: ti, desc: de, author: me, raised: 0, similarTo: dup ? dup.id : null, rewardType: type, fixedAmount: fa, rewardDesc: reward.trim(), target: tg, days, ts: Date.now(), media: media?.media ?? null, uri: media?.uri }] });
         close();
         toast(dup ? `Idea simile già presente: "${dup.title}". La tua è stata registrata come correlata.` : 'Idea pubblicata · punteggio AI: ' + rateIdeaDetailed(de).score + '/100');
       }} />
