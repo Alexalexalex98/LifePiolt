@@ -142,3 +142,11 @@ export function reviewsFor(name: string, demo: boolean): Review[] {
   const sample: Review[] = Array.from({ length: n }, (_, i) => { const [stars, text] = DEMO_REVIEWS[(base + i * 5) % DEMO_REVIEWS.length]; return { from: authors[(base + i) % authors.length], to: name, stars, text, ts: Date.now() - (i + 2) * 5 * 86400000 }; });
   return [...real, ...sample];
 }
+
+/** Demo: se il tuo profilo non ha ancora voti (dati salvati prima), ne crea qualcuno di esempio così le recensioni si vedono. */
+export function ensureDemoVotes(me: string) {
+  const st = useNet.getState();
+  const cur = st.votes[me];
+  if (cur && Object.values(cur).some((v) => v > 0)) return;
+  useNet.setState({ votes: { ...st.votes, [me]: { 1: 0, 2: 1, 3: 1, 4: 3, 5: 6 } } });
+}

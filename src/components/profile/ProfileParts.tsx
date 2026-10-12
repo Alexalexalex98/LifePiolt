@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
+import { fmtDate } from '@/i18n/format';
 import { Text } from '@/components/T';
 
 import { LpTag, openSheet } from '@/components/network';
@@ -9,7 +11,7 @@ import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { confirmDelete } from '@/lib/confirm';
 import { STATUS_LABEL, businessesOnProfile, type IdStatus } from '@/lib/profile/identity';
-import { lifePointsFor, reputationFor, reviewsFor, skillStatesOf } from '@/lib/profile/actions';
+import { ensureDemoVotes, interactionsFor, lifePointsFor, reputationFor, reviewsFor, skillStatesOf } from '@/lib/profile/actions';
 import { HONESTY_NOTICE, SKILL_STATUS_LABEL, isVerified, quota, type SkillState, type SkillStatus } from '@/lib/profile/skills';
 import { skillLabel } from '@/data/skillBank';
 import { useApp } from '@/store/app';
@@ -95,10 +97,13 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
   useNet((s) => s.votes);
   useIdentity((s) => s.qaVotes);
   useIdentity((s) => s.reviews);
+  useEffect(() => { if (isMe && demo) ensureDemoVotes(name); }, [isMe, demo, name]);
   const rep = reputationFor(name);
   const counts = useNet.getState().votes[name] ?? {};
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const reviews = reviewsFor(name, demo);
+  const inter = interactionsFor(name);
+  const qaGiven = (useIdentity.getState().qaVotes ?? []).filter((v) => v.to === name).length;
   return (
     <>
       <Row gap={8} style={{ justifyContent: 'flex-start', alignItems: 'flex-end' }}>
@@ -123,11 +128,21 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
           {[5, 4, 3, 2, 1].map((s) => { const n = counts[s] || 0; return <Item key={s}><Row><Body>{s === 1 ? '1 voto' : tl('{0} voti', s)}</Body><Body small muted>{n}</Body></Row><Progress value={Math.round((n / total) * 100)} /></Item>; })}
         </>
       )}
-      <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Recensioni</Body>
+      {isMe && (
+        <>
+          <Body bold style={{ marginTop: 14, marginBottom: 6 }}>I tuoi numeri</Body>
+          <Item><Row><Body>Mi piace ricevuti</Body><Body bold>{inter.likes}</Body></Row></Item>
+          <Item><Row><Body>Salvataggi dei tuoi post</Body><Body bold>{inter.saves}</Body></Row></Item>
+          <Item><Row><Body>Persone che ti hanno donato un LifePoint giornaliero</Body><Body bold>{inter.lpDonors}</Body></Row></Item>
+          <Item last><Row><Body>Risposte votate</Body><Body bold>{qaGiven}</Body></Row></Item>
+        </>
+      )}
+      <Body bold style={{ marginTop: 14, marginBottom: 6 }}>{isMe ? tl('Le tue recensioni ({0})', reviews.length) : 'Recensioni'}</Body>
       {reviews.length === 0 ? <Body small muted>Ancora nessuna recensione.</Body> : reviews.map((r, i) => (
         <Item key={i} last={i === reviews.length - 1}>
           <Row><Body bold style={{ flex: 1 }}>{r.from}</Body><Row gap={2}>{[1, 2, 3, 4, 5].map((n) => <Icon key={n} name="award" size={13} color={n <= r.stars ? t.accent : t.border} fill={n <= r.stars ? t.accent : 'none'} />)}</Row></Row>
           {r.text ? <Body small style={{ marginTop: 4 }}>{r.text}</Body> : null}
+          {isMe ? <Body small muted style={{ marginTop: 2 }}>{fmtDate(new Date(r.ts), { day: 'numeric', month: 'long', year: 'numeric' })}</Body> : null}
         </Item>
       ))}
       {isMe && <Body small muted style={{ marginTop: 12 }}>Con pochi voti il valore resta vicino a 3,5 e si assesta man mano che arrivano. Votano il profilo le persone che hanno avuto una conversazione vera con te o che si sono iscritte a un tuo seminario, servizio o LifeClub; le risposte le vota chi aveva fatto la domanda. Mi piace, salvataggi e LifePoint contano poco e hanno un tetto. Gli altri vedono solo i voti e le recensioni.</Body>}
