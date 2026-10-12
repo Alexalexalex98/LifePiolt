@@ -6,10 +6,11 @@ import { Text } from '@/components/T';
 import { ProfileClubSection } from '@/components/club/ProfileClubSection';
 import { IdBadge, removeBusinessFlow } from '@/components/profile/ProfileParts';
 import { Body, Btn, Card, Chev, Empty, Item, Page, Row, Switch } from '@/components/ui';
+import { LpTag, UserAvatar } from '@/components/network';
 import { useTheme } from '@/hooks/use-theme';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
-import { BIZ_KIND_LABEL, businessView, publicContacts } from '@/lib/profile/identity';
+import { BIZ_KIND_LABEL, businessView, publicContacts, roleIn, teamOf } from '@/lib/profile/identity';
 import { identityStatusOf } from '@/lib/profile/actions';
 import { useApp } from '@/store/app';
 import { useIdentity } from '@/store/identity';
@@ -33,6 +34,7 @@ export default function BusinessPage() {
   const v = businessView(b, identityStatusOf(b.owner, me) === 'verified');
   const contacts = publicContacts(b.contacts);
   const offers = jobs.filter((j) => j.owner === b.owner && j.status === 'open' && j.company.trim().toLowerCase() === b.name.trim().toLowerCase());
+  const ads = (net.products ?? []).filter((p) => p.shop === b.owner);
   const provider = net.providers.find((x) => x.name === b.owner);
   const seminars = net.seminars.filter((x) => x.host === b.owner);
   const open = (c: { kind: 'email' | 'phone' | 'web'; value: string }) => {
@@ -50,6 +52,7 @@ export default function BusinessPage() {
           <Pressable onPress={() => go('userProfile', { name: v.owner })} accessibilityRole="link" accessibilityLabel={tl('Titolare: {0}', v.owner)}>
             <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>{v.ownerLine}</Text>
           </Pressable>
+          <Text style={{ color: t.muted, fontSize: 13 }}>{roleIn(b, b.owner)}</Text>
           <IdBadge status={v.ownerVerified ? 'verified' : 'none'} />
         </View>
       </View>
@@ -64,6 +67,41 @@ export default function BusinessPage() {
           ))}
         </Card>
       )}
+
+      {teamOf(b).length > 1 && (
+        <View style={{ marginTop: 18 }}>
+          <Text accessibilityRole="header" style={{ color: t.text, fontSize: 17, fontWeight: '800', marginBottom: 8 }}>Le persone della pagina</Text>
+          <Card>
+            {teamOf(b).map((m, i, arr) => (
+              <Item key={m.name} last={i === arr.length - 1} onPress={() => go('userProfile', { name: m.name })}>
+                <Row><UserAvatar name={m.name} size={36} /><View style={{ flex: 1, marginStart: 10 }}><Body bold>{m.name}{m.name === me ? ' (tu)' : ''}</Body><Body small muted>{m.role}</Body></View><Chev /></Row>
+              </Item>
+            ))}
+          </Card>
+        </View>
+      )}
+
+      <View style={{ marginTop: 18 }}>
+        <Row style={{ marginBottom: 8 }}>
+          <Text accessibilityRole="header" style={{ color: t.text, fontSize: 17, fontWeight: '800', flex: 1 }}>Annunci di prodotti</Text>
+          {isOwner && <Btn small icon="plus" title="Crea annuncio" onPress={() => go('shopPage', { name: me, new: '1' })} />}
+        </Row>
+        {ads.length === 0 ? <Card><Body small muted>{isOwner ? 'Non hai ancora annunci. Crea il primo: foto, descrizione e prezzo in LifePoints. Lo vedono tutti nel Marketplace.' : 'Nessun annuncio al momento.'}</Body></Card> : (
+          <Card>
+            {ads.map((p, i) => (
+              <Item key={p.id} last={i === ads.length - 1} onPress={() => go('shopPage', { name: b.owner })}>
+                <Row>
+                  <View style={{ width: 54, height: 54, borderRadius: 12, backgroundColor: p.color, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+                    {p.images?.[0] ? <Image source={{ uri: p.images[0] }} style={{ width: 54, height: 54 }} contentFit="cover" /> : <Text style={{ color: '#fff', fontWeight: '800', fontSize: 20 }}>{p.name.charAt(0)}</Text>}
+                  </View>
+                  <View style={{ flex: 1, marginStart: 10 }}><Body bold numberOfLines={1}>{p.name}</Body><Body small muted>{p.stock > 0 ? tl('{0} disponibili', p.stock) : 'Esaurito'}</Body></View>
+                  <Row gap={2}><Body bold>{p.price}</Body><LpTag size={13} /></Row>
+                </Row>
+              </Item>
+            ))}
+          </Card>
+        )}
+      </View>
 
       {offers.length > 0 && (
         <View style={{ marginTop: 18 }}>

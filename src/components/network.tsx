@@ -69,12 +69,7 @@ export const LpAmount = ({ n, size = 13, bold = true, color }: { n: number; size
 );
 
 export function UserAvatar({ name, size = 30 }: { name: string; size?: number }) {
-  const me = useApp((s) => s.account.name);
-  const demo = useApp((s) => s.demo);
-  const photo = useApp((s) => s.account.photo);
-  // la foto scelta dall'utente ha la precedenza; quella del prototipo compare solo nella modalità demo
-  if (name === me && photo) return <Avatar name={name} size={size} uri={{ uri: photo }} />;
-  return name === me && demo ? <Avatar name={name} size={size} uri={require('../../assets/proto/user-photo.jpg')} /> : <Avatar name={name} size={size} />;
+  return <Avatar name={name} size={size} />;
 }
 
 /* ---------- visualizzatore a schermo intero per foto e video ---------- */

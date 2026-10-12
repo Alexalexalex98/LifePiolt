@@ -2,7 +2,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { Pressable, Share, View } from 'react-native';
 
 import { LiveAccess } from '@/components/live/LiveAccess';
-import { EnrollmentBox, ItemRatingLine, Price, datedSlots, modeLabel } from '@/components/market';
+import { ItemReviews } from '@/components/ItemReviews';
+import { EnrollmentBox, Price, datedSlots, modeLabel } from '@/components/market';
 import { Badge, MediaBlock, ModButton, UserAvatar } from '@/components/network';
 import { E2eNote } from '@/components/PrivacyContent';
 import { Body, Btn, Card, Chev, Empty, H, IL, Item, Page, Row } from '@/components/ui';
@@ -47,7 +48,7 @@ export default function ServicePage() {
         <View style={{ gap: 8 }}>
           <IL icon="clock" bold>Sessione di {fmtDuration(info.durationMin)}</IL>
           <IL icon={info.mode === 'presenza' ? 'location' : 'video'}>{info.place}</IL>
-          <IL icon="euro"><Price n={p.price} per="/ sessione" /></IL>
+          <IL icon="lp"><Price n={p.price} per="/ sessione" /></IL>
           <IL icon="info" muted small>Lingua: {info.language}</IL>
           <E2eNote />
         </View>
@@ -57,7 +58,6 @@ export default function ServicePage() {
       {live && <LiveAccess kind="service" refId={p.name} title={p.role} host={p.name} dataMode={info.mode} startsAt={live.startsAt} durationMin={live.durationMin} isHost={isMine} enrolled={!!nextBooking} guest={isMine ? 'Cliente' : undefined} />}
 
       <Card>
-        <ItemRatingLine refKey={`service:${p.name}`} label="Valutazione delle sedute" />
         <H>Cosa offre</H>
         <Body small>{info.desc}</Body>
         <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Cosa ottieni</Body>
@@ -78,6 +78,8 @@ export default function ServicePage() {
           </Row>
         </Pressable>
       </Card>
+
+      <ItemReviews refKey={`service:${p.name}`} title="Recensioni delle sedute" />
 
       <Card>
         <H>Pagamento e annullamento</H>

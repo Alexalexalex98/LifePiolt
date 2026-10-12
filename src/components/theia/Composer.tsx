@@ -27,7 +27,7 @@ import { VoiceDiagSheet } from './VoiceDiagSheet';
 import { VoiceNotice } from './VoiceNotice';
 
 /** `images` = foto (vanno al router come prima); `attachments` = tutto il resto (documenti, testo, posizione, contatto, nota, impegno). */
-export type ComposerSend = { text: string; images: Attachment[]; attachments?: Att[]; source: 'typed' | 'voice'; lang: string; forced: boolean };
+export type ComposerSend = { text: string; images: Attachment[]; attachments?: Att[]; source: 'typed' | 'voice'; lang: string; forced: boolean; /** audio registrato: va in chat comunque, anche se non si può trascrivere */ voiceNote?: { uri: string; durationMs: number } };
 
 const BARS = 7;
 
@@ -99,7 +99,7 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
 
   const send = useCallback((m: Partial<ComposerSend> & { text: string }) => {
     const images: Attachment[] = atts.filter((a) => a.kind === 'image' && a.uri).map((a) => ({ id: a.id, uri: a.uri!, mime: a.mime ?? 'image/jpeg', width: a.width, height: a.height }));
-    onSend({ text: m.text, images: m.images ?? images, attachments: atts.filter((a) => a.kind !== 'image'), source: m.source ?? 'typed', lang: m.lang ?? lang, forced: m.forced ?? over != null });
+    onSend({ text: m.text, images: m.images ?? images, attachments: atts.filter((a) => a.kind !== 'image'), source: m.source ?? 'typed', lang: m.lang ?? lang, forced: m.forced ?? over != null, ...(m.voiceNote ? { voiceNote: m.voiceNote } : {}) });
     setText(''); setAtts([]); setOver(null); setHint(null); setVoiceErr(null); voiceFrom.current = null;
   }, [onSend, atts, lang, over]);
 
@@ -157,7 +157,7 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
     const n = await note.stop();
     if (!n) { toast('Registrazione troppo breve'); return; }
     const tcr = getTranscriber();
-    if (!tcr.available) setHint(translateText('Audio registrato. In Expo Go non posso trascriverlo: scrivi il testo, oppure usa l\'app installata (build) per dettare.'));
+    if (!tcr.available) { send({ text: '', source: 'voice', voiceNote: n }); note.discard(); return; }
     if (tcr.available) {
       try { const txt = await tcr.transcribe(n.uri, localeFor(speechLang)); if (txt.trim()) { setText((p) => (p.trim() ? `${p.trim()} ${txt}` : txt)); note.discard(); } }
       catch { setHint(translateText('Non sono riuscita a trascrivere l\'audio: resta salvato sul telefono.')); }

@@ -25,7 +25,7 @@ import { t as tl } from '@/i18n/core';
 /** Negozio di un profilo: prodotti acquistabili con LifePoints, spediti direttamente dal negozio. Il titolare aggiunge i prodotti. */
 export default function ShopPage() {
   const t = useTheme();
-  const { name: param } = useLocalSearchParams<{ name?: string }>();
+  const { name: param, new: newAd } = useLocalSearchParams<{ name?: string; new?: string }>();
   const me = useApp((s) => s.account.name);
   const shop = param || me;
   const isMe = shop === me;
@@ -37,7 +37,7 @@ export default function ShopPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
   const [address, setAddress] = useState('');
-  const [addOpen, setAddOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(newAd === '1');
   const [nm, setNm] = useState(''); const [ds, setDs] = useState(''); const [pr, setPr] = useState(''); const [st, setSt] = useState('1');
   const hasBusiness = useIdentity((x) => x.businesses).some((b) => b.owner === me);
   const [photos, setPhotos] = useState<string[]>([]);

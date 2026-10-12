@@ -6,7 +6,7 @@ import { Pressable, View } from 'react-native';
 import { Body, Btn, Card, H, Input, Page, Pill, Row, Switch } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { go, goBack } from '@/lib/nav';
-import { BIZ_COLORS, BIZ_KIND_LABEL, can, lockedReason, validateBusiness, type BizKind } from '@/lib/profile/identity';
+import { BIZ_COLORS, BIZ_KIND_LABEL, BIZ_ROLES, can, lockedReason, validateBusiness, type BizKind } from '@/lib/profile/identity';
 import { identityStatusOf } from '@/lib/profile/actions';
 import { pickImage } from '@/lib/profile/pickImage';
 import { useApp } from '@/store/app';
@@ -31,15 +31,18 @@ export default function BusinessCreate() {
   const [showEmail, setShowEmail] = useState(existing?.contacts.showEmail ?? false);
   const [showPhone, setShowPhone] = useState(existing?.contacts.showPhone ?? false);
   const [showWeb, setShowWeb] = useState(existing?.contacts.showWeb ?? true);
+  const [ownerRole, setOwnerRole] = useState(existing?.ownerRole ?? 'Titolare');
+  const [members, setMembers] = useState<{ name: string; role: string }[]>(existing?.members ?? []);
   const locked = !existing && !can(status, 'business');
 
   const save = () => {
     const why = validateBusiness({ name, kind });
     if (why) { toast(why); return; }
+    const cleanMembers = members.map((m) => ({ name: m.name.trim(), role: m.role.trim() || 'Collaboratore' })).filter((m) => m.name && m.name !== me);
     const contacts = { email: email.trim(), phone: phone.trim(), web: web.trim(), showEmail, showPhone, showWeb };
     const st = useIdentity.getState();
-    if (existing) { st.updateBusiness(existing.id, { name: name.trim(), kind, desc: desc.trim(), color, logo, contacts }); toast('Attività aggiornata'); goBack(); return; }
-    const nid = st.addBusiness({ owner: me, name: name.trim(), kind, desc: desc.trim(), color, logo, contacts });
+    if (existing) { st.updateBusiness(existing.id, { name: name.trim(), kind, desc: desc.trim(), color, logo, contacts, ownerRole: ownerRole.trim() || 'Titolare', members: cleanMembers }); toast('Attività aggiornata'); goBack(); return; }
+    const nid = st.addBusiness({ owner: me, name: name.trim(), kind, desc: desc.trim(), color, logo, contacts, ownerRole: ownerRole.trim() || 'Titolare', members: cleanMembers });
     toast('Attività creata');
     go('businessPage', { id: nid });
   };
@@ -74,6 +77,24 @@ export default function BusinessCreate() {
         {(Object.keys(BIZ_KIND_LABEL) as BizKind[]).map((k) => <Pill key={k} label={BIZ_KIND_LABEL[k]} on={kind === k} onPress={() => setKind(k)} />)}
       </Row>
       <Input multiline style={{ minHeight: 80 }} placeholder="Descrizione: cosa fate" value={desc} onChangeText={setDesc} maxLength={400} />
+
+      <H style={{ marginTop: 8 }}>La tua carica</H>
+      <Body small muted style={{ marginBottom: 6 }}>Compare sul tuo profilo accanto al nome della pagina.</Body>
+      <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }} gap={8}>
+        {BIZ_ROLES.map((r) => <Pill key={r} label={r} on={ownerRole === r} onPress={() => setOwnerRole(r)} />)}
+      </Row>
+      <Input placeholder="Oppure scrivi la tua carica" value={ownerRole} onChangeText={setOwnerRole} maxLength={40} />
+
+      <H style={{ marginTop: 8 }}>Persone collegate</H>
+      <Body small muted style={{ marginBottom: 6 }}>Aggiungi chi lavora con te: la pagina compare anche sul loro profilo, con la loro carica.</Body>
+      {members.map((m, i) => (
+        <Row key={i} gap={6} style={{ marginBottom: 4 }}>
+          <Input flex={1} placeholder="Nome della persona" value={m.name} onChangeText={(v) => setMembers((l) => l.map((x, j) => (j === i ? { ...x, name: v } : x)))} />
+          <Input flex={1} placeholder="Carica" value={m.role} onChangeText={(v) => setMembers((l) => l.map((x, j) => (j === i ? { ...x, role: v } : x)))} />
+          <Pressable onPress={() => setMembers((l) => l.filter((_, j) => j !== i))} hitSlop={8} accessibilityLabel="Togli"><Body color={t.danger}>x</Body></Pressable>
+        </Row>
+      ))}
+      {members.length < 10 && <Btn small ghost icon="plus" title="Aggiungi una persona" onPress={() => setMembers((l) => [...l, { name: '', role: '' }])} />}
 
       <H style={{ marginTop: 8 }}>Contatti pubblici</H>
       <Body small muted style={{ marginBottom: 6 }}>Scegli quali mostrare sulla pagina. Quelli spenti restano privati.</Body>

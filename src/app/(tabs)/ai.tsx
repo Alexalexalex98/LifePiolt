@@ -74,7 +74,7 @@ export default function LifeChat() {
     if (busy) return;
     setBusy(true);
     try {
-      await sendTheia({ text: m.text, lang: m.lang, appLang, forced: m.forced, source: m.source, images: m.images, attachments: m.attachments, topic: section !== GENERALE ? section : undefined });
+      await sendTheia({ text: m.text, lang: m.lang, appLang, forced: m.forced, source: m.source, images: m.images, attachments: m.attachments, voiceNote: m.voiceNote, topic: section !== GENERALE ? section : undefined });
     } finally { setBusy(false); }
     // se la domanda cambia argomento resto in Generale, che mostra tutto
     setTimeout(() => list.current?.scrollToEnd({ animated: true }), 60);

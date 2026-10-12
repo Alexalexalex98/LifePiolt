@@ -202,7 +202,9 @@ export function IL({ icon, children, color, small, bold, muted }: { icon: string
   const c = color ?? (muted ? t.muted : t.text);
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
-      <Icon name={icon} size={small ? 16 : 19} color={c} stroke={1.9} />
+      {icon === 'lp'
+        ? <Image source={t.mode === 'light' ? require('../../assets/proto/lp-icon-b.png') : require('../../assets/proto/lp-icon-w.png')} style={{ width: small ? 14 : 17, height: small ? 17 : 21 }} resizeMode="contain" accessibilityLabel="LifePoints" />
+        : <Icon name={icon} size={small ? 16 : 19} color={c} stroke={1.9} />}
       <Body small={small} bold={bold} color={c} style={{ flexShrink: 1 }}>{children}</Body>
     </View>
   );
@@ -396,7 +398,12 @@ export function TabRow({ options, value, onChange }: { options: string[]; value:
   );
 }
 
+/** La foto della persona (la sua, scelta dal profilo; altrimenti quella predefinita) compare ovunque il suo nome ha un avatar. */
+const DEFAULT_PHOTO = require('../../assets/proto/user-photo.jpg');
 export function Avatar({ name, size = 30, uri }: { name: string; size?: number; uri?: any }) {
+  const me = useApp((a) => a.account.name);
+  const photo = useApp((a) => a.account.photo);
+  if (!uri && name && name === me) uri = photo ? { uri: photo } : DEFAULT_PHOTO;
   const hash = Math.abs([...name].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)) % 360;
   if (uri) return <Image source={uri} style={{ width: size, height: size, borderRadius: size / 2 }} />;
   return (

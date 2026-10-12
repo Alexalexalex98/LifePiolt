@@ -57,7 +57,9 @@ export function lockedReason(status: IdStatus, a: Action): string | null {
 export type BizKind = 'attivita' | 'associazione' | 'azienda' | 'scuola' | 'altro';
 export const BIZ_KIND_LABEL: Record<BizKind, string> = { attivita: 'Attività', associazione: 'Associazione', azienda: 'Azienda', scuola: 'Scuola', altro: 'Altro' };
 export type BizContacts = { email?: string; phone?: string; web?: string; showEmail: boolean; showPhone: boolean; showWeb: boolean };
-export type Business = { id: string; owner: string; name: string; kind: BizKind; desc: string; color: string; logo?: string; contacts: BizContacts; createdAt: number; /** l'utente può togliere l'attività dal proprio profilo (non l'esistenza dell'attività) */ hiddenOnProfile?: boolean };
+export type BizMember = { name: string; role: string };
+export const BIZ_ROLES = ['Titolare', 'Fondatore', 'CEO', 'Direttore', 'Responsabile', 'Socio', 'Collaboratore'] as const;
+export type Business = { id: string; owner: string; name: string; kind: BizKind; desc: string; color: string; logo?: string; contacts: BizContacts; createdAt: number; /** carica del titolare nella pagina (es. Fondatore, CEO) */ ownerRole?: string; /** altre persone collegate alla pagina, ciascuna con la sua carica */ members?: BizMember[]; /** l'utente può togliere l'attività dal proprio profilo (non l'esistenza dell'attività) */ hiddenOnProfile?: boolean };
 
 export function validateBusiness(b: Pick<Business, 'name' | 'kind'>): string | null {
   if (b.name.trim().length < 2) return 'Scrivi il nome dell’attività.';
@@ -80,7 +82,18 @@ export function publicContacts(c: BizContacts): { kind: 'email' | 'phone' | 'web
 }
 /** Elenco sul profilo: il proprietario vede tutto (con indicazione di quelle tolte); gli altri solo quelle non tolte. */
 export function businessesOnProfile(list: Business[], profile: string, viewerIsOwner: boolean): Business[] {
-  return list.filter((b) => b.owner === profile && (viewerIsOwner || !b.hiddenOnProfile));
+  return list.filter((b) => (b.owner === profile || (b.members ?? []).some((m) => m.name === profile)) && (viewerIsOwner || !b.hiddenOnProfile));
+}
+/** Carica di `person` nella pagina: quella del titolare (default «Titolare») o quella dichiarata per il collaboratore. */
+export function roleIn(b: Business, person: string): string | null {
+  if (b.owner === person) return (b.ownerRole ?? '').trim() || 'Titolare';
+  const m = (b.members ?? []).find((x) => x.name === person);
+  return m ? (m.role.trim() || 'Collaboratore') : null;
+}
+/** Persone da mostrare sulla pagina: il titolare per primo, poi gli altri senza doppioni. */
+export function teamOf(b: Business): { name: string; role: string }[] {
+  const seen = new Set<string>([b.owner]);
+  return [{ name: b.owner, role: roleIn(b, b.owner) ?? 'Titolare' }, ...(b.members ?? []).filter((m) => m.name.trim() && !seen.has(m.name) && (seen.add(m.name), true)).map((m) => ({ name: m.name.trim(), role: m.role.trim() || 'Collaboratore' }))];
 }
 /** Offerta di lavoro: collega l'attività del titolare con lo stesso nome dell'azienda. */
 export function businessForJob(list: Business[], job: { owner: string; company: string }): Business | null {

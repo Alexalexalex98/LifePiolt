@@ -54,6 +54,8 @@ type NetState = {
   lpMoves?: LpMove[];
   /** negozi: prodotti di tutti, ordini miei e sconti da contributo (per negozio) */
   products?: Product[];
+  /** gli annunci di esempio sono già stati aggiunti */
+  sampleShops?: boolean;
   orders?: Order[];
   shopCredits?: Record<string, number>;
   /** quanto ho versato a ogni idea (per il rimborso se non raggiunge l'obiettivo) */

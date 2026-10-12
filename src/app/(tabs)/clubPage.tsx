@@ -7,6 +7,7 @@ import { ClubChatPreview } from '@/components/club/ChatPreview';
 import { dayLong, perMonth } from '@/components/club/format';
 import { useClubSeed } from '@/components/club/hooks';
 import { LessonRow } from '@/components/club/LessonRow';
+import { ItemReviews } from '@/components/ItemReviews';
 import { Chip, CoverArt, PreviewNote, Stars } from '@/components/club/parts';
 import { PremiumSheet } from '@/components/club/PremiumSheet';
 import { UserAvatar } from '@/components/network';
@@ -172,6 +173,7 @@ export default function ClubPage() {
           <Body small muted>{rv.length ? `Media ${rr.rating.toFixed(1)} su 5 da ${rv.length} ${rv.length === 1 ? 'voto' : 'voti'} (pochi voti pesano meno)` : 'Ancora nessun voto. Si vota dopo essersi iscritti almeno una volta.'}</Body>
         </Card>
       )}
+      <ItemReviews refKey={`club:${club.id}`} title="Recensioni del LifeClub" readOnly />
       <PreviewNote />
 
       <PremiumSheet club={club} visible={premium} onClose={() => setPremium(false)} />

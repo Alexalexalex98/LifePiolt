@@ -3,7 +3,8 @@ import { Pressable, Share, View } from 'react-native';
 
 import { LiveAccess } from '@/components/live/LiveAccess';
 import { ParticipantsCard } from '@/components/ParticipantsCard';
-import { EnrollmentBox, ItemRatingLine, Price, SPONSORED_TEXT, modeLabel, useSeminarEnrollment } from '@/components/market';
+import { ItemReviews } from '@/components/ItemReviews';
+import { EnrollmentBox, Price, SPONSORED_TEXT, modeLabel, useSeminarEnrollment } from '@/components/market';
 import { Badge, ModButton, UserAvatar, openSheet } from '@/components/network';
 import { E2eNote } from '@/components/PrivacyContent';
 import { Body, Btn, Card, Chev, Empty, H, IL, Page, Row } from '@/components/ui';
@@ -52,7 +53,7 @@ export default function SeminarPage() {
           <IL icon="clock">Durata: {fmtDuration(f.durationMin)}</IL>
           <IL icon={s.mode === 'presenza' ? 'location' : 'video'}>{s.place || modeLabel(s.mode)}</IL>
           {f.seats > 0 && <IL icon="users">{f.seatsLeft === 0 ? 'Posti esauriti' : `${f.seatsLeft} posti liberi su ${f.seats}`}</IL>}
-          <IL icon="euro"><Price n={s.price} /></IL>
+          <IL icon="lp"><Price n={s.price} /></IL>
           <E2eNote />
         </View>
       </Card>
@@ -90,7 +91,7 @@ export default function SeminarPage() {
         <Body small muted style={{ marginTop: 8 }}>{s.cancelPolicy || 'Puoi annullare l\'iscrizione fino all\'inizio.'}</Body>
       </Card>
 
-      <ItemRatingLine refKey={`seminar:${s.id}`} label="Valutazione del seminario" />
+      <ItemReviews refKey={`seminar:${s.id}`} title="Recensioni del seminario" />
       <LiveAccess kind="seminar" refId={String(s.id)} title={s.title} host={s.host} dataMode={s.mode} startsAt={f.startsAt} durationMin={f.durationMin} isHost={isHost} enrolled={!!activeEnr && activeEnr.status === 'enrolled'} />
 
       {isHost ? (

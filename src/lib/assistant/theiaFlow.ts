@@ -28,6 +28,8 @@ export type SendInput = {
   /** allegati non-immagine (documenti, testo, posizione, contatto, nota, impegno) */
   attachments?: Att[];
   topic?: string;
+  /** audio registrato che non si può trascrivere: compare comunque nella chat */
+  voiceNote?: { uri: string; durationMs: number };
 };
 
 const store = () => useAssistant.getState();
@@ -36,6 +38,12 @@ const clean = (s: string) => s.replace(/["“”«»]/g, '').replace(/\s+/g, ' '
 
 export async function sendTheia(i: SendInput): Promise<void> {
   const text = i.text.trim();
+  if (i.voiceNote) {
+    const s = Math.round(i.voiceNote.durationMs / 1000);
+    store().push({ who: 'me', text: `${t('Messaggio vocale')} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`, source: 'chat', topic: i.topic, ext: { lang: i.lang, voice: true } });
+    pushAi(t('Ho ricevuto il tuo vocale e l\'ho salvato sul telefono. Qui non riesco ancora a trascriverlo: scrivimi il testo, oppure detta dall\'app installata.'));
+    return;
+  }
   const images = i.images ?? [];
   const atts = i.attachments ?? [];
   if (!text && !images.length && !atts.length) return;

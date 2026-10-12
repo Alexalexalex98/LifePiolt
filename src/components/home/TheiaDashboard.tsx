@@ -16,6 +16,10 @@ import { dayKey, } from '@/lib/format';
 import { useInterests } from '@/store/interests';
 import { useLife, taskIsDone } from '@/store/life';
 import { useNet } from '@/store/network';
+import { holdings, useFin } from '@/store/finance';
+import { useApp } from '@/store/app';
+import { buildSections, type SectionRow, type Tone } from '@/lib/dashSections';
+import { translateText } from '@/i18n/core';
 import { showUndoToast, toast } from '@/store/toast';
 
 type Dash = ReturnType<typeof useDashboard>;
@@ -54,6 +58,7 @@ function KindRow({ kind, text }: { kind: 'fact' | 'reading' | 'suggestion'; text
 function InsightItem({ c, dash, onMetric }: { c: Candidate; dash: Dash; onMetric: (id: string) => void }) {
   const t = useTheme();
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const st = useInterests.getState;
   const lvl = c.reliability?.level;
   const lc = lvl === 'alta' ? t.positive : lvl === 'media' ? t.warn : t.muted;
@@ -70,6 +75,20 @@ function InsightItem({ c, dash, onMetric }: { c: Candidate; dash: Dash; onMetric
     showUndoToast(`Non vedrai più così spesso: ${TOPIC_LABEL[c.topic]}`, () => { st().dashUnmute(c.id); st().dashUnmute(`sub:${c.topic}:${c.sub ?? ''}`); });
   };
   const sev = c.severity === 'bad' ? t.danger : c.severity === 'warn' ? t.warn : c.severity === 'good' ? t.positive : t.accent;
+  if (!expanded) {
+    return (
+      <Card style={{ padding: 14 }} onPress={() => setExpanded(true)}>
+        <Row gap={10}>
+          <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: sev }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' }}>{TOPIC_LABEL[c.topic]} · {c.period}</Text>
+            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', marginTop: 2 }} numberOfLines={2}>{c.observed}</Text>
+          </View>
+          <Icon name="arrow-down" size={16} color={t.muted} />
+        </Row>
+      </Card>
+    );
+  }
   return (
     <Card style={{ padding: 16 }}>
       <Row style={{ justifyContent: 'flex-start' }} gap={8}>
@@ -94,6 +113,7 @@ function InsightItem({ c, dash, onMetric }: { c: Candidate; dash: Dash; onMetric
           <Btn small ghost style={{ flex: 1 }} title="Rimanda a domani" onPress={snooze} />
           <Btn small ghost style={{ flex: 1 }} title={open ? 'Meno dettagli' : 'Maggiori dettagli'} onPress={() => setOpen(!open)} />
         </Row>
+        <Row><Pressable onPress={() => setExpanded(false)} accessibilityRole="button" style={{ paddingVertical: 4 }}><Text style={{ color: t.muted, fontSize: 13, fontWeight: '600' }}>Riduci</Text></Pressable></Row>
         <Pressable onPress={remove} accessibilityRole="button" style={{ alignSelf: 'flex-start', paddingVertical: 4 }}><Text style={{ color: t.muted, fontSize: 13, fontWeight: '600', textDecorationLine: 'underline' }}>Non mi interessa</Text></Pressable>
       </View>
     </Card>
@@ -137,17 +157,41 @@ function PersonalizeSheet({ visible, onClose }: { visible: boolean; onClose: () 
   );
 }
 
+const TONE_COLOR = (t: ReturnType<typeof useTheme>, tone: Tone) => (tone === 'good' ? t.positive : tone === 'warn' ? t.warn : tone === 'bad' ? t.danger : tone === 'neutral' ? t.accent : t.border);
+
+/** Una riga a colpo d'occhio: pallino di stato, titolo, dato e dettaglio. Si tocca per entrare. */
+function SectionLine({ r, last }: { r: SectionRow; last: boolean }) {
+  const t = useTheme();
+  const c = TONE_COLOR(t, r.tone);
+  return (
+    <Pressable onPress={() => go(r.page, r.params)} accessibilityRole="button" accessibilityLabel={`${translateText(r.title)}: ${r.headline}${r.detail ? `, ${r.detail}` : ''}`}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: last ? 0 : 1, borderBottomColor: t.border }}>
+      <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: c + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={r.icon} size={19} color={r.tone === 'none' ? t.muted : c} stroke={2} /></View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: t.muted, fontSize: 12, fontWeight: '600' }} numberOfLines={1}>{translateText(r.title)}</Text>
+        <Text style={{ color: r.tone === 'none' ? t.muted : t.text, fontSize: 17, fontWeight: '800', marginTop: 1 }} numberOfLines={1}>{r.headline}</Text>
+        {r.detail ? <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 1 }} numberOfLines={1}>{r.detail}</Text> : null}
+      </View>
+      <Icon name="arrow-right" size={16} color={t.muted} />
+    </Pressable>
+  );
+}
+
 export function TheiaDashboard({ dash, needs, name, onPlan, onMetric, moodToday }: { dash: Dash; needs: Needs; name: string; onPlan: () => void; onMetric: (id: string) => void; moodToday?: string | null }) {
   const t = useTheme();
   const prefs = useDashPrefs();
+  const me = useApp((s) => s.account.name);
   const [custom, setCustom] = useState(false);
   const events = useLife((s) => s.events), tasks = useLife((s) => s.tasks);
+  const net = useNet();
+  const fin = useFin();
+  void onPlan;
 
   const cands = useMemo(() => [
     ...dash.insights.filter((i) => i.severity !== 'good').map((i) => fromInsight(i, dash.byId, dash.corrs)),
     ...needs.map(fromNeed),
   ], [dash.insights, dash.byId, dash.corrs, needs]);
-  const top = useMemo(() => rankCandidates(cands, prefs, 3), [cands, prefs]);
+  const top = useMemo(() => rankCandidates(cands, prefs, 2), [cands, prefs]);
 
   const today = dayKey();
   const next = useMemo(() => nextEvent(events, new Date()), [events]);
@@ -158,55 +202,40 @@ export function TheiaDashboard({ dash, needs, name, onPlan, onMetric, moodToday 
     openTasks: open.length, urgentTasks: open.filter((x) => x.urgent).map((x) => x.t), dataDays: dash.dataDays, hasAnyData: dash.list.length > 0, top, moodToday,
   });
 
-  // andamento: solo con almeno 7 giorni di dati
-  const trendIds = ['sleep', 'steps', 'mood'];
-  const trends = dash.dataDays >= 7 ? trendIds.map((id) => dash.byId[id]).filter(Boolean).slice(0, 3) : [];
-  const upcoming = Object.keys(events).filter((d) => d >= today).sort().flatMap((d) => (events[d] || []).slice().sort((a, b) => a.time.localeCompare(b.time)).map((e) => ({ d, ...e }))).slice(0, 3);
-  const dayLabel = (d: string) => (d === today ? 'Oggi' : `${d.slice(8)}/${d.slice(5, 7)}`);
+  const rows = useMemo(() => {
+    const booked = net.seminars.filter((s) => s.host === me).map((s) => ({ title: s.title, count: (net.participants?.[`seminar:${s.id}`] ?? []).length, startsAt: s.startsAt ?? 0 }))
+      .concat((net.participants?.[`service:${me}`] ? [{ title: 'Le tue sedute', count: net.participants[`service:${me}`].length, startsAt: Date.now() + 1 }] : []));
+    let cc = 0; let last: { author: string; text: string } | undefined;
+    for (const p of net.posts.filter((x) => x.author === me)) { const list = net.comments['standalone:' + p.id] ?? []; cc += list.length; if (list.length) last = list[list.length - 1]; }
+    const hold = holdings(fin.stocks);
+    const value = hold.reduce((s, x) => s + x.shares * x.price, 0), invested = hold.reduce((s, x) => s + x.shares * x.avgCost, 0);
+    const dayAbs = hold.reduce((s, x) => s + x.shares * x.changeAbs, 0);
+    return buildSections({
+      next: next ? { title: next.ev.title, time: next.ev.time, daysAhead: next.daysAhead } : null, booked, comments: { count: cc, last },
+      invest: { hasHoldings: hold.length > 0, dayPct: value - dayAbs > 0 ? (dayAbs / (value - dayAbs)) * 100 : 0, totalPct: invested ? ((value - invested) / invested) * 100 : 0 },
+      scores: dash.scores, tasks: { open: open.length, urgent: open.filter((x) => x.urgent).length }, lifePoints: net.lifePoints, now: Date.now(),
+    });
+  }, [net.seminars, net.participants, net.posts, net.comments, net.lifePoints, fin.stocks, dash.scores, open.length, next, me]);
 
   return (
     <>
-      {/* il quadro di oggi */}
-      <Card style={{ padding: 18 }}>
-        <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="sparkle" size={16} color={t.accent} /><Text style={{ color: t.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' }}>Il quadro di oggi</Text></Row>
-        <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', marginTop: 8 }}>{brief.headline}</Text>
-        {brief.lines.map((l, i) => <KindRow key={i} kind={l.kind} text={l.text} />)}
-        {brief.dataNote ? <Body small color={t.warn} style={{ marginTop: 12 }}>{brief.dataNote}</Body> : null}
-        {brief.state === 'tranquillo' ? <Body small muted style={{ marginTop: 10 }}>{calmSuggestion({ nextEvent: next ? { title: next.ev.title, time: next.ev.time, daysAhead: next.daysAhead } : null, eventsToday: eventsToday.length })}</Body> : null}
+      <Card style={{ padding: 16 }}>
+        <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="sparkle" size={15} color={t.accent} /><Text style={{ color: t.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' }}>Il quadro di oggi</Text></Row>
+        <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', marginTop: 6 }}>{brief.headline}</Text>
+        {brief.dataNote ? <Body small color={t.warn} style={{ marginTop: 6 }}>{brief.dataNote}</Body> : null}
       </Card>
 
-      {/* cosa merita attenzione */}
+      <Card style={{ paddingVertical: 4, marginTop: 10 }}>
+        {rows.map((r, i) => <SectionLine key={r.id} r={r} last={i === rows.length - 1} />)}
+      </Card>
+
       <Row style={{ marginTop: 18, marginBottom: 6 }}>
-        <Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>Cosa merita attenzione</Text>
+        <Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>Da guardare</Text>
         <Pressable onPress={() => setCustom(true)} accessibilityRole="button" accessibilityLabel="Personalizza le priorità" hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Icon name="settings" size={15} color={t.muted} /><Text style={{ color: t.muted, fontSize: 13, fontWeight: '600' }}>Personalizza</Text></Pressable>
       </Row>
       {top.length === 0 ? (
-        <Card><Body muted>{brief.state === 'pochi_dati' ? 'Non c\'è ancora abbastanza per segnalarti qualcosa con sicurezza.' : 'Niente di rilevante da segnalare: sei in linea con i tuoi obiettivi e le tue abitudini.'}</Body></Card>
+        <Card><Body muted>{brief.state === 'pochi_dati' ? 'Non c\'è ancora abbastanza per segnalarti qualcosa con sicurezza.' : 'Niente di particolare: sei in linea con i tuoi obiettivi.'}</Body></Card>
       ) : top.map((c) => <InsightItem key={c.id} c={c} dash={dash} onMetric={onMetric} />)}
-
-      {/* prossimi impegni e andamento */}
-      <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', marginTop: 18, marginBottom: 6 }}>Prossimi impegni e andamento</Text>
-      <Card style={{ padding: 16 }}>
-        {upcoming.length === 0 ? <Body muted>Nessun impegno in arrivo.</Body> : upcoming.map((e, i) => (
-          <Pressable key={`${e.d}${e.time}${i}`} onPress={() => go('plan')} style={{ flexDirection: 'row', gap: 10, paddingVertical: 4 }}>
-            <Text style={{ color: t.accent, fontSize: 13, fontWeight: '700', width: 78 }}>{dayLabel(e.d)} {e.time}</Text>
-            <Body small style={{ flex: 1 }} numberOfLines={1}>{e.title}</Body>
-          </Pressable>
-        ))}
-        <Btn small ghost style={{ marginTop: 8 }} title="Aggiungi un impegno" onPress={onPlan} />
-        <View style={{ height: 1, backgroundColor: t.border, marginVertical: 12 }} />
-        {trends.length === 0 ? (
-          <Body small muted>{dash.list.length ? `Con ${dash.dataDays} ${dash.dataDays === 1 ? 'giorno' : 'giorni'} di dati non mostro andamenti: ne servono almeno 7.` : 'Nessun dato registrato: gli andamenti compariranno qui.'}</Body>
-        ) : trends.map((a) => {
-          const up = a.slopePctWeek > 1, down = a.slopePctWeek < -1;
-          return (
-            <Row key={a.def.id} style={{ paddingVertical: 4 }}>
-              <Body small style={{ flex: 1 }}>{a.def.label}</Body>
-              <Row gap={4}><Icon name={up ? 'trend-up' : down ? 'trend-down' : 'minus'} size={14} color={t.muted} /><Body small muted>{up || down ? `${a.slopePctWeek > 0 ? '+' : ''}${Math.round(a.slopePctWeek)}% a settimana` : 'stabile'}</Body></Row>
-            </Row>
-          );
-        })}
-      </Card>
       <PersonalizeSheet visible={custom} onClose={() => setCustom(false)} />
     </>
   );

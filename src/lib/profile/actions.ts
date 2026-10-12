@@ -176,11 +176,23 @@ export function itemRateBlock(me: string, ref: string): string | null {
   if ((useIdentity.getState().itemVotes ?? []).some((v) => v.from === me && v.ref === ref)) return 'Hai già valutato questo contenuto.';
   return null;
 }
-export function rateItem(me: string, ref: string, stars: number): string | null {
+export function rateItem(me: string, ref: string, stars: number, text?: string): string | null {
   const why = itemRateBlock(me, ref);
   if (why) return why;
   const st = useNet.getState();
   const to = ref.startsWith('seminar:') ? st.seminars.find((s) => String(s.id) === ref.slice(8))!.host : ref.slice(8);
-  useIdentity.getState().addItemVote({ from: me, to, ref, stars: Math.max(1, Math.min(5, Math.round(stars))), ts: Date.now() });
+  useIdentity.getState().addItemVote({ from: me, to, ref, stars: Math.max(1, Math.min(5, Math.round(stars))), ts: Date.now(), ...(text?.trim() ? { text: text.trim().slice(0, 240) } : {}) });
   return null;
+}
+
+/** Solo demo: segna come già frequentato un seminario o una seduta, per provare le valutazioni. */
+export function demoAttend(me: string, ref: string): void {
+  const st = useNet.getState();
+  const isSem = ref.startsWith('seminar:');
+  const sem = isSem ? st.seminars.find((s) => String(s.id) === ref.slice(8)) : undefined;
+  const host = isSem ? sem?.host : ref.slice(8);
+  if (!host || host === me) return;
+  if (st.enrollments.some((e) => e.host === host && e.status === 'attended' && (isSem ? e.kind === 'seminar' && e.ref === ref.slice(8) : e.kind === 'service'))) return;
+  const startsAt = Date.now() - 3 * 86400000;
+  useNet.setState({ enrollments: [{ id: 'd' + Date.now().toString(36), kind: isSem ? 'seminar' : 'service', ref: isSem ? ref.slice(8) : `${host}|demo`, title: sem?.title ?? 'Seduta', host, price: 0, startsAt, durationMin: 60, status: 'attended', createdAt: startsAt }, ...st.enrollments] });
 }

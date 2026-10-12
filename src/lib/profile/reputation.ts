@@ -36,7 +36,7 @@ const CAP_LIKES = 200, CAP_SAVES = 50, CAP_DONORS = 20;
 export type QaVote = { from: string; to: string; stars: number; ts: number; /** scambio votato (es. 'standalone:3#2') */ ref?: string; /** "utile / non utile": se false le stelle valgono al massimo 2 */ helpful?: boolean };
 /** Valutazione di un singolo corso, seminario, seduta o LifeClub di una persona: vale un terzo di un voto al profilo. */
 export const ITEM_WEIGHT = 1 / 3;
-export type ItemVote = { from: string; to: string; /** corso/seminario/seduta valutato (es. 'seminar:2', 'service:Anna', 'club:club-mio') */ ref: string; stars: number; ts: number };
+export type ItemVote = { from: string; to: string; /** corso/seminario/seduta valutato (es. 'seminar:2', 'service:Anna', 'club:club-mio') */ ref: string; stars: number; ts: number; /** motivazione facoltativa */ text?: string };
 
 export type Interactions = { likes: number; saves: number; /** persone DIVERSE che hanno donato un LifePoint */ lpDonors: number };
 export type Confidence = 'nessuna' | 'bassa' | 'media' | 'alta';

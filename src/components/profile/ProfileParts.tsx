@@ -10,7 +10,7 @@ import { formatCHF } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { confirmDelete } from '@/lib/confirm';
-import { STATUS_LABEL, businessesOnProfile, type IdStatus } from '@/lib/profile/identity';
+import { STATUS_LABEL, businessesOnProfile, roleIn, type IdStatus } from '@/lib/profile/identity';
 import { ensureDemoVotes, interactionsFor, lifePointsFor, reputationFor, reviewsFor, skillStatesOf } from '@/lib/profile/actions';
 import { HONESTY_NOTICE, SKILL_STATUS_LABEL, isVerified, quota, type SkillState, type SkillStatus } from '@/lib/profile/skills';
 import { skillLabel } from '@/data/skillBank';
@@ -235,7 +235,7 @@ export function BusinessSection({ name, me }: { name: string; me: string }) {
             <Item key={b.id} last={i === list.length - 1} onPress={() => go('businessPage', { id: b.id })}>
               <Row>
                 <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: b.color, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>{b.name.trim().charAt(0).toUpperCase()}</Text></View>
-                <View style={{ flex: 1 }}><Body bold>{b.name}</Body><Body small muted>{b.hiddenOnProfile ? 'Non visibile sul tuo profilo' : b.kind === 'azienda' ? 'Azienda' : b.kind === 'associazione' ? 'Associazione' : b.kind === 'scuola' ? 'Scuola' : b.kind === 'attivita' ? 'Attività' : 'Altro'}</Body></View>
+                <View style={{ flex: 1 }}><Body bold>{b.name}</Body><Body small muted>{b.hiddenOnProfile ? 'Non visibile sul tuo profilo' : `${roleIn(b, name) ?? ''} · ${b.kind === 'azienda' ? 'Azienda' : b.kind === 'associazione' ? 'Associazione' : b.kind === 'scuola' ? 'Scuola' : b.kind === 'attivita' ? 'Attività' : 'Altro'}`}</Body></View>
                 <Chev />
               </Row>
             </Item>
