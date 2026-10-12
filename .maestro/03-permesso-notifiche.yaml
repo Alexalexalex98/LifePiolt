@@ -1,0 +1,32 @@
+appId: com.lifepilot.app
+name: Permesso notifiche - messaggio preliminare, dialog di sistema, stato Attive
+tags:
+  - native
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: settings
+# sezione "Notifiche sul telefono" (NotifSettings.tsx): all'inizio "Non ancora richieste"
+- scrollUntilVisible:
+    element: "Notifiche sul telefono"
+    direction: DOWN
+    timeout: 30000
+- assertVisible: "Non ancora richieste"
+- takeScreenshot: 03-prima
+- tapOn: "Attiva le notifiche"
+# messaggio preliminare (NotifPrompt.tsx): "Vuoi ricevere gli avvisi?" con "Attiva" / "Non ora"
+- assertVisible: "Vuoi ricevere gli avvisi?"
+- takeScreenshot: 03-preprompt
+- tapOn: "Attiva"
+# dialog di sistema (Android 13+). Su Android <= 12 non compare e il permesso e' gia' concesso.
+- runFlow: subflows/consenti-permesso.yaml
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element: "Notifiche sul telefono"
+    direction: UP
+    timeout: 10000
+    optional: true
+- assertVisible: "Attive"
+- takeScreenshot: 03-attive

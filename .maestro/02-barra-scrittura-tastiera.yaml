@@ -1,0 +1,32 @@
+appId: com.lifepilot.app
+name: La barra di scrittura di Theia resta sopra la tastiera (campo e Invia visibili)
+tags:
+  - smoke
+  - native
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: ai
+- assertVisible:
+    text: "Scrivi un comando o una domanda.*"
+- takeScreenshot: 02-theia-chiusa
+- tapOn:
+    text: "Scrivi un comando o una domanda.*"
+# tastiera aperta: il campo e i pulsanti devono restare TUTTI visibili (regressione: barra coperta dalla tastiera su Android)
+- inputText: "ciao Theia come stai oggi"
+- assertVisible:
+    text: "ciao Theia come stai oggi"
+- assertVisible:
+    # accessibilityLabel di Composer.tsx: "Invia" (disabilitato finche' il campo e' vuoto) e "Allega"
+    text: "Invia"
+- assertVisible: "Allega"
+- takeScreenshot: 02-tastiera-aperta
+# anche con testo lungo (il campo cresce fino a 5 righe) la barra non deve sparire
+- inputText: " e questa e una seconda parte del messaggio molto lunga che va a capo piu di una volta per verificare la crescita del campo"
+- assertVisible: "Invia"
+- takeScreenshot: 02-tastiera-testo-lungo
+- tapOn: "Invia"
+- hideKeyboard
+- takeScreenshot: 02-dopo-invio

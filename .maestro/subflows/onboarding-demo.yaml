@@ -1,0 +1,13 @@
+# Onboarding con dati demo: nome Alex -> "Esplora con dati demo" -> chiude la guida -> Home.
+appId: com.lifepilot.app
+---
+- runFlow: avvio-pulito.yaml
+- tapOn: "Il tuo nome"
+- inputText: "Alex"
+- hideKeyboard
+- tapOn: "Esplora con dati demo"
+- extendedWaitUntil:
+    visible: "Salta il tour"
+    timeout: 20000
+    optional: true
+- runFlow: chiudi-guida.yaml

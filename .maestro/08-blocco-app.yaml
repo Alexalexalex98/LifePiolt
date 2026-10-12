@@ -1,0 +1,46 @@
+appId: com.lifepilot.app
+name: Blocco dell'app - attivazione dalla pagina Sicurezza
+# Il dialog biometrico/PIN dell'emulatore richiede un blocco schermo configurato (adb shell locksettings set-pin 1234, vedi android-e2e.yml).
+tags:
+  - native
+  - slow
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: security
+- scrollUntilVisible:
+    element: "Blocco dell'app"
+    direction: DOWN
+    timeout: 30000
+- assertVisible: "Blocca l'app"
+- takeScreenshot: 08-sezione
+- tapOn: "Blocca l'app"
+# conferma con il blocco schermo del dispositivo (PIN 1234 impostato dal workflow)
+- runFlow:
+    when:
+      visible: ".*(PIN|Pin|pin|Conferma|Confirm).*"
+    commands:
+      - inputText: "1234"
+      - pressKey: Enter
+- waitForAnimationToEnd
+- takeScreenshot: 08-attivato
+# riavvio a freddo: deve comparire lo schermo di blocco con "Sblocca"
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: "Sblocca"
+    timeout: 30000
+- takeScreenshot: 08-bloccata
+- tapOn: "Sblocca"
+- runFlow:
+    when:
+      visible: ".*(PIN|Pin|pin|Conferma|Confirm).*"
+    commands:
+      - inputText: "1234"
+      - pressKey: Enter
+- extendedWaitUntil:
+    notVisible: "Sblocca"
+    timeout: 15000
+- takeScreenshot: 08-sbloccata

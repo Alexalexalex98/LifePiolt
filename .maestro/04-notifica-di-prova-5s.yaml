@@ -1,0 +1,38 @@
+appId: com.lifepilot.app
+name: Notifica di prova dopo 5 secondi (tendina di sistema)
+# FRAGILE: dipende dal dispositivo (tendina, Do Not Disturb, ottimizzazione batteria). Non fa fallire la pipeline.
+tags:
+  - native
+  - slow
+  - fragile
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: diagnostics
+- runFlow:
+    when:
+      visible: "Attiva"
+    commands:
+      - tapOn: "Attiva"
+      - runFlow: subflows/consenti-permesso.yaml
+# nella Diagnostica: pulsante che programma una notifica locale (testo da verificare sul dispositivo)
+- scrollUntilVisible:
+    element: ".*(notifica di prova|Notifica di prova|Prova la notifica).*"
+    direction: DOWN
+    timeout: 30000
+- tapOn: ".*(notifica di prova|Notifica di prova|Prova la notifica).*"
+- takeScreenshot: 04-programmata
+# manda l'app in background e apre la tendina
+- pressKey: home
+- swipe:
+    start: 50%, 0%
+    end: 50%, 70%
+    duration: 400
+- extendedWaitUntil:
+    visible: ".*LifePilot.*"
+    timeout: 20000
+- takeScreenshot: 04-tendina
+- tapOn: ".*LifePilot.*"
+- takeScreenshot: 04-dopo-tocco

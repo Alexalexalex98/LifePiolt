@@ -15,7 +15,7 @@ export function statusLabel(phase: string, hasEnabled: boolean, lastOk?: number)
     case 'error': return { label: 'Errore', tone: 'bad', detail: 'L’ultimo tentativo non e’ riuscito. Riprovo da solo con attese crescenti.' };
     case 'syncing': return { label: 'Sincronizzazione in corso', tone: 'muted', detail: 'Invio e ricezione delle modifiche.' };
     case 'paused': return { label: 'In pausa', tone: 'warn', detail: 'La sincronizzazione e’ in pausa: nulla viene inviato.' };
-    default: return hasEnabled || lastOk ? { label: 'Sincronizzato', tone: 'ok', detail: 'Le categorie abilitate sono allineate con il server.' } : { label: 'Solo sul telefono', tone: 'muted', detail: 'Nessuna categoria abilitata: tutto resta sul telefono.' };
+    default: return hasEnabled && lastOk ? { label: 'Sincronizzato', tone: 'ok', detail: 'Le categorie abilitate sono allineate con il server.' } : { label: hasEnabled ? 'In attesa del primo invio' : 'Solo sul telefono', tone: 'muted', detail: hasEnabled ? 'Categorie abilitate: premi Sincronizza ora quando un server e’ collegato.' : 'Nessuna categoria abilitata: tutto resta sul telefono.' };
   }
 }
 

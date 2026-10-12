@@ -1,0 +1,147 @@
+name: ci
+
+# Controlli di qualita' su ogni push e pull request:
+#   check    : tsc + eslint (errori bloccano, warning no) + npm test (Node 22 e 24)
+#   web-e2e  : export web + smoke Playwright (chromium) contro un server statico
+#   doctor   : expo-doctor (non bloccante: richiede rete)
+#   i18n     : controllo cataloghi (non bloccante; il workflow i18n.yml li rigenera)
+# I test NATIVI (Maestro su emulatore Android) sono in android-e2e.yml (manuale / su tag).
+on:
+  push:
+    branches: ['**']
+    tags-ignore: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  EXPO_NO_TELEMETRY: '1'
+  NODE_LTS: '22'
+
+jobs:
+  check:
+    name: tipi, lint, test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      # .npmrc contiene legacy-peer-deps=true: il flag e' esplicito per chiarezza
+      - name: Installa dipendenze
+        run: npm ci --legacy-peer-deps
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: ESLint (solo errori bloccano)
+        run: npx eslint src
+      - name: Test unitari e di logica (include migrazione dati)
+        run: npm test
+      - name: Flussi Maestro (controllo statico)
+        run: npm run maestro:check
+
+  perf:
+    name: benchmark (budget larghi)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_LTS }}
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Benchmark
+        run: npm run bench
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-report
+          path: tests/perf/report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  web-e2e:
+    name: web export + e2e Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: check
+    env:
+      E2E_PORT: '8142'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_LTS }}
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Export web
+        run: npx expo export --platform web --output-dir "$RUNNER_TEMP/lp-web"
+      # Playwright NON e' nelle dipendenze del progetto (non tocchiamo il lockfile): lo installiamo a parte.
+      - name: Installa Playwright + chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null
+          npm install playwright@1.49.1 --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          echo "PLAYWRIGHT_PATH=$RUNNER_TEMP/pw/node_modules/playwright" >> "$GITHUB_ENV"
+          echo "CHROMIUM_PATH=$(node -e "console.log(require('$RUNNER_TEMP/pw/node_modules/playwright').chromium.executablePath())")" >> "$GITHUB_ENV"
+      - name: Avvia server statico
+        run: |
+          mkdir -p "$RUNNER_TEMP/logs"
+          nohup node scripts/ci/serve-static.mjs "$RUNNER_TEMP/lp-web" "$E2E_PORT" > "$RUNNER_TEMP/logs/serve.log" 2>&1 &
+          node scripts/ci/wait-http.mjs "http://127.0.0.1:$E2E_PORT/" 30
+      - name: Smoke e2e
+        run: node tests/e2e/smoke.mjs "http://127.0.0.1:$E2E_PORT" 2>&1 | tee "$RUNNER_TEMP/logs/e2e.log"
+      - name: Raccogli log
+        if: always()
+        run: |
+          mkdir -p e2e-artifacts && cp -r "$RUNNER_TEMP/logs/." e2e-artifacts/ 2>/dev/null || true
+          ls /tmp/*.png "$RUNNER_TEMP"/*.png 2>/dev/null | xargs -I{} cp {} e2e-artifacts/ 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-e2e
+          path: e2e-artifacts
+          if-no-files-found: ignore
+          retention-days: 14
+
+  doctor:
+    name: expo-doctor (non bloccante)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_LTS }}
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npx expo-doctor
+
+  i18n:
+    name: controllo traduzioni (non bloccante)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_LTS }}
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npm run i18n:check

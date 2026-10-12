@@ -1,0 +1,33 @@
+appId: com.lifepilot.app
+name: Creazione di un impegno con luogo
+tags:
+  - smoke
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: plan
+- takeScreenshot: 05-plan
+# il giorno si apre toccando una data del calendario: il numero del giorno corrente non e' prevedibile, quindi
+# si apre il primo giorno visibile con "15" (SELETTORE DA VERIFICARE: servirebbe un testID sui giorni, vedi docs/qualita.md)
+- tapOn:
+    text: "15"
+    index: 0
+- extendedWaitUntil:
+    visible: "Nuovo impegno.*"
+    timeout: 10000
+- tapOn: "09:00"
+- eraseText
+- inputText: "10:30"
+- tapOn: "Nuovo impegno.*"
+- inputText: "Visita dal dentista"
+- tapOn: "Luogo \\(facoltativo\\).*"
+- inputText: "Via Roma 1, Milano"
+- hideKeyboard
+- takeScreenshot: 05-compilato
+- tapOn: "Aggiungi al calendario"
+- assertVisible: "Impegno aggiunto"
+- assertVisible: "Visita dal dentista"
+- assertVisible: ".*Via Roma 1.*"
+- takeScreenshot: 05-creato

@@ -1,0 +1,22 @@
+appId: com.lifepilot.app
+name: Avvio pulito, onboarding con dati demo, Home
+tags:
+  - smoke
+---
+- runFlow: subflows/avvio-pulito.yaml
+- takeScreenshot: 01-onboarding
+- tapOn: "Il tuo nome"
+- inputText: "Alex"
+- hideKeyboard
+- assertVisible: "Esplora con dati demo"
+- tapOn: "Esplora con dati demo"
+# la guida a schermo intero compare alla prima apertura
+- extendedWaitUntil:
+    visible: "Salta il tour"
+    timeout: 20000
+- takeScreenshot: 01-guida
+- tapOn: "Salta il tour"
+- assertNotVisible: "Salta il tour"
+- takeScreenshot: 01-home
+# la Home mostra il saluto con il nome (ripiego: la barra di navigazione)
+- assertVisible: ".*Alex.*"

@@ -1,0 +1,13 @@
+# All'apertura compare la guida a schermo intero: la chiude se c'e' (non fallisce se non c'e').
+appId: com.lifepilot.app
+---
+- runFlow:
+    when:
+      visible: "Salta il tour"
+    commands:
+      - tapOn: "Salta il tour"
+- runFlow:
+    when:
+      visible: "Inizia"
+    commands:
+      - tapOn: "Inizia"

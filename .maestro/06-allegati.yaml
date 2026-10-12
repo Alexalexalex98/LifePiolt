@@ -1,0 +1,34 @@
+appId: com.lifepilot.app
+name: Foglio Allega di Theia con le nove voci
+tags:
+  - smoke
+  - native
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: ai
+- tapOn: "Allega"
+- assertVisible: "Fino a .* allegati.*"
+# le nove voci (AttachSheet.tsx)
+- assertVisible: "Scatta una foto"
+- assertVisible: "Galleria"
+- assertVisible: "Scegli un file"
+- assertVisible: "Incolla testo"
+- assertVisible: "Posizione"
+- assertVisible: "Contatto"
+- assertVisible: "Nota"
+- assertVisible: "Da LifeDrive"
+- assertVisible: "Impegno"
+- takeScreenshot: 06-nove-voci
+# Incolla testo -> allega un testo e torna alla barra
+- tapOn: "Incolla testo"
+- assertVisible: "Incolla un testo"
+- takeScreenshot: 06-incolla
+- tapOn: "Indietro"
+- assertVisible: "Scatta una foto"
+# Posizione: chiede il permesso di sistema (o spiega come concederlo)
+- tapOn: "Posizione"
+- runFlow: subflows/consenti-permesso.yaml
+- takeScreenshot: 06-posizione

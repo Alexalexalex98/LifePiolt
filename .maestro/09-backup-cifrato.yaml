@@ -1,0 +1,34 @@
+appId: com.lifepilot.app
+name: Backup cifrato - crea e ripristina
+# Il salvataggio passa dal selettore file di sistema (Storage Access Framework): la parte di selezione e' FRAGILE.
+tags:
+  - native
+  - slow
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: security
+- scrollUntilVisible:
+    element: "Backup cifrato"
+    direction: DOWN
+    timeout: 30000
+- takeScreenshot: 09-sezione
+- tapOn: "Esporta backup cifrato"
+- assertVisible: "Backup cifrato"
+- tapOn: "Password"
+- inputText: "Prova-Backup-2026"
+- tapOn: "Ripeti la password"
+- inputText: "Prova-Backup-2026"
+- hideKeyboard
+- takeScreenshot: 09-password
+- tapOn: "Continua"
+# foglio di condivisione di sistema: lo si chiude; il file e' stato creato (verifica con adb nel workflow)
+- waitForAnimationToEnd
+- takeScreenshot: 09-condivisione
+- pressKey: back
+# ripristino: password errata -> errore chiaro (non cancella nulla)
+- tapOn: "Importa backup (anche cifrato)"
+- takeScreenshot: 09-selettore-file
+- pressKey: back

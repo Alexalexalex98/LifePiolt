@@ -1,0 +1,30 @@
+appId: com.lifepilot.app
+name: Colloquio - invito del recruiter e accettazione del candidato
+# Richiede dati demo con una candidatura con invito (route interviewView). Se non c'e', il flusso verifica solo che la pagina si apra.
+tags:
+  - smoke
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: interviewView
+- takeScreenshot: 13-candidatura
+- runFlow:
+    when:
+      visible: "Accetta"
+    commands:
+      - tapOn:
+          text: "Accetta"
+          index: 0
+      - assertVisible: "Accetta il colloquio"
+      - takeScreenshot: 13-fasce
+      - tapOn: "Accetta il colloquio"
+      - assertVisible: ".*(Colloquio fissato|fissato).*"
+      - takeScreenshot: 13-accettato
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: interviewInvite
+- assertVisible: ".*colloquio.*"
+- takeScreenshot: 13-invito

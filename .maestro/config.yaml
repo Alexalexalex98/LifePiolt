@@ -1,0 +1,15 @@
+# Workspace Maestro di LifePilot. Si lancia dalla radice del repo:
+#   maestro test .maestro                          # tutti i flussi
+#   maestro test .maestro --include-tags=smoke     # solo gli smoke
+#   maestro test .maestro --exclude-tags=slow,fragile
+# I sotto-flussi riutilizzabili stanno in subflows/ (non vengono eseguiti da soli).
+# Prerequisito: emulatore/telefono con lingua ITALIANO (vedi docs/qualita.md) e l'app installata (APK preview/release, NON dev client).
+flows:
+  - "*.yaml"
+excludeTags:
+  - disabled
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - 01-avvio-onboarding
+    - 02-barra-scrittura-tastiera

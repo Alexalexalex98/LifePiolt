@@ -1,0 +1,29 @@
+appId: com.lifepilot.app
+name: Microfono di Theia - permesso e messaggio di diagnostica
+tags:
+  - native
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: ai
+# accessibilityLabel di Composer.tsx: "Parla a Theia (Italiano)" (testo variabile con la lingua: regex)
+- tapOn: "Parla a Theia.*"
+- runFlow: subflows/consenti-permesso.yaml
+- waitForAnimationToEnd
+- takeScreenshot: 07-dopo-tocco
+# Su emulatore senza riconoscimento vocale deve comparire UN messaggio chiaro (VoiceNotice), mai silenzio.
+# Due esiti ammessi: sta ascoltando ("Ferma l'ascolto") oppure compare l'avviso con la diagnostica.
+- runFlow:
+    when:
+      visible: "Ferma l'ascolto"
+    commands:
+      - takeScreenshot: 07-ascolto
+      - tapOn: "Ferma l'ascolto"
+- runFlow:
+    when:
+      notVisible: "Ferma l'ascolto"
+    commands:
+      - assertVisible: ".*(Voce non disponibile|microfono|Microfono|riconoscimento vocale).*"
+      - takeScreenshot: 07-messaggio

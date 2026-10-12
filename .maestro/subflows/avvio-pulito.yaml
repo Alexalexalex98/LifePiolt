@@ -1,0 +1,12 @@
+# Avvio da zero: cancella i dati dell'app, concede NESSUN permesso (cosi' i dialog di sistema compaiono davvero).
+appId: com.lifepilot.app
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    stopApp: true
+    permissions:
+      all: unset
+- extendedWaitUntil:
+    visible: "Il tuo nome"
+    timeout: 60000

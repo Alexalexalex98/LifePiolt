@@ -48,3 +48,4 @@ example
 
 # i18n translation report/cache
 .i18n-cache/
+tests/perf/report.json

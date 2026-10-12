@@ -1,0 +1,38 @@
+appId: com.lifepilot.app
+name: LifeClub - iscrizione gratuita e domanda ancorata
+tags:
+  - smoke
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: lifenetwork
+- takeScreenshot: 12-network
+# apre il primo club dell'elenco (SELETTORE DA VERIFICARE: servirebbe un testID sulle card dei club)
+- scrollUntilVisible:
+    element: ".*LifeClub.*"
+    direction: DOWN
+    timeout: 30000
+    optional: true
+- tapOn: ".*LifeClub.*"
+- takeScreenshot: 12-club
+- tapOn:
+    text: "Iscriviti gratis.*"
+    index: 0
+- assertVisible: ".*(Iscritt|iscritt|Sei dentro|Benvenut).*"
+- takeScreenshot: 12-iscritto
+# domanda ancorata a una lezione/pagina: "Chiedi qui" (DocStage.tsx) -> campo -> Invia
+- scrollUntilVisible:
+    element: "Chiedi qui"
+    direction: DOWN
+    timeout: 30000
+    optional: true
+- tapOn:
+    text: "Chiedi qui"
+    optional: true
+- inputText: "Come si applica questo passaggio?"
+- hideKeyboard
+- tapOn: "Invia"
+- assertVisible: "Come si applica questo passaggio?"
+- takeScreenshot: 12-domanda

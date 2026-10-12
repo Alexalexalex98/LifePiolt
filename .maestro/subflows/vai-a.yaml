@@ -1,0 +1,7 @@
+# Apre una pagina dell'app col collegamento diretto lifepilot:///<ROUTE> (route di src/app/(tabs): ai, plan, settings, security, ...).
+# FRAGILE: dipende dallo schema "lifepilot" di app.json e dall'esistenza della route. Parametro: ROUTE.
+appId: com.lifepilot.app
+---
+- openLink: "lifepilot:///${ROUTE}"
+- waitForAnimationToEnd
+- runFlow: chiudi-guida.yaml

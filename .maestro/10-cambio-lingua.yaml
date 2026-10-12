@@ -1,0 +1,50 @@
+appId: com.lifepilot.app
+name: Cambio lingua it -> en -> ar (RTL)
+tags:
+  - smoke
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: settings
+- scrollUntilVisible:
+    element: "English"
+    direction: DOWN
+    timeout: 40000
+- takeScreenshot: 10-elenco-lingue
+- tapOn: "English"
+# la UI cambia subito (catalogo en.json): "Salta il tour" -> "Skip tour", "Sicurezza" -> "Security"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element: "Language"
+    direction: UP
+    timeout: 20000
+    optional: true
+- takeScreenshot: 10-inglese
+- scrollUntilVisible:
+    element: "العربية"
+    direction: DOWN
+    timeout: 40000
+- tapOn: "العربية"
+# su nativo la scrittura da destra a sinistra richiede il riavvio: l'app lo dice con un avviso
+- runFlow:
+    when:
+      visible: "OK"
+    commands:
+      - tapOn: "OK"
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd
+- takeScreenshot: 10-arabo-rtl
+# torna all'italiano per non lasciare lo stato sporco
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: settings
+- scrollUntilVisible:
+    element: "Italiano"
+    direction: DOWN
+    timeout: 40000
+- tapOn: "Italiano"
+- takeScreenshot: 10-italiano

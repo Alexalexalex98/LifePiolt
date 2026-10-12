@@ -1,0 +1,39 @@
+appId: com.lifepilot.app
+name: Bollette - incolla testo, revisione, conferma, piano
+tags:
+  - smoke
+---
+- runFlow: subflows/onboarding-demo.yaml
+- runFlow:
+    file: subflows/vai-a.yaml
+    env:
+      ROUTE: lifefinance
+- scrollUntilVisible:
+    element: "Aggiungi bolletta.*"
+    direction: DOWN
+    timeout: 30000
+    optional: true
+- tapOn: "Aggiungi bolletta.*"
+- tapOn: "Incolla il testo"
+- tapOn: "Incolla qui il testo della bolletta.*"
+- inputText: "Enel Energia Bolletta luce n. 123456 Importo da pagare EUR 84,50 Scadenza 28/10/2026 Periodo di fatturazione settembre ottobre 2026"
+- hideKeyboard
+- takeScreenshot: 11-testo
+- tapOn: "Analizza il testo"
+# revisione (billReview): l'app mostra cosa ha capito, l'utente controlla e conferma
+- extendedWaitUntil:
+    visible: ".*(84,50|84.50).*"
+    timeout: 20000
+- takeScreenshot: 11-revisione
+- scrollUntilVisible:
+    element: "Conferma.*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Conferma.*"
+# piano e promemoria
+- extendedWaitUntil:
+    visible: "Apri la bolletta"
+    timeout: 20000
+- takeScreenshot: 11-piano
+- tapOn: "Apri la bolletta"
+- assertVisible: ".*Enel.*"
