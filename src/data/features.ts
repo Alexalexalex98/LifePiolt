@@ -27,7 +27,7 @@ export const featureGroups: FeatureGroup[] = [
   {
     id: 'assistente', title: 'Assistente e Theia', tagline: 'Parla, lui fa', icon: 'ai', color: '#b96bff',
     items: [
-      { title: 'Comandi in italiano, senza AI', text: '"Aggiungi riunione al piano", "sposta", "elimina", "segna fatto": capisce, chiede ciò che manca e ti fa annullare tutto.', page: 'ai' },
+      { title: 'Comandi in italiano, a impatto ambientale minimo', text: '"Aggiungi riunione al piano", "sposta", "elimina", "segna fatto": capisce, chiede ciò che manca e ti fa annullare tutto.', page: 'ai' },
       { title: 'Scegli tu', text: 'Dì "scegli tu" e l’algoritmo trova il momento migliore nel tuo calendario.', cmd: 'aggiungi call al piano' },
       { title: 'Chat per argomento', text: 'Una chat Generale con tutto e cartelle che si creano da sole (finanze, musica, arte…). Cercabili come in ChatGPT.', page: 'ai' },
       { title: 'Theia sullo schermo', text: 'Tocca il pulsante, trascina sull’area che ti interessa e chiedi. La conversazione viene archiviata nella sezione giusta.', page: 'ai' },

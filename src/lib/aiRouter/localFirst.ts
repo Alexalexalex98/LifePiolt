@@ -32,7 +32,7 @@ export function localVerdict(text: string): LocalVerdict {
   const n = normalize(text);
   for (const c of LOCAL_CAPABILITIES) {
     for (const w of c.words) {
-      if (indexOfWord(n, normalize(w)) >= 0) return { local: true, capability: c.id, reason: tx('Lo faccio io sul telefono ({0}): nessuna AI esterna.', tx(c.label)) };
+      if (indexOfWord(n, normalize(w)) >= 0) return { local: true, capability: c.id, reason: tx('Lo faccio io sul telefono ({0}): nessun server acceso, nessuna acqua per raffreddarlo.', tx(c.label)) };
     }
   }
   return { local: false, reason: '' };

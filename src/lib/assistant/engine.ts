@@ -639,7 +639,7 @@ export class Assistant {
     return {
       handled: true,
       text: [
-        t('Posso fare tutto questo, e lo faccio io senza AI:'),
+        t('Posso fare tutto questo, e lo faccio sul telefono, senza accendere server:'),
         t('• Piano: "aggiungi riunione al piano domani alle 15", "sposta la riunione a venerdì", "elimina la riunione di domani", "che impegni ho domani?", "quando sono libero venerdì?"'),
         t('• Organizzazione: "pianificami il mese", "cosa devo fare adesso?", "segna la relazione come urgente", "segna la visita dal dentista come importante", dì "scegli tu" e scelgo io l’orario migliore'),
         t('• Ricorrenze e luoghi: "ogni martedì alle 18 palestra", "riunione a Zurigo domani alle 11" (ti avviso se i tempi di viaggio non bastano), "a che ora è il dentista?", poi "spostala a venerdì"'),

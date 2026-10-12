@@ -10,8 +10,8 @@ export function LocalCapabilities() {
   const t = useTheme();
   return (
     <Card>
-      <H>Cosa fa Theia da sola, senza AI</H>
-      <Body small muted style={{ marginBottom: 8 }}>Theia non «pensa»: delega solo ciò che serve davvero a un altro modello. Tutto questo lo fa sul tuo telefono, anche senza internet, e non esce niente.</Body>
+      <H>Cosa fa Theia da sola, sul tuo telefono</H>
+      <Body small muted style={{ marginBottom: 8 }}>Tutto questo lo fa sul tuo telefono, anche senza internet, e non esce niente. Nessun server acceso, nessuna acqua per raffreddarlo, meno energia: Theia è pensata per rispettare l'ambiente.</Body>
       {LOCAL_CAPABILITIES.map((c, i) => (
         <Item key={c.id} last={i === LOCAL_CAPABILITIES.length - 1}>
           <View style={{ flexDirection: 'row', gap: 10 }}>

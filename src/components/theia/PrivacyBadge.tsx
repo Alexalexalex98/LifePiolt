@@ -9,7 +9,7 @@ import { useAiRouter } from '@/store/aiRouter';
 export function PrivacyBadge() {
   const t = useTheme();
   const phoneOnly = useAiRouter((s) => s.prefs.phoneOnly);
-  const label = phoneOnly ? 'Solo sul telefono' : 'AI esterna attiva';
+  const label = phoneOnly ? 'Sul telefono · a basso impatto' : 'AI esterna attiva';
   return (
     <View accessible accessibilityRole="text" accessibilityLabel={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: t.chip, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 9, alignSelf: 'flex-start' }}>
       <Icon name={phoneOnly ? 'lock' : 'link'} size={12} color={phoneOnly ? t.positive : t.warn} stroke={2.2} />

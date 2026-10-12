@@ -1,5 +1,5 @@
 {
- "count": 7298,
+ "count": 7306,
  "byFile": {
   "src/app/(tabs)/ai.tsx": 23,
   "src/app/(tabs)/aiSettings.tsx": 7,
@@ -70,7 +70,7 @@
   "src/components/ArrivalAdvice.tsx": 8,
   "src/components/Automations.tsx": 37,
   "src/components/CalendarImportSheet.tsx": 10,
-  "src/components/CalendarViews.tsx": 32,
+  "src/components/CalendarViews.tsx": 39,
   "src/components/ConfirmBadge.tsx": 4,
   "src/components/CsvImportSheet.tsx": 23,
   "src/components/DataChart.tsx": 2,
@@ -362,5 +362,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1007
+ "withPlaceholders": 1008
 }

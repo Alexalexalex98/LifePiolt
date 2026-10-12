@@ -22,7 +22,7 @@ export function ModeCard() {
           <Switch value={prefs.phoneOnly} onValueChange={(v) => setPrefs({ phoneOnly: v })} accessibilityLabel="Solo sul telefono" />
         </Row>
         <Body small muted style={{ marginTop: 8 }}>{prefs.phoneOnly
-          ? 'Consigliato. Theia fa tutto in locale e non delega nulla. Se una richiesta richiede un\'AI esterna ti dice che serve attivarla qui.'
+          ? 'Consigliato e più green: Theia fa tutto sul telefono, senza server acceso e senza consumare acqua per il raffreddamento, e non delega nulla. Se una richiesta richiede un\'AI esterna ti dice che serve attivarla qui.'
           : 'Theia può delegare a un\'AI esterna solo ciò che serve davvero, dopo aver controllato limiti e privacy e (se serve) chiesto il tuo consenso.'}</Body>
       </Card>
       <Card>

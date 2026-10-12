@@ -60,7 +60,7 @@ export function TheiaHost() {
 
   return (
     <Sheet visible={open} title={`Chiedi a ${name}`} onClose={close}>
-      {!theiaOnline && <Body small muted style={{ marginBottom: 8 }}>Comandi e analisi funzionano sul telefono, senza AI. Per leggere le immagini e rispondere a domande aperte serve il server.</Body>}
+      {!theiaOnline && <Body small muted style={{ marginBottom: 8 }}>Comandi e analisi girano sul tuo telefono: nessun server acceso, nessuna acqua per raffreddarlo, meno energia. Per leggere le immagini e rispondere a domande aperte serve il server.</Body>}
       {req?.imageUri && <Image source={{ uri: req.imageUri }} style={{ width: '100%', height: 150, borderRadius: 12, marginBottom: 8, backgroundColor: t.item }} contentFit="contain" />}
       {req?.text ? (
         <View style={{ backgroundColor: t.item, borderStartWidth: 3, borderStartColor: t.accent, borderRadius: 10, padding: 10, marginBottom: 8 }}>

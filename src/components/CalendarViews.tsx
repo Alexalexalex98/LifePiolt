@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, View, type ViewToken } from 'react-native';
 
 import { Text } from '@/components/T';
 import { Body, Btn, Input, Row, Seg, Sheet } from '@/components/ui';
@@ -39,8 +39,8 @@ export function useBands(): Band[] {
 }
 
 const cap = (x: string) => (x ? x.charAt(0).toUpperCase() + x.slice(1) : x);
-const VIEW_LABEL: Record<CalView, string> = { month: 'Mese', week: 'Settimana', agenda: 'Agenda' };
-const VIEWS: CalView[] = ['month', 'week', 'agenda'];
+const VIEW_LABEL: Record<CalView, string> = { day: 'Agenda', week: 'Settimana', month: 'Mese', agenda: 'Elenco' };
+const VIEWS: CalView[] = ['day', 'week', 'month', 'agenda'];
 
 /* ---------- pannello: selettore vista + legenda ---------- */
 export function CalendarPanel({ selectMode, onPickDay, onOpenBand }: { selectMode: boolean; onPickDay: (key: string) => void; onOpenBand: (id: string) => void }) {
@@ -56,8 +56,9 @@ export function CalendarPanel({ selectMode, onPickDay, onOpenBand }: { selectMod
       : tl('Prossimi 14 giorni');
   return (
     <View>
-      <Seg options={VIEWS.map((v) => VIEW_LABEL[v])} value={VIEW_LABEL[view]} onChange={(l) => { setView(VIEWS.find((v) => VIEW_LABEL[v] === l) ?? 'month'); setOffset(0); }} />
-      <Row style={{ marginBottom: 8 }}>
+      <Seg options={VIEWS.map((v) => VIEW_LABEL[v])} value={VIEW_LABEL[view]} onChange={(l) => { setView(VIEWS.find((v) => VIEW_LABEL[v] === l) ?? 'day'); setOffset(0); }} />
+      {view === 'day' && <DayBook onPickDay={onPickDay} onOpenBand={onOpenBand} />}
+      {view !== 'day' && <Row style={{ marginBottom: 8 }}>
         {view !== 'agenda' ? (
           <Pressable onPress={() => setOffset(offset - 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText('Precedente')} style={{ padding: 6 }}><Icon name="arrow-left" size={18} color={th.text} /></Pressable>
         ) : <View style={{ width: 30 }} />}
@@ -67,7 +68,7 @@ export function CalendarPanel({ selectMode, onPickDay, onOpenBand }: { selectMod
         {view !== 'agenda' ? (
           <Pressable onPress={() => setOffset(offset + 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText('Successivo')} style={{ padding: 6 }}><Icon name="arrow-right" size={18} color={th.text} /></Pressable>
         ) : <View style={{ width: 30 }} />}
-      </Row>
+      </Row>}
       {view === 'month' && <MonthView offset={offset} selectMode={selectMode} onPickDay={onPickDay} onOpenBand={onOpenBand} />}
       {view === 'week' && <WeekView offset={offset} onPickDay={onPickDay} onOpenBand={onOpenBand} />}
       {view === 'agenda' && <AgendaView onPickDay={onPickDay} onOpenBand={onOpenBand} />}
@@ -455,3 +456,151 @@ export function VacationSheet({ id, onClose }: { id: string | null; onClose: () 
 }
 
 export { monthName, ymd, bandsOnDay };
+
+/* ---------- agenda a pagine: una pagina per giorno, con le ore ---------- */
+const BOOK_H = 600;
+const BOOK_HOUR = 56;
+const BOOK_GUTTER = 44;
+const BOOK_SPAN = 200; // giorni disponibili prima e dopo oggi
+const minToLabel = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+function DayPage({ k, width, onPickDay, onOpenBand }: { k: string; width: number; onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
+  const c = useCalColors();
+  const th = c.th;
+  const events = useLife((s) => s.events);
+  const bands = useBands();
+  const wh = useApp((s) => s.workHours);
+  const vRef = useRef<ScrollView>(null);
+  const today = dayKey();
+  const lay = useMemo(() => layoutDay(events[k]), [events, k]);
+  const dayBands = bandsOnDay(bands, k);
+  const total = (events[k] ?? []).length;
+  const d0 = new Date();
+  const nowMin = d0.getHours() * 60 + d0.getMinutes();
+  const wsMin = (() => { const q = wh.start.split(':').map(Number); return (q[0] || 0) * 60 + (q[1] || 0); })();
+  const weMin = (() => { const q = wh.end.split(':').map(Number); return (q[0] || 0) * 60 + (q[1] || 0); })();
+  const isToday = k === today;
+  const dt = parseKey(k);
+  const first = lay.placed[0]?.start;
+  useEffect(() => {
+    const focus = isToday ? Math.max(0, nowMin - 90) : Math.max(0, Math.min(first ?? wsMin, wsMin) - 30);
+    const tm = setTimeout(() => vRef.current?.scrollTo({ y: (focus / 60) * BOOK_HOUR, animated: false }), 50);
+    return () => clearTimeout(tm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [k]);
+  const work = over(th.accent + '14', th.card);
+  const colW = width - BOOK_GUTTER - 20;
+  return (
+    <View style={{ width, paddingHorizontal: 2 }}>
+      <View style={{ borderRadius: 18, backgroundColor: th.card, borderWidth: 1, borderColor: th.border, height: BOOK_H, overflow: 'hidden' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: th.border }}>
+          <Text style={{ color: isToday ? th.accent : th.text, fontSize: 40, fontWeight: '800', letterSpacing: -1 }}>{Number(k.slice(8))}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: th.text, fontSize: 16, fontWeight: '700' }}>{cap(fmtDate(dt, { weekday: 'long' }))}</Text>
+            <Text style={{ color: th.muted, fontSize: 13 }}>{cap(fmtDate(dt, { month: 'long', year: 'numeric' }))}{total ? ` · ${total === 1 ? tl('1 impegno') : tl('{0} impegni', total)}` : ''}</Text>
+          </View>
+          <Pressable onPress={() => onPickDay(k)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Apri il giorno')} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: th.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={18} color={th.text} /></Pressable>
+        </View>
+        {(dayBands.length > 0 || lay.allDay.length > 0) && (
+          <View style={{ paddingHorizontal: 12, paddingVertical: 6, gap: 4, borderBottomWidth: 1, borderBottomColor: th.border }}>
+            {dayBands.map((b) => (
+              <Pressable key={b.id} onPress={() => onOpenBand(b.id)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: c.tint(c.vac, 0.3), borderLeftWidth: 4, borderLeftColor: c.vac }}>
+                <Icon name="compass" size={13} color={th.text} /><Text numberOfLines={1} style={{ color: th.text, fontSize: 12, fontWeight: '700', flex: 1 }}>{b.name}</Text>
+              </Pressable>
+            ))}
+            {lay.allDay.map(({ e, idx }) => {
+              const col = c.of(e);
+              return (
+                <Pressable key={idx} onPress={() => onPickDay(k)} accessibilityRole="button" style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: c.tint(col, 0.2), borderLeftWidth: 4, borderLeftColor: col }}>
+                  <Text numberOfLines={1} style={{ color: th.text, fontSize: 12 }}>{e.title}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+        <ScrollView ref={vRef} nestedScrollEnabled showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+          <Pressable onPress={() => onPickDay(k)} accessibilityLabel={translateText('Giornata')} style={{ height: 24 * BOOK_HOUR + 8, flexDirection: 'row' }}>
+            <View style={{ width: BOOK_GUTTER }}>
+              {Array.from({ length: 24 }, (_, h) => <Text key={h} style={{ position: 'absolute', top: h * BOOK_HOUR + 2, right: 6, color: th.muted, fontSize: 11 }}>{String(h).padStart(2, '0')}:00</Text>)}
+            </View>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              {wsMin < weMin && <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: (wsMin / 60) * BOOK_HOUR, height: ((weMin - wsMin) / 60) * BOOK_HOUR, backgroundColor: work }} />}
+              {Array.from({ length: 24 }, (_, h) => (
+                <View key={h} pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: h * BOOK_HOUR, height: 1, backgroundColor: th.border, opacity: 0.8 }}>
+                  <View style={{ position: 'absolute', left: 0, right: 0, top: BOOK_HOUR / 2, height: 1, backgroundColor: th.border, opacity: 0.35 }} />
+                </View>
+              ))}
+              {lay.placed.map((p) => {
+                const col = c.of(p.e);
+                const tp = (p.start / 60) * BOOK_HOUR;
+                const hh = Math.max(26, ((p.end - p.start) / 60) * BOOK_HOUR - 2);
+                const lw = colW / p.lanes;
+                return (
+                  <Pressable key={p.idx} onPress={() => onPickDay(k)} accessibilityRole="button" accessibilityLabel={`${p.e.time} ${p.e.title}`}
+                    style={{ position: 'absolute', top: tp + 1, height: hh, left: p.lane * lw, width: lw - 3, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: col, backgroundColor: c.tint(col, 0.28), paddingHorizontal: 8, paddingVertical: 3, overflow: 'hidden' }}>
+                    <Text numberOfLines={hh > 50 ? 2 : 1} style={{ color: th.text, fontSize: 13, fontWeight: '700' }}>{p.e.title}</Text>
+                    <Text numberOfLines={1} style={{ color: th.muted, fontSize: 11 }}>{minToLabel(p.start)} – {minToLabel(p.end)}{p.e.place ? ` · ${p.e.place}` : ''}</Text>
+                  </Pressable>
+                );
+              })}
+              {isToday && (
+                <View pointerEvents="none" style={{ position: 'absolute', left: -4, right: 0, top: (nowMin / 60) * BOOK_HOUR, height: 2, backgroundColor: th.danger }}>
+                  <View style={{ position: 'absolute', left: -2, top: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: th.danger }} />
+                </View>
+              )}
+            </View>
+          </Pressable>
+        </ScrollView>
+      </View>
+    </View>
+  );
+}
+
+/** Agenda a pagine: si sfoglia con uno swipe (o con le frecce), una pagina per ogni giorno, con tutte le ore. */
+function DayBook({ onPickDay, onOpenBand }: { onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
+  const th = useTheme();
+  const today = dayKey();
+  const days = useMemo(() => Array.from({ length: BOOK_SPAN * 2 + 1 }, (_, i) => addDays(today, i - BOOK_SPAN)), [today]);
+  const [w, setW] = useState(0);
+  const [idx, setIdx] = useState(BOOK_SPAN);
+  const ref = useRef<FlatList<string>>(null);
+  const go2 = (i: number, animated = true) => {
+    const n = Math.max(0, Math.min(days.length - 1, i));
+    setIdx(n);
+    ref.current?.scrollToIndex({ index: n, animated });
+  };
+  const onViewable = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    const v = viewableItems.find((x) => x.isViewable && x.index != null);
+    if (v?.index != null) setIdx(v.index);
+  }).current;
+  return (
+    <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ marginBottom: 6 }}>
+      <Row style={{ marginBottom: 8 }}>
+        <Pressable onPress={() => go2(idx - 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText('Giorno precedente')} style={{ padding: 6 }}><Icon name="arrow-left" size={18} color={th.text} /></Pressable>
+        <Pressable onPress={() => go2(BOOK_SPAN)} accessibilityRole="button" accessibilityLabel={translateText('Torna a oggi')} style={{ flex: 1, alignItems: 'center' }}>
+          <Text style={{ color: idx === BOOK_SPAN ? th.accent : th.text, fontWeight: '700', fontSize: 15 }}>{idx === BOOK_SPAN ? translateText('Oggi') : translateText('Torna a oggi')}</Text>
+        </Pressable>
+        <Pressable onPress={() => go2(idx + 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText('Giorno successivo')} style={{ padding: 6 }}><Icon name="arrow-right" size={18} color={th.text} /></Pressable>
+      </Row>
+      {w > 0 && (
+        <FlatList
+          ref={ref}
+          data={days}
+          keyExtractor={(k) => k}
+          horizontal
+          pagingEnabled
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          initialScrollIndex={BOOK_SPAN}
+          getItemLayout={(_, i) => ({ length: w, offset: w * i, index: i })}
+          windowSize={3}
+          initialNumToRender={1}
+          maxToRenderPerBatch={2}
+          onViewableItemsChanged={onViewable}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
+          renderItem={({ item }) => <DayPage k={item} width={w} onPickDay={onPickDay} onOpenBand={onOpenBand} />}
+        />
+      )}
+    </View>
+  );
+}
