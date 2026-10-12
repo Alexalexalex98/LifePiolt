@@ -7,6 +7,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { fmtDate } from '@/i18n/format';
 import { SOURCE_LABEL, WITHDRAW_FEE_PCT, buildStatement, statementText, yearRange, type LpSource } from '@/lib/lpStatement';
 import { go } from '@/lib/nav';
+import { lpReceived } from '@/lib/network';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
@@ -23,6 +24,10 @@ export default function LpStatement() {
   const [year, setYear] = useState(thisYear);
   const { from, to } = yearRange(year);
   const s = useMemo(() => buildStatement(moves, from, to), [moves, from, to]);
+  const ideas = useNet((x) => x.ideas);
+  // le idee contano come guadagnate anche se i LifePoints sono ancora bloccati
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const blocked = useMemo(() => (year === thisYear ? lpReceived(me).ideasBlocked : 0), [year, thisYear, ideas, me]);
   const all = useMemo(() => [...s.earned.items.map((m) => ({ ...m, sign: '+' })), ...s.spent.items.map((m) => ({ ...m, sign: '-' })), ...s.withdrawn.items.map((m) => ({ ...m, sign: '-' }))].sort((a, b) => b.ts - a.ts), [s]);
   const amount = (n: number, bold = true) => <Row gap={2}><Body bold={bold}>{n2(n)}</Body><LpTag size={13} /></Row>;
   const line = (label: string, n: number, last = false, bold = false, muted = false) => <Item last={last}><Row><Body bold={bold} muted={muted} style={{ flex: 1 }}>{label}</Body>{amount(n, bold)}</Row></Item>;
@@ -39,7 +44,8 @@ export default function LpStatement() {
       <Card>
         <H>Guadagnati</H>
         {(Object.keys(SOURCE_LABEL) as LpSource[]).filter((k) => s.earned.bySource[k] > 0).map((k) => line(SOURCE_LABEL[k], s.earned.bySource[k]))}
-        {line('Totale guadagnato', s.earned.total, true, true)}
+        {blocked > 0 && line('Contributi alle idee in attesa (bloccati)', blocked)}
+        {line('Totale guadagnato', s.earned.total + blocked, true, true)}
       </Card>
 
       <Card>

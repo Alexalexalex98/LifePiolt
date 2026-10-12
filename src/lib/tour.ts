@@ -3,6 +3,8 @@
  * Il testo sorgente è italiano; l'interfaccia lo traduce quando lo disegna dentro <Text>/Btn.
  */
 
+import { tutorialById } from './tutorials.ts';
+
 export type TourMode = 'guided' | 'demo' | 'open';
 export const MAX_LEVEL = 7;
 export const WELCOME_ID = 'welcome';
@@ -91,6 +93,8 @@ export type TourState = {
   startedAt: number | null;
   /** mini-tour in attesa di essere mostrato */
   pending: string | null;
+  /** tutorial delle sezioni disattivati (si riprendono dalle Impostazioni) */
+  tutOff?: boolean;
 };
 
 export const emptyTourState = (): TourState => ({ mode: null, level: MAX_LEVEL, allUnlocked: true, unlockedAt: {}, baseline: {}, seen: [], startedAt: null, pending: null });
@@ -232,6 +236,7 @@ export function levelSteps(level: number): TourStep[] {
 
 export function tourSteps(id: string, mode: TourMode | null = null): TourStep[] {
   if (id === WELCOME_ID) return welcomeSteps(mode);
+  if (id.startsWith('sec-')) return tutorialById(id)?.steps ?? [];
   if (id.startsWith('lvl-')) return levelSteps(Number(id.slice(4)));
   return [];
 }

@@ -1,5 +1,5 @@
 {
- "count": 7852,
+ "count": 7979,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 23,
@@ -43,7 +43,7 @@
   "src/app/(tabs)/lifetask.tsx": 5,
   "src/app/(tabs)/lifetravel.tsx": 102,
   "src/app/(tabs)/liveRoom.tsx": 71,
-  "src/app/(tabs)/lpStatement.tsx": 19,
+  "src/app/(tabs)/lpStatement.tsx": 20,
   "src/app/(tabs)/messagesPage.tsx": 34,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/noteedit.tsx": 18,
@@ -98,10 +98,10 @@
   "src/components/MediaPickerField.tsx": 8,
   "src/components/MoodChart.tsx": 6,
   "src/components/NavBar.tsx": 11,
-  "src/components/NetSheets.tsx": 251,
+  "src/components/NetSheets.tsx": 252,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 46,
-  "src/components/ParticipantsCard.tsx": 6,
+  "src/components/ParticipantsCard.tsx": 12,
   "src/components/PayQr.tsx": 1,
   "src/components/PracticalCard.tsx": 53,
   "src/components/PrivacyContent.tsx": 39,
@@ -171,7 +171,7 @@
   "src/components/network.tsx": 40,
   "src/components/plan.tsx": 104,
   "src/components/profile/CardFace.tsx": 9,
-  "src/components/profile/ProfileParts.tsx": 47,
+  "src/components/profile/ProfileParts.tsx": 57,
   "src/components/profile/QaVote.tsx": 11,
   "src/components/scoreSheet.tsx": 13,
   "src/components/security/BackupSection.tsx": 29,
@@ -198,8 +198,9 @@
   "src/components/theia/billRoute.ts": 1,
   "src/components/theia/images.ts": 3,
   "src/components/theia/useVoiceNote.ts": 1,
-  "src/components/tour/TourHost.tsx": 13,
-  "src/components/tour/TourOverlay.tsx": 7,
+  "src/components/tour/TourHost.tsx": 15,
+  "src/components/tour/TourOverlay.tsx": 8,
+  "src/components/tour/TutorialSettings.tsx": 10,
   "src/components/ui.tsx": 11,
   "src/data/areas.ts": 8,
   "src/data/clubSeed.ts": 100,
@@ -338,7 +339,7 @@
   "src/lib/priority.ts": 15,
   "src/lib/privacyGate.ts": 24,
   "src/lib/privacyLog.ts": 9,
-  "src/lib/profile/actions.ts": 18,
+  "src/lib/profile/actions.ts": 21,
   "src/lib/profile/card.ts": 15,
   "src/lib/profile/identity.ts": 39,
   "src/lib/profile/itemReviews.ts": 16,
@@ -365,6 +366,7 @@
   "src/lib/tour.ts": 47,
   "src/lib/travel.ts": 38,
   "src/lib/tripPlanner.ts": 102,
+  "src/lib/tutorials.ts": 123,
   "src/lib/urgentPin.ts": 3,
   "src/lib/weather.ts": 15,
   "src/lib/when.ts": 11,
@@ -392,5 +394,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1140
+ "withPlaceholders": 1145
 }

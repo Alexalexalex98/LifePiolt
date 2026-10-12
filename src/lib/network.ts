@@ -53,10 +53,21 @@ export function ratingFor(name: string) {
   return { avg: (sum / count).toFixed(1), count, counts };
 }
 
-export function receivedLPFor(name: string): number {
+/**
+ * LifePoints ricevuti: UNA sola fonte per profilo, scheda di dettaglio, rendiconto e fiducia.
+ * Le idee contano subito come guadagnate anche se i LifePoints sono ancora bloccati (obiettivo non raggiunto): li somma il totale,
+ * ma `ideasBlocked` dice quanti non sono ancora disponibili. Un'idea scaduta senza obiettivo viene rimborsata e non conta.
+ */
+export function lpReceived(name: string): { daily: number; ideas: number; ideasBlocked: number; ideasPaid: number; payments: number; total: number } {
   const s = useNet.getState();
-  return s.ideas.filter((i) => i.author === name && ideaState(i, Date.now()) === 'raggiunta').reduce((a, i) => a + i.raised, 0) + (s.receivedDaily[name] || 0) + (s.receivedPayments[name] || 0);
+  const now = Date.now();
+  const mine = s.ideas.filter((i) => i.author === name && ideaState(i, now) !== 'scaduta');
+  const ideasPaid = mine.filter((i) => ideaState(i, now) === 'raggiunta').reduce((a, i) => a + i.raised, 0);
+  const ideasBlocked = mine.filter((i) => ideaState(i, now) === 'raccolta').reduce((a, i) => a + i.raised, 0);
+  const daily = s.receivedDaily[name] || 0, payments = s.receivedPayments[name] || 0;
+  return { daily, ideas: ideasPaid + ideasBlocked, ideasBlocked, ideasPaid, payments, total: daily + ideasPaid + ideasBlocked + payments };
 }
+export const receivedLPFor = (name: string): number => lpReceived(name).total;
 
 export function bioFor(name: string, me: string): string {
   const s = useNet.getState();

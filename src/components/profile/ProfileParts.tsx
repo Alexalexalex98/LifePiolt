@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { fmtDate } from '@/i18n/format';
 import { Text } from '@/components/T';
 
-import { LpTag, openSheet } from '@/components/network';
+import { LpTag, UserAvatar, openSheet } from '@/components/network';
 import { Body, Btn, Card, Chev, Item, Progress, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF } from '@/lib/format';
@@ -11,11 +11,12 @@ import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { confirmDelete } from '@/lib/confirm';
 import { STATUS_LABEL, businessesOnProfile, roleIn, type IdStatus } from '@/lib/profile/identity';
-import { ensureDemoVotes, interactionsFor, lifePointsFor, reputationFor, reviewsFor, skillStatesOf } from '@/lib/profile/actions';
+import { ensureDemoVotes, interactionsFor, itemRefLabel, itemVotesFor, lifePointsFor, reputationFor, reviewsFor, skillStatesOf } from '@/lib/profile/actions';
 import { HONESTY_NOTICE, SKILL_STATUS_LABEL, isVerified, quota, type SkillState, type SkillStatus } from '@/lib/profile/skills';
 import { skillLabel } from '@/data/skillBank';
 import { useApp } from '@/store/app';
 import { useIdentity } from '@/store/identity';
+import { useClub } from '@/store/club';
 import { useJobs } from '@/store/jobs';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
@@ -39,11 +40,20 @@ export function IdBadge({ status, preview }: { status: IdStatus; preview?: boole
 }
 
 /* ---------- barra statistiche alta: Follower · Seguiti · Voto ---------- */
+/** Voto complessivo di una persona: UNA sola fonte per la barra del profilo e per la scheda di dettaglio, sempre aggiornata. */
+export function useReputation(name: string) {
+  const me = useApp((s) => s.account.name);
+  const demo = useApp((s) => s.demo);
+  useNet((s) => s.votes); useNet((s) => s.posts); useNet((s) => s.communities); useNet((s) => s.savedPosts); useNet((s) => s.receivedDaily);
+  useIdentity((s) => s.qaVotes); useIdentity((s) => s.itemVotes);
+  useClub((s) => s.ratings); useClub((s) => s.clubs);
+  useEffect(() => { if (name === me && demo) ensureDemoVotes(name); }, [name, me, demo]);
+  return reputationFor(name);
+}
+
 export function StatsBar({ followers, following, onFollowing, name }: { followers: number; following: number; onFollowing?: () => void; name: string }) {
   const t = useTheme();
-  useNet((s) => s.votes);
-  useIdentity((s) => s.qaVotes);
-  const rep = reputationFor(name);
+  const rep = useReputation(name);
   const block = (value: string, label: string, onPress?: () => void, extra?: React.ReactNode, a11y?: string) => (
     <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : 'text'} accessibilityLabel={a11y ?? `${value} ${label}`} style={{ flex: 1, minHeight: 62, alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
       <Row gap={4} style={{ justifyContent: 'center' }}>{extra}<Text style={{ color: t.text, fontSize: 20, fontWeight: '800' }}>{value}</Text></Row>
@@ -58,7 +68,7 @@ export function StatsBar({ followers, following, onFollowing, name }: { follower
       {sep}
       {block(String(following), 'Seguiti', onFollowing)}
       {sep}
-      {block(voteText, rep.votes ? tl('Voto · {0}', rep.votes === 1 ? tl('1 voto') : tl('{0} voti', rep.votes)) : 'Voto complessivo', () => openSheet('rating', { name }), <Icon name="award" size={17} color={t.accent} />, rep.score == null ? tl('Voto complessivo: nessun voto') : tl('Voto complessivo {0} su 5, basato su {1} voti', rep.score.toFixed(1), rep.votes))}
+      {block(voteText, rep.votes ? tl('Voto · {0}', rep.votes === 1 ? tl('1 voto') : tl('{0} voti', rep.votes)) : 'Voto', () => openSheet('rating', { name }), <Icon name="award" size={17} color={t.accent} />, rep.score == null ? tl('Voto complessivo: nessun voto') : tl('Voto complessivo {0} su 5, basato su {1} voti', rep.score.toFixed(1), rep.votes))}
     </View>
   );
 }
@@ -97,8 +107,8 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
   useNet((s) => s.votes);
   useIdentity((s) => s.qaVotes);
   useIdentity((s) => s.reviews);
-  useEffect(() => { if (isMe && demo) ensureDemoVotes(name); }, [isMe, demo, name]);
-  const rep = reputationFor(name);
+  const rep = useReputation(name);
+  const [openPart, setOpenPart] = useState<string | null>(null);
   const counts = useNet.getState().votes[name] ?? {};
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const reviews = reviewsFor(name, demo);
@@ -106,6 +116,7 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
   const qaGiven = (useIdentity.getState().qaVotes ?? []).filter((v) => v.to === name).length;
   return (
     <>
+      <Row gap={10} style={{ justifyContent: 'flex-start', marginBottom: 8 }}><UserAvatar name={name} size={30} /><Text numberOfLines={1} style={{ color: t.muted, fontSize: 15, fontWeight: '600', flex: 1 }}>{isMe ? `${name} (tu)` : name}</Text></Row>
       <Row gap={8} style={{ justifyContent: 'flex-start', alignItems: 'flex-end' }}>
         <Text style={{ color: t.text, fontSize: 38, fontWeight: '800' }}>{rep.score == null ? '–' : rep.score.toFixed(1)}</Text>
         <Text style={{ color: t.muted, fontSize: 16, marginBottom: 7 }}>/ 5</Text>
@@ -116,9 +127,12 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
         <>
           <Body bold style={{ marginTop: 16, marginBottom: 6 }}>Da cosa è composto</Body>
           {rep.parts.map((p) => (
-            <Item key={p.id}>
-              <Row><View style={{ flex: 1 }}><Body bold>{p.label}</Body><Body small muted>{p.note}</Body></View><View style={{ alignItems: 'flex-end' }}><Body bold>{p.avg == null ? '–' : p.avg.toFixed(1)}</Body><Body small muted>{p.id === 'interazioni' ? tl('{0} punti', p.n) : p.n === 1 ? tl('1 voto') : tl('{0} voti', p.n)}</Body></View></Row>
-            </Item>
+            <View key={p.id}>
+              <Pressable onPress={() => setOpenPart(openPart === p.id ? null : p.id)} accessibilityRole="button" accessibilityState={{ expanded: openPart === p.id }} accessibilityLabel={`${p.label}: dettaglio`} style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: t.item }}>
+                <Row><View style={{ flex: 1 }}><Body bold>{p.label}</Body><Body small muted>{p.note}</Body></View><View style={{ alignItems: 'flex-end' }}><Body bold>{p.avg == null ? '–' : p.avg.toFixed(1)}</Body><Body small muted>{p.id === 'interazioni' ? tl('{0} punti', p.n) : p.n === 1 ? tl('1 voto') : tl('{0} voti', p.n)}</Body></View><Icon name={openPart === p.id ? 'arrow-up' : 'arrow-down'} size={15} color={t.muted} /></Row>
+              </Pressable>
+              {openPart === p.id && <PartDetail id={p.id} name={name} reviews={reviews} inter={inter} qaGiven={qaGiven} counts={counts} />}
+            </View>
           ))}
         </>
       )}
@@ -148,6 +162,52 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
       {isMe && <Body small muted style={{ marginTop: 12 }}>Con pochi voti il valore resta vicino a 3,5 e si assesta man mano che arrivano. Votano il profilo le persone che hanno avuto una conversazione vera con te o che si sono iscritte a un tuo seminario, servizio o LifeClub; le risposte le vota chi aveva fatto la domanda. Chi ha partecipato a un tuo seminario o a una tua seduta può anche valutarlo: quella valutazione pesa un terzo di un voto al profilo. Mi piace, salvataggi e LifePoint contano poco e hanno un tetto. Gli altri vedono solo i voti e le recensioni.</Body>}
       <Btn ghost style={{ marginTop: 12 }} title="Ho capito" onPress={onClose} />
     </>
+  );
+}
+
+/** Dettaglio di una parte del voto: chi ha dato cosa, con nomi chiari e da dove arriva (profilo, risposte, corsi e sedute, interazioni). */
+function PartDetail({ id, name, reviews, inter, qaGiven, counts }: { id: string; name: string; reviews: { from: string; stars: number; text?: string; ts: number }[]; inter: { likes: number; saves: number; lpDonors: number }; qaGiven: number; counts: Record<number, number> }) {
+  const t = useTheme();
+  const stars = (n: number) => <Row gap={2}>{[1, 2, 3, 4, 5].map((k) => <Icon key={k} name="award" size={12} color={k <= n ? t.accent : t.border} fill={k <= n ? t.accent : 'none'} />)}</Row>;
+  const box = { backgroundColor: t.tile, borderRadius: 14, padding: 12, marginVertical: 8 } as const;
+  if (id === 'profilo') {
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    return (
+      <View style={box}>
+        <Body small muted style={{ marginBottom: 6 }}>Arrivano dal profilo: chi si è iscritto a un tuo seminario, servizio o LifeClub e chi ha parlato con te in chat.</Body>
+        {total === 0 ? <Body small muted>Ancora nessun voto al profilo.</Body> : [5, 4, 3, 2, 1].map((s) => (counts[s] ? <Row key={s} style={{ paddingVertical: 3 }}>{stars(s)}<Body small>{counts[s]} {counts[s] === 1 ? 'voto' : 'voti'}</Body></Row> : null))}
+        {reviews.length > 0 && <Body small bold style={{ marginTop: 8, marginBottom: 2 }}>Con motivazione</Body>}
+        {reviews.slice(0, 6).map((r, i) => <View key={i} style={{ paddingVertical: 5 }}><Row><Body small bold style={{ flex: 1 }} numberOfLines={1}>{r.from}</Body>{stars(r.stars)}</Row>{r.text ? <Body small muted>{r.text}</Body> : null}</View>)}
+      </View>
+    );
+  }
+  if (id === 'corsi') {
+    const votes = itemVotesFor(name);
+    const refs = [...new Set(votes.map((v) => v.ref))];
+    return (
+      <View style={box}>
+        <Body small muted style={{ marginBottom: 6 }}>Arrivano dai singoli seminari, sedute e LifeClub: ognuno ha la sua valutazione e pesa un terzo di un voto al profilo.</Body>
+        {refs.length === 0 ? <Body small muted>Ancora nessuna valutazione a corsi o sedute.</Body> : refs.map((ref) => {
+          const list = votes.filter((v) => v.ref === ref);
+          const avg = list.reduce((a, v) => a + v.stars, 0) / list.length;
+          return (
+            <View key={ref} style={{ paddingVertical: 6 }}>
+              <Row><Body small bold style={{ flex: 1 }} numberOfLines={2}>{itemRefLabel(ref)}</Body><Body small bold>{avg.toFixed(1)}</Body></Row>
+              {list.map((v, i) => <Row key={i} style={{ paddingVertical: 2 }}><Body small muted style={{ flex: 1 }} numberOfLines={1}>{v.from}</Body>{stars(v.stars)}</Row>)}
+            </View>
+          );
+        })}
+      </View>
+    );
+  }
+  if (id === 'risposte') return <View style={box}><Body small muted>Voti dati alle tue risposte da chi aveva fatto la domanda: {qaGiven}.</Body></View>;
+  return (
+    <View style={box}>
+      <Body small muted style={{ marginBottom: 6 }}>Contano poco e hanno un tetto: servono a far emergere i profili attivi.</Body>
+      <Row><Body small>Mi piace ricevuti</Body><Body small bold>{inter.likes}</Body></Row>
+      <Row><Body small>Salvataggi dei tuoi post</Body><Body small bold>{inter.saves}</Body></Row>
+      <Row><Body small>Persone che ti hanno donato un LifePoint</Body><Body small bold>{inter.lpDonors}</Body></Row>
+    </View>
   );
 }
 

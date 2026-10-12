@@ -8,6 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tr } from '@/i18n/core';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
+import { autoTutorialFor, isSectionTutorial } from '@/lib/tutorials';
 import { decideMode, isUnlocked, levelDef, nextTour, pageFromPath, pageLevel, tourSteps } from '@/lib/tour';
 import { useApp } from '@/store/app';
 import { useDiscover } from '@/store/discover';
@@ -77,7 +78,22 @@ export function TourHost() {
     if (!isUnlocked(useTour.getState(), page)) useTour.getState().promptLock(page);
   }, [pathname, mode]);
 
+  // 5) tutorial della sezione: la prima volta che si apre una pagina (dopo il benvenuto), se non è stato disattivato
+  useEffect(() => {
+    if (mode == null) return;
+    const page = pageFromPath(pathname);
+    const h = setTimeout(() => {
+      const st = useTour.getState();
+      if (st.active || st.lockPrompt || !(st.mode === 'open' || st.seen.includes('welcome'))) return;
+      if (!isUnlocked(st, page)) return;
+      const tut = autoTutorialFor(page, st.seen, !!st.tutOff);
+      if (tut) st.start(tut.id);
+    }, 900);
+    return () => clearTimeout(h);
+  }, [pathname, mode, active]);
+
   const steps = active ? tourSteps(active, mode) : [];
+  const isSection = isSectionTutorial(active);
   return (
     <>
       {active && steps.length > 0 && (
@@ -90,6 +106,7 @@ export function TourHost() {
           onSkip={() => useTour.getState().finish()}
           onDone={(page) => { useTour.getState().finish(); if (page && page !== 'home') setTimeout(() => go(page), 200); }}
           onUnlockAll={() => { useTour.getState().unlockEverything(); useTour.getState().finish(); toast('Tutte le funzioni sono sbloccate'); }}
+          {...(isSection ? { skipLabel: 'Salta questo tutorial', onSkipAll: () => { useTour.getState().setTutOff(true); useTour.getState().finish(); toast('Tutorial disattivati: li riprendi dalle Impostazioni'); } } : {})}
           doneLabel={active === 'welcome' ? 'Inizia' : 'Fine'}
         />
       )}

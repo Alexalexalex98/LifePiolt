@@ -24,12 +24,16 @@ type Actions = {
   back: () => void;
   finish: () => void;
   promptLock: (page: string | null) => void;
+  /** disattiva (o riattiva) i tutorial che partono da soli aprendo una sezione */
+  setTutOff: (v: boolean) => void;
+  /** rimette tutti i tutorial delle sezioni come «da vedere» */
+  resetTutorials: () => void;
   reset: () => void;
 };
 
 export type TourStore = TourState & Runtime & Actions;
 
-const persistedKeys = (s: TourStore): TourState => ({ mode: s.mode, level: s.level, allUnlocked: s.allUnlocked, unlockedAt: s.unlockedAt, baseline: s.baseline, seen: s.seen, startedAt: s.startedAt, pending: s.pending });
+const persistedKeys = (s: TourStore): TourState => ({ mode: s.mode, level: s.level, allUnlocked: s.allUnlocked, unlockedAt: s.unlockedAt, baseline: s.baseline, seen: s.seen, startedAt: s.startedAt, pending: s.pending, tutOff: s.tutOff });
 const base = (s: TourStore): TourState => persistedKeys(s);
 
 export const useTour = create<TourStore>()(
@@ -58,6 +62,8 @@ export const useTour = create<TourStore>()(
       set({ ...done, active: null, step: 0 });
     },
     promptLock: (lockPrompt) => set({ lockPrompt }),
+    setTutOff: (tutOff) => set({ tutOff }),
+    resetTutorials: () => set((s) => ({ seen: s.seen.filter((x) => !x.startsWith('sec-')), tutOff: false })),
     reset: () => set({ ...emptyTourState(), active: null, step: 0, lockPrompt: null }),
   }), persistedKeys),
 );

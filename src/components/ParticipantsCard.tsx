@@ -9,17 +9,25 @@ import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 import { t as tl } from '@/i18n/core';
 
-/** Partecipanti di un seminario e chi ha pagato: lo vede SOLO chi lo ha creato. */
-export function ParticipantsCard({ seminarId, host }: { seminarId: number; host: string }) {
+export type PartKind = 'seminar' | 'service' | 'idea';
+const COPY: Record<PartKind, { title: string; empty: string; note: string }> = {
+  seminar: { title: 'Partecipanti', empty: 'Ancora nessun iscritto.', note: 'Questo elenco lo vedi solo tu. I LifePoints restano bloccati fino alla fine del seminario.' },
+  service: { title: 'Prenotazioni', empty: 'Ancora nessuna prenotazione.', note: 'Questo elenco lo vedi solo tu. I LifePoints restano bloccati fino alla fine di ogni sessione.' },
+  idea: { title: 'Chi ha contribuito', empty: 'Ancora nessun contributo.', note: 'Questo elenco lo vedi solo tu. I LifePoints restano bloccati finché non si raggiunge l\'obiettivo; se non lo raggiungi vengono rimborsati.' },
+};
+
+/** Chi ha pagato e quanto, per un seminario, un servizio o un\'idea: lo vede SOLO chi li ha creati. */
+export function ParticipantsCard({ kind, refId, host }: { kind: PartKind; refId: string | number; host: string }) {
   const t = useTheme();
   const me = useApp((s) => s.account.name);
-  const list = useNet((s) => s.participants?.[`seminar:${seminarId}`]) ?? [];
+  const list = useNet((s) => s.participants?.[`${kind}:${refId}`]) ?? [];
   if (!canSeeParticipants(me, host)) return null;
   const sum = summarizeParticipants(list);
+  const c = COPY[kind];
   return (
     <Card>
-      <H>Partecipanti</H>
-      <Body small muted>{list.length ? tl('{0} iscritti · {1} hanno pagato · totale incassato {2} LP', sum.count, sum.paidCount, sum.totalPaid) : 'Ancora nessun iscritto.'}</Body>
+      <H>{c.title}</H>
+      <Body small muted>{list.length ? (kind === 'idea' ? tl('{0} persone · totale {1} LP', sum.count, sum.totalPaid) : tl('{0} iscritti · {1} hanno pagato · totale incassato {2} LP', sum.count, sum.paidCount, sum.totalPaid)) : c.empty}</Body>
       <View style={{ marginTop: 8 }}>
         {list.map((p, i) => (
           <Item key={p.name + i} last={i === list.length - 1}>
@@ -31,7 +39,7 @@ export function ParticipantsCard({ seminarId, host }: { seminarId: number; host:
           </Item>
         ))}
       </View>
-      <Body small muted style={{ marginTop: 8 }}>Questo elenco lo vedi solo tu. I LifePoints restano bloccati fino alla fine del seminario.</Body>
+      <Body small muted style={{ marginTop: 8 }}>{c.note}</Body>
     </Card>
   );
 }

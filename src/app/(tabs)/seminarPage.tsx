@@ -101,7 +101,7 @@ export default function SeminarPage() {
           <Body small muted>{f.seats ? `Iscritti: ${f.joined} su ${f.seats} posti.` : `Iscritti: ${f.joined}.`} I LifePoints dei partecipanti restano bloccati e ti arrivano alla fine del seminario.</Body>
           {!s.promoted && <Btn small ghost style={{ marginTop: 10, alignSelf: 'flex-start' }} title="Promuovi con LifePoints" onPress={() => openSheet('promoteSeminar', { id: s.id })} />}
         </Card>
-        <ParticipantsCard seminarId={s.id} host={s.host} />
+        <ParticipantsCard kind="seminar" refId={s.id} host={s.host} />
         </>
       ) : (
         <Card>

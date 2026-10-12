@@ -3,6 +3,7 @@ import { Pressable, Share, View } from 'react-native';
 
 import { LiveAccess } from '@/components/live/LiveAccess';
 import { ItemReviews } from '@/components/ItemReviews';
+import { ParticipantsCard } from '@/components/ParticipantsCard';
 import { EnrollmentBox, Price, datedSlots, modeLabel } from '@/components/market';
 import { Badge, MediaBlock, ModButton, UserAvatar } from '@/components/network';
 import { E2eNote } from '@/components/PrivacyContent';
@@ -78,6 +79,8 @@ export default function ServicePage() {
           </Row>
         </Pressable>
       </Card>
+
+      <ParticipantsCard kind="service" refId={p.name} host={p.name} />
 
       <ItemReviews refKey={`service:${p.name}`} title="Recensioni delle sedute" />
 

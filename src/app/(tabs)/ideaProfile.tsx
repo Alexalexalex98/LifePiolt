@@ -16,6 +16,7 @@ import { go } from '@/lib/nav';
 import { pubLabel } from '@/lib/when';
 import { rateIdea, scoreColor } from '@/lib/network';
 import { useVisible } from '@/lib/moderation';
+import { ParticipantsCard } from '@/components/ParticipantsCard';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 import { Icon } from '@/lib/icons';
@@ -73,6 +74,7 @@ export default function IdeaProfile() {
         <Text style={{ color: t.muted, fontSize: 13, marginTop: 8 }}>{ideaState(idea, Date.now()) === 'raggiunta' ? tl('Obiettivo raggiunto') : ideaState(idea, Date.now()) === 'scaduta' ? tl('Raccolta chiusa: i contributi sono stati rimborsati') : (daysLeft(idea, Date.now()) == null ? '' : tl('{0} giorni rimasti. Se l\'obiettivo non viene raggiunto, i contributi vengono rimborsati.', daysLeft(idea, Date.now()) ?? 0))}</Text>
         <Btn style={{ marginTop: 16 }} icon="coin" title="Contribuisci con LifePoints" onPress={() => contribute(idea)} />
       </View>
+      <View style={{ marginTop: 14 }}><ParticipantsCard kind="idea" refId={idea.id} host={idea.author} /></View>
 
       <Card style={{ marginTop: 18 }}>
         <H>Descrizione</H>

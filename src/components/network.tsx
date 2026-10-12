@@ -8,6 +8,7 @@ import { create } from 'zustand';
 import { Avatar, Body, Btn, Card, ModalToast, Progress, Row } from '@/components/ui';
 import { daysLeft, ideaState, percentOf } from '@/lib/ideas';
 import { useInk, useTheme } from '@/hooks/use-theme';
+import { addParticipant } from '@/lib/participants';
 import { formatCHF, hashStr, weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
@@ -231,6 +232,7 @@ export function doContribute(id: number, amt: number) {
   if (ideaState(idea, Date.now()) !== 'raccolta') { toast(ideaState(idea, Date.now()) === 'raggiunta' ? 'Obiettivo già raggiunto: la raccolta è chiusa' : 'La raccolta di questa idea è scaduta'); return; }
   if (!net.spend(amt, 'Contributo a "' + idea.title + '"', undefined, `idea:${id}`)) { toast('LifePoints insufficienti'); return; }
   useNet.setState((s) => ({ myContrib: { ...(s.myContrib ?? {}), [id]: (s.myContrib?.[id] ?? 0) + amt } }));
+  addParticipant(`idea:${id}`, useApp.getState().account.name, amt, true);
   useNet.getState().bumpReach(`idea:${id}`, 'idea');
   const before = Math.floor(((idea.raised / idea.target) * 100) / 25) * 25;
   const raised = idea.raised + amt;

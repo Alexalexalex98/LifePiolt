@@ -196,3 +196,11 @@ export function demoAttend(me: string, ref: string): void {
   const startsAt = Date.now() - 3 * 86400000;
   useNet.setState({ enrollments: [{ id: 'd' + Date.now().toString(36), kind: isSem ? 'seminar' : 'service', ref: isSem ? ref.slice(8) : `${host}|demo`, title: sem?.title ?? 'Seduta', host, price: 0, startsAt, durationMin: 60, status: 'attended', createdAt: startsAt }, ...st.enrollments] });
 }
+
+/** Nome leggibile di un corso, seminario, seduta o LifeClub dal suo riferimento. */
+export function itemRefLabel(ref: string): string {
+  if (ref.startsWith('seminar:')) return useNet.getState().seminars.find((s) => String(s.id) === ref.slice(8))?.title ?? 'Seminario';
+  if (ref.startsWith('service:')) return `Sedute di ${ref.slice(8)}`;
+  if (ref.startsWith('club:')) return useClub.getState().clubs[ref.slice(5)]?.name ?? 'LifeClub';
+  return 'Contenuto';
+}

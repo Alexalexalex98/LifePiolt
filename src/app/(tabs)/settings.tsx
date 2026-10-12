@@ -17,6 +17,7 @@ import { useSectionNames, useT } from '@/lib/i18n';
 import { go } from '@/lib/nav';
 import { cancelAll, refreshBriefings, requestPermission } from '@/lib/notify';
 import { KIND_ORDER, KINDS, kindEnabled } from '@/lib/notifyKinds';
+import { TutorialSettings } from '@/components/tour/TutorialSettings';
 import { NotifStatus, NotifTools, ReminderSettings } from '@/components/NotifSettings';
 import { areaColors, Icon } from '@/lib/icons';
 import { navCatalog, useApp, type Appearance } from '@/store/app';
@@ -141,6 +142,7 @@ export default function Settings() {
 
   return (
     <Page id="settings" title={names.settings} back>
+      <TutorialSettings />
       <JourneyCard />
 
       <Card>

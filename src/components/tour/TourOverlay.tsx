@@ -26,6 +26,9 @@ type Props = {
   /** ultimo passo: chiude (e, se c'è, esegue l'azione) */
   onDone: (openPage?: string) => void;
   onUnlockAll?: () => void;
+  /** tutorial di sezione: salta tutti i tutorial (si riprendono dalle Impostazioni) */
+  onSkipAll?: () => void;
+  skipLabel?: string;
   doneLabel?: string;
 };
 
@@ -33,7 +36,7 @@ type Props = {
  * Overlay a schermo intero: oscura tutto (niente distrazioni, i tocchi non passano) e lascia un "buco" arrotondato
  * sull'elemento evidenziato. Il callout ha titolo, testo e pulsanti; è un dialogo accessibile (annuncio, focus, tastiera).
  */
-export function TourOverlay({ steps, index, name, onNext, onBack, onSkip, onDone, onUnlockAll, doneLabel = 'Inizia' }: Props) {
+export function TourOverlay({ steps, index, name, onNext, onBack, onSkip, onDone, onUnlockAll, onSkipAll, skipLabel = 'Salta il tour', doneLabel = 'Inizia' }: Props) {
   const th = useTheme();
   const insets = useSafeAreaInsets();
   const reduce = useReduceMotion();
@@ -161,8 +164,13 @@ export function TourOverlay({ steps, index, name, onNext, onBack, onSkip, onDone
               </Pressable>
             ) : null}
             <Pressable onPress={onSkip} accessibilityRole="button" hitSlop={8} style={({ pressed }) => ({ alignSelf: 'center', marginTop: 10, minHeight: 40, justifyContent: 'center', paddingHorizontal: 12, opacity: pressed ? 0.6 : 1 })}>
-              <Text style={{ color: th.muted, fontSize: 13, textDecorationLine: 'underline' }}>Salta il tour</Text>
+              <Text style={{ color: th.muted, fontSize: 13, textDecorationLine: 'underline' }}>{skipLabel}</Text>
             </Pressable>
+            {onSkipAll ? (
+              <Pressable onPress={onSkipAll} accessibilityRole="button" hitSlop={8} style={({ pressed }) => ({ alignSelf: 'center', minHeight: 36, justifyContent: 'center', paddingHorizontal: 12, opacity: pressed ? 0.6 : 1 })}>
+                <Text style={{ color: th.muted, fontSize: 13, textDecorationLine: 'underline' }}>Salta tutti i tutorial</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </View>

@@ -30,6 +30,8 @@ let expectErrors = false; // true mentre si provoca di proposito un errore
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
 const ctx = await browser.newContext({ locale: 'it-IT', viewport: { width: 390, height: 844 }, acceptDownloads: true });
 const page = await ctx.newPage();
+// i tutorial di sezione compaiono aprendo una pagina: nei test si saltano tutti appena appaiono
+await page.addLocatorHandler(page.getByText('Salta tutti i tutorial', { exact: true }), async (l) => { await l.click(); });
 let where = 'avvio';
 page.on('pageerror', (e) => { if (!expectErrors && !IGNORED.some((r) => r.test(String(e)))) pageErrors.push(`[${where}] pageerror: ${String(e).slice(0, 240)}`); });
 page.on('console', (m) => { if (m.type() === 'error' && !expectErrors) { const t = m.text(); if (!IGNORED.some((r) => r.test(t))) pageErrors.push(`[${where}] console.error: ${t.slice(0, 240)}`); } });
@@ -81,7 +83,7 @@ try {
   await closeGuide();
   check('tour chiuso con "Salta il tour"', (await page.getByText('Salta il tour', { exact: true }).count()) === 0);
   check('home dopo onboarding', /Alex/.test(await text()));
-  check('home semplice: quadro di oggi, impegni e Approfondimento', /il quadro di oggi/i.test(await text()) && /Prossimi impegni/.test(await text()) && /Approfondimento/.test(await text()));
+  check('home semplice: quadro di oggi, impegni e Approfondimento', /il quadro di oggi/i.test(await text()) && /Prossima cosa in programma/i.test(await text()) && /Approfondimento/.test(await text()));
 
   // ---------- percorso graduale: aree bloccate ----------
   log('Percorso graduale');

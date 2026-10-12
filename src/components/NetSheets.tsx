@@ -13,7 +13,7 @@ import { paidCancel, freeCancel } from '@/data/marketSeed';
 import { confirmAttendance, hasEnded } from '@/lib/enroll';
 import { ConflictSheet } from '@/lib/planBooking';
 import { fmtRange, nextDays, timeOptions, tsOf } from '@/lib/when';
-import { VOTE_BLOCK_MSG, cryptoRates, isVoteReasonRelevant, rateIdeaDetailed, textSimilarity } from '@/lib/network';
+import { VOTE_BLOCK_MSG, lpReceived, cryptoRates, isVoteReasonRelevant, rateIdeaDetailed, textSimilarity } from '@/lib/network';
 import { castProfileVote, profileVoteBlock, skillStatesOf } from '@/lib/profile/actions';
 import { ReputationDetail, SkillChip } from '@/components/profile/ProfileParts';
 import { HONESTY_NOTICE, quota } from '@/lib/profile/skills';
@@ -162,7 +162,7 @@ function NetSheetInner() {
     }
     case 'confirmAttendance': { title = 'Conferma partecipazione'; body = <ConfirmAttendanceView id={p.id} />; break; }
     case 'rating': {
-      title = 'Voto complessivo di ' + p.name;
+      title = 'Voto complessivo';
       body = <ReputationDetail name={p.name} onClose={close} />;
       break;
     }
@@ -212,16 +212,15 @@ function NetSheetInner() {
     }
     case 'lpTotal': {
       title = 'LifePoints complessivi ricevuti';
-      const raised = net.ideas.filter((i) => i.author === me && ideaState(i, Date.now()) === 'raggiunta').reduce((a, i) => a + i.raised, 0);
-      const daily = net.receivedDaily[me] || 0;
-      const pay = net.receivedPayments[me] || 0;
-      const total = raised + daily + pay;
+      const rcv = lpReceived(me);
+      const raised = rcv.ideas, daily = rcv.daily, pay = rcv.payments, total = rcv.total;
       const conv = Math.min(net.lpConverted ?? 0, total);
       const row = (label: string, n: number, last?: boolean, bold?: boolean) => <Item last={last}><Row><Body bold={bold} style={{ flex: 1 }}>{label}</Body><Row gap={2}><Body bold>{formatCHF(n)}</Body><LpTag size={13} /></Row></Row></Item>;
       body = (
         <>
           {row('Giornalieri', daily)}
           {row('Contributi alle tue idee', raised)}
+          {rcv.ideasBlocked > 0 && <Body small muted style={{ marginBottom: 6 }}>{tl('Di cui {0} LP ancora bloccati: arrivano quando l\'idea raggiunge l\'obiettivo, altrimenti tornano a chi ha contribuito.', formatCHF(rcv.ideasBlocked))}</Body>}
           {row('Quote, iscrizioni e servizi', pay, true)}
           <Body bold style={{ marginTop: 14, marginBottom: 4 }}>Riconversione in denaro</Body>
           {row('Riconvertiti', conv)}

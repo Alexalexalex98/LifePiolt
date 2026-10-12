@@ -10,6 +10,7 @@ import { showUndoToast, toast } from '@/store/toast';
 import { t, t as tl } from '@/i18n/core';
 import { formatCHF } from '@/lib/format';
 import { go } from '@/lib/nav';
+import { addParticipant } from '@/lib/participants';
 import { useChat, type ChatMessage } from '@/store/chat';
 
 /**
@@ -53,6 +54,7 @@ export function enrollSeminar(s: Seminar, me: string): void {
   checkPlanSlot(req, () => {
     const r = enrollSeminarOp(s, req, { startsAt: f.startsAt!, durationMin: f.durationMin }, id);
     if (!r.ok) { toast('Non sono riuscito a completare l\'iscrizione: non è stato salvato nulla'); return; }
+    addParticipant(`seminar:${s.id}`, me, s.price);
     useNet.getState().signal(s.title + ' ' + (s.desc ?? ''), SIGNAL.buy);
     toast(s.price ? t('Iscrizione confermata: {0} LP bloccati fino alla fine. Aggiunto al Plan.', formatCHF(s.price)) : 'Iscrizione confermata (gratuito). Aggiunto al Plan.');
     if (s.price) go('invoice', { id: `enr:${id}` });
@@ -71,6 +73,7 @@ export function bookService(p: Provider, slot: string, durationMin: number, me: 
   checkPlanSlot(req, () => {
     const r = bookServiceOp(p, slot, req, startsAt, durationMin, id);
     if (!r.ok) { toast('Non sono riuscito a completare la prenotazione: non è stato salvato nulla'); return; }
+    addParticipant(`service:${p.name}`, me, p.price);
     useNet.getState().signal(p.role + ' ' + p.name, SIGNAL.buy);
     toast(t('Prenotato con {0}: {1} LP bloccati fino alla fine. Aggiunto al Plan.', p.name, formatCHF(p.price)));
     if (p.price) go('invoice', { id: `enr:${id}` });
@@ -91,6 +94,7 @@ export function bookOffer(chatId: string, m: ChatMessage, me: string): void {
   checkPlanSlot(req, () => {
     const r = bookServiceOp(p, '', req, o.startsAt, o.durationMin, id);
     if (!r.ok) { toast('Non sono riuscito a completare la prenotazione: non è stato salvato nulla'); return; }
+    addParticipant(`service:${m.from}`, me, o.price);
     useChat.getState().patchMsg(chatId, m.id, { offer: { ...o, booked: { by: me, enrId: id } } });
     toast(o.price ? t('Prenotato con {0}: {1} LP bloccati fino alla fine. Aggiunto al Plan.', m.from, formatCHF(o.price)) : 'Prenotato. Aggiunto al Plan.');
     if (o.price) go('invoice', { id: `enr:${id}` });

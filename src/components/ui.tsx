@@ -403,9 +403,13 @@ const DEFAULT_PHOTO = require('../../assets/proto/user-photo.jpg');
 export function Avatar({ name, size = 30, uri }: { name: string; size?: number; uri?: any }) {
   const me = useApp((a) => a.account.name);
   const photo = useApp((a) => a.account.photo);
-  if (!uri && name && name === me) uri = photo ? { uri: photo } : DEFAULT_PHOTO;
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [photo, uri]);
+  // se la foto scelta non si carica più (file temporaneo sparito) si ripiega su quella predefinita o sulle iniziali
+  const mine = !!name && name === me;
+  const src = !failed ? (uri ?? (mine ? (photo ? { uri: photo } : DEFAULT_PHOTO) : undefined)) : (mine ? DEFAULT_PHOTO : undefined);
   const hash = Math.abs([...name].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)) % 360;
-  if (uri) return <Image source={uri} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+  if (src) return <Image source={src} onError={() => setFailed(true)} style={{ width: size, height: size, borderRadius: size / 2 }} />;
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: `hsl(${hash},45%,32%)`, alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ color: '#fff', fontWeight: '800', fontSize: size * 0.4 }}>{name[0]}</Text>
