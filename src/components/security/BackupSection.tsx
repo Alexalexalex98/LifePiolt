@@ -6,6 +6,7 @@ import { MIN_PASSWORD } from '@/db/crypto';
 import { exportBackup, openEncryptedBackup, pickBackup, restoreBackup, STORE_LABELS, type BackupPreview } from '@/lib/backup';
 import { fmtDate } from '@/i18n/format';
 import { toast } from '@/store/toast';
+import { t as tr } from '@/i18n/core';
 
 type Step = null | { kind: 'export' } | { kind: 'password'; text: string } | { kind: 'preview'; text: string; preview: BackupPreview; step: 1 | 2 } | { kind: 'error'; error: string };
 
@@ -19,7 +20,7 @@ export function BackupSection() {
   const close = () => { setStep(null); setPw(''); setPw2(''); setErr(''); };
 
   async function doExport() {
-    if (pw.length < MIN_PASSWORD) { setErr(`Almeno ${MIN_PASSWORD} caratteri`); return; }
+    if (pw.length < MIN_PASSWORD) { setErr(tr('Almeno 8 caratteri')); return; }
     if (pw !== pw2) { setErr('Le due password non coincidono'); return; }
     setBusy(true); setErr('');
     const r = await exportBackup({ password: pw });

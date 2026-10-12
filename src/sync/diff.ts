@@ -4,7 +4,7 @@
  * cambiato le entita' con lo stesso riferimento si saltano senza confrontare i campi. Solo le entita' con riferimento
  * nuovo vengono trasformate in "wire" e confrontate campo per campo.
  */
-import type { Adapter, ScanItem, Slot } from './adapters.ts';
+import { occurrenceKeys, type Adapter, type ScanItem, type Slot } from './adapters.ts';
 import { deepEqual, hash53, stableStringify } from './ids.ts';
 import type { Wire } from './types.ts';
 
@@ -51,9 +51,7 @@ export function diffWire(a: Wire, b: Wire): { fields: Wire; unset: string[] } | 
  * poi accoppia per posizione le voci modificate (stessa posizione, chiave cambiata = modifica della stessa entita').
  */
 export function matchSlots(old: Slot[], items: ScanItem[], newId: () => string): { ids: string[]; slots: Slot[]; gone: string[] } {
-  const keys: string[] = [];
-  const occ = new Map<string, number>();
-  for (const it of items) { const k0 = it.key ?? ''; const n = occ.get(k0) ?? 0; occ.set(k0, n + 1); keys.push(n ? `${k0}#${n}` : k0); }
+  const keys = occurrenceKeys(items.map((it) => it.key ?? ''));
   const byKey = new Map<string, number>();
   old.forEach((s, i) => byKey.set(s.key, i));
   const usedOld = new Set<number>();

@@ -604,12 +604,17 @@ export class SyncEngine {
     const copies = new Map<string, Wire>();
     const newConflicts: ConflictEntry[] = [];
     let idx: Map<string, { ref: unknown; bucket: string }> | undefined;
+    const locate = (id: string): { ref: unknown; bucket: string } | undefined => {
+      const e: { ref: unknown; bucket: string } | undefined = snap.ents.get(id);
+      if (e && e.ref !== undefined) return e;
+      if (this.seeded.has(name)) return undefined;
+      idx ??= def.adapter.index(binding.getState(), snap.slots);
+      return idx.get(id);
+    };
     const localWire = (id: string): Wire | undefined => {
       if (wires.has(id)) return wires.get(id);
-      let e: { ref: unknown; bucket: string } | undefined = snap.ents.get(id);
-      if (!(e && e.ref !== undefined) && !this.seeded.has(name)) { idx ??= def.adapter.index(binding.getState(), snap.slots); e = idx.get(id); }
-      if (e && e.ref !== undefined) return def.adapter.toWire(e.ref, e.bucket, id);
-      return undefined;
+      const e = locate(id);
+      return e && e.ref !== undefined ? def.adapter.toWire(e.ref, e.bucket, id) : undefined;
     };
     let applied = 0;
     for (const ch of list) {
@@ -635,8 +640,10 @@ export class SyncEngine {
     for (const [id, w] of wires) { if (w) upserts.set(id, w); else deletes.add(id); }
     for (const [id, w] of copies) upserts.set(id, w);
     if (!upserts.size && !deletes.size) return applied;
+    const oldBucket = new Map<string, string | undefined>();
+    if (def.adapter.positional) for (const id of [...deletes, ...upserts.keys()]) oldBucket.set(id, locate(id)?.bucket);
     const res = def.adapter.apply(binding.getState(), upserts, deletes, {
-      bucketOf: (id) => snap.ents.get(id)?.bucket,
+      bucketOf: (id) => locate(id)?.bucket,
       slots: (b) => snap.slots.get(b) ?? [],
     });
     if (res.patch) {
@@ -645,10 +652,10 @@ export class SyncEngine {
     }
     // tabella degli slot per gli adattatori posizionali
     if (def.adapter.positional) {
-      for (const id of deletes) { const e = snap.ents.get(id); if (e) snap.slots.set(e.bucket, (snap.slots.get(e.bucket) ?? []).filter((s) => s.id !== id)); }
+      for (const id of deletes) { const b = oldBucket.get(id); if (b !== undefined) snap.slots.set(b, (snap.slots.get(b) ?? []).filter((s) => s.id !== id)); }
       for (const a of res.assigned) {
-        const e = snap.ents.get(a.id);
-        if (e && e.bucket !== a.bucket) snap.slots.set(e.bucket, (snap.slots.get(e.bucket) ?? []).filter((s) => s.id !== a.id));
+        const b0 = oldBucket.get(a.id);
+        if (b0 !== undefined && b0 !== a.bucket) snap.slots.set(b0, (snap.slots.get(b0) ?? []).filter((s) => s.id !== a.id));
         const cur = snap.slots.get(a.bucket) ?? [];
         const at = cur.findIndex((s) => s.id === a.id);
         if (at >= 0) snap.slots.set(a.bucket, cur.map((s, i) => (i === at ? { id: a.id, key: a.key } : s))); // stessa posizione dell'array

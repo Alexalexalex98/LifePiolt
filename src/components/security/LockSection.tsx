@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import { Body, Card, H, Seg, Toggle } from '@/components/ui';
 import { authenticate, lockCapability } from '@/db/appLock';
-import { canEnableLock, methodLabel, LOCK_TIMEOUTS, timeoutLabel, type LockCapability } from '@/db/lockPolicy';
+import { canEnableLock, methodLabel, LOCK_LABELS, LOCK_TIMEOUTS, type LockCapability } from '@/db/lockPolicy';
 import { useSecurity } from '@/db/securityStore';
 import { alertT } from '@/lib/alert';
 import { toast } from '@/store/toast';
@@ -33,7 +33,7 @@ export function LockSection() {
     else toast(tr('Blocco non attivato: la verifica non è andata a buon fine'));
   }
 
-  const labels = LOCK_TIMEOUTS.map((m) => timeoutLabel(m).replace('Dopo ', '').replace('minuti', 'min').replace('minuto', 'min'));
+  const labels = LOCK_TIMEOUTS.map((m) => LOCK_LABELS[m]);
   const idx = Math.max(0, LOCK_TIMEOUTS.indexOf(timeout as (typeof LOCK_TIMEOUTS)[number]));
   return (
     <Card>

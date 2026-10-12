@@ -34,6 +34,12 @@ export interface Adapter<S = unknown> {
   apply(s: S, upserts: Map<string, Wire>, deletes: Set<string>, ctx: ApplyCtx): ApplyResult<S>;
 }
 
+/** Chiavi di contenuto con suffisso di occorrenza (#n) per distinguere voci identiche nello stesso bucket. */
+export function occurrenceKeys(keys: string[]): string[] {
+  const occ = new Map<string, number>();
+  return keys.map((k) => { const n = occ.get(k) ?? 0; occ.set(k, n + 1); return n ? `${k}#${n}` : k; });
+}
+
 type BucketedOpts<S, E extends object> = {
   get(s: S): Record<string, E[]>;
   set(rec: Record<string, E[]>): Partial<S>;
@@ -49,6 +55,16 @@ type BucketedOpts<S, E extends object> = {
 export function bucketedAdapter<S, E extends object>(o: BucketedOpts<S, E>): Adapter<S> {
   const positional = !o.idOf;
   const bucketOfWire = o.bucketOf ?? (() => '');
+  /** id -> indice nell'array, ricavato dagli slot confrontando le chiavi di contenuto (non assume che gli slot siano allineati) */
+  const slotIndex = (arr: E[], bucket: string, slots: Slot[]): Map<string, number> => {
+    const m = new Map<string, number>();
+    if (!slots.length) return m;
+    const keys = occurrenceKeys(arr.map((e) => o.keyOf!(e, bucket)));
+    const byKey = new Map<string, number>();
+    keys.forEach((k, j) => byKey.set(k, j));
+    for (const s of slots) { const j = byKey.get(s.key); if (j !== undefined) m.set(s.id, j); }
+    return m;
+  };
   return {
     positional,
     roots: (s) => (o.roots ? o.roots(s) : [o.get(s)]),
@@ -58,7 +74,7 @@ export function bucketedAdapter<S, E extends object>(o: BucketedOpts<S, E>): Ada
     index(s, slots) {
       const m = new Map<string, { ref: unknown; bucket: string }>();
       for (const [bk, arr] of Object.entries(o.get(s))) {
-        if (positional) { const sl = slots.get(bk) ?? []; for (let i = 0; i < sl.length && i < arr.length; i++) m.set(sl[i].id, { ref: arr[i], bucket: bk }); }
+        if (positional) { for (const [id, j] of slotIndex(arr, bk, slots.get(bk) ?? [])) m.set(id, { ref: arr[j], bucket: bk }); }
         else for (const e of arr) m.set(o.idOf!(e), { ref: e, bucket: bk });
       }
       return m;
@@ -85,7 +101,7 @@ export function bucketedAdapter<S, E extends object>(o: BucketedOpts<S, E>): Ada
       for (const [b, x] of ops) {
         const arr = rec[b] ?? [];
         const idx = new Map<string, number>();
-        if (positional) ctx.slots(b).forEach((sl, i) => idx.set(sl.id, i));
+        if (positional) for (const [id, j] of slotIndex(arr, b, ctx.slots(b))) idx.set(id, j);
         else arr.forEach((e, i) => idx.set(o.idOf!(e), i));
         const next = arr.slice();
         const gone = new Set<number>();

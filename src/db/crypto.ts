@@ -85,7 +85,7 @@ export function isLpBackupText(text: string): boolean {
 
 /** Cifra il testo del backup. La password non viene mai salvata. `params` solo per i test (parametri leggeri). */
 export async function encryptBackup(plainJson: string, password: string, params: Partial<typeof DEFAULT_KDF> = {}, onProgress?: (p: number) => void): Promise<string> {
-  if (password.length < MIN_PASSWORD) throw new BackupCryptoError('weak_password', `La password deve avere almeno ${MIN_PASSWORD} caratteri.`);
+  if (password.length < MIN_PASSWORD) throw new BackupCryptoError('weak_password', 'La password deve avere almeno 8 caratteri.');
   const kdf = { ...DEFAULT_KDF, ...params, salt: bytesToBase64(randomBytes(16)) };
   const key = await deriveKey(password, kdf, onProgress);
   const blob = aesEncrypt(key, utf8(plainJson), headerAad(kdf, LPBACKUP_VERSION));

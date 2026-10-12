@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 
 import { snapshotAll, wipeStorage, getEngine } from '@/db';
 import { BackupCryptoError, decryptBackup, encryptBackup, isLpBackupText } from '@/db/crypto';
+import { initRandom } from '@/db/random';
 import { useApp } from '@/store/app';
 import { useAssistant } from '@/store/assistant';
 import { useChat } from '@/store/chat';
@@ -58,6 +59,7 @@ export async function exportBackup(opts: { password?: string; onProgress?: (p: n
   try {
     const plain = await createBackupText();
     const encrypted = !!opts.password;
+    if (encrypted) initRandom(); // Hermes non ha crypto.getRandomValues: uso la fonte di expo-crypto
     const text = encrypted ? await encryptBackup(plain, opts.password as string, {}, opts.onProgress) : plain;
     const name = backupFileName(new Date(), encrypted);
     const mime = encrypted ? 'application/octet-stream' : 'application/json';

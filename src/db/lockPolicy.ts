@@ -1,8 +1,10 @@
+import { t } from '../i18n/core.ts';
+
 /** Politica del blocco app: pura, nessun import nativo. */
 export const LOCK_TIMEOUTS = [0, 1, 5, 15] as const;
 export type LockTimeout = (typeof LOCK_TIMEOUTS)[number];
 
-export const timeoutLabel = (m: number) => (m === 0 ? 'Subito' : m === 1 ? 'Dopo 1 minuto' : `Dopo ${m} minuti`);
+export const LOCK_LABELS: Record<number, string> = { 0: 'Subito', 1: '1 minuto', 5: '5 minuti', 15: '15 minuti' };
 
 /** Va bloccata l'app al ritorno in primo piano? timeoutMin 0 = ogni volta. */
 export function shouldLockOnResume(o: { enabled: boolean; timeoutMin: number; backgroundedAt: number | null; now: number }): boolean {
@@ -40,7 +42,7 @@ export function canEnableLock(c: LockCapability): { ok: boolean; reason?: string
 export function lockStillPossible(c: LockCapability): boolean { return c.level !== 'none'; }
 
 export function methodLabel(c: LockCapability): string {
-  if (c.level === 'none') return 'Nessun blocco sul telefono';
-  const t = c.types.map((x) => (x === 'face' ? 'Face ID / riconoscimento del volto' : x === 'fingerprint' ? 'impronta' : 'iride'));
-  return t.length ? `${t.join(', ')} o PIN del telefono` : 'PIN del telefono';
+  if (c.level === 'none') return t('Nessun blocco sul telefono');
+  const ty = c.types.map((x) => (x === 'face' ? t('Face ID / riconoscimento del volto') : x === 'fingerprint' ? t('impronta') : t('iride')));
+  return ty.length ? t('{0} o PIN del telefono', ty.join(', ')) : t('PIN del telefono');
 }

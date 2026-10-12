@@ -6,6 +6,7 @@ import { loadSpaceReport, runCleanup } from '@/db/diagnostics';
 import { formatBytes } from '@/db/space';
 import { confirmDelete } from '@/lib/confirm';
 import { toast } from '@/store/toast';
+import { t as tr } from '@/i18n/core';
 
 type Rep = Awaited<ReturnType<typeof loadSpaceReport>>;
 
@@ -22,9 +23,9 @@ export function SpaceSection() {
 
   function confirmClean() {
     if (!r) return;
-    confirmDelete(`${r.orphans.length + r.cacheFiles.length} file (${formatBytes(removable)}) non più usati`, () => {
+    confirmDelete(tr('{0} file ({1}) non più usati', r.orphans.length + r.cacheFiles.length, formatBytes(removable)), () => {
       setBusy(true); setSheet(false);
-      void runCleanup({ orphans: true, cache: true, quarantine: true }, r).then((x) => { toast(`Ripulito: ${formatBytes(x.freed)} liberati`); }).catch(() => toast('Ripulitura non completata')).finally(() => { setBusy(false); load(); });
+      void runCleanup({ orphans: true, cache: true, quarantine: true }, r).then((x) => { toast(tr('Ripulito: {0} liberati', formatBytes(x.freed))); }).catch(() => toast('Ripulitura non completata')).finally(() => { setBusy(false); load(); });
     }, undefined, { title: 'Ripulire?', okLabel: 'Ripulisci' });
   }
 

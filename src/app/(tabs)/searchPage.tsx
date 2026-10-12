@@ -4,7 +4,7 @@ import { Text } from '@/components/T';
 import { Body, Card, Input, Item, Page, Tag } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { go } from '@/lib/nav';
-import { parseHighlight, searchAll, type SearchHit, type SearchType } from '@/lib/search';
+import { parseHighlight, searchAll, stripHighlight, type SearchHit, type SearchType } from '@/lib/search';
 
 const GROUPS: { type: SearchType; label: string; max: number }[] = [
   { type: 'note', label: 'Note', max: 20 },
@@ -59,7 +59,7 @@ export default function Search() {
           <Card>{g.rows.map((r, i) => (
             <Item key={r.id + i} last={i === g.rows.length - 1} onPress={() => open(r)}>
               <Body><Marked s={r.title} /></Body>
-              {r.snippet && g.type !== 'task' && g.type !== 'goal' && g.type !== 'file' ? <Text numberOfLines={2} style={{ color: t.muted, fontSize: 13, lineHeight: 18 }}><Marked s={r.snippet} /></Text> : null}
+              {r.snippet && g.type !== 'task' && g.type !== 'goal' && g.type !== 'file' && !stripHighlight(r.snippet).startsWith(stripHighlight(r.title).slice(0, 15)) ? <Text numberOfLines={2} style={{ color: t.muted, fontSize: 13, lineHeight: 18 }}><Marked s={r.snippet} /></Text> : null}
             </Item>
           ))}</Card>
         </React.Fragment>
