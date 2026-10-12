@@ -153,23 +153,24 @@ export default function Dashboard() {
 
       <NewAreaBanner />
 
+      {!hasData && (
+        <Card style={{ marginTop: 14 }}>
+          <H>La Dashboard analizza i tuoi dati</H>
+          <Body muted>Appena arrivano dati, qui compaiono punteggi, trend, previsioni, anomalie e correlazioni. Per iniziare:</Body>
+          <View style={{ gap: 8, marginTop: 12 }}>
+            <Btn title="Collega Apple Health e Apple Watch" onPress={() => go('lifehealth')} />
+            <Btn ghost title="Registra i dati a mano" onPress={() => go('lifehealth')} />
+            <Btn ghost title="Esplora con dati demo" onPress={() => { applyDemo(account.name, account.email); useApp.getState().set({ demo: true }); toast('Dati demo caricati'); }} />
+          </View>
+        </Card>
+      )}
+
       {/* ---------- 5. Altro ---------- */}
       <MoreSection title="Approfondimento" subtitle="Punteggio, indicatori, correlazioni e report" open={isMoreOpen} onToggle={() => setMoreOpen(!isMoreOpen)}>
         <JourneyCard />
         <DiscoverCard />
         <WeeklyReportButton ghost style={{ marginBottom: 12 }} />
         
-        {!hasData && (
-          <Card style={{ marginTop: 14 }}>
-            <H>La Dashboard analizza i tuoi dati</H>
-            <Body muted>Appena arrivano dati, qui compaiono punteggi, trend, previsioni, anomalie e correlazioni. Per iniziare:</Body>
-            <View style={{ gap: 8, marginTop: 12 }}>
-              <Btn title="Collega Apple Health e Apple Watch" onPress={() => go('lifehealth')} />
-              <Btn ghost title="Registra i dati a mano" onPress={() => go('lifehealth')} />
-              <Btn ghost title="Esplora con dati demo" onPress={() => { applyDemo(account.name, account.email); useApp.getState().set({ demo: true }); toast('Dati demo caricati'); }} />
-            </View>
-          </Card>
-        )}
         {hasData && (
           <>
             {scoreCard}
