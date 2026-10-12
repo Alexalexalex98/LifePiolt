@@ -1,0 +1,133 @@
+name: android-e2e
+
+# Test end-to-end NATIVI su emulatore Android con Maestro (flussi in .maestro/).
+# Si lancia a mano (Actions > android-e2e > Run workflow) oppure quando si crea un tag "v*" / "e2e-*".
+# L'APK puo' arrivare da: (1) URL (apk_url: es. artifact di una build EAS "preview" con buildType apk), (2) build locale
+# su runner (expo prebuild + gradle, solo x86_64). Dettagli, costi e limiti: docs/qualita.md.
+on:
+  workflow_dispatch:
+    inputs:
+      apk_url:
+        description: 'URL diretto di un APK (es. build EAS preview). Vuoto = costruisce l APK sul runner'
+        required: false
+        default: ''
+      tags:
+        description: 'Tag dei flussi da eseguire, separati da virgola (smoke, native, slow)'
+        required: false
+        default: 'smoke,native'
+  push:
+    tags: ['v*', 'e2e-*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  EXPO_NO_TELEMETRY: '1'
+  MAESTRO_VERSION: '1.40.3'
+
+jobs:
+  build-apk:
+    name: APK (build locale)
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.apk_url == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci --legacy-peer-deps
+      # La cartella android/ e' generata (Continuous Native Generation): non e' nel repo.
+      - name: Genera il progetto nativo
+        run: npx expo prebuild --platform android --no-install --clean
+      # Solo x86_64 (emulatore): dimezza tempi e dimensione. La release usa il keystore di debug generato da prebuild,
+      # quindi l'APK si installa senza firma di produzione; il bundle JS e' incluso (nessun Metro necessario).
+      - name: Compila APK release x86_64
+        working-directory: android
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon --stacktrace
+      - name: Trova l APK
+        run: |
+          APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n1)
+          test -n "$APK" || { echo "APK non trovato"; exit 1; }
+          mkdir -p out && cp "$APK" out/lifepilot.apk && ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lifepilot-apk
+          path: out/lifepilot.apk
+          retention-days: 7
+
+  e2e:
+    name: Maestro su emulatore (API 34)
+    needs: [build-apk]
+    # parte anche se build-apk e' stato saltato (APK da URL), ma non se e' fallito
+    if: ${{ always() && (needs.build-apk.result == 'success' || needs.build-apk.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Controllo statico dei flussi
+        run: node scripts/ci/maestro-check.mjs
+      - name: Scarica l APK costruito
+        if: ${{ needs.build-apk.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lifepilot-apk
+          path: apk
+      - name: Scarica l APK dall URL
+        if: ${{ needs.build-apk.result != 'success' }}
+        env:
+          APK_URL: ${{ inputs.apk_url }}
+        run: |
+          test -n "$APK_URL" || { echo "Nessun APK: passa apk_url o lascia costruire l APK"; exit 1; }
+          mkdir -p apk && curl -fsSL -o apk/lifepilot.apk "$APK_URL"
+          ls -la apk
+      # KVM: senza, l'emulatore x86_64 e' inutilizzabile (lentissimo)
+      - name: Abilita KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Emulatore + Maestro
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          APK: apk/lifepilot.apk
+          INCLUDE_TAGS: ${{ inputs.tags || 'smoke,native' }}
+          OUT: maestro-report
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/ci/android-e2e-run.sh
+      - name: Riepilogo JUnit
+        if: always()
+        run: |
+          ls maestro-report/junit 2>/dev/null | wc -l | xargs echo "report junit:"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maestro-report
+          path: maestro-report
+          if-no-files-found: ignore
+          retention-days: 14
