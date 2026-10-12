@@ -18,12 +18,14 @@ export const STAY = {
   /** durata minima per chiamarla sosta */
   minStayMs: 10 * MIN_MS,
   minPoints: 2,
-  /** buco massimo tra due punti della stessa sosta */
-  maxGapMs: 14 * HOUR_MS,
+  /** buco massimo tra due punti della stessa sosta (notte intera senza movimento) */
+  maxGapMs: 18 * HOUR_MS,
+  /** i punti di avvicinamento/uscita oltre questa distanza dal centro non fanno parte della sosta (m) */
+  trimRadius: 60,
 };
 
 export type StayOpts = Partial<typeof STAY>;
-export type StayRange = Stay & { i: number; j: number };
+export type StayRange = Stay & { i: number; j: number; reachesEnd: boolean };
 
 /** Tutte le soste trovate; `closed` = seguite da un punto fuori raggio (la sosta aperta e' l'ultima, se arriva all'ultimo punto). */
 export function detectStays(points: GeoPoint[], opts: StayOpts = {}): { closed: StayRange[]; open: StayRange | null } {
@@ -40,13 +42,20 @@ export function detectStays(points: GeoPoint[], opts: StayOpts = {}): { closed: 
       j++; cnt++; sLat += p.lat; sLng += p.lng;
     }
     if (points[j].ts - points[i].ts >= o.minStayMs && cnt >= o.minPoints) {
-      const c = centroid(points.slice(i, j + 1));
-      found.push({ start: points[i].ts, end: points[j].ts, lat: c.lat, lng: c.lng, n: cnt, i, j });
+      const reachesEnd = j === n - 1;
+      let a = i, b = j;
+      let c = centroid(points.slice(a, b + 1));
+      // taglia gli estremi ancora "in cammino": l'arrivo e la partenza veri sono i primi/ultimi punti vicini al centro
+      while (a < b && dist(points[a], c) > o.trimRadius) a++;
+      while (b > a && dist(points[b], c) > o.trimRadius) b--;
+      if (b > a && points[b].ts - points[a].ts >= o.minStayMs && b - a + 1 >= o.minPoints) c = centroid(points.slice(a, b + 1));
+      else { a = i; b = j; }
+      found.push({ start: points[a].ts, end: points[b].ts, lat: c.lat, lng: c.lng, n: b - a + 1, i: a, j: b, reachesEnd });
       i = j + 1;
     } else i++;
   }
   const last = found[found.length - 1];
-  if (last && last.j === n - 1) return { closed: found.slice(0, -1), open: last };
+  if (last && last.reachesEnd) return { closed: found.slice(0, -1), open: last };
   return { closed: found, open: null };
 }
 
@@ -56,6 +65,6 @@ export function tripBetween(a: Stay, b: Stay, points: GeoPoint[]): Trip | null {
   const mid = points.filter((p) => p.ts > a.end && p.ts < b.start);
   const path = [{ lat: a.lat, lng: a.lng, ts: a.end, accuracy: 20, speed: null }, ...mid, { lat: b.lat, lng: b.lng, ts: b.start, accuracy: 20, speed: null }] as GeoPoint[];
   const dm = Math.max(pathLength(path), dist(a, b));
-  const m = classifyMode(path, { distM: dm, durMs: b.start - a.end, samples: mid.length });
+  const m = classifyMode(mid, { distM: dm, durMs: b.start - a.end, samples: mid.length });
   return { start: a.end, end: b.start, distM: Math.round(dm), mode: m.mode, modeConf: m.confidence, samples: mid.length };
 }

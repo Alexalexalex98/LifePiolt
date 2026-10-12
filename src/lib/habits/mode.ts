@@ -14,6 +14,7 @@ import type { Confidence, GeoPoint, Mode } from './types.ts';
 export const MODE = {
   minSpeedSamples: 4,
   moving: 0.5,
+  slowFrac: 0.3,
   maxSegDt: 120,
   walkMedian: [0.6, 2.3] as [number, number],
   walkP90: 3.6,
@@ -21,11 +22,12 @@ export const MODE = {
   bikeP90: 11,
   bikeMaxStopFrac: 0.2,
   stopEpisode: [15, 300] as [number, number],
-  transitMinStops: 3,
+  transitMinStops: 5,
+  ambiguousMinStops: 4,
   transitMedian: [3, 25] as [number, number],
   trainCruise: 40,
   carMedian: 7.5,
-  stopSpacingCv: 0.45,
+  stopSpacingCv: 0.4,
 };
 
 export type ModeResult = { mode: Mode; confidence: Confidence; why: string; speedMed?: number; speedP90?: number; stops?: number };
@@ -44,18 +46,22 @@ export function classifyMode(path: GeoPoint[], ctx: { distM: number; durMs: numb
     segs.push({ dt, v, mid: b });
   }
   if (speeds.length < M.minSpeedSamples) return { mode: 'sconosciuto', confidence: 'bassa', why: 'pochi punti lungo il tragitto' };
-  const movingV = speeds.filter((v) => v > M.moving);
+  const moving0 = speeds.filter((v) => v > M.moving);
+  if (moving0.length < 3) return { mode: 'sconosciuto', confidence: 'bassa', why: 'quasi fermo' };
+  // "rallentamento": un segmento molto piu' lento della crociera (fermata, semaforo); la crociera e' la mediana dei segmenti in movimento
+  const slow = Math.max(M.moving, M.slowFrac * median(moving0));
+  const movingV = speeds.filter((v) => v > slow);
   if (movingV.length < 3) return { mode: 'sconosciuto', confidence: 'bassa', why: 'quasi fermo' };
   const vm = median(movingV), v90 = quantile(movingV, 0.9);
   const totalT = segs.reduce((s, x) => s + x.dt, 0);
-  const stopT = segs.filter((x) => x.v <= M.moving).reduce((s, x) => s + x.dt, 0);
+  const stopT = segs.filter((x) => x.v <= slow).reduce((s, x) => s + x.dt, 0);
   const stopFrac = totalT ? stopT / totalT : 0;
 
-  // episodi di sosta brevi (fermate, semafori) e loro distanza lungo il percorso
-  const stops: number[] = []; // posizione cumulata (m) dell'inizio di ogni sosta
+  // episodi di rallentamento/sosta brevi (fermate, semafori) e loro posizione lungo il percorso
+  const stops: number[] = [];
   let cum = 0, run = 0, runStart = 0;
   for (const s of segs) {
-    if (s.v <= M.moving) { if (!run) runStart = cum; run += s.dt; }
+    if (s.v <= slow) { if (!run) runStart = cum; run += s.dt; }
     else {
       if (run >= M.stopEpisode[0] && run <= M.stopEpisode[1]) stops.push(runStart);
       run = 0;
@@ -84,7 +90,7 @@ export function classifyMode(path: GeoPoint[], ctx: { distM: number; durMs: numb
   if (transit) return res('mezzi', long ? 'media' : 'bassa', 'fermate regolari');
   if (vm > M.carMedian) {
     // soste irregolari o assenti = auto; molte soste di forma incerta = non lo so
-    if (stops.length >= M.transitMinStops && spacingCv <= M.stopSpacingCv * 1.6) return res('sconosciuto', 'bassa', 'auto o mezzi pubblici: segnali in contrasto');
+    if (stops.length >= M.ambiguousMinStops && spacingCv <= M.stopSpacingCv) return res('sconosciuto', 'bassa', 'auto o mezzi pubblici: segnali in contrasto');
     return res('auto', long && v90 >= 11 ? 'media' : 'bassa', 'velocita\' da veicolo, soste irregolari');
   }
   return res('sconosciuto', 'bassa', 'velocita\' in una zona di confine');

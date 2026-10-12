@@ -16,6 +16,8 @@ export const ROUTINE = {
   minHits: 4,
   minTrips: 4,
   minLeaveDays: 5,
+  /** dispersione massima (MAD, min) dell'orario di uscita per dire "di solito" */
+  maxLeaveMad: 45,
   /** quota minima di quel giorno della settimana in cui si va davvero in quel posto */
   minShare: 0.6,
   /** finestra di regolarita' (min) attorno alla mediana */
@@ -36,7 +38,7 @@ export type LeaveHome = { days: number[]; medianMin: number; madMin: number; n: 
 export type Routine = {
   id: string; placeId: string; place: string; kind: string;
   days: number[]; arriveMin: number; spreadMin: number; dwellMin: number;
-  n: number; opps: number; share: number; confidence: Confidence; text: string; why: string;
+  n: number; opps: number; share: number; within: number; confidence: Confidence; text: string; why: string;
 };
 export type DayType = { label: string; days: number; of: number; steps: { place: string; arrive: string; leave: string }[]; text: string };
 export type Report = {
@@ -54,7 +56,8 @@ export function relinkTrips(trips: Trip[], stays: Stay[]): Trip[] {
   return trips.map((tr) => ({ ...tr, from: byEnd.get(tr.start)?.placeId, to: byStart.get(tr.end)?.placeId }));
 }
 
-const days = (ts: number[]) => new Set(ts.map(dayKey));
+/** "il lunedi'", "la domenica". */
+export const onDay = (w: number) => (w === 0 ? t('la domenica') : t('il {0}', t(WEEKDAYS[w])));
 
 export function analyze(input: { places: Place[]; stays: Stay[]; trips: Trip[]; inferred: Record<string, Inferred> }): Report {
   const R = ROUTINE;
@@ -114,7 +117,7 @@ export function analyze(input: { places: Place[]; stays: Stay[]; trips: Trip[]; 
       if (v.length < R.minLeaveDays) continue;
       const med = median(v), mad = madScaled(v);
       const within = v.filter((x) => Math.abs(x - med) <= R.window).length / v.length;
-      if (within < 0.5) continue; // troppo irregolare per dire "di solito"
+      if (within < 0.5 || mad > R.maxLeaveMad) continue; // troppo irregolare per dire "di solito"
       const dayNames = g.label === 'work' ? t('nei giorni feriali') : t('nel weekend');
       rep.leaveHome.push({
         days: g.days, medianMin: Math.round(med), madMin: Math.round(mad), n: v.length, within, confidence: conf(v.length, within, mad),
@@ -163,7 +166,7 @@ export function analyze(input: { places: Place[]; stays: Stay[]; trips: Trip[]; 
     const n = grp.reduce((s, g) => s + g.ds.size, 0), op = grp.reduce((s, g) => s + (opps.get(g.wd)?.size ?? 0), 0);
     const dl = grp.map((g) => g.wd).sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
     const nm = name(c.place);
-    const dtxt = dl.length === 5 && !dl.includes(0) && !dl.includes(6) ? t('nei giorni feriali') : dl.length === 1 ? t('il {0}', t(WEEKDAYS[dl[0]])) : t('il {0}', dl.map((w) => t(WEEKDAYS[w])).join(', '));
+    const dtxt = dl.length === 5 && !dl.includes(0) && !dl.includes(6) ? t('nei giorni feriali') : dl.length === 1 ? onDay(dl[0]) : t('il {0}', dl.map((w) => t(WEEKDAYS[w])).join(', '));
     rep.routines.push({
       id: `r-${c.place}-${dl.join('')}`, placeId: c.place, place: nm, kind: kind(c.place), days: dl,
       arriveMin: Math.round(med), spreadMin: Math.round(mad), dwellMin: Math.round(median(dwell)), n, opps: op, share: n / Math.max(1, op), within,

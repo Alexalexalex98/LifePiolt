@@ -5,8 +5,8 @@ import { t } from '../../i18n/core.ts';
 import { dist, median, madScaled } from './geo.ts';
 import { displayName, effectiveKind } from './labels.ts';
 import type { LearnedTravel } from './travel.ts';
-import { ROUTINE, relinkTrips, type Report } from './routine.ts';
-import { atLocal, dayKey, fmtMin, isWorkday, minOfDay, overlap, WEEKDAYS } from './time.ts';
+import { ROUTINE, onDay, relinkTrips, type Report } from './routine.ts';
+import { atLocal, dayKey, fmtMin, isWorkday, minOfDay, overlap } from './time.ts';
 import type { GeoPoint, Inferred, Place, Stay, Trip } from './types.ts';
 
 export type Model = { places: Place[]; stays: Stay[]; trips: Trip[]; inferred: Record<string, Inferred> };
@@ -75,7 +75,7 @@ export function routineSuggestions(rep: Report, events: Record<string, PlanEv[]>
       if (busy) continue;
       out.push({
         id: `${r.id}-${day}`, day, time: fmtMin(r.arriveMin), dur, title: r.place, place: r.place, n: r.n,
-        text: t('Di solito il {0} vai in «{1}» verso le {2}: vuoi bloccare l\'orario?', t(WEEKDAYS[d.getDay()]), r.place, fmtMin(r.arriveMin)),
+        text: t('Di solito {0} vai in «{1}» verso le {2}: vuoi bloccare l\'orario?', onDay(d.getDay()), r.place, fmtMin(r.arriveMin)),
         why: r.why,
       });
     }
