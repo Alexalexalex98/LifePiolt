@@ -36,7 +36,7 @@ export function NetHeader({ balance, query, onQuery, placeholder }: { balance: n
   }
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, gap: 8 }}>
-      <Text accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ color: t.text, fontSize: narrow ? 23 : 28, fontWeight: '800', letterSpacing: -0.6, flexShrink: 1 }}>LifeNetwork</Text>
+      <View style={{ flex: 1 }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={translateText('Cerca persone su LifeNetwork…')} style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}><Icon name="search" size={23} color={t.text} stroke={2} /></Pressable>
         <PressScale onPress={() => go('lifepointsPage')} label={`${translateText('Il tuo saldo')}: ${formatCHF(balance)} LifePoints`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: narrow ? 10 : 13, borderRadius: 999, backgroundColor: t.chip }}>

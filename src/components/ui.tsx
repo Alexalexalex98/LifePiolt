@@ -125,6 +125,10 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
   useEffect(() => { trackVisit(id === 'index' ? 'home' : id); }, [id, trackVisit]);
   // il pulsante indietro compare da solo su ogni pagina aperta con go() (non sulle 5 tab principali)
   const showBack = !MAIN_TABS.includes(id) && (back ?? !noTop);
+  // il nome della sezione sta già accanto al logo: non lo ripeto come titolo grande
+  const names = useSectionNames();
+  const tag = names[id === 'index' ? 'home' : id] || '';
+  const sameAsTag = !!title && !!tag && translateText(title).trim().toLowerCase() === tag.trim().toLowerCase();
   const params = useLocalSearchParams();
   const memKey = id + JSON.stringify(params);
   const scrollRef = useRef<ScrollView>(null);
@@ -144,8 +148,8 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
         </Press>
       )}
       {title && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 }}>
-          <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.title, fontWeight: '800', letterSpacing: -0.2, flexShrink: 1 }}>{title}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: sameAsTag ? 'flex-end' : 'space-between', marginTop: sameAsTag ? 6 : 12, marginBottom: 8 }}>
+          {!sameAsTag && <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.title, fontWeight: '800', letterSpacing: -0.2, flexShrink: 1 }}>{title}</Text>}
           {right}
         </View>
       )}
