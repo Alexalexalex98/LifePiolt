@@ -145,14 +145,14 @@ export function MoreNeeds({ list }: { list: ReturnType<typeof useNeeds> }) {
 }
 
 /** "Altro": raggruppa il resto, chiuso di default per chi è ai primi livelli. */
-export function MoreSection({ open, onToggle, children }: { open: boolean; onToggle: () => void; children: ReactNode }) {
+export function MoreSection({ open, onToggle, children, title = 'Altro', subtitle = 'Funzione del giorno, punteggi, analisi e il tuo percorso' }: { open: boolean; onToggle: () => void; children: ReactNode; title?: string; subtitle?: string }) {
   const t = useTheme();
   return (
     <View style={{ marginTop: 26 }}>
-      <Pressable onPress={onToggle} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={tr(open ? 'Altro: comprimi' : 'Altro: mostra punteggi, analisi e altre funzioni')} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 18, borderWidth: 1, borderColor: t.border, backgroundColor: t.card, minHeight: 56, opacity: pressed ? 0.7 : 1 })}>
+      <Pressable onPress={onToggle} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={`${tr(title)}: ${tr(open ? 'comprimi' : 'mostra')}`} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 18, borderWidth: 1, borderColor: t.border, backgroundColor: t.card, minHeight: 56, opacity: pressed ? 0.7 : 1 })}>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>Altro</Text>
-          <Text style={{ color: t.muted, fontSize: 13 }}>Funzione del giorno, punteggi, analisi e il tuo percorso</Text>
+          <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{title}</Text>
+          <Text style={{ color: t.muted, fontSize: 13 }}>{subtitle}</Text>
         </View>
         <View style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }}><Icon name="chevron" size={18} color={t.muted} stroke={2.2} /></View>
       </Pressable>

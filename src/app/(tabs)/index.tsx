@@ -5,7 +5,8 @@ import { Text } from '@/components/T';
 import { TrendChart } from '@/components/charts';
 import { WeeklyReportButton } from '@/components/WeeklyReportButton';
 import { DiscoverCard } from '@/components/Discover';
-import { HomeTitle, JourneyCard, MoreNeeds, MoreSection, NewAreaBanner, NextEventBlock, RecommendedBlock, TodayHeader, useNeeds } from '@/components/home/HomeBlocks';
+import { TheiaDashboard } from '@/components/home/TheiaDashboard';
+import { JourneyCard, MoreSection, NewAreaBanner, TodayHeader, useNeeds } from '@/components/home/HomeBlocks';
 import { TourTarget } from '@/components/tour/TourTarget';
 import { CorrelationSheet, DomainSheet, MoodCheckIn } from '@/components/homeParts';
 import { InsightCard, KpiCard, MetricSheet, deltaStatus, scoreStatus, statusColor } from '@/components/dashboard';
@@ -141,40 +142,23 @@ export default function Dashboard() {
 
   return (
     <Page id="index">
-      {/* ---------- 1. Oggi: saluto e umore ---------- */}
+      {/* ---------- Oggi: saluto e umore ---------- */}
       <TodayHeader greet={greet} name={account.name} />
       <TourTarget id="home.mood"><MoodCheckIn /></TourTarget>
 
-      {/* ---------- 2. il prossimo impegno ---------- */}
-      <HomeTitle>Prossimo impegno</HomeTitle>
-      <NextEventBlock onAdd={() => setPlan(true)} />
-
-      {/* ---------- 3. una sola azione consigliata ---------- */}
-      <HomeTitle>Da fare adesso</HomeTitle>
-      <RecommendedBlock list={needs} />
+      {/* ---------- analista personale: quadro, attenzione, impegni e andamento ---------- */}
+      <TourTarget id="home.next"><View style={{ marginTop: 14 }}>
+        <TheiaDashboard dash={dash} needs={needs} name={account.name} onPlan={() => setPlan(true)} onMetric={openMetric} />
+      </View></TourTarget>
 
       <NewAreaBanner />
 
-      {/* ---------- 4. più blocchi per chi è avanti col percorso ---------- */}
-      {hasData && lay.showScore && (
-        <>
-          <HomeTitle>Il tuo punteggio</HomeTitle>
-          {scoreCard}
-        </>
-      )}
-      {hasData && lay.showInsights && (
-        <>
-          <HomeTitle>Cosa conta adesso</HomeTitle>
-          {insightsList}
-        </>
-      )}
-
       {/* ---------- 5. Altro ---------- */}
-      <MoreSection open={isMoreOpen} onToggle={() => setMoreOpen(!isMoreOpen)}>
+      <MoreSection title="Approfondimento" subtitle="Punteggio, indicatori, correlazioni e report" open={isMoreOpen} onToggle={() => setMoreOpen(!isMoreOpen)}>
         <JourneyCard />
         <DiscoverCard />
         <WeeklyReportButton ghost style={{ marginBottom: 12 }} />
-        <MoreNeeds list={needs} />
+        
         {!hasData && (
           <Card style={{ marginTop: 14 }}>
             <H>La Dashboard analizza i tuoi dati</H>
@@ -188,13 +172,7 @@ export default function Dashboard() {
         )}
         {hasData && (
           <>
-            {!lay.showScore && <>{scoreCard}</>}
-            {!lay.showInsights && (
-              <>
-                <SectionLabel>Cosa conta adesso</SectionLabel>
-                {insightsList}
-              </>
-            )}
+            {scoreCard}
             {(strengths.length > 0 || weak.length > 0) && (
               <Row style={{ alignItems: 'stretch', marginTop: 10 }} gap={10}>
                 <Card style={{ flex: 1, marginVertical: 0 }}>

@@ -19,7 +19,23 @@ export const INTEREST_CATALOG = [
 ] as const;
 export type InterestId = (typeof INTEREST_CATALOG)[number]['id'];
 
+type DashMemory = {
+  /** id esatti o 'sub:<argomento>:<sotto>' che la persona ha tolto dalla Dashboard con «Non mi interessa» */
+  muted: string[];
+  /** insight rimandati: id -> fino a quando */
+  snoozed: Record<string, number>;
+  /** quante volte ha seguito o scartato un argomento: la Dashboard ne mostra di più o di meno */
+  feedback: Record<string, { follow: number; irrelevant: number }>;
+};
+
 type State = {
+  /** memoria della Dashboard: cosa interessa e cosa no */
+  dash?: DashMemory;
+  dashIrrelevant: (id: string, topic: string, sub?: string) => void;
+  dashFollow: (topic: string) => void;
+  dashSnooze: (id: string, until: number) => void;
+  dashUnmute: (key: string) => void;
+  dashResetMemory: () => void;
   selected: InterestId[];
   /** aree scelte nell'onboarding ("Cosa ti interessa di più?", saltabile): ordinano esempi e funzioni in evidenza, non nascondono nulla */
   areas: string[];
@@ -46,6 +62,21 @@ type State = {
 
 export const useInterests = create<State>()(
   persisted<State>('interests', (set) => ({
+    dash: { muted: [], snoozed: {}, feedback: {} },
+    dashIrrelevant: (id, topic, sub) => set((s) => {
+      const d = s.dash ?? { muted: [], snoozed: {}, feedback: {} };
+      const key = sub ? `sub:${topic}:${sub}` : id;
+      const fb = d.feedback[topic] ?? { follow: 0, irrelevant: 0 };
+      return { dash: { ...d, muted: d.muted.includes(key) ? d.muted : [...d.muted, key], feedback: { ...d.feedback, [topic]: { ...fb, irrelevant: Math.min(10, fb.irrelevant + 1) } } } };
+    }),
+    dashFollow: (topic) => set((s) => {
+      const d = s.dash ?? { muted: [], snoozed: {}, feedback: {} };
+      const fb = d.feedback[topic] ?? { follow: 0, irrelevant: 0 };
+      return { dash: { ...d, feedback: { ...d.feedback, [topic]: { ...fb, follow: Math.min(10, fb.follow + 1) } } } };
+    }),
+    dashSnooze: (id, until) => set((s) => { const d = s.dash ?? { muted: [], snoozed: {}, feedback: {} }; return { dash: { ...d, snoozed: { ...d.snoozed, [id]: until } } }; }),
+    dashUnmute: (key) => set((s) => { const d = s.dash ?? { muted: [], snoozed: {}, feedback: {} }; return { dash: { ...d, muted: d.muted.filter((k) => k !== key) } }; }),
+    dashResetMemory: () => set({ dash: { muted: [], snoozed: {}, feedback: {} } }),
     selected: [],
     areas: [],
     setAreas: (areas) => set({ areas: [...new Set(areas)] }),
@@ -62,6 +93,6 @@ export const useInterests = create<State>()(
     toggle: (id) => set((s) => ({ selected: s.selected.includes(id) ? s.selected.filter((x) => x !== id) : [...s.selected, id] })),
     addRecent: (q, kind = 'altro') => set((s) => ({ recent: [{ q: q.trim(), kind, ts: Date.now() }, ...s.recent.filter((r) => r.q.toLowerCase() !== q.trim().toLowerCase())].slice(0, 40) })),
     setHomeCity: (homeCity) => set({ homeCity }),
-    reset: () => set({ selected: [], areas: [], recent: [], homeCity: '', custom: [], dismissed: [] }),
+    reset: () => set({ selected: [], areas: [], recent: [], homeCity: '', custom: [], dismissed: [], dash: { muted: [], snoozed: {}, feedback: {} } }),
   })),
 );
