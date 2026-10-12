@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import { readSignals } from '@/components/tour/hooks';
 import { go } from '@/lib/nav';
 import { postByKey } from '@/lib/network';
+import { REPLY_ACTION } from '@/lib/quickReply';
+import { sendQuickReply } from '@/lib/quickReplyActions';
 import { lastTap, onNotificationTap, type TapEvent } from '@/lib/notify';
 import { actorOf } from '@/lib/notifyKinds';
 import { buildRef, parseRef, readPushData, routeFor, type Route } from '@/lib/notifyLinks';
@@ -169,6 +171,12 @@ function handleTap(e: TapEvent, ready: boolean) {
   if (!ready) { pending = e; return; }
   seen.add(e.id);
   const d = readPushData(e.data);
+  // «Rispondi» dalla notifica: pubblico il commento/messaggio senza aprire nessuna schermata
+  if (e.action === REPLY_ACTION) {
+    if (d.nid !== undefined) markReadByRef(d.nid);
+    if (!sendQuickReply(d.ref, e.text)) toast(t('Non sono riuscito a inviare la risposta'));
+    return;
+  }
   if (d.nid !== undefined) markReadByRef(d.nid);
   // senza ref (es. notifiche vecchie): elenco delle notifiche
   if (!d.ref) { go('notificationsPage'); return; }

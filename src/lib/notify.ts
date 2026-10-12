@@ -6,6 +6,7 @@ import { t } from '@/i18n/core';
 import { errToString, log } from '@/lib/log';
 import { buildPush, decidePush, dedupeKey, KIND_ORDER, KINDS, kindEnabled } from '@/lib/notifyKinds';
 import { buildRef, pushData } from '@/lib/notifyLinks';
+import { REPLY_ACTION, REPLY_CATEGORY, canReply } from '@/lib/quickReply';
 import { ID_PREFIX, planReminders } from '@/lib/reminders';
 import { useApp } from '@/store/app';
 
@@ -59,6 +60,13 @@ export function ensureHandler() {
         return { shouldShowBanner: true, shouldShowList: true, shouldPlaySound: !quiet, shouldSetBadge: false };
       },
     });
+  } catch { /* non disponibile */ }
+  // «Rispondi» nella notifica: si scrive un commento o un messaggio senza aprire l'app
+  try {
+    void Notifications.setNotificationCategoryAsync(REPLY_CATEGORY, [{
+      identifier: REPLY_ACTION, buttonTitle: t('Rispondi'), options: { opensAppToForeground: false },
+      textInput: { submitButtonTitle: t('Invia'), placeholder: t('Scrivi una risposta…') },
+    }]);
   } catch { /* non disponibile */ }
 }
 
@@ -358,7 +366,7 @@ export async function sendTest(seconds = 5): Promise<NotifyResult> {
 
 // ---------- tocco sulle notifiche di sistema ----------
 
-export type TapEvent = { id: string; data: unknown };
+export type TapEvent = { id: string; data: unknown; /** azione scelta nella notifica (es. 'reply') e testo scritto */ action?: string; text?: string };
 
 /** Ascolta i tocchi sulle notifiche di sistema (app aperta o in background). Restituisce la funzione per smettere. */
 export function onNotificationTap(handler: (e: TapEvent) => void): () => void {
@@ -366,7 +374,8 @@ export function onNotificationTap(handler: (e: TapEvent) => void): () => void {
   if (!N) return () => undefined;
   try {
     const sub = N.addNotificationResponseReceivedListener((r) => {
-      handler({ id: `${r.notification.request.identifier}|${r.notification.date}`, data: r.notification.request.content.data });
+      const text = (r as unknown as { userText?: string }).userText;
+      handler({ id: `${r.notification.request.identifier}|${r.notification.date}|${r.actionIdentifier ?? ''}`, data: r.notification.request.content.data, action: r.actionIdentifier, text });
     });
     return () => { try { sub.remove(); } catch { /* ignore */ } };
   } catch { return () => undefined; }
@@ -411,7 +420,7 @@ export async function pushForNotif(n: { type: string; text: string; urgent?: boo
     await ensureKindChannels();
     const p = buildPush(n);
     await Notifications.scheduleNotificationAsync({
-      content: { title: p.title, body: p.body, sound: p.sound, interruptionLevel: p.passive ? 'passive' : 'active', data: pushData(n.ref, p.kind, n.id) },
+      content: { title: p.title, body: p.body, sound: p.sound, interruptionLevel: p.passive ? 'passive' : 'active', data: pushData(n.ref, p.kind, n.id), ...(canReply(n.ref) ? { categoryIdentifier: REPLY_CATEGORY } : {}) },
       trigger: Platform.OS === 'android' ? { channelId: p.channelId } : null,
     });
   } catch { /* mai bloccare l'app per una notifica */ }
