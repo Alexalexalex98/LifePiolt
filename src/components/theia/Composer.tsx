@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, AppState, Platform, Pressable, ScrollView, View } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, Keyboard, Platform, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { Btn, Input } from '@/components/ui';
@@ -22,7 +22,7 @@ import { AttachChip, BillChip } from './AttachChips';
 import { AttachSheet } from './AttachSheet';
 import { LangSheet } from './LangSheet';
 import { CommandSuggest } from './CommandSuggest';
-import { PrivacyBadge } from './PrivacyBadge';
+import { PrivacyBadge, PrivacySheet } from './PrivacyBadge';
 import { useVoiceNote } from './useVoiceNote';
 import { VoiceDiagSheet } from './VoiceDiagSheet';
 import { VoiceNotice } from './VoiceNotice';
@@ -71,6 +71,7 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
   const [langOpen, setLangOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [whyOpen, setWhyOpen] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const transport = useRef<SpeechTransport | null>(null);
   const voiceFrom = useRef<string | null>(null); // lingua della trascrizione nel campo di testo
@@ -227,7 +228,7 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
       ) : null}
 
       {focused && !active && !note.recording ? <CommandSuggest typed={text} onPick={(c) => { setText(c.insert); voiceFrom.current = null; }} /> : null}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, backgroundColor: t.card, borderColor: focused ? t.accent + '99' : t.border, borderWidth: 1.5, borderRadius: 28, paddingHorizontal: 8, paddingVertical: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: t.card, borderColor: focused ? t.accent + '99' : t.border, borderWidth: 1.5, borderRadius: 28, paddingHorizontal: 8, paddingVertical: 6 }}>
         <Pressable onPress={() => setAttachOpen(true)} disabled={active || note.recording} accessibilityRole="button" accessibilityLabel={translateText('Allega')} accessibilityState={{ disabled: active || note.recording }} style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', opacity: !active && !note.recording ? 1 : 0.4 }}>
           <Icon name="paperclip" size={21} color={t.muted} stroke={2} />
         </Pressable>
@@ -240,9 +241,9 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
           onBlur={() => setTimeout(() => setFocused(false), 150)}
           onSubmitEditing={Platform.OS === 'web' ? doSend : undefined}
           returnKeyType={Platform.OS === 'web' ? 'send' : 'default'}
-          maxLines={Platform.OS === 'web' ? undefined : 5}
+          multiline={Platform.OS !== 'web'}
           editable={!active}
-          style={{ marginBottom: 0, minWidth: 0, backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 4, paddingVertical: 9, fontSize: 16.5 }}
+          style={{ marginBottom: 0, minWidth: 0, minHeight: 40, maxHeight: 120, backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 4, paddingTop: 9, paddingBottom: 9, fontSize: 16.5, textAlignVertical: 'center' }}
         />
         {text.trim().length > 0 || atts.length > 0 ? (
           <Pressable onPress={doSend} disabled={!canSend} accessibilityRole="button" accessibilityLabel={translateText('Invia')} accessibilityState={{ disabled: !canSend }} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: canSend ? 1 : 0.4 }}>
@@ -263,13 +264,15 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
         )}
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, paddingHorizontal: 4 }}>
-        <PrivacyBadge />
+        <PrivacyBadge onPress={() => setWhyOpen(true)} />
+        {focused ? <Pressable onPress={() => Keyboard.dismiss()} accessibilityRole="button" accessibilityLabel={translateText('Chiudi la tastiera')} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 28 }}><Icon name="arrow-down" size={14} color={t.accent} stroke={2.2} /><Text style={{ color: t.accent, fontSize: 12.5, fontWeight: '700' }}>{translateText('Chiudi')}</Text></Pressable> : null}
         <Pressable onPress={() => setLangOpen(true)} accessibilityRole="button" accessibilityLabel={`${translateText('Lingua di questo messaggio')}: ${native}`} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 28 }}>
           <Icon name="compass" size={13} color={over ? t.accent : t.muted} stroke={2} />
           <Text style={{ color: over ? t.accent : t.muted, fontSize: 12, fontWeight: '600' }}>{native}</Text>
         </Pressable>
       </View>
 
+      <PrivacySheet visible={whyOpen} onClose={() => setWhyOpen(false)} />
       <AttachSheet visible={attachOpen} onClose={() => setAttachOpen(false)} current={atts} onAdd={addAtts} />
       <VoiceDiagSheet visible={diagOpen} onClose={() => setDiagOpen(false)} locale={localeFor(speechLang)} />
       <LangSheet visible={langOpen} onClose={() => setLangOpen(false)} value={lang} appLang={appLang} onPick={(c) => setOver(c === appLang ? null : c)} auto={auto} onAuto={setAuto} />

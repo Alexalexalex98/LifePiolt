@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, ScrollView, View } from 'react-native';
+import { FlatList, Platform, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { Body, Input, Page, Pill, Row } from '@/components/ui';
@@ -92,10 +92,13 @@ export default function LifeChat() {
   }
 
   return (
-    <Page id="ai" title="LifeChat" scroll={false} right={<Pressable onPress={() => { setSearching((x) => !x); setQ(''); }} hitSlop={10} accessibilityLabel={translateText("Cerca nelle conversazioni")}><Icon name="search" size={22} color={t.text} /></Pressable>}>
+    <Page id="ai" title="LifeChat" scroll={false}>
       {searching ? (
         <View style={{ flex: 1 }}>
-          <Input placeholder="Cerca una domanda o una risposta…" value={q} onChangeText={setQ} autoFocus style={{ marginBottom: 8 }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <Input flex={1} placeholder="Cerca una domanda o una risposta…" value={q} onChangeText={setQ} autoFocus style={{ marginBottom: 0 }} />
+            <Pressable onPress={() => { setSearching(false); setQ(''); }} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Chiudi la ricerca')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={22} color={t.text} stroke={2.1} /></Pressable>
+          </View>
           <FlatList
             data={results}
             keyExtractor={(m) => m.id}
@@ -111,11 +114,12 @@ export default function LifeChat() {
         </View>
       ) : (
         <>
-          <View style={{ height: 44, marginBottom: 6 }}>
-            <ScrollView horizontal keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', gap: 8 }}>
+          <View style={{ height: 44, marginBottom: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <ScrollView horizontal style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', gap: 8 }}>
               <Pill label="Generale" on={section === GENERALE} onPress={() => setSection(GENERALE)} />
               {folders.map((f) => <Pill key={f.topic} label={`${f.topic} · ${f.count}`} on={section === f.topic} onPress={() => setSection(f.topic)} />)}
             </ScrollView>
+            <Pressable onPress={() => { setSearching(true); setQ(''); }} accessibilityRole="button" accessibilityLabel={translateText('Cerca nelle conversazioni')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="search" size={22} color={t.text} /></Pressable>
           </View>
           {hidden > 0 && (
             <Row style={{ marginBottom: 6 }}>
@@ -135,25 +139,26 @@ export default function LifeChat() {
             data={shown}
             keyExtractor={(m) => m.id}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             removeClippedSubviews={false}
             onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
             contentContainerStyle={shown.length === 0 ? { flexGrow: 1, justifyContent: 'center' } : undefined}
             ListEmptyComponent={
-              <View style={{ alignItems: 'center', paddingHorizontal: 4, paddingBottom: 24 }}>
-                <LinearGradient colors={[t.accent, t.accent + '66']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 68, height: 68, borderRadius: 34, alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+              <View style={{ alignItems: 'center', paddingHorizontal: 4, paddingBottom: 8 }}>
+                <LinearGradient colors={[t.accent, t.accent + '66']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
                   <Icon name="sparkle" size={30} color={t.onText} stroke={2} />
                 </LinearGradient>
-                <Text style={{ color: t.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.5, textAlign: 'center' }}>{greetWord}, {userName}</Text>
-                <Text style={{ color: t.muted, fontSize: 17, marginTop: 6, textAlign: 'center' }}>Sono {name}. Cosa facciamo oggi?</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 26, alignSelf: 'stretch' }}>
+                <Text style={{ color: t.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.4, textAlign: 'center' }}>{greetWord}, {userName}</Text>
+                <Text style={{ color: t.muted, fontSize: 15, marginTop: 4, textAlign: 'center' }}>Sono {name}. Cosa facciamo oggi?</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16, alignSelf: 'stretch' }}>
                   {HERO_CARDS.map(([ic, label, cmd]) => (
-                    <Pressable key={label} onPress={() => send(cmd)} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => ({ width: '48%', flexGrow: 1, backgroundColor: t.card, borderColor: t.border, borderWidth: 1, borderRadius: 20, padding: 14, minHeight: 92, justifyContent: 'space-between', opacity: pressed ? 0.7 : 1 })}>
+                    <Pressable key={label} onPress={() => send(cmd)} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => ({ width: '48%', flexGrow: 1, backgroundColor: t.card, borderColor: t.border, borderWidth: 1, borderRadius: 16, padding: 12, minHeight: 74, justifyContent: 'space-between', opacity: pressed ? 0.7 : 1 })}>
                       <Icon name={ic} size={22} color={t.accent} stroke={1.9} />
-                      <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', marginTop: 10 }}>{label}</Text>
+                      <Text style={{ color: t.text, fontSize: 14, fontWeight: '700', marginTop: 8 }}>{label}</Text>
                     </Pressable>
                   ))}
                 </View>
-                <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 18, textAlign: 'center' }}>Scrivi un comando o una domanda: ti suggerisco io cosa so fare.</Text>
+                <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 12, textAlign: 'center' }}>Scrivi un comando o una domanda: ti suggerisco io cosa so fare.</Text>
               </View>
             }
             renderItem={({ item }) => {
