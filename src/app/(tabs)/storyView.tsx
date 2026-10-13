@@ -1,126 +1,152 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
-import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
+import { StoryPlayer, StoryVideo } from '@/components/stories/StoryPlayer';
 import { UserAvatar } from '@/components/network';
-import { Body, Item, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Card, Item, Page, Row, Sheet } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { confirmDelete } from '@/lib/confirm';
 import { Icon } from '@/lib/icons';
-import { goBack } from '@/lib/nav';
-import { STORY_SECONDS, addView, ago, startIndex, storyGroups, type Story } from '@/lib/stories';
+import { go } from '@/lib/nav';
+import { activeStories, addGift, addView, ago, dayParts, fixedMoments, timeLabel, type Story } from '@/lib/stories';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 
-function StoryVideo({ uri }: { uri: string }) {
-  const p = useVideoPlayer(uri, (pl) => { pl.loop = false; pl.play(); });
-  return <VideoView player={p} style={{ width: '100%', height: '100%' }} nativeControls={false} contentFit="cover" />;
+const ATTACH_ICON: Record<string, string> = { event: 'calendar', seminar: 'users', idea: 'sparkle', place: 'pin' };
+
+/** Dove porta il collegamento allegato a un momento. */
+function openAttach(a: NonNullable<Story['attach']>) {
+  if (a.kind === 'event') go('plan', a.ref ? { day: a.ref, at: String(Date.now()) } : {});
+  else if (a.kind === 'seminar' && a.ref) go('seminarPage', { id: a.ref });
+  else if (a.kind === 'idea' && a.ref) go('ideaProfile', { id: a.ref });
+  else if (a.kind === 'place') go('searchPage', { q: a.label });
 }
 
-/** Visualizzatore a schermo intero: tocca a destra per avanzare, a sinistra per tornare, tieni premuto per fermare. */
-export default function StoryView() {
-  const { author } = useLocalSearchParams<{ author?: string }>();
-  const me = useApp((s) => s.account.name);
-  const insets = useSafeAreaInsets();
+function Moment({ s, me }: { s: Story; me: string }) {
+  const t = useTheme();
   const net = useNet();
-  const group = useMemo(() => storyGroups(net.stories, me, () => true, net.storySeen ?? [], Date.now()).find((g) => g.author === (author || me)), []); // eslint-disable-line react-hooks/exhaustive-deps
-  const stories: Story[] = (net.stories ?? []).filter((s) => group?.stories.some((x) => x.id === s.id)).sort((a, b) => a.ts - b.ts);
-  const [i, setI] = useState(() => (group ? startIndex(group, net.storySeen ?? []) : 0));
-  const [p, setP] = useState(0);
-  const [held, setHeld] = useState(false);
-  const [viewers, setViewers] = useState(false);
+  const mine = s.author === me;
   const [reply, setReply] = useState('');
-  const [typing, setTyping] = useState(false);
-  const cur = stories[Math.min(i, stories.length - 1)];
-  const mine = cur?.author === me;
-  const paused = held || viewers || typing;
-  const secs = cur?.kind === 'video' ? 10 : STORY_SECONDS;
-  const iRef = useRef(i); iRef.current = i;
-
-  // segno la storia come vista
-  useEffect(() => {
-    if (!cur || mine) return;
-    const st = useNet.getState();
-    if (!(st.storySeen ?? []).includes(cur.id)) st.patch({ storySeen: [...(st.storySeen ?? []), cur.id], stories: addView(st.stories ?? [], cur.id, me) });
-  }, [cur?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { setP(0); }, [i]);
-  const next = () => { if (iRef.current >= stories.length - 1) goBack(); else setI(iRef.current + 1); };
-  useEffect(() => {
-    if (!cur || paused) return;
-    const h = setInterval(() => setP((x) => x + 50 / (secs * 1000)), 50);
-    return () => clearInterval(h);
-  }, [cur?.id, paused, secs]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (p >= 1) next(); }, [p]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!cur) return <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}><Body style={{ color: '#fff' }}>{tl('Non ci sono storie.')}</Body><Text onPress={goBack} style={{ color: '#8fa4ff', marginTop: 14, fontWeight: '800' }}>{tl('Indietro')}</Text></View>;
-
-  const send = (text: string) => {
-    const t = text.trim(); if (!t) return;
+  const gifted = (s.gifts ?? []).includes(me);
+  const send = () => {
+    const x = reply.trim(); if (!x) return;
     const chat = useChat.getState();
-    const id = chat.ensureDm(cur.author, me);
-    chat.send(id, me, { kind: 'text', text: `${tl('Risposta alla tua storia')}: ${t}` });
-    setReply(''); setTyping(false); toast(tl('Inviato a {0}', cur.author));
+    chat.send(chat.ensureDm(s.author, me), me, { kind: 'text', text: `${tl('Risposta alla tua storia')}: ${x}` });
+    setReply(''); toast(tl('Inviato a {0}', s.author));
   };
-  const remove = () => confirmDelete(tl('questa storia'), () => {
-    net.patch({ stories: (net.stories ?? []).filter((s) => s.id !== cur.id) });
-    if (stories.length <= 1) goBack(); else setI(Math.max(0, i - 1));
-  });
-  const viewerList = cur.views;
-
+  const gift = () => {
+    if (gifted) { toast('Hai già regalato il LifePoint a questo momento'); return; }
+    if (!net.donateDaily(s.author, 'story:' + s.id, me)) { toast('Oggi hai già donato il tuo LifePoint giornaliero'); return; }
+    net.patch({ stories: addGift(useNet.getState().stories ?? [], s.id, me) });
+    toast(tl('Hai regalato il LifePoint giornaliero a {0}', s.author));
+  };
+  const remove = () => confirmDelete(tl('questo momento'), () => net.patch({ stories: (net.stories ?? []).filter((x) => x.id !== s.id) }));
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
-      {cur.kind === 'text' ? (
-        <LinearGradient colors={cur.bg ?? ['#6c8cff', '#3b2a7a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, alignItems: 'center', justifyContent: 'center', padding: 28 }}>
-          <Text style={{ color: '#fff', fontSize: 30, fontWeight: '800', textAlign: 'center' }}>{cur.text}</Text>
+    <Card style={{ padding: 0, overflow: 'hidden', marginBottom: 12 }}>
+      {s.kind === 'text' ? (
+        <LinearGradient colors={s.bg ?? ['#6c8cff', '#3b2a7a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ minHeight: 180, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800', textAlign: 'center' }}>{s.text}</Text>
         </LinearGradient>
       ) : (
-        <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}>
-          {cur.kind === 'video' && cur.uri ? <StoryVideo uri={cur.uri} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
-          {cur.text ? <Text style={{ position: 'absolute', bottom: insets.bottom + 90, start: 16, end: 16, color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 8 }}>{cur.text}</Text> : null}
+        <View style={{ aspectRatio: 4 / 5, backgroundColor: '#000' }}>
+          {s.kind === 'video' && s.uri ? <StoryVideo uri={s.uri} controls /> : <Image source={{ uri: s.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
         </View>
       )}
-      {/* zone di tocco: sinistra indietro, destra avanti, pressione lunga ferma */}
-      <View style={{ position: 'absolute', top: insets.top + 70, bottom: insets.bottom + 80, start: 0, end: 0, flexDirection: 'row' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={tl('Storia precedente')} style={{ flex: 1 }} onPress={() => (i > 0 ? setI(i - 1) : setP(0))} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={200} />
-        <Pressable accessibilityRole="button" accessibilityLabel={tl('Storia successiva')} style={{ flex: 2 }} onPress={next} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={200} />
-      </View>
-      <View pointerEvents="box-none" style={{ paddingTop: insets.top + 8, paddingHorizontal: 10 }}>
-        <View style={{ flexDirection: 'row', gap: 4 }}>
-          {stories.map((s, k) => <View key={s.id} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)', overflow: 'hidden' }}><View style={{ width: `${k < i ? 100 : k === i ? Math.min(100, p * 100) : 0}%`, height: 3, backgroundColor: '#fff' }} /></View>)}
-        </View>
-        <Row style={{ marginTop: 10 }} gap={10}>
-          <UserAvatar name={cur.author} size={36} />
-          <View style={{ flex: 1 }}><Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>{mine ? tl('La tua storia') : cur.author}</Text><Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{tl(ago(cur.ts, Date.now()))}</Text></View>
-          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina la storia')} onPress={remove} hitSlop={10} style={{ padding: 6 }}><Icon name="trash" size={22} color="#fff" /></Pressable> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={goBack} hitSlop={10} style={{ padding: 6 }}><Icon name="x" size={24} color="#fff" /></Pressable>
+      <View style={{ padding: 12, gap: 8 }}>
+        <Row gap={8}>
+          <Text style={{ color: t.text, fontWeight: '800' }}>{timeLabel(s.ts)}</Text>
+          <Text style={{ color: t.muted, fontSize: 12, flex: 1 }}>{tl(ago(s.ts, Date.now()))}{s.keep === 'week' ? ` · ${tl('7 giorni')}` : ''}</Text>
+          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina')} onPress={remove} hitSlop={10}><Icon name="trash" size={18} color={t.muted} /></Pressable> : null}
         </Row>
-      </View>
-      <View style={{ flex: 1 }} pointerEvents="none" />
-      <View style={{ paddingHorizontal: 14, paddingBottom: insets.bottom + 12 }}>
-        {mine ? (
-          <Pressable accessibilityRole="button" onPress={() => setViewers(true)} style={{ alignSelf: 'center', flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 }}>
-            <Icon name="eye" size={18} color="#fff" /><Text style={{ color: '#fff', fontWeight: '800' }}>{tl('{0} visualizzazioni', viewerList.length)}</Text>
+        {s.kind !== 'text' && s.text ? <Body>{s.text}</Body> : null}
+        {s.attach ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={s.attach.label} onPress={() => openAttach(s.attach!)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: t.chip, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12 }}>
+            <Icon name={(ATTACH_ICON[s.attach.kind] ?? 'link') as never} size={16} color={t.accent} />
+            <Text numberOfLines={1} style={{ color: t.text, fontWeight: '700', flex: 1 }}>{s.attach.label}</Text>
+            <Icon name="arrow-right" size={15} color={t.muted} />
           </Pressable>
+        ) : null}
+        {mine ? (
+          <Body small muted>{tl('{0} visualizzazioni', s.views.length)}{(s.gifts ?? []).length ? ` · ${tl('{0} LifePoint regalati', (s.gifts ?? []).length)}` : ''}{s.views.length ? ` · ${s.views.join(', ')}` : ''}</Body>
         ) : (
-          <Row gap={10}>
-            <TextInput value={reply} onChangeText={setReply} onFocus={() => setTyping(true)} onBlur={() => setTyping(false)} onSubmitEditing={() => send(reply)} returnKeyType="send" placeholder={tl('Rispondi a {0}…', cur.author.split(' ')[0])} placeholderTextColor="rgba(255,255,255,0.7)" accessibilityLabel={tl('Rispondi alla storia')} style={{ flex: 1, color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 }} />
-            <Pressable accessibilityRole="button" accessibilityLabel={tl('Mi piace alla storia')} onPress={() => send(tl('mi piace'))} hitSlop={8} style={{ padding: 8 }}><Icon name="heart" size={26} color="#fff" /></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={tl('Invia')} onPress={() => send(reply)} hitSlop={8} style={{ padding: 8 }}><Icon name="send" size={24} color="#fff" /></Pressable>
+          <Row gap={8}>
+            <TextInput value={reply} onChangeText={setReply} onSubmitEditing={send} returnKeyType="send" placeholder={tl('Rispondi…')} placeholderTextColor={t.muted} accessibilityLabel={tl('Rispondi al momento')} style={{ flex: 1, color: t.text, backgroundColor: t.input, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 }} />
+            <Pressable accessibilityRole="button" accessibilityLabel={tl('Invia')} onPress={send} hitSlop={8}><Icon name="send" size={20} color={t.accent} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={tl('Regala il LifePoint giornaliero')} onPress={gift} hitSlop={8}><Icon name={gifted ? 'coin' : 'heart'} size={22} color={gifted ? t.positive : t.accent} /></Pressable>
           </Row>
         )}
       </View>
-      <Sheet visible={viewers} title={tl('Chi ha visto la storia')} onClose={() => setViewers(false)}>
-        {viewerList.length === 0 ? <Body muted>{tl('Nessuno l’ha ancora vista.')}</Body> : viewerList.map((n, k) => (
-          <Item key={n} last={k === viewerList.length - 1}><Row gap={10}><UserAvatar name={n} size={34} /><Body bold>{n}</Body></Row></Item>
-        ))}
+    </Card>
+  );
+}
+
+/** «La giornata» di una persona: i suoi momenti in ordine, per parte del giorno. Si scorre con il proprio ritmo; «Riproduci» li mostra uno dopo l'altro. */
+export default function StoryDay() {
+  const { author } = useLocalSearchParams<{ author?: string }>();
+  const me = useApp((s) => s.account.name);
+  const net = useNet();
+  const who = author || me;
+  const all = useMemo(() => activeStories(net.stories, Date.now()).filter((s) => s.author === who), [net.stories, who]);
+  const parts = dayParts(all);
+  const fixed = fixedMoments(all);
+  const flow = parts.flatMap((p) => p.stories);
+  const [play, setPlay] = useState(false);
+  const [viewers, setViewers] = useState(false);
+  const t = useTheme();
+  // li segno visti all'apertura (non i miei)
+  useMemo(() => {
+    if (who === me) return;
+    const st = useNet.getState();
+    const seen = new Set(st.storySeen ?? []);
+    const fresh = all.filter((s) => !seen.has(s.id));
+    if (!fresh.length) return;
+    let stories = st.stories ?? [];
+    fresh.forEach((s) => { stories = addView(stories, s.id, me); });
+    setTimeout(() => useNet.getState().patch({ storySeen: [...seen, ...fresh.map((s) => s.id)], stories }), 0);
+  }, [who]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (play) return <StoryPlayer stories={flow} start={0} onClose={() => setPlay(false)} />;
+  const mineView = who === me;
+  const viewerSet = [...new Set(all.flatMap((s) => s.views))];
+  return (
+    <Page id="storyView" back title={mineView ? 'La tua giornata' : tl('La giornata di {0}', who)}>
+      <Row gap={10} style={{ marginBottom: 12 }}>
+        <UserAvatar name={who} size={44} />
+        <View style={{ flex: 1 }}>
+          <Body bold>{who}</Body>
+          <Body small muted>{tl('Momenti oggi: {0}', flow.length)}</Body>
+        </View>
+        {flow.length ? <Btn small icon="video" title="Riproduci" onPress={() => setPlay(true)} /> : null}
+      </Row>
+      {mineView ? (
+        <Row gap={8} style={{ marginBottom: 12 }}>
+          <Btn small style={{ flex: 1 }} icon="plus" title="Aggiungi un momento" onPress={() => go('storyCreate')} />
+          {viewerSet.length ? <Btn small ghost icon="eye" title={tl('{0} persone', viewerSet.length)} onPress={() => setViewers(true)} /> : null}
+        </Row>
+      ) : null}
+      {all.length === 0 ? <Card><Body muted>{tl('Nessun momento per ora.')}</Body></Card> : null}
+      {parts.map((p) => (
+        <View key={p.part}>
+          <Text accessibilityRole="header" style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, marginBottom: 6, marginTop: 4 }}>{tl(p.part).toUpperCase()}</Text>
+          {p.stories.map((s) => <Moment key={s.id} s={s} me={me} />)}
+        </View>
+      ))}
+      {fixed.length ? (
+        <View>
+          <Text accessibilityRole="header" style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, marginBottom: 6, marginTop: 8 }}>{tl('MOMENTI FISSI NEL PROFILO')}</Text>
+          {fixed.map((s) => <Moment key={s.id} s={s} me={me} />)}
+        </View>
+      ) : null}
+      <Sheet visible={viewers} title={tl('Chi ha visto i tuoi momenti')} onClose={() => setViewers(false)}>
+        {viewerSet.map((n, k) => <Item key={n} last={k === viewerSet.length - 1}><Row gap={10}><UserAvatar name={n} size={34} /><Body bold>{n}</Body></Row></Item>)}
       </Sheet>
-    </View>
+    </Page>
   );
 }

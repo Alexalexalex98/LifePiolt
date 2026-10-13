@@ -34,3 +34,24 @@ test('ago e creazione', () => {
   assert.equal(makeStory({ id: '1', author: 'Io', now: NOW, kind: 'text', text: 'a'.repeat(300) }).text.length, 140);
   assert.equal(makeStory({ id: '1', author: 'Io', now: NOW, kind: 'photo', uri: 'u' }).uri, 'u');
 });
+
+test('la giornata: parti del giorno, durata, momenti fissi, regali', async () => {
+  const m = await import('../src/lib/stories.ts');
+  const at = (h, min = 0) => new Date(2026, 9, 13, h, min).getTime();
+  assert.equal(m.partOf(at(7)), 'Mattina'); assert.equal(m.partOf(at(12)), 'Pomeriggio'); assert.equal(m.partOf(at(19)), 'Sera'); assert.equal(m.partOf(at(2)), 'Notte');
+  assert.equal(m.timeLabel(at(7, 5)), '07:05');
+  const mk = (id, ts, extra = {}) => ({ id, author: 'A', ts, kind: 'text', text: 'x', views: [], ...extra });
+  const parts = m.dayParts([mk('c', at(19)), mk('a', at(7)), mk('b', at(8)), mk('z', at(9), { keep: 'moment' })]);
+  assert.deepEqual(parts.map((p) => p.part), ['Mattina', 'Sera']);
+  assert.deepEqual(parts[0].stories.map((s) => s.id), ['a', 'b']);
+  assert.deepEqual(m.fixedMoments([mk('z', 1, { keep: 'moment' }), mk('y', 5, { keep: 'moment' }), mk('n', 9)]).map((s) => s.id), ['y', 'z']);
+  const now = at(12);
+  assert.equal(m.isActive(mk('w', now - 3 * 86400000, { keep: 'week' }), now), true);
+  assert.equal(m.isActive(mk('d', now - 3 * 86400000), now), false);
+  assert.equal(m.isActive(mk('f', now - 400 * 86400000, { keep: 'moment' }), now), true);
+  const g = m.addGift(m.addGift([mk('a', 1)], 'a', 'B'), 'a', 'B');
+  assert.deepEqual(g[0].gifts, ['B']);
+  assert.equal(m.addGift([mk('a', 1)], 'a', 'A')[0].gifts, undefined);
+  const s = m.makeStory({ id: '1', author: 'A', now, kind: 'text', text: 'ciao', keep: 'week', attach: { kind: 'event', label: ' Corsa alle 7 ', ref: '2026-10-14' } });
+  assert.equal(s.keep, 'week'); assert.equal(s.attach.label, 'Corsa alle 7');
+});

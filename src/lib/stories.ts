@@ -6,14 +6,21 @@ export const STORY_MS = 24 * 3600 * 1000;
 export const MAX_STORY_TEXT = 140;
 export const STORY_SECONDS = 5;
 export type StoryKind = 'photo' | 'video' | 'text';
+/** Cosa si può allegare a un momento: un impegno del Plan, un seminario, un'idea o un luogo. Chi guarda tocca e ci va. */
+export type StoryAttach = { kind: 'event' | 'seminar' | 'idea' | 'place'; label: string; /** giorno (evento), id (seminario, idea) */ ref?: string };
+/** Quanto resta: un giorno (standard), una settimana, o fisso nel profilo come «momento». */
+export type Keep = 'day' | 'week' | 'moment';
 export type Story = {
-  id: string; author: string; ts: number; kind: StoryKind;
+  id: string; author: string; ts: number; kind: StoryKind; keep?: Keep; attach?: StoryAttach;
+  /** chi ha regalato il LifePoint giornaliero a questo momento (lo vede l'autore) */ gifts?: string[];
   uri?: string; text?: string; /** colori dello sfondo delle storie di solo testo */ bg?: [string, string];
   /** chi l'ha vista (lo vede solo l'autore) */ views: string[];
 };
 export const BACKGROUNDS: [string, string][] = [['#6c8cff', '#3b2a7a'], ['#e0866b', '#a4343a'], ['#4fb58a', '#1f5a7a'], ['#c9a24a', '#6a3b12'], ['#141a2b', '#2a1f4a'], ['#d65f8a', '#5a2a7a']];
 
-export const isActive = (s: Story, now: number) => now - s.ts < STORY_MS && now >= s.ts - 60000;
+export const KEEP_MS: Record<Keep, number> = { day: STORY_MS, week: 7 * STORY_MS, moment: Infinity };
+export const KEEP_LABEL: Record<Keep, string> = { day: '24 ore', week: '7 giorni', moment: 'Fisso nel profilo' };
+export const isActive = (s: Story, now: number) => now - s.ts < KEEP_MS[s.keep ?? 'day'] && now >= s.ts - 60000;
 export const activeStories = (all: Story[] | undefined, now: number): Story[] => (all ?? []).filter((s) => isActive(s, now));
 /** Toglie le scadute (da fare ogni tanto, così lo store non cresce). */
 export const purgeStories = (all: Story[] | undefined, now: number): Story[] => activeStories(all, now);
@@ -52,8 +59,28 @@ export function ago(ts: number, now: number): string {
   return `${Math.floor(m / 60)} h`;
 }
 /** Una storia nuova con i controlli sul contenuto: testo non vuoto (max 140) o un file. */
-export function makeStory(a: { id: string; author: string; now: number; kind: StoryKind; uri?: string; text?: string; bg?: [string, string] }): Story | null {
+export function makeStory(a: { id: string; author: string; now: number; kind: StoryKind; uri?: string; text?: string; bg?: [string, string]; keep?: Keep; attach?: StoryAttach }): Story | null {
   const text = (a.text ?? '').trim().slice(0, MAX_STORY_TEXT);
   if (a.kind === 'text' ? !text : !a.uri) return null;
-  return { id: a.id, author: a.author, ts: a.now, kind: a.kind, ...(a.uri ? { uri: a.uri } : {}), ...(text ? { text } : {}), ...(a.kind === 'text' ? { bg: a.bg ?? BACKGROUNDS[0] } : {}), views: [] };
+  const label = a.attach?.label.trim().slice(0, 60);
+  return { id: a.id, author: a.author, ts: a.now, kind: a.kind, ...(a.keep && a.keep !== 'day' ? { keep: a.keep } : {}), ...(a.attach && label ? { attach: { ...a.attach, label } } : {}), ...(a.uri ? { uri: a.uri } : {}), ...(text ? { text } : {}), ...(a.kind === 'text' ? { bg: a.bg ?? BACKGROUNDS[0] } : {}), views: [] };
+}
+
+/* ---------- la giornata: momenti raggruppati per parte del giorno ---------- */
+export type Part = 'Mattina' | 'Pomeriggio' | 'Sera' | 'Notte';
+export const PART_ORDER: Part[] = ['Mattina', 'Pomeriggio', 'Sera', 'Notte'];
+export function partOf(ts: number): Part {
+  const h = new Date(ts).getHours();
+  return h >= 5 && h < 12 ? 'Mattina' : h >= 12 && h < 18 ? 'Pomeriggio' : h >= 18 && h < 23 ? 'Sera' : 'Notte';
+}
+export const timeLabel = (ts: number) => { const d = new Date(ts); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+/** I momenti di una persona, dal più vecchio al più recente, divisi per parte del giorno (le parti vuote non ci sono). I «fissi» vanno a parte. */
+export function dayParts(stories: Story[]): { part: Part; stories: Story[] }[] {
+  const flow = stories.filter((s) => s.keep !== 'moment').sort((a, b) => a.ts - b.ts);
+  return PART_ORDER.map((part) => ({ part, stories: flow.filter((s) => partOf(s.ts) === part) })).filter((x) => x.stories.length);
+}
+export const fixedMoments = (stories: Story[]) => stories.filter((s) => s.keep === 'moment').sort((a, b) => b.ts - a.ts);
+/** Regalo del LifePoint giornaliero a un momento (una volta per persona, non a se stessi). */
+export function addGift(all: Story[], id: string, from: string): Story[] {
+  return all.map((s) => (s.id === id && s.author !== from && !(s.gifts ?? []).includes(from) ? { ...s, gifts: [...(s.gifts ?? []), from] } : s));
 }
