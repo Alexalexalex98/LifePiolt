@@ -78,6 +78,9 @@ export function LifePointsRow({ name, isMe = false }: { name: string; isMe?: boo
   const t = useTheme();
   useNet((s) => s.receivedDaily);
   useNet((s) => s.dailyHistory);
+  useNet((s) => s.lpMoves);
+  useNet((s) => s.ideas);
+  useNet((s) => s.receivedPayments);
   const lp = lifePointsFor(name);
   const tile = (value: number, label: string, kind: 'lpTotal' | 'lpDaily') => {
     const inner = (
@@ -93,7 +96,7 @@ export function LifePointsRow({ name, isMe = false }: { name: string; isMe?: boo
   return (
     <View style={{ flexDirection: 'row', gap: 10 }}>
       {tile(lp.total, 'LifePoints complessivi ricevuti', 'lpTotal')}
-      {tile(lp.donors, 'LifePoints Giornalieri ricevuti', 'lpDaily')}
+      {tile(lp.daily, 'LifePoints Giornalieri ricevuti', 'lpDaily')}
     </View>
   );
 }

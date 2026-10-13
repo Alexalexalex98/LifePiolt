@@ -6,7 +6,7 @@ import { profileOf, useJobs } from '@/store/jobs';
 import { useNet } from '@/store/network';
 import { useClub } from '@/store/club';
 import { useApp } from '@/store/app';
-import { receivedLPFor, postByKey } from '@/lib/network';
+import { lpReceived, receivedLPFor, postByKey } from '@/lib/network';
 import { can as canDo, type Action, type IdStatus } from './identity';
 import { canVoteProfile, computeReputation, itemRating, type ItemVote, profileVoteBlockReason, type Interactions, type Participation } from './reputation';
 import { skillStates, type Declared, type Evidence, type SkillState } from './skills';
@@ -85,10 +85,10 @@ export function reputationFor(name: string) {
   });
 }
 
-export function lifePointsFor(name: string): { total: number; today: number; donors: number } {
+export function lifePointsFor(name: string): { total: number; daily: number; today: number; donors: number } {
   const s = useNet.getState();
   const today = weekdayShortDate();
-  return { total: receivedLPFor(name), today: s.dailyHistory.filter((h) => h.to === name && h.date === today).length, donors: s.receivedDaily[name] || 0 };
+  return { total: receivedLPFor(name), daily: lpReceived(name).daily, today: s.dailyHistory.filter((h) => h.to === name && h.date === today).length, donors: s.receivedDaily[name] || 0 };
 }
 
 /** Prove disponibili per ogni competenza: test (prove, candidature, verifiche scritte) e verifica dal vivo. */

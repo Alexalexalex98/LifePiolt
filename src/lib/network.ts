@@ -1,5 +1,7 @@
 import { hashStr, mulberry32, shortDate } from '@/lib/format';
 import { ideaState } from '@/lib/ideas';
+import { buildStatement } from '@/lib/lpStatement';
+import { useApp } from '@/store/app';
 import { totalUnread, useChat } from '@/store/chat';
 import { useNet, type Idea } from '@/store/network';
 
@@ -64,6 +66,12 @@ export function lpReceived(name: string): { daily: number; ideas: number; ideasB
   const mine = s.ideas.filter((i) => i.author === name && ideaState(i, now) !== 'scaduta');
   const ideasPaid = mine.filter((i) => ideaState(i, now) === 'raggiunta').reduce((a, i) => a + i.raised, 0);
   const ideasBlocked = mine.filter((i) => ideaState(i, now) === 'raccolta').reduce((a, i) => a + i.raised, 0);
+  // per me fa fede il registro dei movimenti (lo stesso del rendiconto); per gli altri i contatori pubblici
+  if (name === useApp.getState().account.name && (s.lpMoves?.length ?? 0) > 0) {
+    const by = buildStatement(s.lpMoves ?? [], 0, now + 1e11).earned.bySource;
+    const daily = by.giornaliero, paid = by.idee, payments = by.iscrizioni + by.pagamenti + by.altro;
+    return { daily, ideas: paid + ideasBlocked, ideasBlocked, ideasPaid: paid, payments, total: daily + paid + ideasBlocked + payments };
+  }
   const daily = s.receivedDaily[name] || 0, payments = s.receivedPayments[name] || 0;
   return { daily, ideas: ideasPaid + ideasBlocked, ideasBlocked, ideasPaid, payments, total: daily + ideasPaid + ideasBlocked + payments };
 }
