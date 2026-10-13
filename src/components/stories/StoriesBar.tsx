@@ -12,6 +12,7 @@ import { go } from '@/lib/nav';
 import { BACKGROUNDS, makeStory, purgeStories, storyGroups, timeLabel, type Story, type StoryGroup } from '@/lib/stories';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
+import { useStoryPeek } from '@/store/storyPeek';
 
 const FRASI = ['Buongiorno dal lago', 'Giornata di corsa e caffè', 'Prova nuova ricetta stasera', 'Primo giorno di corso', 'Weekend in montagna', 'Studio spagnolo, dai che si può'];
 /** Storie di esempio per la modalità demo: una volta sola, di chi segui. */
@@ -22,10 +23,10 @@ function useDemoStories() {
     if (!demo || net.storiesSeeded) return;
     const now = Date.now();
     const authors = net.following.slice(0, 5);
-    const list: Story[] = authors.flatMap((a, i) => {
-      const s = makeStory({ id: `demo-st-${i}`, author: a, now: now - (i + 1) * 47 * 60000, kind: 'text', text: FRASI[i % FRASI.length], bg: BACKGROUNDS[i % BACKGROUNDS.length] });
+    const list: Story[] = authors.flatMap((a, i) => Array.from({ length: i === 0 ? 4 : i === 1 ? 2 : 1 }, (_, k) => {
+      const s = makeStory({ id: `demo-st-${i}-${k}`, author: a, now: now - (i + 1) * 47 * 60000 + k * 9 * 60000, kind: 'text', text: FRASI[(i + k) % FRASI.length], bg: BACKGROUNDS[(i + k) % BACKGROUNDS.length] });
       return s ? [s] : [];
-    });
+    }).flat());
     net.patch({ stories: [...(net.stories ?? []), ...list], storiesSeeded: true });
   }, [demo, net.storiesSeeded]); // eslint-disable-line react-hooks/exhaustive-deps
 }
@@ -38,6 +39,7 @@ export function StoriesBar() {
   const seen = useNet((s) => s.storySeen);
   const following = useNet((s) => s.following);
   useDemoStories();
+  const setPeek = useStoryPeek((x) => x.set);
   const now = Date.now();
   // pulizia delle scadute, una volta all'apertura
   useEffect(() => {
@@ -52,28 +54,42 @@ export function StoriesBar() {
     : st.kind === 'photo' ? <Image source={{ uri: st.uri }} style={{ width: w, height: h }} contentFit="cover" />
     : <View style={{ width: w, height: h, backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={26} color="#fff" /></View>;
   const card = (key: string, g: StoryGroup, label: string, onPress: () => void, extra?: React.ReactNode) => {
-    const last = g.stories[g.stories.length - 1];
-    const W = 88, H = 124;
+    const W = 84, H = 118;
+    const shown = g.stories.slice(0, 3); // si vedono al massimo le prime tre
+    const n = shown.length;
+    // la prima storia sta davanti dritta; le altre escono ai lati come un ventaglio
+    const rot = [0, -11, 11];
+    const dx = [0, -13, 13];
     return (
-      <Pressable key={key} accessibilityRole="button" accessibilityLabel={`${label} · ${tl('Momenti: {0}', g.stories.length)}${g.unseen ? ` · ${tl('da vedere')}` : ''}`} onPress={onPress}
-        style={{ width: W, height: H, borderRadius: 16, overflow: 'hidden', borderWidth: g.unseen ? 2.5 : 1, borderColor: g.unseen ? '#6c8cff' : t.border }}>
-        {preview(last, W, H)}
-        <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.75)']} style={{ position: 'absolute', start: 0, end: 0, bottom: 0, paddingHorizontal: 7, paddingTop: 18, paddingBottom: 6 }}>
-          <Text numberOfLines={1} style={{ color: '#fff', fontSize: 11.5, fontWeight: '800' }}>{label}</Text>
-          <Text numberOfLines={1} style={{ color: 'rgba(255,255,255,0.8)', fontSize: 10 }}>{g.stories.length > 1 ? tl('Momenti: {0}', g.stories.length) : timeLabel(last.ts)}</Text>
-        </LinearGradient>
-        {extra}
+      <Pressable key={key} accessibilityRole="button"
+        accessibilityLabel={`${label} · ${tl('Momenti: {0}', g.stories.length)}${g.unseen ? ` · ${tl('da vedere')}` : ''}`}
+        accessibilityHint={tl('Tocca per entrare. Tieni premuto per un’anteprima senza essere visto')}
+        onPress={onPress} onLongPress={() => setPeek(g.author)} onPressOut={() => setPeek(null)} delayLongPress={250}
+        style={{ width: W + 40, height: H + 34, alignItems: 'center' }}>
+        <View style={{ width: W + 40, height: H, alignItems: 'center', justifyContent: 'center' }}>
+          {shown.map((st, k) => ({ st, k })).reverse().map(({ st, k }) => {
+            const top = k === 0;
+            return (
+              <View key={st.id} style={{ position: 'absolute', width: W, height: H, borderRadius: 14, overflow: 'hidden', borderWidth: top && g.unseen ? 2.5 : 1.5, borderColor: top && g.unseen ? '#6c8cff' : 'rgba(255,255,255,0.55)', transform: [{ translateX: dx[k] }, { rotate: `${rot[k]}deg` }], shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } }}>
+                {preview(st, W, H)}
+              </View>
+            );
+          })}
+          {g.stories.length > 3 ? <View style={{ position: 'absolute', end: 4, top: 2, backgroundColor: '#4f8cff', borderRadius: 11, minWidth: 22, height: 22, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>+{g.stories.length - 3}</Text></View> : null}
+          {extra}
+        </View>
+        <Text numberOfLines={1} style={{ color: g.unseen ? t.text : t.muted, fontSize: 12, marginTop: 8, fontWeight: g.unseen ? '800' : '500' }}>{label}</Text>
       </Pressable>
     );
   };
   return (
     <View>
       <Text accessibilityRole="header" style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, paddingHorizontal: 16, marginTop: 6 }}>{tl('LA GIORNATA')}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 10 }} accessibilityLabel={tl('Momenti della giornata')}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8, gap: 0 }} accessibilityLabel={tl('Momenti della giornata')}>
         {mine ? card('me', mine, tl('Tu'), () => go('storyView', { author: me }), (
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi un momento')} onPress={() => go('storyCreate')} hitSlop={8} style={{ position: 'absolute', end: 5, top: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: '#4f8cff', alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={14} color="#fff" /></Pressable>
         )) : (
-          <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi un momento')} onPress={() => go('storyCreate')} style={{ width: 88, height: 124, borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed', borderColor: t.border, alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi un momento')} onPress={() => go('storyCreate')} style={{ width: 84, height: 118, marginHorizontal: 20, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: t.border, alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <UserAvatar name={me} size={40} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><Icon name="plus" size={14} color={t.accent} /><Text style={{ color: t.accent, fontWeight: '800', fontSize: 12 }}>{tl('Il tuo momento')}</Text></View>
           </Pressable>

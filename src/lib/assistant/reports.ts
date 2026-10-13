@@ -3,6 +3,8 @@ import { buildMoodDays } from '@/lib/moodContext';
 import { analyseMood } from '@/lib/moodAnalysis';
 import { t, translateText } from '@/i18n/core';
 import { monthEnd, monthNet, useFin } from '@/store/finance';
+import { useNet } from '@/store/network';
+import { weekdayShortDate } from '@/lib/format';
 
 const chf = (n: number) => `${n < 0 ? '-' : ''}${Math.abs(Math.round(n)).toLocaleString('it-CH')} CHF`;
 
@@ -49,5 +51,13 @@ export function moodReport(): string {
   report.factors.slice(0, 4).forEach((x) => lines.push('• ' + x.sentence));
   if (!report.factors.length) lines.push(t('Per ora nessun fattore si distingue in modo netto.'));
   lines.push(t('Sono correlazioni, non cause. Il dettaglio è nella pagina Umore.'));
+  return lines.join('\n');
+}
+
+export function lifePointsReport(): string {
+  const n = useNet.getState();
+  const today = n.dailyPoint.lastGiven === weekdayShortDate();
+  const lines = [t('Hai {0} LifePoints.', n.lifePoints.toLocaleString('it-CH'))];
+  lines.push(today ? t('Il LifePoint giornaliero di oggi l\'hai già donato a {0}.', n.dailyPoint.to ?? '') : t('Il LifePoint giornaliero di oggi è ancora da donare: lo regali a un post o a una storia che ti è piaciuta.'));
   return lines.join('\n');
 }

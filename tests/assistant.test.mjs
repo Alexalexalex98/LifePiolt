@@ -356,3 +356,22 @@ test('«Cosa ho in programma questa settimana?» mostra gli impegni, non pianifi
   const r = await a.handle('Cosa ho in programma questa settimana?');
   assert.ok(/dentista/i.test(r.text) && !/propongo/i.test(r.text), r.text);
 });
+
+test('ogni comando suggerito da Theia viene capito (motore o guida), non cade nel «non ho capito»', async () => {
+  const { COMMANDS } = await import('../src/lib/assistantCommands.ts');
+  const { PHRASE_SETS } = await import('../src/lib/assistant/phrases.ts');
+  const { matchFaq } = await import('../src/lib/helpFaq.ts');
+  const texts = new Set(COMMANDS.map((c) => c.insert));
+  for (const s of PHRASE_SETS) if (s.kind === 'cmd') texts.add(s.target);
+  const bad = [];
+  for (const c of texts) {
+    if (/^Ho speso \d+ franchi/.test(c)) continue; // la spesa passa dal salvataggio dell'app
+    const { env } = mkEnv(); env.lifePointsReport = () => 'Hai 10 LifePoints.';
+    const r = await new Assistant(env).handle(c);
+    if (!r.handled && !matchFaq(c)) bad.push(c);
+  }
+  assert.deepEqual(bad, []);
+  const { env } = mkEnv(); env.lifePointsReport = () => 'Hai 10 LifePoints.';
+  for (const q of ['Quanti LifePoints ho?', 'quanti lp ho', 'qual è il mio saldo lifepoints', 'Come va il mio umore?', 'come sto di umore']) assert.equal((await new Assistant(env).handle(q)).handled, true, q);
+  assert.equal((await new Assistant(env).handle('invia 10 lifepoints a giulia')).text.includes('Hai 10 LifePoints'), false);
+});

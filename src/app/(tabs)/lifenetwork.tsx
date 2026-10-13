@@ -1,4 +1,5 @@
 import { StoriesBar } from '@/components/stories/StoriesBar';
+import { StoryPeekHost } from '@/components/stories/StoryPeekHost';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/T';
@@ -275,6 +276,7 @@ export default function LifeNetwork() {
         contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
       />
+      <StoryPeekHost />
     </Page>
   );
 }

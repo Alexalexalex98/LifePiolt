@@ -11,14 +11,17 @@ import { Body, Item, Row, Sheet } from '@/components/ui';
 import { t as tl } from '@/i18n/core';
 import { confirmDelete } from '@/lib/confirm';
 import { Icon } from '@/lib/icons';
+import { go } from '@/lib/nav';
 import { STORY_SECONDS, addView, ago, type Story } from '@/lib/stories';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 
-export function StoryVideo({ uri, controls }: { uri: string; controls?: boolean }) {
-  const p = useVideoPlayer(uri, (pl) => { pl.loop = false; if (!controls) pl.play(); });
+/** Il video parte sempre senza audio: il suono si attiva solo toccando il volume. */
+export function StoryVideo({ uri, controls, sound }: { uri: string; controls?: boolean; sound?: boolean }) {
+  const p = useVideoPlayer(uri, (pl) => { pl.loop = false; pl.muted = true; if (!controls) pl.play(); });
+  useEffect(() => { p.muted = !sound; }, [p, sound]);
   return <VideoView player={p} style={{ width: '100%', height: '100%' }} nativeControls={!!controls} contentFit="cover" />;
 }
 
@@ -32,6 +35,7 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
   const [p, setP] = useState(0);
   const [held, setHeld] = useState(false);
   const [viewers, setViewers] = useState(false);
+  const [sound, setSound] = useState(false);
   const [reply, setReply] = useState('');
   const [typing, setTyping] = useState(false);
   const cur = stories[Math.min(i, stories.length - 1)];
@@ -78,7 +82,7 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
         </LinearGradient>
       ) : (
         <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}>
-          {cur.kind === 'video' && cur.uri ? <StoryVideo uri={cur.uri} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
+          {cur.kind === 'video' && cur.uri ? <StoryVideo uri={cur.uri} sound={sound} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
           {cur.text ? <Text style={{ position: 'absolute', bottom: insets.bottom + 90, start: 16, end: 16, color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 8 }}>{cur.text}</Text> : null}
         </View>
       )}
@@ -94,6 +98,8 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
         <Row style={{ marginTop: 10 }} gap={10}>
           <UserAvatar name={cur.author} size={36} />
           <View style={{ flex: 1 }}><Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>{mine ? tl('La tua storia') : cur.author}</Text><Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{tl(ago(cur.ts, Date.now()))}</Text></View>
+          {cur.kind === 'video' ? <Pressable accessibilityRole="button" accessibilityLabel={sound ? tl('Spegni il volume') : tl('Attiva il volume')} onPress={() => setSound((v) => !v)} hitSlop={10} style={{ padding: 6 }}><Icon name={sound ? 'volume' : 'volume-off'} size={22} color="#fff" /></Pressable> : null}
+          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Gestisci la giornata')} onPress={() => { onClose(); go('storyDay'); }} hitSlop={10} style={{ padding: 6 }}><Icon name="gear" size={22} color="#fff" /></Pressable> : null}
           {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina la storia')} onPress={remove} hitSlop={10} style={{ padding: 6 }}><Icon name="trash" size={22} color="#fff" /></Pressable> : null}
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={goBack} hitSlop={10} style={{ padding: 6 }}><Icon name="x" size={24} color="#fff" /></Pressable>
         </Row>

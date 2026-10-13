@@ -11,7 +11,7 @@ import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
 import type { Env } from './engine';
 import { briefingFor } from './briefing';
-import { financeReport, healthReport, moodReport } from './reports';
+import { financeReport, healthReport, lifePointsReport, moodReport } from './reports';
 
 /** Collega il motore dell'assistente agli archivi reali dell'app. */
 export function makeEnv(): Env {
@@ -49,7 +49,7 @@ export function makeEnv(): Env {
       useApp.getState().set({ account: { ...a, photo: r.assets[0].uri } });
       return true;
     },
-    financeReport, healthReport, moodReport,
+    financeReport, healthReport, moodReport, lifePointsReport,
     people: () => Object.values(useChat.getState().chats).filter((c) => !c.archived).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)).map((c) => c.name),
     shareAgenda: (person, range, mode) => {
       const chat = useChat.getState();

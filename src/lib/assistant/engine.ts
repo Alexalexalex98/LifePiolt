@@ -40,6 +40,8 @@ export interface Env {
   isPrivateProfile(): boolean;
   pickProfilePhoto(): Promise<boolean>;
   financeReport(): string;
+  /** saldo LifePoints e LifePoint giornaliero (facoltativo: senza, la domanda non viene capita) */
+  lifePointsReport?(): string;
   healthReport(): string;
   moodReport(): string;
   /** manda davvero l'agenda in chat; ritorna il testo di conferma o null se non trova la persona / non c'è nulla */
@@ -237,6 +239,7 @@ export class Assistant {
       case 'note.add': return this.noteAdd(raw);
       case 'goal.add': return this.goalAdd(raw);
       case 'mood.log': return this.moodLog(raw);
+      case 'lp.balance': return this.env.lifePointsReport ? { handled: true, text: this.env.lifePointsReport(), chips: [this.ch('Apri LifePoints')] } : { handled: false, text: raw, chips: [] };
       case 'mood.analysis': return { handled: true, text: this.env.moodReport(), chips: [this.ch('Apri analisi umore')], navigate: undefined };
       case 'profile.photo': return this.profilePhoto();
       case 'profile.private': return this.setPrivate(true);

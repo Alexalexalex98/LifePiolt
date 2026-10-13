@@ -26,6 +26,8 @@ export const iconMarkup: Record<string, string> = {
   importSocial: '<path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/>',
   activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
   orders: '<path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 01-8 0"/>',
+  volume: '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/>',
+  'volume-off': '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M22 9l-6 6M16 9l6 6"/>',
   savedPosts: '<path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>',
   bookmark: '<path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>',
   coin: '<circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="5"/>',
