@@ -1,5 +1,5 @@
 import * as DocumentPicker from 'expo-document-picker';
-import { kindOfFile } from '@/lib/presentation';
+import { openDocument } from '@/lib/openDoc';
 import { go } from '@/lib/nav';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -144,7 +144,7 @@ export default function LifeDrive() {
               <View style={{ paddingVertical: 36, alignItems: 'center', backgroundColor: t.input, borderRadius: 16, marginBottom: 14 }}><Icon name="file" size={40} color={t.muted} /></View>
             )}
             <Body small muted>{preview.folder} · {preview.s} · {preview.date}</Body>
-            {preview.uri && ['pdf', 'image'].includes(kindOfFile(preview.n)) ? <Btn small style={{ marginTop: 14 }} icon="eye" title="Apri e leggi" onPress={() => { const p = preview; setPreview(null); go('docView', { uri: p.uri ?? '', name: p.n }); }} /> : null}
+            <Btn small style={{ marginTop: 14 }} icon="eye" title="Apri e leggi" onPress={() => { const p = preview; setPreview(null); void openDocument({ uri: p.uri, name: p.n, mime: p.folder === 'Foto' ? 'image/jpeg' : undefined }); }} />
             <Btn small style={{ marginTop: 8 }} icon="send" title="Condividi con una persona" onPress={() => { const p = preview; setPreview(null); setShareTo(p); }} />
             <Btn small ghost style={{ marginTop: 8 }} title="Condividi con altre app" onPress={() => Share.share({ message: `File: ${preview.n}`, url: preview.uri })} />
             <Btn small ghost style={{ marginTop: 8 }} title="Elimina" onPress={() => { const p = preview; setPreview(null); askDel(p); }} />

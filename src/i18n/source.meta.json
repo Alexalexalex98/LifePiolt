@@ -1,5 +1,5 @@
 {
- "count": 8705,
+ "count": 8723,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 27,
@@ -137,7 +137,7 @@
   "src/components/chat/NewChat.tsx": 11,
   "src/components/chat/ShareSheets.tsx": 83,
   "src/components/chat/cards.tsx": 88,
-  "src/components/chat/parts.tsx": 26,
+  "src/components/chat/parts.tsx": 28,
   "src/components/chat/sheets.tsx": 34,
   "src/components/club/AnswerVote.tsx": 12,
   "src/components/club/ChatPreview.tsx": 2,
@@ -353,6 +353,7 @@
   "src/lib/notifyOpen.ts": 2,
   "src/lib/offerActions.ts": 13,
   "src/lib/offerEdit.ts": 25,
+  "src/lib/openDoc.ts": 2,
   "src/lib/paymentActions.ts": 8,
   "src/lib/payments.ts": 6,
   "src/lib/places.ts": 2,
@@ -378,6 +379,7 @@
   "src/lib/report.ts": 19,
   "src/lib/reportHtml.ts": 30,
   "src/lib/reschedule.ts": 1,
+  "src/lib/samplePdf.ts": 18,
   "src/lib/search/docs.ts": 1,
   "src/lib/search/fts.ts": 8,
   "src/lib/shop.ts": 14,
@@ -419,5 +421,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1202
+ "withPlaceholders": 1207
 }

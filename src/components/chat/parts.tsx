@@ -1,4 +1,5 @@
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { openDocument } from '@/lib/openDoc';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useState } from 'react';
@@ -167,7 +168,7 @@ export function FileCard({ m, onLongPress }: { m: ChatMessage; onLongPress?: () 
   const c = useChatColors();
   const ext = (m.media?.name ?? '').split('.').pop()?.toUpperCase().slice(0, 4) ?? 'FILE';
   return (
-    <Pressable onPress={() => m.media?.uri && void Linking.openURL(m.media.uri).catch(() => undefined)} onLongPress={onLongPress} delayLongPress={280} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.quoteBg, borderRadius: 10, padding: 10, minWidth: 200 }}>
+    <Pressable onPress={() => void openDocument({ uri: m.media?.uri, name: m.media?.name ?? 'Documento', mime: m.media?.mime })} onLongPress={onLongPress} delayLongPress={280} accessibilityRole="button" accessibilityLabel={`Apri ${m.media?.name ?? 'il documento'}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.quoteBg, borderRadius: 10, padding: 10, minWidth: 200 }}>
       <View style={{ width: 38, height: 44, borderRadius: 6, backgroundColor: '#e5484d', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>{ext}</Text></View>
       <View style={{ flex: 1 }}>
         <Text numberOfLines={2} style={{ color: c.theirsText, fontSize: 14 }}>{m.media?.name ?? 'Documento'}</Text>
