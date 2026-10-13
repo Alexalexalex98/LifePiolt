@@ -3,6 +3,7 @@ import { View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/T';
 
 import { ProfileClubSection } from '@/components/club/ProfileClubSection';
+import { RecordingsSection } from '@/components/live/RecordingsSection';
 import { FlipCard } from '@/components/profile/CardFace';
 import { useCardFor } from '@/components/profile/cardData';
 import { BusinessSection, SkillsSection } from '@/components/profile/ProfileParts';
@@ -37,6 +38,7 @@ export default function ProfileMore() {
       {!isMe && <Btn style={{ marginTop: 18 }} icon="coin" title={`Invia LifePoints a ${name}`} onPress={() => go('payments', { to: name, tab: 'Invia' })} />}
       <View style={{ marginTop: 22 }}><BusinessSection name={name} me={me} /></View>
       <View style={{ marginTop: 22, marginBottom: 6 }}><ProfileClubSection owner={name} /></View>
+      <View style={{ marginTop: 12 }}><RecordingsSection host={name} /></View>
     </Page>
   );
 }

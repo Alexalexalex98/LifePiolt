@@ -1,5 +1,5 @@
 {
- "count": 8442,
+ "count": 8466,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 27,
@@ -44,7 +44,7 @@
   "src/app/(tabs)/lifepointsPage.tsx": 22,
   "src/app/(tabs)/lifetask.tsx": 5,
   "src/app/(tabs)/lifetravel.tsx": 102,
-  "src/app/(tabs)/liveRoom.tsx": 71,
+  "src/app/(tabs)/liveRoom.tsx": 88,
   "src/app/(tabs)/lpStatement.tsx": 20,
   "src/app/(tabs)/messagesPage.tsx": 34,
   "src/app/(tabs)/mood.tsx": 42,
@@ -62,6 +62,7 @@
   "src/app/(tabs)/profileContent.tsx": 14,
   "src/app/(tabs)/profileMore.tsx": 8,
   "src/app/(tabs)/purchaseConfirm.tsx": 9,
+  "src/app/(tabs)/recordingPlayer.tsx": 8,
   "src/app/(tabs)/reports.tsx": 1,
   "src/app/(tabs)/searchPage.tsx": 13,
   "src/app/(tabs)/security.tsx": 5,
@@ -174,6 +175,7 @@
   "src/components/live/Overlay.tsx": 13,
   "src/components/live/Panels.tsx": 28,
   "src/components/live/Present.tsx": 18,
+  "src/components/live/RecordingsSection.tsx": 7,
   "src/components/live/VideoSurface.tsx": 11,
   "src/components/market.tsx": 54,
   "src/components/network.tsx": 40,
@@ -413,5 +415,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1180
+ "withPlaceholders": 1182
 }

@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { UserAvatar } from '@/components/network';
@@ -31,7 +31,7 @@ export function Lobby({ title, subtitle, hint, advice, primary, secondary, child
 }
 
 /** Riepilogo a fine diretta. */
-export function SummaryCard({ s, onClose }: { s: LiveSummary; onClose: () => void }) {
+export function SummaryCard({ s, onClose, children }: { s: LiveSummary; onClose: () => void; children?: React.ReactNode }) {
   const t = useTheme();
   const rows: [string, string][] = [
     ['Durata', clockLabel(s.durationMs)],
@@ -41,14 +41,15 @@ export function SummaryCard({ s, onClose }: { s: LiveSummary; onClose: () => voi
   ];
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, backgroundColor: 'rgba(5,7,12,0.82)' }}>
-      <View style={{ backgroundColor: t.card, borderRadius: 22, padding: 18, width: '100%', maxWidth: 420, gap: 10 }}>
+      <ScrollView style={{ maxHeight: '92%', width: '100%', maxWidth: 420, flexGrow: 0 }} contentContainerStyle={{ backgroundColor: t.card, borderRadius: 22, padding: 18, gap: 10 }}>
         <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="check" size={20} color={t.positive} stroke={2.4} /><Text accessibilityRole="header" style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>Diretta conclusa</Text></Row>
         <Body small muted>{s.title}</Body>
         {rows.map(([k, v]) => <Row key={k}><Body small>{k}</Body><Body bold>{v}</Body></Row>)}
         {s.demo ? <Body small muted>I numeri di spettatori, commenti e domande dei partecipanti vengono dalla simulazione: sono un&apos;anteprima, non persone reali.</Body> : null}
         <Body small muted>Il riepilogo è salvato sul tuo telefono, nella pagina del {s.kind === 'seminar' ? 'seminario' : 'servizio'}.</Body>
+        {children}
         <Btn title="Chiudi" onPress={onClose} />
-      </View>
+      </ScrollView>
     </View>
   );
 }

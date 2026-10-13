@@ -2,10 +2,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Network from 'expo-network';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, View, useWindowDimensions } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, View, useWindowDimensions } from 'react-native';
+import { Text } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { UserAvatar } from '@/components/network';
+import { Presenter, RecordingChoice, ShareSheet } from '@/components/live/Present';
+import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
+import type { Presentation } from '@/lib/presentation';
+import { makeRecording, type LiveRecording, type RecAccess } from '@/lib/recordings';
 import { CommentsOverlay, Composer, NoticeChip, PinnedBanner, ReactionButtons, ReactionsLayer, RoundBtn, TopBar } from '@/components/live/Overlay';
 import { CommentActionsSheet, Lobby, PeopleSheet, PREVIEW_NOTE, QuestionsSheet, SummaryCard } from '@/components/live/Panels';
 import { useLiveRoom } from '@/components/live/useLiveRoom';
@@ -95,6 +100,12 @@ function StandardLiveRoom() {
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [picked, setPicked] = useState<LiveComment | null>(null);
+  const [pres, setPres] = useState<Presentation | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [recordOn, setRecordOn] = useState(false);
+  const [recording, setRecording] = useState<LiveRecording | null>(null);
+  const recUri = useRef<string | undefined>(undefined);
+  const kb = useKeyboardInset();
 
   // chi guarda entra da solo quando la diretta e' in corso; il relatore inizia con il pulsante
   const stage: 'lobby' | 'live' | 'ended' = summary || (role === 'viewer' && timing.phase === 'ended' && startedAt) ? 'ended' : role === 'host' ? (hostLive ? 'live' : 'lobby') : timing.phase === 'live' && (online || startedAt !== null) ? 'live' : 'lobby';
@@ -102,8 +113,10 @@ function StandardLiveRoom() {
   const lr = useLiveRoom({ room, me, active: live && !exited, online });
 
   useEffect(() => { if (live && startedAt === null) setStartedAt(Date.now()); }, [live, startedAt]);
+  useEffect(() => { if (startedAt) startedAtRef.current = startedAt; }, [startedAt]);
 
   const finalized = useRef(false);
+  const startedAtRef = useRef<number>(0);
   const finalize = useCallback(() => {
     if (finalized.current || startedAt === null) return null;
     const endedAt = Date.now();
@@ -111,8 +124,22 @@ function StandardLiveRoom() {
     finalized.current = true;
     const s = summarize({ key, kind, title, host: hostName, role, startedAt, endedAt, peakViewers: lr.peak, comments: lr.comments, reactions: lr.reactionCount, demo: true });
     useLive.getState().addSummary(s);
+    if (recordOn && can(role, 'startStop')) {
+      const rec = makeRecording({ key, kind, title, host: hostName || meName, startedAt, endedAt, uri: recUri.current });
+      useLive.getState().addRecording(rec);
+      setRecording(rec);
+    }
     return s;
-  }, [startedAt, key, kind, title, hostName, role, lr.peak, lr.comments, lr.reactionCount]);
+  }, [startedAt, key, kind, title, hostName, meName, role, recordOn, lr.peak, lr.comments, lr.reactionCount]);
+  // il file della registrazione arriva quando la fotocamera si ferma: si aggancia alla registrazione già creata
+  const onRecorded = useCallback((uri?: string) => {
+    recUri.current = uri;
+    if (!uri) return;
+    const id = `rec:${key}@${startedAtRef.current}`;
+    if (useLive.getState().recordings?.some((r) => r.id === id)) { useLive.getState().patchRecording(id, { uri }); setRecording((r) => (r && r.id === id ? { ...r, uri } : r)); }
+  }, [key]);
+  const setAccess = (access: RecAccess, clubId?: string) => { if (!recording) return; useLive.getState().patchRecording(recording.id, { access, clubId }); setRecording({ ...recording, access, clubId }); toast(access === 'private' ? 'La registrazione resta solo tua' : access === 'club' ? 'Registrazione salvata nel tuo LifeClub' : 'Chi ha pagato la rivedrà dal tuo profilo'); };
+  const dropRecording = () => { if (!recording) return; useLive.getState().removeRecording(recording.id); setRecording(null); toast('Registrazione eliminata'); };
 
   // la diretta finisce all'orario previsto (per chi guarda): mostro il riepilogo
   useEffect(() => {
@@ -160,13 +187,26 @@ function StandardLiveRoom() {
   /* ---------- livello video ---------- */
   const showSelfBig = role === 'host' && (!isCall || stage !== 'live') && stage !== 'ended';
   const cameraBig = showSelfBig || (isCall && stage === 'lobby');
-  const video = stage === 'ended' && !summary ? <View style={{ flex: 1, backgroundColor: '#0b0e14' }} />
+  const presenting = !!pres && live;
+  const recNow = recordOn && live && can(role, 'startStop');
+  // il relatore (seminario) ha UNA sola fotocamera sempre accesa: a tutto schermo, oppure piccola mentre presenta
+  const hostCamAlways = role === 'host' && !isCall && stage !== 'ended';
+  const camBox = hostCamAlways ? (
+    <View pointerEvents="none" style={presenting
+      ? { position: 'absolute', top: insets.top + (landscape ? 118 : 150), end: sideInset + 12, width: landscape ? 124 : 96, height: landscape ? 92 : 128, borderRadius: 14, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)', backgroundColor: '#000', zIndex: 5 }
+      : { position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}>
+      <HostCamera facing={facing} torch={torch} camOff={camOff} needMic={recNow} small={presenting} recording={recNow} onRecorded={onRecorded} />
+    </View>
+  ) : null;
+  const video = presenting ? <Presenter pres={pres!} isHost={pres!.by === meName} onStop={() => setPres(null)} topInset={insets.top} />
+    : stage === 'ended' && !summary ? <View style={{ flex: 1, backgroundColor: '#0b0e14' }} />
+    : hostCamAlways ? <View style={{ flex: 1, backgroundColor: '#000' }} />
     : cameraBig ? <HostCamera facing={facing} torch={torch} camOff={camOff} needMic={false} />
     : <ViewerStage host={bigName} label={isCall ? 'Anteprima della videochiamata' : 'Anteprima della diretta'} quiet={stage === 'lobby'} />;
 
   const selfTile = isCall && stage === 'live' ? (
     <View style={{ position: 'absolute', top: insets.top + (landscape ? 118 : 150), end: sideInset + 12, width: landscape ? 124 : 96, height: landscape ? 92 : 128, borderRadius: 14, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)', backgroundColor: '#000' }}>
-      <HostCamera facing={facing} torch={torch} camOff={camOff} needMic={false} small />
+      <HostCamera facing={facing} torch={torch} camOff={camOff} needMic={recNow} small recording={recNow} onRecorded={onRecorded} />
     </View>
   ) : null;
 
@@ -184,7 +224,12 @@ function StandardLiveRoom() {
           hint={reminder}
           advice={advice}
           primary={{ label: isCall ? 'Avvia la videochiamata' : 'Inizia la diretta', icon: 'play', onPress: startNow, disabled: (early && !demoMode) || !online }}
-        />
+        >
+          <Pressable onPress={() => setRecordOn((v) => !v)} accessibilityRole="switch" accessibilityState={{ checked: recordOn }} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: 10 }}>
+            <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: recordOn ? '#e5484d' : 'rgba(255,255,255,0.6)', backgroundColor: recordOn ? '#e5484d' : 'transparent' }} />
+            <View style={{ flex: 1 }}><Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Registra {isCall ? 'la chiamata' : 'la diretta'}</Text><Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>Alla fine scegli chi può rivederla: chi ha pagato o il tuo LifeClub. Avvisa chi partecipa.</Text></View>
+          </Pressable>
+        </Lobby>
       );
     } else if (timing.phase === 'ended') {
       lobby = <Lobby title="Sessione terminata" subtitle="Questa diretta è già finita." advice={null} primary={{ label: 'Indietro', onPress: goBack }} />;
@@ -207,6 +252,7 @@ function StandardLiveRoom() {
   /* ---------- controlli ---------- */
   const hostBtns = (
     <>
+      <RoundBtn icon="share" label={pres ? 'Cambia o smetti di condividere' : 'Condividi un file o lo schermo'} on={!!pres} onPress={() => (pres ? alertT('Stai presentando', pres.name, [{ text: 'Smetti di presentare', style: 'destructive', onPress: () => setPres(null) }, { text: 'Cambia file', onPress: () => setShareOpen(true) }, { text: 'Annulla', style: 'cancel' }]) : setShareOpen(true))} />
       <RoundBtn icon="repeat" label={facing === 'front' ? 'Passa alla fotocamera posteriore' : 'Passa alla fotocamera frontale'} onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))} />
       <RoundBtn icon="sparkle" label={torch ? 'Spegni il flash' : 'Accendi il flash'} on={torch} onPress={() => (facing === 'back' ? setTorch((v) => !v) : toast('Il flash funziona con la fotocamera posteriore'))} />
       <RoundBtn icon="mic" label={micOff ? 'Riattiva il microfono' : 'Silenzia il microfono'} slash={micOff} onPress={() => setMicOff((v) => !v)} />
@@ -236,6 +282,7 @@ function StandardLiveRoom() {
       <RoundBtn icon="mic" label={micOff ? 'Riattiva il microfono' : 'Silenzia il microfono'} slash={micOff} onPress={() => setMicOff((v) => !v)} size={54} />
       <RoundBtn icon="video" label={camOff ? 'Accendi la fotocamera' : 'Spegni la fotocamera'} slash={camOff} onPress={() => setCamOff((v) => !v)} size={54} />
       <RoundBtn icon="repeat" label="Cambia fotocamera" onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))} size={54} />
+      <RoundBtn icon="share" label="Condividi un file o lo schermo" on={!!pres} onPress={() => (pres ? setPres(null) : setShareOpen(true))} size={54} />
       <RoundBtn icon="phone" label="Termina la chiamata" danger onPress={closeLive} size={54} />
     </View>
   );
@@ -245,7 +292,9 @@ function StandardLiveRoom() {
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}>{video}</View>
+      {camBox}
       {selfTile}
+      {kb.visible ? <Pressable accessibilityLabel="Chiudi la tastiera" onPress={() => Keyboard.dismiss()} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} /> : null}
 
       {stage !== 'ended' && (
         <TopBar
@@ -264,6 +313,7 @@ function StandardLiveRoom() {
       {live && (
         <View pointerEvents="box-none" style={{ position: 'absolute', top: insets.top + 96, start: sideInset + 12, end: sideInset + 12, gap: 6, alignItems: 'flex-start' }}>
           <NoticeChip icon="info" text={PREVIEW_NOTE} />
+          {recNow ? <NoticeChip icon="video" tone="bad" text="REC · registrazione in corso" /> : null}
           {!online ? <NoticeChip icon="alert" tone="bad" text="Serve una connessione internet" /> : lr.net === 'reconnecting' ? <NoticeChip icon="alert" tone="warn" text="Riconnessione in corso" /> : advice.level === 'warn' ? <NoticeChip icon="alert" tone="warn" text="Dati mobili: la diretta consuma molti dati" /> : null}
           {pinned && !isCall ? <PinnedBanner c={pinned} onUnpin={role === 'host' ? () => lr.pin(null) : undefined} /> : null}
         </View>
@@ -283,7 +333,7 @@ function StandardLiveRoom() {
               style={{ flex: 1, maxWidth: landscape ? '46%' : '78%', maxHeight: landscape ? 140 : 260 }}
             />
             <View style={{ flex: landscape ? 1 : 0 }} pointerEvents="none" />
-            {controlsCol}
+            {kb.visible ? null : controlsCol}
           </View>
           <Composer
             onSend={(text, q) => { if (!lr.sendComment(text, q ? 'question' : 'comment')) toast('Non riesco a inviare il commento'); }}
@@ -293,14 +343,16 @@ function StandardLiveRoom() {
             bottomInset={insets.bottom}
             sideInset={sideInset}
             right={hostEnd}
+            keyboardOpen={kb.visible}
           />
         </KeyboardAvoidingView>
       )}
 
       {lobby}
-      {stage === 'ended' && summary ? <SummaryCard s={summary} onClose={goBack} /> : null}
+      {stage === 'ended' && summary ? <SummaryCard s={summary} onClose={goBack}>{recording ? <RecordingChoice rec={recording} onSet={setAccess} onDelete={dropRecording} /> : null}</SummaryCard> : null}
       {stage === 'ended' && !summary ? <Lobby title="Diretta conclusa" subtitle="Questa sessione è terminata." advice={null} primary={{ label: 'Indietro', onPress: goBack }} /> : null}
 
+      <ShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} onPick={(p) => { setPres(p); toast('Stai presentando: ' + p.name); }} by={meName} />
       <PeopleSheet visible={peopleOpen} onClose={() => setPeopleOpen(false)} people={lr.people} onMute={toggleMute} onRemove={confirmRemove} />
       <QuestionsSheet visible={questionsOpen} onClose={() => setQuestionsOpen(false)} questions={questions} pinnedId={pinned?.id ?? null} onPin={(c) => { lr.pin(pinned?.id === c.id ? null : c.id); setQuestionsOpen(false); }} />
       <CommentActionsSheet

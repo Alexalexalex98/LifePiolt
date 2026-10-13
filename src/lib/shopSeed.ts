@@ -1,3 +1,5 @@
+import { makeRecording } from '@/lib/recordings';
+import { useLive } from '@/store/live';
 import { useNet } from '@/store/network';
 import type { Product } from '@/lib/shop';
 
@@ -52,4 +54,16 @@ export function ensureSampleParticipants(me: string, demo: boolean): void {
     changed = true;
   }
   if (changed) useNet.setState({ participants: cur });
+}
+
+/** Demo: due registrazioni di esempio (una mia, una di un seminario già concluso di un'altra persona) per vedere profilo, accesso e blocchi. Senza video: sono segnaposto. */
+export function ensureSampleRecordings(me: string, demo: boolean): void {
+  if (!demo) return;
+  const live = useLive.getState();
+  if ((live.recordings ?? []).length) return;
+  const sems = useNet.getState().seminars;
+  const mine = sems.find((x) => x.host === me);
+  const past = sems.find((x) => x.host !== me && (x.startsAt ?? Infinity) < Date.now());
+  if (mine) live.addRecording(makeRecording({ key: `seminar:${mine.id}`, kind: 'seminar', title: mine.title, host: me, startedAt: Date.now() - 6 * 86400000, endedAt: Date.now() - 6 * 86400000 + (mine.durationMin ?? 60) * 60000, access: 'buyers' }));
+  if (past) live.addRecording(makeRecording({ key: `seminar:${past.id}`, kind: 'seminar', title: past.title, host: past.host, startedAt: past.startsAt ?? Date.now() - 86400000, endedAt: (past.startsAt ?? Date.now() - 86400000) + (past.durationMin ?? 60) * 60000, access: 'buyers' }));
 }
