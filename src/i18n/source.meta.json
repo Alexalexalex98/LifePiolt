@@ -1,5 +1,5 @@
 {
- "count": 8466,
+ "count": 8542,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 27,
@@ -260,13 +260,14 @@
   "src/lib/arrival.ts": 8,
   "src/lib/assistant/appActionCore.ts": 41,
   "src/lib/assistant/appActions.ts": 18,
+  "src/lib/assistant/dictionary.ts": 51,
   "src/lib/assistant/engine.ts": 223,
   "src/lib/assistant/env.ts": 7,
   "src/lib/assistant/nlp.ts": 9,
   "src/lib/assistant/reports.ts": 17,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 36,
+  "src/lib/assistant/theiaFlow.ts": 39,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/automationRuntime.ts": 2,
@@ -316,7 +317,7 @@
   "src/lib/enroll.ts": 31,
   "src/lib/errorLog.ts": 3,
   "src/lib/financeRecap.ts": 57,
-  "src/lib/findPlace.ts": 7,
+  "src/lib/findPlace.ts": 55,
   "src/lib/focusPlan.ts": 4,
   "src/lib/format.ts": 12,
   "src/lib/goalData.ts": 28,
@@ -415,5 +416,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1182
+ "withPlaceholders": 1184
 }

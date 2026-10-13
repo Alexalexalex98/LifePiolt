@@ -1,6 +1,7 @@
 import { Linking } from 'react-native';
 import { handleAppAction } from './appActions';
-import { GOOD_ENOUGH, detectPlaceSearch, planPlaceSearch, type PlaceCategory } from '@/lib/findPlace';
+import { GOOD_ENOUGH, detectPlace, planPlaceSearch, type PlaceRequest } from '@/lib/findPlace';
+import { domainsIn } from './dictionary';
 import { useNet } from '@/store/network';
 import { helpAnswer, looksLikeHelp, searchHelp } from '@/lib/helpKb';
 import { routeRequest, type RouteResult } from '@/lib/aiRouter';
@@ -99,7 +100,7 @@ export async function sendTheia(i: SendInput): Promise<void> {
   }
 
   // «devo prenotare un dentista»: prima i professionisti di LifePilot, poi (solo se nessuno è abbastanza buono) la ricerca fuori dall'app
-  const place = detectPlaceSearch(text);
+  const place = detectPlace(command ?? text);
   if (place && !pending) { answerPlace(place); return; }
 
   // una risposta a una domanda in sospeso ("come lo chiamo?") che il lessico non riconosce passa com'è all'assistente
@@ -120,9 +121,10 @@ export async function sendTheia(i: SendInput): Promise<void> {
 }
 
 /** Cerca dove prenotare: in app per voto; fuori dall'app solo se non ce n'è uno abbastanza buono. */
-function answerPlace(cat: PlaceCategory) {
+function answerPlace(req: PlaceRequest) {
+  const { cat } = req;
   const providers = useNet.getState().providers.map((p) => ({ name: p.name, role: p.role, rating: p.rating, price: p.price, tag: p.tag }));
-  const plan = planPlaceSearch(cat, providers);
+  const plan = planPlaceSearch(cat, providers, GOOD_ENOUGH, req.order);
   const stars = (n: number) => n.toFixed(1).replace('.', ',');
   if (plan.kind === 'in-app') {
     const lines = plan.best.map((p, i) => `${i + 1}. ${p.name} · ${p.role} · ${stars(p.score)}/5${p.price ? ` · ${p.price} LP` : ''}`);
@@ -133,7 +135,7 @@ function answerPlace(cat: PlaceCategory) {
   }
   const weak = plan.weak.length ? `\n\n${t('In LifePilot ho trovato solo: {0}. Il voto non è abbastanza alto per consigliartelo con sicurezza.', plan.weak.map((p) => `${p.name}${p.score ? ` (${stars(p.score)}/5)` : ''}`).join(', '))}` : '';
   pushAi(`${t('Su LifePilot non c\'è ancora un {0} abbastanza buono (cerco da {1}/5 in su).', cat.label, stars(GOOD_ENOUGH))}${weak}\n\n${t('Da qui non posso leggere le recensioni dei posti fuori dall\'app: ti apro la ricerca sulle mappe, già ordinata per vicinanza e recensioni.')}`, {
-    ext: { actions: [...plan.weak.map((p): TheiaAction => ({ kind: 'open', label: p.name, page: 'servicePage', params: { name: p.name } })), { kind: 'open', label: t('Cerca {0} vicino a me', cat.label), url: plan.url }, { kind: 'dismiss', label: t('No, grazie') }] },
+    ext: { actions: [...plan.weak.map((p): TheiaAction => ({ kind: 'open', label: p.name, page: 'servicePage', params: { name: p.name } })), { kind: 'open', label: req.order ? t('Ordina {0} a domicilio', cat.label) : t('Cerca {0} vicino a me', cat.label), url: plan.url }, { kind: 'dismiss', label: t('No, grazie') }] },
   });
 }
 
@@ -161,6 +163,15 @@ function clarify(text: string, lang: string, source: 'typed' | 'voice', aiText =
     actions.push({ kind: 'run', label: t('Aggiungi un impegno'), command: `add "${q}" to my plan` });
   }
   actions.push({ kind: 'run', label: t('Cosa sai fare?'), command: 'help' });
+  // capisco almeno il contesto: se nomina soldi, salute, viaggi... propongo la pagina giusta e qualche comando
+  const dom = domainsIn(text)[0];
+  if (dom) {
+    pushAi(t('Mi sembra che tu stia parlando di {0}. {1} Se vuoi, prova così:', dom.label, dom.hint), {
+      chips: dom.examples.map((x) => t(x)),
+      ext: { lang, actions: [{ kind: 'open', label: t('Apri {0}', dom.label), page: dom.page }] },
+    });
+    return;
+  }
   pushAi(t('Non l\'ho riconosciuto tra le funzioni dell\'app. Cosa intendevi?'), {
     ext: {
       lang,
