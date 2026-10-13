@@ -88,6 +88,8 @@ type NetState = {
   /** storie (24 ore) di tutti e quelle che ho già visto */
   stories?: import('@/lib/stories').Story[];
   storySeen?: string[];
+  /** LifePoints che altri mi hanno donato o pagato (anche bloccati, o poi annullati) */
+  incoming?: import('@/lib/lpIncoming').Incoming[];
   storiesSeeded?: boolean;
   comments: Record<string, { author: string; text: string }[]>;
   providers: Provider[];

@@ -9,6 +9,7 @@ import { defineBackgroundTask, onAppStart, onForeground } from '@/lib/background
 import { startLogStorage } from '@/lib/logStorage';
 import { autoSyncIfConnected } from '@/lib/healthkit';
 import { resyncCalendars } from '@/lib/calendarImport';
+import { settleIncoming } from '@/lib/lpIncomingActions';
 import { refreshBriefings } from '@/lib/notify';
 import { startPermissionWatch } from '@/lib/notifyPermission';
 import { useNotificationTaps } from '@/lib/notifyOpen';
@@ -106,6 +107,7 @@ export default function RootLayout() {
     onAppStart();
     startPermissionWatch();
     void resyncCalendars();
+    settleIncoming();
     startSearchSync();
     scheduleMaintenance();
     const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); onForeground(); /* riprogramma anche al cambio di fuso orario/ora legale */ useFin.getState().rollMonth(); void autoSyncIfConnected(); } });

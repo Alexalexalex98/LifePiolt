@@ -1,5 +1,6 @@
 import { hashStr, mulberry32, shortDate } from '@/lib/format';
 import { ideaState } from '@/lib/ideas';
+import { pendingTotal } from '@/lib/lpIncoming';
 import { buildStatement } from '@/lib/lpStatement';
 import { useApp } from '@/store/app';
 import { totalUnread, useChat } from '@/store/chat';
@@ -71,13 +72,14 @@ export function lpReceived(name: string): { daily: number; ideas: number; ideasB
   const held = (key: string, fallbackStart?: number) => (parts[key] ?? []).filter((p) => p.paid > 0 && ((p.startsAt ?? fallbackStart ?? 0) + (p.durationMin ?? 60) * 60000) > now).reduce((a, p) => a + p.paid, 0);
   const servicesBlocked = s.seminars.filter((x) => x.host === name).reduce((a, x) => a + held(`seminar:${x.id}`, x.startsAt), 0) + held(`service:${name}`);
   // per me fa fede il registro dei movimenti (lo stesso del rendiconto); per gli altri i contatori pubblici
+  const incomingBlocked = name === useApp.getState().account.name ? pendingTotal(s.incoming) : 0;
   if (name === useApp.getState().account.name && (s.lpMoves?.length ?? 0) > 0) {
     const by = buildStatement(s.lpMoves ?? [], 0, now + 1e11).earned.bySource;
     const daily = by.giornaliero, paid = by.idee, payments = by.iscrizioni + by.pagamenti + by.altro;
-    return { daily, ideas: paid + ideasBlocked, ideasBlocked, ideasPaid: paid, payments: payments + servicesBlocked, servicesBlocked, blocked: ideasBlocked + servicesBlocked, total: daily + paid + ideasBlocked + payments + servicesBlocked };
+    return { daily, ideas: paid + ideasBlocked, ideasBlocked, ideasPaid: paid, payments: payments + servicesBlocked + incomingBlocked, servicesBlocked: servicesBlocked + incomingBlocked, blocked: ideasBlocked + servicesBlocked + incomingBlocked, total: daily + paid + ideasBlocked + payments + servicesBlocked + incomingBlocked };
   }
   const daily = s.receivedDaily[name] || 0, payments = s.receivedPayments[name] || 0;
-  return { daily, ideas: ideasPaid + ideasBlocked, ideasBlocked, ideasPaid, payments: payments + servicesBlocked, servicesBlocked, blocked: ideasBlocked + servicesBlocked, total: daily + ideasPaid + ideasBlocked + payments + servicesBlocked };
+  return { daily, ideas: ideasPaid + ideasBlocked, ideasBlocked, ideasPaid, payments: payments + servicesBlocked + incomingBlocked, servicesBlocked: servicesBlocked + incomingBlocked, blocked: ideasBlocked + servicesBlocked + incomingBlocked, total: daily + ideasPaid + ideasBlocked + payments + servicesBlocked + incomingBlocked };
 }
 export const receivedLPFor = (name: string): number => lpReceived(name).total;
 

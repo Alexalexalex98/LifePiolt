@@ -59,16 +59,16 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
   }, [cur?.id, paused, secs]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (p >= 1) next(); }, [p]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!cur) return <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}><Body style={{ color: '#fff' }}>{tl('Non ci sono storie.')}</Body><Text onPress={goBack} style={{ color: '#8fa4ff', marginTop: 14, fontWeight: '800' }}>{tl('Indietro')}</Text></View>;
+  if (!cur) return <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}><Body style={{ color: '#fff' }}>{tl('Il recap è vuoto.')}</Body><Text onPress={goBack} style={{ color: '#8fa4ff', marginTop: 14, fontWeight: '800' }}>{tl('Indietro')}</Text></View>;
 
   const send = (text: string) => {
     const t = text.trim(); if (!t) return;
     const chat = useChat.getState();
     const id = chat.ensureDm(cur.author, me);
-    chat.send(id, me, { kind: 'text', text: `${tl('Risposta alla tua storia')}: ${t}` });
+    chat.send(id, me, { kind: 'text', text: `${tl('Risposta al tuo recap')}: ${t}` });
     setReply(''); setTyping(false); toast(tl('Inviato a {0}', cur.author));
   };
-  const remove = () => confirmDelete(tl('questa storia'), () => {
+  const remove = () => confirmDelete(tl('questo momento del recap'), () => {
     net.patch({ stories: (net.stories ?? []).filter((s) => s.id !== cur.id) });
     if (stories.length <= 1) goBack(); else setI(Math.max(0, i - 1));
   });
@@ -88,8 +88,8 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
       )}
       {/* zone di tocco: sinistra indietro, destra avanti, pressione lunga ferma */}
       <View style={{ position: 'absolute', top: insets.top + 70, bottom: insets.bottom + 80, start: 0, end: 0, flexDirection: 'row' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={tl('Storia precedente')} style={{ flex: 1 }} onPress={() => (i > 0 ? setI(i - 1) : setP(0))} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={200} />
-        <Pressable accessibilityRole="button" accessibilityLabel={tl('Storia successiva')} style={{ flex: 2 }} onPress={next} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={200} />
+        <Pressable accessibilityRole="button" accessibilityLabel={tl('Momento precedente')} style={{ flex: 1 }} onPress={() => (i > 0 ? setI(i - 1) : setP(0))} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={200} />
+        <Pressable accessibilityRole="button" accessibilityLabel={tl('Momento successivo')} style={{ flex: 2 }} onPress={next} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={200} />
       </View>
       <View pointerEvents="box-none" style={{ paddingTop: insets.top + 8, paddingHorizontal: 10 }}>
         {/* miniature delle foto, appena visibili in alto: tocca per saltare; la linea sotto la corrente mostra lo scorrere del tempo */}
@@ -108,10 +108,10 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
         </View>
         <Row style={{ marginTop: 10 }} gap={10}>
           <UserAvatar name={cur.author} size={36} />
-          <View style={{ flex: 1 }}><Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>{mine ? tl('La tua storia') : cur.author}</Text><Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{tl(ago(cur.ts, Date.now()))}</Text></View>
+          <View style={{ flex: 1 }}><Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>{mine ? tl('Il tuo recap') : cur.author}</Text><Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{tl(ago(cur.ts, Date.now()))}</Text></View>
           {cur.kind === 'video' ? <Pressable accessibilityRole="button" accessibilityLabel={sound ? tl('Spegni il volume') : tl('Attiva il volume')} onPress={() => setSound((v) => !v)} hitSlop={10} style={{ padding: 6 }}><Icon name={sound ? 'volume' : 'volume-off'} size={22} color="#fff" /></Pressable> : null}
-          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Gestisci il recap')} onPress={() => { onClose(); go('storyDay'); }} hitSlop={10} style={{ padding: 6 }}><Icon name="gear" size={22} color="#fff" /></Pressable> : null}
-          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina la storia')} onPress={remove} hitSlop={10} style={{ padding: 6 }}><Icon name="trash" size={22} color="#fff" /></Pressable> : null}
+          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al recap')} onPress={() => { onClose(); go('storyCreate'); }} hitSlop={10} style={{ padding: 6 }}><Icon name="plus" size={24} color="#fff" /></Pressable> : null}
+          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina dal recap')} onPress={remove} hitSlop={10} style={{ padding: 6 }}><Icon name="trash" size={22} color="#fff" /></Pressable> : null}
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={goBack} hitSlop={10} style={{ padding: 6 }}><Icon name="x" size={24} color="#fff" /></Pressable>
         </Row>
       </View>
@@ -123,14 +123,14 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
           </Pressable>
         ) : (
           <Row gap={10}>
-            <TextInput value={reply} onChangeText={setReply} onFocus={() => setTyping(true)} onBlur={() => setTyping(false)} onSubmitEditing={() => send(reply)} returnKeyType="send" placeholder={tl('Rispondi a {0}…', cur.author.split(' ')[0])} placeholderTextColor="rgba(255,255,255,0.7)" accessibilityLabel={tl('Rispondi alla storia')} style={{ flex: 1, color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 }} />
-            <Pressable accessibilityRole="button" accessibilityLabel={tl('Mi piace alla storia')} onPress={() => send(tl('mi piace'))} hitSlop={8} style={{ padding: 8 }}><Icon name="heart" size={26} color="#fff" /></Pressable>
+            <TextInput value={reply} onChangeText={setReply} onFocus={() => setTyping(true)} onBlur={() => setTyping(false)} onSubmitEditing={() => send(reply)} returnKeyType="send" placeholder={tl('Rispondi a {0}…', cur.author.split(' ')[0])} placeholderTextColor="rgba(255,255,255,0.7)" accessibilityLabel={tl('Rispondi al recap')} style={{ flex: 1, color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 }} />
+            <Pressable accessibilityRole="button" accessibilityLabel={tl('Mi piace al recap')} onPress={() => send(tl('mi piace'))} hitSlop={8} style={{ padding: 8 }}><Icon name="heart" size={26} color="#fff" /></Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={tl('Invia')} onPress={() => send(reply)} hitSlop={8} style={{ padding: 8 }}><Icon name="send" size={24} color="#fff" /></Pressable>
           </Row>
         )}
       </View>
-      <Sheet visible={viewers} title={tl('Chi ha visto la storia')} onClose={() => setViewers(false)}>
-        {viewerList.length === 0 ? <Body muted>{tl('Nessuno l’ha ancora vista.')}</Body> : viewerList.map((n, k) => (
+      <Sheet visible={viewers} title={tl('Chi ha visto il recap')} onClose={() => setViewers(false)}>
+        {viewerList.length === 0 ? <Body muted>{tl('Nessuno l’ha ancora visto.')}</Body> : viewerList.map((n, k) => (
           <Item key={n} last={k === viewerList.length - 1}><Row gap={10}><UserAvatar name={n} size={34} /><Body bold>{n}</Body></Row></Item>
         ))}
       </Sheet>

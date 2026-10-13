@@ -12,13 +12,23 @@ import { settleEscrow } from '@/lib/escrow';
 import { fmtDateTime } from '@/lib/when';
 import { useNet } from '@/store/network';
 import { useEffect } from 'react';
+import { t as tl } from '@/i18n/core';
+import { lpReceived } from '@/lib/network';
+import { receiveLP, reverseLP, settleIncoming } from '@/lib/lpIncomingActions';
+import { toast } from '@/store/toast';
+import { useApp } from '@/store/app';
 
 export default function LifePointsPage() {
   const t = useTheme();
   const net = useNet();
   const tab = net.prefs.lpTab;
   const streak = donationStreak();
-  useEffect(() => { settleEscrow(); }, []);
+  useEffect(() => { settleEscrow(); settleIncoming(); }, []);
+  const me = useApp((a) => a.account.name);
+  const demo = useApp((a) => a.demo);
+  const inc = net.incoming ?? [];
+  const arriving = lpReceived(me).blocked; // bloccati in arrivo: contano già sul profilo e sul conto
+  const lastPaid = inc.find((i) => i.status !== 'reversed' && i.source !== 'giornaliero');
   const now = Date.now();
   const held = net.enrollments.filter((e) => e.held && escrowState(e, now) === 'bloccato');
   const heldRefs = new Set(held.map((e) => `enr:${e.id}`));
@@ -31,11 +41,24 @@ export default function LifePointsPage() {
       <Card style={{ alignItems: 'center' }}>
         <Body small muted>Il tuo saldo</Body>
         <Row gap={6}><Metric big>{formatCHF(net.lifePoints)}</Metric><LpTag size={28} /></Row>
+        {arriving > 0 ? <Body small muted style={{ marginTop: 4 }}>{tl('+ {0} LP in arrivo (bloccati fino alla fine) · totale {1} LP', formatCHF(arriving), formatCHF(net.lifePoints + arriving))}</Body> : null}
         <Btn style={{ marginTop: 12, alignSelf: 'stretch' }} ghost title="Come ottenere LifePoints" onPress={() => openSheet('topup')} />
         <Btn style={{ marginTop: 8, alignSelf: 'stretch' }} icon="send" title="Pagamenti: invia e ricevi" onPress={() => go('payments')} />
         <Btn style={{ marginTop: 8, alignSelf: 'stretch' }} ghost icon="coin" title="Ritira LifePoints" onPress={() => go('withdraw')} />
         <Btn style={{ marginTop: 8, alignSelf: 'stretch' }} ghost icon="file" title="Rendiconto per la dichiarazione" onPress={() => go('lpStatement')} />
       </Card>
+      {demo ? (
+        <Card>
+          <H>Prova (demo): LifePoints in arrivo</H>
+          <Body small muted style={{ marginBottom: 8 }}>Simulo cosa succede quando qualcuno ti dona o ti paga: arrivano sul conto e sul profilo; se sono bloccati contano già come «in arrivo»; se non vengono accreditati vengono tolti.</Body>
+          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
+            <Btn small ghost title="Mi donano il LifePoint di oggi" onPress={() => { receiveLP({ from: 'Marta S.', label: 'LifePoint giornaliero', amount: 1, source: 'giornaliero' }); toast('Ricevuto 1 LP: controlla saldo e profilo'); }} />
+            <Btn small ghost title="Mi pagano un servizio (40 LP)" onPress={() => { receiveLP({ from: 'Paolo D.', label: 'Allenamento alla corsa', amount: 40, source: 'iscrizioni' }); toast('Ricevuti 40 LP'); }} />
+            <Btn small ghost title="Pagamento bloccato (40 LP)" onPress={() => { receiveLP({ from: 'Chiara V.', label: 'Allenamento alla corsa', amount: 40, source: 'iscrizioni', releaseAt: Date.now() + 60000 }); toast('40 LP in arrivo: bloccati per 1 minuto'); }} />
+            <Btn small ghost danger title="Annulla l’ultimo pagamento" disabled={!lastPaid} onPress={() => { if (lastPaid && reverseLP(lastPaid.id)) toast('Pagamento annullato: LP tolti'); }} />
+          </Row>
+        </Card>
+      ) : null}
       <Card style={{ alignItems: 'center' }}>
         <Body small muted style={{ marginBottom: 10 }}>Streak LifePoint giornaliero</Body>
         <Flame streak={streak} size={56} />

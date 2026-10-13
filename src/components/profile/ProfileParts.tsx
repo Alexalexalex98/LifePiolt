@@ -80,7 +80,7 @@ export function LifePointsRow({ name, isMe = false }: { name: string; isMe?: boo
   useNet((s) => s.dailyHistory);
   useNet((s) => s.lpMoves);
   useNet((s) => s.ideas);
-  useNet((s) => s.receivedPayments);
+  useNet((s) => s.receivedPayments); useNet((s) => s.incoming); useNet((s) => s.lpMoves);
   const lp = lifePointsFor(name);
   const tile = (value: number, label: string, kind: 'lpTotal' | 'lpDaily') => {
     const open = () => openSheet(kind, { name });

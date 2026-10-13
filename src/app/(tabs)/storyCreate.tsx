@@ -48,9 +48,9 @@ export default function StoryCreate() {
     const s = makeStory(mode === 'Testo'
       ? { id: newId() + '', author: me, now: Date.now(), kind: 'text', text, bg: BACKGROUNDS[bg], keep, attach: attach ?? undefined }
       : { id: newId() + '', author: me, now: Date.now(), kind: media?.media ?? 'photo', uri: media?.uri, text, keep, attach: attach ?? undefined });
-    if (!s) { toast(mode === 'Testo' ? 'Scrivi qualcosa per la storia' : 'Scegli prima una foto o un video'); return; }
+    if (!s) { toast(mode === 'Testo' ? 'Scrivi qualcosa per il recap' : 'Scegli prima una foto o un video'); return; }
     net.patch({ stories: [...(net.stories ?? []), s] });
-    toast('Storia pubblicata · resta 24 ore');
+    toast('Aggiunto al recap');
     goBack();
   }
   return (
@@ -59,7 +59,7 @@ export default function StoryCreate() {
       <View style={{ alignItems: 'center' }}>
         {mode === 'Testo' ? (
           <LinearGradient colors={BACKGROUNDS[bg]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: w, height: h, borderRadius: 18, alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-            <TextInput value={text} onChangeText={setText} multiline maxLength={MAX_STORY_TEXT} placeholder={tl('Scrivi qui')} placeholderTextColor="rgba(255,255,255,0.6)" accessibilityLabel={tl('Testo della storia')} style={{ color: '#fff', fontSize: 24, fontWeight: '800', textAlign: 'center', width: '100%' }} />
+            <TextInput value={text} onChangeText={setText} multiline maxLength={MAX_STORY_TEXT} placeholder={tl('Scrivi qui')} placeholderTextColor="rgba(255,255,255,0.6)" accessibilityLabel={tl('Testo del momento')} style={{ color: '#fff', fontSize: 24, fontWeight: '800', textAlign: 'center', width: '100%' }} />
           </LinearGradient>
         ) : (
           <View style={{ width: w, height: h, borderRadius: 18, overflow: 'hidden', backgroundColor: t.input, alignItems: 'center', justifyContent: 'center' }}>
@@ -78,7 +78,7 @@ export default function StoryCreate() {
             <Btn small ghost icon="image" title="Scegli una foto" disabled={busy} onPress={() => void pick('photo')} />
             <Btn small ghost icon="video" title="Scegli un video" disabled={busy} onPress={() => void pick('video')} />
           </Row>
-          <TextInput value={text} onChangeText={setText} maxLength={MAX_STORY_TEXT} placeholder={tl('Aggiungi una scritta (facoltativa)')} placeholderTextColor={t.muted} accessibilityLabel={tl('Scritta sulla storia')} style={{ color: t.text, backgroundColor: t.input, borderRadius: 12, padding: 12, marginTop: 12 }} />
+          <TextInput value={text} onChangeText={setText} maxLength={MAX_STORY_TEXT} placeholder={tl('Aggiungi una scritta (facoltativa)')} placeholderTextColor={t.muted} accessibilityLabel={tl('Scritta sul momento')} style={{ color: t.text, backgroundColor: t.input, borderRadius: 12, padding: 12, marginTop: 12 }} />
         </>
       )}
       <Body bold style={{ marginTop: 16, marginBottom: 6 }}>Quanto resta</Body>
@@ -95,7 +95,7 @@ export default function StoryCreate() {
       {attachKind === 'idea' ? (myIdeas.length ? myIdeas.map((x) => <Pill key={x.id} label={x.title} on={attach?.ref === String(x.id)} onPress={() => setAttach({ kind: 'idea', label: x.title, ref: String(x.id) })} />) : <Body small muted>Non hai idee pubblicate.</Body>) : null}
       {attachKind === 'place' ? <Input value={place} onChangeText={(v) => { setPlace(v); setAttach(v.trim() ? { kind: 'place', label: v.trim() } : null); }} placeholder="Es. Parco Ciani, Lugano" maxLength={60} /> : null}
       <Card style={{ marginTop: 14 }}>
-        <Body small muted>La storia resta visibile 24 ore a chi ti segue, poi sparisce da sola. Tu vedi chi l’ha guardata e puoi cancellarla quando vuoi.</Body>
+        <Body small muted>Il momento resta nel tuo recap per 24 ore (o come scegli sotto) e lo vede chi ti segue. Tu vedi chi l’ha guardato e puoi cancellarlo quando vuoi.</Body>
       </Card>
       <Btn style={{ marginTop: 12 }} title="Pubblica il momento" onPress={publish} />
     </Page>
