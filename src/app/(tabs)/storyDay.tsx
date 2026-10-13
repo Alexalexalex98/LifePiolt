@@ -89,7 +89,7 @@ function Moment({ s, me, onPlay }: { s: Story; me: string; onPlay?: () => void }
   );
 }
 
-/** Il riepilogo della giornata di una persona: i suoi momenti in ordine, per parte del giorno. Si scorre con il proprio ritmo; «Riproduci» li mostra uno dopo l'altro. */
+/** Il recap della giornata di una persona: i suoi momenti in ordine, per parte del giorno. Si scorre con il proprio ritmo; «Riproduci» li mostra uno dopo l'altro. */
 export default function StoryDay() {
   const { author } = useLocalSearchParams<{ author?: string }>();
   const me = useApp((s) => s.account.name);
@@ -119,7 +119,7 @@ export default function StoryDay() {
   const mineView = who === me;
   const viewerSet = [...new Set(all.flatMap((s) => s.views))];
   return (
-    <Page id="storyDay" back title={mineView ? 'Il tuo riepilogo' : tl('Riepilogo di {0}', who)}>
+    <Page id="storyDay" back title={mineView ? 'Il tuo recap' : tl('Recap di {0}', who)}>
       <Row gap={10} style={{ marginBottom: 12 }}>
         <UserAvatar name={who} size={44} />
         <View style={{ flex: 1 }}>

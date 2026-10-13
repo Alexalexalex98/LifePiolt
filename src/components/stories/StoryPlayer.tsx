@@ -92,14 +92,25 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Storia successiva')} style={{ flex: 2 }} onPress={next} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={200} />
       </View>
       <View pointerEvents="box-none" style={{ paddingTop: insets.top + 8, paddingHorizontal: 10 }}>
-        <View style={{ flexDirection: 'row', gap: 4 }}>
-          {stories.map((s, k) => <View key={s.id} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)', overflow: 'hidden' }}><View style={{ width: `${k < i ? 100 : k === i ? Math.min(100, p * 100) : 0}%`, height: 3, backgroundColor: '#fff' }} /></View>)}
+        {/* miniature delle foto, appena visibili in alto: tocca per saltare; la linea sotto la corrente mostra lo scorrere del tempo */}
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: -2 }}>
+          {stories.map((s, k) => (
+            <Pressable key={s.id} accessibilityRole="button" accessibilityLabel={tl('Vai al momento {0}', k + 1)} accessibilityState={{ selected: k === i }} onPress={() => setI(k)} hitSlop={6}
+              style={{ width: k === i ? 34 : 28, opacity: k === i ? 1 : 0.55 }}>
+              <View style={{ height: k === i ? 22 : 16, borderRadius: 7, overflow: 'hidden', borderWidth: k === i ? 1.5 : 0, borderColor: '#fff', backgroundColor: '#222' }}>
+                {s.kind === 'photo' ? <Image source={{ uri: s.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                  : s.kind === 'text' ? <LinearGradient colors={s.bg ?? ['#6c8cff', '#3b2a7a']} style={{ flex: 1 }} />
+                  : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={9} color="#fff" /></View>}
+              </View>
+              {k === i ? <View style={{ height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.3)', marginTop: 3, overflow: 'hidden' }}><View style={{ width: `${Math.min(100, p * 100)}%`, height: 2, backgroundColor: '#fff' }} /></View> : null}
+            </Pressable>
+          ))}
         </View>
         <Row style={{ marginTop: 10 }} gap={10}>
           <UserAvatar name={cur.author} size={36} />
           <View style={{ flex: 1 }}><Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>{mine ? tl('La tua storia') : cur.author}</Text><Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{tl(ago(cur.ts, Date.now()))}</Text></View>
           {cur.kind === 'video' ? <Pressable accessibilityRole="button" accessibilityLabel={sound ? tl('Spegni il volume') : tl('Attiva il volume')} onPress={() => setSound((v) => !v)} hitSlop={10} style={{ padding: 6 }}><Icon name={sound ? 'volume' : 'volume-off'} size={22} color="#fff" /></Pressable> : null}
-          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Gestisci il riepilogo')} onPress={() => { onClose(); go('storyDay'); }} hitSlop={10} style={{ padding: 6 }}><Icon name="gear" size={22} color="#fff" /></Pressable> : null}
+          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Gestisci il recap')} onPress={() => { onClose(); go('storyDay'); }} hitSlop={10} style={{ padding: 6 }}><Icon name="gear" size={22} color="#fff" /></Pressable> : null}
           {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina la storia')} onPress={remove} hitSlop={10} style={{ padding: 6 }}><Icon name="trash" size={22} color="#fff" /></Pressable> : null}
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={goBack} hitSlop={10} style={{ padding: 6 }}><Icon name="x" size={24} color="#fff" /></Pressable>
         </Row>

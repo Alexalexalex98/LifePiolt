@@ -1,5 +1,5 @@
 {
- "count": 9447,
+ "count": 9448,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -206,9 +206,9 @@
   "src/components/security/SpaceSection.tsx": 24,
   "src/components/security/StorageSection.tsx": 14,
   "src/components/stocks.tsx": 36,
-  "src/components/stories/StoriesBar.tsx": 13,
+  "src/components/stories/StoriesBar.tsx": 12,
   "src/components/stories/StoryPeekHost.tsx": 1,
-  "src/components/stories/StoryPlayer.tsx": 21,
+  "src/components/stories/StoryPlayer.tsx": 22,
   "src/components/sync/SyncActivity.tsx": 24,
   "src/components/sync/SyncCategories.tsx": 11,
   "src/components/sync/SyncServer.tsx": 20,
@@ -445,5 +445,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1257
+ "withPlaceholders": 1258
 }
