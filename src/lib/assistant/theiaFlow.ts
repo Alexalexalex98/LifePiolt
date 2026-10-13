@@ -1,6 +1,11 @@
 import { Linking } from 'react-native';
 import { handleAppAction } from './appActions';
-import { GOOD_ENOUGH, detectPlace, planPlaceSearch, type PlaceRequest } from '@/lib/findPlace';
+import { GOOD_ENOUGH, PLACE_CATEGORIES, detectPlace, planPlaceSearch, type PlaceRequest } from '@/lib/findPlace';
+import { matchPhrase } from './phrases';
+import { PAGES, findAmount, findPerson, norm } from './appActionCore';
+import { NOT_A_SEARCH } from './dictionary';
+import { peoplePool } from '@/lib/network';
+import { useApp } from '@/store/app';
 import { domainsIn } from './dictionary';
 import { useNet } from '@/store/network';
 import { helpAnswer, looksLikeHelp, searchHelp } from '@/lib/helpKb';
@@ -100,6 +105,8 @@ export async function sendTheia(i: SendInput): Promise<void> {
   }
 
   // «devo prenotare un dentista»: prima i professionisti di LifePilot, poi (solo se nessuno è abbastanza buono) la ricerca fuori dall'app
+  // frasi intere (livello più preciso): «voglio ordinare una pizza», «mi serve un dentista», «quanto ho speso questo mese»…
+  if (!pending && (await handlePhrase(command ?? text))) return;
   const place = detectPlace(command ?? text);
   if (place && !pending) { answerPlace(place); return; }
 
@@ -118,6 +125,44 @@ export async function sendTheia(i: SendInput): Promise<void> {
     }
   }
   clarify(text, u.lang, i.source, [text, payload].filter(Boolean).join('\n\n'));
+}
+
+/** Azioni che l'assistente locale sa già eseguire dal testo dell'utente (impegni, task, note, salute, spese). */
+const ENGINE_ACTS = new Set(['plan-add', 'plan-move', 'plan-vac', 'task-add', 'task-done', 'note-add', 'health-sleep', 'finance-add']);
+const STARTER: Record<string, string> = { post: 'Pubblica un post', community: 'Crea una community', lifeclub: 'Crea un LifeClub' };
+
+/** Una frase riconosciuta: la porta a ciò che Theia sa fare. true = gestita. */
+async function handlePhrase(text: string): Promise<boolean> {
+  const me = useApp.getState().account.name;
+  const people = peoplePool(me);
+  const hit = matchPhrase(text, people);
+  if (!hit) return false;
+  const { set } = hit;
+  switch (set.kind) {
+    case 'place': {
+      if (NOT_A_SEARCH.test(norm(text))) return false;
+      const cat = PLACE_CATEGORIES.find((c) => c.id === set.target);
+      if (!cat) return false;
+      answerPlace({ cat, order: !!set.order && !!cat.orderQuery, book: false });
+      return true;
+    }
+    case 'cmd': return runLocal(set.target);
+    case 'page': {
+      const label = PAGES.find((p) => p.page === set.target)?.label ?? '';
+      go(set.target);
+      pushAi(label ? t('Ecco {0}.', label) : t('Ecco la pagina.'));
+      return true;
+    }
+    case 'act': {
+      if (ENGINE_ACTS.has(set.target)) return runLocal(text);
+      const who = findPerson(text, people), amt = findAmount(text);
+      const starter = set.target === 'sendlp' ? `Invia ${amt && amt >= 1 ? amt : ''} LifePoints ${who ? `a ${who}` : ''}`
+        : set.target === 'follow' ? `Segui ${who ?? ''}`
+        : set.target === 'message' ? `Scrivi a ${who ?? ''}${text.includes(':') ? `: ${text.slice(text.indexOf(':') + 1).trim()}` : ''}`
+        : STARTER[set.target];
+      return starter ? handleAppAction(starter.replace(/\s+/g, ' ').trim(), (m, x) => { pushAi(m, x); }) : false;
+    }
+  }
 }
 
 /** Cerca dove prenotare: in app per voto; fuori dall'app solo se non ce n'è uno abbastanza buono. */

@@ -1,5 +1,5 @@
 {
- "count": 8542,
+ "count": 8631,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 27,
@@ -264,10 +264,11 @@
   "src/lib/assistant/engine.ts": 223,
   "src/lib/assistant/env.ts": 7,
   "src/lib/assistant/nlp.ts": 9,
+  "src/lib/assistant/phrases.ts": 99,
   "src/lib/assistant/reports.ts": 17,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 39,
+  "src/lib/assistant/theiaFlow.ts": 47,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/automationRuntime.ts": 2,
@@ -416,5 +417,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1184
+ "withPlaceholders": 1188
 }
