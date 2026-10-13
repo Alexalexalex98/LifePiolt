@@ -29,7 +29,7 @@ function openAttach(a: NonNullable<Story['attach']>) {
   else if (a.kind === 'place') go('searchPage', { q: a.label });
 }
 
-function Moment({ s, me }: { s: Story; me: string }) {
+function Moment({ s, me, onPlay }: { s: Story; me: string; onPlay?: () => void }) {
   const t = useTheme();
   const net = useNet();
   const mine = s.author === me;
@@ -50,15 +50,17 @@ function Moment({ s, me }: { s: Story; me: string }) {
   const remove = () => confirmDelete(tl('questo momento'), () => net.patch({ stories: (net.stories ?? []).filter((x) => x.id !== s.id) }));
   return (
     <Card style={{ padding: 0, overflow: 'hidden', marginBottom: 12 }}>
+      <Pressable accessibilityRole="button" accessibilityLabel={tl('Guarda a schermo intero')} onPress={onPlay} disabled={!onPlay}>
       {s.kind === 'text' ? (
         <LinearGradient colors={s.bg ?? ['#6c8cff', '#3b2a7a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ minHeight: 180, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800', textAlign: 'center' }}>{s.text}</Text>
         </LinearGradient>
       ) : (
         <View style={{ aspectRatio: 4 / 5, backgroundColor: '#000' }}>
-          {s.kind === 'video' && s.uri ? <StoryVideo uri={s.uri} controls /> : <Image source={{ uri: s.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
+          {s.kind === 'video' && s.uri ? <View pointerEvents="none" style={{ flex: 1 }}><StoryVideo uri={s.uri} /></View> : <Image source={{ uri: s.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
         </View>
       )}
+      </Pressable>
       <View style={{ padding: 12, gap: 8 }}>
         <Row gap={8}>
           <Text style={{ color: t.text, fontWeight: '800' }}>{timeLabel(s.ts)}</Text>
@@ -87,7 +89,7 @@ function Moment({ s, me }: { s: Story; me: string }) {
   );
 }
 
-/** «La giornata» di una persona: i suoi momenti in ordine, per parte del giorno. Si scorre con il proprio ritmo; «Riproduci» li mostra uno dopo l'altro. */
+/** Il riepilogo della giornata di una persona: i suoi momenti in ordine, per parte del giorno. Si scorre con il proprio ritmo; «Riproduci» li mostra uno dopo l'altro. */
 export default function StoryDay() {
   const { author } = useLocalSearchParams<{ author?: string }>();
   const me = useApp((s) => s.account.name);
@@ -98,6 +100,7 @@ export default function StoryDay() {
   const fixed = fixedMoments(all);
   const flow = parts.flatMap((p) => p.stories);
   const [play, setPlay] = useState(false);
+  const [start, setStart] = useState(0);
   const [viewers, setViewers] = useState(false);
   const t = useTheme();
   // li segno visti all'apertura (non i miei)
@@ -112,18 +115,18 @@ export default function StoryDay() {
     setTimeout(() => useNet.getState().patch({ storySeen: [...seen, ...fresh.map((s) => s.id)], stories }), 0);
   }, [who]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (play) return <StoryPlayer stories={flow} start={0} onClose={() => setPlay(false)} />;
+  if (play) return <StoryPlayer stories={flow} start={start} onClose={() => setPlay(false)} />;
   const mineView = who === me;
   const viewerSet = [...new Set(all.flatMap((s) => s.views))];
   return (
-    <Page id="storyDay" back title={mineView ? 'La tua giornata' : tl('La giornata di {0}', who)}>
+    <Page id="storyDay" back title={mineView ? 'Il tuo riepilogo' : tl('Riepilogo di {0}', who)}>
       <Row gap={10} style={{ marginBottom: 12 }}>
         <UserAvatar name={who} size={44} />
         <View style={{ flex: 1 }}>
           <Body bold>{who}</Body>
           <Body small muted>{tl('Momenti oggi: {0}', flow.length)}</Body>
         </View>
-        {flow.length ? <Btn small icon="video" title="Riproduci" onPress={() => setPlay(true)} /> : null}
+        {flow.length ? <Btn small icon="video" title="Riproduci" onPress={() => { setStart(0); setPlay(true); }} /> : null}
       </Row>
       {mineView ? (
         <Row gap={8} style={{ marginBottom: 12 }}>
@@ -135,7 +138,7 @@ export default function StoryDay() {
       {parts.map((p) => (
         <View key={p.part}>
           <Text accessibilityRole="header" style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, marginBottom: 6, marginTop: 4 }}>{tl(p.part).toUpperCase()}</Text>
-          {p.stories.map((s) => <Moment key={s.id} s={s} me={me} />)}
+          {p.stories.map((s) => <Moment key={s.id} s={s} me={me} onPlay={() => { setStart(Math.max(0, flow.findIndex((x) => x.id === s.id))); setPlay(true); }} />)}
         </View>
       ))}
       {fixed.length ? (
