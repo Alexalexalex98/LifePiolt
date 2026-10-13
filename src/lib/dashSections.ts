@@ -33,7 +33,7 @@ export function buildSections(i: SectionInput): SectionRow[] {
   const upcoming = i.booked.filter((b) => b.startsAt > i.now).sort((a, b) => a.startsAt - b.startsAt);
   const total = upcoming.reduce((n, b) => n + b.count, 0);
   rows.push(total > 0
-    ? { id: 'prenotati', icon: 'award', title: 'Prenotati ai tuoi seminari e servizi', headline: plural(total, 'prenotato', 'prenotati'), detail: `${clip(upcoming[0].title, 34)}: ${upcoming[0].count}`, tone: 'good', page: 'orders' }
+    ? { id: 'prenotati', icon: 'award', title: 'Prenotati ai tuoi seminari e servizi', headline: plural(total, 'prenotato', 'prenotati'), detail: `${clip(upcoming[0].title, 34)}: ${upcoming[0].count}`, tone: 'good', page: 'myServices' }
     : { id: 'prenotati', icon: 'award', title: 'Prenotati ai tuoi seminari e servizi', headline: 'Nessuna prenotazione', detail: 'Per ora nessuno si è prenotato', tone: 'none', page: 'lifenetwork' });
 
   rows.push(i.comments.count > 0

@@ -1,5 +1,5 @@
 {
- "count": 9337,
+ "count": 9341,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -110,7 +110,7 @@
   "src/components/MediaPickerField.tsx": 8,
   "src/components/MonthCalcCard.tsx": 16,
   "src/components/MoodChart.tsx": 6,
-  "src/components/NavBar.tsx": 17,
+  "src/components/NavBar.tsx": 18,
   "src/components/NetSheets.tsx": 310,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 46,
@@ -347,7 +347,7 @@
   "src/lib/habits/routine.ts": 13,
   "src/lib/habits/time.ts": 5,
   "src/lib/healthkit.ts": 30,
-  "src/lib/helpFaq.ts": 245,
+  "src/lib/helpFaq.ts": 249,
   "src/lib/helpKb.ts": 165,
   "src/lib/hiring.ts": 26,
   "src/lib/i18n.ts": 4,
