@@ -13,7 +13,7 @@ import { UserAvatar } from '@/components/network';
 import { Body, Item, Sheet, IL } from '@/components/ui';
 import { KeyboardDock } from '@/components/KeyboardDock';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
-import { restingBottom, shouldScrollToEnd } from '@/lib/keyboardInset';
+import { shouldScrollToEnd } from '@/lib/keyboardInset';
 import { useTheme } from '@/hooks/use-theme';
 import type { Picked } from '@/lib/chatMedia';
 import { searchText } from '@/lib/chatList';
@@ -291,7 +291,7 @@ export default function Conversation() {
         onLayout={() => { if (stick.current && !search) list.current?.scrollToEnd({ animated: false }); }}
       />
 
-      <View style={{ paddingBottom: restingBottom(kb, insets.bottom) }}>
+      <View style={{ paddingBottom: 0 }}>
         {chat.type === 'club' && !clubReason && club && club.owner !== me && (
           <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 10, paddingTop: 6, alignItems: 'center' }}>
             <Pressable onPress={() => setAsQuestion(!asQuestion)} accessibilityRole="button" accessibilityState={{ selected: asQuestion }} accessibilityLabel={translateText("Segna come domanda")} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: asQuestion ? '#e5a100' : t.chip }}>
