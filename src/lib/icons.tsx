@@ -24,6 +24,7 @@ export const iconMarkup: Record<string, string> = {
   chevron: '<path d="M6 9l6 6 6-6"/>',
   comment: '<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>',
   importSocial: '<path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/>',
+  activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
   savedPosts: '<path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>',
   bookmark: '<path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>',
   coin: '<circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="5"/>',

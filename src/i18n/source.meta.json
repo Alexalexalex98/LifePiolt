@@ -1,6 +1,7 @@
 {
- "count": 9246,
+ "count": 9266,
  "byFile": {
+  "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 27,
   "src/app/(tabs)/aiSettings.tsx": 7,
@@ -88,7 +89,7 @@
   "src/components/ArrivalAdvice.tsx": 8,
   "src/components/Automations.tsx": 37,
   "src/components/CalendarImportSheet.tsx": 18,
-  "src/components/CalendarViews.tsx": 42,
+  "src/components/CalendarViews.tsx": 47,
   "src/components/ConfirmBadge.tsx": 4,
   "src/components/CsvImportSheet.tsx": 23,
   "src/components/DataChart.tsx": 2,
@@ -107,7 +108,7 @@
   "src/components/MediaPickerField.tsx": 8,
   "src/components/MonthCalcCard.tsx": 16,
   "src/components/MoodChart.tsx": 6,
-  "src/components/NavBar.tsx": 16,
+  "src/components/NavBar.tsx": 17,
   "src/components/NetSheets.tsx": 310,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 46,
@@ -342,7 +343,7 @@
   "src/lib/habits/routine.ts": 13,
   "src/lib/habits/time.ts": 5,
   "src/lib/healthkit.ts": 30,
-  "src/lib/helpFaq.ts": 239,
+  "src/lib/helpFaq.ts": 241,
   "src/lib/helpKb.ts": 165,
   "src/lib/hiring.ts": 26,
   "src/lib/i18n.ts": 4,
@@ -437,5 +438,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1243
+ "withPlaceholders": 1245
 }
