@@ -18,7 +18,7 @@ export async function pickClubFile(kind: LessonKind | 'image'): Promise<PickedFi
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) throw new Error(perm.canAskAgain === false ? 'Permesso alla libreria negato: abilitalo da Impostazioni del telefono.' : 'Senza il permesso alla libreria non posso mostrarti i file. Riprova e consenti l\'accesso.');
     }
-    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: kind === 'video' ? ['videos'] : ['images'], allowsMultipleSelection: false, quality: 0.85 });
+    const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: kind === 'video' ? ['videos'] : ['images'], allowsMultipleSelection: false, quality: 0.85 });
     if (r.canceled || !r.assets[0]) return null;
     const a = r.assets[0];
     const err = checkSize(kind, a.fileSize);

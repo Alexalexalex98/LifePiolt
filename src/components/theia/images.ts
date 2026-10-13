@@ -32,7 +32,7 @@ export async function pickFromGallery(room: number): Promise<Attachment[]> {
   if (room <= 0) throw new Error(t('Puoi allegare al massimo {0} immagini.', MAX_IMAGES));
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted && perm.accessPrivileges !== 'limited') throw new Error(t(DENIED_PHOTOS));
-  const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: room > 1, selectionLimit: room, quality: 1, exif: false });
+  const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images'], allowsMultipleSelection: room > 1, selectionLimit: room, quality: 1, exif: false });
   if (r.canceled) return [];
   return Promise.all(r.assets.slice(0, room).map(prepare));
 }

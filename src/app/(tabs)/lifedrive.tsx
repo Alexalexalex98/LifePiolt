@@ -70,7 +70,7 @@ export default function LifeDrive() {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) { toast('Serve il permesso di accedere alle foto'); return; }
-      const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+      const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images'], quality: 0.8 });
       if (!r.canceled && r.assets[0]) {
         const a = r.assets[0];
         const n = a.fileName ?? `Foto ${weekdayShortDate().replace('/', '-')}.jpg`;

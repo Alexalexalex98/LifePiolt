@@ -29,7 +29,14 @@ export async function pickNetMedia(kind: 'photo' | 'video'): Promise<NetMedia | 
         : 'Senza il permesso alla libreria non posso mostrarti foto e video. Riprova e consenti l’accesso.');
     }
   }
-  const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: kind === 'photo' ? ['images'] : ['videos'], allowsMultipleSelection: false, quality: 0.8, videoMaxDuration: 120 });
+  let r: ImagePicker.ImagePickerResult;
+  try {
+  r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: kind === 'photo' ? ['images'] : ['videos'], allowsMultipleSelection: false, quality: 0.8, videoMaxDuration: 120 });
+  } catch (e) {
+    const m = e instanceof Error ? e.message : '';
+    if (/FailedToRead|representation|heic/i.test(m)) throw new Error('Non riesco a leggere questa foto. Se è su iCloud aspetta che si scarichi dal telefono, poi riprova (oppure scegline un\'altra).');
+    throw e;
+  }
   if (r.canceled || !r.assets[0]) return null;
   const a = r.assets[0];
   const isVideo = a.type === 'video' || (a.mimeType ?? '').startsWith('video/');

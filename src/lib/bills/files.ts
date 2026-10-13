@@ -41,7 +41,7 @@ export async function pickPhoto(camera: boolean): Promise<PickResult> {
   try {
     const perm = camera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return { ok: false, message: camera ? t('Serve il permesso della fotocamera') : t('Serve il permesso di accedere alle foto') };
-    const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.9 };
+    const opts: ImagePicker.ImagePickerOptions = { preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images'], quality: 0.9 };
     const r = camera ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
     if (r.canceled || !r.assets[0]) return { ok: false, canceled: true, message: '' };
     const a = r.assets[0];

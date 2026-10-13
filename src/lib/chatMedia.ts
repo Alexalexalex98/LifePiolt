@@ -52,7 +52,7 @@ function fromAsset(a: ImagePicker.ImagePickerAsset): Picked {
 }
 
 export async function pickFromGallery(): Promise<Picked[]> {
-  const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images', 'videos'], allowsMultipleSelection: true, selectionLimit: 10, quality: 0.8 });
+  const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images', 'videos'], allowsMultipleSelection: true, selectionLimit: 10, quality: 0.8 });
   return r.canceled ? [] : r.assets.map(fromAsset);
 }
 

@@ -25,7 +25,7 @@ export async function pickFiles(multiple = true): Promise<FileRef[]> {
 }
 
 export async function pickImages(multiple = false): Promise<FileRef[]> {
-  const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: multiple, quality: 0.8 });
+  const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images'], allowsMultipleSelection: multiple, quality: 0.8 });
   if (r.canceled) return [];
   return Promise.all(r.assets.map(async (a, i) => {
     const name = a.fileName ?? `immagine-${Date.now()}-${i}.jpg`;

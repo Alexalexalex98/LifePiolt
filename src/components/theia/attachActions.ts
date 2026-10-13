@@ -35,7 +35,7 @@ export async function addPhoto(current: Att[]): Promise<Added> {
 export async function addGallery(current: Att[]): Promise<Added> {
   const room = Math.max(0, 6 - current.length);
   if (room <= 0) return { atts: [], notice: t('Puoi allegare al massimo {0} elementi.', 6) };
-  const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images', 'videos'], allowsMultipleSelection: room > 1, selectionLimit: room, quality: 1, exif: false });
+  const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images', 'videos'], allowsMultipleSelection: room > 1, selectionLimit: room, quality: 1, exif: false });
   if (r.canceled) return { atts: [] };
   const imgBudget = Math.max(0, MAX_IMAGES - current.filter((a) => a.kind === 'image').length);
   let imgs = 0;

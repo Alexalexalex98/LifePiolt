@@ -43,7 +43,7 @@ export function makeEnv(): Env {
     setPrivateProfile: (on) => useApp.getState().set({ privacy: { ...useApp.getState().privacy, 'Profilo privato': on } }),
     isPrivateProfile: () => !!useApp.getState().privacy['Profilo privato'],
     pickProfilePhoto: async () => {
-      const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+      const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
       if (r.canceled || !r.assets[0]) return false;
       const a = useApp.getState().account;
       useApp.getState().set({ account: { ...a, photo: r.assets[0].uri } });

@@ -87,7 +87,7 @@ export default function TaxDecl() {
     try {
       const perm = camera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) { toast(camera ? 'Serve il permesso della fotocamera' : 'Serve il permesso di accedere alle foto'); return; }
-      const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.85 };
+      const opts: ImagePicker.ImagePickerOptions = { preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images'], quality: 0.85 };
       const r = camera ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
       if (!r.canceled && r.assets[0]) {
         const a = r.assets[0];

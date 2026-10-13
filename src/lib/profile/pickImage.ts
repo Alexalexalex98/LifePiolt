@@ -9,7 +9,7 @@ export async function pickImage(source: 'gallery' | 'camera', opts?: { aspect?: 
       const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: opts?.quality ?? 0.7, exif: false, aspect: opts?.aspect });
       return { uri: r.canceled ? null : r.assets[0]?.uri ?? null };
     }
-    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: opts?.quality ?? 0.7, exif: false, aspect: opts?.aspect });
+    const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images'], quality: opts?.quality ?? 0.7, exif: false, aspect: opts?.aspect });
     return { uri: r.canceled ? null : r.assets[0]?.uri ?? null };
   } catch {
     return { uri: null, error: source === 'camera' ? 'Fotocamera non disponibile su questo dispositivo: scegli dalla galleria.' : 'Non riesco ad aprire la galleria.' };
