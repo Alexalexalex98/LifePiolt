@@ -14,7 +14,6 @@ import { FEED_GUTTER, FEED_RADIUS } from '@/components/feed/parts';
 import { JobsHub } from '@/components/JobsHub';
 import { openSheet, UserAvatar } from '@/components/network';
 import { Body, Btn, Card, Empty, H, Input, Page } from '@/components/ui';
-import { ClubStrip } from '@/components/club/ClubStrip';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/lib/i18n';
 import { Icon } from '@/lib/icons';
@@ -201,7 +200,6 @@ export default function LifeNetwork() {
       )}
       {curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
-          <ClubStrip />
           <Composer me={me} onPress={compose} />
           <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={following ? 'Seguiti' : 'Per te'} onChange={(k) => setPref('homeFilter', k)} />
           <View style={{ height: 8 }} />

@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, View } from 'react-native';
@@ -19,7 +20,7 @@ import { toast } from '@/store/toast';
 import { translateText } from '@/i18n/core';
 import { fmtDate } from '@/i18n/format';
 
-const START_CHIPS = ['Aggiungi una riunione al piano', 'Aggiungi un task', 'Cosa ho in programma domani?', 'Analisi delle mie finanze', 'Rendi privato il mio profilo', 'Cambia la foto del profilo', 'Cosa sai fare?'];
+const HERO_CARDS: [string, string, string][] = [['calendar', 'Pianifica la mia giornata', 'Riepilogo della giornata'], ['tasks', 'Aggiungi un task', 'Aggiungi un task'], ['lifefinance', 'Analizza le mie finanze', 'Analisi delle mie finanze'], ['sparkle', 'Cosa devo fare adesso?', 'Cosa devo fare adesso?']];
 
 export default function LifeChat() {
   const t = useTheme();
@@ -69,6 +70,9 @@ export default function LifeChat() {
   const lastAi = [...shown].reverse().find((m) => m.who === 'ai');
 
   const appLang = useApp((s) => s.language);
+  const userName = useApp((s) => s.account.name);
+  const hr = new Date().getHours();
+  const greetWord = hr < 12 ? 'Buongiorno' : hr < 18 ? 'Buon pomeriggio' : 'Buonasera';
 
   async function deliver(m: ComposerSend) {
     if (busy) return;
@@ -133,10 +137,23 @@ export default function LifeChat() {
             keyboardShouldPersistTaps="handled"
             removeClippedSubviews={false}
             onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
+            contentContainerStyle={shown.length === 0 ? { flexGrow: 1, justifyContent: 'center' } : undefined}
             ListEmptyComponent={
-              <View style={{ paddingTop: 8 }}>
-                <Body style={{ marginBottom: 8 }}>Sono {name}. Dimmi cosa fare e lo faccio io: piano, task, note, profilo, analisi di finanze, salute e umore. Funziono con regole sul tuo telefono, senza consumare AI.</Body>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>{START_CHIPS.map((c) => <Pill key={c} label={c} onPress={() => send(c)} />)}</View>
+              <View style={{ alignItems: 'center', paddingHorizontal: 4, paddingBottom: 24 }}>
+                <LinearGradient colors={[t.accent, t.accent + '66']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 68, height: 68, borderRadius: 34, alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+                  <Icon name="sparkle" size={30} color={t.onText} stroke={2} />
+                </LinearGradient>
+                <Text style={{ color: t.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.5, textAlign: 'center' }}>{greetWord}, {userName}</Text>
+                <Text style={{ color: t.muted, fontSize: 17, marginTop: 6, textAlign: 'center' }}>Sono {name}. Cosa facciamo oggi?</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 26, alignSelf: 'stretch' }}>
+                  {HERO_CARDS.map(([ic, label, cmd]) => (
+                    <Pressable key={label} onPress={() => send(cmd)} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => ({ width: '48%', flexGrow: 1, backgroundColor: t.card, borderColor: t.border, borderWidth: 1, borderRadius: 20, padding: 14, minHeight: 92, justifyContent: 'space-between', opacity: pressed ? 0.7 : 1 })}>
+                      <Icon name={ic} size={22} color={t.accent} stroke={1.9} />
+                      <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', marginTop: 10 }}>{label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 18, textAlign: 'center' }}>Scrivi un comando o una domanda: ti suggerisco io cosa so fare.</Text>
               </View>
             }
             renderItem={({ item }) => {
@@ -158,7 +175,7 @@ export default function LifeChat() {
               );
             }}
           />
-          <Composer appLang={appLang} busy={busy} placeholder={section === GENERALE ? 'Scrivi un comando o una domanda…' : `Scrivi in ${section}…`} onSend={(m) => void deliver(m)} />
+          <Composer appLang={appLang} busy={busy} placeholder={section === GENERALE ? 'Scrivi a Theia…' : `Scrivi in ${section}…`} onSend={(m) => void deliver(m)} />
         </>
       )}
     </Page>

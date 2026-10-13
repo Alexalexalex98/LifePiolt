@@ -101,6 +101,20 @@ export const TUTORIALS: SectionTutorial[] = [
     ],
   },
   {
+    id: 'sec-myServices', page: 'myServices', title: 'I tuoi servizi', icon: 'award', short: 'Tutto ciò che hai prenotato e pagato', auto: true,
+    steps: [
+      s('a', 'Tutto in un posto', 'Qui trovi ogni seduta, lezione e seminario che hai prenotato: la psicologa, il personal trainer, una lezione di cucina.', ['In programma, da confermare e concluse', 'I LifePoints ancora bloccati sono in alto']),
+      s('b', 'Gestisci ogni prenotazione', 'Per ognuna puoi aprire la fattura, riprogrammare, disdire fino a 24 ore prima e, dopo, lasciare la recensione.'),
+    ],
+  },
+  {
+    id: 'sec-myClubs', page: 'myClubs', title: 'I tuoi LifeClub', icon: 'users', short: 'I club che gestisci e a cui sei iscritto', auto: true,
+    steps: [
+      s('a', 'I tuoi LifeClub', 'In alto quelli che gestisci (con lo Studio per creare lezioni), poi quelli a cui sei iscritto, poi quelli da scoprire.'),
+      s('b', 'Dentro un LifeClub', 'Segui le lezioni, fai domande, lasci la tua recensione e partecipi alla chat del club.'),
+    ],
+  },
+  {
     id: 'sec-payments', page: 'payments', title: 'Pagamenti', icon: 'coin', short: 'QR, invio e movimenti in LifePoints', auto: true,
     steps: [
       s('a', 'Il tuo QR', 'In «Ricevi» c\'è il tuo QR: chi lo scansiona ti paga in LifePoints da qualsiasi parte del mondo, senza commissioni.'),

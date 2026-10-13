@@ -409,10 +409,11 @@ export function Avatar({ name, size = 30, uri }: { name: string; size?: number; 
   const mine = !!name && name === me;
   const src = !failed ? (uri ?? (mine ? (photo ? { uri: photo } : DEFAULT_PHOTO) : undefined)) : (mine ? DEFAULT_PHOTO : undefined);
   const hash = Math.abs([...name].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)) % 360;
-  if (src) return <Image source={src} onError={() => setFailed(true)} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+  // sotto c'è sempre il cerchio con l'iniziale: se la foto non si carica (o sta ancora caricando) non resta mai un buco vuoto
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: `hsl(${hash},45%,32%)`, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: `hsl(${hash},45%,32%)`, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       <Text style={{ color: '#fff', fontWeight: '800', fontSize: size * 0.4 }}>{name[0]}</Text>
+      {src ? <Image source={src} onError={() => setFailed(true)} style={{ position: 'absolute', top: 0, start: 0, width: size, height: size, borderRadius: size / 2 }} /> : null}
     </View>
   );
 }

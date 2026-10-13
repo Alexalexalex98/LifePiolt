@@ -21,6 +21,7 @@ import type { Attachment } from './images';
 import { AttachChip, BillChip } from './AttachChips';
 import { AttachSheet } from './AttachSheet';
 import { LangSheet } from './LangSheet';
+import { CommandSuggest } from './CommandSuggest';
 import { PrivacyBadge } from './PrivacyBadge';
 import { useVoiceNote } from './useVoiceNote';
 import { VoiceDiagSheet } from './VoiceDiagSheet';
@@ -69,6 +70,7 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
   const [attachOpen, setAttachOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const transport = useRef<SpeechTransport | null>(null);
   const voiceFrom = useRef<string | null>(null); // lingua della trascrizione nel campo di testo
@@ -179,19 +181,6 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
 
   return (
     <View style={{ paddingTop: 8 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-        <PrivacyBadge />
-        <Pressable
-          onPress={() => setLangOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel={`${translateText('Lingua di questo messaggio')}: ${native}`}
-          hitSlop={8}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: over ? t.text : t.chip, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10, minHeight: 28 }}>
-          <Icon name="compass" size={13} color={over ? t.bg : t.text} stroke={2} />
-          <Text style={{ color: over ? t.bg : t.text, fontSize: 12, fontWeight: '600' }}>{native}</Text>
-        </Pressable>
-      </View>
-
       {voiceErr ? <VoiceNotice code={voiceErr.code} raw={voiceErr.raw} onClose={() => setVoiceErr(null)} onRetry={() => void startVoice()} onRecord={() => { setVoiceErr(null); void startNote(); }} onDiag={() => setDiagOpen(true)} /> : null}
 
       {note.recording ? (
@@ -237,35 +226,47 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
         </View>
       ) : null}
 
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
-        <Pressable onPress={() => setAttachOpen(true)} disabled={active || note.recording} accessibilityRole="button" accessibilityLabel={translateText('Allega')} accessibilityState={{ disabled: active || note.recording }} style={circle(t.chip, !active && !note.recording)}>
-          <Icon name="paperclip" size={20} color={t.text} stroke={2} />
+      {focused && !active && !note.recording ? <CommandSuggest typed={text} onPick={(c) => { setText(c.insert); voiceFrom.current = null; }} /> : null}
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, backgroundColor: t.card, borderColor: focused ? t.accent + '99' : t.border, borderWidth: 1.5, borderRadius: 28, paddingHorizontal: 8, paddingVertical: 6 }}>
+        <Pressable onPress={() => setAttachOpen(true)} disabled={active || note.recording} accessibilityRole="button" accessibilityLabel={translateText('Allega')} accessibilityState={{ disabled: active || note.recording }} style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', opacity: !active && !note.recording ? 1 : 0.4 }}>
+          <Icon name="paperclip" size={21} color={t.muted} stroke={2} />
         </Pressable>
         <Input
           flex={1}
           placeholder={placeholder}
           value={text}
           onChangeText={(v) => { setText(v); if (!v) voiceFrom.current = null; }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 150)}
           onSubmitEditing={Platform.OS === 'web' ? doSend : undefined}
           returnKeyType={Platform.OS === 'web' ? 'send' : 'default'}
-          // su telefono Invio va a capo e il campo cresce fino a 5 righe; sul web Invio invia
           maxLines={Platform.OS === 'web' ? undefined : 5}
           editable={!active}
-          style={{ marginBottom: 0, minWidth: 0 }}
+          style={{ marginBottom: 0, minWidth: 0, backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 4, paddingVertical: 9, fontSize: 16.5 }}
         />
-        <Pressable
-          onPress={active ? stopAll : () => void startVoice()}
-          onLongPress={() => setDiagOpen(true)}
-          delayLongPress={500}
-          accessibilityRole="button"
-          accessibilityLabel={active ? translateText('Ferma l\'ascolto') : `${translateText('Parla a Theia')} (${native})`}
-          accessibilityHint={translateText('Tieni premuto per la diagnostica della voce')}
-          accessibilityState={{ selected: active }}
-          style={circle(active ? t.danger : t.chip)}>
-          <Icon name={active ? 'square' : 'mic'} size={active ? 16 : 20} color={active ? t.onText : t.text} stroke={2} />
-        </Pressable>
-        <Pressable onPress={doSend} disabled={!canSend} accessibilityRole="button" accessibilityLabel={translateText('Invia')} accessibilityState={{ disabled: !canSend }} style={circle(t.accent, canSend)}>
-          <Icon name="arrow-up" size={20} color={t.onText} stroke={2.4} />
+        {text.trim().length > 0 || atts.length > 0 ? (
+          <Pressable onPress={doSend} disabled={!canSend} accessibilityRole="button" accessibilityLabel={translateText('Invia')} accessibilityState={{ disabled: !canSend }} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: canSend ? 1 : 0.4 }}>
+            <Icon name="arrow-up" size={20} color={t.onText} stroke={2.6} />
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={active ? stopAll : () => void startVoice()}
+            onLongPress={() => setDiagOpen(true)}
+            delayLongPress={500}
+            accessibilityRole="button"
+            accessibilityLabel={active ? translateText('Ferma l\'ascolto') : `${translateText('Parla a Theia')} (${native})`}
+            accessibilityHint={translateText('Tieni premuto per la diagnostica della voce')}
+            accessibilityState={{ selected: active }}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: active ? t.danger : t.chip, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={active ? 'square' : 'mic'} size={active ? 15 : 20} color={active ? t.onText : t.text} stroke={2} />
+          </Pressable>
+        )}
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, paddingHorizontal: 4 }}>
+        <PrivacyBadge />
+        <Pressable onPress={() => setLangOpen(true)} accessibilityRole="button" accessibilityLabel={`${translateText('Lingua di questo messaggio')}: ${native}`} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 28 }}>
+          <Icon name="compass" size={13} color={over ? t.accent : t.muted} stroke={2} />
+          <Text style={{ color: over ? t.accent : t.muted, fontSize: 12, fontWeight: '600' }}>{native}</Text>
         </Pressable>
       </View>
 
