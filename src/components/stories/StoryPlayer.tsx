@@ -51,9 +51,12 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
     if (!(st.storySeen ?? []).includes(cur.id)) st.patch({ storySeen: [...(st.storySeen ?? []), cur.id], stories: addView(st.stories ?? [], cur.id, me) });
   }, [cur?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setP(0); }, [i]);
-  const next = () => { if (iRef.current >= stories.length - 1) goBack(); else setI(iRef.current + 1); };
+  const closing = useRef(false);
+  // si chiude una volta sola: prima il timer continuava a girare e chiamava «indietro» a raffica, fino a uscire dalla schermata
+  const close = () => { if (closing.current) return; closing.current = true; goBack(); };
+  const next = () => { if (closing.current) return; if (iRef.current >= stories.length - 1) close(); else setI(iRef.current + 1); };
   useEffect(() => {
-    if (!cur || paused) return;
+    if (!cur || paused || closing.current) return;
     const h = setInterval(() => setP((x) => x + 50 / (secs * 1000)), 50);
     return () => clearInterval(h);
   }, [cur?.id, paused, secs]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -70,7 +73,7 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
   };
   const remove = () => confirmDelete(tl('questo momento del recap'), () => {
     net.patch({ stories: (net.stories ?? []).filter((s) => s.id !== cur.id) });
-    if (stories.length <= 1) goBack(); else setI(Math.max(0, i - 1));
+    if (stories.length <= 1) close(); else setI(Math.max(0, i - 1));
   });
   const viewerList = cur.views;
 
@@ -112,7 +115,7 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
           {cur.kind === 'video' ? <Pressable accessibilityRole="button" accessibilityLabel={sound ? tl('Spegni il volume') : tl('Attiva il volume')} onPress={() => setSound((v) => !v)} hitSlop={10} style={{ padding: 6 }}><Icon name={sound ? 'volume' : 'volume-off'} size={22} color="#fff" /></Pressable> : null}
           {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al recap')} onPress={() => { onClose(); go('storyCreate'); }} hitSlop={10} style={{ padding: 6 }}><Icon name="plus" size={24} color="#fff" /></Pressable> : null}
           {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina dal recap')} onPress={remove} hitSlop={10} style={{ padding: 6 }}><Icon name="trash" size={22} color="#fff" /></Pressable> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={goBack} hitSlop={10} style={{ padding: 6 }}><Icon name="x" size={24} color="#fff" /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={close} hitSlop={10} style={{ padding: 6 }}><Icon name="x" size={24} color="#fff" /></Pressable>
         </Row>
       </View>
       <View style={{ flex: 1 }} pointerEvents="none" />

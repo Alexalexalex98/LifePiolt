@@ -1,3 +1,4 @@
+import { Safe } from '@/components/Safe';
 import { StoriesBar } from '@/components/stories/StoriesBar';
 import { StoryPeekHost } from '@/components/stories/StoryPeekHost';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -192,7 +193,7 @@ export default function LifeNetwork() {
           <View style={{ height: 8 }} />
         </View>
       )}
-      {!searching && curTab === 'Home' && <StoriesBar />}
+      {!searching && curTab === 'Home' && <Safe name="recap"><StoriesBar /></Safe>}
       {!searching && curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
           <Composer me={me} onPress={compose} />
@@ -276,7 +277,7 @@ export default function LifeNetwork() {
         contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
       />
-      <StoryPeekHost />
+      <Safe name="anteprima recap"><StoryPeekHost /></Safe>
     </Page>
   );
 }
