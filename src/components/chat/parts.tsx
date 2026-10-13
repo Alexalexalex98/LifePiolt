@@ -211,8 +211,6 @@ export function ContactCard({ m }: { m: ChatMessage }) {
       <Sheet visible={open} title={name} onClose={() => setOpen(false)}>
         {phone ? <Body muted style={{ marginBottom: 12 }}>{phone}</Body> : <Body muted style={{ marginBottom: 12 }}>Nessun numero in questo contatto.</Body>}
         {phone ? <Btn title="Chiama" icon="phone" onPress={() => { setOpen(false); void run(() => Linking.openURL(`tel:${cleanPhone(phone)}`)); }} /> : null}
-        {phone ? <Btn ghost title="Invia SMS" icon="send" style={{ marginTop: 8 }} onPress={() => { setOpen(false); void run(() => Linking.openURL(`sms:${cleanPhone(phone)}`)); }} /> : null}
-        {phone ? <Btn ghost title="Scrivi su WhatsApp" icon="send" style={{ marginTop: 8 }} onPress={() => { setOpen(false); void run(() => Linking.openURL(`https://wa.me/${cleanPhone(phone).replace(/^\+/, '')}`)); }} /> : null}
         <Btn ghost title="Salva in rubrica" icon="contact" style={{ marginTop: 8 }} onPress={() => { setOpen(false); setTimeout(() => void run(() => saveContactToBook(name, phone)), 300); }} />
         {phone ? <Btn ghost title="Copia numero" icon="copy" style={{ marginTop: 8 }} onPress={() => { setOpen(false); void run(async () => { await Clipboard.setStringAsync(phone); toast('Numero copiato'); }); }} /> : null}
       </Sheet>

@@ -24,7 +24,7 @@ export const TUTORIALS: SectionTutorial[] = [
       s('a', 'Il tuo calendario', 'Passa tra Mese, Settimana ed Elenco. Ogni impegno ha un colore deciso da Theia in base all\'urgenza; tocca un giorno per vedere gli impegni sotto.'),
       s('b', 'Aggiungere e spostare', 'Apri un giorno e aggiungi un impegno con titolo e ora. Se due impegni si sovrappongono te lo dico e ti faccio scegliere: tenere entrambi o spostarne uno guardando il calendario.'),
       s('c', 'Task e timer', 'Qui vedi i primi task da fare; «Vedi tutti i task» apre l\'elenco completo. Il pulsante play di un task apre la concentrazione: scegli quanto lavorare, le pause arrivano da sole.'),
-      s('d', 'Vacanze e agenda', '«Pianifica le vacanze» apre un calendario per selezionare i giorni (come su Booking). L\'Agenda, in alto, è una pagina per ogni giorno con le ore.', ['Le vacanze occupano tutta la giornata e te lo ricordo quando fissi qualcosa']),
+      s('d', 'Vacanze e agenda', '«Pianifica le vacanze» apre un calendario per selezionare i giorni (come in un calendario). L\'Agenda, in alto, è una pagina per ogni giorno con le ore.', ['Le vacanze occupano tutta la giornata e te lo ricordo quando fissi qualcosa']),
     ],
   },
   {
@@ -133,7 +133,7 @@ export const TUTORIALS: SectionTutorial[] = [
   {
     id: 'sec-profile', page: 'profile', title: 'Profilo', icon: 'profile', short: 'Te, la tua reputazione e le tue pagine', auto: true,
     steps: [
-      s('a', 'Il tuo profilo', 'Foto, post, pillole e statistiche; «Modifica profilo» cambia ogni sezione, come su Instagram. L\'icona con il segno di spunta indica l\'identità verificata.'),
+      s('a', 'Il tuo profilo', 'Foto, post, pillole e statistiche; «Modifica profilo» cambia ogni sezione, liberamente. L\'icona con il segno di spunta indica l\'identità verificata.'),
       s('b', 'Recensioni e voti', 'Vedi voti e motivazioni che hai ricevuto; sugli altri profili si vedono solo voti e recensioni. Ogni corso o seminario ha la sua valutazione, che pesa un terzo.'),
       s('c', 'Pagine e cariche', 'Crea la pagina di un\'attività: sul profilo compare con la tua carica (Titolare, Fondatore, CEO...) e puoi collegare altre persone con la loro carica.'),
       s('d', 'Altro', '«Altro» apre tutto il resto: LifeClub, attività collegate, biglietto da visita, negozio e impostazioni di condivisione.'),

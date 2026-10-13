@@ -50,7 +50,7 @@ export default function ImportSocial() {
       const r = await DocumentPicker.getDocumentAsync({ type: ['application/zip', 'application/x-zip-compressed', '*/*'], copyToCacheDirectory: true });
       if (r.canceled || !r.assets[0]) return;
       const a = r.assets[0];
-      if (a.size && a.size > MAX_BYTES) { toast('Il file è troppo grande: nella richiesta a Instagram scegli un periodo più corto o qualità dei contenuti più bassa'); return; }
+      if (a.size && a.size > MAX_BYTES) { toast('Il file è troppo grande: nella richiesta di esportazione scegli un periodo più corto o qualità dei contenuti più bassa'); return; }
       setBusy('Leggo il file…');
       await new Promise((res) => setTimeout(res, 30));
       const bytes = await readBytes(a.uri);
@@ -58,9 +58,9 @@ export default function ImportSocial() {
       const texts: Record<string, string> = {};
       for (const [k, v] of Object.entries(files)) texts[k] = new TextDecoder().decode(v);
       const parsed = parseInstagram(texts);
-      if (!parsed.posts.length && !parsed.profile.bio && !parsed.profile.name) { toast('Non ho trovato dati di Instagram: scarica l\'esportazione in formato JSON'); setBusy(''); return; }
+      if (!parsed.posts.length && !parsed.profile.bio && !parsed.profile.name) { toast('Non ho trovato dati da importare: scarica l\'esportazione in formato JSON'); setBusy(''); return; }
       setZip(bytes); setData(parsed); setPick(new Set(parsed.posts.map((p) => p.id))); setDone(null);
-    } catch { toast('Non riesco a leggere questo file: deve essere lo ZIP scaricato da Instagram'); }
+    } catch { toast('Non riesco a leggere questo file: deve essere lo ZIP dell\'esportazione dei tuoi dati'); }
     setBusy('');
   };
 
@@ -82,7 +82,7 @@ export default function ImportSocial() {
           const uris = p.media.map((u) => { const n = resolveEntry(names, u); return n && files[n] ? { uri: store(n, files[n]), img: isImagePath(u) } : null; }).filter((x): x is { uri: string; img: boolean } => !!x);
           if (!uris.length) continue;
           const imgs = uris.filter((x) => x.img).map((x) => x.uri);
-          out.push({ id: newId(), author: me, text: p.caption, media: imgs.length ? 'photo' : 'video', uri: (imgs[0] ?? uris[0].uri), uris: imgs.length > 1 ? imgs : undefined, tag: 'Instagram', likes: 0, ts: p.ts || Date.now(), imported: true, hideFromFeed: !inFeed });
+          out.push({ id: newId(), author: me, text: p.caption, media: imgs.length ? 'photo' : 'video', uri: (imgs[0] ?? uris[0].uri), uris: imgs.length > 1 ? imgs : undefined, tag: 'Importato', likes: 0, ts: p.ts || Date.now(), imported: true, hideFromFeed: !inFeed });
         }
       }
       const patch: Partial<ReturnType<typeof useNet.getState>> = { posts: [...out, ...net.posts] };
@@ -97,16 +97,16 @@ export default function ImportSocial() {
   const toggle = (id: string) => setPick((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   return (
-    <Page id="importSocial" back title="Importa da Instagram">
+    <Page id="importSocial" back title="Importa da un altro social">
       <Body small muted style={{ marginBottom: 10 }}>Porta qui le tue foto, i tuoi testi e la tua bio. Il file viene letto solo sul tuo telefono: non lo mandiamo da nessuna parte.</Body>
       {!data ? (
         <>
           <SectionLabel>Come ottenere il file</SectionLabel>
           <Card>
-            <Body small>1. In Instagram apri il profilo › menu › Centro gestione account.</Body>
+            <Body small>1. Nell’altro social apri il profilo › impostazioni › Centro gestione account (o «Privacy»).</Body>
             <Body small>2. Le tue informazioni e autorizzazioni › Scarica le tue informazioni.</Body>
             <Body small>3. Scegli «Alcune delle tue informazioni» › Post, poi formato JSON e «Tutto il periodo».</Body>
-            <Body small>4. Quando Instagram ti avvisa (anche ore dopo) scarica lo ZIP e tocca qui sotto.</Body>
+            <Body small>4. Quando l’altro social ti avvisa (anche ore dopo) scarica lo ZIP e tocca qui sotto.</Body>
           </Card>
           <Btn style={{ marginTop: 12 }} title={busy || 'Scegli il file ZIP'} disabled={!!busy} onPress={() => void choose()} />
         </>

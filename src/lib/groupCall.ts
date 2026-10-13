@@ -2,7 +2,7 @@
  * Chiamate di gruppo programmate e istantanee nelle chat (modulo PURO, nessun alias '@/').
  * Programmata: qualcuno la fissa per un'ora; chi conferma la vede fissata in alto nella chat fino all'ora; all'ora si apre la stanza
  * e può entrare chi ha confermato o è stato invitato; chi non entra riceve un promemoria; da dentro, chi è presente può invitare altri
- * (solo persone del gruppo). Istantanea (come su WhatsApp): parte subito e si può aggiungere chiunque.
+ * (solo persone del gruppo). Istantanea (come in una chat): parte subito e si può aggiungere chiunque.
  */
 export type CallRsvp = 'yes' | 'no';
 export type CallShare = {

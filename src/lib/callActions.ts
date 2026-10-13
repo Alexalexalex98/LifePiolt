@@ -64,7 +64,7 @@ export function enter(chatId: string, mid: string, me: string): void {
   go('groupCall', { chat: chatId, mid });
 }
 
-/** Chiamata o videochiamata subito, come su WhatsApp: in un gruppo chiama tutti, in una chat a due l'altra persona; poi si può aggiungere chiunque. */
+/** Chiamata o videochiamata subito, come in una chat: in un gruppo chiama tutti, in una chat a due l'altra persona; poi si può aggiungere chiunque. */
 export function startCall(chatId: string, me: string, video: boolean): string | null {
   const chat = st().chats[chatId];
   if (!chat) return null;

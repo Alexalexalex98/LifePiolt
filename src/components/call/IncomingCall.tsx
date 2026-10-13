@@ -8,7 +8,7 @@ import { answerIncoming, declineIncoming } from '@/lib/callActions';
 import { Icon } from '@/lib/icons';
 import { useIncomingCall } from '@/store/incomingCall';
 
-/** «Chiamata in arrivo» a tutto schermo, come su WhatsApp: Rifiuta (rosso) e Rispondi (verde). */
+/** «Chiamata in arrivo» a tutto schermo, come in una chat: Rifiuta (rosso) e Rispondi (verde). */
 export function IncomingCallHost() {
   const cur = useIncomingCall((s) => s.current);
   if (!cur) return null;

@@ -133,7 +133,7 @@ export const undo = <T,>(h: History<T>): History<T> => (h.past.length ? { past: 
 export const redo = <T,>(h: History<T>): History<T> => (h.future.length ? { past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1) } : h);
 
 
-/* ---------- modifica stile Canva: livelli, duplicati, allineamento, resize ---------- */
+/* ---------- modifica da editor grafico: livelli, duplicati, allineamento, resize ---------- */
 export type LayerMove = 'front' | 'back' | 'forward' | 'backward';
 /** Sposta un elemento tra i livelli (l'ultimo sta sopra). */
 export function moveLayer(els: El[], id: string, how: LayerMove): El[] {

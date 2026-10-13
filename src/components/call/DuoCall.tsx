@@ -34,7 +34,7 @@ function Rings({ on }: { on: boolean }) {
 }
 
 /**
- * Chiamata a due come su WhatsApp: foto grande, «Squilla…» poi il tempo, e in basso altoparlante, video, microfono, aggiungi e termina.
+ * Chiamata a due come in una chat: foto grande, «Squilla…» poi il tempo, e in basso altoparlante, video, microfono, aggiungi e termina.
  * Con il video, l'altra persona è a tutto schermo e tu sei in piccolo in alto.
  */
 export function DuoCall(p: {

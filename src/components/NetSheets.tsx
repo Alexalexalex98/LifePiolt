@@ -718,7 +718,7 @@ function TopUpView() {
   );
 }
 
-/** Modifica tutto di un proprio post, come su Instagram: testo, argomento, foto o video, mi piace visibili, commenti. Resta «modificato». */
+/** Modifica tutto di un proprio post, come in una chat: testo, argomento, foto o video, mi piace visibili, commenti. Resta «modificato». */
 function EditPostView({ ref_, resume }: { ref_: string; resume?: boolean }) {
   const net = useNet();
   const me = useApp((s) => s.account.name);

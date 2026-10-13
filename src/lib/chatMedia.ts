@@ -112,10 +112,10 @@ export function toWaveform(levels: number[], bars = 32): number[] {
   return out;
 }
 
-/** Pulisce un numero per tel: / sms: / wa.me. */
+/** Pulisce un numero per tel:. */
 export const cleanPhone = (p: string) => p.replace(/[^\d+]/g, '');
 
-/** Salva il contatto in rubrica (apre il modulo nativo precompilato, come WhatsApp). */
+/** Salva il contatto in rubrica (apre il modulo nativo precompilato, a chat). */
 export async function saveContactToBook(name: string, phone?: string): Promise<boolean> {
   const perm = await Contacts.requestPermissionsAsync();
   if (!perm.granted) throw new Error('Permesso contatti negato: abilitalo da Impostazioni.');

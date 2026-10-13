@@ -146,7 +146,7 @@ export default function GroupCall() {
   const host = !!call && isHost(call, me);
   const forcedMute = !!call?.muted?.includes(me);
   const handUp = !!call?.hands?.includes(me);
-  // chiamata a due (una chat singola, nessun altro aggiunto): schermata come WhatsApp; con una terza persona diventa una griglia
+  // chiamata a due (una chat singola, nessun altro aggiunto): schermata a chat; con una terza persona diventa una griglia
   const other = chat?.type === 'dm' ? chat.name : null;
   const duo = !!call && call.kind === 'instant' && !!other && call.invited.filter((n) => n !== me).length <= 1 && call.joined.filter((n) => n !== me && n !== other).length === 0 && (call.by === me || call.by === other);
   const otherIn = !!other && !!call?.joined.includes(other);
@@ -168,7 +168,7 @@ export default function GroupCall() {
 
   const addSheets = (
     <Sheet visible={addOpen} title="Aggiungi alla chiamata" onClose={() => setAddOpen(false)}>
-      <Body small muted style={{ marginBottom: 6 }}>{call.restrictToGroup ? 'Questa call è del gruppo: puoi invitare solo le persone del gruppo che non hanno confermato.' : 'Puoi aggiungere chiunque, come su WhatsApp.'}</Body>
+      <Body small muted style={{ marginBottom: 6 }}>{call.restrictToGroup ? 'Questa call è del gruppo: puoi invitare solo le persone del gruppo che non hanno confermato.' : 'Puoi aggiungere chiunque.'}</Body>
       {candidatesAll.length === 0 ? <Body muted>Non c'è nessun altro da invitare.</Body> : candidatesAll.map((n, i) => (
         <Item key={n} last={i === candidatesAll.length - 1}>
           <Row gap={10}><UserAvatar name={n} size={36} /><Body bold style={{ flex: 1 }}>{n}</Body>

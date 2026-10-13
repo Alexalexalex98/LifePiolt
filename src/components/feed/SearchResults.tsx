@@ -55,7 +55,7 @@ function useDocs(): SearchDoc[] {
   }, [me, net.following, net.posts, net.communities, net.ideas, net.seminars, net.providers, net.products, jobs, visible]);
 }
 
-/** Barra unica come su Instagram: filtri per tipo e risultati raggruppati (persone per prime). */
+/** Barra unica come in una chat: filtri per tipo e risultati raggruppati (persone per prime). */
 export function SearchResults({ query }: { query: string }) {
   const t = useTheme();
   const docs = useDocs();
