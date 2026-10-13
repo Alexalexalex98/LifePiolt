@@ -9,6 +9,7 @@ import { Badge, ModButton, UserAvatar, openSheet } from '@/components/network';
 import { E2eNote } from '@/components/PrivacyContent';
 import { Body, Btn, Card, Chev, Empty, H, IL, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
+import { deleteSeminar } from '@/lib/offerActions';
 import { enrollSeminar, hasEnded, seminarFacts, useNow } from '@/lib/enroll';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
@@ -100,6 +101,10 @@ export default function SeminarPage() {
           <H>Sei il relatore</H>
           <Body small muted>{f.seats ? `Iscritti: ${f.joined} su ${f.seats} posti.` : `Iscritti: ${f.joined}.`} I LifePoints dei partecipanti restano bloccati e ti arrivano alla fine del seminario.</Body>
           {!s.promoted && <Btn small ghost style={{ marginTop: 10, alignSelf: 'flex-start' }} title="Promuovi con LifePoints" onPress={() => openSheet('promoteSeminar', { id: s.id })} />}
+          <Row gap={8} style={{ marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+            <Btn small icon="edit" title="Modifica" onPress={() => openSheet('editSeminar', { id: s.id })} />
+            <Btn small ghost icon="trash" title="Elimina" onPress={() => deleteSeminar(s)} />
+          </Row>{s.series ? <Body small muted style={{ marginTop: 6 }}>Fa parte di una serie: scegli se modificare solo questa data o anche le altre.</Body> : null}
         </Card>
         <ParticipantsCard kind="seminar" refId={s.id} host={s.host} endsAt={s.startsAt ? s.startsAt + (s.durationMin ?? 60) * 60000 : undefined} />
         </>

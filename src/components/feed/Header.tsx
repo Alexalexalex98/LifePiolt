@@ -3,6 +3,7 @@ import { Animated, Easing, Pressable, ScrollView, View, useWindowDimensions, typ
 import { Text, TextInput } from '@/components/T';
 
 import { LpTag, UserAvatar } from '@/components/network';
+import { RollingNumber } from '@/components/RollingNumber';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useTheme } from '@/hooks/use-theme';
 import { translateText } from '@/i18n/core';
@@ -47,7 +48,7 @@ export function NetHeader({ balance, query, onQuery, placeholder }: { balance: n
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={translateText('Cerca persone, post, idee, lavori…')} style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}><Icon name="search" size={23} color={t.text} stroke={2} /></Pressable>
         <PressScale onPress={() => go('lifepointsPage')} label={`${translateText('Il tuo saldo')}: ${formatCHF(balance)} LifePoints`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: narrow ? 10 : 13, borderRadius: 999, backgroundColor: t.chip }}>
-          <Text style={{ color: t.text, fontSize: 15, fontWeight: '800' }}>{formatCHF(balance)}</Text>
+          <RollingNumber text={formatCHF(balance)} color={t.text} size={15} />
           <LpTag size={17} dark={false} />
         </PressScale>
       </View>

@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
@@ -39,6 +40,13 @@ export default function ShopPage() {
   const [qty, setQty] = useState(1);
   const [address, setAddress] = useState('');
   const [addOpen, setAddOpen] = useState(newAd === '1');
+  // su iPhone il selettore di foto non si apre sopra una finestra: si chiude, si sceglie e si riapre (i campi restano)
+  const away = async (run: () => Promise<void>) => {
+    if (Platform.OS !== 'ios') { await run(); return; }
+    setAddOpen(false);
+    await new Promise((r) => setTimeout(r, 550));
+    try { await run(); } finally { setAddOpen(true); }
+  };
   const [nm, setNm] = useState(''); const [ds, setDs] = useState(''); const [pr, setPr] = useState(''); const [st, setSt] = useState('1');
   const hasBusiness = useIdentity((x) => x.businesses).some((b) => b.owner === me);
   const [photos, setPhotos] = useState<string[]>([]);
@@ -129,8 +137,8 @@ export default function ShopPage() {
         <Input keyboardType="number-pad" placeholder="Quanti ne hai" value={st} onChangeText={setSt} />
         <Row gap={8} style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }}>
           {photos.map((u, i) => <Pressable key={i} onPress={() => setPhotos(photos.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel="Togli la foto"><Image source={{ uri: u }} style={{ width: 56, height: 56, borderRadius: 10 }} contentFit="cover" /></Pressable>)}
-          {photos.length < MAX_PRODUCT_PHOTOS && <Btn small ghost icon="image" title="Foto" onPress={async () => { const r = await pickImage('gallery', { aspect: [4, 3] }); if (r.error) toast(r.error); if (r.uri) setPhotos([...photos, r.uri]); }} />}
-          <Btn small ghost icon="video" title={video ? 'Video scelto' : 'Video'} onPress={async () => { try { const m = await pickNetMedia('video'); if (m) setVideo(m.uri); } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la libreria'); } }} />
+          {photos.length < MAX_PRODUCT_PHOTOS && <Btn small ghost icon="image" title="Foto" onPress={async () => { await away(async () => { const r = await pickImage('gallery', { aspect: [4, 3] }); if (r.error) toast(r.error); if (r.uri) setPhotos((l) => [...l, r.uri!]); }); }} />}
+          <Btn small ghost icon="video" title={video ? 'Video scelto' : 'Video'} onPress={async () => { await away(async () => { try { const m = await pickNetMedia('video'); if (m) setVideo(m.uri); } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la libreria'); } }); }} />
         </Row>
         <Btn title="Aggiungi al negozio" onPress={() => {
           const mine = useIdentity.getState().businesses.filter((b) => b.owner === me);

@@ -1,5 +1,5 @@
 {
- "count": 8638,
+ "count": 8705,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 27,
@@ -39,7 +39,7 @@
   "src/app/(tabs)/lifefinance.tsx": 86,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
-  "src/app/(tabs)/lifenetwork.tsx": 38,
+  "src/app/(tabs)/lifenetwork.tsx": 39,
   "src/app/(tabs)/lifenotes.tsx": 3,
   "src/app/(tabs)/lifepointsPage.tsx": 22,
   "src/app/(tabs)/lifetask.tsx": 5,
@@ -49,7 +49,7 @@
   "src/app/(tabs)/messagesPage.tsx": 34,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,
-  "src/app/(tabs)/myServices.tsx": 12,
+  "src/app/(tabs)/myServices.tsx": 17,
   "src/app/(tabs)/noteedit.tsx": 18,
   "src/app/(tabs)/notificationsPage.tsx": 27,
   "src/app/(tabs)/orders.tsx": 12,
@@ -66,8 +66,8 @@
   "src/app/(tabs)/reports.tsx": 1,
   "src/app/(tabs)/searchPage.tsx": 13,
   "src/app/(tabs)/security.tsx": 5,
-  "src/app/(tabs)/seminarPage.tsx": 41,
-  "src/app/(tabs)/servicePage.tsx": 28,
+  "src/app/(tabs)/seminarPage.tsx": 44,
+  "src/app/(tabs)/servicePage.tsx": 31,
   "src/app/(tabs)/settings.tsx": 108,
   "src/app/(tabs)/sharing.tsx": 2,
   "src/app/(tabs)/shopPage.tsx": 42,
@@ -104,7 +104,7 @@
   "src/components/MonthCalcCard.tsx": 16,
   "src/components/MoodChart.tsx": 6,
   "src/components/NavBar.tsx": 14,
-  "src/components/NetSheets.tsx": 276,
+  "src/components/NetSheets.tsx": 310,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 46,
   "src/components/ParticipantsCard.tsx": 14,
@@ -351,6 +351,8 @@
   "src/lib/notify.ts": 25,
   "src/lib/notifyKinds.ts": 45,
   "src/lib/notifyOpen.ts": 2,
+  "src/lib/offerActions.ts": 13,
+  "src/lib/offerEdit.ts": 25,
   "src/lib/paymentActions.ts": 8,
   "src/lib/payments.ts": 6,
   "src/lib/places.ts": 2,
@@ -417,5 +419,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1188
+ "withPlaceholders": 1202
 }

@@ -7,6 +7,7 @@ import { LpTag } from '@/components/network';
 import { Body, Btn, Card, Empty, Item, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { go } from '@/lib/nav';
+import { openSheet } from '@/components/network';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
@@ -55,8 +56,17 @@ export default function MyServices() {
       {toConfirm.length > 0 && <Section title="Da confermare" hint="Conferma di aver partecipato: solo allora vengono accreditati a chi ti ha seguito.">{toConfirm.map((e) => <Card key={e.id}><EnrollmentBox e={e} /></Card>)}</Section>}
       {past.length > 0 && <Section title="Concluse">{past.map((e) => <Card key={e.id}><EnrollmentBox e={e} /></Card>)}</Section>}
 
+      <Section title="Quello che offri tu" hint="Pubblica un servizio (sedute, lezioni) o un seminario, anche ripetuto. Dopo la pubblicazione puoi modificare tutto o eliminarlo.">
+        <Card>
+          <Row gap={8} style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+            {!myService ? <Btn small icon="plus" title="Offri un servizio" onPress={() => openSheet('editService', { new: 1 })} /> : <Btn small icon="edit" title="Modifica il tuo servizio" onPress={() => openSheet('editService')} />}
+            <Btn small ghost icon="plus" title="Pubblica un seminario" onPress={() => openSheet('newSeminar')} />
+          </Row>
+        </Card>
+      </Section>
+
       {(offered.length > 0 || myService) && (
-        <Section title="Quello che offri tu" hint="Chi si è prenotato e quanto ha pagato lo vedi aprendo il servizio o il seminario.">
+        <Section title="Le tue offerte" hint="Chi si è prenotato e quanto ha pagato lo vedi aprendo il servizio o il seminario.">
           <Card>
             {myService && <Item last={!offered.length} onPress={() => go('servicePage', { name: me })}><Row><View style={{ flex: 1 }}><Body bold>{myService.role}</Body><Body small muted>{(participants?.[`service:${me}`] ?? []).length} prenotati</Body></View></Row></Item>}
             {offered.map((s, i) => <Item key={s.id} last={i === offered.length - 1} onPress={() => go('seminarPage', { id: String(s.id) })}><Row><View style={{ flex: 1 }}><Body bold numberOfLines={1}>{s.title}</Body><Body small muted>{(participants?.[`seminar:${s.id}`] ?? []).length} iscritti</Body></View></Row></Item>)}

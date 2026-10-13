@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, Share, View } from 'react-native';
+import { Platform, Pressable, Share, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { SPONSORED_TEXT } from '@/components/market';
@@ -14,7 +14,12 @@ import { confirmDelete } from '@/lib/confirm';
 import { paidCancel, freeCancel } from '@/data/marketSeed';
 import { confirmAttendance, hasEnded } from '@/lib/enroll';
 import { ConflictSheet } from '@/lib/planBooking';
-import { fmtRange, nextDays, timeOptions, tsOf } from '@/lib/when';
+import { dayKeyOf, fmtDuration, fmtRange, nextDays, timeOptions, tsOf } from '@/lib/when';
+import { EVERY_LABEL, MAX_OCCURRENCES, applySeminarEdit, seriesDates, validateSeminar, type Every, type Scope, type SemForm, type SemLike } from '@/lib/offerEdit';
+import { fmtDate } from '@/i18n/format';
+import { WEEKDAYS, slotLabel, sortSlots, validateService, type ServiceForm } from '@/lib/offerEdit';
+import { providerInfoFor, type ServiceInfo } from '@/data/marketSeed';
+import { cancelEnrollmentOp } from '@/domain/operations';
 import { myWithdrawInfo } from '@/lib/lpActions';
 import { VOTE_BLOCK_MSG, lpReceived, cryptoRates, isVoteReasonRelevant, rateIdeaDetailed, textSimilarity } from '@/lib/network';
 import { castProfileVote, profileVoteBlock, skillStatesOf } from '@/lib/profile/actions';
@@ -26,13 +31,13 @@ import { showUndoToast, toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
 import { REPORT_NOTICE } from '@/components/ReportsSheet';
 import { MediaPickerField } from '@/components/MediaPickerField';
-import type { NetMedia } from '@/lib/netMedia';
+import { pickNetMedia, type NetMedia } from '@/lib/netMedia';
 import { REASONS, modKey, type ModKind, type ReasonId } from '@/lib/modRules';
 import { useVisible } from '@/lib/moderation';
 import { useChat } from '@/store/chat';
 import { useMod } from '@/store/moderation';
 import { endAlign } from '@/lib/rtl';
-import { t as tl } from '@/i18n/core';
+import { t as tl, translateText } from '@/i18n/core';
 
 /** Un'unica Sheet che mostra la vista richiesta dal social (evita modali annidate). */
 export function NetSheetHost() {
@@ -83,7 +88,7 @@ function NetSheetInner() {
       );
       break;
     }
-    case 'editPost': { title = 'Modifica il post'; body = <EditPostView ref_={String(p.ref)} />; break; }
+    case 'editPost': { title = 'Modifica il post'; body = <EditPostView ref_={String(p.ref)} resume={!!p.resume} />; break; }
     case 'contentMenu': {
       const tg = p as ModTarget;
       title = tg.label ? (tg.label.length > 40 ? tg.label.slice(0, 38) + '…' : tg.label) : 'Azioni';
@@ -142,16 +147,18 @@ function NetSheetInner() {
       body = <ContributeView idea={idea} />;
       break;
     }
-    case 'newIdea': { title = 'La tua idea'; body = <NewIdeaView />; break; }
+    case 'newIdea': { title = 'La tua idea'; body = <NewIdeaView resume={!!p.resume} />; break; }
     case 'newCommunity': { title = 'Crea community'; body = <NewCommunityView />; break; }
     case 'postToCommunity': {
       const c = net.communities.find((x) => x.id === p.id);
       if (!c) break;
       title = 'Pubblica in ' + c.name;
-      body = <PostToCommunityView id={c.id} />;
+      body = <PostToCommunityView id={c.id} resume={!!p.resume} />;
       break;
     }
     case 'newSeminar': { title = 'Nuovo seminario'; body = <NewSeminarView />; break; }
+    case 'editSeminar': { title = 'Modifica il seminario'; body = <NewSeminarView semId={Number(p.id)} />; break; }
+    case 'editService': { title = p.new ? 'Offri un servizio' : 'Modifica il servizio'; body = <ServiceEditor resume={!!p.resume} />; break; }
     case 'promoteSeminar': { title = 'Promuovi seminario'; body = <PromoteView id={p.id} />; break; }
     case 'vote': {
       title = 'Vota ' + p.name;
@@ -277,7 +284,7 @@ function NetSheetInner() {
       );
       break;
     }
-    case 'newPost': { title = 'Nuovo post'; body = <NewPostView />; break; }
+    case 'newPost': { title = 'Nuovo post'; body = <NewPostView resume={!!p.resume} />; break; }
     default: break;
   }
 
@@ -321,20 +328,21 @@ function ContributeView({ idea }: { idea: ReturnType<typeof useNet.getState>['id
   );
 }
 
-function NewIdeaView() {
+function NewIdeaView({ resume }: { resume?: boolean }) {
   const net = useNet();
   const me = useApp((s) => s.account.name);
   const close = useNetSheet((s) => s.close);
-  const [title, setTitle] = useState(''); const [desc, setDesc] = useState('');
-  const [type, setType] = useState<'libero' | 'fisso'>('libero'); const [fixed, setFixed] = useState(''); const [reward, setReward] = useState('');
-  const [media, setMedia] = useState<NetMedia | null>(null);
-  const [days, setDays] = useState<number>(IDEA_DEFAULT_DAYS); const [target, setTarget] = useState('500');
+  const d = resume ? (drafts.newIdea as { title: string; desc: string; type: 'libero' | 'fisso'; fixed: string; reward: string; media: NetMedia | null; days: number; target: string } | undefined) : undefined;
+  const [title, setTitle] = useState(d?.title ?? ''); const [desc, setDesc] = useState(d?.desc ?? '');
+  const [type, setType] = useState<'libero' | 'fisso'>(d?.type ?? 'libero'); const [fixed, setFixed] = useState(d?.fixed ?? ''); const [reward, setReward] = useState(d?.reward ?? '');
+  const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
+  const [days, setDays] = useState<number>(d?.days ?? IDEA_DEFAULT_DAYS); const [target, setTarget] = useState(d?.target ?? '500');
   return (
     <>
       <Body small muted>Titolare: {me} (le pagine idea sono sempre legate a chi le pubblica).</Body>
       <Input style={{ marginTop: 8 }} placeholder="Titolo dell'idea" value={title} onChangeText={setTitle} />
       <Input multiline placeholder="Descrivi l'idea: di cosa si tratta, a chi serve, come funziona…" value={desc} onChangeText={setDesc} />
-      <MediaPickerField value={media} onChange={setMedia} />
+      <MediaPickerField value={media} onChange={setMedia} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'newIdea', { title, desc, type, fixed, reward, media, days, target }, () => openSheet('newIdea', { resume: true })) : undefined} />
       <Body small muted style={{ marginVertical: 8 }}>Chi contribuisce riceve in cambio…</Body>
       <View style={{ flexDirection: 'row', marginBottom: 8 }}><Pill label="Importo libero" on={type === 'libero'} onPress={() => setType('libero')} /><Pill label="Importo fisso" on={type === 'fisso'} onPress={() => setType('fisso')} /></View>
       {type === 'fisso' && <Input keyboardType="decimal-pad" placeholder="Importo fisso in LP" value={fixed} onChangeText={setFixed} />}
@@ -381,16 +389,17 @@ function NewCommunityView() {
   );
 }
 
-function PostToCommunityView({ id }: { id: number }) {
+function PostToCommunityView({ id, resume }: { id: number; resume?: boolean }) {
   const net = useNet();
   const me = useApp((s) => s.account.name);
   const close = useNetSheet((s) => s.close);
-  const [text, setText] = useState('');
-  const [media, setMedia] = useState<NetMedia | null>(null);
+  const d = resume ? (drafts.postToCommunity as { text: string; media: NetMedia | null } | undefined) : undefined;
+  const [text, setText] = useState(d?.text ?? '');
+  const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
   return (
     <>
       <Input multiline placeholder="Scrivi qualcosa…" value={text} onChangeText={setText} />
-      <MediaPickerField value={media} onChange={setMedia} />
+      <MediaPickerField value={media} onChange={setMedia} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'postToCommunity', { text, media }, () => openSheet('postToCommunity', { id, resume: true })) : undefined} />
       <Btn title="Pubblica" onPress={() => {
         if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
         net.patch({ communities: net.communities.map((c) => (c.id === id ? { ...c, posts: [{ author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, likes: 0, ts: Date.now() }, ...c.posts] } : c)) });
@@ -402,27 +411,84 @@ function PostToCommunityView({ id }: { id: number }) {
 
 const DURATIONS: [string, number][] = [['30 minuti', 30], ['45 minuti', 45], ['1 ora', 60], ['1 ora e 30', 90], ['2 ore', 120], ['3 ore', 180]];
 
-function NewSeminarView() {
+/** Crea o modifica un seminario (anche ripetuto): dopo la pubblicazione chi lo tiene può cambiare ogni campo. */
+function NewSeminarView({ semId }: { semId?: number }) {
   const net = useNet();
   const me = useApp((a) => a.account.name);
   const close = useNetSheet((s) => s.close);
-  const days = nextDays(90);
-  const [title, setTitle] = useState(''); const [desc, setDesc] = useState(''); const [learn, setLearn] = useState(''); const [audience, setAudience] = useState('');
-  const [dayLabel, setDayLabel] = useState(days[1].label); const [time, setTime] = useState('18:00'); const [dur, setDur] = useState('1 ora');
-  const [mode, setMode] = useState<'online' | 'presenza'>('online'); const [place, setPlace] = useState(''); const [lang, setLang] = useState('Italiano');
-  const [price, setPrice] = useState(''); const [seats, setSeats] = useState('');
+  const cur = semId != null ? net.seminars.find((x) => x.id === semId && x.host === me) : undefined;
+  const editing = !!cur;
+  const now = Date.now();
+  const started = !!cur?.startsAt && cur.startsAt <= now;
+  const baseDays = nextDays(90);
+  const curKey = cur?.startsAt ? dayKeyOf(cur.startsAt) : null;
+  const days = curKey && !baseDays.some((d) => d.key === curKey) ? [{ key: curKey, label: fmtDate(cur!.startsAt!, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }), ts: cur!.startsAt! }, ...baseDays] : baseDays;
+  const curDay = curKey ? days.find((d) => d.key === curKey)?.label : undefined;
+  const hh = (ts: number) => { const d = new Date(ts); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const [title, setTitle] = useState(cur?.title ?? ''); const [desc, setDesc] = useState(cur?.desc ?? ''); const [learn, setLearn] = useState((cur?.learn ?? []).join('\n')); const [audience, setAudience] = useState(cur?.audience ?? '');
+  const [dayLabel, setDayLabel] = useState(curDay ?? days[1].label); const [time, setTime] = useState(cur?.startsAt ? hh(cur.startsAt) : '18:00');
+  const [dur, setDur] = useState(DURATIONS.find((d) => d[1] === (cur?.durationMin ?? 60))?.[0] ?? '1 ora');
+  const [mode, setMode] = useState<'online' | 'presenza'>(cur?.mode ?? 'online'); const [place, setPlace] = useState(cur?.place ?? ''); const [lang, setLang] = useState(cur?.language ?? 'Italiano');
+  const [price, setPrice] = useState(cur ? String(cur.price) : ''); const [seats, setSeats] = useState(cur?.seats ? String(cur.seats) : '');
+  const [every, setEvery] = useState<Every | 'none'>('none'); const [times, setTimes] = useState('4');
+  const [scope, setScope] = useState<Scope>('one');
+  const inSeries = !!cur?.series && net.seminars.filter((x) => x.series === cur.series).length > 1;
+  const SCOPES: [Scope, string][] = [['one', 'Solo questo'], ['following', 'Questo e i successivi'], ['all', 'Tutta la serie']];
+  const EVERY_OPTS: [Every | 'none', string][] = [['none', 'Non si ripete'], ['week', EVERY_LABEL.week], ['2weeks', EVERY_LABEL['2weeks']], ['month', EVERY_LABEL.month]];
+  const save = () => {
+    const day = days.find((d) => d.label === dayLabel)!.key;
+    const startsAt = started && editing ? cur!.startsAt! : tsOf(day, time);
+    const durationMin = DURATIONS.find((d) => d[0] === dur)![1];
+    const form: SemForm = { title, desc, learn, audience, startsAt, durationMin, mode, place, language: lang, price, seats };
+    const why = validateSeminar(form, { now, keepPast: started && editing, joined: cur?.joined ?? 0 });
+    if (why) { toast(why); return; }
+    const pr = parseFloat(price.replace(',', '.')), se = parseInt(seats, 10);
+    const lines = learn.split('\n').map((l) => l.trim()).filter(Boolean);
+    const body = { title: title.trim(), desc: desc.trim(), learn: lines.length ? lines : undefined, audience: audience.trim() || undefined, durationMin, mode, place: place.trim(), language: lang, price: pr, seats: se, cancelPolicy: pr ? paidCancel(pr) : freeCancel };
+    if (editing) {
+      const r = applySeminarEdit(net.seminars as SemLike[], cur!.id, { ...body, ...(startsAt !== cur!.startsAt ? { startsAt } : {}) }, inSeries ? scope : 'one', now);
+      net.patch({ seminars: r.list as typeof net.seminars });
+      const people = Math.max((net.participants?.[`seminar:${cur!.id}`] ?? []).length, cur!.joined ?? 0);
+      close(); toast(people > 0 && (startsAt !== cur!.startsAt || pr !== cur!.price) ? tl('Seminario modificato: {0} iscritti avvisati. Chi ha già pagato mantiene il prezzo pagato.', people) : r.changed.length > 1 ? tl('{0} date modificate', r.changed.length) : 'Seminario modificato');
+      return;
+    }
+    const dates = every === 'none' ? [startsAt] : seriesDates(startsAt, every, parseInt(times, 10) || 1);
+    const series = dates.length > 1 ? `ser${newId()}` : undefined;
+    const created = dates.map((ts, i) => ({
+      id: newId() + i, ...body, host: me, promoted: false, ts: Date.now(), startsAt: ts, joined: 0, included: 'Partecipazione al seminario secondo la descrizione sopra.', ...(series ? { series } : {}),
+    }));
+    net.patch({ seminars: [...created.reverse(), ...net.seminars] });
+    close(); toast(dates.length > 1 ? tl('{0} seminari pubblicati', dates.length) : 'Seminario pubblicato');
+  };
   return (
     <>
-      <Body small muted style={{ marginBottom: 8 }}>Scrivi in modo chiaro e onesto: chi si iscrive deve capire cosa imparerà, quando e dove. Gli iscritti pagano al momento della prenotazione e solo allora occupano il posto; i LifePoints restano bloccati fino alla fine e poi ti arrivano. Solo tu vedi chi partecipa e chi ha pagato.</Body>
+      <Body small muted style={{ marginBottom: 8 }}>{editing ? 'Puoi cambiare tutto, anche dopo la pubblicazione. Chi è già iscritto viene avvisato se cambiano data o ora.' : 'Scrivi in modo chiaro e onesto: chi si iscrive deve capire cosa imparerà, quando e dove. Gli iscritti pagano al momento della prenotazione e i LifePoints ti arrivano alla fine.'}</Body>
+      {editing && inSeries ? (
+        <>
+          <Body small muted style={{ marginBottom: 4 }}>Questo seminario fa parte di una serie: cosa vuoi modificare?</Body>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>{SCOPES.map(([k, l]) => <Pill key={k} label={l} on={scope === k} onPress={() => setScope(k)} />)}</View>
+        </>
+      ) : null}
       <Input placeholder="Titolo del seminario" value={title} onChangeText={setTitle} />
       <Input multiline style={{ minHeight: 100 }} placeholder="Descrizione completa: di cosa parli, come si svolge, cosa non è (almeno 80 caratteri)" value={desc} onChangeText={setDesc} />
       <Input multiline style={{ minHeight: 60 }} placeholder="Cosa si impara: una voce per riga (facoltativo)" value={learn} onChangeText={setLearn} />
       <Input placeholder="A chi è rivolto (facoltativo)" value={audience} onChangeText={setAudience} />
       <Body small muted style={{ marginBottom: 4 }}>Data e ora di inizio</Body>
-      <Select title="Data" value={dayLabel} options={days.map((d) => d.label)} onChange={setDayLabel} />
-      <Select title="Ora di inizio" value={time} options={timeOptions(6, 22)} onChange={setTime} />
+      {started && editing ? <Body small muted style={{ marginBottom: 8 }}>Il seminario è già iniziato: la data non si può più cambiare.</Body> : (
+        <>
+          <Select title="Data" value={dayLabel} options={days.map((d) => d.label)} onChange={setDayLabel} />
+          <Select title="Ora di inizio" value={time} options={timeOptions(6, 22)} onChange={setTime} />
+        </>
+      )}
       <Body small muted style={{ marginBottom: 4 }}>Durata</Body>
       <Select title="Durata" value={dur} options={DURATIONS.map((d) => d[0])} onChange={setDur} />
+      {!editing ? (
+        <>
+          <Body small muted style={{ marginBottom: 4 }}>Si ripete?</Body>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>{EVERY_OPTS.map(([k, l]) => <Pill key={k} label={l} on={every === k} onPress={() => setEvery(k)} />)}</View>
+          {every !== 'none' ? <Input keyboardType="number-pad" placeholder={`Quante volte in tutto (da 2 a ${MAX_OCCURRENCES})`} value={times} onChangeText={setTimes} /> : null}
+        </>
+      ) : null}
       <Body small muted style={{ marginBottom: 4 }}>Modalità</Body>
       <View style={{ flexDirection: 'row', marginBottom: 8 }}><Pill label="Online" on={mode === 'online'} onPress={() => setMode('online')} /><Pill label="In presenza" on={mode === 'presenza'} onPress={() => setMode('presenza')} /></View>
       <Input placeholder={mode === 'online' ? 'Link o istruzioni per collegarsi' : 'Luogo e indirizzo'} value={place} onChangeText={setPlace} />
@@ -430,28 +496,83 @@ function NewSeminarView() {
       <Select title="Lingua" value={lang} options={['Italiano', 'English', 'Français', 'Deutsch']} onChange={setLang} />
       <Input keyboardType="decimal-pad" placeholder="Prezzo in LP (0 = gratuito)" value={price} onChangeText={setPrice} />
       <Input keyboardType="number-pad" placeholder="Numero di posti" value={seats} onChangeText={setSeats} />
-      <Btn title="Pubblica" onPress={() => {
-        const ti = title.trim(), de = desc.trim();
-        if (ti.length < 8) { toast('Inserisci un titolo di almeno 8 caratteri'); return; }
-        if (de.length < 80) { toast(`La descrizione è troppo breve (${de.length}/80 caratteri): spiega cosa si impara e come si svolge`); return; }
-        const day = days.find((d) => d.label === dayLabel)!.key;
-        const startsAt = tsOf(day, time);
-        if (startsAt <= Date.now()) { toast('La data e l\'ora devono essere nel futuro'); return; }
-        if (place.trim().length < 3) { toast(mode === 'online' ? 'Indica il link o come collegarsi' : 'Indica il luogo e l\'indirizzo'); return; }
-        if (price.trim() === '') { toast('Inserisci il prezzo in LP (0 per un seminario gratuito)'); return; }
-        const pr = parseFloat(price.replace(',', '.'));
-        if (!Number.isFinite(pr) || pr < 0) { toast('Inserisci un prezzo valido'); return; }
-        const se = parseInt(seats, 10);
-        if (!Number.isFinite(se) || se < 1 || se > 1000) { toast('Inserisci il numero di posti (da 1 a 1000)'); return; }
-        const durationMin = DURATIONS.find((d) => d[0] === dur)![1];
-        const lines = learn.split('\n').map((l) => l.trim()).filter(Boolean);
-        net.patch({ seminars: [{
-          id: newId(), title: ti, host: me, price: pr, promoted: false, ts: Date.now(), startsAt, durationMin, mode, place: place.trim(), seats: se, joined: 0,
-          desc: de, learn: lines.length ? lines : undefined, audience: audience.trim() || undefined, included: 'Partecipazione al seminario secondo la descrizione sopra.', language: lang,
-          cancelPolicy: pr ? paidCancel(pr) : freeCancel,
-        }, ...net.seminars] });
-        close(); toast('Seminario pubblicato');
-      }} />
+      <Btn title={editing ? 'Salva le modifiche' : 'Pubblica'} onPress={save} />
+    </>
+  );
+}
+
+/** Crea o modifica il proprio servizio (una persona = un servizio): cosa si offre, quanto costa, come si svolge e quando si è disponibili. Si può cambiare tutto anche dopo la pubblicazione. */
+function ServiceEditor({ resume }: { resume?: boolean }) {
+  void resume;
+  const net = useNet();
+  const me = useApp((a) => a.account.name);
+  const t = useTheme();
+  const close = useNetSheet((s) => s.close);
+  const cur = net.providers.find((x) => x.name === me);
+  const info = cur ? providerInfoFor(cur) : undefined;
+  const [role, setRole] = useState(cur?.role ?? ''); const [tag, setTag] = useState(cur?.tag ?? topicList[0]);
+  const [desc, setDesc] = useState(info?.desc && !info.desc.includes('non ha ancora aggiunto') ? info.desc : '');
+  const [gets, setGets] = useState((info?.gets ?? []).join('\n')); const [forWho, setForWho] = useState(info?.forWho ?? '');
+  const [price, setPrice] = useState(cur ? String(cur.price) : '');
+  const [dur, setDur] = useState(DURATIONS.find((d) => d[1] === (info?.durationMin ?? 60))?.[0] ?? '1 ora');
+  const [mode, setMode] = useState<'online' | 'presenza'>(info?.mode ?? 'online'); const [place, setPlace] = useState(info?.place ?? ''); const [lang, setLang] = useState(info?.language ?? 'Italiano');
+  const [slots, setSlots] = useState<string[]>(cur?.slots ?? []);
+  const [day, setDay] = useState<string>(WEEKDAYS[0]); const [time, setTime] = useState('16:00');
+  const save = () => {
+    const form: ServiceForm = { role, tag, price, durationMin: DURATIONS.find((d) => d[0] === dur)![1], mode, place, language: lang, desc, slots };
+    const why = validateService(form);
+    if (why) { toast(why); return; }
+    const pr = parseFloat(price.replace(',', '.'));
+    const provider = { name: me, role: role.trim(), price: pr, rating: cur?.rating ?? 0, tag, media: cur?.media ?? null, slots: sortSlots(slots) };
+    const lines = gets.split('\n').map((l) => l.trim()).filter(Boolean);
+    const next: ServiceInfo = { desc: desc.trim(), gets: lines.length ? lines : [`Una sessione di ${fmtDuration(form.durationMin)}`], durationMin: form.durationMin, mode, place: place.trim(), language: lang, forWho: forWho.trim() || 'Chiunque voglia provare.', cancel: pr ? `Paghi ${pr} LP al momento della prenotazione. Puoi disdire fino a 24 ore prima con rimborso intero e lo slot torna disponibile; puoi sempre riprogrammare.` : 'Gratuito: puoi disdire in qualsiasi momento.' };
+    net.patch({ providers: cur ? net.providers.map((x) => (x.name === me ? provider : x)) : [provider, ...net.providers], serviceInfo: { ...(net.serviceInfo ?? {}), [me]: next } });
+    close(); toast(cur ? 'Servizio modificato' : 'Servizio pubblicato');
+    if (!cur) go('servicePage', { name: me });
+  };
+  const remove = () => {
+    if (!cur) return;
+    close();
+    setTimeout(() => confirmDelete(`il tuo servizio «${cur.role}»`, () => {
+      const st = useNet.getState();
+      const prev = { providers: st.providers, serviceInfo: st.serviceInfo };
+      const future = st.enrollments.filter((e) => e.kind === 'service' && e.host === me && e.status === 'enrolled' && e.startsAt > Date.now());
+      future.forEach((e) => cancelEnrollmentOp(e.id));
+      useNet.getState().patch({ providers: useNet.getState().providers.filter((x) => x.name !== me), serviceInfo: Object.fromEntries(Object.entries(useNet.getState().serviceInfo ?? {}).filter(([k]) => k !== me)) });
+      if (future.length) toast(tl('{0} prenotazioni annullate e rimborsate', future.length));
+      void prev;
+      go('myServices');
+    }, undefined, { title: 'Eliminare il servizio?' }), 250);
+  };
+  return (
+    <>
+      <Body small muted style={{ marginBottom: 8 }}>Chi prenota paga in LifePoints al momento della prenotazione e tu li ricevi alla fine di ogni sessione. Puoi cambiare tutto quando vuoi.</Body>
+      <Input placeholder="Cosa offri (es. Lezione di francese)" value={role} onChangeText={setRole} maxLength={60} />
+      <Select title="Categoria" value={tag} options={topicList} onChange={setTag} />
+      <Input multiline style={{ minHeight: 90 }} placeholder="Descrizione: come si svolge una sessione, cosa non è (almeno 40 caratteri)" value={desc} onChangeText={setDesc} />
+      <Input multiline style={{ minHeight: 60 }} placeholder="Cosa ottiene chi prenota: una voce per riga (facoltativo)" value={gets} onChangeText={setGets} />
+      <Input placeholder="A chi è rivolto (facoltativo)" value={forWho} onChangeText={setForWho} />
+      <Body small muted style={{ marginBottom: 4 }}>Durata di una sessione</Body>
+      <Select title="Durata" value={dur} options={DURATIONS.map((d) => d[0])} onChange={setDur} />
+      <Body small muted style={{ marginBottom: 4 }}>Modalità</Body>
+      <View style={{ flexDirection: 'row', marginBottom: 8 }}><Pill label="Online" on={mode === 'online'} onPress={() => setMode('online')} /><Pill label="In presenza" on={mode === 'presenza'} onPress={() => setMode('presenza')} /></View>
+      <Input placeholder={mode === 'online' ? 'Come ci si collega (es. videochiamata in LifePilot)' : 'Luogo e indirizzo'} value={place} onChangeText={setPlace} />
+      <Body small muted style={{ marginBottom: 4 }}>Lingua</Body>
+      <Select title="Lingua" value={lang} options={['Italiano', 'English', 'Français', 'Deutsch']} onChange={setLang} />
+      <Input keyboardType="decimal-pad" placeholder="Prezzo a sessione in LP (0 = gratuito)" value={price} onChangeText={setPrice} />
+      <Body small muted style={{ marginBottom: 4 }}>Quando sei disponibile (ogni settimana)</Body>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 }}>{WEEKDAYS.map((d) => <Pill key={d} label={d} on={day === d} onPress={() => setDay(d)} />)}</View>
+      <Select title="Ora" value={time} options={timeOptions(6, 22)} onChange={setTime} />
+      <Btn small ghost icon="plus" style={{ alignSelf: 'flex-start', marginBottom: 6 }} title={`Aggiungi ${day} ${time}`} onPress={() => setSlots((l) => (l.includes(slotLabel(day, time)) ? l : sortSlots([...l, slotLabel(day, time)])))} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+        {slots.length === 0 ? <Body small muted>Nessun orario scelto.</Body> : slots.map((sl) => (
+          <Pressable key={sl} onPress={() => setSlots((l) => l.filter((x) => x !== sl))} accessibilityRole="button" accessibilityLabel={`${translateText('Togli')} ${sl}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: t.chip, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 }}>
+            <Text style={{ color: t.text, fontSize: 14, fontWeight: '600' }}>{sl}</Text><Icon name="x" size={12} color={t.muted} stroke={2.4} />
+          </Pressable>
+        ))}
+      </View>
+      <Btn title={cur ? 'Salva le modifiche' : 'Pubblica il servizio'} onPress={save} />
+      {cur ? <Btn ghost icon="trash" style={{ marginTop: 8 }} title="Elimina il servizio" onPress={remove} /> : null}
     </>
   );
 }
@@ -598,18 +719,19 @@ function TopUpView() {
 }
 
 /** Modifica tutto di un proprio post, come su Instagram: testo, argomento, foto o video, mi piace visibili, commenti. Resta «modificato». */
-function EditPostView({ ref_ }: { ref_: string }) {
+function EditPostView({ ref_, resume }: { ref_: string; resume?: boolean }) {
   const net = useNet();
   const me = useApp((s) => s.account.name);
   const close = useNetSheet((s) => s.close);
   const r = parseRef(ref_);
   const stand = r?.kind === 'standalone' ? net.posts.find((x) => String(x.id) === r.id) : undefined;
   const cur = stand ?? (r?.kind === 'community' ? net.communities.find((c) => String(c.id) === r.id)?.posts[r.index] : undefined);
-  const [text, setText] = useState(cur?.text ?? '');
-  const [tag, setTag] = useState(stand?.tag ?? topicList[0]);
-  const [media, setMedia] = useState<NetMedia | null>(cur?.media && cur.uri ? { media: cur.media, uri: cur.uri } : null);
-  const [hideLikes, setHideLikes] = useState(!!stand?.hideLikes);
-  const [commentsOff, setCommentsOff] = useState(!!stand?.commentsOff);
+  const d = resume ? (drafts.editPost as { text: string; tag: string; media: NetMedia | null; hideLikes: boolean; commentsOff: boolean } | undefined) : undefined;
+  const [text, setText] = useState(d?.text ?? cur?.text ?? '');
+  const [tag, setTag] = useState(d?.tag ?? stand?.tag ?? topicList[0]);
+  const [media, setMedia] = useState<NetMedia | null>(d ? d.media : cur?.media && cur.uri ? { media: cur.media, uri: cur.uri } : null);
+  const [hideLikes, setHideLikes] = useState(d?.hideLikes ?? !!stand?.hideLikes);
+  const [commentsOff, setCommentsOff] = useState(d?.commentsOff ?? !!stand?.commentsOff);
   if (!r || !cur || cur.author !== me) return <Body muted>Questo post non c'è più o non è tuo.</Body>;
   // un post nato con la foto di esempio (senza file) la tiene finché non la cambi o la togli
   const keepsDemoMedia = !!cur.media && !cur.uri && !media;
@@ -617,7 +739,7 @@ function EditPostView({ ref_ }: { ref_: string }) {
     <>
       <Input multiline placeholder="Scrivi il testo del post" value={text} onChangeText={setText} maxLength={MAX_POST} />
       {r.kind === 'standalone' ? <Select title="Argomento" value={tag} options={topicList} onChange={setTag} /> : null}
-      <MediaPickerField value={media} onChange={setMedia} />
+      <MediaPickerField value={media} onChange={setMedia} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'editPost', { text, tag, media, hideLikes, commentsOff }, () => openSheet('editPost', { ref: ref_, resume: true })) : undefined} />
       {keepsDemoMedia ? <Body small muted style={{ marginBottom: 8 }}>Il post ha già un'immagine: sceglierne una nuova la sostituisce.</Body> : null}
       {r.kind === 'standalone' ? (
         <>
@@ -651,19 +773,33 @@ function deleteMyPost(ref: string, me: string) {
   }, () => net.patch(before), { title: 'Eliminare il post?', undoMessage: 'Post eliminato' });
 }
 
-function NewPostView() {
+/** Bozza di una finestra mentre si sceglie la foto: su iPhone il selettore non si apre sopra una finestra, quindi la finestra si chiude e si riapre con la bozza. */
+const drafts: Record<string, Record<string, any>> = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
+async function pickOutsideSheet(kind: 'photo' | 'video', key: string, state: Record<string, any>, reopen: () => void) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  drafts[key] = state;
+  useNetSheet.getState().close();
+  await new Promise((r) => setTimeout(r, 550));
+  try { const m = await pickNetMedia(kind); if (m) drafts[key] = { ...state, media: m }; }
+  catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la libreria'); }
+  reopen();
+}
+const detachOnIos = Platform.OS === 'ios';
+
+function NewPostView({ resume }: { resume?: boolean }) {
   const net = useNet();
   const me = useApp((s) => s.account.name);
   const close = useNetSheet((s) => s.close);
-  const [text, setText] = useState(''); const [tag, setTag] = useState(topicList[0]); const [media, setMedia] = useState<NetMedia | null>(null);
+  const d = resume ? (drafts.newPost as { text: string; tag: string; media: NetMedia | null } | undefined) : undefined;
+  const [text, setText] = useState(d?.text ?? ''); const [tag, setTag] = useState(d?.tag ?? topicList[0]); const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
   return (
     <>
       <Input multiline placeholder="Cosa vuoi condividere?" value={text} onChangeText={setText} />
       <Select title="Argomento" value={tag} options={topicList} onChange={setTag} />
-      <MediaPickerField value={media} onChange={setMedia} />
+      <MediaPickerField value={media} onChange={setMedia} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'newPost', { text, tag, media }, () => openSheet('newPost', { resume: true })) : undefined} />
       <Btn title="Pubblica" onPress={() => {
         if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
         net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, tag, likes: 0, ts: Date.now() }, ...net.posts] });
+        delete drafts.newPost;
         close(); toast('Post pubblicato');
       }} />
     </>

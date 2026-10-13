@@ -21,6 +21,7 @@ export type Seminar = {
   id: number; title: string; host: string; price: number; promoted: boolean;
   ts?: number; startsAt?: number; durationMin?: number; mode?: SeminarMode; place?: string; seats?: number; joined?: number;
   desc?: string; learn?: string[]; audience?: string; included?: string; language?: string; cancelPolicy?: string;
+  /** seminari ripetuti: stessa serie */ series?: string;
 };
 /** Iscrizione a un seminario o prenotazione di un servizio: si paga solo dopo, con la conferma di partecipazione. */
 export type Enrollment = {
@@ -69,6 +70,8 @@ type NetState = {
   receiveMode?: ReceiveMode;
   /** partecipanti ai miei seminari (chiave `seminar:<id>`): li vede solo chi organizza */
   participants?: Record<string, Participant[]>;
+  /** descrizione, durata, luogo... dei servizi creati o modificati da chi li offre (per nome) */
+  serviceInfo?: Record<string, import('@/data/marketSeed').ServiceInfo>;
   /** temi che interessano a chi usa l'app (non mostrati): servono a ordinare le proposte */
   themeWeights?: ThemeWeights;
   receivedPayments: Record<string, number>;
@@ -144,6 +147,7 @@ const blank = () => ({
   payments: [] as PaymentRecord[],
   receiveMode: 'lp' as ReceiveMode,
   participants: {} as Record<string, Participant[]>,
+  serviceInfo: {} as Record<string, import('@/data/marketSeed').ServiceInfo>,
   themeWeights: {} as ThemeWeights,
   receivedPayments: {} as Record<string, number>,
   following: [] as string[],

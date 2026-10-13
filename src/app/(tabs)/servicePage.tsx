@@ -18,6 +18,7 @@ import { fmtDateTime, fmtDuration, fmtHour } from '@/lib/when';
 import { useApp } from '@/store/app';
 import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
+import { openSheet } from '@/components/network';
 import { translateText } from '@/i18n/core';
 
 export default function ServicePage() {
@@ -26,6 +27,7 @@ export default function ServicePage() {
   const me = useApp((a) => a.account.name);
   const p = useNet((s) => s.providers.find((x) => x.name === name));
   const enrollments = useNet((s) => s.enrollments);
+  useNet((s) => s.serviceInfo);
   useNet((s) => s.votes);
   const visible = useVisible();
   if (p && !visible('service', p.name, p.name)) return <Page id="servicePage" title="Servizio" back><Card><Empty text="Hai nascosto o segnalato questo servizio, oppure il professionista è bloccato." /><Btn small ghost style={{ marginTop: 10 }} title="Segnalazioni inviate" onPress={() => go('reports')} /></Card></Page>;
@@ -57,6 +59,16 @@ export default function ServicePage() {
       </Card>
 
       {live && <LiveAccess kind="service" refId={p.name} title={p.role} host={p.name} dataMode={info.mode} startsAt={live.startsAt} durationMin={live.durationMin} isHost={isMine} enrolled={!!nextBooking} guest={isMine ? 'Cliente' : undefined} />}
+
+      {isMine ? (
+        <Card>
+          <H>Gestisci il tuo servizio</H>
+          <Body small muted>Puoi cambiare tutto, anche ora che è pubblicato: descrizione, prezzo, durata, luogo e orari.</Body>
+          <Row gap={8} style={{ marginTop: 10, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+            <Btn small icon="edit" title="Modifica" onPress={() => openSheet('editService')} />
+          </Row>
+        </Card>
+      ) : null}
 
       <Card>
         <H>Cosa offre</H>

@@ -13,7 +13,7 @@ import { IdeaHero, QuoteCard, SeminarFeedCard } from '@/components/feed/SpecialC
 import { FEED_GUTTER, FEED_RADIUS } from '@/components/feed/parts';
 import { JobsHub } from '@/components/JobsHub';
 import { openSheet, UserAvatar } from '@/components/network';
-import { Body, Btn, Card, Empty, H, Input, Page } from '@/components/ui';
+import { Body, Btn, Card, Empty, H, Input, Page, Select } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/lib/i18n';
 import { Icon } from '@/lib/icons';
@@ -225,7 +225,7 @@ export default function LifeNetwork() {
             {curTab === 'Community' && (
               <>
                 <Input placeholder="Cerca community…" value={commQ} onChangeText={setCommQ} />
-                {pillRow(['Tutti', ...topicList], commTopic, setCommTopic)}
+                <Select title="Argomento" value={commTopic} options={['Tutti', ...topicList]} onChange={setCommTopic} />
                 <Btn small ghost icon="plus" style={{ marginBottom: 16, alignSelf: 'flex-start' }} title="Crea la tua community" onPress={() => openSheet('newCommunity')} />
               </>
             )}

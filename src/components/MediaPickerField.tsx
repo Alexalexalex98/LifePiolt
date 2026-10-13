@@ -11,11 +11,12 @@ import { toast } from '@/store/toast';
 import { translateText } from '@/i18n/core';
 
 /** Scelta di foto o video con anteprima e possibilità di rimuoverli prima di pubblicare. */
-export function MediaPickerField({ value, onChange }: { value: NetMedia | null; onChange: (v: NetMedia | null) => void }) {
+export function MediaPickerField({ value, onChange, detach }: { value: NetMedia | null; onChange: (v: NetMedia | null) => void; /** dentro una finestra (Modal) su iPhone il selettore non si apre: chi usa il campo chiude la finestra, sceglie e la riapre */ detach?: (kind: 'photo' | 'video') => void }) {
   const t = useTheme();
   const [busy, setBusy] = useState(false);
   async function pick(kind: 'photo' | 'video') {
     if (busy) return;
+    if (detach) { detach(kind); return; }
     setBusy(true);
     try {
       const m = await pickNetMedia(kind);

@@ -126,7 +126,7 @@ export const providerInfo: Record<string, ServiceInfo> = {
 };
 
 export function providerInfoFor(p: Provider): ServiceInfo {
-  return providerInfo[p.name] ?? (p.role === 'Allenamento alla corsa' ? providerInfo['Alex'] : undefined) ?? { desc: `${p.role}: sessione individuale prenotabile su LifeNetwork. Il professionista non ha ancora aggiunto una descrizione estesa.`, gets: ['Una sessione individuale'], durationMin: 60, mode: 'online', place: 'Le modalità vengono comunicate dopo la prenotazione', language: 'Italiano', forWho: 'Chiunque sia interessato a questo servizio.', cancel: svcCancel(p.price) };
+  return useNet.getState().serviceInfo?.[p.name] ?? providerInfo[p.name] ?? (p.role === 'Allenamento alla corsa' ? providerInfo['Alex'] : undefined) ?? { desc: `${p.role}: sessione individuale prenotabile su LifeNetwork. Il professionista non ha ancora aggiunto una descrizione estesa.`, gets: ['Una sessione individuale'], durationMin: 60, mode: 'online', place: 'Le modalità vengono comunicate dopo la prenotazione', language: 'Italiano', forWho: 'Chiunque sia interessato a questo servizio.', cancel: svcCancel(p.price) };
 }
 
 /* ---------- community ---------- */
