@@ -1,3 +1,6 @@
+import { Linking } from 'react-native';
+import { GOOD_ENOUGH, detectPlaceSearch, planPlaceSearch, type PlaceCategory } from '@/lib/findPlace';
+import { useNet } from '@/store/network';
 import { helpAnswer, looksLikeHelp, searchHelp } from '@/lib/helpKb';
 import { routeRequest, type RouteResult } from '@/lib/aiRouter';
 import { needsAnalysis, textPayload, type Att } from '@/lib/attachments';
@@ -91,6 +94,10 @@ export async function sendTheia(i: SendInput): Promise<void> {
     return;
   }
 
+  // «devo prenotare un dentista»: prima i professionisti di LifePilot, poi (solo se nessuno è abbastanza buono) la ricerca fuori dall'app
+  const place = detectPlaceSearch(text);
+  if (place && !pending) { answerPlace(place); return; }
+
   // una risposta a una domanda in sospeso ("come lo chiamo?") che il lessico non riconosce passa com'è all'assistente
   const toEngine = command ?? (pending ? text : undefined);
   if (toEngine != null) {
@@ -106,6 +113,24 @@ export async function sendTheia(i: SendInput): Promise<void> {
     }
   }
   clarify(text, u.lang, i.source, [text, payload].filter(Boolean).join('\n\n'));
+}
+
+/** Cerca dove prenotare: in app per voto; fuori dall'app solo se non ce n'è uno abbastanza buono. */
+function answerPlace(cat: PlaceCategory) {
+  const providers = useNet.getState().providers.map((p) => ({ name: p.name, role: p.role, rating: p.rating, price: p.price, tag: p.tag }));
+  const plan = planPlaceSearch(cat, providers);
+  const stars = (n: number) => n.toFixed(1).replace('.', ',');
+  if (plan.kind === 'in-app') {
+    const lines = plan.best.map((p, i) => `${i + 1}. ${p.name} · ${p.role} · ${stars(p.score)}/5${p.price ? ` · ${p.price} LP` : ''}`);
+    pushAi(`${t('Ho guardato prima i professionisti di LifePilot ({0}). Questi sono i migliori, dal voto più alto:', cat.label)}\n\n${lines.join('\n')}\n\n${t('Apri la scheda per scegliere data e ora: paghi in LifePoints solo al momento della prenotazione.')}`, {
+      ext: { actions: [...plan.best.map((p): TheiaAction => ({ kind: 'open', label: p.name, page: 'servicePage', params: { name: p.name } })), { kind: 'dismiss', label: t('No, grazie') }] },
+    });
+    return;
+  }
+  const weak = plan.weak.length ? `\n\n${t('In LifePilot ho trovato solo: {0}. Il voto non è abbastanza alto per consigliartelo con sicurezza.', plan.weak.map((p) => `${p.name}${p.score ? ` (${stars(p.score)}/5)` : ''}`).join(', '))}` : '';
+  pushAi(`${t('Su LifePilot non c\'è ancora un {0} abbastanza buono (cerco da {1}/5 in su).', cat.label, stars(GOOD_ENOUGH))}${weak}\n\n${t('Da qui non posso leggere le recensioni dei posti fuori dall\'app: ti apro la ricerca sulle mappe, già ordinata per vicinanza e recensioni.')}`, {
+    ext: { actions: [...plan.weak.map((p): TheiaAction => ({ kind: 'open', label: p.name, page: 'servicePage', params: { name: p.name } })), { kind: 'open', label: t('Cerca {0} vicino a me', cat.label), url: plan.url }, { kind: 'dismiss', label: t('No, grazie') }] },
+  });
 }
 
 /** Esegue un comando con l'assistente locale. false = non l'ha capito. */
@@ -191,6 +216,11 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
   if (msg?.ext) store().patchMsg(msgId, { ext: { ...msg.ext, actions: undefined } });
   switch (action.kind) {
     case 'dismiss': return;
+    case 'open': {
+      if (action.url) { try { await Linking.openURL(action.url); } catch { pushAi(t('Non riesco ad aprire il collegamento da qui.')); } }
+      else if (action.page) go(action.page, action.params);
+      return;
+    }
     case 'run': {
       store().push({ who: 'me', text: action.label, source: 'chat' });
       if (!(await runLocal(action.command))) pushAi(t('Non l\'ho capito neanche così. Prova a scrivermelo in un altro modo.'));

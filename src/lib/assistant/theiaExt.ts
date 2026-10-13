@@ -11,6 +11,8 @@ export type TheiaAction =
   | { kind: 'ask-ai'; label: string; text: string; lang: string; source: 'typed' | 'voice' }
   /** esegue un comando (già in italiano/inglese) con l'assistente locale */
   | { kind: 'run'; label: string; command: string }
+  /** apre una pagina dell'app o un indirizzo web (es. la ricerca sulle mappe) */
+  | { kind: 'open'; label: string; page?: string; params?: Record<string, string>; url?: string }
   | { kind: 'dismiss'; label: string };
 
 export type TheiaExt = {
