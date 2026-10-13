@@ -96,7 +96,7 @@ export function MenuSheet() {
   const groups = [
     { label: 'Principali', items: [['ai', 'LifeChat'], ['home', sn.home], ['plan', sn.plan]] },
     { label: 'Le tue sezioni', items: [['lifehealth', 'LifeHealth'], ['lifenetwork', 'LifeNetwork'], ['lifefinance', 'LifeFinance'], ['lifenotes', 'LifeNotes'], ['lifetravel', 'LifeTravel'], ['lifedrive', 'LifeDrive'], ['lifetask', 'LifeTask'], ['lifepointsPage', 'LifePoints'], ['myServices', 'I tuoi servizi'], ['myClubs', 'I tuoi LifeClub']] },
-    { label: 'Account', items: [['savedPosts', 'Post salvati'], ['help', 'Aiuto e domande'], ['settings', sn.settings]] },
+    { label: 'Account', items: [['savedPosts', 'Post salvati'], ['importSocial', 'Importa da Instagram'], ['help', 'Aiuto e domande'], ['settings', sn.settings]] },
   ];
   return (
     <Sheet visible={open} title={translate(language, 'menuTitle')} onClose={() => setMenu(false)}>

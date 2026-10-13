@@ -1,5 +1,5 @@
 {
- "count": 9069,
+ "count": 9103,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 27,
@@ -29,6 +29,7 @@
   "src/app/(tabs)/help.tsx": 20,
   "src/app/(tabs)/ideaProfile.tsx": 24,
   "src/app/(tabs)/identityVerify.tsx": 38,
+  "src/app/(tabs)/importSocial.tsx": 31,
   "src/app/(tabs)/index.tsx": 61,
   "src/app/(tabs)/interviewInvite.tsx": 28,
   "src/app/(tabs)/interviewView.tsx": 83,
@@ -106,7 +107,7 @@
   "src/components/MediaPickerField.tsx": 8,
   "src/components/MonthCalcCard.tsx": 16,
   "src/components/MoodChart.tsx": 6,
-  "src/components/NavBar.tsx": 15,
+  "src/components/NavBar.tsx": 16,
   "src/components/NetSheets.tsx": 310,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 46,
@@ -339,11 +340,12 @@
   "src/lib/habits/routine.ts": 13,
   "src/lib/habits/time.ts": 5,
   "src/lib/healthkit.ts": 30,
-  "src/lib/helpFaq.ts": 231,
+  "src/lib/helpFaq.ts": 234,
   "src/lib/helpKb.ts": 165,
   "src/lib/hiring.ts": 26,
   "src/lib/i18n.ts": 4,
   "src/lib/ideasActions.ts": 2,
+  "src/lib/instagramImport.ts": 3,
   "src/lib/interview.ts": 67,
   "src/lib/interviewActions.ts": 23,
   "src/lib/invoice.ts": 21,
@@ -433,5 +435,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1227
+ "withPlaceholders": 1231
 }
