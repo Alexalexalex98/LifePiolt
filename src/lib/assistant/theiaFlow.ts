@@ -2,6 +2,7 @@ import { Linking } from 'react-native';
 import { handleAppAction } from './appActions';
 import { GOOD_ENOUGH, PLACE_CATEGORIES, detectPlace, planPlaceSearch, type PlaceRequest } from '@/lib/findPlace';
 import { matchPhrase } from './phrases';
+import { matchFaq, type Faq } from '@/lib/helpFaq';
 import { PAGES, findAmount, findPerson, norm } from './appActionCore';
 import { NOT_A_SEARCH } from './dictionary';
 import { peoplePool } from '@/lib/network';
@@ -107,6 +108,11 @@ export async function sendTheia(i: SendInput): Promise<void> {
   // «devo prenotare un dentista»: prima i professionisti di LifePilot, poi (solo se nessuno è abbastanza buono) la ricerca fuori dall'app
   // frasi intere (livello più preciso): «voglio ordinare una pizza», «mi serve un dentista», «quanto ho speso questo mese»…
   if (!pending && (await handlePhrase(command ?? text))) return;
+  // dove si trova / come si fa: risposta precisa dalla guida, con il pulsante per aprire la pagina
+  if (!pending && looksLikeHelp(text)) {
+    const faq = matchFaq(text);
+    if (faq) { answerFaq(faq.faq); return; }
+  }
   const place = detectPlace(command ?? text);
   if (place && !pending) { answerPlace(place); return; }
 
@@ -163,6 +169,14 @@ async function handlePhrase(text: string): Promise<boolean> {
       return starter ? handleAppAction(starter.replace(/\s+/g, ' ').trim(), (m, x) => { pushAi(m, x); }) : false;
     }
   }
+}
+
+/** Risposta della guida (dove sta una cosa, come si fa) con il pulsante per andarci. */
+function answerFaq(f: Faq) {
+  const label = f.page ? PAGES.find((p) => p.page === f.page)?.label ?? t('Aprila') : '';
+  pushAi(`${f.answer}\n\n${t('Altri dettagli in «Aiuto e domande», dal menu.')}`, {
+    ext: f.page ? { actions: [{ kind: 'open', label: label && label !== t('Aprila') ? t('Apri {0}', label) : t('Apri la pagina'), page: f.page, ...(f.params ? { params: f.params } : {}) }] } : undefined,
+  });
 }
 
 /** Cerca dove prenotare: in app per voto; fuori dall'app solo se non ce n'è uno abbastanza buono. */

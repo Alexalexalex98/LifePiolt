@@ -230,6 +230,8 @@ export function doContribute(id: number, amt: number) {
   const idea = net.ideas.find((x) => x.id === id);
   if (!idea) return;
   if (ideaState(idea, Date.now()) !== 'raccolta') { toast(ideaState(idea, Date.now()) === 'raggiunta' ? 'Obiettivo già raggiunto: la raccolta è chiusa' : 'La raccolta di questa idea è scaduta'); return; }
+  // non si finanzia la propria idea: gonfierebbe i LifePoints ricevuti e la reputazione (in demo si può, per provare)
+  if (idea.author === useApp.getState().account.name && !useApp.getState().demo) { toast('Non puoi contribuire alla tua stessa idea'); return; }
   if (!net.spend(amt, 'Contributo a "' + idea.title + '"', undefined, `idea:${id}`)) { toast('LifePoints insufficienti'); return; }
   useNet.setState((s) => ({ myContrib: { ...(s.myContrib ?? {}), [id]: (s.myContrib?.[id] ?? 0) + amt } }));
   addParticipant(`idea:${id}`, useApp.getState().account.name, amt, true);
