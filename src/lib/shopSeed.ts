@@ -26,3 +26,30 @@ export function ensureSampleShops(): void {
   const have = new Set((st.products ?? []).map((p) => p.id));
   useNet.setState({ products: [...(st.products ?? []), ...sampleProducts().filter((p) => !have.has(p.id))], sampleShops: true });
 }
+
+const NAMES = ['Giulia Moretti', 'Marco Valli', 'Elena Serra', 'Tommaso Vitali', 'Federica Lorenzi', 'Sophie Marchand', 'Luca Bernasconi', 'Chiara Bianchi', 'Andrea Fontana', 'Sara Ferrari', 'Paolo Gianini', 'Martina Rossi', 'Davide Pellegrini', 'Alice Conti', 'Nicola Galli', 'Valentina Riva', 'Matteo Colombo', 'Irene Lombardi', 'Stefano Greco', 'Laura Mancini', 'Simone Costa', 'Elisa Barbieri', 'Fabio Moretti', 'Anna Santoro', 'Gabriele Rinaldi', 'Silvia Caruso', 'Roberto Ferri', 'Marta Gatti', 'Daniele Leone', 'Giorgia Sala', 'Emanuele Testa', 'Beatrice Villa', 'Riccardo Fabbri', 'Camilla Serra', 'Filippo Neri', 'Veronica Basile', 'Lorenzo Marini', 'Ilaria Monti', 'Pietro Orlando', 'Noemi Cattaneo'];
+
+/** Demo: per ogni mio seminario l'elenco degli iscritti ha tanti nomi quanti ne dice il contatore (con chi ha pagato e quanto). I dati veri non si toccano. */
+export function ensureSampleParticipants(me: string, demo: boolean): void {
+  if (!demo) return;
+  const st = useNet.getState();
+  const cur = { ...(st.participants ?? {}) };
+  let changed = false;
+  for (const sem of st.seminars) {
+    if (sem.host !== me || !sem.joined) continue;
+    const key = `seminar:${sem.id}`;
+    const list = [...(cur[key] ?? [])];
+    if (list.length >= sem.joined) continue;
+    const have = new Set(list.map((x) => x.name));
+    const base = (sem.ts ?? Date.now() - 5 * 86400000);
+    for (let i = 0; list.length < sem.joined && i < NAMES.length * 2; i++) {
+      const name = NAMES[(i + sem.id) % NAMES.length];
+      if (have.has(name) || name === me) continue;
+      have.add(name);
+      list.push({ name, paid: sem.price, paidAt: Math.min(Date.now() - 3600000, base + (list.length + 1) * 6 * 3600000) });
+    }
+    cur[key] = list.sort((a, b) => b.paidAt - a.paidAt);
+    changed = true;
+  }
+  if (changed) useNet.setState({ participants: cur });
+}

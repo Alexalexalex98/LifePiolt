@@ -41,11 +41,10 @@ export function PrivacySheet({ visible, onClose }: { visible: boolean; onClose: 
     <Sheet visible={visible} title={phoneOnly ? 'Sul telefono · a basso impatto' : 'AI esterna attiva'} onClose={onClose}>
       {phoneOnly ? (
         <>
-          <Body muted>Theia sta lavorando solo con quello che c'è sul tuo telefono. Ecco cosa vuol dire.</Body>
-          <Point icon="lock" title="Niente esce dal telefono" text="Agenda, task, salute, finanze e messaggi non vengono inviati a nessun servizio esterno: i tuoi dati restano tuoi." />
-          <Point icon="check" title="Basso impatto" text="Theia capisce i comandi con regole veloci sul dispositivo. Consuma pochissima batteria e nessun traffico dati, e funziona anche senza rete." />
-          <Point icon="info" title="Cosa cambia" text="Eseguo bene comandi come «aggiungi un task», «sposta l'impegno», «analizza le mie finanze» o «cosa devo fare adesso?». Per conversazioni libere e domande molto aperte le risposte sono più semplici." />
-          <Point icon="link" title="Puoi cambiarlo" text="Nelle impostazioni di Theia puoi attivare un'AI esterna per risposte più ricche. Prima di inviare qualcosa ti dico sempre cosa parte e puoi tornare a «solo telefono» quando vuoi." />
+          <Body muted>Theia lavora direttamente sul tuo telefono, con regole leggere. È una scelta per l'ambiente: ecco cosa vuol dire.</Body>
+          <Point icon="check" title="Meno impatto sull'ambiente" text="Le AI online girano su grandi server che si surriscaldano e vanno raffreddati con enormi quantità di acqua ed energia. Theia non li usa per le cose di tutti i giorni, quindi consuma pochissimo." />
+          <Point icon="lock" title="Niente esce dal telefono" text="Agenda, task, salute, finanze e messaggi restano sul dispositivo. Theia funziona anche senza connessione: la rete serve solo quando qualcosa deve essere pubblicato o inviato, come un post o i LifePoints." />
+          <Point icon="info" title="Cosa fa Theia" text="Svolge le funzioni dell'app e spiega come funziona ogni sezione. Non è fatta per chiacchierare o rispondere a domande aperte: è proprio questo che la rende leggera." />
         </>
       ) : (
         <>

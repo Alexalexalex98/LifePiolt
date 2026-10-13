@@ -76,7 +76,7 @@ export function IdeaHero({ idea, inset = true }: { idea: Idea; inset?: boolean }
             <Text onPress={() => go('userProfile', { name: idea.author })} numberOfLines={1} style={{ color: '#fff', fontSize: 13, flex: 1 }}>Titolare: <Text style={{ fontWeight: '800' }}>{idea.author}</Text></Text>
           </View>
           <Pressable onPress={() => contribute(idea)} accessibilityRole="button" accessibilityLabel={translateText('Contribuisci con LifePoints')} style={({ pressed }) => ({ marginTop: 16, minHeight: 50, borderRadius: 16, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, opacity: pressed ? 0.85 : 1 })}>
-            <Icon name="coin" size={20} color="#10151d" stroke={1.9} />
+            <LpTag size={20} dark />
             <Text style={{ color: '#10151d', fontSize: 15.5, fontWeight: '800' }}>Contribuisci con LifePoints</Text>
           </Pressable>
         </LinearGradient>

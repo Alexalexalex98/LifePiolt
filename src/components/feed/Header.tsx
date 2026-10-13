@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 
-import { UserAvatar } from '@/components/network';
+import { LpTag, UserAvatar } from '@/components/network';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useTheme } from '@/hooks/use-theme';
 import { translateText } from '@/i18n/core';
@@ -48,8 +48,8 @@ export function NetHeader({ balance, query, onQuery, placeholder }: { balance: n
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={translateText('Cerca persone, post, idee, lavori…')} style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}><Icon name="search" size={23} color={t.text} stroke={2} /></Pressable>
         <PressScale onPress={() => go('lifepointsPage')} label={`${translateText('Il tuo saldo')}: ${formatCHF(balance)} LifePoints`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: narrow ? 10 : 13, borderRadius: 999, backgroundColor: t.chip }}>
-          <Icon name="coin" size={18} color={t.accent} stroke={1.9} />
           <Text style={{ color: t.text, fontSize: 15, fontWeight: '800' }}>{formatCHF(balance)}</Text>
+          <LpTag size={17} dark={false} />
         </PressScale>
       </View>
     </View>

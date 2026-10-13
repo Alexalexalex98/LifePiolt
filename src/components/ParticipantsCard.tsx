@@ -17,7 +17,7 @@ const COPY: Record<PartKind, { title: string; empty: string; note: string }> = {
 };
 
 /** Chi ha pagato e quanto, per un seminario, un servizio o un\'idea: lo vede SOLO chi li ha creati. */
-export function ParticipantsCard({ kind, refId, host }: { kind: PartKind; refId: string | number; host: string }) {
+export function ParticipantsCard({ kind, refId, host, endsAt }: { kind: PartKind; refId: string | number; host: string; /** fine del seminario: finché non arriva i LifePoints restano bloccati */ endsAt?: number }) {
   const t = useTheme();
   const me = useApp((s) => s.account.name);
   const list = useNet((s) => s.participants?.[`${kind}:${refId}`]) ?? [];
@@ -33,7 +33,7 @@ export function ParticipantsCard({ kind, refId, host }: { kind: PartKind; refId:
           <Item key={p.name + i} last={i === list.length - 1}>
             <Row gap={10}>
               <UserAvatar name={p.name} size={32} />
-              <View style={{ flex: 1 }}><Body bold>{p.name}</Body><Body small muted>{fmtDateTime(p.paidAt)}</Body></View>
+              <View style={{ flex: 1 }}><Body bold>{p.name}</Body><Body small muted>{`${p.paid > 0 ? tl('Ha pagato il {0}', fmtDateTime(p.paidAt)) : fmtDateTime(p.paidAt)}${p.paid > 0 && endsAt && endsAt > Date.now() ? ` · ${tl('LP bloccati fino a fine seminario')}` : ''}`}</Body></View>
               <Badge label={p.paid > 0 ? tl('Pagato {0} LP', p.paid) : 'Gratuito'} color={p.paid > 0 ? t.positive : t.muted} />
             </Row>
           </Item>

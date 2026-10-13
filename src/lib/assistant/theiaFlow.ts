@@ -1,4 +1,5 @@
 import { Linking } from 'react-native';
+import { handleAppAction } from './appActions';
 import { GOOD_ENOUGH, detectPlaceSearch, planPlaceSearch, type PlaceCategory } from '@/lib/findPlace';
 import { useNet } from '@/store/network';
 import { helpAnswer, looksLikeHelp, searchHelp } from '@/lib/helpKb';
@@ -87,6 +88,9 @@ export async function sendTheia(i: SendInput): Promise<void> {
   const topic = i.topic ?? (command ? topicOf(command) ?? undefined : undefined);
   store().push({ who: 'me', text, source: 'chat', topic, ext: { ...withAtts, lang: u.lang, voice: i.source === 'voice' } });
 
+  // funzioni dell'app (pubblica un post, crea un LifeClub, invia LifePoints...): le svolge Theia, anche a più domande
+  if (handleAppAction(command ?? text, (m, x) => { pushAi(m, x); })) return;
+
   if (u.status === 'confirm') {
     pushAi(t('Non sono sicura di aver capito. Vuoi dire: «{0}»?', u.text), {
       ext: { lang: u.lang, actions: [{ kind: 'run', label: t('Sì, fallo'), command: u.text }, { kind: 'dismiss', label: t('No') }] },
@@ -155,16 +159,12 @@ function clarify(text: string, lang: string, source: 'typed' | 'voice', aiText =
   if (q) {
     actions.push({ kind: 'run', label: t('Crea un task'), command: `add task "${q}"` });
     actions.push({ kind: 'run', label: t('Aggiungi un impegno'), command: `add "${q}" to my plan` });
-    actions.push({ kind: 'ask-ai', label: t('Chiedi a un\'AI esterna'), text: aiText, lang, source });
   }
   actions.push({ kind: 'run', label: t('Cosa sai fare?'), command: 'help' });
-  const other = lang !== 'it' && lang !== 'en';
-  pushAi(t('Non sono sicura di aver capito. Cosa intendevi?'), {
+  pushAi(t('Non l\'ho riconosciuto tra le funzioni dell\'app. Cosa intendevi?'), {
     ext: {
       lang,
-      detail: other
-        ? t('In questa lingua capisco i comandi semplici sul telefono (impegni, task, note, orari, report). Il resto lo può capire un\'AI esterna, ma la interpello solo se me lo confermi.')
-        : t('Capisco i comandi semplici sul telefono. Per il resto posso chiedere a un\'AI esterna, ma solo se me lo confermi.'),
+      detail: t('Io svolgo le funzioni di LifePilot e spiego come funzionano, ma non rispondo a domande aperte: così consumo pochissimo e rispetto l\'ambiente. Prova con un comando, per esempio «pubblica un post» o «invia 10 LifePoints a Giulia».'),
       actions,
     },
   });
