@@ -10,8 +10,16 @@ export type StoryKind = 'photo' | 'video' | 'text';
 export type StoryAttach = { kind: 'event' | 'seminar' | 'idea' | 'place'; label: string; /** giorno (evento), id (seminario, idea) */ ref?: string };
 /** Quanto resta: un giorno (standard), una settimana, o fisso nel profilo come «momento». */
 export type Keep = 'day' | 'week' | 'moment';
+/** Filtri: una velatura di colore sopra la foto o il video. */
+export type FilterId = 'none' | 'caldo' | 'freddo' | 'neon' | 'notte' | 'rosa' | 'seppia';
+export const FILTERS: { id: FilterId; label: string; tint: string | null }[] = [
+  { id: 'none', label: 'Originale', tint: null }, { id: 'caldo', label: 'Caldo', tint: 'rgba(255,150,60,0.28)' }, { id: 'freddo', label: 'Freddo', tint: 'rgba(60,140,255,0.26)' },
+  { id: 'neon', label: 'Neon', tint: 'rgba(190,60,255,0.30)' }, { id: 'notte', label: 'Notte', tint: 'rgba(10,15,60,0.45)' }, { id: 'rosa', label: 'Rosa', tint: 'rgba(255,90,160,0.28)' }, { id: 'seppia', label: 'Seppia', tint: 'rgba(150,100,40,0.38)' },
+];
+export const tintOfFilter = (id?: string): string | null => FILTERS.find((f) => f.id === id)?.tint ?? null;
+export type TextPos = 'alto' | 'centro' | 'basso';
 export type Story = {
-  id: string; author: string; ts: number; kind: StoryKind; keep?: Keep; attach?: StoryAttach;
+  id: string; author: string; ts: number; kind: StoryKind; keep?: Keep; attach?: StoryAttach; filter?: FilterId; textPos?: TextPos; textColor?: string;
   /** chi ha regalato il LifePoint giornaliero a questo momento (lo vede l'autore) */ gifts?: string[];
   uri?: string; text?: string; /** colori dello sfondo delle storie di solo testo */ bg?: [string, string];
   /** chi l'ha vista (lo vede solo l'autore) */ views: string[];
@@ -59,11 +67,11 @@ export function ago(ts: number, now: number): string {
   return `${Math.floor(m / 60)} h`;
 }
 /** Una storia nuova con i controlli sul contenuto: testo non vuoto (max 140) o un file. */
-export function makeStory(a: { id: string; author: string; now: number; kind: StoryKind; uri?: string; text?: string; bg?: [string, string]; keep?: Keep; attach?: StoryAttach }): Story | null {
+export function makeStory(a: { id: string; author: string; now: number; kind: StoryKind; uri?: string; text?: string; bg?: [string, string]; keep?: Keep; attach?: StoryAttach; filter?: FilterId; textPos?: TextPos; textColor?: string }): Story | null {
   const text = (a.text ?? '').trim().slice(0, MAX_STORY_TEXT);
   if (a.kind === 'text' ? !text : !a.uri) return null;
   const label = a.attach?.label.trim().slice(0, 60);
-  return { id: a.id, author: a.author, ts: a.now, kind: a.kind, ...(a.keep && a.keep !== 'day' ? { keep: a.keep } : {}), ...(a.attach && label ? { attach: { ...a.attach, label } } : {}), ...(a.uri ? { uri: a.uri } : {}), ...(text ? { text } : {}), ...(a.kind === 'text' ? { bg: a.bg ?? BACKGROUNDS[0] } : {}), views: [] };
+  return { id: a.id, author: a.author, ts: a.now, kind: a.kind, ...(a.filter && a.filter !== 'none' ? { filter: a.filter } : {}), ...(a.textPos && a.textPos !== 'basso' ? { textPos: a.textPos } : {}), ...(a.textColor && /^#[0-9a-f]{6}$/i.test(a.textColor) && a.textColor.toLowerCase() !== '#ffffff' ? { textColor: a.textColor } : {}), ...(a.keep && a.keep !== 'day' ? { keep: a.keep } : {}), ...(a.attach && label ? { attach: { ...a.attach, label } } : {}), ...(a.uri ? { uri: a.uri } : {}), ...(text ? { text } : {}), ...(a.kind === 'text' ? { bg: a.bg ?? BACKGROUNDS[0] } : {}), views: [] };
 }
 
 /* ---------- la giornata: momenti raggruppati per parte del giorno ---------- */

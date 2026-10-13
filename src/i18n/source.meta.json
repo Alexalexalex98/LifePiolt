@@ -1,5 +1,5 @@
 {
- "count": 9448,
+ "count": 9467,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -43,7 +43,7 @@
   "src/app/(tabs)/lifefinance.tsx": 86,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
-  "src/app/(tabs)/lifenetwork.tsx": 39,
+  "src/app/(tabs)/lifenetwork.tsx": 40,
   "src/app/(tabs)/lifenotes.tsx": 3,
   "src/app/(tabs)/lifepointsPage.tsx": 36,
   "src/app/(tabs)/lifetask.tsx": 5,
@@ -81,7 +81,7 @@
   "src/app/(tabs)/skillVerify.tsx": 27,
   "src/app/(tabs)/starredPage.tsx": 2,
   "src/app/(tabs)/stocks.tsx": 40,
-  "src/app/(tabs)/storyCreate.tsx": 32,
+  "src/app/(tabs)/storyCreate.tsx": 50,
   "src/app/(tabs)/syncSettings.tsx": 2,
   "src/app/(tabs)/taxdecl.tsx": 76,
   "src/app/(tabs)/userProfile.tsx": 39,
@@ -367,7 +367,7 @@
   "src/lib/modRules.ts": 17,
   "src/lib/moodAnalysis.ts": 57,
   "src/lib/nav.ts": 1,
-  "src/lib/netMedia.ts": 3,
+  "src/lib/netMedia.ts": 7,
   "src/lib/netSearch.ts": 8,
   "src/lib/network.ts": 17,
   "src/lib/notes.ts": 1,
@@ -410,7 +410,7 @@
   "src/lib/shopSeed.ts": 56,
   "src/lib/speech.ts": 4,
   "src/lib/speechCore.ts": 29,
-  "src/lib/stories.ts": 8,
+  "src/lib/stories.ts": 14,
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taxDeadlines.ts": 14,
   "src/lib/theia.ts": 86,
@@ -445,5 +445,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1257
+ "withPlaceholders": 1260
 }

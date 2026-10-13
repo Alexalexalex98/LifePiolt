@@ -7,7 +7,7 @@ import { Text } from '@/components/T';
 import { UserAvatar } from '@/components/network';
 import { t as tl } from '@/i18n/core';
 import { Icon } from '@/lib/icons';
-import { activeStories, ago, timeLabel } from '@/lib/stories';
+import { activeStories, ago, timeLabel, tintOfFilter } from '@/lib/stories';
 import { useNet } from '@/store/network';
 import { useStoryPeek } from '@/store/storyPeek';
 
@@ -37,6 +37,7 @@ export function StoryPeekHost() {
           ? <LinearGradient colors={cur.bg ?? ['#6c8cff', '#3b2a7a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 }}><Text style={{ color: '#fff', fontSize: 20, fontWeight: '800', textAlign: 'center' }}>{cur.text}</Text></LinearGradient>
           : cur.kind === 'photo' ? <Image source={{ uri: cur.uri }} style={{ width: w, height: h }} contentFit="cover" />
           : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={40} color="#fff" /></View>}
+        {tintOfFilter(cur.filter) ? <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: tintOfFilter(cur.filter)! }} /> : null}
         <View style={{ position: 'absolute', top: 8, start: 8, end: 8, flexDirection: 'row', gap: 3 }}>
           {list.map((s, k) => <View key={s.id} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: k <= i ? '#fff' : 'rgba(255,255,255,0.35)' }} />)}
         </View>

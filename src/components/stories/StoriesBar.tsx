@@ -64,7 +64,7 @@ export function StoriesBar() {
       <Pressable key={key} accessibilityRole="button"
         accessibilityLabel={`${label} · ${tl('Momenti: {0}', g.stories.length)}${g.unseen ? ` · ${tl('da vedere')}` : ''}`}
         accessibilityHint={tl('Tocca per entrare. Tieni premuto per un’anteprima senza essere visto')}
-        onPress={onPress} onLongPress={() => setPeek(g.author)} onPressOut={() => setPeek(null)} delayLongPress={250}
+        onPress={onPress} onLongPress={() => setPeek(g.author)} onPressOut={() => setPeek(null)} delayLongPress={450}
         style={{ width: W + 40, height: H + 34, alignItems: 'center' }}>
         <View style={{ width: W + 40, height: H, alignItems: 'center', justifyContent: 'center' }}>
           {shown.map((st, k) => ({ st, k })).reverse().map(({ st, k }) => {
@@ -85,7 +85,7 @@ export function StoriesBar() {
   return (
     <View>
       <Text accessibilityRole="header" style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, paddingHorizontal: 16, marginTop: 6 }}>{tl('RECAP')}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingStart: 22, paddingEnd: 8, paddingVertical: 8, gap: 0 }} accessibilityLabel={tl('Recap della giornata')}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled onScrollBeginDrag={() => setPeek(null)} contentContainerStyle={{ paddingStart: 22, paddingEnd: 8, paddingVertical: 8, gap: 0 }} accessibilityLabel={tl('Recap della giornata')}>
         {mine ? card('me', mine, tl('Tu'), () => go('storyView', { author: me }), (
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi un momento')} onPress={() => go('storyCreate')} hitSlop={8} style={{ position: 'absolute', end: 5, top: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: '#4f8cff', alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={14} color="#fff" /></Pressable>
         )) : (

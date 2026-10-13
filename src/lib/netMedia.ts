@@ -43,3 +43,38 @@ export async function pickNetMedia(kind: 'photo' | 'video'): Promise<NetMedia | 
   const uri = Platform.OS === 'web' ? (isVideo ? a.uri : await webInline(a.uri)) : persistFile(a.uri, a.fileName ?? undefined);
   return { media: isVideo ? 'video' : 'photo', uri, name: a.fileName ?? undefined, durationMs: a.duration ?? undefined };
 }
+
+const toNet = async (a: ImagePicker.ImagePickerAsset): Promise<NetMedia> => {
+  const isVideo = a.type === 'video' || (a.mimeType ?? '').startsWith('video/');
+  const uri = Platform.OS === 'web' ? (isVideo ? a.uri : await webInline(a.uri)) : persistFile(a.uri, a.fileName ?? undefined);
+  return { media: isVideo ? 'video' : 'photo', uri, name: a.fileName ?? undefined, durationMs: a.duration ?? undefined };
+};
+const readError = (e: unknown): Error => {
+  const m = e instanceof Error ? e.message : '';
+  return /FailedToRead|representation|heic/i.test(m) ? new Error('Non riesco a leggere questa foto. Se è su iCloud aspetta che si scarichi dal telefono, poi riprova (oppure scegline un\'altra).') : (e instanceof Error ? e : new Error('Non riesco ad aprire la libreria'));
+};
+
+/** Più foto e video insieme dalla libreria (fino a `max`). */
+export async function pickNetMediaMany(max = 6): Promise<NetMedia[]> {
+  if (Platform.OS !== 'web') {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) throw new Error(perm.canAskAgain === false ? 'Permesso alla libreria negato: abilitalo da Impostazioni del telefono.' : 'Senza il permesso alla libreria non posso mostrarti foto e video.');
+  }
+  try {
+    const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images', 'videos'], allowsMultipleSelection: true, selectionLimit: max, orderedSelection: true, quality: 0.85, videoMaxDuration: 60 });
+    if (r.canceled) return [];
+    return await Promise.all(r.assets.slice(0, max).map(toNet));
+  } catch (e) { throw readError(e); }
+}
+
+/** Scatta una foto con la fotocamera. */
+export async function takeNetPhoto(): Promise<NetMedia | null> {
+  if (Platform.OS !== 'web') {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) throw new Error('Permesso fotocamera negato: abilitalo da Impostazioni del telefono.');
+  }
+  try {
+    const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.85 });
+    return r.canceled || !r.assets[0] ? null : await toNet(r.assets[0]);
+  } catch (e) { throw readError(e); }
+}

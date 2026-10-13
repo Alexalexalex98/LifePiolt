@@ -12,7 +12,7 @@ import { t as tl } from '@/i18n/core';
 import { confirmDelete } from '@/lib/confirm';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
-import { STORY_SECONDS, addView, ago, type Story } from '@/lib/stories';
+import { STORY_SECONDS, addView, ago, tintOfFilter, type Story } from '@/lib/stories';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { useNet } from '@/store/network';
@@ -86,7 +86,8 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
       ) : (
         <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}>
           {cur.kind === 'video' && cur.uri ? <StoryVideo uri={cur.uri} sound={sound} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
-          {cur.text ? <Text style={{ position: 'absolute', bottom: insets.bottom + 90, start: 16, end: 16, color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 8 }}>{cur.text}</Text> : null}
+          {tintOfFilter(cur.filter) ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: tintOfFilter(cur.filter)! }} /> : null}
+          {cur.text ? <Text style={[{ position: 'absolute', start: 16, end: 16, color: cur.textColor ?? '#fff', fontSize: 24, fontWeight: '900', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 8 }, cur.textPos === 'alto' ? { top: insets.top + 100 } : cur.textPos === 'centro' ? { top: '46%' } : { bottom: insets.bottom + 90 }]}>{cur.text}</Text> : null}
         </View>
       )}
       {/* zone di tocco: sinistra indietro, destra avanti, pressione lunga ferma */}

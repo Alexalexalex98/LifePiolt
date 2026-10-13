@@ -55,3 +55,12 @@ test('la giornata: parti del giorno, durata, momenti fissi, regali', async () =>
   const s = m.makeStory({ id: '1', author: 'A', now, kind: 'text', text: 'ciao', keep: 'week', attach: { kind: 'event', label: ' Corsa alle 7 ', ref: '2026-10-14' } });
   assert.equal(s.keep, 'week'); assert.equal(s.attach.label, 'Corsa alle 7');
 });
+
+test('filtri e posizione del testo', async () => {
+  const m = await import('../src/lib/stories.ts');
+  assert.equal(m.tintOfFilter('none'), null); assert.ok(m.tintOfFilter('caldo')); assert.equal(m.tintOfFilter('boh'), null);
+  const s = m.makeStory({ id: '1', author: 'A', now: 5, kind: 'photo', uri: 'u', filter: 'neon', textPos: 'alto', textColor: '#FFD166', text: 'ciao' });
+  assert.equal(s.filter, 'neon'); assert.equal(s.textPos, 'alto'); assert.equal(s.textColor, '#FFD166');
+  const d = m.makeStory({ id: '2', author: 'A', now: 5, kind: 'photo', uri: 'u', filter: 'none', textPos: 'basso', textColor: 'rosso' });
+  assert.equal(d.filter, undefined); assert.equal(d.textPos, undefined); assert.equal(d.textColor, undefined);
+});
