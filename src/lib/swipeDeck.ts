@@ -1,0 +1,62 @@
+/**
+ * Swipe sui post (modulo PURO): un post alla volta; a sinistra «mi interessa», a destra «non mi interessa».
+ * Quelli che interessano tornano in «Per te» nell'ordine in cui li hai scelti; gli altri (e i simili) non si propongono più.
+ */
+import { scoreOf, type ThemeWeights } from './relevance.ts';
+
+export type SwipeDir = 'yes' | 'no';
+export type SwipeRec = { key: string; dir: SwipeDir; ts: number };
+export type DeckCard = { key: string; text: string; author: string };
+
+/** Sotto questo punteggio un post è «simile a quelli che non ti interessano» e non si propone più. */
+export const HIDE_BELOW = -5;
+export const SWIPE_SIGNAL = 3;
+
+export const swipedKeys = (swipes: SwipeRec[] | undefined): Set<string> => new Set((swipes ?? []).map((s) => s.key));
+
+/** Registra la scelta (se avevi già scelto quel post, vale l'ultima) e tiene l'elenco corto. */
+export function record(swipes: SwipeRec[] | undefined, key: string, dir: SwipeDir, ts: number): SwipeRec[] {
+  return [...(swipes ?? []).filter((s) => s.key !== key), { key, dir, ts }].slice(-1000);
+}
+/** Annulla l'ultima scelta (per il pulsante «Indietro»). */
+export function undoLast(swipes: SwipeRec[] | undefined): { swipes: SwipeRec[]; undone: SwipeRec | null } {
+  const l = swipes ?? [];
+  return l.length ? { swipes: l.slice(0, -1), undone: l[l.length - 1] } : { swipes: l, undone: null };
+}
+/** Chiavi dei post che ti interessano, nell'ordine in cui li hai scelti. */
+export const likedInOrder = (swipes: SwipeRec[] | undefined): string[] => (swipes ?? []).filter((s) => s.dir === 'yes').sort((a, b) => a.ts - b.ts).map((s) => s.key);
+export const passedKeys = (swipes: SwipeRec[] | undefined): Set<string> => new Set((swipes ?? []).filter((s) => s.dir === 'no').map((s) => s.key));
+
+/** Un post è nascosto se lo hai scartato, oppure se i suoi temi sono ormai molto scartati. */
+export function isHidden(card: DeckCard, passed: Set<string>, weights: ThemeWeights | undefined): boolean {
+  return passed.has(card.key) || scoreOf(card.text, weights) <= HIDE_BELOW;
+}
+
+/** Il prossimo da mostrare: non ancora scelto, non nascosto, il più adatto ai tuoi temi (a parità, l'ordine del feed). */
+export function nextCard(cards: DeckCard[], swipes: SwipeRec[] | undefined, weights: ThemeWeights | undefined, me?: string): DeckCard | null {
+  const seen = swipedKeys(swipes), passed = passedKeys(swipes);
+  const pool = cards.filter((c) => !seen.has(c.key) && c.author !== me && !isHidden(c, passed, weights));
+  if (!pool.length) return null;
+  return pool.map((c, i) => ({ c, i, s: scoreOf(c.text, weights) })).sort((a, b) => b.s - a.s || a.i - b.i)[0].c;
+}
+export const remaining = (cards: DeckCard[], swipes: SwipeRec[] | undefined, weights: ThemeWeights | undefined, me?: string): number => {
+  const seen = swipedKeys(swipes), passed = passedKeys(swipes);
+  return cards.filter((c) => !seen.has(c.key) && c.author !== me && !isHidden(c, passed, weights)).length;
+};
+
+/** «Per te»: via gli scartati e i simili, in cima quelli che ti interessano (nell'ordine dello swipe), poi il resto com'era. */
+export function applyToFeed<T>(items: T[], keyOf: (x: T) => string | null, textOf: (x: T) => string, swipes: SwipeRec[] | undefined, weights: ThemeWeights | undefined): T[] {
+  const passed = passedKeys(swipes);
+  const liked = likedInOrder(swipes);
+  const likedSet = new Set(liked);
+  const byKey = new Map<string, T>();
+  const rest: T[] = [];
+  for (const it of items) {
+    const k = keyOf(it);
+    if (k && passed.has(k)) continue;
+    if (k && likedSet.has(k)) { byKey.set(k, it); continue; }
+    if (k && scoreOf(textOf(it), weights) <= HIDE_BELOW) continue;
+    rest.push(it);
+  }
+  return [...liked.map((k) => byKey.get(k)).filter((x): x is T => x !== undefined), ...rest];
+}

@@ -1,4 +1,6 @@
 import { Safe } from '@/components/Safe';
+import { SwipeDeck, type SwipeCandidate } from '@/components/feed/SwipeDeck';
+import { applyToFeed } from '@/lib/swipeDeck';
 import { StoriesBar } from '@/components/stories/StoriesBar';
 import { StoryPeekHost } from '@/components/stories/StoryPeekHost';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -37,6 +39,7 @@ type Item =
   | { k: 'quote'; id: string; text: string; author: string }
   | { k: 'community'; id: string; cid: number }
   | { k: 'jobs'; id: string }
+  | { k: 'swipe'; id: string }
   | { k: 'tools'; id: string }
   | { k: 'empty'; id: string; text: string };
 
@@ -78,6 +81,8 @@ export default function LifeNetwork() {
   const tabLabel = (k: string) => ({ Home: tr('lnTabHome'), Community: tr('lnTabCommunity'), Idee: tr('lnTabIdeas'), Marketplace: tr('lnTabMarketplace') }[k] ?? k);
   const curTab = tabs.includes(prefs.lnTab) ? prefs.lnTab : 'Home';
   const following = prefs.homeFilter === 'Seguiti';
+  const swipeMode = prefs.homeFilter === 'Swipe';
+  const swipes = net.swipes;
 
   const verified = net.identity.verified;
   const { communities, posts, ideas, seminars, providers, products, hideIdeas, mutedIdeaAuthors, following: followingList, reach } = net;
@@ -105,16 +110,20 @@ export default function LifeNetwork() {
     const feed: Item[] = [];
     let idx = 0;
     while (pools.some((p) => p.length)) { const pool = pools[idx % pools.length]; if (pool.length) feed.push(pool.shift()!); idx++; }
-    if (!following) return feed;
+    if (!following) return applyToFeed(feed, (it) => (it.k === 'post' ? it.likeKey : null), (it) => (it.k === 'post' ? `${it.post.text} ${it.post.tag ?? ''}` : ''), swipes, themeWeights);
     return feed.filter((it) => {
       const a = it.k === 'post' ? it.post.author : it.k === 'idea' ? it.idea.author : null;
       return a && followingList.includes(a);
     });
-  }, [communities, posts, ideas, seminars, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep, reach]);
+  }, [communities, posts, ideas, seminars, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep, reach, swipes, themeWeights]);
+
+  /* candidati dello swipe: i post che non sono miei, nel feed completo */
+  const swipeCards = useMemo<SwipeCandidate[]>(() => feedItems.flatMap((it) => (it.k === 'post' ? [{ key: it.likeKey, text: it.post.text, author: it.post.author, tag: it.post.tag, uri: it.post.uri ?? it.post.uris?.[0], media: it.post.media }] : [])), [feedItems]);
 
   const searching = people.trim().length >= 1;
   const data = useMemo<Item[]>(() => {
     if (searching) return [];
+    if (curTab === 'Home' && swipeMode) return [{ k: 'swipe', id: 'swipe' }];
     if (curTab === 'Home') return feedItems.length ? feedItems : [{ k: 'empty', id: 'empty', text: '' }];
     if (curTab === 'Post') {
       const only = feedItems.filter((it) => it.k === 'post');
@@ -143,7 +152,7 @@ export default function LifeNetwork() {
     else if (f === 'Prodotti') body = prodItems.length ? strip(rankMixed(prodItems, weights)) : [{ k: 'empty', id: 'empty', text: 'Ancora nessun prodotto: li pubblicano le attività con uno store.' }];
     else { const all = [...semItems, ...svcItems, ...prodItems]; body = all.length ? strip(rankMixed(all, weights)) : [{ k: 'empty', id: 'empty', text: 'Ancora nessuna proposta.' }]; }
     return [{ k: 'tools', id: 'tools' }, ...body];
-  }, [curTab, feedItems, communities, commTopic, commQ, ideas, ideaQ, seminars, providers, products, weights, prefs.marketFilter, visible, searching]);
+  }, [curTab, feedItems, communities, commTopic, commQ, ideas, ideaQ, seminars, providers, products, weights, prefs.marketFilter, visible, searching, swipeMode]);
 
   if (!verified) {
     return (
@@ -197,7 +206,7 @@ export default function LifeNetwork() {
       {!searching && curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
           <Composer me={me} onPress={compose} />
-          <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={following ? 'Seguiti' : 'Per te'} onChange={(k) => setPref('homeFilter', k)} />
+          <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Swipe', label: 'Swipe' }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={following ? 'Seguiti' : swipeMode ? 'Swipe' : 'Per te'} onChange={(k) => setPref('homeFilter', k)} />
           <View style={{ height: 8 }} />
         </View>
       )}
@@ -218,6 +227,7 @@ export default function LifeNetwork() {
         if (!c) return null;
         return <CommunityCard c={c} joined={c.members.includes(me)} onToggle={() => toggleJoin(c.id)} onPostHere={() => { if (c.owner !== me && !c.openPosting) { toast('Solo il proprietario può pubblicare qui'); return; } openSheet('postToCommunity', { id: c.id }); }} />;
       }
+      case 'swipe': return <SwipeDeck cards={swipeCards} />;
       case 'jobs': return <View style={{ paddingHorizontal: FEED_GUTTER }}><JobsHub /></View>;
       case 'empty':
         return curTab === 'Home'
@@ -268,7 +278,7 @@ export default function LifeNetwork() {
         keyExtractor={(it) => it.id}
         renderItem={renderItem}
         ListHeaderComponent={header}
-        extraData={[curTab, net.likedPosts, net.comments, net.savedPosts, me]}
+        extraData={[curTab, net.likedPosts, net.comments, net.savedPosts, me, swipeMode, net.swipes]}
         removeClippedSubviews={false}
         initialNumToRender={3}
         maxToRenderPerBatch={4}

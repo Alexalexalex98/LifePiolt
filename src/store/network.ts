@@ -88,6 +88,8 @@ type NetState = {
   /** storie (24 ore) di tutti e quelle che ho già visto */
   stories?: import('@/lib/stories').Story[];
   storySeen?: string[];
+  /** scelte dello swipe sui post: mi interessa / non mi interessa, in ordine */
+  swipes?: import('@/lib/swipeDeck').SwipeRec[];
   /** LifePoints che altri mi hanno donato o pagato (anche bloccati, o poi annullati) */
   incoming?: import('@/lib/lpIncoming').Incoming[];
   storiesSeeded?: boolean;
