@@ -33,7 +33,7 @@ export type OfferShare = { title: string; desc?: string; price: number; startsAt
 /** Richiesta di documenti: chi riceve li manda uno alla volta (da LifeDrive); ogni voce si segna da sola quando è inviata. */
 export type DocRequest = { title: string; items: { id: string; name: string; sentAs?: string }[] };
 /** Appunti presi da Theia durante la call: la trascrizione contiene solo ciò che ogni persona ha consentito di trascrivere. */
-export type CallRecord = { theia: boolean; transcript: TLine[]; notes?: CallNotes; savedNoteId?: string; /** messaggi scritti durante la call (non compaiono nella chat) */ chat?: { id: string; from: string; text: string; ts: number }[] };
+export type CallRecord = { theia: boolean; /** chi ha attivato Theia e quando: lo vedono tutti i partecipanti */ theiaBy?: string; theiaAt?: number; transcript: TLine[]; notes?: CallNotes; savedNoteId?: string; /** messaggi scritti durante la call (non compaiono nella chat) */ chat?: { id: string; from: string; text: string; ts: number }[] };
 export type Poll = { q: string; multi: boolean; options: { id: string; t: string; votes: string[] }[] };
 
 /** Messaggi dei LifeClub: domanda/risposta/annuncio collegati a una lezione (link che apre il contenuto al punto giusto). */

@@ -4,6 +4,7 @@ import { Animated, Easing, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
+import { RecBanner } from '@/components/call/RecBanner';
 import { RoundBtn } from '@/components/live/Overlay';
 import { HostCamera } from '@/components/live/VideoSurface';
 import { UserAvatar } from '@/components/network';
@@ -39,6 +40,7 @@ function Rings({ on }: { on: boolean }) {
 export function DuoCall(p: {
   other: string; me: string; video: boolean; state: DuoState; elapsedMs: number;
   micOff: boolean; camOff: boolean; speaker: boolean; facing: 'front' | 'back';
+  theiaOn: boolean; theiaBy?: string; onTheia: () => void;
   onMic: () => void; onCam: () => void; onSpeaker: () => void; onFlip: () => void; onAdd: () => void; onEnd: () => void; onRetry: () => void; onShare: () => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -46,7 +48,8 @@ export function DuoCall(p: {
   return (
     <View style={{ flex: 1, backgroundColor: '#0b0e14' }}>
       <LinearGradient colors={['#1b2440', '#0b0e14']} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} />
-      <View style={{ paddingTop: insets.top + 24, alignItems: 'center', gap: 4 }}>
+      {p.theiaOn ? <RecBanner by={p.theiaBy} me={p.me} top={insets.top + 6} /> : null}
+      <View style={{ paddingTop: insets.top + (p.theiaOn ? 64 : 24), alignItems: 'center', gap: 4 }}>
         <Text style={{ color: '#fff', fontSize: 26, fontWeight: '800' }}>{p.other}</Text>
         <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15 }} accessibilityLiveRegion="polite">{status}</Text>
       </View>
@@ -65,6 +68,7 @@ export function DuoCall(p: {
         <RoundBtn icon="headphones" label={p.speaker ? 'Spegni il vivavoce' : 'Attiva il vivavoce'} on={p.speaker} onPress={p.onSpeaker} size={56} />
         <RoundBtn icon="video" label={p.camOff || !p.video ? 'Accendi il video' : 'Spegni il video'} slash={p.video && p.camOff} on={p.video && !p.camOff} onPress={p.onCam} size={56} />
         <RoundBtn icon="mic" label={p.micOff ? 'Riattiva il microfono' : 'Silenzia il microfono'} slash={p.micOff} onPress={p.onMic} size={56} />
+        <RoundBtn icon="sparkle" label={p.theiaOn ? 'Disattiva gli appunti di Theia' : 'Attiva gli appunti di Theia'} on={p.theiaOn} onPress={p.onTheia} size={56} />
         <RoundBtn icon="plus" label="Aggiungi una persona" onPress={p.onAdd} size={56} />
         <RoundBtn icon="phone" label="Termina la chiamata" danger onPress={p.onEnd} size={64} />
       </View>

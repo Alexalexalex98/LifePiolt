@@ -30,7 +30,7 @@ export const cancelReminders = (mid: string) => cancelByPrefix(`call:${mid}:`);
 /** Fissa una call in un gruppo: la vedono tutti, chi conferma la ritrova fissata in alto fino all'ora. */
 export function scheduleCall(chatId: string, me: string, o: { title: string; startsAt: number; durationMin: number; video: boolean; theia: boolean }): string {
   const call = makeScheduled({ ...o, by: me });
-  const mid = st().send(chatId, me, { kind: 'call', text: call.title, call, callRecord: { theia: o.theia, transcript: [] } });
+  const mid = st().send(chatId, me, { kind: 'call', text: call.title, call, callRecord: { theia: o.theia, theiaBy: o.theia ? me : undefined, theiaAt: o.theia ? Date.now() : undefined, transcript: [] } });
   void scheduleReminders(chatId, mid, call);
   // demo: qualcuno del gruppo risponde dopo qualche secondo
   if (useApp.getState().demo) {

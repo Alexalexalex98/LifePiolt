@@ -14,6 +14,7 @@ import { Body, Btn, Item, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { alertT } from '@/lib/alert';
+import { RecBanner } from '@/components/call/RecBanner';
 import { DuoCall } from '@/components/call/DuoCall';
 import { ReactionsLayer } from '@/components/live/Overlay';
 import { REACTIONS, type LiveReaction, type ReactionKind } from '@/lib/liveRoom';
@@ -108,10 +109,15 @@ export default function GroupCall() {
 
   const toggleTheia = (on: boolean) => {
     if (!msg?.callRecord) return;
-    useChat.getState().patchMsg(chatId, mid, { callRecord: { ...msg.callRecord, theia: on } });
+    useChat.getState().patchMsg(chatId, mid, { callRecord: { ...msg.callRecord, theia: on, theiaBy: on ? me : undefined, theiaAt: on ? Date.now() : undefined } });
     useChat.getState().receive(chatId, 'system', { kind: 'system', text: on ? tl('{0} ha attivato Theia: prende appunti della call', me) : tl('{0} ha disattivato gli appunti di Theia', me) });
     if (on) askConsent();
   };
+  const sawRec = useRef(theiaOn);
+  useEffect(() => {
+    if (theiaOn && !sawRec.current && rec?.theiaBy && rec.theiaBy !== me) toast(tl('{0} ha attivato Theia: la call è registrata per gli appunti', rec.theiaBy));
+    sawRec.current = theiaOn;
+  }, [theiaOn]); // eslint-disable-line react-hooks/exhaustive-deps
   const askConsent = () => alertT('Theia prende appunti', 'Vuoi che Theia trascriva la tua voce, sul tuo telefono, per gli appunti della call? Ognuno decide solo per sé e puoi smettere quando vuoi. Non viene salvato nessun audio.', [
     { text: 'Non ora', style: 'cancel', onPress: () => setMine(false) },
     { text: 'Consenti', onPress: () => setMine(true) },
@@ -176,6 +182,7 @@ export default function GroupCall() {
       <>
         <DuoCall other={other} me={me} video={call.video} state={otherIn ? 'connected' : giveUp ? 'noanswer' : 'ringing'} elapsedMs={Math.max(0, now - joinedAt.current)}
           micOff={micOff} camOff={camOff} speaker={speaker} facing={facing}
+          theiaOn={theiaOn} theiaBy={rec?.theiaBy} onTheia={() => toggleTheia(!theiaOn)}
           onMic={() => setMicOff((v) => !v)} onCam={() => setCamOff((v) => !v)} onSpeaker={() => setSpeaker((v) => !v)} onFlip={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))}
           onAdd={() => setAddOpen(true)} onEnd={() => finish(false)} onShare={() => setShareOpen(true)} onRetry={() => { setGiveUp(false); joinedAt.current = Date.now(); }} />
         {addSheets}
@@ -202,12 +209,12 @@ export default function GroupCall() {
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       {pres ? <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}><Presenter pres={pres} isHost={pres.by === me} onStop={() => setPres(null)} topInset={insets.top - 40} /></View> : null}
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      {theiaOn ? <RecBanner by={rec?.theiaBy} me={me} top={insets.top + 6} /> : null}
+      <View style={{ paddingTop: insets.top + (theiaOn ? 62 : 8), paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ flex: 1 }}>
           <Text numberOfLines={1} style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>{call.title}</Text>
           <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{clockLabel(Math.max(0, now - joinedAt.current))} · {tl('{0} nella stanza', call.joined.length)}</Text>
         </View>
-        {theiaOn ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(143,164,255,0.25)', borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 }}><Icon name="sparkle" size={13} color="#c9d3ff" /><Text style={{ color: '#c9d3ff', fontSize: 11.5, fontWeight: '800' }}>{tl('Theia')}</Text></View> : null}
       </View>
 
       {!pres ? <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', padding: 8, paddingBottom: 200 }}>{people.map(tile)}</ScrollView> : <View style={{ flex: 1 }} />}
