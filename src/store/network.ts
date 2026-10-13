@@ -85,6 +85,10 @@ type NetState = {
   likedPosts: string[];
   /** Post salvati (segnalibro): opzionale per i dati di versioni precedenti. */
   savedPosts?: string[];
+  /** storie (24 ore) di tutti e quelle che ho già visto */
+  stories?: import('@/lib/stories').Story[];
+  storySeen?: string[];
+  storiesSeeded?: boolean;
   comments: Record<string, { author: string; text: string }[]>;
   providers: Provider[];
   bookings: Booking[];

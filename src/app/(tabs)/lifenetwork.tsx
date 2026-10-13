@@ -1,3 +1,4 @@
+import { StoriesBar } from '@/components/stories/StoriesBar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/T';
@@ -190,6 +191,7 @@ export default function LifeNetwork() {
           <View style={{ height: 8 }} />
         </View>
       )}
+      {!searching && curTab === 'Home' && <StoriesBar />}
       {!searching && curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
           <Composer me={me} onPress={compose} />
