@@ -1,5 +1,5 @@
 {
- "count": 9217,
+ "count": 9230,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 27,
@@ -11,7 +11,7 @@
   "src/app/(tabs)/businessCreate.tsx": 42,
   "src/app/(tabs)/businessPage.tsx": 19,
   "src/app/(tabs)/callNotes.tsx": 20,
-  "src/app/(tabs)/cardEditor.tsx": 53,
+  "src/app/(tabs)/cardEditor.tsx": 68,
   "src/app/(tabs)/chatInfo.tsx": 82,
   "src/app/(tabs)/chatSettings.tsx": 22,
   "src/app/(tabs)/checkRequest.tsx": 22,
@@ -190,7 +190,7 @@
   "src/components/market.tsx": 54,
   "src/components/network.tsx": 41,
   "src/components/plan.tsx": 104,
-  "src/components/profile/CardFace.tsx": 9,
+  "src/components/profile/CardFace.tsx": 11,
   "src/components/profile/ProfileParts.tsx": 60,
   "src/components/profile/QaVote.tsx": 11,
   "src/components/scoreSheet.tsx": 13,

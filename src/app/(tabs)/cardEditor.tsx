@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { PanResponder, Platform, Pressable, Share, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import { PanResponder, Platform, Pressable, ScrollView, Share, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { captureRef } from 'react-native-view-shot';
 
@@ -7,7 +7,7 @@ import { CardFace } from '@/components/profile/CardFace';
 import { useCardFor } from '@/components/profile/cardData';
 import { Body, Btn, Card, H, Input, Page, Pill, Row, Seg, Switch } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { CARD_RATIO, FIELD_LABEL, FONTS, MAX_ELEMENTS, MAX_STROKES, MAX_POINTS, TEMPLATES, commit, hist, newElId, redo, sanitizeDesign, templateDesign, undo, type CardDesign, type El, type FieldId, type FontId, type Side, type Stroke } from '@/lib/profile/card';
+import { CARD_RATIO, FIELD_LABEL, alignEl, duplicateEl, moveLayer, scaleEl, snapRot, type AlignTo, type LayerMove, FONTS, MAX_ELEMENTS, MAX_STROKES, MAX_POINTS, TEMPLATES, commit, hist, newElId, redo, sanitizeDesign, templateDesign, undo, type CardDesign, type El, type FieldId, type FontId, type Side, type Stroke } from '@/lib/profile/card';
 import { pickImage } from '@/lib/profile/pickImage';
 import { MAX_ON_CARD } from '@/lib/profile/skills';
 import { useApp } from '@/store/app';
@@ -33,7 +33,8 @@ export default function CardEditor() {
   const shot = useRef<View>(null);
   const design = h.present;
   const cur: Side = design[side];
-  const w = Math.min(useWindowDimensions().width - 32, 380);
+  const win = useWindowDimensions();
+  const w = Math.min(win.width - 64, 330, (win.height * 0.3) * CARD_RATIO);
   const hh = w / CARD_RATIO;
   const dRef = useRef(design); dRef.current = design;
   const toolRef = useRef(tool); toolRef.current = tool;
@@ -46,6 +47,7 @@ export default function CardEditor() {
   const patchEl = (id: string, p: Partial<El>) => setSide2((s) => ({ ...s, els: s.els.map((e) => (e.id === id ? ({ ...e, ...p } as El) : e)) }));
   // il trascinamento aggiorna lo stato senza riempire la cronologia a ogni pixel
   const move = (id: string, x: number, y: number) => setH((z) => ({ ...z, present: { ...z.present, [sideRef.current]: { ...z.present[sideRef.current], els: z.present[sideRef.current].els.map((e) => (e.id === id ? { ...e, x, y } : e)) } } }));
+  const live = (id: string, p: Partial<El>) => setH((z) => ({ ...z, present: { ...z.present, [sideRef.current]: { ...z.present[sideRef.current], els: z.present[sideRef.current].els.map((e) => (e.id === id ? ({ ...e, ...p } as El) : e)) } } }));
   const selected = cur.els.find((e) => e.id === sel) ?? null;
 
   const pan = useRef(PanResponder.create({
@@ -89,10 +91,10 @@ export default function CardEditor() {
   const chosen = design.skills ?? [];
 
   return (
-    <Page id="cardEditor" back title="Il tuo biglietto">
+    <Page id="cardEditor" back title="Il tuo biglietto" scroll={false}>
       <View style={{ alignItems: 'center' }}>
         <View ref={shot} collapsable={false} style={{ width: w, height: hh, shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 8, borderRadius: 10 }}>
-          <CardFace side={cur} design={design} data={base.data} width={w} qrText={base.qrText} selectedId={tool === 'move' ? sel : null} onSelect={tool === 'move' ? setSel : undefined} onMove={tool === 'move' ? move : undefined} draftStroke={draft}
+          <CardFace side={cur} design={design} data={base.data} width={w} qrText={base.qrText} selectedId={tool === 'move' ? sel : null} onSelect={tool === 'move' ? setSel : undefined} onMove={tool === 'move' ? move : undefined} onPatch={tool === 'move' ? live : undefined} draftStroke={draft}
             overlay={tool === 'draw' ? <View {...pan.panHandlers} accessibilityLabel="Area di disegno" style={{ position: 'absolute', top: 0, start: 0, end: 0, bottom: 0 }} /> : null} />
         </View>
       </View>
@@ -103,6 +105,7 @@ export default function CardEditor() {
         <Btn small style={{ flex: 1 }} title="Salva" onPress={save} />
       </Row>
 
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
       <Seg options={['Sposta', 'Disegna']} value={tool === 'move' ? 'Sposta' : 'Disegna'} onChange={(v) => { setTool(v === 'Sposta' ? 'move' : 'draw'); setSel(null); }} />
       {tool === 'draw' && (
         <Card>
@@ -122,7 +125,22 @@ export default function CardEditor() {
         <Card>
           <Row><Body bold style={{ flex: 1 }}>{selected.t === 'field' ? FIELD_LABEL[selected.field] : selected.t === 'text' ? 'Testo' : selected.t === 'image' ? 'Foto' : selected.t === 'qr' ? 'QR code' : 'Forma'}</Body>
             <Btn small ghost danger icon="trash" title="Togli" onPress={() => { setSide2((s) => ({ ...s, els: s.els.filter((e) => e.id !== selected.id) })); setSel(null); }} /></Row>
-          <Body small muted style={{ marginBottom: 6 }}>Trascina l’elemento sul biglietto per spostarlo.</Body>
+          <Body small muted style={{ marginBottom: 6 }}>Trascinalo per spostarlo. Il cerchio blu in basso lo ridimensiona, quello viola in alto lo ruota.</Body>
+          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }} gap={8}>
+            {selected.t !== 'field' && selected.t !== 'qr' && <Btn small ghost icon="copy" title="Duplica" onPress={() => { const r = duplicateEl(cur.els, selected.id); if (r.id) { setSide2((x) => ({ ...x, els: r.els })); setSel(r.id); } else toast('Non si può duplicare'); }} />}
+            {([['forward', 'Avanti'], ['backward', 'Indietro'], ['front', 'In primo piano'], ['back', 'Sullo sfondo']] as [LayerMove, string][]).map(([m, l]) => <Pill key={m} label={l} onPress={() => setSide2((x) => ({ ...x, els: moveLayer(x.els, selected.id, m) }))} />)}
+          </Row>
+          <Body small bold style={{ marginBottom: 4 }}>Allinea</Body>
+          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }} gap={8}>
+            {([['left', 'Sinistra'], ['hcenter', 'Centro'], ['right', 'Destra'], ['top', 'Alto'], ['vcenter', 'Metà'], ['bottom', 'Basso']] as [AlignTo, string][]).map(([a, l]) => <Pill key={a} label={l} onPress={() => patchEl(selected.id, alignEl(selected, a, selected.t === 'field' ? FIELD_LABEL[selected.field] : ''))} />)}
+          </Row>
+          <Body small bold style={{ marginBottom: 4 }}>Trasparenza e rotazione</Body>
+          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }} gap={8}>
+            {[1, 0.75, 0.5, 0.25].map((o) => <Pill key={o} label={`${Math.round(o * 100)}%`} on={(selected.op ?? 1) === o} onPress={() => patchEl(selected.id, { op: o === 1 ? undefined : o } as Partial<El>)} />)}
+            <Pill label="-15°" onPress={() => patchEl(selected.id, { rot: snapRot((selected.rot ?? 0) - 15) } as Partial<El>)} />
+            <Pill label="+15°" onPress={() => patchEl(selected.id, { rot: snapRot((selected.rot ?? 0) + 15) } as Partial<El>)} />
+            <Pill label="Dritto" onPress={() => patchEl(selected.id, { rot: undefined } as Partial<El>)} />
+          </Row>
           {(selected.t === 'field' || selected.t === 'text') && (
             <>
               {selected.t === 'text' && <Input value={selected.text} onChangeText={(v) => patchEl(selected.id, { text: v } as Partial<El>)} placeholder="Testo" maxLength={80} />}
@@ -145,6 +163,7 @@ export default function CardEditor() {
           )}
           {selected.t !== 'image' && (
             <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={8}>
+              {['#ff6b6b', '#ffd166', '#06d6a0', '#118ab2', '#8d99ae'].map((c) => <Pressable key={c} onPress={() => patchEl(selected.id, { color: c } as Partial<El>)} accessibilityRole="button" accessibilityLabel={`Colore ${c}`} style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c, borderWidth: 1, borderColor: t.border }} />)}
               {INK.map((c) => <Pressable key={c} onPress={() => patchEl(selected.id, { color: c } as Partial<El>)} accessibilityRole="button" accessibilityLabel={`Colore ${c}`} style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c, borderWidth: 1, borderColor: t.border }} />)}
             </Row>
           )}
@@ -202,6 +221,7 @@ export default function CardEditor() {
         <Btn style={{ flex: 1 }} ghost icon="send" title="Condividi immagine" onPress={() => void shareImage()} />
       </Row>
       <Btn ghost danger style={{ marginTop: 8 }} title="Ripristina il modello" onPress={() => confirmDelete('le modifiche non salvate', () => { setH(hist(sanitizeDesign(useIdentity.getState().design))); })} />
+      </ScrollView>
     </Page>
   );
 }

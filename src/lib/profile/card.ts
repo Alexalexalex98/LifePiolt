@@ -20,7 +20,8 @@ export const FIELD_LABEL: Record<FieldId, string> = { name: 'Nome', role: 'Ruolo
 export type FontId = 'sans' | 'serif' | 'mono' | 'rounded';
 export const FONTS: { id: FontId; label: string }[] = [{ id: 'sans', label: 'Moderno' }, { id: 'serif', label: 'Classico' }, { id: 'mono', label: 'Tecnico' }, { id: 'rounded', label: 'Morbido' }];
 
-type Pos = { x: number; y: number };
+/** rot: rotazione in gradi; op: opacità 0.1..1 (come in Canva) */
+type Pos = { x: number; y: number; rot?: number; op?: number };
 export type FieldEl = Pos & { id: string; t: 'field'; field: FieldId; size: number; color: string; font: FontId; bold?: boolean };
 export type TextEl = Pos & { id: string; t: 'text'; text: string; size: number; color: string; font: FontId; bold?: boolean };
 export type ImageEl = Pos & { id: string; t: 'image'; uri: string; w: number; round?: boolean };
@@ -61,7 +62,7 @@ const FONT_IDS = FONTS.map((x) => x.id);
 function sanitizeEl(e: unknown): El | null {
   if (!e || typeof e !== 'object') return null;
   const o = e as Record<string, unknown>;
-  const base = { id: typeof o.id === 'string' && o.id ? o.id.slice(0, 40) : newElId(), x: clamp(o.x as number, 0, 1), y: clamp(o.y as number, 0, 1) };
+  const base = { id: typeof o.id === 'string' && o.id ? o.id.slice(0, 40) : newElId(), x: clamp(o.x as number, 0, 1), y: clamp(o.y as number, 0, 1), ...(Number(o.rot) ? { rot: Math.round(clamp(o.rot as number, -180, 180)) } : {}), ...(typeof o.op === 'number' && o.op < 1 ? { op: Math.round(clamp(o.op, 0.1, 1) * 100) / 100 } : {}) };
   if (o.t === 'field' && FIELD_IDS.includes(o.field as FieldId)) return { ...base, t: 'field', field: o.field as FieldId, size: clamp(o.size as number, 7, 40), color: color(o.color, '#111111'), font: FONT_IDS.includes(o.font as FontId) ? (o.font as FontId) : 'sans', bold: !!o.bold };
   if (o.t === 'text' && typeof o.text === 'string') return { ...base, t: 'text', text: o.text.slice(0, 80), size: clamp(o.size as number, 7, 40), color: color(o.color, '#111111'), font: FONT_IDS.includes(o.font as FontId) ? (o.font as FontId) : 'sans', bold: !!o.bold };
   if (o.t === 'image' && typeof o.uri === 'string' && o.uri) return { ...base, t: 'image', uri: o.uri, w: clamp(o.w as number, 0.08, 1), round: !!o.round };
@@ -130,3 +131,59 @@ export const hist = <T,>(present: T): History<T> => ({ past: [], present, future
 export const commit = <T,>(h: History<T>, next: T): History<T> => ({ past: [...h.past, h.present].slice(-50), present: next, future: [] });
 export const undo = <T,>(h: History<T>): History<T> => (h.past.length ? { past: h.past.slice(0, -1), present: h.past[h.past.length - 1], future: [h.present, ...h.future] } : h);
 export const redo = <T,>(h: History<T>): History<T> => (h.future.length ? { past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1) } : h);
+
+
+/* ---------- modifica stile Canva: livelli, duplicati, allineamento, resize ---------- */
+export type LayerMove = 'front' | 'back' | 'forward' | 'backward';
+/** Sposta un elemento tra i livelli (l'ultimo sta sopra). */
+export function moveLayer(els: El[], id: string, how: LayerMove): El[] {
+  const i = els.findIndex((e) => e.id === id);
+  if (i < 0) return els;
+  const out = els.slice(); const [e] = out.splice(i, 1);
+  const to = how === 'front' ? out.length : how === 'back' ? 0 : how === 'forward' ? Math.min(out.length, i + 1) : Math.max(0, i - 1);
+  out.splice(to, 0, e);
+  return out;
+}
+/** Copia un elemento un po' più in basso a destra (i campi del profilo non si duplicano: ne basta uno). */
+export function duplicateEl(els: El[], id: string): { els: El[]; id: string | null } {
+  const e = els.find((x) => x.id === id);
+  if (!e || e.t === 'field' || e.t === 'qr' || els.length >= MAX_ELEMENTS) return { els, id: null };
+  const nid = newElId();
+  return { els: [...els, { ...e, id: nid, x: clamp(e.x + 0.04, 0, 0.95), y: clamp(e.y + 0.06, 0, 0.95) }], id: nid };
+}
+/** Larghezza stimata dell'elemento (0..1 della card), per centrarlo. */
+export function elWidth(e: El, text = ''): number {
+  if (e.t === 'image' || e.t === 'shape' || e.t === 'qr') return e.w;
+  const chars = Math.max(1, (e.t === 'text' ? e.text : text).length);
+  return Math.min(0.95, (chars * e.size * 0.56) / 320);
+}
+export function elHeight(e: El): number {
+  if (e.t === 'shape') return e.h;
+  if (e.t === 'image' || e.t === 'qr') return e.w * CARD_RATIO;
+  return (e.size * 1.25) / (320 / CARD_RATIO);
+}
+export type AlignTo = 'left' | 'hcenter' | 'right' | 'top' | 'vcenter' | 'bottom';
+export function alignEl(e: El, to: AlignTo, text = ''): Partial<El> {
+  const w = elWidth(e, text), h = elHeight(e);
+  switch (to) {
+    case 'left': return { x: 0.06 };
+    case 'hcenter': return { x: clamp((1 - w) / 2, 0, 1) };
+    case 'right': return { x: clamp(0.94 - w, 0, 1) };
+    case 'top': return { y: 0.06 };
+    case 'vcenter': return { y: clamp((1 - h) / 2, 0, 1) };
+    default: return { y: clamp(0.94 - h, 0, 1) };
+  }
+}
+/** Ridimensiona (fattore > 0): testi e campi cambiano corpo, le altre cose la larghezza (le forme in proporzione). */
+export function scaleEl(e: El, factor: number): Partial<El> {
+  if (e.t === 'field' || e.t === 'text') return { size: clamp(e.size * factor, 7, 40) } as Partial<El>;
+  if (e.t === 'shape') { const w = clamp(e.w * factor, 0.02, 1); return { w, h: e.shape === 'line' ? e.h : clamp(e.h * (w / e.w), 0.005, 1) } as Partial<El>; }
+  if (e.t === 'qr') return { w: clamp(e.w * factor, 0.12, 0.5) } as Partial<El>;
+  return { w: clamp(e.w * factor, 0.08, 1) } as Partial<El>;
+}
+/** Rotazione con aggancio a 0, 90, 180 entro 4 gradi. */
+export function snapRot(deg: number): number {
+  const d = ((Math.round(deg) + 540) % 360) - 180;
+  for (const a of [-180, -90, 0, 90, 180]) if (Math.abs(d - a) <= 4) return a === 180 ? -180 : a;
+  return d;
+}

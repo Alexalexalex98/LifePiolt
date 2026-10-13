@@ -65,3 +65,28 @@ test('QR: identico a un codificatore di riferimento (se installato)', async () =
     assert.deepEqual(a, b, s.slice(0, 12));
   }
 });
+
+test('editor stile Canva: livelli, duplicati, allineamento, scala, rotazione', async () => {
+  const c = await import('../src/lib/profile/card.ts');
+  const a = { id: 'a', t: 'text', text: 'Ciao', x: 0.1, y: 0.1, size: 12, color: '#111111', font: 'sans' };
+  const b = { id: 'b', t: 'shape', shape: 'rect', x: 0, y: 0, w: 0.4, h: 0.1, color: '#6c8cff' };
+  const q = { id: 'q', t: 'qr', x: 0.6, y: 0.5, w: 0.2, color: '#111111' };
+  assert.deepEqual(c.moveLayer([a, b, q], 'a', 'front').map((e) => e.id), ['b', 'q', 'a']);
+  assert.deepEqual(c.moveLayer([a, b, q], 'q', 'back').map((e) => e.id), ['q', 'a', 'b']);
+  assert.deepEqual(c.moveLayer([a, b, q], 'b', 'forward').map((e) => e.id), ['a', 'q', 'b']);
+  assert.deepEqual(c.moveLayer([a, b, q], 'b', 'backward').map((e) => e.id), ['b', 'a', 'q']);
+  const d = c.duplicateEl([a, b], 'b');
+  assert.equal(d.els.length, 3); assert.ok(d.id && d.id !== 'b');
+  assert.equal(c.duplicateEl([a, q], 'q').id, null);
+  assert.ok(Math.abs(c.alignEl(b, 'hcenter').x - 0.3) < 1e-9);
+  assert.equal(c.alignEl(b, 'left').x, 0.06);
+  assert.ok(Math.abs(c.alignEl(b, 'right').x - 0.54) < 1e-9);
+  assert.equal(c.scaleEl(a, 2).size, 24);
+  assert.equal(c.scaleEl(a, 10).size, 40);
+  const sh = c.scaleEl(b, 0.5); assert.ok(Math.abs(sh.w - 0.2) < 1e-9 && Math.abs(sh.h - 0.05) < 1e-9);
+  assert.equal(c.snapRot(87), 90); assert.equal(c.snapRot(-2), 0); assert.equal(c.snapRot(30), 30); assert.equal(c.snapRot(178), -180);
+  const clean = c.sanitizeDesign({ v: 2, template: 'minimale', qr: false, back: { bg: { kind: 'solid', c1: '#ffffff', c2: '#ffffff', angle: 0 }, els: [], strokes: [] }, front: { bg: { kind: 'solid', c1: '#ffffff', c2: '#ffffff', angle: 0 }, strokes: [], els: [{ ...a, rot: 400, op: 0.05 }, { ...b, rot: 30, op: 0.5 }] } });
+  const es = clean.front.els;
+  assert.equal(es[0].rot, 180); assert.equal(es[0].op, 0.1);
+  assert.equal(es[1].rot, 30); assert.equal(es[1].op, 0.5);
+});
