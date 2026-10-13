@@ -60,20 +60,24 @@ export function ratingFor(name: string) {
  * Le idee contano subito come guadagnate anche se i LifePoints sono ancora bloccati (obiettivo non raggiunto): li somma il totale,
  * ma `ideasBlocked` dice quanti non sono ancora disponibili. Un'idea scaduta senza obiettivo viene rimborsata e non conta.
  */
-export function lpReceived(name: string): { daily: number; ideas: number; ideasBlocked: number; ideasPaid: number; payments: number; total: number } {
+export function lpReceived(name: string): { daily: number; ideas: number; ideasBlocked: number; ideasPaid: number; payments: number; servicesBlocked: number; blocked: number; total: number } {
   const s = useNet.getState();
   const now = Date.now();
   const mine = s.ideas.filter((i) => i.author === name && ideaState(i, now) !== 'scaduta');
   const ideasPaid = mine.filter((i) => ideaState(i, now) === 'raggiunta').reduce((a, i) => a + i.raised, 0);
   const ideasBlocked = mine.filter((i) => ideaState(i, now) === 'raccolta').reduce((a, i) => a + i.raised, 0);
+  // seminari e sedute miei già pagati ma non ancora finiti: figurano come guadagnati, bloccati fino alla fine
+  const parts = s.participants ?? {};
+  const held = (key: string, fallbackStart?: number) => (parts[key] ?? []).filter((p) => p.paid > 0 && ((p.startsAt ?? fallbackStart ?? 0) + (p.durationMin ?? 60) * 60000) > now).reduce((a, p) => a + p.paid, 0);
+  const servicesBlocked = s.seminars.filter((x) => x.host === name).reduce((a, x) => a + held(`seminar:${x.id}`, x.startsAt), 0) + held(`service:${name}`);
   // per me fa fede il registro dei movimenti (lo stesso del rendiconto); per gli altri i contatori pubblici
   if (name === useApp.getState().account.name && (s.lpMoves?.length ?? 0) > 0) {
     const by = buildStatement(s.lpMoves ?? [], 0, now + 1e11).earned.bySource;
     const daily = by.giornaliero, paid = by.idee, payments = by.iscrizioni + by.pagamenti + by.altro;
-    return { daily, ideas: paid + ideasBlocked, ideasBlocked, ideasPaid: paid, payments, total: daily + paid + ideasBlocked + payments };
+    return { daily, ideas: paid + ideasBlocked, ideasBlocked, ideasPaid: paid, payments: payments + servicesBlocked, servicesBlocked, blocked: ideasBlocked + servicesBlocked, total: daily + paid + ideasBlocked + payments + servicesBlocked };
   }
   const daily = s.receivedDaily[name] || 0, payments = s.receivedPayments[name] || 0;
-  return { daily, ideas: ideasPaid + ideasBlocked, ideasBlocked, ideasPaid, payments, total: daily + ideasPaid + ideasBlocked + payments };
+  return { daily, ideas: ideasPaid + ideasBlocked, ideasBlocked, ideasPaid, payments: payments + servicesBlocked, servicesBlocked, blocked: ideasBlocked + servicesBlocked, total: daily + ideasPaid + ideasBlocked + payments + servicesBlocked };
 }
 export const receivedLPFor = (name: string): number => lpReceived(name).total;
 

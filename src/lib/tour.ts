@@ -202,6 +202,8 @@ export type TourStep = {
   cta?: { label: string; page: string };
   /** nel tour demo, offre di sbloccare tutto */
   offerUnlockAll?: boolean;
+  /** apre questa pagina quando si arriva al passo, così si spiega la funzione vera. Segnaposto nei parametri: $firstIdea, $firstSeminar, $me, $firstChat */
+  go?: { page: string; params?: Record<string, string> };
 };
 
 export function welcomeSteps(mode: TourMode | null): TourStep[] {

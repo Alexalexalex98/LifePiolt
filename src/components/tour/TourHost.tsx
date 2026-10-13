@@ -11,6 +11,7 @@ import { go } from '@/lib/nav';
 import { autoTutorialFor, isSectionTutorial } from '@/lib/tutorials';
 import { decideMode, isUnlocked, levelDef, nextTour, pageFromPath, pageLevel, tourSteps } from '@/lib/tour';
 import { useApp } from '@/store/app';
+import { useNet } from '@/store/network';
 import { useDiscover } from '@/store/discover';
 import { useTour } from '@/store/tour';
 import { toast } from '@/store/toast';
@@ -93,6 +94,18 @@ export function TourHost() {
   }, [pathname, mode, active]);
 
   const steps = active ? tourSteps(active, mode) : [];
+  // passo con una pagina vera da mostrare: ci porta lì (la guida resta sopra)
+  useEffect(() => {
+    const go0 = active && steps[step]?.go;
+    if (!go0) return;
+    const net = useNet.getState();
+    const me = useApp.getState().account.name;
+    const tok: Record<string, string> = { $firstIdea: String(net.ideas[0]?.id ?? ''), $firstSeminar: String(net.seminars.find((s) => s.host !== me)?.id ?? net.seminars[0]?.id ?? ''), $me: me };
+    const params = go0.params ? Object.fromEntries(Object.entries(go0.params).map(([k, v]) => [k, tok[v] ?? v])) : undefined;
+    if (params && Object.values(params).some((v) => v === '')) return;
+    go(go0.page, params);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, step]);
   const isSection = isSectionTutorial(active);
   return (
     <>

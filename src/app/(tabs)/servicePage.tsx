@@ -73,7 +73,7 @@ export default function ServicePage() {
           <Row>
             <Row style={{ justifyContent: 'flex-start', flex: 1 }} gap={10}>
               <UserAvatar name={p.name} size={42} />
-              <View style={{ flex: 1 }}><Body bold>{p.name}{isMine ? ' (tu)' : ''}</Body><Body small muted>{r.avg ? `Voto ${r.avg}/5 (${r.count})` : `Valutazione indicata ${p.rating}/5`} · vedi profilo</Body></View>
+              <View style={{ flex: 1 }}><Body bold>{p.name}{isMine ? ' (tu)' : ''}</Body><Body small muted>{r.avg ? `Voto del profilo ${r.avg}/5 (${r.count})` : 'Ancora nessun voto al profilo'} · vedi profilo</Body></View>
             </Row>
             <Chev />
           </Row>

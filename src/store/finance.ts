@@ -33,9 +33,9 @@ export type PendingOrder = { id: string; symbol: string; type: 'buy' | 'sell'; l
 export type Trade = { id: string; symbol: string; type: 'buy' | 'sell'; shares: number; price: number; amount: number; date: string };
 
 export const defaultCategories: FinCategory[] = [
-  { n: 'Affitto', p: 40, c: '#5b8def' }, { n: 'Fondo emergenza', p: 10, c: '#7c5cff' }, { n: 'Alimentari/Casa', p: 8, c: '#4fd18b' },
-  { n: 'Cassa malati', p: 12, c: '#ff6f91' }, { n: 'Abbigliamento', p: 5, c: '#b96bff' }, { n: 'Viaggio estero', p: 8, c: '#4fc7e0' },
-  { n: 'Abbonamenti', p: 2.5, c: '#c9d15c' }, { n: 'Altro', p: 14.5, c: '#ffb84f' },
+  { n: 'Affitto', p: 40, c: '#5b8def' }, { n: 'Fondo emergenza', p: 5, c: '#7c5cff' }, { n: 'Alimentari/Casa', p: 17, c: '#4fd18b' },
+  { n: 'Cassa malati', p: 14, c: '#ff6f91' }, { n: 'Abbigliamento', p: 3, c: '#b96bff' }, { n: 'Viaggio estero', p: 4, c: '#4fc7e0' },
+  { n: 'Abbonamenti', p: 4, c: '#c9d15c' }, { n: 'Altro', p: 13, c: '#ffb84f' },
 ];
 export const defaultGuidelines: Record<string, number> = { Affitto: 30, 'Fondo emergenza': 10, 'Alimentari/Casa': 12, 'Cassa malati': 10, Abbigliamento: 5, 'Viaggio estero': 5, Abbonamenti: 3, Altro: 15 };
 
@@ -65,12 +65,12 @@ export function spendByCategory(months: FinMonth[], cats: FinCategory[]): Record
 
 /** Costi normali di una persona sola in Svizzera (CHF): proposti da "Aggiungi costi tipici". */
 export const typicalCosts: Omit<Bill, 'id'>[] = [
-  { name: 'Affitto', amount: 1400, freq: 'monthly' }, { name: 'Cassa malati', amount: 385, freq: 'monthly' },
+  { name: 'Affitto', amount: 1400, freq: 'monthly' }, { name: 'Cassa malati', amount: 480, freq: 'monthly' },
   { name: 'Elettricità', amount: 62, freq: 'monthly' }, { name: 'Internet e telefono', amount: 79, freq: 'monthly' },
   { name: 'Assicurazione RC e economia domestica', amount: 190, freq: 'yearly' }, { name: 'Serafe (canone radio-TV)', amount: 335, freq: 'yearly' },
   { name: 'Abbonamento trasporti', amount: 85, freq: 'monthly' }, { name: 'Palestra', amount: 69, freq: 'monthly' },
   { name: 'Netflix', amount: 15.9, freq: 'monthly' }, { name: 'Spotify', amount: 12.95, freq: 'monthly' },
-  { name: 'Imposte accantonate', amount: 420, freq: 'monthly' }, { name: 'Benzina o trasporti', amount: 120, freq: 'monthly' },
+  { name: 'Imposte accantonate', amount: 150, freq: 'monthly' }, { name: 'Benzina o trasporti', amount: 60, freq: 'monthly' },
 ];
 export const normBill = (n: string) => n.trim().toLowerCase().replace(/\s+/g, ' ');
 
@@ -206,7 +206,7 @@ export const useFin = create<FinState>()(
     dismissInsight: (id, v) => set((s) => ({ insights: s.insights.map((i) => (i.id === id ? { ...i, dismissed: v } : i)) })),
     setBudget: (b) => set((s) => ({ budget: { ...s.budget, ...b } })),
     setAlloc: (name, v) => set((s) => ({ budget: { ...s.budget, alloc: { ...s.budget.alloc, [name]: v } } })),
-    resetBudget: () => set((s) => ({ budget: defaultBudget(s.budget.salary || 6500, s.budget.saveToEmergency, s.categories, s.months) })),
+    resetBudget: () => set((s) => ({ budget: defaultBudget(s.budget.salary || 3500, s.budget.saveToEmergency, s.categories, s.months) })),
     setGuidelineSalary: (v) => set((s) => ({ budget: { ...s.budget, salary: v } })),
     addBill: (b) => set((s) => ({ bills: [...s.bills, { id: uid(), ...b }] })),
     addBills: (list) => {

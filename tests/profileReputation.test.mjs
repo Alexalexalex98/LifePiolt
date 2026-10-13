@@ -12,9 +12,9 @@ test('senza voti né interazioni: nessun punteggio', () => {
   assert.equal(r.confidence, 'nessuna');
   assert.equal(r.votes, 0);
 });
-test('pochi voti restano vicini alla media a priori (bayesiana)', () => {
+test('pochi voti: è la media vera, con affidabilità bassa', () => {
   const r = R.computeReputation({ target: 'Anna', direct: { 5: 1 }, now: NOW });
-  assert.ok(r.score > 3.5 && r.score < 4.0, String(r.score));
+  assert.equal(r.score, 5);
   assert.equal(r.confidence, 'bassa');
   assert.match(r.basedOn, /1 voto/);
 });
@@ -40,29 +40,31 @@ test('blocchi: se stessi e stesso scambio', () => {
   assert.match(R.qaBlockReason('Anna', 'Anna', 'x', [], NOW), /te stesso/);
   assert.match(R.qaBlockReason('Bea', 'Anna', 'a', [qa('Bea', 4, 'a')], NOW), /già votato/);
 });
-test('peso per anzianità del votante', () => {
+test('peso per anzianità del votante (resta come utilità)', () => {
   assert.equal(R.ageWeight(NOW - 2 * D, NOW), 0.4);
   assert.equal(R.ageWeight(NOW - 10 * D, NOW), 0.7);
   assert.equal(R.ageWeight(NOW - 90 * D, NOW), 1);
   assert.equal(R.ageWeight(undefined, NOW), 0.6);
-  const many = (p) => Array.from({ length: 6 }, (_, i) => qa(p + i, 5, 'a'));
-  const nuovo = R.computeReputation({ target: 'Anna', qa: many('N'), now: NOW, sinceOf: () => NOW - D });
-  const vecchio = R.computeReputation({ target: 'Anna', qa: many('V'), now: NOW, sinceOf: () => NOW - 200 * D });
-  assert.ok(vecchio.score > nuovo.score);
 });
 test('non utile limita le stelle a 2', () => {
   assert.equal(R.effectiveStars({ stars: 5, helpful: false }), 2);
   assert.equal(R.effectiveStars({ stars: 5, helpful: true }), 5);
   assert.equal(R.effectiveStars({ stars: 9 }), 5);
 });
-test('interazioni: contano poco e saturano (anti-farming)', () => {
-  const poche = R.computeReputation({ target: 'Anna', interactions: { likes: 60, saves: 5, lpDonors: 2 }, now: NOW });
-  const tante = R.computeReputation({ target: 'Anna', interactions: { likes: 100000, saves: 100000, lpDonors: 100000 }, now: NOW });
-  assert.ok(poche.score > 3.5 && poche.score < tante.score);
-  assert.ok(tante.score < 4.2, String(tante.score));
-  assert.equal(tante.confidence, 'bassa');
-  assert.match(tante.basedOn, /interazioni/);
+test('interazioni: non entrano nel voto', () => {
+  const r = R.computeReputation({ target: 'Anna', interactions: { likes: 100000, saves: 100000, lpDonors: 100000 }, now: NOW });
+  assert.equal(r.score, null);
+  assert.equal(r.votes, 0);
   assert.equal(R.interactionPoints({ likes: 1e6, saves: 1e6, lpDonors: 1e6 }), 200 + 100 + 60);
+});
+test('media pesata: i voti ai corsi valgono 1/3 e tre voti contano come la loro media', () => {
+  const it = (from, stars) => ({ from, to: 'Anna', ref: 'seminar:1' + from, stars, ts: NOW - D });
+  // due voti alla persona (5 e 3) + tre voti ai corsi (5, 4, 3 → media 4 con peso totale 1): (5+3 + (5+4+3)/3) / (2 + 1) = 4
+  const r = R.computeReputation({ target: 'Anna', direct: { 5: 1, 3: 1 }, items: [it('a', 5), it('b', 4), it('c', 3)], now: NOW });
+  assert.equal(r.score, 4);
+  // solo corsi: la media dei corsi
+  const c = R.computeReputation({ target: 'Anna', items: [it('a', 5), it('b', 4), it('c', 3)], now: NOW });
+  assert.equal(c.score, 4);
 });
 test('scomposizione trasparente: quattro parti', () => {
   const r = R.computeReputation({ target: 'Anna', direct: { 4: 2 }, qa: [qa('Bea', 5, 'a')], interactions: { likes: 20, saves: 2, lpDonors: 1 }, now: NOW, sinceOf: () => NOW - 100 * D });

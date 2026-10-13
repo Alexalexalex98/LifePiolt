@@ -31,6 +31,9 @@ type DashMemory = {
 type State = {
   /** memoria della Dashboard: cosa interessa e cosa no */
   dash?: DashMemory;
+  /** voci di benessere spuntate oggi (acqua, passi, pause): si azzerano ogni giorno */
+  dayDone?: { day: string; ids: string[] };
+  markDayDone: (day: string, id: string, done?: boolean) => void;
   dashIrrelevant: (id: string, topic: string, sub?: string) => void;
   dashFollow: (topic: string) => void;
   dashSnooze: (id: string, until: number) => void;
@@ -76,6 +79,7 @@ export const useInterests = create<State>()(
     }),
     dashSnooze: (id, until) => set((s) => { const d = s.dash ?? { muted: [], snoozed: {}, feedback: {} }; return { dash: { ...d, snoozed: { ...d.snoozed, [id]: until } } }; }),
     dashUnmute: (key) => set((s) => { const d = s.dash ?? { muted: [], snoozed: {}, feedback: {} }; return { dash: { ...d, muted: d.muted.filter((k) => k !== key) } }; }),
+    markDayDone: (day, id, done = true) => set((s) => { const cur = s.dayDone?.day === day ? s.dayDone.ids : []; return { dayDone: { day, ids: done ? [...new Set([...cur, id])] : cur.filter((x) => x !== id) } }; }),
     dashResetMemory: () => set({ dash: { muted: [], snoozed: {}, feedback: {} } }),
     selected: [],
     areas: [],

@@ -138,30 +138,27 @@ export function computeReputation(i: RepInput): Reputation {
   let dn = 0, dsum = 0;
   for (const s of [1, 2, 3, 4, 5]) { const n = Math.max(0, Math.floor(d[s] ?? 0)); dn += n; dsum += n * s; }
   const qa = validQaVotes(i.target, i.qa ?? [], i.now);
-  let qw = 0, qsum = 0;
-  for (const v of qa) { const w = ageWeight(i.sinceOf?.(v.from), i.now) ; qw += w; qsum += w * effectiveStars(v); }
+  let qsum = 0;
+  for (const v of qa) qsum += effectiveStars(v);
   const items = validItemVotes(i.target, i.items ?? [], i.now);
   let isum = 0;
   for (const v of items) isum += Math.max(1, Math.min(5, Math.round(v.stars)));
   const pts = interactionPoints(i.interactions ?? { likes: 0, saves: 0, lpDonors: 0 });
-  const sat = pts / (pts + INTERACTION_HALF);
-  const iw = INTERACTION_MAX_WEIGHT * sat;
-  const iAvg = PRIOR + 1.5 * sat;
 
-  const wProfile = dn;
-  const wQa = QA_WEIGHT * qw;
-  const wItems = ITEM_WEIGHT * items.length;
-  const total = wProfile + wQa + wItems + iw;
+  // MEDIA PESATA SEMPLICE: ogni voto alla persona (e a una sua risposta) vale 1, ogni voto a un corso/seduta vale 1/3
+  // (ogni 3 voti ai corsi, la loro media vale come un voto). Nessun valore di partenza, nessuna interazione: il numero è una vera media.
+  const wProfile = dn, wQa = qa.length, wItems = ITEM_WEIGHT * items.length;
+  const total = wProfile + wQa + wItems;
   const votes = dn + qa.length + items.length;
-  const score = votes === 0 && pts === 0 ? null : r1((K * PRIOR + dsum + QA_WEIGHT * qsum + ITEM_WEIGHT * isum + iw * iAvg) / (K + total));
-  const confidence: Confidence = votes === 0 && pts > 0 ? 'bassa' : confidenceOf(votes);
+  const score = total === 0 ? null : r1((dsum + qsum + ITEM_WEIGHT * isum) / total);
+  const confidence: Confidence = confidenceOf(votes);
   const parts: Part[] = [
-    { id: 'profilo', label: 'Profilo', n: dn, avg: dn ? r1(dsum / dn) : null, weight: r1(wProfile), note: 'Voti di chi si è iscritto almeno una volta a un tuo seminario, servizio o LifeClub.' },
-    { id: 'risposte', label: 'Risposte', n: qa.length, avg: qw ? r1(qsum / qw) : null, weight: r1(wQa), note: 'Voti a singole risposte, dati solo da chi aveva fatto la domanda.' },
-    { id: 'corsi', label: 'Corsi e sedute', n: items.length, avg: items.length ? r1(isum / items.length) : null, weight: r1(wItems), note: 'Valutazioni a singoli seminari, sedute e corsi: contano un terzo di un voto al profilo.' },
-    { id: 'interazioni', label: 'Interazioni', n: pts, avg: pts ? r1(iAvg) : null, weight: r1(iw), note: 'Mi piace, salvataggi e LifePoint ricevuti da persone diverse: contano poco e hanno un tetto.' },
+    { id: 'profilo', label: 'Profilo', n: dn, avg: dn ? r1(dsum / dn) : null, weight: r1(wProfile), note: 'Voti alla persona: valgono 1 ciascuno.' },
+    { id: 'risposte', label: 'Risposte', n: qa.length, avg: qa.length ? r1(qsum / qa.length) : null, weight: r1(wQa), note: 'Voti a singole risposte, dati da chi aveva fatto la domanda: valgono 1 ciascuno.' },
+    { id: 'corsi', label: 'Corsi e sedute', n: items.length, avg: items.length ? r1(isum / items.length) : null, weight: r1(wItems), note: 'Voti a singoli seminari, sedute e LifeClub: ognuno vale un terzo (3 voti = 1 voto, con la loro media).' },
+    { id: 'interazioni', label: 'Interazioni', n: pts, avg: null, weight: 0, note: 'Mi piace, salvataggi e LifePoint ricevuti: sono solo un indicatore di attività, non entrano nel voto.' },
   ];
-  const basedOn = votes > 0 ? (votes === 1 ? 'Basato su 1 voto' : `Basato su ${votes} voti`) : pts > 0 ? 'Basato solo sulle interazioni' : 'Nessun voto ancora';
+  const basedOn = votes > 0 ? (votes === 1 ? 'Basato su 1 voto' : `Basato su ${votes} voti`) : 'Nessun voto ancora';
   return { score, votes, confidence, confidenceLabel: CONFIDENCE_LABEL[confidence], parts, basedOn };
 }
 

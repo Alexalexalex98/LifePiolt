@@ -155,7 +155,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
         <IconBtn icon="heart" size={27} color={liked ? LIKE : t.text} fill={liked ? LIKE : 'none'} label={liked ? 'Togli il mi piace' : 'Mi piace'} onPress={like} pop={liked} selected={liked} />
         <IconBtn icon="comment" label="Apri il post e i commenti" onPress={() => go('postPage', { key: likeKey })} />
         <IconBtn icon="send" label="Condividi" onPress={share} />
-        {!donated && post.author !== me && <IconBtn icon="coin" size={26} color={t.accent} label="Dona il LifePoint di oggi" onPress={() => openSheet('donate', { author: post.author })} />}
+        {!donated && post.author !== me && <IconBtn icon="coin" size={26} color={t.accent} label="Dona il LifePoint di oggi" onPress={() => openSheet('donate', { author: post.author, key: likeKey })} />}
         <View style={{ flex: 1 }} />
         <IconBtn icon="bookmark" color={t.text} fill={saved ? t.text : 'none'} label={saved ? 'Rimuovi dai salvati' : 'Salva'} selected={saved} onPress={() => { const on = useNet.getState().toggleSavePost(likeKey); toast(on ? 'Post salvato' : 'Rimosso dai salvati'); }} />
       </View>

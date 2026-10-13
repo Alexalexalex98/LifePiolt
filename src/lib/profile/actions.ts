@@ -6,6 +6,7 @@ import { profileOf, useJobs } from '@/store/jobs';
 import { useNet } from '@/store/network';
 import { useClub } from '@/store/club';
 import { useApp } from '@/store/app';
+import { demoItemReviews } from './itemReviews';
 import { lpReceived, receivedLPFor, postByKey } from '@/lib/network';
 import { can as canDo, type Action, type IdStatus } from './identity';
 import { canVoteProfile, computeReputation, itemRating, type ItemVote, profileVoteBlockReason, type Interactions, type Participation } from './reputation';
@@ -159,7 +160,14 @@ export function itemVotesFor(name: string): ItemVote[] {
   const mine = (useIdentity.getState().itemVotes ?? []).filter((v) => v.to === name);
   const club = useClub.getState();
   const fromClubs: ItemVote[] = Object.values(club.clubs).filter((c) => c.owner === name).flatMap((c) => Object.entries(club.ratings[c.id] ?? {}).map(([user, r]) => ({ from: user, to: name, ref: `club:${c.id}`, stars: r.stars, ts: r.ts })));
-  return [...mine, ...fromClubs];
+  // in demo anche le recensioni dimostrative contano: così media sulla scheda, nel dettaglio e nel profilo sono lo stesso numero
+  const demoVotes: ItemVote[] = [];
+  if (useApp.getState().demo) {
+    const net = useNet.getState();
+    const refs = [...net.seminars.filter((x) => x.host === name).map((x) => `seminar:${x.id}`), ...(net.providers.some((x) => x.name === name) ? [`service:${name}`] : []), ...Object.values(club.clubs).filter((c) => c.owner === name).map((c) => `club:${c.id}`)];
+    for (const ref of refs) for (const r of demoItemReviews(ref, Date.now())) if (!mine.some((v) => v.ref === ref && v.from === r.from) && !(ref.startsWith('club:') && club.ratings[ref.slice(5)]?.[r.from])) demoVotes.push({ from: r.from, to: name, ref, stars: r.stars, ts: r.ts, text: r.text });
+  }
+  return [...mine, ...fromClubs, ...demoVotes];
 }
 export const itemRatingOf = (ref: string): { avg: number | null; n: number } => {
   const owner = ref.startsWith('seminar:') ? useNet.getState().seminars.find((s) => String(s.id) === ref.slice(8))?.host : ref.startsWith('service:') ? ref.slice(8) : ref.startsWith('club:') ? useClub.getState().clubs[ref.slice(5)]?.owner : undefined;

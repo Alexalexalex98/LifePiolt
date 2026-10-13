@@ -83,6 +83,7 @@ export function LifePointsRow({ name, isMe = false }: { name: string; isMe?: boo
   useNet((s) => s.receivedPayments);
   const lp = lifePointsFor(name);
   const tile = (value: number, label: string, kind: 'lpTotal' | 'lpDaily') => {
+    const open = () => openSheet(kind, { name });
     const inner = (
       <>
         <Row gap={4} style={{ justifyContent: 'flex-start' }}><Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>{formatCHF(value)}</Text><LpTag size={14} /></Row>
@@ -90,8 +91,8 @@ export function LifePointsRow({ name, isMe = false }: { name: string; isMe?: boo
       </>
     );
     const st = { flex: 1, backgroundColor: t.card, borderRadius: 18, padding: 14, borderWidth: t.mode === 'light' ? 1 : 0, borderColor: t.border } as const;
-    // solo il proprietario del profilo può aprire il dettaglio
-    return isMe ? <Pressable onPress={() => openSheet(kind)} accessibilityRole="button" accessibilityLabel={`${label}: ${formatCHF(value)}`} style={st}>{inner}</Pressable> : <View style={st}>{inner}</View>;
+    // il totale lo apre solo il proprietario; chi ti ha donato i giornalieri lo vedono tutti
+    return (isMe || kind === 'lpDaily') ? <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`${label}: ${formatCHF(value)}`} style={st}>{inner}</Pressable> : <View style={st}>{inner}</View>;
   };
   return (
     <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -162,7 +163,7 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
           {isMe ? <Body small muted style={{ marginTop: 2 }}>{fmtDate(new Date(r.ts), { day: 'numeric', month: 'long', year: 'numeric' })}</Body> : null}
         </Item>
       ))}
-      {isMe && <Body small muted style={{ marginTop: 12 }}>Con pochi voti il valore resta vicino a 3,5 e si assesta man mano che arrivano. Votano il profilo le persone che hanno avuto una conversazione vera con te o che si sono iscritte a un tuo seminario, servizio o LifeClub; le risposte le vota chi aveva fatto la domanda. Chi ha partecipato a un tuo seminario o a una tua seduta può anche valutarlo: quella valutazione pesa un terzo di un voto al profilo. Mi piace, salvataggi e LifePoint contano poco e hanno un tetto. Gli altri vedono solo i voti e le recensioni.</Body>}
+      {isMe && <Body small muted style={{ marginTop: 12 }}>Il voto è la media di tutti i voti: ogni voto alla persona vale 1, ogni voto a un seminario, seduta o LifeClub vale un terzo (tre voti ai corsi contano come un voto, con la loro media). Mi piace e LifePoint ricevuti non entrano nel voto.</Body>}
       <Btn ghost style={{ marginTop: 12 }} title="Ho capito" onPress={onClose} />
     </>
   );

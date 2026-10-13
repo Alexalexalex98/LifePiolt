@@ -13,6 +13,7 @@ import { paidCancel, freeCancel } from '@/data/marketSeed';
 import { confirmAttendance, hasEnded } from '@/lib/enroll';
 import { ConflictSheet } from '@/lib/planBooking';
 import { fmtRange, nextDays, timeOptions, tsOf } from '@/lib/when';
+import { myWithdrawInfo } from '@/lib/lpActions';
 import { VOTE_BLOCK_MSG, lpReceived, cryptoRates, isVoteReasonRelevant, rateIdeaDetailed, textSimilarity } from '@/lib/network';
 import { castProfileVote, profileVoteBlock, skillStatesOf } from '@/lib/profile/actions';
 import { ReputationDetail, SkillChip } from '@/components/profile/ProfileParts';
@@ -92,7 +93,7 @@ function NetSheetInner() {
           <Body small muted style={{ textAlign: 'center' }}>Vuoi donare il tuo LifePoint giornaliero a <Text style={{ fontWeight: '700' }}>{p.author}</Text>?</Body>
           <Row style={{ marginTop: 14 }}>
             <Btn ghost style={{ flex: 1 }} title="Annulla" onPress={close} />
-            <Btn style={{ flex: 1 }} title="Dona" onPress={() => { const ok = net.donateDaily(p.author); close(); toast(ok ? 'Hai donato il tuo LifePoint di oggi a ' + p.author : 'Hai già donato il tuo LifePoint di oggi a ' + net.dailyPoint.to); }} />
+            <Btn style={{ flex: 1 }} title="Dona" onPress={() => { const ok = net.donateDaily(p.author, p.key, me); close(); toast(ok ? 'Hai donato il tuo LifePoint di oggi a ' + p.author : 'Hai già donato il tuo LifePoint di oggi a ' + net.dailyPoint.to); }} />
           </Row>
         </>
       );
@@ -205,26 +206,48 @@ function NetSheetInner() {
     case 'editProfile': { title = 'Modifica profilo'; body = <EditProfileView />; break; }
     case 'verification': { title = 'Verifica identità'; body = <VerificationView />; break; }
     case 'lpDaily': {
+      // lo vedono tutti: chi ha donato il LifePoint giornaliero a questa persona (e su quale post)
+      const who = p.name ?? me;
       title = 'LifePoints Giornalieri ricevuti';
-      const log = net.receivedLog ?? [];
-      body = log.length ? <>{log.map((l, i) => <Item key={i} last={i === log.length - 1} onPress={() => { close(); go('userProfile', { name: l.from }); }}><Row><UserAvatar name={l.from} size={30} /><Body style={{ flex: 1 }}>{l.from}</Body><Body small muted>{l.date}</Body></Row></Item>)}</> : <Body small muted>Nessuno te lo ha ancora donato.</Body>;
+      const log = who === me ? [...(net.donorsLog?.[me] ?? []), ...(net.receivedLog ?? [])] : (net.donorsLog?.[who] ?? []);
+      const distinct = new Set(log.map((l) => l.from)).size;
+      body = log.length ? (
+        <>
+          <Body small muted style={{ marginBottom: 8 }}>{tl('{0} donazioni da {1} persone diverse. Questo elenco lo vedono tutti.', log.length, distinct)}</Body>
+          {log.map((l, i) => (
+            <Item key={i} last={i === log.length - 1} onPress={() => { close(); if (l.ref) go('postPage', { key: l.ref }); else go('userProfile', { name: l.from }); }}>
+              <Row><UserAvatar name={l.from} size={32} /><View style={{ flex: 1, marginStart: 10 }}><Body bold>{l.from}</Body><Body small muted>{l.ref ? 'Su un post · tocca per vederlo' : 'Dal profilo'}</Body></View><Body small muted>{l.date}</Body></Row>
+            </Item>
+          ))}
+        </>
+      ) : <Body small muted>Ancora nessun LifePoint giornaliero ricevuto.</Body>;
       break;
     }
     case 'lpTotal': {
       title = 'LifePoints complessivi ricevuti';
       const rcv = lpReceived(me);
       const raised = rcv.ideas, daily = rcv.daily, pay = rcv.payments, total = rcv.total;
+      const wi = myWithdrawInfo();
       const conv = Math.min(net.lpConverted ?? 0, total);
+      const redeemable = wi.withdrawable;
+      const lockedAll = rcv.blocked + wi.locked;
       const row = (label: string, n: number, last?: boolean, bold?: boolean) => <Item last={last}><Row><Body bold={bold} style={{ flex: 1 }}>{label}</Body><Row gap={2}><Body bold>{formatCHF(n)}</Body><LpTag size={13} /></Row></Row></Item>;
       body = (
         <>
           {row('Giornalieri', daily)}
           {row('Contributi alle tue idee', raised)}
-          {rcv.ideasBlocked > 0 && <Body small muted style={{ marginBottom: 6 }}>{tl('Di cui {0} LP ancora bloccati: arrivano quando l\'idea raggiunge l\'obiettivo, altrimenti tornano a chi ha contribuito.', formatCHF(rcv.ideasBlocked))}</Body>}
-          {row('Quote, iscrizioni e servizi', pay, true)}
-          <Body bold style={{ marginTop: 14, marginBottom: 4 }}>Riconversione in denaro</Body>
-          {row('Riconvertiti', conv)}
-          {row('Non riconvertiti', total - conv, true)}
+          {rcv.ideasBlocked > 0 && <Body small muted style={{ marginBottom: 6 }}>{tl('Di cui {0} LP bloccati: si sbloccano quando l\'idea raggiunge l\'obiettivo, altrimenti tornano a chi ha contribuito.', formatCHF(rcv.ideasBlocked))}</Body>}
+          {row('Quote, iscrizioni e servizi', pay)}
+          {rcv.servicesBlocked > 0 && <Body small muted style={{ marginBottom: 6 }}>{tl('Di cui {0} LP bloccati: si sbloccano alla fine di ogni seminario o sessione.', formatCHF(rcv.servicesBlocked))}</Body>}
+          {row('Totale ricevuti', total, true, true)}
+          <Body bold style={{ marginTop: 14, marginBottom: 4 }}>Cosa puoi riscattare</Body>
+          {row('Riscattabili adesso', redeemable)}
+          {row('Bloccati: non ancora riscattabili', lockedAll)}
+          {rcv.ideasBlocked > 0 && <Body small muted>{tl('Idee: {0} LP, si sbloccano quando raggiungono l\'obiettivo', formatCHF(rcv.ideasBlocked))}</Body>}
+          {rcv.servicesBlocked > 0 && <Body small muted>{tl('Servizi e seminari: {0} LP, si sbloccano alla fine della sessione', formatCHF(rcv.servicesBlocked))}</Body>}
+          {wi.locked > 0 && <Body small muted>{tl('Giornalieri: {0} LP, si sbloccano a {1} donatori diversi', formatCHF(wi.locked), formatCHF(wi.required))}</Body>}
+          {lockedAll > 0 && <Body small muted style={{ marginBottom: 6, marginTop: 4 }}>Appena si sbloccano passano tra i riscattabili e li puoi ritirare.</Body>}
+          {row('Già riconvertiti in denaro', conv, true)}
         </>
       );
       break;

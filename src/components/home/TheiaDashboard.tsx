@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/T';
@@ -18,6 +18,10 @@ import { useLife, taskIsDone } from '@/store/life';
 import { useNet } from '@/store/network';
 import { holdings, useFin } from '@/store/finance';
 import { useApp } from '@/store/app';
+import { donationStreak } from '@/lib/network';
+import { rankMixed } from '@/lib/relevance';
+import { ActionsCard, DayPlanSheet, animateLayout, useDayPlan, type PlanData } from '@/components/home/DayPlan';
+import { totalUnread } from '@/store/chat';
 import { buildSections, type SectionRow, type Tone } from '@/lib/dashSections';
 import { translateText } from '@/i18n/core';
 import { showUndoToast, toast } from '@/store/toast';
@@ -182,6 +186,7 @@ export function TheiaDashboard({ dash, needs, name, onPlan, onMetric, moodToday 
   const prefs = useDashPrefs();
   const me = useApp((s) => s.account.name);
   const [custom, setCustom] = useState(false);
+  const [day, setDay] = useState(false);
   const events = useLife((s) => s.events), tasks = useLife((s) => s.tasks);
   const net = useNet();
   const fin = useFin();
@@ -202,6 +207,35 @@ export function TheiaDashboard({ dash, needs, name, onPlan, onMetric, moodToday 
     openTasks: open.length, urgentTasks: open.filter((x) => x.urgent).map((x) => x.t), dataDays: dash.dataDays, hasAnyData: dash.list.length > 0, top, moodToday,
   });
 
+  // contenuti che potrebbero interessarti: seminari, servizi, prodotti e post, ordinati dai tuoi interessi (stesso criterio del Marketplace)
+  const weights = useNet((s) => s.themeWeights);
+  const forYou = useMemo(() => {
+    type Pick = { id: string; kind: string; text: string; title: string; sub?: string; icon: string; page: string; params?: Record<string, string> };
+    const now = Date.now();
+    const items: Pick[] = [
+      ...net.seminars.filter((x) => x.host !== me && (x.startsAt ?? now + 1) > now).map((x): Pick => ({ id: `s${x.id}`, kind: 'Seminario', text: `${x.title} ${x.desc ?? ''}`, title: x.title, sub: `di ${x.host}`, icon: 'award', page: 'seminarPage', params: { id: String(x.id) } })),
+      ...net.providers.filter((x) => x.name !== me).map((x): Pick => ({ id: `p${x.name}`, kind: 'Servizio', text: `${x.role} ${x.name}`, title: x.role, sub: `con ${x.name}`, icon: 'users', page: 'servicePage', params: { name: x.name } })),
+      ...(net.products ?? []).filter((x) => x.shop !== me).map((x): Pick => ({ id: `pr${x.id}`, kind: 'Prodotto', text: `${x.name} ${x.desc}`, title: x.name, sub: `${x.price} LP · negozio di ${x.shop}`, icon: 'coin', page: 'shopPage', params: { name: x.shop } })),
+      ...net.posts.filter((x) => x.author !== me).slice(0, 12).map((x): Pick => ({ id: `po${x.id}`, kind: 'Post', text: x.text, title: x.text.length > 70 ? x.text.slice(0, 69) + '…' : x.text, sub: `di ${x.author}`, icon: 'comment', page: 'postPage', params: { key: `standalone:${x.id}` } })),
+    ];
+    const ranked = rankMixed(items, weights);
+    // al massimo uno per tipo, finché ci sono tipi diversi
+    const out: Pick[] = []; const kinds = new Set<string>();
+    for (const x of ranked) { if (out.length >= 3) break; if (!kinds.has(x.kind)) { out.push(x); kinds.add(x.kind); } }
+    for (const x of ranked) { if (out.length >= 3) break; if (!out.includes(x)) out.push(x); }
+    return out;
+  }, [net.seminars, net.providers, net.products, net.posts, weights, me]);
+
+  // il piano di oggi: impegni, task, benessere (acqua, passi, scale, pause), soldi e messaggi
+  const pd = useMemo<PlanData>(() => {
+    const sa = dash.byId['steps'], sl = dash.byId['sleep'], mi = dash.byId['mindful'];
+    const todayD = new Date(); const t0 = new Date(todayD.getFullYear(), todayD.getMonth(), todayD.getDate()).getTime();
+    const bills = fin.invoices.filter((x) => x.state !== 'paid' && x.dueDate).map((x) => ({ name: x.issuer, days: Math.round((new Date(x.dueDate + 'T00:00:00').getTime() - t0) / 86400000) })).filter((b) => b.days <= 5);
+    return { hour: todayD.getHours(), events: eventsToday, todayKey: today, steps: sa ? Math.round(sa.latest.v) : null, stepsGoal: 8000, sleepHours: sl ? sl.latest.v : null, mindfulMin: mi ? mi.latest.v : null, unreadMessages: totalUnread(me), bills };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dash.byId, fin.invoices, eventsToday.length, today, me]);
+  const { plan, complete } = useDayPlan(pd);
+
   const rows = useMemo(() => {
     const booked = net.seminars.filter((s) => s.host === me).map((s) => ({ title: s.title, count: (net.participants?.[`seminar:${s.id}`] ?? []).length, startsAt: s.startsAt ?? 0 }))
       .concat((net.participants?.[`service:${me}`] ? [{ title: 'Le tue sedute', count: net.participants[`service:${me}`].length, startsAt: Date.now() + 1 }] : []));
@@ -210,24 +244,53 @@ export function TheiaDashboard({ dash, needs, name, onPlan, onMetric, moodToday 
     const hold = holdings(fin.stocks);
     const value = hold.reduce((s, x) => s + x.shares * x.price, 0), invested = hold.reduce((s, x) => s + x.shares * x.avgCost, 0);
     const dayAbs = hold.reduce((s, x) => s + x.shares * x.changeAbs, 0);
-    return buildSections({
+    const built = buildSections({
       next: next ? { title: next.ev.title, time: next.ev.time, daysAhead: next.daysAhead } : null, booked, comments: { count: cc, last },
       invest: { hasHoldings: hold.length > 0, dayPct: value - dayAbs > 0 ? (dayAbs / (value - dayAbs)) * 100 : 0, totalPct: invested ? ((value - invested) / invested) * 100 : 0 },
-      scores: dash.scores, tasks: { open: open.length, urgent: open.filter((x) => x.urgent).length }, lifePoints: net.lifePoints, now: Date.now(),
+      streak: donationStreak(), scores: dash.scores, tasks: { open: open.length, urgent: open.filter((x) => x.urgent).length }, lifePoints: net.lifePoints, now: Date.now(),
     });
+    const rank: Record<string, number> = { bad: 0, warn: 1, good: 2, neutral: 3, none: 4 };
+    return built.map((r, k) => ({ r, k })).sort((a, b) => (rank[a.r.tone] - rank[b.r.tone]) || (a.k - b.k)).map((x) => x.r);
   }, [net.seminars, net.participants, net.posts, net.comments, net.lifePoints, fin.stocks, dash.scores, open.length, next, me]);
+
+  // quando una sezione cambia stato le righe si riassettano con un'animazione breve
+  const rowSig = rows.map((r) => r.id + r.tone).join('|');
+  const lastSig = useRef(rowSig);
+  useEffect(() => { if (lastSig.current !== rowSig) { animateLayout(); lastSig.current = rowSig; } }, [rowSig]);
 
   return (
     <>
-      <Card style={{ padding: 16 }}>
-        <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="sparkle" size={15} color={t.accent} /><Text style={{ color: t.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' }}>Il quadro di oggi</Text></Row>
+      <Card style={{ padding: 16 }} onPress={() => setDay(true)}>
+        <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="sparkle" size={15} color={t.accent} /><Text style={{ color: t.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', flex: 1 }}>Il quadro di oggi</Text><Text style={{ color: t.accent, fontSize: 12.5, fontWeight: '700' }}>Apri</Text></Row>
         <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', marginTop: 6 }}>{brief.headline}</Text>
         {brief.dataNote ? <Body small color={t.warn} style={{ marginTop: 6 }}>{brief.dataNote}</Body> : null}
       </Card>
 
-      <Card style={{ paddingVertical: 4, marginTop: 10 }}>
+      <ActionsCard plan={plan} onDone={complete} />
+
+      <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', marginTop: 18, marginBottom: 6 }}>Le tue sezioni</Text>
+      <Card style={{ paddingVertical: 4 }}>
         {rows.map((r, i) => <SectionLine key={r.id} r={r} last={i === rows.length - 1} />)}
       </Card>
+
+      {forYou.length > 0 && (
+        <>
+          <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', marginTop: 18, marginBottom: 6 }}>Per te</Text>
+          <Card style={{ paddingVertical: 4 }}>
+            {forYou.map((x, i) => (
+              <Pressable key={x.id} onPress={() => go(x.page, x.params)} accessibilityRole="button" accessibilityLabel={`${x.kind}: ${x.title}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: i === forYou.length - 1 ? 0 : 1, borderBottomColor: t.border }}>
+                <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: t.accent + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={x.icon} size={19} color={t.accent} stroke={2} /></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: t.muted, fontSize: 12, fontWeight: '600' }}>{x.kind}</Text>
+                  <Text style={{ color: t.text, fontSize: 15.5, fontWeight: '700' }} numberOfLines={2}>{x.title}</Text>
+                  {x.sub ? <Text style={{ color: t.muted, fontSize: 12.5 }} numberOfLines={1}>{x.sub}</Text> : null}
+                </View>
+                <Icon name="arrow-right" size={16} color={t.muted} />
+              </Pressable>
+            ))}
+          </Card>
+        </>
+      )}
 
       <Row style={{ marginTop: 18, marginBottom: 6 }}>
         <Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>Da guardare</Text>
@@ -237,6 +300,7 @@ export function TheiaDashboard({ dash, needs, name, onPlan, onMetric, moodToday 
         <Card><Body muted>{brief.state === 'pochi_dati' ? 'Non c\'è ancora abbastanza per segnalarti qualcosa con sicurezza.' : 'Niente di particolare: sei in linea con i tuoi obiettivi.'}</Body></Card>
       ) : top.map((c) => <InsightItem key={c.id} c={c} dash={dash} onMetric={onMetric} />)}
       <PersonalizeSheet visible={custom} onClose={() => setCustom(false)} />
+      <DayPlanSheet visible={day} onClose={() => setDay(false)} plan={plan} onDone={complete} name={name} />
     </>
   );
 }

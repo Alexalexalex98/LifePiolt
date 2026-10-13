@@ -1,0 +1,71 @@
+/**
+ * Aiuto e domande (modulo PURO): a cosa serve e come si usa ogni funzione, pensato per una persona singola.
+ * Theia risponde in locale cercando nelle voci (nessuna AI esterna, nessun dato esce dal telefono).
+ */
+export type HelpTopic = { id: string; area: string; title: string; what: string; how: string[]; page?: string; params?: Record<string, string>; tutorial?: string; keywords: string[] };
+
+const T = (id: string, area: string, title: string, what: string, how: string[], keywords: string[], page?: string, tutorial?: string): HelpTopic => ({ id, area, title, what, how, keywords, ...(page ? { page } : {}), ...(tutorial ? { tutorial } : {}) });
+
+export const HELP_TOPICS: HelpTopic[] = [
+  T('dashboard', 'Oggi', 'Dashboard', 'Ti dice a colpo d\'occhio come stai: prossima cosa in programma, prenotati ai tuoi seminari e servizi, commenti ai tuoi post, investimenti, salute, finanze, umore, task e LifePoints.', ['Ogni riga ha un pallino: verde bene, giallo attenzione, rosso da guardare', 'Tocca una riga per entrare nei dettagli', 'In «Da guardare» Theia segnala al massimo due cose; «Non mi interessa» le fa comparire meno', 'Punteggio e report sono in «Approfondimento»'], ['dashboard', 'home', 'schermata principale', 'colpo d occhio', 'situazione', 'quadro di oggi', 'pallino', 'approfondimento'], 'home', 'sec-home'),
+  T('umore', 'Oggi', 'Umore', 'Un tocco al giorno per segnare come ti senti: lo confronto con meteo, sonno, impegni e spese per capire cosa ti fa stare meglio.', ['Dalla Dashboard tocca come ti senti', 'In «Umore e contesto» vedi i fattori e l\'andamento'], ['umore', 'come mi sento', 'stress', 'stato d animo', 'emozioni'], 'mood', 'sec-mood'),
+  T('plan', 'Oggi', 'Piano e calendario', 'È la tua agenda: impegni, task, vacanze e promemoria in un posto solo.', ['Passa tra Mese, Settimana ed Elenco', 'Apri un giorno per aggiungere un impegno con titolo e ora', 'Se due impegni si sovrappongono te lo dico e scegli: tenerli o spostarne uno', 'Il colore di ogni impegno dipende da quanto è urgente'], ['piano', 'calendario', 'agenda', 'impegni', 'appuntamenti', 'riunione', 'evento', 'sovrapposizione', 'conflitto'], 'plan', 'sec-plan'),
+  T('vacanze', 'Oggi', 'Vacanze', 'Segni i giorni di vacanza e il Piano li considera pieni: ti avviso se fissi qualcosa in quei giorni.', ['In Piano tocca «Pianifica le vacanze»', 'Seleziona i giorni come su Booking; puoi aggiungerne quante vuoi'], ['vacanza', 'vacanze', 'ferie', 'viaggio', 'giorni liberi'], 'plan'),
+  T('task', 'Oggi', 'Task e concentrazione', 'Le cose da fare, con urgenze, scadenze e un timer per lavorarci senza distrazioni.', ['«+ Task» aggiunge una cosa da fare; se è grande viene scomposta in passi', 'Il triangolo la segna urgente e la mette per prima', 'Il tasto play apre la concentrazione: scegli solo il tempo totale, le pause (5 minuti ogni 25, 15 dopo 125) arrivano da sole'], ['task', 'cose da fare', 'to do', 'timer', 'pomodoro', 'pausa', 'concentrazione', 'urgente', 'scadenza'], 'lifetask', 'sec-lifetask'),
+  T('note', 'Oggi', 'Note', 'Appunti veloci che si ordinano da soli e si possono condividere in chat.', ['Scrivi una nota in pochi secondi', 'Cercala dalla ricerca o dalla chat con Theia'], ['nota', 'note', 'appunti', 'memo'], 'lifenotes', 'sec-lifenotes'),
+  T('theia', 'Theia', 'Theia, l\'assistente', 'Scrivi o detta come parleresti a una persona: Theia esegue comandi, risponde e analizza i tuoi dati sul telefono, senza AI esterna (meno energia, meno server da raffreddare).', ['«aggiungi dentista giovedì alle 10»', '«cosa devo fare adesso?»', 'Con la graffetta allega foto, file, posizione, contatti o note', 'Il microfono registra e invia sempre il tuo vocale'], ['theia', 'assistente', 'chat ai', 'intelligenza artificiale', 'comandi', 'vocale', 'microfono', 'dettare'], 'ai', 'sec-ai'),
+  T('salute', 'Salute', 'Salute', 'Sonno, passi, battito, peso e stress, registrati a mano o da Apple Health: valori ottimali, andamenti e previsioni.', ['Inserisci un dato o collega Apple Health e Apple Watch', 'Ogni indicatore ha un pallino di stato e il valore ottimale', 'Con pochi giorni di dati non faccio stime'], ['salute', 'sonno', 'passi', 'battito', 'apple health', 'apple watch', 'peso', 'allenamento', 'hrv'], 'lifehealth', 'sec-lifehealth'),
+  T('finanze', 'Finanze', 'Spese e budget', 'Spese, bollette e risparmi con un budget per categoria e un avviso quando sfori.', ['Aggiungi una spesa o importa l\'estratto conto da CSV', 'Imposta un budget per categoria', 'Carica una bolletta: leggo importo e scadenza e la metto nel Piano'], ['spese', 'budget', 'bolletta', 'bollette', 'fattura', 'risparmio', 'soldi', 'finanze', 'csv', 'estratto conto'], 'lifefinance', 'sec-lifefinance'),
+  T('fisco', 'Finanze', 'Dichiarazione fiscale', 'Controlla i documenti per la dichiarazione e contiene il rendiconto dei LifePoints.', ['Carica i documenti: ti dico cosa manca', 'Il rendiconto LifePoints si può condividere'], ['dichiarazione', 'fiscale', 'tasse', 'imposte', 'rendiconto', 'documenti fiscali'], 'taxdecl'),
+  T('investimenti', 'Finanze', 'Investimenti (Stock)', 'Segui titoli e portafoglio (simulazione), con grafici e movimenti; nella Dashboard vedi come vanno oggi.', ['In Stock aggiungi un titolo alla lista', 'Il portafoglio mostra guadagno e perdita', 'È una simulazione, non un consiglio finanziario'], ['investimenti', 'stock', 'azioni', 'titoli', 'portafoglio', 'borsa', 'etf'], 'stocks'),
+  T('viaggi', 'Viaggi', 'Viaggi', 'Pianifichi una vacanza sui tuoi giorni liberi e ottieni un itinerario giorno per giorno.', ['Scegli una destinazione e le date', 'Le date diventano vacanze nel Piano'], ['viaggio', 'viaggi', 'itinerario', 'destinazione', 'hotel', 'vacanza'], 'lifetravel', 'sec-lifetravel'),
+  T('drive', 'Viaggi', 'LifeDrive', 'File e foto in cartelle che si ordinano da sole; si possono condividere con le persone.', ['Carica un file: lo metto nella cartella giusta', 'Aprilo e tocca «Condividi con una persona»', 'Se qualcuno ti chiede dei documenti, li mandi uno alla volta da qui'], ['drive', 'file', 'foto', 'documenti', 'cartelle', 'condividere file', 'caricare'], 'lifedrive', 'sec-lifedrive'),
+  T('network', 'LifeNetwork', 'LifeNetwork', 'La parte sociale: post, marketplace, community, idee e lavoro. Puoi guardare senza pubblicare nulla.', ['Le sezioni sono in alto', 'Decidi tu cosa condividere e con chi'], ['network', 'lifenetwork', 'social', 'community', 'post', 'feed'], 'lifenetwork', 'sec-lifenetwork'),
+  T('idee', 'LifeNetwork', 'Idee', 'Chi ha un\'idea la pubblica e raccoglie LifePoints per realizzarla.', ['Contribuisci con quanti LifePoints vuoi', 'Se l\'obiettivo si raggiunge i LifePoints vanno a chi l\'ha pubblicata, altrimenti tornano a te (massimo 90 giorni)', 'Ogni contributo fa mostrare l\'idea a più persone'], ['idea', 'idee', 'contribuire', 'obiettivo', 'raccolta', 'crowdfunding'], 'lifenetwork'),
+  T('lp', 'LifePoints', 'LifePoints', 'Sono l\'unica moneta dentro l\'app: servono per pagare seminari, servizi, prodotti e contributi. Il denaro entra solo per essere convertito in LifePoints.', ['Il saldo è nella pagina LifePoints', 'Il rendiconto elenca guadagnati, usati e ritirati', 'Gli acquisti in app non hanno commissioni'], ['lifepoints', 'lifepoint', 'lp', 'moneta', 'saldo', 'punti'], 'lifepointsPage', 'sec-lifepointsPage'),
+  T('giornaliero', 'LifePoints', 'LifePoint giornaliero', 'Ogni giorno puoi regalare un LifePoint a una persona che stimi: è gratis e aiuta la sua reputazione.', ['Lo doni dal profilo o dal post di una persona', 'Più persone diverse te lo donano, più cresce la tua reputazione', 'La streak conta i giorni di fila'], ['giornaliero', 'donare', 'regalare', 'streak', 'lifepoint giornaliero'], 'lifepointsPage'),
+  T('ritiro', 'LifePoints', 'Ritirare i LifePoints', 'Puoi trasformare in denaro i LifePoints guadagnati; la commissione del 5% si applica solo al ritiro e viene spiegata prima.', ['I giornalieri si sbloccano quando li hanno donati almeno 1000 persone diverse', 'Quello che incassi con servizi, seminari e store è sempre ritirabile'], ['ritiro', 'ritirare', 'prelievo', 'commissione', 'convertire', 'denaro', 'incassare'], 'withdraw'),
+  T('pagamenti', 'LifePoints', 'Pagamenti e QR', 'Paghi e ti fanno pagare in LifePoints, anche tra persone: il tuo QR funziona da qualsiasi parte del mondo.', ['In «Ricevi» mostri il tuo QR', 'In «Invia» scansioni un QR o scegli una persona', 'Puoi anche inviare dalla chat con la persona'], ['pagamento', 'pagare', 'qr', 'codice qr', 'inviare', 'ricevere', 'scansionare'], 'payments', 'sec-payments'),
+  T('chat', 'Persone', 'Chat con le persone', 'Una chat con strumenti per organizzarsi davvero, non solo messaggi.', ['Condividi i tuoi impegni (solo occupato/libero, se vuoi) e proponi orari da votare', 'Task e note condivisi, sondaggi e inviti a eventi', 'Mandi file da LifeDrive, vocali e LifePoints', 'Un professionista può proporti un servizio da pagare e prenotare in chat; chi ti chiede documenti li ricevi uno alla volta'], ['chat', 'messaggi', 'whatsapp', 'gruppo', 'vocale', 'sondaggio', 'proporre orari', 'condividere agenda', 'inviare file'], 'messagesPage', 'sec-messagesPage'),
+  T('seminari', 'Persone', 'Seminari e servizi', 'Sessioni con altre persone: ti iscrivi, paghi in LifePoints e finisce nel tuo Piano.', ['I LifePoints restano bloccati fino alla fine e poi vanno a chi tiene la sessione', 'Puoi disdire fino a 24 ore prima e riprogrammare', 'Dopo aver partecipato lasci la tua recensione'], ['seminario', 'seminari', 'servizio', 'servizi', 'prenotare', 'iscrizione', 'webinar', 'psicologo', 'sessione', 'disdire'], 'lifenetwork', 'sec-lifenetwork'),
+  T('recensioni', 'Persone', 'Recensioni e voto', 'Ogni seminario, servizio o LifeClub ha le sue recensioni; il voto del profilo è la media di tutti i voti ricevuti.', ['Leggi le recensioni dalla scheda o dal dettaglio', 'Dopo aver partecipato lasci stelle e motivazione', 'Tocca il voto complessivo del profilo per vedere da dove arriva'], ['recensione', 'recensioni', 'voto', 'stelle', 'valutazione', 'valutare', 'media', 'voto complessivo'], 'userProfile'),
+  T('profilo', 'Persone', 'Il tuo profilo', 'Come ti vedono gli altri: foto, post, voto complessivo e LifePoints ricevuti. Si personalizza come su Instagram.', ['«Modifica profilo» cambia ogni sezione', 'Il segno di spunta indica l\'identità verificata', 'In «Altro» trovi tutto il resto'], ['profilo', 'foto profilo', 'bio', 'modifica profilo', 'identità', 'verifica', 'follower'], 'profile', 'sec-profile'),
+  T('pagina', 'Persone', 'Pagina di un\'attività', 'Chi ha un\'attività può creare la sua pagina: compare sul profilo di chi ci lavora, con la sua carica.', ['Dal profilo, «Attività collegata» > Crea', 'Scegli la tua carica e aggiungi le persone del team', 'Pubblica gli annunci dei prodotti con «Crea annuncio»'], ['attività', 'pagina', 'azienda', 'negozio', 'annuncio', 'prodotti', 'carica', 'titolare'], 'businessCreate'),
+  T('privacy', 'Impostazioni', 'Privacy e dati', 'Tutto resta sul tuo telefono; scegli cosa condividere e con chi.', ['In Impostazioni > Privacy decidi cosa condividere', 'Puoi esportare o cancellare i tuoi dati'], ['privacy', 'dati', 'condivisione', 'cancellare', 'backup', 'sicurezza'], 'settings'),
+  T('notifiche', 'Impostazioni', 'Notifiche', 'Promemoria degli impegni, orario di partenza e una notifica fissa con gli urgenti di oggi.', ['Impostazioni > Notifiche', '«Urgenti sempre in vista» tiene sempre visibili impegni e task urgenti'], ['notifiche', 'promemoria', 'avvisi', 'urgenti', 'notifica fissa', 'blocco schermo'], 'settings'),
+  T('lingua', 'Impostazioni', 'Lingua e aspetto', 'L\'app parla 12 lingue e ha tema chiaro e scuro.', ['Impostazioni > Lingua', 'Le traduzioni automatiche non sono riviste da madrelingua'], ['lingua', 'lingue', 'tema', 'scuro', 'chiaro', 'traduzione'], 'settings'),
+  T('tutorial', 'Impostazioni', 'Tutorial', 'Ogni sezione ha un tutorial che parte la prima volta; si può saltare e riprendere quando vuoi.', ['Impostazioni > Tutorial: Avvia o Rivedi', 'Puoi disattivare quelli automatici'], ['tutorial', 'guida', 'tour', 'come funziona', 'spiegazione'], 'settings'),
+];
+
+const STOP = new Set(['come', 'cosa', 'che', 'chi', 'dove', 'quando', 'perche', 'per', 'con', 'una', 'uno', 'un', 'il', 'lo', 'la', 'le', 'gli', 'i', 'di', 'da', 'in', 'su', 'a', 'e', 'o', 'si', 'mi', 'ti', 'posso', 'puoi', 'fare', 'fa', 'serve', 'usa', 'usare', 'uso', 'funziona', 'funzione', 'dell', 'della', 'del', 'dei', 'delle', 'nel', 'nella', 'al', 'alla', 'sono', 'ho', 'ha', 'ci', 'questo', 'questa']);
+export const normHelp = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+const stem = (w: string) => (w.length > 5 ? w.slice(0, 5) : w);
+
+/** Voci più pertinenti alla domanda (punteggio > 0), le migliori per prime. */
+export function searchHelp(q: string, max = 3): { topic: HelpTopic; score: number }[] {
+  const text = normHelp(q);
+  const words = text.split(' ').filter((w) => w && !STOP.has(w));
+  if (!words.length) return [];
+  const scored = HELP_TOPICS.map((topic) => {
+    let score = 0;
+    for (const k of topic.keywords) {
+      const nk = normHelp(k);
+      if (!nk) continue;
+      if (nk.includes(' ') ? text.includes(nk) : words.some((w) => w === nk)) score += nk.includes(' ') ? 4 : 3;
+      else if (!nk.includes(' ') && words.some((w) => stem(w) === stem(nk) && w.length > 3)) score += 1.5;
+    }
+    const title = normHelp(topic.title);
+    if (text.includes(title)) score += 4;
+    else if (words.some((w) => w.length > 3 && title.split(' ').some((tw) => stem(tw) === stem(w)))) score += 1;
+    return { topic, score };
+  }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
+  return scored.slice(0, max);
+}
+
+/** La domanda sembra una richiesta di aiuto sull'app (a cosa serve, come si usa, dove)? */
+export const looksLikeHelp = (q: string): boolean => /\b(come|cosa|che cos|a cosa|dove|aiuto|help|spiega|spiegami|serve|funziona|si usa|posso)\b/.test(normHelp(q));
+
+export function helpAnswer(t: HelpTopic): string {
+  return `${t.title}: ${t.what}\n\nCome si usa:\n${t.how.map((h) => `• ${h}`).join('\n')}`;
+}
+export const helpAreas = (): string[] => [...new Set(HELP_TOPICS.map((t) => t.area))];

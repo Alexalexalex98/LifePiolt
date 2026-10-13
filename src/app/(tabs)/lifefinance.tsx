@@ -5,6 +5,7 @@ import { Text } from '@/components/T';
 import { BillsSection } from '@/components/bills/BillsSection';
 import { CsvImportSheet } from '@/components/CsvImportSheet';
 import { FinanceOverview } from '@/components/FinanceOverview';
+import { MonthCalcCard } from '@/components/MonthCalcCard';
 import { confirmDelete } from '@/lib/confirm';
 import { FinTabs } from '@/components/FinTabs';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Pill, Progress, Row, Seg, Select, Sheet, Tag, Toggle, XBtn } from '@/components/ui';
@@ -93,6 +94,7 @@ export default function LifeFinance() {
       {tab === 'Panoramica' && (
         <>
           <FinanceOverview h={{ onAlerts: () => setAlertSheet(true), onBills: () => setTab('Bollette'), onEmergency: () => setTab('Budget'), onImport: () => setCsvSheet(true), onMovements: (i) => setHist(i) }} />
+      <MonthCalcCard />
       {alerts.length > 0 && (
         <Card accent={alerts.some((a) => a.level === 'over') ? t.danger : t.warn} onPress={() => setAlertSheet(true)}>
           <Row gap={10}>

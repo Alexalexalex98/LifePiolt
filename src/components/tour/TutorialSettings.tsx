@@ -39,7 +39,8 @@ export function TutorialSettings() {
           </Item>
         );
       })}
-      <Row style={{ marginTop: 10 }} gap={8}>
+      <Btn small style={{ marginTop: 10 }} icon="help" title="Aiuto e domande: chiedi a Theia" onPress={() => go('help')} />
+      <Row style={{ marginTop: 8 }} gap={8}>
         <Btn small ghost style={{ flex: 1 }} title="Rivedi il benvenuto" onPress={() => { go('home'); setTimeout(() => useTour.getState().start('welcome'), 500); }} />
         <Btn small ghost style={{ flex: 1 }} title="Rimetti tutti da vedere" onPress={() => { useTour.getState().resetTutorials(); toast('Tutorial rimessi da vedere'); }} />
       </Row>

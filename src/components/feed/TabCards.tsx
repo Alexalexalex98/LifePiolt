@@ -8,6 +8,7 @@ import { datedSlots, modeLabel } from '@/components/market';
 import { providerInfoFor, describeCommunity } from '@/data/marketSeed';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl, translateText } from '@/i18n/core';
+import { RatingChip, useItemAvg } from '@/components/ItemReviews';
 import { formatCHF } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
@@ -70,6 +71,7 @@ export function ServiceFeedCard({ p }: { p: Provider }) {
   const t = useTheme();
   const me = useApp((a) => a.account.name);
   const info = providerInfoFor(p);
+  const avg = useItemAvg(`service:${p.name}`);
   const slots = datedSlots(p);
   const enrollments = useNet((s) => s.enrollments);
   const open = enrollments.filter((e) => e.kind === 'service' && e.host === p.name && e.status === 'enrolled').length;
@@ -89,7 +91,7 @@ export function ServiceFeedCard({ p }: { p: Provider }) {
             <Text numberOfLines={2} style={{ color: g.sub, fontSize: 14 }}>{p.role}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.32)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}>
-            <Icon name="award" size={13} color="#ffd978" fill="#ffd978" stroke={1.4} /><Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '800' }}>{p.rating}</Text>
+            <Icon name="award" size={13} color="#ffd978" fill="#ffd978" stroke={1.4} /><Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '800' }}>{avg == null ? '–' : avg.toFixed(1)}</Text>
           </View>
         </LinearGradient>
         <View style={{ padding: 16, gap: 8 }}>
@@ -101,6 +103,7 @@ export function ServiceFeedCard({ p }: { p: Provider }) {
             <Icon name="calendar" size={15} color={t.muted} />
             <Text style={{ color: slots.length ? t.text : t.muted, fontSize: 13.5, flex: 1 }}>{slots.length ? tl('Prossimo slot: {0}', fmtDateTime(slots[0].ts)) : 'Nessuno slot libero al momento'}</Text>
           </View>
+          <RatingChip refKey={`service:${p.name}`} />
           {open > 0 && <Text style={{ color: t.accent, fontSize: 13.5, fontWeight: '700' }}>{open === 1 ? tl('Hai {0} prenotazione con {1}', open, p.name) : tl('Hai {0} prenotazioni con {1}', open, p.name)}</Text>}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, flexShrink: 1 }}>

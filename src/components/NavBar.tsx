@@ -96,7 +96,7 @@ export function MenuSheet() {
   const groups = [
     { label: 'Principali', items: [['ai', 'LifeChat'], ['home', sn.home], ['plan', sn.plan]] },
     { label: 'Le tue sezioni', items: [['lifehealth', 'LifeHealth'], ['lifenetwork', 'LifeNetwork'], ['lifefinance', 'LifeFinance'], ['lifenotes', 'LifeNotes'], ['lifetravel', 'LifeTravel'], ['lifedrive', 'LifeDrive'], ['lifetask', 'LifeTask'], ['lifepointsPage', 'LifePoints']] },
-    { label: 'Account', items: [['settings', sn.settings]] },
+    { label: 'Account', items: [['help', 'Aiuto e domande'], ['settings', sn.settings]] },
   ];
   return (
     <Sheet visible={open} title={translate(language, 'menuTitle')} onClose={() => setMenu(false)}>

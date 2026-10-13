@@ -47,7 +47,9 @@ type NetState = {
   reports: Record<string, number>;
   receivedDaily: Record<string, number>;
   /** chi mi ha donato il LifePoint giornaliero (solo sul mio telefono) */
-  receivedLog?: { from: string; date: string }[];
+  receivedLog?: { from: string; date: string; /** post su cui è stato donato (chiave) */ ref?: string }[];
+  /** chi ha donato il LifePoint giornaliero a ciascuna persona: lo vedono tutti */
+  donorsLog?: Record<string, { from: string; date: string; ref?: string }[]>;
   /** LifePoints che ho già riconvertito in denaro */
   lpConverted?: number;
   /** movimenti LifePoints con data, per il rendiconto fiscale */
@@ -121,7 +123,7 @@ type NetState = {
   likePost: (key: string) => void;
   toggleSavePost: (key: string) => boolean;
   addComment: (key: string, author: string, text: string) => void;
-  donateDaily: (to: string) => boolean;
+  donateDaily: (to: string, ref?: string, from?: string) => boolean;
   reset: () => void;
 };
 
@@ -239,10 +241,11 @@ export const useNet = create<NetState>()(
     signal: (text, strength) => set((s) => ({ themeWeights: addSignal(s.themeWeights, text, strength) })),
     bumpReach: (key, kind) => set((s) => ({ reach: { ...(s.reach ?? {}), [key]: (s.reach?.[key] ?? 0) + REACH_BOOST[kind] } })),
     addComment: (key, author, text) => set((s) => ({ comments: { ...s.comments, [key]: [...(s.comments[key] || []), { author, text }] }, reach: { ...(s.reach ?? {}), [key]: (s.reach?.[key] ?? 0) + REACH_BOOST.comment } })),
-    donateDaily: (to) => {
+    donateDaily: (to, ref, from) => {
       const today = weekdayShortDate();
       if (get().dailyPoint.lastGiven === today) return false;
-      set((s) => ({ reach: { ...(s.reach ?? {}), [`user:${to}`]: (s.reach?.[`user:${to}`] ?? 0) + REACH_BOOST.daily }, dailyPoint: { lastGiven: today, to }, dailyHistory: [{ date: today, to }, ...s.dailyHistory], receivedDaily: { ...s.receivedDaily, [to]: (s.receivedDaily[to] || 0) + 1 } }));
+      const rec = { from: from ?? 'Tu', date: today, ...(ref ? { ref } : {}) };
+      set((s) => ({ donorsLog: { ...(s.donorsLog ?? {}), [to]: [rec, ...((s.donorsLog ?? {})[to] ?? [])].slice(0, 200) }, reach: { ...(s.reach ?? {}), [`user:${to}`]: (s.reach?.[`user:${to}`] ?? 0) + REACH_BOOST.daily }, dailyPoint: { lastGiven: today, to }, dailyHistory: [{ date: today, to }, ...s.dailyHistory], receivedDaily: { ...s.receivedDaily, [to]: (s.receivedDaily[to] || 0) + 1 } }));
       return true;
     },
     reset: () => set({ ...blank() }),

@@ -166,7 +166,7 @@ export function PostCard({ post, likeKey }: { post: { author: string; text: stri
             <Icon name="ai" size={19} color={t.text} /><Body small muted>{commentCount}</Body>
           </Pressable>
         </Row>
-        {!donated && <Pressable onPress={() => openSheet('donate', { author: post.author })} accessibilityLabel={translateText("Dona il LifePoint di oggi")}><LpTag size={24} dark={false} /></Pressable>}
+        {!donated && <Pressable onPress={() => openSheet('donate', { author: post.author, key: likeKey })} accessibilityLabel={translateText("Dona il LifePoint di oggi")}><LpTag size={24} dark={false} /></Pressable>}
       </Row>
     </Card>
   );

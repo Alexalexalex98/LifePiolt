@@ -11,6 +11,7 @@ export type SectionInput = {
   scores: { salute: number | null; mente: number | null; finanza: number | null };
   tasks: { open: number; urgent: number };
   lifePoints: number;
+  /** giorni di fila in cui doni il tuo LifePoint */ streak: number;
   now: number;
 };
 
@@ -53,6 +54,6 @@ export function buildSections(i: SectionInput): SectionRow[] {
     ? { id: 'task', icon: 'tasks', title: 'Da fare', headline: plural(i.tasks.open, 'cosa da fare', 'cose da fare'), detail: i.tasks.urgent ? plural(i.tasks.urgent, 'urgente', 'urgenti') : 'Nessuna urgente', tone: i.tasks.urgent ? 'warn' : 'neutral', page: 'lifetask' }
     : { id: 'task', icon: 'tasks', title: 'Da fare', headline: 'Tutto fatto', detail: 'Nessun task aperto', tone: 'good', page: 'lifetask' });
 
-  rows.push({ id: 'lifepoints', icon: 'coin', title: 'I tuoi LifePoints', headline: `${i.lifePoints.toLocaleString('it-IT')} LP`, tone: 'neutral', page: 'lifepointsPage' });
+  rows.push({ id: 'lifepoints', icon: 'coin', title: 'I tuoi LifePoints', headline: `${i.lifePoints.toLocaleString('it-IT')} LP`, detail: i.streak > 0 ? `Streak: ${plural(i.streak, 'giorno', 'giorni')} di fila` : 'Dona il tuo LifePoint di oggi', tone: i.streak >= 7 ? 'good' : 'neutral', page: 'lifepointsPage' });
   return rows;
 }

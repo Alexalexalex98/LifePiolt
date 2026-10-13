@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/T';
+import { Icon } from '@/lib/icons';
 
 import { Stars } from '@/components/club/parts';
 import { Body, Btn, Card, H, Input, Row, Sheet } from '@/components/ui';
@@ -13,6 +14,38 @@ import { useClub } from '@/store/club';
 import { useIdentity } from '@/store/identity';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
+
+/** Recensioni di un contenuto (vere + dimostrative in demo): stessa fonte per elenco, media e chip sulle schede. */
+export function useItemReviews(refKey: string): ItemReview[] {
+  const demo = useApp((s) => s.demo);
+  const votes = useIdentity((s) => s.itemVotes);
+  const clubRatings = useClub((s) => (refKey.startsWith('club:') ? s.ratings[refKey.slice(5)] : undefined));
+  return useMemo(() => {
+    const real: ItemReview[] = refKey.startsWith('club:')
+      ? Object.entries(clubRatings ?? {}).map(([from, r]) => ({ from, stars: r.stars, text: r.text, ts: r.ts }))
+      : (votes ?? []).filter((v) => v.ref === refKey).map((v) => ({ from: v.from, stars: v.stars, text: v.text, ts: v.ts }));
+    return mergeReviews(real, demo ? demoItemReviews(refKey, Date.now()) : []);
+  }, [refKey, votes, clubRatings, demo]);
+}
+
+/** Media delle recensioni di un contenuto (la stessa di dentro la pagina) o null se non ce ne sono. */
+export function useItemAvg(refKey: string): number | null {
+  return averageOf(useItemReviews(refKey));
+}
+
+/** Piccola riga «4,5 · 4 recensioni» per le schede (anche fuori dalla pagina di dettaglio). */
+export function RatingChip({ refKey, light }: { refKey: string; light?: boolean }) {
+  const t = useTheme();
+  const list = useItemReviews(refKey);
+  const avg = averageOf(list);
+  const c = light ? '#ffffffcc' : t.muted;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }} accessibilityLabel={avg ? `${avg.toFixed(1)} su 5, ${list.length} recensioni` : 'Nessuna recensione'}>
+      <Icon name="award" size={14} color={avg ? t.accent : c} fill={avg ? t.accent : 'none'} />
+      <Text style={{ color: c, fontSize: 13 }}>{avg ? `${avg.toFixed(1).replace('.', ',')} · ${list.length} ${list.length === 1 ? 'recensione' : 'recensioni'}` : 'Nessuna recensione'}</Text>
+    </View>
+  );
+}
 
 /** Recensioni di un seminario, una seduta o un LifeClub: media, elenco con motivazioni e, se hai partecipato, il tuo voto. */
 export function ItemReviews({ refKey, title = 'Recensioni', readOnly }: { refKey: string; title?: string; /** solo elenco: il voto si dà altrove */ readOnly?: boolean }) {
@@ -27,12 +60,7 @@ export function ItemReviews({ refKey, title = 'Recensioni', readOnly }: { refKey
   const [stars, setStars] = useState(5);
   const [text, setText] = useState('');
 
-  const reviews: ItemReview[] = useMemo(() => {
-    const real: ItemReview[] = refKey.startsWith('club:')
-      ? Object.entries(clubRatings ?? {}).map(([from, r]) => ({ from, stars: r.stars, text: r.text, ts: r.ts }))
-      : (votes ?? []).filter((v) => v.ref === refKey).map((v) => ({ from: v.from, stars: v.stars, text: v.text, ts: v.ts }));
-    return mergeReviews(real, demo ? demoItemReviews(refKey, Date.now()) : []);
-  }, [refKey, votes, clubRatings, demo]);
+  const reviews = useItemReviews(refKey);
   const avg = averageOf(reviews);
   const isClub = refKey.startsWith('club:');
   const block = isClub ? null : itemRateBlock(me, refKey);

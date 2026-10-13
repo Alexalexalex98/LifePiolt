@@ -172,7 +172,7 @@ export function seedMarketplace(me: string) {
   if (mySem) useNet.setState({ participants: { [`seminar:${mySem.id}`]: [['Giulia Moretti', -6, '18:20'], ['Marco Valli', -5, '09:05'], ['Elena Serra', -4, '21:40'], ['Tommaso V.', -2, '12:10'], ['Federica L.', -1, '16:30']].map(([name, d, h]) => ({ name: name as string, paid: mySem.price, paidAt: at(d as number, h as string) })) } });
   // prenotazioni al mio servizio e contributi alle mie idee (solo demo): li vede chi li ha creati
   const prev = useNet.getState().participants ?? {};
-  const svc = ['Giulia Moretti', 'Marco Valli', 'Luca Bernasconi'].map((name, i) => ({ name, paid: 40, paidAt: at(-(i + 1) * 2, '17:00') }));
+  const svc = ['Giulia Moretti', 'Marco Valli', 'Luca Bernasconi'].map((name, i) => ({ name, paid: 40, paidAt: at(-(i + 1) * 2, '17:00'), startsAt: at(i + 1, '18:30'), durationMin: 45 }));
   const ideaParts: Record<string, { name: string; paid: number; paidAt: number }[]> = {};
   for (const idea of useNet.getState().ideas.filter((x) => x.author === me)) {
     const names = ['Elena Serra', 'Tommaso V.', 'Federica L.', 'Nadia P.', 'Sophie K.'];

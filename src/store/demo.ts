@@ -1,3 +1,4 @@
+import { buildRef } from '@/lib/notifyLinks';
 import { sampleProducts } from '@/lib/shopSeed';
 import seed from '@/data/network-seed.json';
 import { seedMarketplace } from '@/data/marketSeed';
@@ -21,7 +22,8 @@ import { useAssistant } from './assistant';
 import { usePrefs } from './prefs';
 
 /** Notifiche demo variegate (servizio, seminario, messaggio, lavoro, promemoria, sociale, LifePoints, finanza) per vedere le categorie. */
-function demoExtraNotifs(me: string) {
+function demoExtraNotifs(me: string, myPosts: string[] = []) {
+  const pk = (i: number) => (myPosts.length ? { ref: buildRef('post', myPosts[i % myPosts.length]) } : {});
   const d = shortDate(0);
   const n = (id: number, type: string, text: string, extra: Record<string, unknown> = {}, read = false, urgent = false) => ({ id, type, text, urgent, read, date: d, ...extra });
   return [
@@ -35,7 +37,9 @@ function demoExtraNotifs(me: string) {
     n(9008, 'like', 'Omar K. ha messo mi piace al tuo post sulle vacanze'),
     n(9009, 'like', 'Ines L. ha messo mi piace al tuo post sulla pasta al limone'),
     n(9010, 'comment', 'Luca Ferri ha commentato il tuo post sulle vacanze'),
-    n(9011, 'donation', 'Anna C. ti ha donato il suo LifePoint di oggi'),
+    n(9011, 'donation', 'Anna C. ti ha donato il suo LifePoint di oggi sul tuo post', pk(0)),
+    n(9013, 'donation', 'Marta S. ti ha donato il suo LifePoint di oggi sul tuo post', pk(1)),
+    n(9014, 'donation', 'Omar K. ti ha donato il suo LifePoint di oggi sul tuo post', pk(2)),
     n(9012, 'finance', 'La bolletta della luce scade tra 3 giorni'),
   ];
 }
@@ -155,20 +159,21 @@ export function applyDemo(me: string, email = '') {
   { const j = seedJobs(me); useJobs.setState({ jobs: j.jobs, applications: j.applications, practice: j.practice, practicals: j.practicals }); useNet.setState((st) => ({ votes: { ...st.votes, ...j.votes } })); }
   const months = demoMonths();
   useFin.setState({
-    months, insights: demoInsights(), savingsPct: 6.5, bills: demoBills(), invoices: demoInvoices(todayIso(), uid), cash: 5000, stocks: defaultWatchlist(true),
+    months, insights: demoInsights(), savingsPct: Math.round((Math.max(0, months.slice(0, 3).reduce((a, m) => a + m.movements.reduce((s, x) => s + x.amount, 0), 0) / Math.max(1, months.length)) / 3500) * 1000) / 10, bills: demoBills(), invoices: demoInvoices(todayIso(), uid), cash: 1500, stocks: defaultWatchlist(true),
     tax: { married: false, children: false, banks: ['UBS'], docs: {} },
-    budget: defaultBudget(6500, true, defaultCategories, months),
+    budget: defaultBudget(3500, true, defaultCategories, months),
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const n = personalise(seed as any, me);
   useNet.setState({
     lifePoints: 2840, ledger: n.ledger, identity: { verified: true, country: 'Svizzera', birthYear: 1998 }, following: n.following, suggested: n.suggested,
     posts: n.posts, communities: n.communities, providers: n.providers, ideas: n.ideas, seminars: n.seminars,
-    notifications: [...demoExtraNotifs(me), ...n.notifications], dailyHistory: n.dailyHistory,
+    notifications: [...demoExtraNotifs(me, (n.posts as { id: number; author: string }[]).filter((x) => x.author === me).map((x) => `standalone:${x.id}`)), ...n.notifications], dailyHistory: n.dailyHistory,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cards: n.cards.map((c: any) => ({ ...c, holder: me })), defaultCard: n.cards[0]?.id ?? null,
     receivedDaily: { [me]: 14 }, lpConverted: 300, lpMoves: demoLpMoves(),
-    receivedLog: Array.from({ length: 14 }, (_, i) => ({ from: ([...n.suggested, 'Marco Valli', 'Giulia Moretti', 'Elena Sanz'] as string[]).filter((x) => x !== me)[i % (n.suggested.length + 3 - 1)], date: `${i + 1} giorni fa` })),
+    donorsLog: { 'Anna Conti': ['Marco Valli', 'Giulia Moretti', 'Elena Sanz', 'Luca Ferri', 'Marta S.'].map((from, i) => ({ from, date: `${i + 1} giorni fa` })), 'Marco Valli': ['Anna C.', 'Omar K.', 'Ines L.'].map((from, i) => ({ from, date: `${i + 2} giorni fa` })) },
+    receivedLog: Array.from({ length: 14 }, (_, i) => ({ ...((n.posts as { id: number; author: string }[]).filter((x) => x.author === me)[i % 3] ? { ref: `standalone:${(n.posts as { id: number; author: string }[]).filter((x) => x.author === me)[i % 3].id}` } : {}), from: ([...n.suggested, 'Marco Valli', 'Giulia Moretti', 'Elena Sanz'] as string[]).filter((x) => x !== me)[i % (n.suggested.length + 3 - 1)], date: `${i + 1} giorni fa` })),
     bio: 'Impiegato a Lugano · corro, cucino e imparo lo spagnolo', myCard: { ...n.myCard, email: email || n.myCard.email },
   });
   // chi offre servizi, seminari o un LifeClub ha già qualche voto (e quindi recensioni di esempio)

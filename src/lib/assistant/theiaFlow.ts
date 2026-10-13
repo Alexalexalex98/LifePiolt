@@ -1,3 +1,4 @@
+import { helpAnswer, looksLikeHelp, searchHelp } from '@/lib/helpKb';
 import { routeRequest, type RouteResult } from '@/lib/aiRouter';
 import { needsAnalysis, textPayload, type Att } from '@/lib/attachments';
 import { t } from '@/i18n/core';
@@ -95,6 +96,14 @@ export async function sendTheia(i: SendInput): Promise<void> {
   if (toEngine != null) {
     const handled = await runLocal(toEngine);
     if (handled) return;
+  }
+  // domande su come funziona l'app: rispondo dalla guida (a cosa serve e come si usa), senza AI esterna
+  if (looksLikeHelp(text)) {
+    const hit = searchHelp(text, 2)[0];
+    if (hit && hit.score >= 3) {
+      pushAi(`${helpAnswer(hit.topic)}\n\n${t('Altri dettagli in «Aiuto e domande», dal menu.')}`);
+      return;
+    }
   }
   clarify(text, u.lang, i.source, [text, payload].filter(Boolean).join('\n\n'));
 }

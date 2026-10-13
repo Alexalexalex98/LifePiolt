@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildSections } from '../src/lib/dashSections.ts';
 
-const base = { next: null, booked: [], comments: { count: 0 }, invest: { hasHoldings: false, dayPct: 0, totalPct: 0 }, scores: { salute: null, mente: null, finanza: null }, tasks: { open: 0, urgent: 0 }, lifePoints: 2840, now: 1000 };
+const base = { next: null, booked: [], comments: { count: 0 }, invest: { hasHoldings: false, dayPct: 0, totalPct: 0 }, scores: { salute: null, mente: null, finanza: null }, tasks: { open: 0, urgent: 0 }, lifePoints: 2840, streak: 14, now: 1000 };
 const by = (rows, id) => rows.find((r) => r.id === id);
 
 test('ordine delle sezioni scelto dall\'utente', () => {

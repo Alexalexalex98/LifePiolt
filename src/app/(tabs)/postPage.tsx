@@ -104,7 +104,7 @@ export default function PostPage() {
           <IconBtn icon="heart" size={27} color={liked ? LIKE : t.text} fill={liked ? LIKE : 'none'} label={liked ? 'Togli il mi piace' : 'Mi piace'} onPress={() => net.likePost(key)} pop={liked} selected={liked} />
           <IconBtn icon="comment" label="Scrivi un commento…" onPress={() => input.current?.focus?.()} />
           <IconBtn icon="send" label="Condividi" onPress={share} />
-          {!donated && post.author !== me && <IconBtn icon="coin" size={26} color={t.accent} label="Dona il LifePoint di oggi" onPress={() => openSheet('donate', { author: post.author })} />}
+          {!donated && post.author !== me && <IconBtn icon="coin" size={26} color={t.accent} label="Dona il LifePoint di oggi" onPress={() => openSheet('donate', { author: post.author, key })} />}
           <View style={{ flex: 1 }} />
           <IconBtn icon="bookmark" fill={saved ? t.text : 'none'} label={saved ? 'Rimuovi dai salvati' : 'Salva'} selected={saved} onPress={() => { const on = net.toggleSavePost(key); toast(on ? 'Post salvato' : 'Rimosso dai salvati'); }} />
         </View>

@@ -12,7 +12,7 @@ export const canCancel = (startsAt: number, now: number): boolean => startsAt - 
 export const hoursToCancelDeadline = (startsAt: number, now: number): number => Math.round(((startsAt - CANCEL_HOURS * H - now) / H) * 10) / 10;
 export const canReschedule = (e: { status: string; startsAt: number }, now: number): boolean => e.status === 'enrolled' && e.startsAt > now;
 
-export type Participant = { name: string; paid: number; paidAt: number; /** presente / assente dopo la fine (solo informativo per chi organizza) */ attended?: boolean };
+export type Participant = { name: string; paid: number; paidAt: number; /** inizio della sessione: finché non è finita i LifePoints sono bloccati */ startsAt?: number; durationMin?: number; /** presente / assente dopo la fine (solo informativo per chi organizza) */ attended?: boolean };
 export type ParticipantSummary = { count: number; paidCount: number; totalPaid: number; free: number };
 export function summarizeParticipants(list: Participant[]): ParticipantSummary {
   const paid = list.filter((p) => p.paid > 0);

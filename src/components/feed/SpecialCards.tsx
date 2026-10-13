@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { fmtDate } from '@/i18n/format';
 import { t as tl, translateText } from '@/i18n/core';
 import { seminarFacts, useNow } from '@/lib/enroll';
+import { RatingChip } from '@/components/ItemReviews';
 import { formatCHF } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
@@ -139,6 +140,7 @@ export function SeminarFeedCard({ s, inset = true }: { s: Seminar; inset?: boole
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icon name="clock" size={15} color={t.muted} /><Text style={{ color: t.text, fontSize: 13.5 }}>{timeLine}</Text></View>
             {f.seatsLeft !== null && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icon name="users" size={15} color={full ? t.danger : t.muted} /><Text style={{ color: full ? t.danger : t.text, fontSize: 13.5 }}>{full ? 'Posti esauriti' : tl('{0} posti liberi su {1}', f.seatsLeft, f.seats)}</Text></View>}
           </View>
+          <View style={{ marginTop: 2 }}><RatingChip refKey={`seminar:${s.id}`} /></View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 8 }}>
             {s.price ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={{ color: t.text, fontSize: 19, fontWeight: '800' }}>{formatCHF(s.price)}</Text><LpTag size={15} /></View>

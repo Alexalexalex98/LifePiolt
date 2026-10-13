@@ -89,12 +89,15 @@ export const TUTORIALS: SectionTutorial[] = [
     ],
   },
   {
-    id: 'sec-lifenetwork', page: 'lifenetwork', title: 'LifeNetwork', icon: 'lifenetwork', short: 'Post, marketplace, community, idee e lavoro', auto: true,
+    id: 'sec-lifenetwork', page: 'lifenetwork', title: 'LifeNetwork', icon: 'lifenetwork', short: 'Il lato sociale: idee, LifePoints, chat, seminari e profilo', auto: true,
     steps: [
-      s('a', 'Le sezioni', 'Home, Post, Marketplace, Community, Idee e Lavoro. Puoi guardare senza pubblicare nulla: tu decidi cosa condividere.'),
-      s('b', 'Marketplace', 'Seminari, servizi e prodotti scelti in base ai tuoi interessi. Si paga solo in LifePoints, alla prenotazione: restano bloccati fino alla fine e poi vanno a chi li ha offerti.'),
-      s('c', 'Recensioni', 'Su ogni seminario, servizio o LifeClub leggi le recensioni e, dopo aver partecipato, lasci la tua con stelle e motivazione.'),
-      s('d', 'Pubblica e crea', 'Pubblica post, idee che altri possono sostenere con LifePoints, seminari e servizi. Le attività creano la loro pagina e gli annunci dei prodotti.'),
+      { ...s('a', 'Benvenuto in LifeNetwork', 'È la parte sociale di LifePilot. Ti faccio vedere le cose vere, una alla volta: puoi guardare tutto senza pubblicare niente.', ['Post, Marketplace, Community, Idee e Lavoro sono le sezioni in alto', 'Tu decidi cosa condividere e con chi']) },
+      { ...s('b', 'Un\'idea e come si sostiene', 'Questa è un\'idea: chi la pubblica spiega cosa vuole creare e quanti LifePoints servono. Puoi contribuire con quanti LifePoints vuoi.', ['Se si raggiunge l\'obiettivo, i LifePoints vanno a chi l\'ha pubblicata', 'Se non lo raggiunge entro la scadenza, tornano a te', 'Puoi pubblicare anche tu la tua idea']), go: { page: 'ideaProfile', params: { id: '$firstIdea' } } },
+      { ...s('c', 'Il LifePoint giornaliero', 'Ogni giorno puoi regalare un LifePoint a una persona che stimi. È gratis, non toglie nulla agli altri e premia chi è utile alla community.', ['Più persone diverse te lo donano, più cresce la tua reputazione', 'La streak conta i giorni di fila in cui doni', 'Qui vedi saldo, giornalieri e rendiconto']), go: { page: 'lifepointsPage' } },
+      { ...s('d', 'La chat con le persone', 'Non è una chat qualunque: ha strumenti per organizzarsi davvero.', ['Condividi i tuoi impegni (solo «occupato/libero», se vuoi) e proponi orari da votare', 'Task e note condivisi, sondaggi e inviti a eventi', 'Mandi file da LifeDrive e vocali, e invii LifePoints a chi vuoi', 'Chi ti propone un servizio può farti pagare e prenotare direttamente in chat']), go: { page: 'messagesPage' } },
+      { ...s('e', 'Seminari e servizi', 'Qui trovi sessioni con altre persone: ti iscrivi, paghi in LifePoints e finisce nel tuo Piano.', ['I LifePoints restano bloccati fino alla fine e poi vanno a chi tiene la sessione', 'Puoi disdire fino a 24 ore prima', 'Dopo aver partecipato lasci la tua recensione, che anche gli altri leggono']), go: { page: 'seminarPage', params: { id: '$firstSeminar' } } },
+      { ...s('f', 'Il tuo profilo', 'È come ti vedono gli altri: foto, post, voto complessivo e LifePoints ricevuti. Il voto nasce da chi ha avuto a che fare davvero con te.', ['Tocca il voto per vedere da dove arriva', 'Puoi cambiare ogni sezione con «Modifica profilo»', 'Il segno di spunta indica l\'identità verificata']), go: { page: 'userProfile', params: { name: '$me' } } },
+      { ...s('g', 'Pagare e farsi pagare', 'Tutto in LifePoints, anche tra persone: il tuo QR personale funziona da qualsiasi parte del mondo.', ['Scansioni un QR o scegli una persona e invii', 'Vedi tutti i movimenti']), go: { page: 'payments' } },
     ],
   },
   {

@@ -4,6 +4,7 @@ import { Text } from '@/components/T';
 
 import { Badge, LpTag, MediaBlock, openSheet } from '@/components/network';
 import { providerInfoFor } from '@/data/marketSeed';
+import { RatingChip, useItemAvg } from '@/components/ItemReviews';
 import { Body, Btn, Card, Chev, IL, Item, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF } from '@/lib/format';
@@ -66,6 +67,7 @@ export function SeminarCard({ s }: { s: Seminar }) {
         <IL icon={s.mode === 'presenza' ? 'location' : 'video'} small>{modeLabel(s.mode)}</IL>
         {f.seatsLeft !== null && <IL icon="users" small muted>{f.seatsLeft === 0 ? 'Posti esauriti' : `${f.seatsLeft} posti liberi su ${f.seats}`}</IL>}
       </View>
+      <View style={{ marginTop: 8 }}><RatingChip refKey={`seminar:${s.id}`} /></View>
       <Row style={{ marginTop: 10 }}>
         <Price n={s.price} />
         {s.host === me && !s.promoted ? <Btn small ghost title="Promuovi con LifePoints" onPress={() => openSheet('promoteSeminar', { id: s.id })} /> : <Row gap={4}><Body small muted>Dettagli</Body><Chev /></Row>}
@@ -82,6 +84,7 @@ export function datedSlots(p: Provider) {
 export function ServiceCard({ p }: { p: Provider }) {
   const me = useApp((a) => a.account.name);
   const info = providerInfoFor(p);
+  const avg = useItemAvg(`service:${p.name}`);
   const slots = datedSlots(p);
   const enrollments = useNet((s) => s.enrollments);
   const open = enrollments.filter((e) => e.kind === 'service' && e.host === p.name && e.status === 'enrolled').length;
@@ -92,7 +95,7 @@ export function ServiceCard({ p }: { p: Provider }) {
       <Row>
         <View style={{ flex: 1 }}>
           <Body bold>{p.name}</Body>
-          <Body small muted>{p.role} · {p.rating}/5 · {slots.length} slot liberi</Body>
+          <Body small muted>{p.role} · {avg == null ? 'nessuna recensione' : `${avg.toFixed(1)}/5`} · {slots.length} slot liberi</Body>
         </View>
         <Badge label={p.tag} color="#8fa4ff" />
       </Row>
@@ -102,6 +105,7 @@ export function ServiceCard({ p }: { p: Provider }) {
         <IL icon="calendar" small muted>{slots.length ? `Prossimo slot: ${fmtDateTime(slots[0].ts)}` : 'Nessuno slot libero al momento'}</IL>
         {open > 0 && <IL icon="check" small color="#8fa4ff">Hai {open} {open === 1 ? 'prenotazione' : 'prenotazioni'} con {p.name}</IL>}
       </View>
+      <View style={{ marginTop: 8 }}><RatingChip refKey={`service:${p.name}`} /></View>
       <Row style={{ marginTop: 10 }}>
         <Price n={p.price} per="/ sessione" />
         <Btn small ghost={p.name === me} disabled={!slots.length && p.name !== me} title={p.name === me ? 'Il tuo servizio' : 'Vedi e prenota'} onPress={() => go('servicePage', { name: p.name })} />
