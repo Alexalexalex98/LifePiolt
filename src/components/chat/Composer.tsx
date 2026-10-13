@@ -11,7 +11,7 @@ import { uid } from '@/lib/format';
 import { fmtDur, previewOf, type ChatMessage, type Poll } from '@/store/chat';
 import { toast } from '@/store/toast';
 import { senderColor, useChatColors } from './parts';
-import { AgendaSheet, DriveSheet, EventSheet, OfferSheet, DocReqSheet, NoteSheet, SlotsSheet, TasksSheet, type SharePayload } from './ShareSheets';
+import { AgendaSheet, CallSheet, type CallPlan, DriveSheet, EventSheet, OfferSheet, DocReqSheet, NoteSheet, SlotsSheet, TasksSheet, type SharePayload } from './ShareSheets';
 import { Icon } from '@/lib/icons';
 import { canShare, logOutflow } from '@/lib/privacyGateApp';
 import { useNet } from '@/store/network';
@@ -44,6 +44,7 @@ type Props = {
   onSendVoice: (uri: string, durationMs: number, waveform: number[]) => void;
   onSendPoll: (p: Poll) => void;
   onSendShare: (m: SharePayload) => void;
+  onScheduleCall?: (p: CallPlan) => void;
   onCancelContext: () => void;
 };
 
@@ -51,7 +52,7 @@ export function Composer(p: Props) {
   const t = useTheme();
   const c = useChatColors();
   const [attach, setAttach] = useState(false);
-  const [share, setShare] = useState<null | 'agenda' | 'tasks' | 'note' | 'slots' | 'drive' | 'event' | 'offer' | 'docreq'>(null);
+  const [share, setShare] = useState<null | 'agenda' | 'tasks' | 'note' | 'slots' | 'drive' | 'event' | 'offer' | 'docreq' | 'call'>(null);
   const [poll, setPoll] = useState(false);
   const [preview, setPreview] = useState<Picked[] | null>(null);
   const [caption, setCaption] = useState('');
@@ -214,6 +215,7 @@ export function Composer(p: Props) {
             ['tasks', 'Task', () => { setAttach(false); setShare('tasks'); }],
             ['clock', 'Proponi orari', () => { setAttach(false); setShare('slots'); }],
             ['calendar', 'Invito a evento', () => { setAttach(false); setShare('event'); }],
+            ...(p.onScheduleCall ? ([['video', 'Programma una call', () => { setAttach(false); setShare('call'); }]] as [string, string, () => void][]) : []),
             ['file', 'Richiedi documenti', () => { setAttach(false); setShare('docreq'); }],
             ['coin', 'Servizio a pagamento', () => { setAttach(false); setShare('offer'); }],
             ['poll', 'Sondaggio', () => { setAttach(false); setPoll(true); }],
@@ -250,6 +252,7 @@ export function Composer(p: Props) {
       <OfferSheet visible={share === 'offer'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <SlotsSheet visible={share === 'slots'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <EventSheet visible={share === 'event'} onClose={() => setShare(null)} onSend={p.onSendShare} />
+      {p.onScheduleCall ? <CallSheet visible={share === 'call'} onClose={() => setShare(null)} onSchedule={p.onScheduleCall} /> : null}
       <DriveSheet visible={share === 'drive'} onClose={() => setShare(null)} onSend={p.onSendShare} />
       <PollSheet visible={poll} onClose={() => setPoll(false)} onCreate={(pl) => { setPoll(false); p.onSendPoll(pl); }} />
     </View>

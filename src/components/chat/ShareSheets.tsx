@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Platform, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/T';
 
-import { Body, Btn, Input, Item, Pill, Row, Select, Sheet } from '@/components/ui';
+import { Body, Btn, Input, Item, Pill, Row, Select, Sheet, Toggle } from '@/components/ui';
 import { fmtDuration, nextDays as whenDays, timeOptions, tsOf } from '@/lib/when';
 import { offerError } from '@/lib/booking';
 import { useTheme } from '@/hooks/use-theme';
@@ -240,6 +240,38 @@ export function EventSheet({ visible, onClose, onSend }: Common) {
         if (!title.trim()) { toast('Scrivi il titolo dell’evento'); return; }
         onSend({ kind: 'event', event: { title: title.trim(), day: day.key, time, durationMin: dur, place: place.trim() || undefined, description: desc.trim() || undefined, rsvp: {} } });
         setTitle(''); setPlace(''); setDesc(''); onClose();
+      }} />
+    </Sheet>
+  );
+}
+
+/* ---------- call di gruppo ---------- */
+export type CallPlan = { title: string; startsAt: number; durationMin: number; video: boolean; theia: boolean };
+/** Fissa una call: tutti la vedono, chi conferma la ritrova fissata in alto fino all'ora e poi entra dalla stanza. */
+export function CallSheet({ visible, onClose, onSchedule }: { visible: boolean; onClose: () => void; onSchedule: (p: CallPlan) => void }) {
+  const days = whenDays(30);
+  const [title, setTitle] = useState('');
+  const [dayLabel, setDayLabel] = useState(days[1].label);
+  const [time, setTime] = useState('16:00');
+  const [dur, setDur] = useState(60);
+  const [video, setVideo] = useState(true);
+  const [theia, setTheia] = useState(false);
+  const day = days.find((d) => d.label === dayLabel) ?? days[1];
+  return (
+    <Sheet visible={visible} title="Programma una call" onClose={onClose}>
+      <Body small muted style={{ marginBottom: 8 }}>La call resta fissata in alto nella chat per chi conferma. All'ora scelta si apre la stanza e può entrare chi ha confermato. Da dentro si possono invitare altre persone del gruppo.</Body>
+      <Input placeholder="Titolo (es. Riunione del team)" value={title} onChangeText={setTitle} />
+      <Select title="Giorno" value={dayLabel} options={days.map((d) => d.label)} onChange={setDayLabel} />
+      <Select title="Ora" value={time} options={timeOptions(6, 23)} onChange={setTime} />
+      <Body small muted style={{ marginBottom: 4 }}>Durata prevista</Body>
+      <Row style={{ justifyContent: 'flex-start', marginBottom: 8, flexWrap: 'wrap' }} gap={6}>{EV_DURS.map((d) => <Pill key={d} label={fmtDuration(d)} on={dur === d} onPress={() => setDur(d)} />)}</Row>
+      <Row style={{ justifyContent: 'flex-start', marginBottom: 8 }} gap={6}><Pill label="Video" on={video} onPress={() => setVideo(true)} /><Pill label="Solo voce" on={!video} onPress={() => setVideo(false)} /></Row>
+      <Toggle label="Theia prende appunti" value={theia} onChange={setTheia} hint="Trascrive e segna decisioni, cose da fare e domande. Ognuno può disattivarlo per sé e tutti vedono quando è attivo." />
+      <Btn icon="send" title="Fissa la call" onPress={() => {
+        const startsAt = tsOf(day.key, time);
+        if (startsAt <= Date.now()) { toast('L’ora deve essere nel futuro'); return; }
+        onSchedule({ title: title.trim() || 'Call di gruppo', startsAt, durationMin: dur, video, theia });
+        setTitle(''); onClose();
       }} />
     </Sheet>
   );

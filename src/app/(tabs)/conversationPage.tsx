@@ -13,6 +13,10 @@ import { UserAvatar } from '@/components/network';
 import { Body, Item, Sheet, IL } from '@/components/ui';
 import { KeyboardDock } from '@/components/KeyboardDock';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
+import { startCall, scheduleCall } from '@/lib/callActions';
+import { pinnedFor } from '@/lib/groupCall';
+import { useNow } from '@/lib/enroll';
+import { PinnedCalls } from '@/components/chat/PinnedCalls';
 import { shouldScrollToEnd } from '@/lib/keyboardInset';
 import { useTheme } from '@/hooks/use-theme';
 import type { Picked } from '@/lib/chatMedia';
@@ -101,6 +105,8 @@ export default function Conversation() {
     return out;
   }, [msgs, search, firstUnread, me]);
 
+  const clockNow = useNow(15000);
+  const pinnedCalls = useMemo(() => pinnedFor(msgs, me, clockNow), [msgs, me, clockNow]);
   const pinnedMsg = useMemo(() => [...msgs].reverse().find((m) => m.pinned && !m.deletedForAll), [msgs]);
   const byId = useMemo(() => Object.fromEntries(msgs.map((m) => [m.id, m])), [msgs]);
   const mediaItems = useMemo(() => msgs.filter((m) => (m.kind === 'image' || m.kind === 'video') && !m.deletedForAll), [msgs]);
@@ -259,6 +265,12 @@ export default function Conversation() {
                 <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12 }}>{chat.type === 'club' ? 'LifeClub · tocca per le info' : chat.type === 'group' ? chat.members.join(', ') : 'tocca per le info'}</Text>
               </View>
             </Pressable>
+            {chat.type !== 'club' && !isBlocked ? (
+              <>
+                <Pressable onPress={() => startCall(id, me, false)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Chiamata')}><Icon name="phone" size={21} color={t.text} /></Pressable>
+                <Pressable onPress={() => startCall(id, me, true)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Videochiamata')}><Icon name="video" size={22} color={t.text} /></Pressable>
+              </>
+            ) : null}
             <Pressable onPress={() => setMenu(true)} hitSlop={10} accessibilityLabel={translateText("Menu")}><Icon name="more" size={22} color={t.text} /></Pressable>
           </>
         )}
@@ -266,6 +278,7 @@ export default function Conversation() {
 
       {chat.disappearingSec ? <View style={{ backgroundColor: c.quoteBg, paddingVertical: 4 }}><Text style={{ color: c.meta, fontSize: 12, textAlign: 'center' }}>I messaggi scompaiono dopo {chat.disappearingSec >= 86400 * 30 ? '90 giorni' : chat.disappearingSec >= 86400 * 7 ? '7 giorni' : '24 ore'}</Text></View> : null}
 
+      <PinnedCalls calls={pinnedCalls} me={me} onJump={(mid) => jumpTo(mid)} />
       {chat.type === 'club' && pinnedMsg && (
         <Pressable onPress={() => jumpTo(pinnedMsg.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: t.card, borderBottomWidth: 1, borderBottomColor: t.border }} accessibilityLabel={translateText("Messaggio fissato")}>
           <Icon name="pin" size={14} color={t.muted} /><Text numberOfLines={1} style={{ flex: 1, color: t.text, fontSize: 13 }}>{pinnedMsg.text}</Text>
@@ -304,7 +317,7 @@ export default function Conversation() {
           me={me} draft={draft} enterSends={settings.enterSends} fontSize={font}
           replyTo={replyTo} editing={editing}
           disabledReason={isBlocked ? `Hai bloccato ${peer}. Sbloccalo dalle info per scrivere.` : chat.type === 'club' ? clubReason : left ? 'Non sei più un membro di questo gruppo.' : undefined}
-          onDraft={setDraft} onSendText={sendText} onSendPicked={sendPicked} onSendVoice={sendVoice} onSendPoll={sendPoll} onSendShare={sendShare}
+          onDraft={setDraft} onSendText={sendText} onSendPicked={sendPicked} onSendVoice={sendVoice} onSendPoll={sendPoll} onSendShare={sendShare} onScheduleCall={chat.type === 'group' ? (o) => scheduleCall(id, me, o) : undefined}
           onCancelContext={() => { setReplyTo(undefined); if (editing) { setEditing(undefined); setDraft(''); } }}
         />
       </View>

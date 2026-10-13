@@ -5,6 +5,7 @@ import { Text } from '@/components/T';
 import { Icon } from '@/lib/icons';
 import { fmtClock, previewOf, reactionIcon, type ChatMessage } from '@/store/chat';
 import { AgendaCard, EventCard, OfferCard, DocReqCard, NoteCard, SlotsCard, TasksCard } from './cards';
+import { CallCard } from './CallCard';
 import { ContactCard, FileCard, LinkText, LocationCard, MediaThumb, PollCard, Ticks, VoiceBubble, senderColor, useChatColors } from './parts';
 import { translateText } from '@/i18n/core';
 import { ClubMsgCard } from '@/components/club/ClubMsgCard';
@@ -71,7 +72,8 @@ export const Bubble = memo(function Bubble(p: Props) {
         {m.kind === 'docreq' && m.docReq && <DocReqCard m={m} me={p.me} chatId={m.chatId} />}
         {m.kind === 'offer' && m.offer && <OfferCard m={m} me={p.me} chatId={m.chatId} />}
         {m.kind === 'event' && m.event && <EventCard m={m} me={p.me} chatId={m.chatId} />}
-        {!!m.text && m.kind !== 'poll' && m.kind !== 'audio' ? <View style={{ marginTop: m.kind === 'text' ? 0 : 6 }}><LinkText text={m.text} color={fg} size={p.fontSize} /></View> : null}
+        {m.kind === 'call' && m.call && <CallCard m={m} me={p.me} />}
+        {!!m.text && m.kind !== 'poll' && m.kind !== 'audio' && m.kind !== 'call' ? <View style={{ marginTop: m.kind === 'text' ? 0 : 6 }}><LinkText text={m.text} color={fg} size={p.fontSize} /></View> : null}
       </>
     );
   }

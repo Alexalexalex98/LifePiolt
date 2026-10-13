@@ -2,10 +2,12 @@ import { create } from 'zustand';
 
 import { fmtDur as fmtDurImpl, lastMessage, previewText } from '@/lib/chatList';
 import { uid } from '@/lib/format';
+import type { CallNotes, TLine } from '@/lib/callNotes';
+import type { CallShare } from '@/lib/groupCall';
 import { persisted } from './persist';
 import { fmtDate, fmtTime, weekdayLong } from '@/i18n/format';
 
-export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'contact' | 'poll' | 'agenda' | 'tasks' | 'note' | 'slots' | 'event' | 'offer' | 'docreq' | 'system';
+export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'contact' | 'poll' | 'agenda' | 'tasks' | 'note' | 'slots' | 'event' | 'offer' | 'docreq' | 'call' | 'system';
 export type MsgStatus = 'sending' | 'sent' | 'delivered' | 'read';
 
 export type Media = { uri: string; w?: number; h?: number; mime?: string; name?: string; size?: number; durationMs?: number; waveform?: number[] };
@@ -30,6 +32,8 @@ export type EventShare = { title: string; day: string; time: string; durationMin
 export type OfferShare = { title: string; desc?: string; price: number; startsAt: number; durationMin: number; mode: 'online' | 'presenza'; place?: string; /** chi l'ha prenotata e l'iscrizione collegata */ booked?: { by: string; enrId: string } };
 /** Richiesta di documenti: chi riceve li manda uno alla volta (da LifeDrive); ogni voce si segna da sola quando è inviata. */
 export type DocRequest = { title: string; items: { id: string; name: string; sentAs?: string }[] };
+/** Appunti presi da Theia durante la call: la trascrizione contiene solo ciò che ogni persona ha consentito di trascrivere. */
+export type CallRecord = { theia: boolean; transcript: TLine[]; notes?: CallNotes; savedNoteId?: string };
 export type Poll = { q: string; multi: boolean; options: { id: string; t: string; votes: string[] }[] };
 
 /** Messaggi dei LifeClub: domanda/risposta/annuncio collegati a una lezione (link che apre il contenuto al punto giusto). */
@@ -69,6 +73,10 @@ export type ChatMessage = {
   event?: EventShare;
   offer?: OfferShare;
   docReq?: DocRequest;
+  /** call di gruppo (programmata o istantanea) con conferme, invitati e presenti */
+  call?: CallShare;
+  /** appunti di Theia e trascrizione della call */
+  callRecord?: CallRecord;
   /** persone che hanno importato la scheda (agenda/task/nota) nel proprio piano */
   importedBy?: string[];
   expiresAt?: number;
