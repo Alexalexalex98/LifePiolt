@@ -28,16 +28,16 @@ function demoExtraNotifs(me: string, myPosts: string[] = []) {
   const d = shortDate(0);
   const n = (id: number, type: string, text: string, extra: Record<string, unknown> = {}, read = false, urgent = false) => ({ id, type, text, urgent, read, date: d, ...extra });
   return [
-    n(9001, 'booking', 'Dott.ssa Chiara V. ha richiesto una seduta di psicologia con te', { slot: '17:30', service: 'Consulenza psicologica', ref: `service:${me}`, kind: 'servizio' }, false, true),
-    n(9002, 'booking', 'Paolo D. ha prenotato un allenamento di corsa con te', { slot: '09:00', service: 'Allenamento alla corsa', ref: `service:${me}`, kind: 'servizio' }),
+    n(9001, 'booking', 'Chiara V. ha richiesto un allenamento di corsa con te', { slot: '17:30', service: 'Allenamento alla corsa', ref: 'request:9001', kind: 'servizio' }, false, true),
+    n(9002, 'booking', 'Paolo D. ha prenotato un allenamento di corsa con te', { slot: '09:00', service: 'Allenamento alla corsa', ref: 'request:9002', kind: 'servizio' }),
     n(9003, 'seminar', 'Nuova iscrizione al tuo seminario «Organizzare il budget familiare in 3 passi»', { ref: 'seminar:2' }),
-    n(9004, 'message', 'Elena F. ti ha scritto: «Ci sentiamo domani per il programma?»'),
+    n(9004, 'message', 'Elena F. ti ha scritto: «Ci sentiamo domani per il programma?»', { ref: buildRef('chat', 'dm:Elena F.') }),
     n(9005, 'job', 'Giulia M. ha inviato la candidatura per la tua offerta di lavoro'),
     n(9006, 'reminder', 'Riunione con il team tra 15 minuti'),
-    n(9007, 'like', 'Marta S. ha messo mi piace al tuo post sulla corsa'),
-    n(9008, 'like', 'Omar K. ha messo mi piace al tuo post sulle vacanze'),
-    n(9009, 'like', 'Ines L. ha messo mi piace al tuo post sulla pasta al limone'),
-    n(9010, 'comment', 'Luca Ferri ha commentato il tuo post sulle vacanze'),
+    n(9007, 'like', 'Marta S. ha messo mi piace al tuo post sulla corsa', pk(0)),
+    n(9008, 'like', 'Omar K. ha messo mi piace al tuo post sulle vacanze', pk(1)),
+    n(9009, 'like', 'Ines L. ha messo mi piace al tuo post sulla pasta al limone', pk(2)),
+    n(9010, 'comment', 'Luca Ferri ha commentato il tuo post sulle vacanze', pk(0)),
     n(9011, 'donation', 'Anna C. ti ha donato il suo LifePoint di oggi sul tuo post', pk(0)),
     n(9013, 'donation', 'Marta S. ti ha donato il suo LifePoint di oggi sul tuo post', pk(1)),
     n(9014, 'donation', 'Omar K. ti ha donato il suo LifePoint di oggi sul tuo post', pk(2)),

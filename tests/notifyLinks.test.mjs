@@ -73,7 +73,7 @@ test('routeFor: destinazioni non valide', () => {
 });
 
 test('ogni tipo ha una rotta valida con argomenti corretti', () => {
-  const sample = { post: ['standalone:1'], comment: ['standalone:1', 0], like: ['standalone:1'], follow: ['A'], mention: ['standalone:1', 0], reply: ['standalone:1', 0], idea: ['1'], community: ['1'], chat: ['dm:A'], seminar: ['1'], service: ['A'], booking: ['1'], job: ['1'], points: ['1'], event: ['2026-01-01', 0], bill: ['1'], reminder: [], system: [], club: ['club-1'], clubcontent: ['club-1', 'lez-1', 222], call: ['g:5', 'm1'] };
+  const sample = { post: ['standalone:1'], comment: ['standalone:1', 0], like: ['standalone:1'], follow: ['A'], mention: ['standalone:1', 0], reply: ['standalone:1', 0], idea: ['1'], community: ['1'], chat: ['dm:A'], seminar: ['1'], service: ['A'], booking: ['1'], job: ['1'], points: ['1'], event: ['2026-01-01', 0], bill: ['1'], reminder: [], system: [], club: ['club-1'], clubcontent: ['club-1', 'lez-1', 222], call: ['g:5', 'm1'], request: ['9001'] };
   assert.deepEqual(Object.keys(sample).sort(), [...REF_KINDS].sort());
   for (const [k, args] of Object.entries(sample)) assert.equal(routeFor(buildRef(k, ...args)).valid, true, k);
 });

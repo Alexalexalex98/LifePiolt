@@ -53,6 +53,7 @@ export function resolveRef(ref: string | null | undefined): Resolved {
     case 'idea': return net.ideas.some((x) => String(x.id) === p.id) ? route : { missing: true };
     case 'community': return net.communities.some((x) => String(x.id) === p.id) ? route : { missing: true };
     case 'seminar': return net.seminars.some((x) => String(x.id) === p.id) ? route : { missing: true };
+    case 'request': return net.notifications.some((x) => String(x.id) === p.id) ? route : { missing: true };
     case 'service': return net.providers.some((x) => x.name === p.name) ? route : { missing: true };
     case 'booking': {
       const b = net.bookings.find((x) => x.id === p.name);

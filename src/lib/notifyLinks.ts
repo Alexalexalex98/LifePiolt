@@ -26,13 +26,13 @@
 
 export type RefKind =
   | 'post' | 'comment' | 'like' | 'follow' | 'mention' | 'reply' | 'idea' | 'community' | 'chat'
-  | 'seminar' | 'service' | 'booking' | 'job' | 'points' | 'event' | 'bill' | 'reminder' | 'system' | 'club' | 'clubcontent' | 'call';
+  | 'seminar' | 'service' | 'booking' | 'job' | 'points' | 'event' | 'bill' | 'reminder' | 'system' | 'club' | 'clubcontent' | 'call' | 'request';
 
 /** [minimo, massimo] di argomenti per tipo. */
 const ARITY: Record<RefKind, [number, number]> = {
   post: [1, 1], comment: [2, 2], like: [1, 3], follow: [1, 1], mention: [2, 2], reply: [2, 2],
   idea: [1, 1], community: [1, 1], chat: [1, 2], seminar: [1, 1], service: [1, 1], booking: [1, 1], job: [1, 1],
-  points: [1, 1], event: [2, 2], bill: [1, 1], reminder: [0, 1], system: [0, 1], club: [1, 1], clubcontent: [2, 3], call: [2, 2],
+  points: [1, 1], event: [2, 2], bill: [1, 1], reminder: [0, 1], system: [0, 1], club: [1, 1], clubcontent: [2, 3], call: [2, 2], request: [1, 1],
 };
 export const REF_KINDS = Object.keys(ARITY) as RefKind[];
 
@@ -116,6 +116,8 @@ export function routeFor(ref: string | null | undefined): Route {
     case 'seminar': return ok('seminarPage', { id: a[0] });
     case 'service': return ok('servicePage', { name: a[0] });
     case 'booking': return ok('servicePage', { name: a[0] }, { dynamic: 'booking' });
+    // una richiesta o prenotazione ricevuta: la notifica apre se stessa (chi, cosa, quando), non il servizio
+    case 'request': return INDEX.test(a[0]) ? ok('requestDetail', { id: a[0] }) : invalid;
     case 'job': return ok('interviewView', { id: a[0] }, { dynamic: 'job', fallback: { page: 'lifenetwork', params: {} } });
     case 'points': return ok('lifepointsPage', { tx: a[0] });
     case 'event':
