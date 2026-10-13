@@ -44,6 +44,39 @@ const cap = (x: string) => (x ? x.charAt(0).toUpperCase() + x.slice(1) : x);
 const VIEW_LABEL: Record<CalView, string> = { month: 'Mese', week: 'Settimana', agenda: 'Elenco' };
 const VIEWS: CalView[] = ['month', 'week', 'agenda'];
 
+
+/* ---------- scorrimento a pagine tra mesi o settimane ---------- */
+/** Pagine affiancate (una per mese o settimana): si scorre con il dito e la pagina corrente resta in sincronia con `offset`. */
+function OffsetPager({ offset, onOffset, span, render }: { offset: number; onOffset: (n: number) => void; span: number; render: (o: number) => ReactNode }) {
+  const [w, setW] = useState(0);
+  const ref = useRef<FlatList<number>>(null);
+  const data = useMemo(() => Array.from({ length: span * 2 + 1 }, (_, i) => i - span), [span]);
+  const cur = useRef(offset);
+  useEffect(() => {
+    if (!w || cur.current === offset) return;
+    cur.current = offset;
+    ref.current?.scrollToIndex({ index: Math.max(0, Math.min(data.length - 1, offset + span)), animated: true });
+  }, [offset, w, span, data.length]);
+  const onViewable = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    const v = viewableItems.find((x) => x.isViewable && x.index != null);
+    if (v?.index != null) { const o = v.index - span; if (o !== cur.current) { cur.current = o; onOffset(o); } }
+  }).current;
+  return (
+    <View onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+      {w > 0 && (
+        <FlatList
+          ref={ref} data={data} keyExtractor={(o) => String(o)} horizontal pagingEnabled nestedScrollEnabled showsHorizontalScrollIndicator={false}
+          initialScrollIndex={Math.max(0, Math.min(data.length - 1, offset + span))} getItemLayout={(_, i) => ({ length: w, offset: w * i, index: i })}
+          windowSize={3} initialNumToRender={1} maxToRenderPerBatch={2}
+          onViewableItemsChanged={onViewable} viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
+          renderItem={({ item }) => <View style={{ width: w }}>{render(item)}</View>}
+        />
+      )}
+    </View>
+  );
+}
+const MONTH_SPAN = 120, WEEK_SPAN = 520;
+
 /* ---------- pannello: selettore vista + legenda ---------- */
 export function CalendarPanel({ selectMode, onPickDay, onOpenBand }: { selectMode: boolean; onPickDay: (key: string) => void; onOpenBand: (id: string) => void }) {
   const th = useTheme();
@@ -71,8 +104,8 @@ export function CalendarPanel({ selectMode, onPickDay, onOpenBand }: { selectMod
           <Pressable onPress={() => setOffset(offset + 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText('Successivo')} style={{ padding: 6 }}><Icon name="arrow-right" size={18} color={th.text} /></Pressable>
         ) : <View style={{ width: 30 }} />}
       </Row>
-      {view === 'month' && <MonthView offset={offset} selectMode={selectMode} onPickDay={onPickDay} onOpenBand={onOpenBand} />}
-      {view === 'week' && <WeekView offset={offset} onPickDay={onPickDay} onOpenBand={onOpenBand} />}
+      {view === 'month' && <OffsetPager key="m" offset={offset} onOffset={setOffset} span={MONTH_SPAN} render={(o) => <MonthView offset={o} selectMode={selectMode} onPickDay={onPickDay} onOpenBand={onOpenBand} />} />}
+      {view === 'week' && <OffsetPager key="w" offset={offset} onOffset={setOffset} span={WEEK_SPAN} render={(o) => <WeekView offset={o} onPickDay={onPickDay} onOpenBand={onOpenBand} />} />}
       {view === 'agenda' && <AgendaView onPickDay={onPickDay} onOpenBand={onOpenBand} />}
       <Legend />
     </View>
@@ -532,6 +565,40 @@ function DayPage({ k, width, onPickDay, onOpenBand }: { k: string; width: number
 
 /** Agenda a pagine: si sfoglia con uno swipe (o con le frecce), una pagina per ogni giorno, con tutte le ore. */
 export function DayBook({ onPickDay, onOpenBand }: { onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
+  const [scale, setScale] = useState<'Giorno' | 'Settimana' | 'Mese'>('Giorno');
+  return (
+    <View>
+      <Seg options={['Giorno', 'Settimana', 'Mese']} value={scale} onChange={(v) => setScale(v as typeof scale)} />
+      {scale === 'Giorno' ? <DayPager onPickDay={onPickDay} onOpenBand={onOpenBand} /> : <PeriodPager kind={scale === 'Mese' ? 'month' : 'week'} onPickDay={onPickDay} onOpenBand={onOpenBand} />}
+    </View>
+  );
+}
+
+/** Agenda per mese o per settimana: si scorre con il dito o con le frecce. */
+function PeriodPager({ kind, onPickDay, onOpenBand }: { kind: 'month' | 'week'; onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
+  const th = useTheme();
+  const [offset, setOffset] = useState(0);
+  const now = new Date();
+  const label = kind === 'month'
+    ? fmtDate(new Date(now.getFullYear(), now.getMonth() + offset, 1), { month: 'long', year: 'numeric' })
+    : `${fmtDate(parseKey(addDays(weekStart(dayKey()), offset * 7)), { day: 'numeric', month: 'short' })} – ${fmtDate(parseKey(addDays(weekStart(dayKey()), offset * 7 + 6)), { day: 'numeric', month: 'short' })}`;
+  return (
+    <View style={{ marginBottom: 6 }}>
+      <Row style={{ marginBottom: 8 }}>
+        <Pressable onPress={() => setOffset(offset - 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText(kind === 'month' ? 'Mese precedente' : 'Settimana precedente')} style={{ padding: 6 }}><Icon name="arrow-left" size={18} color={th.text} /></Pressable>
+        <Pressable onPress={() => setOffset(0)} accessibilityRole="button" accessibilityLabel={translateText('Torna a oggi')} style={{ flex: 1 }}>
+          <Text style={{ color: offset === 0 ? th.accent : th.text, fontWeight: '700', fontSize: 16, textAlign: 'center' }} numberOfLines={1}>{cap(label)}</Text>
+        </Pressable>
+        <Pressable onPress={() => setOffset(offset + 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={translateText(kind === 'month' ? 'Mese successivo' : 'Settimana successiva')} style={{ padding: 6 }}><Icon name="arrow-right" size={18} color={th.text} /></Pressable>
+      </Row>
+      {kind === 'month'
+        ? <OffsetPager key="m" offset={offset} onOffset={setOffset} span={MONTH_SPAN} render={(o) => <MonthView offset={o} selectMode={false} onPickDay={onPickDay} onOpenBand={onOpenBand} />} />
+        : <OffsetPager key="w" offset={offset} onOffset={setOffset} span={WEEK_SPAN} render={(o) => <WeekView offset={o} onPickDay={onPickDay} onOpenBand={onOpenBand} />} />}
+    </View>
+  );
+}
+
+function DayPager({ onPickDay, onOpenBand }: { onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
   const th = useTheme();
   const today = dayKey();
   const days = useMemo(() => Array.from({ length: BOOK_SPAN * 2 + 1 }, (_, i) => addDays(today, i - BOOK_SPAN)), [today]);
