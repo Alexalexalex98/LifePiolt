@@ -9,6 +9,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, weekdayShortDate } from '@/lib/format';
 import { IDEA_DEFAULT_DAYS, IDEA_MAX_DAYS, IDEA_PERIODS, ideaState } from '@/lib/ideas';
 import { go } from '@/lib/nav';
+import { MAX_POST, editInCommunity, editStandalone, parseRef, removeInCommunity, removeStandalone, validatePostText } from '@/lib/postEdit';
+import { confirmDelete } from '@/lib/confirm';
 import { paidCancel, freeCancel } from '@/data/marketSeed';
 import { confirmAttendance, hasEnded } from '@/lib/enroll';
 import { ConflictSheet } from '@/lib/planBooking';
@@ -63,7 +65,14 @@ function NetSheetInner() {
       const { author, tag } = p;
       title = author;
       const fol = net.following.includes(author), mutedP = net.mutedAuthors.includes(author), mutedT = tag && net.mutedTopics.includes(tag);
-      body = (
+      const mine = author === me && !!p.ref && parseRef(String(p.ref)) !== null;
+      body = mine ? (
+        <>
+          <Item onPress={() => { close(); setTimeout(() => openSheet('editPost', { ref: p.ref }), 250); }}><IL icon="edit">Modifica</IL></Item>
+          <Item onPress={() => { Share.share({ message: `Post di ${author} su LifePilot` }); }}><Body>Condividi</Body></Item>
+          <Item last onPress={() => { close(); setTimeout(() => deleteMyPost(String(p.ref), me), 250); }}><IL icon="trash" color={t.danger}>Elimina</IL></Item>
+        </>
+      ) : (
         <>
           <Item onPress={() => { Share.share({ message: `Post di ${author} su LifePilot` }); }}><Body>Condividi</Body></Item>
           <Item onPress={() => { const f = net.toggleFollow(author); close(); toast(f ? 'Ora segui ' + author : 'Non segui più ' + author); }}><Body>{fol ? 'Smetti di seguire' : 'Segui'}</Body></Item>
@@ -74,6 +83,7 @@ function NetSheetInner() {
       );
       break;
     }
+    case 'editPost': { title = 'Modifica il post'; body = <EditPostView ref_={String(p.ref)} />; break; }
     case 'contentMenu': {
       const tg = p as ModTarget;
       title = tg.label ? (tg.label.length > 40 ? tg.label.slice(0, 38) + '…' : tg.label) : 'Azioni';
@@ -585,6 +595,46 @@ function TopUpView() {
       <Btn style={{ marginTop: 14 }} ghost title="Ho capito" onPress={close} />
     </>
   );
+}
+
+/** Modifica testo e argomento di un proprio post (come su Instagram: resta «modificato»). */
+function EditPostView({ ref_ }: { ref_: string }) {
+  const net = useNet();
+  const me = useApp((s) => s.account.name);
+  const close = useNetSheet((s) => s.close);
+  const r = parseRef(ref_);
+  const cur = r?.kind === 'standalone' ? net.posts.find((x) => String(x.id) === r.id) : r?.kind === 'community' ? net.communities.find((c) => String(c.id) === r.id)?.posts[r.index] : undefined;
+  const [text, setText] = useState(cur?.text ?? '');
+  const [tag, setTag] = useState((r?.kind === 'standalone' ? net.posts.find((x) => String(x.id) === r.id)?.tag : undefined) ?? topicList[0]);
+  if (!r || !cur || cur.author !== me) return <Body muted>Questo post non c'è più o non è tuo.</Body>;
+  const hasMedia = !!cur.media;
+  return (
+    <>
+      <Input multiline placeholder="Scrivi il testo del post" value={text} onChangeText={setText} maxLength={MAX_POST} />
+      {r.kind === 'standalone' ? <Select title="Argomento" value={tag} options={topicList} onChange={setTag} /> : null}
+      {hasMedia ? <Body small muted style={{ marginBottom: 8 }}>La foto o il video non si cambiano: per sostituirli pubblica un nuovo post.</Body> : null}
+      <Btn title="Salva" onPress={() => {
+        const why = validatePostText(text, hasMedia);
+        if (why) { toast(why); return; }
+        const now = Date.now();
+        if (r.kind === 'standalone') net.patch({ posts: editStandalone(net.posts, r.id, me, { text, tag }, now) });
+        else net.patch({ communities: editInCommunity(net.communities, r.id, r.index, me, text, now) });
+        close(); toast('Post modificato');
+      }} />
+    </>
+  );
+}
+
+/** Elimina un proprio post, con possibilità di annullare subito dopo. */
+function deleteMyPost(ref: string, me: string) {
+  const net = useNet.getState();
+  const r = parseRef(ref);
+  if (!r) return;
+  const before = { posts: net.posts, communities: net.communities };
+  confirmDelete('questo post', () => {
+    if (r.kind === 'standalone') net.patch({ posts: removeStandalone(net.posts, r.id, me) });
+    else net.patch({ communities: removeInCommunity(net.communities, r.id, r.index, me) });
+  }, () => net.patch(before), { title: 'Eliminare il post?', undoMessage: 'Post eliminato' });
 }
 
 function NewPostView() {

@@ -16,6 +16,7 @@ import { confirmDelete } from '@/lib/confirm';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { applyCredit } from '@/lib/shop';
+import { canPublishForBusiness } from '@/lib/profile/identity';
 import { addProduct, buyProduct, creditFor, openShopChat, productsOf, removeProduct, restoreProduct } from '@/lib/shopActions';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
@@ -132,6 +133,8 @@ export default function ShopPage() {
           <Btn small ghost icon="video" title={video ? 'Video scelto' : 'Video'} onPress={async () => { try { const m = await pickNetMedia('video'); if (m) setVideo(m.uri); } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la libreria'); } }} />
         </Row>
         <Btn title="Aggiungi al negozio" onPress={() => {
+          const mine = useIdentity.getState().businesses.filter((b) => b.owner === me);
+          if (!mine.some(canPublishForBusiness)) { toast(mine.length ? 'Il documento della tua attività è ancora in verifica: potrai pubblicare annunci appena è verificato' : 'Per pubblicare annunci serve un’attività con la prova di titolarità'); if (!mine.length) go('businessCreate'); return; }
           const err = addProduct(shop, { name: nm, desc: ds, price: parseFloat(pr.replace(',', '.')), stock: parseInt(st, 10), images: photos, video });
           if (err) { toast(err); return; }
           setNm(''); setDs(''); setPr(''); setSt('1'); setPhotos([]); setVideo(undefined); setAddOpen(false); toast('Prodotto aggiunto');

@@ -92,7 +92,7 @@ export default function LifeNetwork() {
   /* feed misto: stesso intreccio di prima (post, community, idee, seminari sponsorizzati, citazioni) */
   const feedItems = useMemo<Item[]>(() => {
     const comm: Item[] = [];
-    communities.filter((c) => c.members.includes(me) && visible('community', c.id, c.owner === 'system' ? undefined : c.owner)).forEach((c) => c.posts.forEach((p, pi) => comm.push({ k: 'post', id: `c${c.id}:${pi}`, likeKey: `community:${c.id}:${pi}`, post: keep(`c${c.id}:${pi}`, { author: p.author, text: p.text, media: p.media, tag: c.name, likes: p.likes, ts: p.ts, uri: p.uri }) })));
+    communities.filter((c) => c.members.includes(me) && visible('community', c.id, c.owner === 'system' ? undefined : c.owner)).forEach((c) => c.posts.forEach((p, pi) => comm.push({ k: 'post', id: `c${c.id}:${pi}`, likeKey: `community:${c.id}:${pi}`, post: keep(`c${c.id}:${pi}`, { author: p.author, text: p.text, media: p.media, tag: c.name, likes: p.likes, ts: p.ts, uri: p.uri, editedAt: p.editedAt }) })));
     const standalone: Item[] = posts.filter((p) => visible('post', 'standalone:' + p.id, p.author)).map((p) => ({ k: 'post', id: 's' + p.id, likeKey: 'standalone:' + p.id, post: keep('s' + p.id, p) }));
     const ideaItems: Item[] = hideIdeas ? [] : ideas.filter((i) => !mutedIdeaAuthors.includes(i.author) && visible('idea', i.id, i.author)).map((idea) => ({ k: 'idea', id: 'i' + idea.id, idea }));
     const sem: Item[] = seminars.filter((s) => s.promoted && visible('seminar', s.id, s.host)).map((s) => ({ k: 'seminar', id: 'm' + s.id, s }));

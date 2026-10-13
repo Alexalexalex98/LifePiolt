@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, Easing, Keyboard, Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 
 import { Press, hit } from '@/components/ui';
@@ -152,8 +152,8 @@ export function ReactionButtons({ onReact, disabled }: { onReact: (k: ReactionKi
 }
 
 /** Composer di commento in basso: testo, invio, interruttore "Domanda al relatore". */
-export function Composer({ onSend, canWrite, blockedReason, allowQuestion, bottomInset, sideInset, right }: {
-  onSend: (text: string, question: boolean) => void; canWrite: boolean; blockedReason?: string; allowQuestion: boolean; bottomInset: number; sideInset: number; right?: React.ReactNode;
+export function Composer({ onSend, canWrite, blockedReason, allowQuestion, bottomInset, sideInset, right, keyboardOpen }: {
+  keyboardOpen?: boolean; onSend: (text: string, question: boolean) => void; canWrite: boolean; blockedReason?: string; allowQuestion: boolean; bottomInset: number; sideInset: number; right?: React.ReactNode;
 }) {
   const [text, setText] = useState('');
   const [question, setQuestion] = useState(false);
@@ -183,6 +183,7 @@ export function Composer({ onSend, canWrite, blockedReason, allowQuestion, botto
           />
           {allowQuestion ? <RoundBtn icon="info" label={question ? 'Invia come commento' : 'Invia come domanda al relatore'} on={question} onPress={() => canWrite && setQuestion((q) => !q)} size={38} /> : null}
           <View style={{ width: 4 }} />
+          {keyboardOpen ? <RoundBtn icon="arrow-down" label="Chiudi la tastiera" onPress={() => Keyboard.dismiss()} size={38} /> : null}
           <RoundBtn icon="send" label="Invia" onPress={send} size={38} on={!!text.trim() && canWrite} />
         </View>
         {right}

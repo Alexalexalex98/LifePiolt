@@ -18,7 +18,7 @@ import { t as tl, translateText } from '@/i18n/core';
 import { captionNeedsMore, isDoubleTap, pageIndex } from './feedLogic.ts';
 import { ArtPlaceholder, IconBtn, NATIVE, RingAvatar, TextCard } from './parts';
 
-export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; uris?: string[] };
+export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; uris?: string[]; editedAt?: number };
 
 export const LIKE = '#ff4d6d';
 
@@ -123,7 +123,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
   const first = (comments || [])[0];
   const hasMedia = !!post.media;
   const more = hasMedia && captionNeedsMore(post.text);
-  const sub = [role ?? post.tag, fmtAgo(post.ts)].filter(Boolean).join(' · ');
+  const sub = [role ?? post.tag, fmtAgo(post.ts), post.editedAt ? translateText('modificato') : ''].filter(Boolean).join(' · ');
 
   const like = () => useNet.getState().likePost(likeKey);
   const doubleLike = () => { flash(); if (!useNet.getState().likedPosts.includes(likeKey)) like(); };

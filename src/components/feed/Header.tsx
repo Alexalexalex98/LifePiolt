@@ -39,7 +39,6 @@ export function NetHeader({ balance, query, onQuery, placeholder }: { balance: n
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, gap: 8 }}>
       <Pressable onPress={() => go('userProfile', { name: me })} accessibilityRole="link" accessibilityLabel={`${translateText('Il tuo profilo')}: ${me}`} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}>
-        <UserAvatar name={me} size={34} />
         <View style={{ flex: 1 }}>
           <Text numberOfLines={1} style={{ color: t.text, fontSize: 15.5, fontWeight: '800' }}>{`${translateText('Ciao')}, ${me.split(' ')[0]}`}</Text>
           <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12.5 }}>{translateText('Cosa c\'è di nuovo oggi')}</Text>

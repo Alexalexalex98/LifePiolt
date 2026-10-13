@@ -135,7 +135,7 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
               <Pressable onPress={() => setOpenPart(openPart === p.id ? null : p.id)} accessibilityRole="button" accessibilityState={{ expanded: openPart === p.id }} accessibilityLabel={`${p.label}: dettaglio`} style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: t.item }}>
                 <Row><View style={{ flex: 1 }}><Body bold>{p.label}</Body><Body small muted>{p.note}</Body></View><View style={{ alignItems: 'flex-end' }}><Body bold>{p.avg == null ? '–' : p.avg.toFixed(1)}</Body><Body small muted>{p.id === 'interazioni' ? tl('{0} punti', p.n) : p.n === 1 ? tl('1 voto') : tl('{0} voti', p.n)}</Body></View><Icon name={openPart === p.id ? 'arrow-up' : 'arrow-down'} size={15} color={t.muted} /></Row>
               </Pressable>
-              {openPart === p.id && <PartDetail id={p.id} name={name} reviews={reviews} inter={inter} qaGiven={qaGiven} counts={counts} />}
+              {openPart === p.id && <PartDetail id={p.id} name={name} reviews={reviews} inter={inter} qaGiven={qaGiven} counts={counts} onOpen={onClose} />}
             </View>
           ))}
         </>
@@ -170,7 +170,7 @@ export function ReputationDetail({ name, onClose }: { name: string; onClose: () 
 }
 
 /** Dettaglio di una parte del voto: chi ha dato cosa, con nomi chiari e da dove arriva (profilo, risposte, corsi e sedute, interazioni). */
-function PartDetail({ id, name, reviews, inter, qaGiven, counts }: { id: string; name: string; reviews: { from: string; stars: number; text?: string; ts: number }[]; inter: { likes: number; saves: number; lpDonors: number }; qaGiven: number; counts: Record<number, number> }) {
+function PartDetail({ id, name, reviews, inter, qaGiven, counts, onOpen }: { onOpen: () => void; id: string; name: string; reviews: { from: string; stars: number; text?: string; ts: number }[]; inter: { likes: number; saves: number; lpDonors: number }; qaGiven: number; counts: Record<number, number> }) {
   const t = useTheme();
   const stars = (n: number) => <Row gap={2}>{[1, 2, 3, 4, 5].map((k) => <Icon key={k} name="award" size={12} color={k <= n ? t.accent : t.border} fill={k <= n ? t.accent : 'none'} />)}</Row>;
   const box = { backgroundColor: t.tile, borderRadius: 14, padding: 12, marginVertical: 8 } as const;
@@ -194,11 +194,23 @@ function PartDetail({ id, name, reviews, inter, qaGiven, counts }: { id: string;
         {refs.length === 0 ? <Body small muted>Ancora nessuna valutazione a corsi o sedute.</Body> : refs.map((ref) => {
           const list = votes.filter((v) => v.ref === ref);
           const avg = list.reduce((a, v) => a + v.stars, 0) / list.length;
+          const open = () => {
+            onOpen();
+            if (ref.startsWith('seminar:')) go('seminarPage', { id: ref.slice(8) });
+            else if (ref.startsWith('service:')) go('servicePage', { name: ref.slice(8) });
+            else if (ref.startsWith('club:')) go('clubPage', { id: ref.slice(5) });
+          };
           return (
-            <View key={ref} style={{ paddingVertical: 6 }}>
-              <Row><Body small bold style={{ flex: 1 }} numberOfLines={2}>{itemRefLabel(ref)}</Body><Body small bold>{avg.toFixed(1)}</Body></Row>
-              {list.map((v, i) => <Row key={i} style={{ paddingVertical: 2 }}><Body small muted style={{ flex: 1 }} numberOfLines={1}>{v.from}</Body>{stars(v.stars)}</Row>)}
-            </View>
+            <Pressable key={ref} onPress={open} accessibilityRole="link" accessibilityLabel={`${itemRefLabel(ref)}, ${avg.toFixed(1)}. Apri per leggere le recensioni`} style={{ minHeight: 48, justifyContent: 'center', paddingVertical: 6 }}>
+              <Row gap={8}>
+                <View style={{ flex: 1 }}>
+                  <Body small bold numberOfLines={2}>{itemRefLabel(ref)}</Body>
+                  <Body small muted>{list.length} {list.length === 1 ? 'recensione' : 'recensioni'} · tocca per leggerle</Body>
+                </View>
+                <Body small bold>{avg.toFixed(1)}</Body>
+                <Icon name="chevron-right" size={16} color={t.muted} />
+              </Row>
+            </Pressable>
           );
         })}
       </View>

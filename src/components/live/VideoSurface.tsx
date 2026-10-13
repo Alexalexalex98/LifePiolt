@@ -28,11 +28,13 @@ export function StageNote({ icon, title, text, action }: { icon: string; title: 
  * Degrada con un messaggio chiaro se la camera manca, e' spenta o il permesso e' negato.
  * Il microfono si chiede solo se il trasporto invia davvero audio (`needMic`).
  */
-export function HostCamera({ facing, torch, camOff, needMic, small }: { facing: 'front' | 'back'; torch: boolean; camOff: boolean; needMic: boolean; small?: boolean }) {
+export function HostCamera({ facing, torch, camOff, needMic, small, recording, onRecorded }: { facing: 'front' | 'back'; torch: boolean; camOff: boolean; needMic: boolean; small?: boolean; /** registra il video (e l'audio) sul telefono finché è true */ recording?: boolean; onRecorded?: (uri?: string) => void }) {
   const [perm, ask] = useCameraPermissions();
   const [micPerm, askMic] = useMicrophonePermissions();
   const [failed, setFailed] = useState<string | null>(null);
   const asked = useRef(false);
+  const cam = useRef<CameraView>(null);
+  const running = useRef(false);
 
   useEffect(() => {
     if (asked.current || !perm || perm.granted || !perm.canAskAgain) return;
@@ -42,6 +44,16 @@ export function HostCamera({ facing, torch, camOff, needMic, small }: { facing: 
   useEffect(() => {
     if (needMic && micPerm && !micPerm.granted && micPerm.canAskAgain) void askMic().catch(() => {});
   }, [needMic, micPerm, askMic]);
+
+  // registrazione: parte quando `recording` diventa vero e si ferma quando torna falso (il file arriva a onRecorded)
+  useEffect(() => {
+    if (recording && !running.current && cam.current && perm?.granted) {
+      running.current = true;
+      cam.current.recordAsync().then((r) => onRecorded?.(r?.uri)).catch(() => onRecorded?.(undefined)).finally(() => { running.current = false; });
+    } else if (!recording && running.current) {
+      try { cam.current?.stopRecording(); } catch { /* già fermata */ }
+    }
+  }, [recording, perm?.granted, onRecorded]);
 
   if (camOff) return small ? <View style={{ flex: 1, backgroundColor: '#161b26', alignItems: 'center', justifyContent: 'center' }}><Icon name="video" size={20} color="rgba(255,255,255,0.6)" /></View> : <StageNote icon="video" title="Fotocamera spenta" text="Gli spettatori non vedono il tuo video. Riaccendila quando vuoi." />;
   if (failed) return small ? <View style={{ flex: 1, backgroundColor: '#161b26', alignItems: 'center', justifyContent: 'center' }}><Icon name="alert" size={20} color="#ffd166" /></View> : <StageNote icon="alert" title="Fotocamera non disponibile" text={failed} />;
@@ -59,6 +71,8 @@ export function HostCamera({ facing, torch, camOff, needMic, small }: { facing: 
   }
   return (
     <CameraView
+      ref={cam}
+      mode={recording ? 'video' : 'picture'}
       style={{ flex: 1 }}
       facing={facing}
       enableTorch={torch && facing === 'back'}

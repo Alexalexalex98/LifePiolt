@@ -10,7 +10,7 @@ import { LpTag, UserAvatar } from '@/components/network';
 import { useTheme } from '@/hooks/use-theme';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
-import { BIZ_KIND_LABEL, businessView, publicContacts, roleIn, teamOf } from '@/lib/profile/identity';
+import { BIZ_KIND_LABEL, PROOF_STATE_LABEL, bizProofState, businessView, publicContacts, roleIn, teamOf } from '@/lib/profile/identity';
 import { identityStatusOf } from '@/lib/profile/actions';
 import { useApp } from '@/store/app';
 import { useIdentity } from '@/store/identity';
@@ -54,6 +54,12 @@ export default function BusinessPage() {
           </Pressable>
           <Text style={{ color: t.muted, fontSize: 13 }}>{roleIn(b, b.owner)}</Text>
           <IdBadge status={v.ownerVerified ? 'verified' : 'none'} />
+          {(isOwner || bizProofState(b) === 'verificata') ? (
+            <Pressable disabled={!isOwner || bizProofState(b) === 'verificata'} onPress={() => go('businessCreate', { id: b.id })} accessibilityRole="button" accessibilityLabel={PROOF_STATE_LABEL[bizProofState(b)]} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start' }}>
+              <Icon name={bizProofState(b) === 'verificata' ? 'check' : 'alert'} size={13} color={bizProofState(b) === 'verificata' ? t.positive : t.warn} stroke={2.4} />
+              <Text style={{ color: bizProofState(b) === 'verificata' ? t.positive : t.warn, fontSize: 12.5, fontWeight: '700' }}>{tl(PROOF_STATE_LABEL[bizProofState(b)])}</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
       {b.desc ? <Text style={{ color: t.text, fontSize: 15, lineHeight: 22, marginTop: 14 }}>{b.desc}</Text> : null}

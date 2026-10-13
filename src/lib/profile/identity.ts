@@ -59,7 +59,26 @@ export const BIZ_KIND_LABEL: Record<BizKind, string> = { attivita: 'Attività', 
 export type BizContacts = { email?: string; phone?: string; web?: string; showEmail: boolean; showPhone: boolean; showWeb: boolean };
 export type BizMember = { name: string; role: string };
 export const BIZ_ROLES = ['Titolare', 'Fondatore', 'CEO', 'Direttore', 'Responsabile', 'Socio', 'Collaboratore'] as const;
-export type Business = { id: string; owner: string; name: string; kind: BizKind; desc: string; color: string; logo?: string; contacts: BizContacts; createdAt: number; /** carica del titolare nella pagina (es. Fondatore, CEO) */ ownerRole?: string; /** altre persone collegate alla pagina, ciascuna con la sua carica */ members?: BizMember[]; /** l'utente può togliere l'attività dal proprio profilo (non l'esistenza dell'attività) */ hiddenOnProfile?: boolean };
+export type Business = { id: string; owner: string; name: string; kind: BizKind; desc: string; color: string; logo?: string; contacts: BizContacts; createdAt: number; /** carica del titolare nella pagina (es. Fondatore, CEO) */ ownerRole?: string; /** altre persone collegate alla pagina, ciascuna con la sua carica */ members?: BizMember[]; /** l'utente può togliere l'attività dal proprio profilo (non l'esistenza dell'attività) */ hiddenOnProfile?: boolean; /** prova che l'attività è del titolare (registro di commercio o altro) */ proof?: BizProof };
+
+export type BizProofKind = 'registro' | 'visura' | 'altro';
+export type BizProofStatus = 'in_verifica' | 'verificata' | 'rifiutata';
+export type BizProof = { kind: BizProofKind; name: string; uri: string; at: number; status: BizProofStatus; /** controllo simulato (demo) */ simulated?: boolean };
+export const BIZ_PROOF_LABEL: Record<BizProofKind, string> = {
+  registro: 'Estratto del registro di commercio',
+  visura: 'Visura camerale o atto di costituzione',
+  altro: 'Altra prova (partita IVA, contratto, lettera di un ente…)',
+};
+/** Per creare un'attività serve un documento che comprovi che è davvero tua. */
+export function validateBizProof(p?: Pick<BizProof, 'name' | 'uri'> | null): string | null {
+  if (!p || !p.uri || !p.name.trim()) return 'Carica un documento che comprovi che l’attività è tua (per esempio l’estratto del registro di commercio).';
+  return null;
+}
+export type BizProofState = BizProofStatus | 'mancante';
+export const bizProofState = (b: Pick<Business, 'proof'>): BizProofState => b.proof?.status ?? 'mancante';
+/** Annunci e prodotti si pubblicano solo quando la prova è stata verificata. */
+export const canPublishForBusiness = (b: Pick<Business, 'proof'>): boolean => bizProofState(b) === 'verificata';
+export const PROOF_STATE_LABEL: Record<BizProofState, string> = { verificata: 'Titolarità verificata', in_verifica: 'Documento in verifica', rifiutata: 'Documento non accettato', mancante: 'Documento mancante' };
 
 export function validateBusiness(b: Pick<Business, 'name' | 'kind'>): string | null {
   if (b.name.trim().length < 2) return 'Scrivi il nome dell’attività.';

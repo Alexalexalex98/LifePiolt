@@ -55,3 +55,15 @@ test('offerta di lavoro collegata all\'attività del titolare', () => {
   assert.equal(I.businessForJob([b], { owner: 'Anna', company: ' panificio rossi ' }).id, 'b');
   assert.equal(I.businessForJob([b], { owner: 'Bea', company: 'Panificio Rossi' }), null);
 });
+
+test('attività: serve la prova di titolarità', () => {
+  assert.ok(I.validateBizProof(null));
+  assert.ok(I.validateBizProof({ name: ' ', uri: 'x' }));
+  assert.ok(I.validateBizProof({ name: 'visura.pdf', uri: '' }));
+  assert.equal(I.validateBizProof({ name: 'visura.pdf', uri: 'file:///v.pdf' }), null);
+  assert.equal(I.bizProofState({}), 'mancante');
+  assert.equal(I.bizProofState({ proof: { status: 'in_verifica' } }), 'in_verifica');
+  assert.equal(I.canPublishForBusiness({ proof: { status: 'verificata' } }), true);
+  assert.equal(I.canPublishForBusiness({ proof: { status: 'in_verifica' } }), false);
+  assert.equal(I.canPublishForBusiness({}), false);
+});

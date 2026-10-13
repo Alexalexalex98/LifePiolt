@@ -6,7 +6,8 @@ import { Pressable, View } from 'react-native';
 import { Body, Btn, Card, H, Input, Page, Pill, Row, Switch } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { go, goBack } from '@/lib/nav';
-import { BIZ_COLORS, BIZ_KIND_LABEL, BIZ_ROLES, can, lockedReason, validateBusiness, type BizKind } from '@/lib/profile/identity';
+import * as DocumentPicker from 'expo-document-picker';
+import { BIZ_COLORS, BIZ_KIND_LABEL, BIZ_PROOF_LABEL, BIZ_ROLES, PROOF_STATE_LABEL, bizProofState, can, lockedReason, validateBizProof, validateBusiness, type BizKind, type BizProof, type BizProofKind } from '@/lib/profile/identity';
 import { identityStatusOf } from '@/lib/profile/actions';
 import { pickImage } from '@/lib/profile/pickImage';
 import { useApp } from '@/store/app';
@@ -33,17 +34,31 @@ export default function BusinessCreate() {
   const [showWeb, setShowWeb] = useState(existing?.contacts.showWeb ?? true);
   const [ownerRole, setOwnerRole] = useState(existing?.ownerRole ?? 'Titolare');
   const [members, setMembers] = useState<{ name: string; role: string }[]>(existing?.members ?? []);
+  const demo = useApp((a) => a.demo);
+  const [proofKind, setProofKind] = useState<BizProofKind>(existing?.proof?.kind ?? 'registro');
+  const [picked, setPicked] = useState<{ name: string; uri: string } | null>(null);
   const locked = !existing && !can(status, 'business');
+  const proofName = picked?.name ?? existing?.proof?.name;
+  async function pickProof() {
+    try {
+      const r = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true });
+      if (!r.canceled && r.assets[0]) setPicked({ name: r.assets[0].name, uri: r.assets[0].uri });
+    } catch { toast('Impossibile aprire i file'); }
+  }
 
   const save = () => {
     const why = validateBusiness({ name, kind });
     if (why) { toast(why); return; }
+    const proofWhy = existing?.proof && !picked ? null : validateBizProof(picked ?? (existing?.proof ? { name: existing.proof.name, uri: existing.proof.uri } : null));
+    if (proofWhy && !existing) { toast(proofWhy); return; }
+    // il controllo vero lo fa il team LifePilot quando l'app è collegata al server: in demo si simula l'esito
+    const proof: BizProof | undefined = picked ? { kind: proofKind, name: picked.name, uri: picked.uri, at: Date.now(), status: demo ? 'verificata' : 'in_verifica', ...(demo ? { simulated: true } : {}) } : existing?.proof ? { ...existing.proof, kind: proofKind } : undefined;
     const cleanMembers = members.map((m) => ({ name: m.name.trim(), role: m.role.trim() || 'Collaboratore' })).filter((m) => m.name && m.name !== me);
     const contacts = { email: email.trim(), phone: phone.trim(), web: web.trim(), showEmail, showPhone, showWeb };
     const st = useIdentity.getState();
-    if (existing) { st.updateBusiness(existing.id, { name: name.trim(), kind, desc: desc.trim(), color, logo, contacts, ownerRole: ownerRole.trim() || 'Titolare', members: cleanMembers }); toast('Attività aggiornata'); goBack(); return; }
-    const nid = st.addBusiness({ owner: me, name: name.trim(), kind, desc: desc.trim(), color, logo, contacts, ownerRole: ownerRole.trim() || 'Titolare', members: cleanMembers });
-    toast('Attività creata');
+    if (existing) { st.updateBusiness(existing.id, { name: name.trim(), kind, desc: desc.trim(), color, logo, contacts, ownerRole: ownerRole.trim() || 'Titolare', members: cleanMembers, ...(proof ? { proof } : {}) }); toast('Attività aggiornata'); goBack(); return; }
+    const nid = st.addBusiness({ owner: me, name: name.trim(), kind, desc: desc.trim(), color, logo, contacts, ownerRole: ownerRole.trim() || 'Titolare', members: cleanMembers, ...(proof ? { proof } : {}) });
+    toast(demo ? 'Attività creata' : 'Attività creata: il documento è in verifica');
     go('businessPage', { id: nid });
   };
 
@@ -77,6 +92,15 @@ export default function BusinessCreate() {
         {(Object.keys(BIZ_KIND_LABEL) as BizKind[]).map((k) => <Pill key={k} label={BIZ_KIND_LABEL[k]} on={kind === k} onPress={() => setKind(k)} />)}
       </Row>
       <Input multiline style={{ minHeight: 80 }} placeholder="Descrizione: cosa fate" value={desc} onChangeText={setDesc} maxLength={400} />
+
+      <H style={{ marginTop: 8 }}>Prova che l’attività è tua</H>
+      <Body small muted style={{ marginBottom: 6 }}>Per creare un’attività serve un documento che comprovi che è davvero tua: l’estratto del registro di commercio o un’altra prova valida. Lo vede solo il team di verifica, non compare sulla pagina.</Body>
+      <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }} gap={8}>
+        {(Object.keys(BIZ_PROOF_LABEL) as BizProofKind[]).map((k) => <Pill key={k} label={BIZ_PROOF_LABEL[k]} on={proofKind === k} onPress={() => setProofKind(k)} />)}
+      </Row>
+      <Btn small ghost icon="file" title={proofName ? `Documento: ${proofName}` : 'Carica il documento (PDF o foto)'} onPress={() => void pickProof()} />
+      {existing ? <Body small muted style={{ marginTop: 6 }}>{picked ? 'Il nuovo documento sarà controllato di nuovo.' : PROOF_STATE_LABEL[bizProofState(existing)]}</Body> : null}
+      {demo ? <Body small muted style={{ marginTop: 4 }}>Modalità demo: il controllo è simulato e il documento risulta subito verificato.</Body> : null}
 
       <H style={{ marginTop: 8 }}>La tua carica</H>
       <Body small muted style={{ marginBottom: 6 }}>Compare sul tuo profilo accanto al nome della pagina.</Body>

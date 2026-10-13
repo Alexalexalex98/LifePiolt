@@ -9,8 +9,8 @@ import type { Order, Product } from '@/lib/shop';
 import { withdrawFee, type LpMove, type LpSource } from '@/lib/lpStatement';
 import { persisted } from './persist';
 
-export type Post = { id: number; author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; uris?: string[] };
-export type CommPost = { author: string; text: string; media?: 'photo' | 'video' | null; likes: number; ts?: number; uri?: string };
+export type Post = { id: number; author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; uris?: string[]; /** quando è stato modificato dall'autore */ editedAt?: number };
+export type CommPost = { author: string; text: string; media?: 'photo' | 'video' | null; likes: number; ts?: number; uri?: string; editedAt?: number };
 export type Community = { id: number; name: string; topic: string; owner: string; openPosting: boolean; members: string[]; posts: CommPost[]; desc?: string; rules?: string; ts?: number };
 export type Provider = { name: string; role: string; price: number; rating: number; tag: string; media: 'photo' | 'video' | null; slots: string[] };
 export type Booking = { id: string; provider: string; role: string; slot: string; price: number };

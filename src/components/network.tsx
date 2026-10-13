@@ -27,7 +27,7 @@ export const gradientFor = (seed: string) => photoGradients[Math.abs(hashStr(see
 
 /* ---------- gestione schede (una sola host nel layout) ---------- */
 export type SheetKind =
-  | 'comments' | 'postMenu' | 'donate' | 'scoreExpl' | 'ideaMenu' | 'contribute' | 'newIdea' | 'newCommunity' | 'postToCommunity' | 'newSeminar'
+  | 'comments' | 'postMenu' | 'editPost' | 'donate' | 'scoreExpl' | 'ideaMenu' | 'contribute' | 'newIdea' | 'newCommunity' | 'postToCommunity' | 'newSeminar'
   | 'promoteSeminar' | 'vote' | 'rating' | 'createClub' | 'clubManage' | 'statDetail' | 'following' | 'editProfile' | 'verification'
   | 'contentMenu' | 'report' | 'topup' | 'lpDaily' | 'lpTotal' | 'cv' | 'newPost' | 'purchaseFinal' | 'sponsoredInfo' | 'confirmAttendance';
 
