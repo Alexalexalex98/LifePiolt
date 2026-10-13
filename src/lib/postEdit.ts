@@ -3,7 +3,9 @@
  * 'standalone:<id>' per un post del profilo, 'community:<id>:<posizione>' per un post in una community.
  * Solo l'autore può modificare o eliminare; chi modifica può cambiare testo e argomento, non l'immagine.
  */
-export type PostLike = { author: string; text: string; tag?: string; editedAt?: number };
+export type PostLike = { author: string; text: string; tag?: string; editedAt?: number; media?: 'photo' | 'video' | null; uri?: string; hideLikes?: boolean; commentsOff?: boolean };
+/** Tutto ciò che l'autore può cambiare: testo, argomento, foto o video (o toglierli), mi piace visibili, commenti. */
+export type PostPatch = { text: string; tag?: string; media?: 'photo' | 'video' | null; uri?: string; hideLikes?: boolean; commentsOff?: boolean };
 export type CommLike<P> = { id: number | string; posts: P[] };
 
 export type Ref = { kind: 'standalone'; id: string } | { kind: 'community'; id: string; index: number };
@@ -22,19 +24,27 @@ export function validatePostText(text: string, hasMedia: boolean): string | null
 }
 
 /** Modifica un post del profilo. Restituisce la nuova lista (stesso array se nulla è cambiato o non è dell'autore). */
-export function editStandalone<P extends PostLike & { id: number }>(posts: P[], id: string, me: string, patch: { text: string; tag?: string }, now: number): P[] {
+export function editStandalone<P extends PostLike & { id: number }>(posts: P[], id: string, me: string, patch: PostPatch, now: number): P[] {
   const i = posts.findIndex((p) => String(p.id) === id);
   if (i < 0 || posts[i].author !== me) return posts;
-  const cur = posts[i], text = patch.text.trim(), tag = patch.tag ?? cur.tag;
-  if (text === cur.text && tag === cur.tag) return posts;
-  const next = [...posts]; next[i] = { ...cur, text, tag, editedAt: now };
-  return next;
+  const cur = posts[i];
+  const next: P = { ...cur, text: patch.text.trim(), tag: patch.tag ?? cur.tag };
+  if ('media' in patch) { next.media = patch.media ?? null; next.uri = patch.media ? patch.uri : undefined; }
+  if (patch.hideLikes !== undefined) next.hideLikes = patch.hideLikes || undefined;
+  if (patch.commentsOff !== undefined) next.commentsOff = patch.commentsOff || undefined;
+  const same = next.text === cur.text && next.tag === cur.tag && next.media === cur.media && next.uri === cur.uri && !!next.hideLikes === !!cur.hideLikes && !!next.commentsOff === !!cur.commentsOff;
+  if (same) return posts;
+  const out = [...posts]; out[i] = { ...next, editedAt: now };
+  return out;
 }
-export function editInCommunity<P extends PostLike, C extends CommLike<P>>(comms: C[], cid: string, index: number, me: string, text: string, now: number): C[] {
+export function editInCommunity<P extends PostLike, C extends CommLike<P>>(comms: C[], cid: string, index: number, me: string, patch: Pick<PostPatch, 'text' | 'media' | 'uri'>, now: number): C[] {
   return comms.map((c) => {
     if (String(c.id) !== cid || !c.posts[index] || c.posts[index].author !== me) return c;
-    if (c.posts[index].text === text.trim()) return c;
-    const posts = [...c.posts]; posts[index] = { ...posts[index], text: text.trim(), editedAt: now };
+    const cur = c.posts[index];
+    const next: P = { ...cur, text: patch.text.trim() };
+    if ('media' in patch) { next.media = patch.media ?? null; next.uri = patch.media ? patch.uri : undefined; }
+    if (next.text === cur.text && next.media === cur.media && next.uri === cur.uri) return c;
+    const posts = [...c.posts]; posts[index] = { ...next, editedAt: now };
     return { ...c, posts };
   });
 }

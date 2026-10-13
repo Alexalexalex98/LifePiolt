@@ -111,7 +111,7 @@ export default function PostPage() {
 
         <View style={{ paddingHorizontal: 14, gap: 8 }}>
           {focus && actor ? <Body small bold color={LIKE}>{tl(commentId !== undefined && commentId !== '' ? '{0} ha messo mi piace a un commento di questo post' : '{0} ha messo mi piace a questo post', actor)}</Body> : null}
-          <Text style={{ color: t.text, fontSize: 15, fontWeight: '800' }}>{tl(post.likes === 1 ? 'Piace a {0} persona' : 'Piace a {0} persone', post.likes)}</Text>
+          {post.hideLikes && post.author !== me ? null : <Text style={{ color: t.text, fontSize: 15, fontWeight: '800' }}>{tl(post.likes === 1 ? 'Piace a {0} persona' : 'Piace a {0} persone', post.likes)}{post.hideLikes ? ` · ${translateText('nascosto agli altri')}` : ''}</Text>}
           {post.tag ? (
             post.community
               ? <Body small muted>Pubblicato nella community <Body small muted style={{ textDecorationLine: 'underline' }} onPress={() => go('communityProfile', { id: String(post.community!.id) })}>{post.community.name}</Body></Body>
@@ -146,6 +146,7 @@ export default function PostPage() {
         </View>
       </ScrollView>
 
+      {post.commentsOff ? <View style={{ paddingVertical: 12 }}><Body small muted style={{ textAlign: 'center' }}>I commenti di questo post sono disattivati.</Body></View> : (
       <View style={{ marginHorizontal: -16, paddingStart: 14, paddingEnd: 14, paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.item, backgroundColor: t.bg, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: -8 }}>
         <UserAvatar name={me} size={32} />
         <TextInput ref={input as never} value={text} onChangeText={setText} placeholder="Scrivi un commento…" placeholderTextColor={t.muted} accessibilityLabel={translateText('Scrivi un commento…')} returnKeyType="send" onSubmitEditing={send} style={{ flex: 1, minHeight: 44, borderRadius: 999, backgroundColor: t.input, borderWidth: 1, borderColor: t.inputBorder, color: t.text, fontSize: 15.5, paddingHorizontal: 16, paddingVertical: 8, outlineStyle: 'none' } as never} />
@@ -153,6 +154,7 @@ export default function PostPage() {
           <Icon name="send" size={19} color={canSend ? t.onText : t.muted} stroke={2} />
         </Pressable>
       </View>
+      )}
     </Page>
   );
 }

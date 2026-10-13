@@ -176,15 +176,15 @@ export function castVote(me: string, target: string, stars: number): boolean {
 }
 
 /* ---------- post per chiave ('standalone:ID' | 'community:CID:INDICE') ---------- */
-export type PostView = { author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; community?: { id: number; name: string } };
+export type PostView = { author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; community?: { id: number; name: string }; editedAt?: number; hideLikes?: boolean; commentsOff?: boolean };
 export function postByKey(key: string): PostView | null {
   const s = useNet.getState();
   if (key.startsWith('standalone:')) {
     const p = s.posts.find((x) => x.id === Number(key.split(':')[1]));
-    return p ? { author: p.author, text: p.text, media: p.media, tag: p.tag, likes: p.likes, ts: p.ts, uri: p.uri } : null;
+    return p ? { author: p.author, text: p.text, media: p.media, tag: p.tag, likes: p.likes, ts: p.ts, uri: p.uri, editedAt: p.editedAt, hideLikes: p.hideLikes, commentsOff: p.commentsOff } : null;
   }
   const [, cid, pi] = key.split(':');
   const c = s.communities.find((x) => x.id === Number(cid));
   const p = c?.posts[Number(pi)];
-  return c && p ? { author: p.author, text: p.text, media: p.media ?? null, tag: c.name, likes: p.likes, ts: p.ts, uri: p.uri, community: { id: c.id, name: c.name } } : null;
+  return c && p ? { author: p.author, text: p.text, media: p.media ?? null, tag: c.name, likes: p.likes, ts: p.ts, uri: p.uri, community: { id: c.id, name: c.name }, editedAt: p.editedAt } : null;
 }

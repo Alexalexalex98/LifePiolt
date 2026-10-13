@@ -597,28 +597,42 @@ function TopUpView() {
   );
 }
 
-/** Modifica testo e argomento di un proprio post (come su Instagram: resta «modificato»). */
+/** Modifica tutto di un proprio post, come su Instagram: testo, argomento, foto o video, mi piace visibili, commenti. Resta «modificato». */
 function EditPostView({ ref_ }: { ref_: string }) {
   const net = useNet();
   const me = useApp((s) => s.account.name);
   const close = useNetSheet((s) => s.close);
   const r = parseRef(ref_);
-  const cur = r?.kind === 'standalone' ? net.posts.find((x) => String(x.id) === r.id) : r?.kind === 'community' ? net.communities.find((c) => String(c.id) === r.id)?.posts[r.index] : undefined;
+  const stand = r?.kind === 'standalone' ? net.posts.find((x) => String(x.id) === r.id) : undefined;
+  const cur = stand ?? (r?.kind === 'community' ? net.communities.find((c) => String(c.id) === r.id)?.posts[r.index] : undefined);
   const [text, setText] = useState(cur?.text ?? '');
-  const [tag, setTag] = useState((r?.kind === 'standalone' ? net.posts.find((x) => String(x.id) === r.id)?.tag : undefined) ?? topicList[0]);
+  const [tag, setTag] = useState(stand?.tag ?? topicList[0]);
+  const [media, setMedia] = useState<NetMedia | null>(cur?.media && cur.uri ? { media: cur.media, uri: cur.uri } : null);
+  const [hideLikes, setHideLikes] = useState(!!stand?.hideLikes);
+  const [commentsOff, setCommentsOff] = useState(!!stand?.commentsOff);
   if (!r || !cur || cur.author !== me) return <Body muted>Questo post non c'è più o non è tuo.</Body>;
-  const hasMedia = !!cur.media;
+  // un post nato con la foto di esempio (senza file) la tiene finché non la cambi o la togli
+  const keepsDemoMedia = !!cur.media && !cur.uri && !media;
   return (
     <>
       <Input multiline placeholder="Scrivi il testo del post" value={text} onChangeText={setText} maxLength={MAX_POST} />
       {r.kind === 'standalone' ? <Select title="Argomento" value={tag} options={topicList} onChange={setTag} /> : null}
-      {hasMedia ? <Body small muted style={{ marginBottom: 8 }}>La foto o il video non si cambiano: per sostituirli pubblica un nuovo post.</Body> : null}
-      <Btn title="Salva" onPress={() => {
-        const why = validatePostText(text, hasMedia);
+      <MediaPickerField value={media} onChange={setMedia} />
+      {keepsDemoMedia ? <Body small muted style={{ marginBottom: 8 }}>Il post ha già un'immagine: sceglierne una nuova la sostituisce.</Body> : null}
+      {r.kind === 'standalone' ? (
+        <>
+          <Toggle label="Nascondi il numero di mi piace agli altri" value={hideLikes} onChange={setHideLikes} hint="Tu lo vedi sempre" />
+          <Toggle label="Disattiva i commenti" value={commentsOff} onChange={setCommentsOff} hint="Nessuno può commentare questo post" />
+        </>
+      ) : null}
+      <Btn style={{ marginTop: 10 }} title="Salva" onPress={() => {
+        const has = !!media || keepsDemoMedia;
+        const why = validatePostText(text, has);
         if (why) { toast(why); return; }
         const now = Date.now();
-        if (r.kind === 'standalone') net.patch({ posts: editStandalone(net.posts, r.id, me, { text, tag }, now) });
-        else net.patch({ communities: editInCommunity(net.communities, r.id, r.index, me, text, now) });
+        const mediaPatch = keepsDemoMedia ? {} : { media: media?.media ?? null, uri: media?.uri };
+        if (r.kind === 'standalone') net.patch({ posts: editStandalone(net.posts, r.id, me, { text, tag, hideLikes, commentsOff, ...mediaPatch }, now) });
+        else net.patch({ communities: editInCommunity(net.communities, r.id, r.index, me, { text, ...mediaPatch }, now) });
         close(); toast('Post modificato');
       }} />
     </>

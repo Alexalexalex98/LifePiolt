@@ -18,7 +18,7 @@ import { t as tl, translateText } from '@/i18n/core';
 import { captionNeedsMore, isDoubleTap, pageIndex } from './feedLogic.ts';
 import { ArtPlaceholder, IconBtn, NATIVE, RingAvatar, TextCard } from './parts';
 
-export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; uris?: string[]; editedAt?: number };
+export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; uris?: string[]; editedAt?: number; hideLikes?: boolean; commentsOff?: boolean };
 
 export const LIKE = '#ff4d6d';
 
@@ -123,7 +123,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
   const first = (comments || [])[0];
   const hasMedia = !!post.media;
   const more = hasMedia && captionNeedsMore(post.text);
-  const sub = [role ?? post.tag, fmtAgo(post.ts), post.editedAt ? translateText('modificato') : ''].filter(Boolean).join(' · ');
+  const sub = [post.tag ?? role, fmtAgo(post.ts), post.editedAt ? translateText('modificato') : ''].filter(Boolean).join(' · ');
 
   const like = () => useNet.getState().likePost(likeKey);
   const doubleLike = () => { flash(); if (!useNet.getState().likedPosts.includes(likeKey)) like(); };
@@ -153,7 +153,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
 
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, marginTop: 4 }}>
         <IconBtn icon="heart" size={27} color={liked ? LIKE : t.text} fill={liked ? LIKE : 'none'} label={liked ? 'Togli il mi piace' : 'Mi piace'} onPress={like} pop={liked} selected={liked} />
-        <IconBtn icon="comment" label="Apri il post e i commenti" onPress={() => go('postPage', { key: likeKey })} />
+        {post.commentsOff ? null : <IconBtn icon="comment" label="Apri il post e i commenti" onPress={() => go('postPage', { key: likeKey })} />}
         <IconBtn icon="send" label="Condividi" onPress={share} />
         {!donated && post.author !== me && <IconBtn icon="coin" size={26} color={t.accent} label="Dona il LifePoint di oggi" onPress={() => openSheet('donate', { author: post.author, key: likeKey })} />}
         <View style={{ flex: 1 }} />
@@ -161,7 +161,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
       </View>
 
       <View style={{ paddingHorizontal: 14, gap: 5 }}>
-        <Text style={{ color: t.text, fontSize: 14.5, fontWeight: '800' }}>{tl(post.likes === 1 ? 'Piace a {0} persona' : 'Piace a {0} persone', post.likes)}</Text>
+        {post.hideLikes && post.author !== me ? null : <Text style={{ color: t.text, fontSize: 14.5, fontWeight: '800' }}>{tl(post.likes === 1 ? 'Piace a {0} persona' : 'Piace a {0} persone', post.likes)}{post.hideLikes ? ` · ${translateText('nascosto agli altri')}` : ''}</Text>}
         {hasMedia && (
           <View>
             <Text numberOfLines={open || !more ? undefined : 2} style={{ color: t.text, fontSize: 14.5, lineHeight: 21 }}>
@@ -170,6 +170,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
             {more && !open && <Pressable onPress={() => setOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Mostra tutta la didascalia')} style={{ paddingVertical: 4 }}><Text style={{ color: t.muted, fontSize: 14 }}>altro</Text></Pressable>}
           </View>
         )}
+        {post.commentsOff ? <Text style={{ color: t.muted, fontSize: 13.5 }}>{translateText('I commenti sono disattivati')}</Text> : (<>
         {commentCount > 0 ? (
           <Pressable onPress={() => go('postPage', { key: likeKey })} accessibilityRole="link" style={{ paddingVertical: 3 }}>
             <Text style={{ color: t.muted, fontSize: 14 }}>{commentCount === 1 ? tl('Vedi il commento') : tl('Vedi tutti i {0} commenti', commentCount)}</Text>
@@ -180,6 +181,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
           <UserAvatar name={me} size={24} />
           <Text style={{ color: t.muted, fontSize: 14 }}>Aggiungi un commento…</Text>
         </Pressable>
+        </>)}
         {post.ts ? <Text style={{ color: t.muted, fontSize: 11.5, letterSpacing: 0.3, textTransform: 'uppercase' }}>{fmtDay(post.ts)}</Text> : null}
       </View>
     </View>
