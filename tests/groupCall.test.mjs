@@ -69,3 +69,20 @@ test('promemoria: confermato ma non entrato, a 3 minuti dall\'apertura, una volt
   assert.deepEqual(G.toRemind(G.applyJoin(c, 'Marco T.'), T0 + 5 * M), []);
   assert.deepEqual(G.reminderTimes(c).map((r) => (r.at - T0) / M), [-10, 0, 3]);
 });
+
+test('come nelle dirette: mano alzata, silenzia e rimuovi solo per chi organizza', () => {
+  let c = G.applyRsvp(sched(), 'Marco T.', 'yes'); c = G.applyJoin(G.applyJoin(c, 'Alex'), 'Marco T.');
+  c = G.applyHand(c, 'Marco T.', true); assert.deepEqual(c.hands, ['Marco T.']);
+  assert.deepEqual(G.applyHand(c, 'Marco T.', false).hands, []);
+  assert.equal(G.applyMute(c, 'Marco T.', 'Alex', true), c);           // un partecipante non silenzia
+  assert.deepEqual(G.applyMute(c, 'Alex', 'Marco T.', true).muted, ['Marco T.']);
+  assert.equal(G.applyMute(c, 'Alex', 'Alex', true), c);               // l'organizzatore non silenzia se stesso
+  const r = G.applyRemove(c, 'Alex', 'Marco T.');
+  assert.equal(G.canEnter(r, 'Marco T.', T0 + M), false); assert.deepEqual(r.joined, ['Alex']); assert.deepEqual(r.hands, []);
+  assert.equal(G.applyRemove(c, 'Marco T.', 'Alex'), c);
+});
+test('elenco delle persone con il loro stato', () => {
+  let c = G.applyRsvp(sched(), 'Marco T.', 'yes'); c = G.applyRsvp(c, 'Giulia M.', 'no'); c = { ...c, invited: ['Federica L.'] };
+  c = G.applyJoin(c, 'Alex');
+  assert.deepEqual(G.peopleOf(c), [{ name: 'Alex', state: 'presente' }, { name: 'Marco T.', state: 'confermato' }, { name: 'Federica L.', state: 'invitato' }, { name: 'Giulia M.', state: 'rifiutato' }]);
+});

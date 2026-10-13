@@ -1,8 +1,9 @@
 import { go } from '@/lib/nav';
+import { useIncomingCall } from '@/store/incomingCall';
 import { peoplePool } from '@/lib/network';
 import { buildRef, pushData } from '@/lib/notifyLinks';
 import { cancelByPrefix, scheduleAt } from '@/lib/notify';
-import { applyEnd, applyInvite, applyJoin, applyLeave, applyRsvp, makeInstant, makeScheduled, reminderTimes, type CallRsvp, type CallShare } from '@/lib/groupCall';
+import { applyEnd, applyHand, applyInvite, applyJoin, applyLeave, applyMute, applyRemove, applyRsvp, makeInstant, makeScheduled, reminderTimes, type CallRsvp, type CallShare } from '@/lib/groupCall';
 import { t as tl } from '@/i18n/core';
 import { useApp } from '@/store/app';
 import { useChat, type ChatMessage } from '@/store/chat';
@@ -102,4 +103,46 @@ export const everyone = (me: string): string[] => peoplePool(me);
 /** Segna una persona come presente nella stanza (all'ingresso; in demo anche gli altri che «arrivano»). */
 export function applyJoinPresence(chatId: string, mid: string, who: string): void {
   patchCall(chatId, mid, (c) => applyJoin(c, who));
+}
+
+/** Demo: qualcuno ti chiama (voce o video): compare la schermata «Chiamata in arrivo» con Rispondi e Rifiuta. */
+export function simulateIncoming(video: boolean, from?: string): void {
+  const me = useApp.getState().account.name;
+  const who = from ?? Object.values(st().chats).find((c) => c.type === 'dm')?.name ?? 'Marco T.';
+  const chatId = st().ensureDm(who, me);
+  const call = makeInstant({ video, by: who, now: Date.now(), invited: [me] });
+  const mid = st().receive(chatId, who, { kind: 'call', text: call.title, call, callRecord: { theia: false, transcript: [] } });
+  useIncomingCall.getState().ring({ chatId, mid, from: who, video });
+}
+/** Rispondi: entra nella stanza. Rifiuta: lo scrive nella chat. */
+export function answerIncoming(): void {
+  const cur = useIncomingCall.getState().current;
+  if (!cur) return;
+  const me = useApp.getState().account.name;
+  useIncomingCall.getState().clear();
+  enter(cur.chatId, cur.mid, me);
+}
+export function declineIncoming(): void {
+  const cur = useIncomingCall.getState().current;
+  if (!cur) return;
+  const me = useApp.getState().account.name;
+  useIncomingCall.getState().clear();
+  patchCall(cur.chatId, cur.mid, (c) => applyEnd({ ...c, rsvp: { ...c.rsvp, [me]: 'no' } }, Date.now()));
+  say(cur.chatId, tl('Chiamata rifiutata'));
+}
+
+/* ---------- come nelle dirette dei seminari ---------- */
+export const raiseHand = (chatId: string, mid: string, me: string, up: boolean): void => { patchCall(chatId, mid, (c) => applyHand(c, me, up)); };
+export const muteBy = (chatId: string, mid: string, by: string, target: string, on: boolean): void => { patchCall(chatId, mid, (c) => applyMute(c, by, target, on)); };
+export function removeBy(chatId: string, mid: string, by: string, target: string): void {
+  patchCall(chatId, mid, (c) => applyRemove(c, by, target));
+  say(chatId, tl('{0} è stato rimosso dalla chiamata', target));
+}
+/** Un messaggio scritto durante la call (resta nella call, non nella chat). */
+export function sendCallChat(chatId: string, mid: string, from: string, text: string): void {
+  const cur = callOf(chatId, mid);
+  const t = text.trim();
+  if (!cur || !t) return;
+  const rec = cur.msg.callRecord ?? { theia: false, transcript: [] };
+  st().patchMsg(chatId, mid, { callRecord: { ...rec, chat: [...(rec.chat ?? []), { id: `${Date.now()}${Math.random().toString(36).slice(2, 5)}`, from, text: t.slice(0, 300), ts: Date.now() }].slice(-200) } });
 }

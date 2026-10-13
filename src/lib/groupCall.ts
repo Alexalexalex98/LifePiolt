@@ -10,6 +10,8 @@ export type CallShare = {
   rsvp: Record<string, CallRsvp>; invited: string[]; joined: string[]; endedAt?: number;
   /** chi ha già ricevuto il promemoria «la call è iniziata» */ reminded?: string[];
   /** true = si possono invitare solo persone del gruppo (call programmate); false = chiunque (chiamate istantanee) */ restrictToGroup: boolean;
+  /** mani alzate, persone silenziate e rimosse da chi organizza (come nelle dirette dei seminari) */
+  hands?: string[]; muted?: string[]; removed?: string[];
 };
 export type CallPhase = 'upcoming' | 'open' | 'ended';
 
@@ -32,7 +34,7 @@ export function phase(c: CallShare, now: number): CallPhase {
   return now < c.startsAt + (c.durationMin + OVERRUN_MIN) * MIN ? 'open' : 'ended';
 }
 /** Ha confermato o è stato invitato (o l'ha fissata lui). */
-export const isInvolved = (c: CallShare, user: string): boolean => user === c.by || c.rsvp[user] === 'yes' || c.invited.includes(user);
+export const isInvolved = (c: CallShare, user: string): boolean => !(c.removed ?? []).includes(user) && (user === c.by || c.rsvp[user] === 'yes' || c.invited.includes(user));
 export const confirmedList = (c: CallShare): string[] => [...new Set([c.by, ...Object.entries(c.rsvp).filter(([, a]) => a === 'yes').map(([n]) => n), ...c.invited])];
 export const declinedList = (c: CallShare): string[] => Object.entries(c.rsvp).filter(([, a]) => a === 'no').map(([n]) => n);
 
@@ -88,3 +90,31 @@ export const reminderTimes = (c: CallShare): { at: number; kind: 'soon' | 'open'
 
 /** Quanto manca (o è passato) in minuti arrotondati, per le etichette. */
 export const minutesTo = (c: CallShare, now: number): number => Math.round((c.startsAt - now) / MIN);
+
+/* ---------- come nelle dirette: mano alzata, silenzia, rimuovi ---------- */
+export const isHost = (c: CallShare, user: string): boolean => user === c.by;
+export function applyHand(c: CallShare, user: string, up: boolean): CallShare {
+  const hands = (c.hands ?? []).filter((n) => n !== user);
+  return { ...c, hands: up ? [...hands, user] : hands };
+}
+/** Solo chi ha fissato la call silenzia o rimuove; non può farlo a se stesso. */
+export function applyMute(c: CallShare, by: string, target: string, on: boolean): CallShare {
+  if (!isHost(c, by) || target === by) return c;
+  const muted = (c.muted ?? []).filter((n) => n !== target);
+  return { ...c, muted: on ? [...muted, target] : muted };
+}
+export function applyRemove(c: CallShare, by: string, target: string): CallShare {
+  if (!isHost(c, by) || target === by) return c;
+  return { ...c, removed: [...(c.removed ?? []), target], joined: c.joined.filter((n) => n !== target), hands: (c.hands ?? []).filter((n) => n !== target), invited: c.invited.filter((n) => n !== target) };
+}
+/** Stato di una persona nell'elenco della call. */
+export type PersonState = 'presente' | 'confermato' | 'invitato' | 'rifiutato';
+export function peopleOf(c: CallShare): { name: string; state: PersonState }[] {
+  const out: { name: string; state: PersonState }[] = [];
+  const seen = new Set<string>();
+  const add = (name: string, state: PersonState) => { if (!seen.has(name)) { seen.add(name); out.push({ name, state }); } };
+  c.joined.forEach((n) => add(n, 'presente'));
+  confirmedList(c).forEach((n) => add(n, c.invited.includes(n) && c.rsvp[n] !== 'yes' ? 'invitato' : 'confermato'));
+  declinedList(c).forEach((n) => add(n, 'rifiutato'));
+  return out.filter((p) => !(c.removed ?? []).includes(p.name));
+}

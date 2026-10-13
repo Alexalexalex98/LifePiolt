@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
@@ -14,9 +14,12 @@ import { Body, Btn, Item, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { alertT } from '@/lib/alert';
-import { applyJoinPresence, endForAll, everyone, invite, leave } from '@/lib/callActions';
+import { DuoCall } from '@/components/call/DuoCall';
+import { ReactionsLayer } from '@/components/live/Overlay';
+import { REACTIONS, type LiveReaction, type ReactionKind } from '@/lib/liveRoom';
+import { applyJoinPresence, endForAll, everyone, invite, leave, muteBy, raiseHand, removeBy, sendCallChat } from '@/lib/callActions';
 import { buildNotes, hasNotes, type TLine } from '@/lib/callNotes';
-import { canEnter, inviteCandidates, isInvolved, phase } from '@/lib/groupCall';
+import { canEnter, inviteCandidates, isHost, isInvolved, peopleOf, phase } from '@/lib/groupCall';
 import { Icon } from '@/lib/icons';
 import { useNow } from '@/lib/enroll';
 import { clockLabel } from '@/lib/liveRoom';
@@ -58,6 +61,13 @@ export default function GroupCall() {
   const [mine, setMine] = useState<boolean | null>(null); // consenso a trascrivere la MIA voce
   const [notesOpen, setNotesOpen] = useState(false);
   const joinedAt = useRef(Date.now());
+  const [speaker, setSpeaker] = useState(false);
+  const [peopleOpen, setPeopleOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatText, setChatText] = useState('');
+  const [reactOpen, setReactOpen] = useState(false);
+  const [reactions, setReactions] = useState<LiveReaction[]>([]);
+  const [giveUp, setGiveUp] = useState(false);
 
   const open = call ? phase(call, now) === 'open' : false;
   const allowed = !!call && canEnter(call, me, now);
@@ -126,6 +136,18 @@ export default function GroupCall() {
     } else finish(false);
   };
 
+  const candidatesAll = call ? inviteCandidates(call, chat?.members ?? [], everyone(me)) : [];
+  const host = !!call && isHost(call, me);
+  const forcedMute = !!call?.muted?.includes(me);
+  const handUp = !!call?.hands?.includes(me);
+  // chiamata a due (una chat singola, nessun altro aggiunto): schermata come WhatsApp; con una terza persona diventa una griglia
+  const other = chat?.type === 'dm' ? chat.name : null;
+  const duo = !!call && call.kind === 'instant' && !!other && call.invited.filter((n) => n !== me).length <= 1 && call.joined.filter((n) => n !== me && n !== other).length === 0 && (call.by === me || call.by === other);
+  const otherIn = !!other && !!call?.joined.includes(other);
+  useEffect(() => { if (!duo || otherIn || demo) return; const h = setTimeout(() => setGiveUp(true), 45000); return () => clearTimeout(h); }, [duo, otherIn, demo]);
+  useEffect(() => { if (otherIn) setGiveUp(false); }, [otherIn]);
+  useEffect(() => { if (forcedMute) setMicOff(true); }, [forcedMute]);
+
   if (!msg || !call) return <View style={{ flex: 1, backgroundColor: '#0b0e14', alignItems: 'center', justifyContent: 'center' }}><Body muted>Chiamata non trovata.</Body></View>;
   if (!allowed) {
     const ph = phase(call, now);
@@ -138,6 +160,29 @@ export default function GroupCall() {
     );
   }
 
+  const addSheets = (
+    <Sheet visible={addOpen} title="Aggiungi alla chiamata" onClose={() => setAddOpen(false)}>
+      <Body small muted style={{ marginBottom: 6 }}>{call.restrictToGroup ? 'Questa call è del gruppo: puoi invitare solo le persone del gruppo che non hanno confermato.' : 'Puoi aggiungere chiunque, come su WhatsApp.'}</Body>
+      {candidatesAll.length === 0 ? <Body muted>Non c'è nessun altro da invitare.</Body> : candidatesAll.map((n, i) => (
+        <Item key={n} last={i === candidatesAll.length - 1}>
+          <Row gap={10}><UserAvatar name={n} size={36} /><Body bold style={{ flex: 1 }}>{n}</Body>
+            <Btn small title="Invita" onPress={() => { const e = invite(chatId, mid, me, n); toast(e ?? tl('{0} è stato invitato', n)); if (!e) setAddOpen(false); }} /></Row>
+        </Item>
+      ))}
+    </Sheet>
+  );
+  if (duo && other) {
+    return (
+      <>
+        <DuoCall other={other} me={me} video={call.video} state={otherIn ? 'connected' : giveUp ? 'noanswer' : 'ringing'} elapsedMs={Math.max(0, now - joinedAt.current)}
+          micOff={micOff} camOff={camOff} speaker={speaker} facing={facing}
+          onMic={() => setMicOff((v) => !v)} onCam={() => setCamOff((v) => !v)} onSpeaker={() => setSpeaker((v) => !v)} onFlip={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))}
+          onAdd={() => setAddOpen(true)} onEnd={() => finish(false)} onShare={() => setShareOpen(true)} onRetry={() => { setGiveUp(false); joinedAt.current = Date.now(); }} />
+        {addSheets}
+      </>
+    );
+  }
+
   const people = call.joined.length ? call.joined : [me];
   const cols = people.length > 4 ? 3 : people.length > 1 ? 2 : 1;
   const tile = (n: string) => (
@@ -146,13 +191,13 @@ export default function GroupCall() {
         {n === me && call.video && !camOff ? <HostCamera facing={facing} torch={false} camOff={false} needMic={false} small />
           : <LinearGradient colors={['#1b2440', '#0b0e14']} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, alignItems: 'center', justifyContent: 'center' }}><UserAvatar name={n} size={cols === 1 ? 110 : 64} /></LinearGradient>}
         <View style={{ position: 'absolute', start: 8, bottom: 8, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, paddingVertical: 3, paddingHorizontal: 8 }}>
-          {n === me && micOff ? <Icon name="mic" size={12} color="#ff6b6b" /> : null}
+          {(n === me && micOff) || call.muted?.includes(n) ? <Icon name="mic" size={12} color="#ff6b6b" /> : null}
+          {call.hands?.includes(n) ? <Icon name="contact" size={12} color="#ffd166" /> : null}
           <Text numberOfLines={1} style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{n === me ? tl('Tu') : n}</Text>
         </View>
       </View>
     </View>
   );
-  const candidates = inviteCandidates(call, chat?.members ?? [], everyone(me));
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
@@ -165,10 +210,10 @@ export default function GroupCall() {
         {theiaOn ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(143,164,255,0.25)', borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 }}><Icon name="sparkle" size={13} color="#c9d3ff" /><Text style={{ color: '#c9d3ff', fontSize: 11.5, fontWeight: '800' }}>{tl('Theia')}</Text></View> : null}
       </View>
 
-      {!pres ? <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', padding: 8, paddingBottom: 190 }}>{people.map(tile)}</ScrollView> : <View style={{ flex: 1 }} />}
+      {!pres ? <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', padding: 8, paddingBottom: 200 }}>{people.map(tile)}</ScrollView> : <View style={{ flex: 1 }} />}
 
       {theiaOn ? (
-        <View style={{ position: 'absolute', start: 10, end: 10, bottom: insets.bottom + 152, backgroundColor: 'rgba(8,10,16,0.85)', borderRadius: 16, padding: 10, gap: 4 }}>
+        <View style={{ position: 'absolute', start: 10, end: 10, bottom: insets.bottom + 108, backgroundColor: 'rgba(8,10,16,0.85)', borderRadius: 16, padding: 10, gap: 4 }}>
           <Row gap={6} style={{ justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
               <Icon name="sparkle" size={14} color="#c9d3ff" />
@@ -183,24 +228,65 @@ export default function GroupCall() {
         </View>
       ) : null}
 
-      <View pointerEvents="box-none" style={{ position: 'absolute', bottom: insets.bottom + 18, start: 0, end: 0, flexDirection: 'row', justifyContent: 'center', gap: 10, alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 10 }}>
-        <RoundBtn icon="mic" label={micOff ? 'Riattiva il microfono' : 'Silenzia il microfono'} slash={micOff} onPress={() => setMicOff((v) => !v)} size={50} />
-        {call.video ? <RoundBtn icon="video" label={camOff ? 'Accendi la fotocamera' : 'Spegni la fotocamera'} slash={camOff} onPress={() => setCamOff((v) => !v)} size={50} /> : null}
-        {call.video ? <RoundBtn icon="repeat" label="Cambia fotocamera" onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))} size={50} /> : null}
-        <RoundBtn icon="share" label="Condividi un file" on={!!pres} onPress={() => (pres ? setPres(null) : setShareOpen(true))} size={50} />
-        <RoundBtn icon="sparkle" label={theiaOn ? 'Disattiva gli appunti di Theia' : 'Attiva gli appunti di Theia'} on={theiaOn} onPress={() => toggleTheia(!theiaOn)} size={50} />
-        <RoundBtn icon="plus" label="Aggiungi persone" onPress={() => setAddOpen(true)} size={50} />
-        <RoundBtn icon="phone" label="Esci dalla chiamata" danger onPress={confirmEnd} size={54} />
+      <ReactionsLayer reactions={reactions} onDone={(id) => setReactions((l) => l.filter((r) => r.id !== id))} style={{ position: 'absolute', end: 14, bottom: insets.bottom + 200, width: 90, height: 280 }} />
+      {reactOpen ? (
+        <View style={{ position: 'absolute', start: 0, end: 0, bottom: insets.bottom + 140, flexDirection: 'row', justifyContent: 'center', gap: 12 }}>
+          {REACTIONS.map((r) => <RoundBtn key={r.kind} icon={r.icon} label={r.label} color={r.color} size={46} onPress={() => { setReactions((l) => [...l, { id: `${Date.now()}${r.kind}`, kind: r.kind as ReactionKind, ts: Date.now(), from: me }].slice(-18)); setReactOpen(false); }} />)}
+        </View>
+      ) : null}
+      <View style={{ position: 'absolute', start: 0, end: 0, bottom: 0, backgroundColor: 'rgba(8,10,16,0.92)', paddingTop: 8, paddingBottom: insets.bottom + 10 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 10, gap: 6, alignItems: 'center' }}>
+          {([
+            [micOff ? 'mic' : 'mic', micOff ? 'Attiva' : 'Muto', micOff, forcedMute ? () => toast('L\'organizzatore ti ha silenziato') : () => setMicOff((v) => !v), true],
+            ...(call.video ? [['video', camOff ? 'Accendi' : 'Video', camOff, () => setCamOff((v) => !v), true], ['repeat', 'Gira', false, () => setFacing((f) => (f === 'front' ? 'back' : 'front')), false]] : []),
+            ['share', pres ? 'Smetti' : 'Condividi', !!pres, () => (pres ? setPres(null) : setShareOpen(true)), false],
+            ['contact', handUp ? 'Abbassa' : 'Mano', handUp, () => raiseHand(chatId, mid, me, !handUp), false],
+            ['smile', 'Reazioni', reactOpen, () => setReactOpen((v) => !v), false],
+            ['comment', 'Chat', false, () => setChatOpen(true), false],
+            ['users', 'Persone', false, () => setPeopleOpen(true), false],
+            ['sparkle', 'Theia', theiaOn, () => toggleTheia(!theiaOn), false],
+            ['plus', 'Aggiungi', false, () => setAddOpen(true), false],
+          ] as [string, string, boolean, () => void, boolean][]).map(([ic, label, on, fn, slash]) => (
+            <View key={label} style={{ alignItems: 'center', width: 62 }}>
+              <RoundBtn icon={ic} label={label} on={on && !slash} slash={slash && on} onPress={fn} size={46} />
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 10.5, marginTop: 3 }}>{tl(label)}</Text>
+            </View>
+          ))}
+          <View style={{ alignItems: 'center', width: 70 }}>
+            <RoundBtn icon="phone" label="Esci dalla chiamata" danger onPress={confirmEnd} size={50} />
+            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 10.5, marginTop: 3 }}>{tl('Esci')}</Text>
+          </View>
+        </ScrollView>
       </View>
 
-      <Sheet visible={addOpen} title="Aggiungi alla chiamata" onClose={() => setAddOpen(false)}>
-        <Body small muted style={{ marginBottom: 6 }}>{call.restrictToGroup ? 'Questa call è del gruppo: puoi invitare solo le persone del gruppo che non hanno confermato.' : 'Puoi aggiungere chiunque, come su WhatsApp.'}</Body>
-        {candidates.length === 0 ? <Body muted>Non c'è nessun altro da invitare.</Body> : candidates.map((n, i) => (
-          <Item key={n} last={i === candidates.length - 1}>
-            <Row gap={10}><UserAvatar name={n} size={36} /><Body bold style={{ flex: 1 }}>{n}</Body>
-              <Btn small title="Invita" onPress={() => { const e = invite(chatId, mid, me, n); toast(e ?? tl('{0} è stato invitato', n)); }} /></Row>
+      {addSheets}
+      <Sheet visible={peopleOpen} title={tl('Persone ({0})', peopleOf(call).length)} onClose={() => setPeopleOpen(false)}>
+        {peopleOf(call).map((pp, i, arr) => (
+          <Item key={pp.name} last={i === arr.length - 1}>
+            <Row gap={10}>
+              <UserAvatar name={pp.name} size={36} />
+              <View style={{ flex: 1 }}>
+                <Body bold>{pp.name === me ? `${pp.name} (${tl('tu')})` : pp.name}{pp.name === call.by ? ` · ${tl('organizza')}` : ''}</Body>
+                <Body small muted>{pp.state === 'presente' ? tl('Nella stanza') : pp.state === 'confermato' ? tl('Ha confermato') : pp.state === 'invitato' ? tl('Invitato') : tl('Non può')}{call.hands?.includes(pp.name) ? ` · ${tl('mano alzata')}` : ''}{call.muted?.includes(pp.name) ? ` · ${tl('silenziato')}` : ''}</Body>
+              </View>
+              {host && pp.state === 'presente' && pp.name !== me ? (
+                <>
+                  <Btn small ghost title={call.muted?.includes(pp.name) ? 'Riattiva' : 'Silenzia'} onPress={() => muteBy(chatId, mid, me, pp.name, !call.muted?.includes(pp.name))} />
+                  <Btn small ghost icon="x" title="" label="Rimuovi" onPress={() => alertT('Rimuovere dalla chiamata?', tl('{0} non potrà più entrare.', pp.name), [{ text: 'Annulla', style: 'cancel' }, { text: 'Rimuovi', style: 'destructive', onPress: () => removeBy(chatId, mid, me, pp.name) }])} />
+                </>
+              ) : null}
+            </Row>
           </Item>
         ))}
+      </Sheet>
+      <Sheet visible={chatOpen} title="Chat della call" onClose={() => setChatOpen(false)}>
+        {(rec?.chat ?? []).length === 0 ? <Body small muted>Nessun messaggio: quello che scrivi qui lo vedono solo i partecipanti della call.</Body> : (rec?.chat ?? []).map((m) => (
+          <View key={m.id} style={{ marginBottom: 6 }}><Body small bold>{m.from === me ? tl('Tu') : m.from}</Body><Body small>{m.text}</Body></View>
+        ))}
+        <Row gap={8} style={{ marginTop: 8 }}>
+          <TextInput value={chatText} onChangeText={setChatText} placeholder="Scrivi un messaggio" placeholderTextColor={t.muted} returnKeyType="send" onSubmitEditing={() => { sendCallChat(chatId, mid, me, chatText); setChatText(''); }} style={{ flex: 1, color: t.text, borderWidth: 1, borderColor: t.border, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 }} />
+          <Btn small icon="send" title="" label="Invia" onPress={() => { sendCallChat(chatId, mid, me, chatText); setChatText(''); }} />
+        </Row>
       </Sheet>
       <ShareSheet visible={shareOpen} onClose={() => setShareOpen(false)} onPick={(p) => { setPres(p); toast('Stai presentando: ' + p.name); }} by={me} />
       <Sheet visible={notesOpen} title="Appunti di Theia finora" onClose={() => setNotesOpen(false)}>

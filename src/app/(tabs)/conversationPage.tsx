@@ -13,7 +13,7 @@ import { UserAvatar } from '@/components/network';
 import { Body, Item, Sheet, IL } from '@/components/ui';
 import { KeyboardDock } from '@/components/KeyboardDock';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
-import { startCall, scheduleCall } from '@/lib/callActions';
+import { startCall, scheduleCall, simulateIncoming } from '@/lib/callActions';
 import { pinnedFor } from '@/lib/groupCall';
 import { useNow } from '@/lib/enroll';
 import { PinnedCalls } from '@/components/chat/PinnedCalls';
@@ -341,6 +341,7 @@ export default function Conversation() {
         <Item onPress={() => { setMenu(false); go('starredPage', { id }); }}><IL icon="star">Messaggi importanti</IL></Item>
         <Item onPress={() => { setMenu(false); st().patchChat(id, { mutedUntil: isMuted(chat) ? undefined : Date.now() + 8 * 3600000 }); toast(isMuted(chat) ? 'Notifiche riattivate' : 'Chat silenziata per 8 ore'); }}><IL icon={isMuted(chat) ? 'bell' : 'bell-off'}>{isMuted(chat) ? 'Riattiva notifiche' : 'Silenzia (8 ore)'}</IL></Item>
         <Item onPress={() => { setMenu(false); st().patchChat(id, { archived: !chat.archived }); toast(chat.archived ? 'Chat ripristinata' : 'Chat archiviata'); if (!chat.archived) goBack(); }}><IL icon="archive">{chat.archived ? 'Ripristina dagli archivi' : 'Archivia chat'}</IL></Item>
+        {demo && chat.type === 'dm' ? <Item onPress={() => { setMenu(false); setTimeout(() => simulateIncoming(false, peer || undefined), 600); }}><IL icon="phone">Prova: chiamata in arrivo (demo)</IL></Item> : null}
         <Item last onPress={() => { setMenu(false); go('chatSettings'); }}><IL icon="gear">Impostazioni chat</IL></Item>
       </Sheet>
     </KeyboardDock>

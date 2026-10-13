@@ -1,5 +1,5 @@
 {
- "count": 9043,
+ "count": 9069,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 27,
@@ -19,13 +19,13 @@
   "src/app/(tabs)/clubPage.tsx": 66,
   "src/app/(tabs)/clubStudio.tsx": 128,
   "src/app/(tabs)/communityProfile.tsx": 21,
-  "src/app/(tabs)/conversationPage.tsx": 61,
+  "src/app/(tabs)/conversationPage.tsx": 62,
   "src/app/(tabs)/diagnostics.tsx": 13,
   "src/app/(tabs)/docView.tsx": 2,
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
   "src/app/(tabs)/focus.tsx": 27,
-  "src/app/(tabs)/groupCall.tsx": 57,
+  "src/app/(tabs)/groupCall.tsx": 77,
   "src/app/(tabs)/help.tsx": 20,
   "src/app/(tabs)/ideaProfile.tsx": 24,
   "src/app/(tabs)/identityVerify.tsx": 38,
@@ -135,6 +135,8 @@
   "src/components/bills/ReviewField.tsx": 2,
   "src/components/bills/UpcomingBillsCard.tsx": 3,
   "src/components/bills/shared.tsx": 16,
+  "src/components/call/DuoCall.tsx": 12,
+  "src/components/call/IncomingCall.tsx": 4,
   "src/components/call/useTheiaNotes.ts": 3,
   "src/components/chat/Bubble.tsx": 3,
   "src/components/chat/CallCard.tsx": 19,
@@ -299,7 +301,7 @@
   "src/lib/calendarImport.ts": 9,
   "src/lib/calendarLayout.ts": 1,
   "src/lib/calendarMap.ts": 5,
-  "src/lib/callActions.ts": 9,
+  "src/lib/callActions.ts": 12,
   "src/lib/callNotes.ts": 7,
   "src/lib/chatEvent.ts": 7,
   "src/lib/chatList.ts": 37,
@@ -431,5 +433,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1224
+ "withPlaceholders": 1227
 }

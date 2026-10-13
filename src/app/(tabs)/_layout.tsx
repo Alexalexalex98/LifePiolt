@@ -8,6 +8,7 @@ import { DiscoverHost } from '@/components/Discover';
 import { MenuSheet, NavBar } from '@/components/NavBar';
 import { NetSheetHost } from '@/components/NetSheets';
 import { TheiaFab, TheiaHost, TheiaSelect } from '@/components/TheiaHost';
+import { IncomingCallHost } from '@/components/call/IncomingCall';
 import { useUI } from '@/components/ui';
 import { unreadMessages } from '@/lib/network';
 import { useApp } from '@/store/app';
@@ -35,6 +36,7 @@ export default function TabsLayout() {
       <NetSheetHost />
       <TheiaFab />
       <TheiaHost />
+      <IncomingCallHost />
       <TheiaSelect />
       <DiscoverHost />
     </>
