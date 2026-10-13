@@ -19,7 +19,7 @@ import { useT } from '@/lib/i18n';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { useVisible } from '@/lib/moderation';
-import { peoplePool } from '@/lib/network';
+import { SearchResults } from '@/components/feed/SearchResults';
 import { t as tl } from '@/i18n/core';
 import { useApp } from '@/store/app';
 import { topicList, useNet, type Idea, type Provider, type Seminar } from '@/store/network';
@@ -109,7 +109,9 @@ export default function LifeNetwork() {
     });
   }, [communities, posts, ideas, seminars, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep, reach]);
 
+  const searching = people.trim().length >= 1;
   const data = useMemo<Item[]>(() => {
+    if (searching) return [];
     if (curTab === 'Home') return feedItems.length ? feedItems : [{ k: 'empty', id: 'empty', text: '' }];
     if (curTab === 'Post') {
       const only = feedItems.filter((it) => it.k === 'post');
@@ -138,7 +140,7 @@ export default function LifeNetwork() {
     else if (f === 'Prodotti') body = prodItems.length ? strip(rankMixed(prodItems, weights)) : [{ k: 'empty', id: 'empty', text: 'Ancora nessun prodotto: li pubblicano le attività con uno store.' }];
     else { const all = [...semItems, ...svcItems, ...prodItems]; body = all.length ? strip(rankMixed(all, weights)) : [{ k: 'empty', id: 'empty', text: 'Ancora nessuna proposta.' }]; }
     return [{ k: 'tools', id: 'tools' }, ...body];
-  }, [curTab, feedItems, communities, commTopic, commQ, ideas, ideaQ, seminars, providers, products, weights, prefs.marketFilter, visible]);
+  }, [curTab, feedItems, communities, commTopic, commQ, ideas, ideaQ, seminars, providers, products, weights, prefs.marketFilter, visible, searching]);
 
   if (!verified) {
     return (
@@ -152,8 +154,6 @@ export default function LifeNetwork() {
     );
   }
 
-  const q = people.trim().toLowerCase();
-  const matches = q.length >= 2 ? peoplePool(me).filter((n) => n.toLowerCase().includes(q) && visible('profile', n, n)) : [];
   const compose = () => openSheet('newPost');
 
   const toggleJoin = (id: number) => {
@@ -180,32 +180,24 @@ export default function LifeNetwork() {
   const header = (
     <View>
       <View style={{ paddingHorizontal: FEED_GUTTER }}>
-        <NetHeader balance={net.lifePoints} query={people} onQuery={setPeople} placeholder="Cerca persone su LifeNetwork…" />
-        {q.length >= 2 && (
-          <View style={{ backgroundColor: t.card, borderRadius: FEED_RADIUS, marginTop: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: t.border }}>
-            {matches.length === 0 ? <Empty text="Nessuna persona trovata." /> : matches.map((n, i) => (
-              <Pressable key={n} onPress={() => go('userProfile', { name: n })} accessibilityRole="link" accessibilityLabel={n} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, borderBottomWidth: i === matches.length - 1 ? 0 : 1, borderBottomColor: t.item }}>
-                <UserAvatar name={n} size={36} /><Text style={{ color: t.text, fontSize: 15.5, fontWeight: '700', flex: 1 }}>{n}</Text><Icon name="chevron-right" size={18} color={t.muted} />
-              </Pressable>
-            ))}
-          </View>
-        )}
-        <NetTabs tabs={tabs.map((k) => ({ key: k, label: tabLabel(k) }))} value={curTab} onChange={(k) => setPref('lnTab', k)} />
+        <NetHeader balance={net.lifePoints} query={people} onQuery={setPeople} placeholder="Cerca persone, post, idee, lavori…" />
+        {searching && <SearchResults query={people} />}
+        {!searching && <NetTabs tabs={tabs.map((k) => ({ key: k, label: tabLabel(k) }))} value={curTab} onChange={(k) => setPref('lnTab', k)} />}
       </View>
-      {curTab === 'Post' && (
+      {!searching && curTab === 'Post' && (
         <View style={{ marginTop: 6 }}>
           <Composer me={me} onPress={compose} />
           <View style={{ height: 8 }} />
         </View>
       )}
-      {curTab === 'Home' && (
+      {!searching && curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
           <Composer me={me} onPress={compose} />
           <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={following ? 'Seguiti' : 'Per te'} onChange={(k) => setPref('homeFilter', k)} />
           <View style={{ height: 8 }} />
         </View>
       )}
-      {curTab !== 'Home' && curTab !== 'Post' && <View style={{ height: 14 }} />}
+      {!searching && curTab !== 'Home' && curTab !== 'Post' && <View style={{ height: 14 }} />}
     </View>
   );
 

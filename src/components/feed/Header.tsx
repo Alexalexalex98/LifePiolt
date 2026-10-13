@@ -30,7 +30,7 @@ export function NetHeader({ balance, query, onQuery, placeholder }: { balance: n
       <Animated.View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: t.input, borderRadius: 999, paddingHorizontal: 16, minHeight: 46, borderWidth: 1, borderColor: t.inputBorder }}>
           <Icon name="search" size={18} color={t.muted} />
-          <TextInput autoFocus value={query} onChangeText={onQuery} placeholder={placeholder} placeholderTextColor={t.muted} accessibilityLabel={translateText('Cerca persone su LifeNetwork…')} style={{ flex: 1, color: t.text, fontSize: 16, paddingVertical: 8, outlineStyle: 'none' } as never} returnKeyType="search" />
+          <TextInput autoFocus value={query} onChangeText={onQuery} placeholder={placeholder} placeholderTextColor={t.muted} accessibilityLabel={translateText('Cerca persone, post, idee, lavori…')} style={{ flex: 1, color: t.text, fontSize: 16, paddingVertical: 8, outlineStyle: 'none' } as never} returnKeyType="search" />
         </View>
         <Pressable onPress={close} accessibilityRole="button" accessibilityLabel={translateText('Chiudi la ricerca')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={22} color={t.text} stroke={2.1} /></Pressable>
       </Animated.View>
@@ -46,7 +46,7 @@ export function NetHeader({ balance, query, onQuery, placeholder }: { balance: n
         </View>
       </Pressable>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={translateText('Cerca persone su LifeNetwork…')} style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}><Icon name="search" size={23} color={t.text} stroke={2} /></Pressable>
+        <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={translateText('Cerca persone, post, idee, lavori…')} style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}><Icon name="search" size={23} color={t.text} stroke={2} /></Pressable>
         <PressScale onPress={() => go('lifepointsPage')} label={`${translateText('Il tuo saldo')}: ${formatCHF(balance)} LifePoints`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: narrow ? 10 : 13, borderRadius: 999, backgroundColor: t.chip }}>
           <Icon name="coin" size={18} color={t.accent} stroke={1.9} />
           <Text style={{ color: t.text, fontSize: 15, fontWeight: '800' }}>{formatCHF(balance)}</Text>

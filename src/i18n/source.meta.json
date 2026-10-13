@@ -1,5 +1,5 @@
 {
- "count": 8277,
+ "count": 8282,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 26,
@@ -38,7 +38,7 @@
   "src/app/(tabs)/lifefinance.tsx": 86,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
-  "src/app/(tabs)/lifenetwork.tsx": 39,
+  "src/app/(tabs)/lifenetwork.tsx": 38,
   "src/app/(tabs)/lifenotes.tsx": 3,
   "src/app/(tabs)/lifepointsPage.tsx": 22,
   "src/app/(tabs)/lifetask.tsx": 5,
@@ -156,6 +156,7 @@
   "src/components/diagnostics/SystemCards.tsx": 44,
   "src/components/feed/FeedPost.tsx": 23,
   "src/components/feed/Header.tsx": 14,
+  "src/components/feed/SearchResults.tsx": 5,
   "src/components/feed/SpecialCards.tsx": 21,
   "src/components/feed/TabCards.tsx": 20,
   "src/components/home/DayPlan.tsx": 11,
@@ -334,6 +335,7 @@
   "src/lib/moodAnalysis.ts": 57,
   "src/lib/nav.ts": 1,
   "src/lib/netMedia.ts": 2,
+  "src/lib/netSearch.ts": 8,
   "src/lib/network.ts": 17,
   "src/lib/notes.ts": 1,
   "src/lib/notify.ts": 25,
