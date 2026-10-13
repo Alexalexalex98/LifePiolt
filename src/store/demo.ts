@@ -22,6 +22,7 @@ import { useAssistant } from './assistant';
 import { usePrefs } from './prefs';
 
 /** Notifiche demo variegate (servizio, seminario, messaggio, lavoro, promemoria, sociale, LifePoints, finanza) per vedere le categorie. */
+const ago = (n: number) => (n === 1 ? '1 giorno fa' : `${n} giorni fa`);
 function demoExtraNotifs(me: string, myPosts: string[] = []) {
   const pk = (i: number) => (myPosts.length ? { ref: buildRef('post', myPosts[i % myPosts.length]) } : {});
   const d = shortDate(0);
@@ -172,8 +173,8 @@ export function applyDemo(me: string, email = '') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cards: n.cards.map((c: any) => ({ ...c, holder: me })), defaultCard: n.cards[0]?.id ?? null,
     receivedDaily: { [me]: 14 }, lpConverted: 300, lpMoves: demoLpMoves(),
-    donorsLog: { 'Anna Conti': ['Marco Valli', 'Giulia Moretti', 'Elena Sanz', 'Luca Ferri', 'Marta S.'].map((from, i) => ({ from, date: `${i + 1} giorni fa` })), 'Marco Valli': ['Anna C.', 'Omar K.', 'Ines L.'].map((from, i) => ({ from, date: `${i + 2} giorni fa` })) },
-    receivedLog: Array.from({ length: 14 }, (_, i) => ({ ...((n.posts as { id: number; author: string }[]).filter((x) => x.author === me)[i % 3] ? { ref: `standalone:${(n.posts as { id: number; author: string }[]).filter((x) => x.author === me)[i % 3].id}` } : {}), from: ([...n.suggested, 'Marco Valli', 'Giulia Moretti', 'Elena Sanz'] as string[]).filter((x) => x !== me)[i % (n.suggested.length + 3 - 1)], date: `${i + 1} giorni fa` })),
+    donorsLog: { 'Anna Conti': ['Marco Valli', 'Giulia Moretti', 'Elena Sanz', 'Luca Ferri', 'Marta S.'].map((from, i) => ({ from, date: ago(i + 1) })), 'Marco Valli': ['Anna C.', 'Omar K.', 'Ines L.'].map((from, i) => ({ from, date: ago(i + 2) })) },
+    receivedLog: Array.from({ length: 14 }, (_, i) => ({ ...((n.posts as { id: number; author: string }[]).filter((x) => x.author === me)[i % 3] ? { ref: `standalone:${(n.posts as { id: number; author: string }[]).filter((x) => x.author === me)[i % 3].id}` } : {}), from: ([...n.suggested, 'Marco Valli', 'Giulia Moretti', 'Elena Sanz'] as string[]).filter((x) => x !== me)[i % (n.suggested.length + 3 - 1)], date: ago(i + 1) })),
     bio: 'Impiegato a Lugano · corro, cucino e imparo lo spagnolo', myCard: { ...n.myCard, email: email || n.myCard.email },
   });
   // chi offre servizi, seminari o un LifeClub ha già qualche voto (e quindi recensioni di esempio)
