@@ -4,6 +4,8 @@
  * quindi «vorrei ordinare una pizza stasera» combacia con «voglio ordinare una pizza». Vince la frase che copre meglio ciò che hai detto.
  * Per aggiungerne: una riga in PHRASE_SETS, frasi separate da «|». Ogni frase nuova va anche nei test.
  */
+import { PHRASE_SETS_MORE } from './phrasesMore.ts';
+
 export type PhraseKind = 'place' | 'cmd' | 'act' | 'page';
 export type PhraseSet = {
   id: string; kind: PhraseKind;
@@ -15,7 +17,7 @@ export type PhraseSet = {
 
 const S = (id: string, kind: PhraseKind, target: string, phrases: string, order?: boolean): PhraseSet => ({ id, kind, target, phrases: phrases.split('|').map((p) => p.trim()).filter(Boolean), ...(order ? { order } : {}) });
 
-export const PHRASE_SETS: PhraseSet[] = [
+const BASE_SETS: PhraseSet[] = [
   /* ---------- cibo ---------- */
   S('pizza-ordina', 'place', 'pizzeria', 'voglio ordinare una pizza|vorrei ordinare una pizza|ordina una pizza|ordinami una pizza|mi ordini una pizza|ordinare una pizza a casa|pizza a domicilio|pizza a casa|portami una pizza|fammi arrivare una pizza|consegna pizza|pizza da asporto|prendiamo una pizza da asporto|ordiniamo delle pizze|ordiniamo la pizza stasera|stasera ordiniamo pizza|due pizze a domicilio|vorrei far consegnare una pizza', true),
   S('pizza-cerca', 'place', 'pizzeria', 'ho voglia di pizza|mi va una pizza|vorrei mangiare una pizza|voglio mangiare la pizza|dove mangio una buona pizza|trovami una pizzeria|cerco una pizzeria|la migliore pizzeria della zona|una pizzeria vicino a me|pizzeria qui vicino|dove si mangia la pizza|consigliami una pizzeria|prenota una pizzeria|prenota un tavolo in pizzeria|andiamo a mangiare la pizza|stasera pizza fuori|pizza napoletana vicino a me|pizzeria con forno a legna'),
@@ -112,6 +114,9 @@ export const PHRASE_SETS: PhraseSet[] = [
   S('profilo-priv', 'cmd', 'Rendi privato il mio profilo', 'rendi privato il mio profilo|voglio un profilo privato|nascondi il mio profilo|rendi il profilo privato|voglio maggiore privacy|come rendo privato il profilo|metti il profilo in privato'),
   S('foto-profilo', 'cmd', 'Cambia la foto del profilo', 'cambia la foto del profilo|voglio cambiare la foto profilo|metti una nuova foto profilo|cambia la mia foto|aggiorna la foto del profilo|come cambio la foto profilo'),
 ];
+
+/** Tutte le frasi: la raccolta di base più la seconda (phrasesMore.ts). */
+export const PHRASE_SETS: PhraseSet[] = [...BASE_SETS, ...PHRASE_SETS_MORE];
 
 /* ---------- confronto ---------- */
 const STOP = new Set('il lo la i gli le un uno una un di a da in con su per tra fra e o ma che mi ti ci vi si ne non al allo alla ai agli alle dal dallo dalla dai dagli dalle del dello della dei degli delle nel nello nella nei negli nelle sul sullo sulla sui sugli sulle col mio mia miei mie tuo tua suo sua questo questa quello quella quel è e sono sto stai sta c l d un po più piu anche poi molto tanto troppo proprio magari vorrei volevo voglio vuoi vuole'.split(' '));
