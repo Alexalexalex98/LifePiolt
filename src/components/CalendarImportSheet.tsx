@@ -3,7 +3,7 @@ import { Platform, Pressable, View } from 'react-native';
 
 import { Body, Btn, Item, Row, Sheet, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { CAL_WEB_MSG, IMPORT_DAYS, importCalendars, listDeviceCalendars, useCalPrefs, type DeviceCalendar } from '@/lib/calendarImport';
+import { CAL_WEB_MSG, IMPORT_DAYS, clearDeviceExport, exportToDevice, importCalendars, listDeviceCalendars, useCalPrefs, type DeviceCalendar } from '@/lib/calendarImport';
 import { Icon } from '@/lib/icons';
 import { toast } from '@/store/toast';
 import { translateText } from '@/i18n/core';
@@ -72,6 +72,17 @@ export function CalendarImportSheet({ visible, onClose }: { visible: boolean; on
               </Row>
             </>
           )}
+          <View style={{ marginTop: 14 }}>
+            <Body bold>Dal Plan al calendario del telefono</Body>
+            <Body small muted style={{ marginBottom: 4 }}>Scrivo gli impegni che crei in LifePilot (prossimi {IMPORT_DAYS} giorni) in un calendario separato «LifePilot» sul telefono, così li vedi anche nell’app Calendario. Gli eventi che arrivano dal telefono non vengono rimandati indietro.</Body>
+            <Toggle label="Scrivi i miei impegni sul calendario del telefono" value={prefs.exportOn} onChange={async (v) => {
+              prefs.set({ exportOn: v });
+              if (v) { setBusy(true); const r = await exportToDevice(); setMsg(r.message); toast(r.message); if (!r.ok) prefs.set({ exportOn: false }); setBusy(false); }
+              else { await clearDeviceExport(); toast('Ho tolto dal telefono gli eventi scritti da LifePilot'); }
+            }} />
+            {prefs.exportOn ? <Btn small ghost disabled={busy} title={busy ? 'Scrivo…' : 'Aggiorna ora'} onPress={async () => { setBusy(true); const r = await exportToDevice(); setMsg(r.message); toast(r.message); setBusy(false); }} /> : null}
+            {prefs.lastExport ? <Body small muted style={{ marginTop: 6 }}>Ultimo aggiornamento: {fmtDateTime(prefs.lastExport)}</Body> : null}
+          </View>
           {msg ? <Body small color={cals?.length ? t.positive : t.warn} style={{ marginTop: 10 }}>{msg}</Body> : null}
           {prefs.lastSync ? <Body small muted style={{ marginTop: 8 }}>Ultima importazione: {fmtDateTime(prefs.lastSync)}</Body> : null}
         </>

@@ -55,3 +55,18 @@ test('planSync: ignora eventi fuori finestra', () => {
   const p = planSync([{ id: 'F', title: 'Lontano', startDate: L(2027, 3, 1, 10) }, { id: 'P', title: 'Passato', startDate: L(2026, 9, 1, 10) }], {}, win);
   assert.equal(p.add.length, 0);
 });
+
+test('esporta verso il telefono: solo eventi LifePilot, niente doppioni, tolti quelli cancellati', async () => {
+  const { planExport, exportKey } = await import('../src/lib/calendarMap.ts');
+  const win = { from: '2026-10-01', to: '2026-11-30' };
+  const ev = { '2026-10-14': [{ time: '10:00', title: 'Dentista', dur: 45, place: 'Lugano' }, { time: '12:00', title: 'Pranzo', ref: 'ical:abc' }], '2026-10-15': [{ time: '00:00', title: 'Ferie', dur: 1440 }], '2027-01-01': [{ time: '09:00', title: 'Fuori finestra' }] };
+  const p = planExport(ev, {}, win);
+  assert.equal(p.add.length, 2);
+  assert.equal(p.add[0].title, 'Dentista'); assert.equal(p.add[0].end.getTime() - p.add[0].start.getTime(), 45 * 60000);
+  assert.equal(p.add[0].place, 'Lugano');
+  assert.equal(p.add[1].allDay, true);
+  const done = { [exportKey('2026-10-14', ev['2026-10-14'][0])]: 'ios1', '2026-10-20|08:00|Vecchio|60': 'ios2', '2025-01-01|08:00|Fuori|60': 'ios3' };
+  const q = planExport(ev, done, win);
+  assert.equal(q.add.length, 1); assert.equal(q.unchanged, 1);
+  assert.deepEqual(q.remove, ['2026-10-20|08:00|Vecchio|60']);
+});

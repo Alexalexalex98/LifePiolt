@@ -1,5 +1,5 @@
 {
- "count": 9230,
+ "count": 9246,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 27,
@@ -87,7 +87,7 @@
   "src/app/onboarding.tsx": 10,
   "src/components/ArrivalAdvice.tsx": 8,
   "src/components/Automations.tsx": 37,
-  "src/components/CalendarImportSheet.tsx": 10,
+  "src/components/CalendarImportSheet.tsx": 18,
   "src/components/CalendarViews.tsx": 42,
   "src/components/ConfirmBadge.tsx": 4,
   "src/components/CsvImportSheet.tsx": 23,
@@ -301,7 +301,7 @@
   "src/lib/briefingCore.ts": 29,
   "src/lib/budgetAlerts.ts": 10,
   "src/lib/calendarColors.ts": 17,
-  "src/lib/calendarImport.ts": 9,
+  "src/lib/calendarImport.ts": 15,
   "src/lib/calendarLayout.ts": 1,
   "src/lib/calendarMap.ts": 5,
   "src/lib/callActions.ts": 12,
@@ -342,7 +342,7 @@
   "src/lib/habits/routine.ts": 13,
   "src/lib/habits/time.ts": 5,
   "src/lib/healthkit.ts": 30,
-  "src/lib/helpFaq.ts": 236,
+  "src/lib/helpFaq.ts": 239,
   "src/lib/helpKb.ts": 165,
   "src/lib/hiring.ts": 26,
   "src/lib/i18n.ts": 4,
@@ -437,5 +437,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1239
+ "withPlaceholders": 1243
 }

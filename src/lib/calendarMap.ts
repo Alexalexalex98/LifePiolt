@@ -102,3 +102,41 @@ export function describeSync(p: SyncPlan): string {
   if (!parts.length) return p.unchanged ? 'Già tutto aggiornato: nessuna novità.' : 'Nessun evento nel periodo scelto.';
   return 'Eventi ' + parts.join(', ') + (p.unchanged ? `, ${p.unchanged} già presenti` : '') + '.';
 }
+
+/* ---------- LifePilot -> calendario del telefono ---------- */
+export type ExportItem = { key: string; title: string; start: Date; end: Date; allDay: boolean; place?: string };
+export type ExportPlan = { add: ExportItem[]; remove: string[]; unchanged: number };
+type OutEvent = PlanEvent & { place?: string };
+/** Chiave stabile di un evento del Plan (non ha un id suo): se lo modifichi cambia chiave, quindi sul telefono si sostituisce. */
+export const exportKey = (day: string, e: PlanEvent) => `${day}|${e.time}|${e.title}|${e.dur ?? 60}`;
+
+/**
+ * Quali eventi del Plan scrivere nel calendario del telefono. Si esportano solo quelli creati in LifePilot (non quelli importati
+ * dal telefono: sarebbero doppioni). `done` è ciò che abbiamo già scritto (chiave -> id sul telefono): non si riscrive due volte,
+ * e ciò che abbiamo scritto ma nel Plan non c'è più (cancellato o modificato) va tolto dal telefono.
+ */
+export function planExport(events: Record<string, OutEvent[]>, done: Record<string, string>, win: { from: string; to: string }): ExportPlan {
+  const plan: ExportPlan = { add: [], remove: [], unchanged: 0 };
+  const wanted = new Set<string>();
+  for (const [day, list] of Object.entries(events)) {
+    if (day < win.from || day > win.to) continue;
+    for (const e of list) {
+      if (isIcalRef(e.ref)) continue;
+      const key = exportKey(day, e);
+      if (wanted.has(key)) continue;
+      wanted.add(key);
+      if (done[key]) { plan.unchanged++; continue; }
+      const [hh, mm] = (e.time || '00:00').split(':').map(Number);
+      const allDay = (e.dur ?? 60) >= 1440 && e.time === '00:00';
+      const start = new Date(`${day}T00:00:00`);
+      if (!allDay) start.setHours(Number.isFinite(hh) ? hh : 0, Number.isFinite(mm) ? mm : 0, 0, 0);
+      const end = allDay ? new Date(start.getTime() + 86400000) : new Date(start.getTime() + Math.max(5, e.dur ?? 60) * 60000);
+      plan.add.push({ key, title: e.title, start, end, allDay, place: e.place });
+    }
+  }
+  for (const key of Object.keys(done)) {
+    const day = key.split('|')[0];
+    if (day >= win.from && day <= win.to && !wanted.has(key)) plan.remove.push(key);
+  }
+  return plan;
+}
