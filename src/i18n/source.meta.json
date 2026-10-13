@@ -1,5 +1,5 @@
 {
- "count": 8275,
+ "count": 8277,
  "byFile": {
   "src/app/(tabs)/agenda.tsx": 1,
   "src/app/(tabs)/ai.tsx": 26,
@@ -155,7 +155,7 @@
   "src/components/diagnostics/OutflowCard.tsx": 15,
   "src/components/diagnostics/SystemCards.tsx": 44,
   "src/components/feed/FeedPost.tsx": 23,
-  "src/components/feed/Header.tsx": 11,
+  "src/components/feed/Header.tsx": 14,
   "src/components/feed/SpecialCards.tsx": 21,
   "src/components/feed/TabCards.tsx": 20,
   "src/components/home/DayPlan.tsx": 11,

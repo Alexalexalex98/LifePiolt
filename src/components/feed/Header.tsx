@@ -9,11 +9,13 @@ import { translateText } from '@/i18n/core';
 import { formatCHF } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
+import { useApp } from '@/store/app';
 import { NATIVE, PressScale } from './parts';
 
 /** Testata minimale: titolo, ricerca (icona -> campo che si espande) e saldo LifePoints come pillola cliccabile. */
 export function NetHeader({ balance, query, onQuery, placeholder }: { balance: number; query: string; onQuery: (v: string) => void; placeholder: string }) {
   const t = useTheme();
+  const me = useApp((s) => s.account.name);
   const reduce = useReduceMotion();
   const narrow = useWindowDimensions().width < 360;
   const [open, setOpen] = useState(false);
@@ -36,7 +38,13 @@ export function NetHeader({ balance, query, onQuery, placeholder }: { balance: n
   }
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, gap: 8 }}>
-      <View style={{ flex: 1 }} />
+      <Pressable onPress={() => go('userProfile', { name: me })} accessibilityRole="link" accessibilityLabel={`${translateText('Il tuo profilo')}: ${me}`} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}>
+        <UserAvatar name={me} size={34} />
+        <View style={{ flex: 1 }}>
+          <Text numberOfLines={1} style={{ color: t.text, fontSize: 15.5, fontWeight: '800' }}>{`${translateText('Ciao')}, ${me.split(' ')[0]}`}</Text>
+          <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12.5 }}>{translateText('Cosa c\'è di nuovo oggi')}</Text>
+        </View>
+      </Pressable>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={translateText('Cerca persone su LifeNetwork…')} style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}><Icon name="search" size={23} color={t.text} stroke={2} /></Pressable>
         <PressScale onPress={() => go('lifepointsPage')} label={`${translateText('Il tuo saldo')}: ${formatCHF(balance)} LifePoints`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: narrow ? 10 : 13, borderRadius: 999, backgroundColor: t.chip }}>
