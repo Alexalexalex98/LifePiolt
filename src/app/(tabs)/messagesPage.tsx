@@ -55,6 +55,7 @@ export default function MessagesPage() {
     <Page id="messagesPage" title={sel.length ? `${sel.length} selezionate` : archived ? 'Archiviate' : 'Messaggi'}
       right={<Row gap={8}>
         {archived && <Pressable onPress={() => setArchived(false)}><Text style={{ color: t.accent }}>Chiudi</Text></Pressable>}
+        {!sel.length && !archived ? <Pressable onPress={() => setNewOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Nuova chat')}><Icon name="plus" size={24} color={t.text} /></Pressable> : null}
         <Pressable onPress={() => go('chatSettings')} hitSlop={8} accessibilityLabel={translateText("Impostazioni chat")}><Icon name="gear" size={21} color={t.text} /></Pressable>
       </Row>}>
       {sel.length > 0 ? (
@@ -112,7 +113,6 @@ export default function MessagesPage() {
         );
       })}
 
-      {!sel.length && <Btn title="+ Nuova chat" style={{ marginTop: 14 }} onPress={() => setNewOpen(true)} />}
 
       <PickPeopleSheet visible={newOpen} onClose={() => setNewOpen(false)} />
 
