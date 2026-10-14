@@ -1,8 +1,9 @@
 /** Calorie e pasti (modulo PURO): tabella di alimenti, calcolo per porzione e fabbisogno giornaliero. */
-export type Food = { id: string; name: string; kcal: number; p: number; c: number; f: number; /** porzione tipica in grammi */ portion: number; tags?: string };
+import { DB_FOODS } from './foodDb.ts';
+export type Food = { id: string; name: string; kcal: number; p: number; c: number; f: number; /** porzione tipica in grammi */ portion: number; tags?: string; fib?: number; cat?: string; recipe?: boolean };
 const F = (id: string, name: string, kcal: number, p: number, c: number, f: number, portion: number, tags = ''): Food => ({ id, name, kcal, p, c, f, portion, ...(tags ? { tags } : {}) });
 /** Valori per 100 g (medie indicative). */
-export const FOODS: Food[] = [
+const BASE_FOODS: Food[] = [
   F('pasta', 'Pasta cotta', 158, 5.8, 31, 0.9, 200, 'spaghetti penne fusilli'), F('pasta-sugo', 'Pasta al pomodoro', 150, 5, 28, 2.5, 250, 'sugo'), F('carbonara', 'Pasta alla carbonara', 215, 9, 24, 9, 250),
   F('lasagne', 'Lasagne', 160, 8, 15, 7.5, 300), F('risotto', 'Risotto', 140, 3.5, 25, 3, 250), F('riso', 'Riso bollito', 130, 2.7, 28, 0.3, 180), F('gnocchi', 'Gnocchi di patate', 130, 3, 28, 0.5, 200),
   F('pizza', 'Pizza margherita', 245, 10, 33, 8, 350, 'pizzeria'), F('pizza-salame', 'Pizza con salame', 275, 11, 31, 11, 380), F('focaccia', 'Focaccia', 270, 7, 42, 8, 120), F('pane', 'Pane', 265, 8, 54, 1.5, 60), F('panino', 'Panino con prosciutto', 250, 12, 32, 8, 160),
@@ -18,14 +19,18 @@ export const FOODS: Food[] = [
   F('cappuccino', 'Cappuccino', 50, 2.5, 5, 2, 150), F('caffe', 'Caffè', 2, 0.1, 0.3, 0, 30), F('succo', 'Succo di frutta', 46, 0.5, 11, 0.1, 200), F('cola', 'Bibita gassata', 42, 0, 10.6, 0, 330), F('birra', 'Birra', 43, 0.5, 3.6, 0, 330), F('vino', 'Vino rosso', 85, 0.1, 2.6, 0, 150),
   F('barretta', 'Barretta proteica', 370, 30, 35, 12, 50), F('shake', 'Frullato di proteine', 90, 15, 5, 1, 300), F('porridge', 'Porridge di avena', 70, 2.5, 12, 1.4, 250), F('cereali', 'Cereali da colazione', 380, 7, 78, 3, 40), F('marmellata', 'Pane e marmellata', 270, 5, 58, 1, 80),
 ];
-export const FOOD = (id: string): Food | undefined => FOODS.find((f) => f.id === id);
+/** Base storica + database esteso (oltre 2000 prodotti e piatti). */
+export const FOODS: Food[] = [...BASE_FOODS, ...DB_FOODS.filter((d) => !BASE_FOODS.some((b) => b.id === d.id))];
+const BY_ID = new Map(FOODS.map((f) => [f.id, f]));
+export const FOOD = (id: string): Food | undefined => BY_ID.get(id);
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 /** Cerca per nome o parole collegate («spaghetti» → pasta). */
 export function searchFoods(q: string, max = 8): Food[] {
   const words = norm(q).split(/\s+/).filter((w) => w.length >= 2);
   if (!words.length) return [];
-  return FOODS.map((f) => { const hay = norm(`${f.name} ${f.tags ?? ''}`); const hits = words.filter((w) => hay.includes(w) || hay.split(/\s+/).some((h) => h.startsWith(w))).length; return { f, hits }; })
-    .filter((x) => x.hits > 0).sort((a, b) => b.hits - a.hits).slice(0, max).map((x) => x.f);
+  const out: { f: Food; hits: number }[] = [];
+  for (const f of FOODS) { const hay = norm(`${f.name} ${f.tags ?? ''}`); const hs = hay.split(/\s+/); const hits = words.filter((w) => hay.includes(w) || hs.some((h) => h.startsWith(w))).length; if (hits) out.push({ f, hits }); }
+  return out.sort((a, b) => b.hits - a.hits).slice(0, max).map((x) => x.f);
 }
 export type Macros = { kcal: number; p: number; c: number; f: number };
 const r1 = (n: number) => Math.round(n * 10) / 10;

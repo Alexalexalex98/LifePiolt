@@ -7,7 +7,8 @@ import { checkIn, renewIfDue, startSub, PREMIUM_PRICE_LP, type Sub, type Visit }
 import { useNet } from '@/store/network';
 import { persisted } from './persist';
 
-export type Meal = { id: string; ts: number; name: string; foodId?: string; grams: number; macros: Macros; photo?: string };
+export type MealItem = { foodId: string; name: string; grams: number };
+export type Meal = { id: string; ts: number; name: string; foodId?: string; grams: number; macros: Macros; photo?: string; /** ingredienti scelti uno per uno */ items?: MealItem[] };
 export type GymRequest = { id: string; ts: number; name: string; kind: Gym['kind']; city: string; address: string; email: string; services: string; status: 'in verifica' | 'approvata' };
 
 type State = {
