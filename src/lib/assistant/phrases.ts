@@ -99,6 +99,8 @@ const BASE_SETS: PhraseSet[] = [
   /* ---------- pagine e aiuto ---------- */
   S('viaggi', 'page', 'lifetravel', 'apri i viaggi|voglio organizzare un viaggio|mostrami i viaggi|pianifica un viaggio|apri lifetravel|cerco un volo|voglio vedere i voli|devo organizzare una vacanza|aiutami con il viaggio|pianifica una vacanza|dove posso andare in vacanza|idee per un weekend fuori'),
   S('finanze-pag', 'page', 'lifefinance', 'apri le finanze|vai alle finanze|mostrami le finanze|apri lifefinance|voglio vedere le mie spese|fammi vedere le spese|apri il budget|voglio vedere il budget|apri gli investimenti|mostrami il portafoglio'),
+  S('fitness-pag', 'page', 'lifefitness', 'mostrami gli allenamenti|apri il personal trainer|apri i programmi di allenamento|voglio fare un allenamento|programma di allenamento|apri la sezione fitness|dove sono gli allenamenti'),
+  S('calorie', 'page', 'fitnessMeal', 'voglio contare le calorie|apri il diario delle calorie|quante calorie ha il mio pasto|calcola le calorie di un piatto|aggiungi un pasto al diario|apri pasti e calorie'),
   S('salute-pag', 'page', 'lifehealth', 'apri la salute|vai alla salute|mostrami la salute|apri lifehealth|fammi vedere i miei dati di salute|apri gli allenamenti|voglio vedere il sonno'),
   S('piano-pag', 'page', 'plan', 'apri il piano|apri l agenda|apri il calendario|vai al piano|mostrami il calendario|fammi vedere l agenda|voglio vedere il calendario|apri il plan|mostrami la settimana'),
   S('task-pag', 'page', 'lifetask', 'apri i task|mostrami i task|voglio vedere le cose da fare|apri la lista dei task|vai ai task|fammi vedere i task|apri lifetask|le mie cose da fare'),

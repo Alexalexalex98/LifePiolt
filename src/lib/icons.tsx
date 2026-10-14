@@ -8,6 +8,7 @@ export const iconMarkup: Record<string, string> = {
   home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
   profile: '<circle cx="12" cy="8" r="4"/><path d="M4.5 21c0-4.4 3.4-7 7.5-7s7.5 2.6 7.5 7"/>',
   plan: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>',
+  lifefitness: '<path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>',
   lifehealth: '<path d="M12 21s-7-4.3-9.5-8.7C.8 8.8 2 5 5.5 4.2 8 3.6 10 5 12 7c2-2 4-3.4 6.5-2.8C22 5 23.2 8.8 21.5 12.3 19 16.7 12 21 12 21z"/>',
   lifenetwork: '<circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="12" cy="18" r="2.4"/><path d="M7.9 7.6L10.6 16M16.1 7.6L13.4 16M8.3 6h7.4"/>',
   lifefinance: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M16 14.5h2"/>',
@@ -151,7 +152,7 @@ export function Icon({ name, size = 20, color = '#fff', fill = 'none', stroke = 
 /** Colori d'area del prototipo */
 export const areaColors: Record<string, string> = {
   lifefinance: '#7be0b0', stocks: '#7be0b0', portfolio: '#7be0b0', lifeforecast: '#7be0b0', taxdecl: '#7be0b0',
-  lifehealth: '#6ec9dd', lifetravel: '#e0c97b',
+  lifehealth: '#6ec9dd', lifefitness: '#ff9d6e', fitnessProgram: '#ff9d6e', fitnessWorkout: '#ff9d6e', fitnessMeal: '#ff9d6e', fitnessGyms: '#ff9d6e', fitnessGymRegister: '#ff9d6e', lifetravel: '#e0c97b',
   lifenetwork: '#c9b6ff', userProfile: '#c9b6ff', businessCard: '#c9b6ff', ideaProfile: '#c9b6ff', lifepointsPage: '#c9b6ff',
   lifenotes: '#8fb3ff', lifedrive: '#a8b2c0',
 };

@@ -13,7 +13,7 @@ export type StoreSpec = { version: number; migrations?: Record<number, Migration
 
 export const CURRENT_SCHEMA_VERSION = 1;
 
-const NAMES = ['app', 'life', 'health', 'finance', 'travel', 'network', 'chat', 'jobs', 'context', 'assistant', 'discover', 'prefs', 'theia', 'interests', 'club', 'identity', 'sharing', 'tour', 'live', 'aiRouter', 'calprefs', 'moderation', 'security'];
+const NAMES = ['app', 'life', 'health', 'finance', 'travel', 'network', 'chat', 'jobs', 'context', 'assistant', 'discover', 'prefs', 'theia', 'interests', 'club', 'identity', 'sharing', 'tour', 'live', 'aiRouter', 'calprefs', 'moderation', 'security', 'fitness'];
 
 const REGISTRY: Record<string, StoreSpec> = {};
 for (const n of NAMES) REGISTRY[n] = { version: CURRENT_SCHEMA_VERSION, schema: SCHEMAS[n], sensitive: SENSITIVE_STORES.includes(n), shards: SHARDS[n] };

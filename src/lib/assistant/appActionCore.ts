@@ -45,6 +45,7 @@ const textSlot = (min = 1): SlotDef['parse'] => (t) => (clean(t).length >= min ?
 export const PAGES: { words: string[]; page: string; label: string }[] = [
   { words: ['finanze', 'finanza', 'lifefinance', 'soldi', 'budget'], page: 'lifefinance', label: 'Finanze' },
   { words: ['salute', 'lifehealth'], page: 'lifehealth', label: 'Salute' },
+  { words: ['lifefitness', 'fitness', 'allenamento', 'allenamenti', 'palestra', 'personal trainer', 'calorie'], page: 'lifefitness', label: 'LifeFitness' },
   { words: ['piano', 'agenda', 'calendario', 'plan'], page: 'plan', label: 'Piano' },
   { words: ['task', 'lifetask', 'cose da fare'], page: 'lifetask', label: 'Task' },
   { words: ['note', 'lifenotes', 'appunti'], page: 'lifenotes', label: 'Note' },

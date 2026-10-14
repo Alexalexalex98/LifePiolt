@@ -24,7 +24,7 @@ export const SCHEMAS: Record<string, Schema> = {
 };
 
 /** Store con dati personali sensibili: cifrati anche per valore quando SQLCipher non c'e'. */
-export const SENSITIVE_STORES = ['finance', 'health', 'identity', 'chat', 'sharing', 'life', 'jobs'];
+export const SENSITIVE_STORES = ['finance', 'health', 'fitness', 'identity', 'chat', 'sharing', 'life', 'jobs'];
 
 /**
  * Campi grandi salvati in righe separate (scrittura incrementale). Solo i campi che crescono nel tempo:

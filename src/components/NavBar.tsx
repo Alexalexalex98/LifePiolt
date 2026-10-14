@@ -95,7 +95,7 @@ export function MenuSheet() {
   const tourMode = useTour((s) => s.mode), tourLevel = useTour((s) => s.level), tourAll = useTour((s) => s.allUnlocked);
   const groups = [
     { label: 'Principali', items: [['ai', 'LifeChat'], ['home', sn.home], ['plan', sn.plan]] },
-    { label: 'Le tue sezioni', items: [['lifehealth', 'LifeHealth'], ['lifenetwork', 'LifeNetwork'], ['lifefinance', 'LifeFinance'], ['lifenotes', 'LifeNotes'], ['lifetravel', 'LifeTravel'], ['lifedrive', 'LifeDrive'], ['lifetask', 'LifeTask'], ['lifepointsPage', 'LifePoints'], ['myServices', 'I tuoi servizi'], ['myClubs', 'I tuoi LifeClub']] },
+    { label: 'Le tue sezioni', items: [['lifehealth', 'LifeHealth'], ['lifefitness', 'LifeFitness'], ['lifenetwork', 'LifeNetwork'], ['lifefinance', 'LifeFinance'], ['lifenotes', 'LifeNotes'], ['lifetravel', 'LifeTravel'], ['lifedrive', 'LifeDrive'], ['lifetask', 'LifeTask'], ['lifepointsPage', 'LifePoints'], ['myServices', 'I tuoi servizi'], ['myClubs', 'I tuoi LifeClub']] },
     { label: 'Account', items: [['activity', 'La tua attività'], ['orders', 'I miei ordini'], ['savedPosts', 'Post salvati'], ['importSocial', 'Importa da un altro social'], ['help', 'Aiuto e domande'], ['settings', sn.settings]] },
   ];
   return (
