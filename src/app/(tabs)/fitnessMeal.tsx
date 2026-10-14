@@ -8,6 +8,10 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { FOODS, FOOD, dailyTarget, macrosFor, searchFoods, sumMacros, type Body as BodyT, type Food } from '@/lib/fitness/nutrition';
 import { matchRecipes, recipeAsFood, type Recipe } from '@/lib/fitness/foodDb';
+import { MEAL_PROMPT, parseMealReply, resolveItems, type Resolved } from '@/lib/fitness/mealPhoto';
+import { hasAccess } from '@/lib/fitness/premium';
+import { routeRequest } from '@/lib/aiRouter';
+import { go } from '@/lib/nav';
 import { Icon } from '@/lib/icons';
 import { pickNetMediaMany, takeNetPhoto } from '@/lib/netMedia';
 import { useFitness } from '@/store/fitness';
@@ -22,6 +26,8 @@ export default function FitnessMeal() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [plate, setPlate] = useState<{ food: Food; grams: string }[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [report, setReport] = useState<{ found: Resolved[]; note?: string } | null>(null);
   const [cookOpen, setCookOpen] = useState(false);
   const [cookQ, setCookQ] = useState('');
   const [cookSel, setCookSel] = useState<Recipe | null>(null);
@@ -41,6 +47,20 @@ export default function FitnessMeal() {
       if (camera) { const m = await takeNetPhoto(); if (m) setPhoto(m.uri); }
       else { const l = await pickNetMediaMany(1); if (l[0] && l[0].media === 'photo') setPhoto(l[0].uri); }
     } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la fotocamera'); }
+  };
+  const premium = hasAccess(fit.sub, Date.now());
+  const analyze = async () => {
+    if (!photo || busy) return;
+    setBusy(true); setReport(null);
+    try {
+      const res = await routeRequest({ text: MEAL_PROMPT, lang: 'it', source: 'typed', images: [{ uri: photo, mime: 'image/jpeg' }] });
+      if (res.status !== 'answered' || !res.text) { setReport({ found: [], note: res.message }); return; }
+      const found = resolveItems(parseMealReply(res.text));
+      if (!found.length) { setReport({ found: [], note: tl('Non riconosco cibo in questa foto. Prova con più luce o scegli tu gli alimenti.') }); return; }
+      setPlate(found.flatMap((x) => (x.food ? [{ food: x.food, grams: String(x.grams) }] : [])));
+      setReport({ found });
+    } catch { setReport({ found: [], note: tl('Non sono riuscito a contattare il servizio di analisi.') }); }
+    finally { setBusy(false); }
   };
   const choose = (f: Food) => { setPlate((p) => [...p, { food: f, grams: String(f.portion) }]); setQ(''); };
   const setG = (i: number, v: string) => setPlate((p) => p.map((x, j) => (j === i ? { ...x, grams: v } : x)));
@@ -79,7 +99,17 @@ export default function FitnessMeal() {
           <Btn small ghost icon="image" title="Galleria" onPress={() => void snap(false)} />
         </Row>
         {photo ? <Image source={{ uri: photo }} style={{ width: '100%', height: 190, borderRadius: 14, marginTop: 10 }} contentFit="cover" /> : null}
-        <Body small muted style={{ marginTop: 8 }}>Dalla foto non riconosco ancora il piatto da solo: per quello servirà l'AI esterna, che non è collegata. Intanto scegli tu cos'è: la foto resta insieme al pasto.</Body>
+        {photo ? (premium
+          ? <Btn style={{ marginTop: 10 }} icon="sparkle" title={busy ? 'Analizzo il piatto…' : 'Analizza il piatto'} disabled={busy} onPress={() => void analyze()} />
+          : <View style={{ marginTop: 10 }}><Body small muted>Con Premium analizzo la foto: ti dico cosa c'è nel piatto e i valori nutrizionali.</Body><Btn style={{ marginTop: 6 }} ghost icon="lock" title="Scopri Premium" onPress={() => go('lifefitness')} /></View>) : <Body small muted style={{ marginTop: 8 }}>Scatta o scegli la foto del piatto: con Premium lo analizzo e ti faccio il resoconto. In ogni caso puoi comporlo tu qui sotto.</Body>}
+        {report ? (
+          <View style={{ marginTop: 10 }}>
+            <Body bold>Resoconto del piatto</Body>
+            {report.note ? <Body small muted style={{ marginTop: 4 }}>{report.note}</Body> : null}
+            {report.found.map((x, i) => <Body key={i} small>{x.food ? `${x.name} → ${x.food.name} · ${x.grams} g · ${macrosFor(x.food, x.grams).kcal} kcal` : tl('{0}: non lo trovo nel database, cercalo qui sotto', x.name)}</Body>)}
+            {report.found.length ? <Body small muted style={{ marginTop: 4 }}>È una stima dalla foto: controlla alimenti e grammi qui sotto e correggi se serve prima di aggiungere al diario.</Body> : null}
+          </View>
+        ) : null}
         <Btn style={{ marginTop: 10 }} ghost icon="note" title="Ho preparato un piatto" onPress={() => setCookOpen(true)} />
         <Input placeholder="Cerca tra oltre 2000 alimenti (es. pasta, pizza, insalata)" value={q} onChangeText={setQ} />
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>

@@ -111,7 +111,7 @@ export default function LifeFitness() {
 
           <Card>
             <Row><H>Pasti e calorie</H><Btn small icon="camera" title="Aggiungi" onPress={() => go('fitnessMeal')} /></Row>
-            <Body small muted style={{ marginVertical: 6 }}>Fotografa il piatto, scegli cosa è e quanto ne mangi: calcolo calorie e macro.</Body>
+            <Body small muted style={{ marginVertical: 6 }}>Scegli tra oltre 2000 alimenti e indica i grammi: calcolo calorie e macro. Con Premium basta una foto del piatto.</Body>
             <Row><Body bold>{kcal} kcal oggi</Body><Body small muted>{target ? tl('Obiettivo {0}', target) : tl('Imposta il tuo obiettivo')}</Body></Row>
             {target ? <Progress value={Math.min(100, Math.round((kcal / target) * 100))} /> : null}
             {todayMeals.slice(0, 3).map((m) => <Body key={m.id} small muted>• {m.name} · {m.macros.kcal} kcal</Body>)}
@@ -132,10 +132,10 @@ export default function LifeFitness() {
         <>
           {state === 'nessuno' || state === 'scaduto' ? (
             <Card accent={t.accent}>
-              <H>Premium: tutti i centri convenzionati</H>
+              <H>Premium: foto del piatto e centri convenzionati</H>
               <Text style={{ color: t.text, fontSize: 30, fontWeight: '900', marginTop: 6 }}>{PREMIUM_PRICE_LP} LP <Text style={{ fontSize: 14, color: t.muted, fontWeight: '600' }}>{tl('al mese')}</Text></Text>
-              <Body small muted style={{ marginVertical: 8 }}>Con un solo abbonamento entri in palestre, piscine e centri sportivi convenzionati: sala pesi, corsi, nuoto, arrampicata e altro. Gli allenamenti e il personal trainer restano gratis.</Body>
-              {['Accesso a tutti i centri convenzionati', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="check" size={15} color={t.positive} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
+              <Body small muted style={{ marginVertical: 8 }}>Con un solo abbonamento entri in palestre, piscine e centri sportivi convenzionati: sala pesi, corsi, nuoto, arrampicata e altro. Gli allenamenti, il personal trainer e il diario dei pasti restano gratis.</Body>
+              {['Fotografi il piatto e ti faccio il resoconto: alimenti, grammi e valori nutrizionali', 'Accesso a tutti i centri convenzionati', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="check" size={15} color={t.positive} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
               {state === 'scaduto' ? <Body small color={t.warn} style={{ marginTop: 6 }}>Il tuo abbonamento è scaduto.</Body> : null}
               <Btn style={{ marginTop: 12 }} title={tl('Attiva Premium · {0} LP', PREMIUM_PRICE_LP)} onPress={() => { const r = fit.subscribe(); toast(r.message); }} />
               <Body small muted style={{ marginTop: 6 }}>Hai {net.lifePoints} LP. Si rinnova da solo ogni 30 giorni, se hai i LifePoints.</Body>

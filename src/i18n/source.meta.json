@@ -1,5 +1,5 @@
 {
- "count": 9929,
+ "count": 9940,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -27,7 +27,7 @@
   "src/app/(tabs)/extraCheck.tsx": 18,
   "src/app/(tabs)/fitnessGymRegister.tsx": 18,
   "src/app/(tabs)/fitnessGyms.tsx": 10,
-  "src/app/(tabs)/fitnessMeal.tsx": 42,
+  "src/app/(tabs)/fitnessMeal.tsx": 52,
   "src/app/(tabs)/fitnessProgram.tsx": 14,
   "src/app/(tabs)/fitnessWorkout.tsx": 19,
   "src/app/(tabs)/focus.tsx": 27,
@@ -46,7 +46,7 @@
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
   "src/app/(tabs)/lifefinance.tsx": 86,
-  "src/app/(tabs)/lifefitness.tsx": 62,
+  "src/app/(tabs)/lifefitness.tsx": 63,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
   "src/app/(tabs)/lifenetwork.tsx": 41,
@@ -347,6 +347,7 @@
   "src/lib/findPlace.ts": 55,
   "src/lib/fitness/data.ts": 203,
   "src/lib/fitness/foodDb.ts": 24,
+  "src/lib/fitness/mealPhoto.ts": 1,
   "src/lib/fitness/nutrition.ts": 67,
   "src/lib/fitness/plan.ts": 1,
   "src/lib/fitness/premium.ts": 3,
@@ -360,7 +361,7 @@
   "src/lib/habits/routine.ts": 13,
   "src/lib/habits/time.ts": 5,
   "src/lib/healthkit.ts": 30,
-  "src/lib/helpFaq.ts": 364,
+  "src/lib/helpFaq.ts": 363,
   "src/lib/helpKb.ts": 165,
   "src/lib/hiring.ts": 26,
   "src/lib/i18n.ts": 4,
@@ -458,5 +459,5 @@
   "src/sync/registry.ts": 45,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1284
+ "withPlaceholders": 1286
 }
