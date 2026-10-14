@@ -1,9 +1,9 @@
+import { FIT, MacroBar, Ring } from '@/components/fitness/kit';
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Text } from '@/components/T';
 
-import { Body, Btn, Card, H, Input, Item, Page, Pill, Progress, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Card, H, Input, Item, Page, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { FOODS, FOOD, dailyTarget, macrosFor, searchFoods, sumMacros, type Body as BodyT, type Food } from '@/lib/fitness/nutrition';
@@ -83,12 +83,13 @@ export default function FitnessMeal() {
 
   return (
     <Page id="fitnessMeal" back title="Pasti e calorie">
-      <Card>
+      <Card accent={FIT}>
         <Row><H>Oggi</H><Btn small ghost title={target ? 'Obiettivo' : 'Imposta l\'obiettivo'} onPress={() => setBodyOpen(true)} /></Row>
-        <Text style={{ color: t.text, fontSize: 30, fontWeight: '900', marginTop: 4 }}>{sum.kcal} <Text style={{ fontSize: 14, color: t.muted }}>{target ? `/ ${target} kcal` : 'kcal'}</Text></Text>
-        {target ? <Progress value={Math.min(100, Math.round((sum.kcal / target) * 100))} color={sum.kcal > target ? t.warn : undefined} /> : null}
-        <Row style={{ marginTop: 8 }} gap={8}>
-          {[['Proteine', sum.p], ['Carboidrati', sum.c], ['Grassi', sum.f]].map(([l, v]) => <View key={String(l)} style={{ flex: 1 }}><Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>{v} g</Text><Text style={{ color: t.muted, fontSize: 11.5 }}>{tl(String(l))}</Text></View>)}
+        <Row gap={16} style={{ marginTop: 4 }}>
+          <Ring size={112} stroke={12} value={target ? sum.kcal / target : 0} big={String(sum.kcal)} small={target ? `/ ${target} kcal` : 'kcal'} color={target && sum.kcal > target ? t.warn : FIT} />
+          <View style={{ flex: 1, gap: 8 }}>
+            {(() => { const tot = Math.max(1, sum.p + sum.c + sum.f); return [['Proteine', sum.p, '#6ec9dd'], ['Carboidrati', sum.c, FIT], ['Grassi', sum.f, '#e0c97b']].map(([l, v, c]) => <MacroBar key={String(l)} label={tl(String(l))} grams={Number(v)} color={String(c)} pct={(Number(v) / tot) * 100} />); })()}
+          </View>
         </Row>
       </Card>
 

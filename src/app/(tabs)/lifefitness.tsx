@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/T';
 
+import { FIT, FitHero, Ring, StatTile } from '@/components/fitness/kit';
 import { QrView } from '@/components/profile/CardFace';
-import { Body, Btn, Card, Empty, H, Item, Page, Pill, Progress, Row, Seg, Sheet, Switch } from '@/components/ui';
+import { Body, Btn, Card, H, Item, Page, Pill, Row, Seg, Sheet, Switch } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { PARTNER_GYMS, PROGRAMS, type Goal, type Level, type Place } from '@/lib/fitness/data';
 import { dailyTarget, sumMacros } from '@/lib/fitness/nutrition';
-import { equipmentOf, recommend, sessionMinutes, stats, weekView, type FitProfile } from '@/lib/fitness/plan';
+import { recommend, sessionMinutes, stats, weekView, type FitProfile } from '@/lib/fitness/plan';
 import { PREMIUM_PRICE_LP, daysLeft, passPayload, premiumState } from '@/lib/fitness/premium';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
@@ -64,57 +65,54 @@ export default function LifeFitness() {
       {tab === 'Gratis' ? (
         <>
           {!fit.profile ? (
-            <Card>
-              <H>Il tuo personal trainer</H>
-              <Body small muted style={{ marginTop: 4, marginBottom: 10 }}>Dimmi obiettivo, livello e dove ti alleni: preparo il programma e ti guido sessione dopo sessione, anche senza internet. Tutto resta sul telefono.</Body>
+            <FitHero eyebrow="Personal trainer" title="Allenati meglio" sub="Obiettivo, livello e luogo: preparo il programma e ti guido sessione dopo sessione, anche senza internet.">
               <Btn title="Crea il tuo piano" onPress={() => setSetup(true)} />
-            </Card>
+            </FitHero>
           ) : (
-            <Card>
-              <Row><H>Oggi</H><Btn small ghost title="Cambia" onPress={() => setSetup(true)} /></Row>
-              {active ? (
-                <>
-                  <Body bold style={{ marginTop: 4 }}>{active.name}</Body>
-                  {today?.planned && today.session != null ? (
-                    <>
-                      <Body small muted>{active.sessions[today.session].name} · circa {sessionMinutes(active, today.session)} min</Body>
-                      {today.done ? <Body small color={t.positive} style={{ marginTop: 6 }}>Fatto oggi. Bel lavoro.</Body>
-                        : <Btn style={{ marginTop: 10 }} icon="play" title="Inizia l'allenamento" onPress={() => go('fitnessWorkout', { program: active.id, session: String(today.session) })} />}
-                    </>
-                  ) : <Body small muted style={{ marginTop: 4 }}>Oggi è un giorno di riposo: recuperare fa parte del programma. Se vuoi, puoi allenarti lo stesso.</Body>}
-                  <Row style={{ marginTop: 12, justifyContent: 'space-between' }} gap={4}>
-                    {week.map((d) => (
-                      <View key={d.date} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-                        <Text style={{ color: t.muted, fontSize: 11 }}>{DAYS[d.weekday]}</Text>
-                        <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: d.done ? t.positive : d.planned ? t.accent + '33' : t.chip, alignItems: 'center', justifyContent: 'center', borderWidth: d.date === todayIso ? 2 : 0, borderColor: t.accent }}>
-                          {d.done ? <Icon name="check" size={15} color="#fff" /> : d.planned ? <Icon name="lifefitness" size={14} color={t.accent} /> : null}
-                        </View>
-                      </View>
-                    ))}
-                  </Row>
-                  <Btn small ghost style={{ marginTop: 10 }} title="Vedi il programma" onPress={() => go('fitnessProgram', { id: active.id })} />
-                </>
-              ) : <Empty text="Scegli un programma qui sotto." />}
-            </Card>
+            <FitHero eyebrow={active ? active.name : 'Oggi'} title={today?.planned && today.session != null && active ? active.sessions[today.session].name : 'Giorno di recupero'} sub={today?.planned && today.session != null && active ? tl('Circa {0} min', sessionMinutes(active, today.session)) : 'Recuperare fa parte del programma.'}>
+              {active && today?.planned && today.session != null ? (
+                today.done ? <Body bold color="#1c0b04">Fatto oggi. Bel lavoro.</Body>
+                  : <Btn icon="play" title="Inizia l'allenamento" onPress={() => go('fitnessWorkout', { program: active.id, session: String(today.session) })} />
+              ) : <Btn ghost title="Cambia il piano" onPress={() => setSetup(true)} />}
+            </FitHero>
           )}
 
-          {fit.profile ? (
+          {fit.profile && active ? (
             <Card>
-              <H>I tuoi progressi</H>
-              <Row style={{ marginTop: 8 }} gap={8}>
-                {[[st.week, 'questa settimana'], [st.streakDays, 'giorni di fila'], [st.minutesWeek, 'minuti']].map(([v, l]) => (
-                  <View key={String(l)} style={{ flex: 1, alignItems: 'center' }}><Text style={{ color: t.text, fontSize: 24, fontWeight: '900' }}>{v}</Text><Text style={{ color: t.muted, fontSize: 11.5, textAlign: 'center' }}>{tl(String(l))}</Text></View>
+              <Row><H>La tua settimana</H><Btn small ghost title="Cambia" onPress={() => setSetup(true)} /></Row>
+              <Row style={{ marginTop: 6, justifyContent: 'space-between' }} gap={4}>
+                {week.map((d) => (
+                  <View key={d.date} style={{ flex: 1, alignItems: 'center', gap: 5 }}>
+                    <Text style={{ color: d.date === todayIso ? FIT : t.muted, fontSize: 11, fontWeight: '800' }}>{DAYS[d.weekday]}</Text>
+                    <View style={{ width: 34, height: 46, borderRadius: 12, backgroundColor: d.done ? FIT : d.planned ? FIT + '2e' : t.chip, alignItems: 'center', justifyContent: 'center', borderWidth: d.date === todayIso ? 2 : 0, borderColor: FIT }}>
+                      {d.done ? <Icon name="check" size={17} color="#1c0b04" stroke={3} /> : d.planned ? <Icon name="lifefitness" size={16} color={FIT} /> : null}
+                    </View>
+                  </View>
                 ))}
               </Row>
+              <Btn small ghost style={{ marginTop: 12 }} title="Vedi il programma" onPress={() => go('fitnessProgram', { id: active.id })} />
             </Card>
           ) : null}
 
+          {fit.profile ? (
+            <Row gap={10}>
+              <StatTile icon="lifefitness" value={st.week} label={tl('questa settimana')} />
+              <StatTile icon="sparkle" value={st.streakDays} label={tl('giorni di fila')} />
+              <StatTile icon="clock" value={st.minutesWeek} label={tl('minuti')} />
+            </Row>
+          ) : null}
+
           <Card>
-            <Row><H>Pasti e calorie</H><Btn small icon="camera" title="Aggiungi" onPress={() => go('fitnessMeal')} /></Row>
-            <Body small muted style={{ marginVertical: 6 }}>Scegli tra oltre 2000 alimenti e indica i grammi: calcolo calorie e macro. Con Premium basta una foto del piatto.</Body>
-            <Row><Body bold>{kcal} kcal oggi</Body><Body small muted>{target ? tl('Obiettivo {0}', target) : tl('Imposta il tuo obiettivo')}</Body></Row>
-            {target ? <Progress value={Math.min(100, Math.round((kcal / target) * 100))} /> : null}
-            {todayMeals.slice(0, 3).map((m) => <Body key={m.id} small muted>• {m.name} · {m.macros.kcal} kcal</Body>)}
+            <Row gap={14}>
+              <Ring value={target ? kcal / target : 0} big={String(kcal)} small={target ? `/ ${target}` : 'kcal'} />
+              <View style={{ flex: 1 }}>
+                <H style={{ marginBottom: 2 }}>Pasti e calorie</H>
+                <Body small muted>{target ? tl('Obiettivo {0} kcal', target) : tl('Imposta il tuo obiettivo')}</Body>
+                <Body small muted style={{ marginTop: 4 }}>Oltre 2000 alimenti; con Premium basta una foto.</Body>
+              </View>
+            </Row>
+            <Btn style={{ marginTop: 12 }} icon="camera" title="Aggiungi un pasto" onPress={() => go('fitnessMeal')} />
+            {todayMeals.slice(0, 3).map((m) => <Body key={m.id} small muted style={{ marginTop: 4 }}>{m.name} · {m.macros.kcal} kcal</Body>)}
           </Card>
 
           <H style={{ marginTop: 8 }}>{fit.profile ? 'Programmi per te' : 'Programmi'}</H>

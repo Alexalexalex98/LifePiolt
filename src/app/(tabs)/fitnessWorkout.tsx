@@ -1,10 +1,11 @@
+import { FIT, FitHero, Ring } from '@/components/fitness/kit';
 import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { Text } from '@/components/T';
 
-import { Body, Btn, Card, Page, Progress, Row } from '@/components/ui';
+import { Body, Btn, Card, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { EX, PROGRAMS } from '@/lib/fitness/data';
@@ -27,6 +28,7 @@ export default function FitnessWorkout() {
   const [i, setI] = useState(0);        // esercizio
   const [set, setSet] = useState(1);    // serie corrente
   const [phase, setPhase] = useState<'work' | 'rest' | 'done'>('work');
+  const [restTotal, setRestTotal] = useState(60);
   const [left, setLeft] = useState(0);  // secondi (lavoro a tempo o recupero)
   const [running, setRunning] = useState(false);
   const start = useRef(Date.now());
@@ -52,8 +54,8 @@ export default function FitnessWorkout() {
 
   function finishSet() {
     setsDone.current += 1;
-    if (set < cur.sets) { setSet(set + 1); if (cur.rest > 0) { setPhase('rest'); setLeft(cur.rest); setRunning(true); } }
-    else if (i < steps.length - 1) { setI(i + 1); setSet(1); if (cur.rest > 0) { setPhase('rest'); setLeft(cur.rest); setRunning(true); } }
+    if (set < cur.sets) { setSet(set + 1); if (cur.rest > 0) { setPhase('rest'); setRestTotal(cur.rest); setLeft(cur.rest); setRunning(true); } }
+    else if (i < steps.length - 1) { setI(i + 1); setSet(1); if (cur.rest > 0) { setPhase('rest'); setRestTotal(cur.rest); setLeft(cur.rest); setRunning(true); } }
     else { setPhase('done'); }
   }
   function save() {
@@ -68,12 +70,10 @@ export default function FitnessWorkout() {
   if (phase === 'done') {
     return (
       <Page id="fitnessWorkout" back title="Finito!">
-        <Card style={{ alignItems: 'center', gap: 6 }}>
-          <Text style={{ color: t.text, fontSize: 28, fontWeight: '900' }}>{tl('Bel lavoro')}</Text>
-          <Body muted>{p.sessions[sIdx].name}</Body>
-          <Body bold>{tl('{0} serie completate', setsDone.current)}</Body>
-          <Btn style={{ marginTop: 12, alignSelf: 'stretch' }} title="Salva l'allenamento" onPress={save} />
-          <Btn ghost style={{ alignSelf: 'stretch' }} title="Esci senza salvare" onPress={goBack} />
+        <FitHero eyebrow={p.sessions[sIdx].name} title="Bel lavoro" sub={tl('{0} serie completate', setsDone.current)} />
+        <Card style={{ gap: 8 }}>
+          <Btn title="Salva l'allenamento" onPress={save} />
+          <Btn ghost title="Esci senza salvare" onPress={goBack} />
         </Card>
       </Page>
     );
@@ -81,12 +81,13 @@ export default function FitnessWorkout() {
   const timed = !!cur.secs;
   return (
     <Page id="fitnessWorkout" back title={p.sessions[sIdx].name}>
-      <Progress value={Math.round((doneSets / Math.max(1, total)) * 100)} />
-      <Body small muted style={{ marginTop: 6 }}>{tl('Serie {0} di {1} · circa {2} min', doneSets + 1, total, sessionMinutes(p, sIdx))}</Body>
+      <FitHero eyebrow={tl('Serie {0} di {1}', doneSets + 1, total)} title={p.sessions[sIdx].name} sub={tl('circa {0} min', sessionMinutes(p, sIdx))}>
+        <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(28,11,4,0.22)', overflow: 'hidden' }}><View style={{ width: `${Math.max(3, Math.round((doneSets / Math.max(1, total)) * 100))}%`, height: 8, backgroundColor: '#1c0b04', borderRadius: 4 }} /></View>
+      </FitHero>
       {phase === 'rest' ? (
         <Card style={{ alignItems: 'center', marginTop: 12 }}>
           <Body muted>Recupero</Body>
-          <Text style={{ color: t.accent, fontSize: 64, fontWeight: '900' }}>{mmss(left)}</Text>
+          <Ring size={170} stroke={12} value={left / Math.max(1, restTotal)} big={mmss(left)} small={tl('recupero')} />
           <Body small muted>{tl('Prossimo: {0}', ex?.name ?? '')}</Body>
           <Btn style={{ marginTop: 10, alignSelf: 'stretch' }} ghost title="Salta il recupero" onPress={() => { setRunning(false); setPhase('work'); }} />
         </Card>
@@ -94,7 +95,7 @@ export default function FitnessWorkout() {
         <Card style={{ marginTop: 12 }}>
           <Text style={{ color: t.text, fontSize: 24, fontWeight: '900' }}>{ex?.name}</Text>
           <Body small muted style={{ marginBottom: 8 }}>{tl('Serie {0} di {1}', set, cur.sets)}</Body>
-          <Text style={{ color: t.accent, fontSize: 46, fontWeight: '900', textAlign: 'center', marginVertical: 8 }}>{timed ? mmss(left) : `${cur.reps} ${tl('ripetizioni')}`}</Text>
+          <Text style={{ color: FIT, fontSize: 52, fontWeight: '900', textAlign: 'center', marginVertical: 8 }}>{timed ? mmss(left) : `${cur.reps} ${tl('ripetizioni')}`}</Text>
           <Body small>{ex?.how}</Body>
           {timed ? (
             <Row gap={8} style={{ marginTop: 12 }}>

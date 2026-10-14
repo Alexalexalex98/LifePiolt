@@ -1,3 +1,4 @@
+import { FIT, FitHero } from '@/components/fitness/kit';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/T';
@@ -26,12 +27,13 @@ export default function FitnessGyms() {
   const enter = (g: Gym) => { const r = fit.enter(g.id); toast(r.message); if (r.ok) setOpen(null); };
   return (
     <Page id="fitnessGyms" back title="Centri convenzionati">
+      <FitHero eyebrow="Premium" title="Un abbonamento, tanti centri" sub="Palestre, piscine e centri sportivi convenzionati." />
       <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }} gap={8}>
         {(['tutti', 'palestra', 'piscina', 'centro'] as const).map((k) => <Pill key={k} label={k === 'tutti' ? 'Tutti' : KIND[k]} on={kind === k} onPress={() => setKind(k)} />)}
       </Row>
       {!access ? <Card accent={t.accent}><Body small>Per entrare serve il Premium (30 LP al mese). Puoi comunque vedere i centri.</Body><Btn small style={{ marginTop: 8 }} title="Vedi il Premium" onPress={() => go('lifefitness')} /></Card> : null}
       {list.map((g) => (
-        <Card key={g.id} onPress={() => setOpen(g)}>
+        <Card key={g.id} accent={FIT} onPress={() => setOpen(g)}>
           <Row><View style={{ flex: 1 }}><Body bold>{g.name}</Body><Body small muted>{KIND[g.kind]} · {g.city}</Body></View>{g.rating ? <Row gap={3}><Icon name="star" size={14} color={t.accent} /><Body small>{g.rating.toFixed(1).replace('.', ',')}</Body></Row> : null}</Row>
           <Body small muted style={{ marginTop: 4 }}>{g.services.join(' · ')}</Body>
         </Card>
