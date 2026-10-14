@@ -113,7 +113,7 @@ export default function FitnessMeal() {
         <Btn style={{ marginTop: 10 }} ghost icon="note" title="Ho preparato un piatto" onPress={() => setCookOpen(true)} />
         <Input placeholder="Cerca tra oltre 2000 alimenti (es. pasta, pizza, insalata)" value={q} onChangeText={setQ} />
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
-          {found.map((f) => <Pill key={f.id} label={f.name} off onPress={() => choose(f)} />)}
+          {found.map((f) => <Pill key={f.id} label={f.name} onPress={() => choose(f)} />)}
         </Row>
         {rows.length ? (
           <View style={{ marginTop: 10 }}>
