@@ -1,5 +1,5 @@
-import { Asset } from 'expo-asset';
 import { useEffect, useRef } from 'react';
+import { Image } from 'react-native';
 
 import { makeStory, type Story } from '@/lib/stories';
 import { useApp } from '@/store/app';
@@ -10,7 +10,7 @@ const M = {
   autoNotte: require('../../assets/seed/auto-notte.jpg'), barSera: require('../../assets/seed/bar-sera.jpg'), aperitivo: require('../../assets/seed/aperitivo.jpg'),
   cappuccino: require('../../assets/seed/cappuccino.jpg'), freccette: require('../../assets/seed/freccette.jpg'), birra: require('../../assets/seed/birra.jpg'),
   voloNotte: require('../../assets/seed/volo-notte.mp4'), spiaggia: require('../../assets/seed/spiaggia-tramonto.mp4'), roma: require('../../assets/seed/roma-tramonto.mp4'),
-  spazio: require('../../assets/seed/spazio.mp4'), colosseo: require('../../assets/seed/colosseo.mp4'), positano: require('../../assets/seed/positano.mp4'), newYork: require('../../assets/seed/new-york.mp4'), pizzaPatatine: require('../../assets/seed/pizza-patatine.jpg'), tavolaCalici: require('../../assets/seed/tavola-calici.jpg'), aeroporto: require('../../assets/seed/aeroporto.jpg'), tvVintage: require('../../assets/seed/tv-vintage.jpg'), libro: require('../../assets/seed/libro.jpg'), formulaUno: require('../../assets/seed/formula-uno.jpg'), androne: require('../../assets/seed/androne.jpg'), codaPassaporti: require('../../assets/seed/coda-passaporti.jpg'), peugeot: require('../../assets/seed/peugeot.jpg'), pietraSmart: require('../../assets/seed/pietra-smart.jpg'), caffeFiltro: require('../../assets/seed/caffe-filtro.jpg'), menuBicerin: require('../../assets/seed/menu-bicerin.jpg'), nikis: require('../../assets/seed/nikis.jpg'), tavolinoFinestra: require('../../assets/seed/tavolino-finestra.jpg'), cocktailOlive: require('../../assets/seed/cocktail-olive.jpg'), burgerPatatine: require('../../assets/seed/burger-patatine.jpg'), pubFreccette: require('../../assets/seed/pub-freccette.jpg'), pizzaMucchio: require('../../assets/seed/pizza-patatine-mucchio.jpg'), cocktailScuri: require('../../assets/seed/cocktail-scuri.jpg'), burgerViola: require('../../assets/seed/burger-viola.jpg'), caffeInterno: require('../../assets/seed/caffe-interno.jpg'), tazzeCaffe: require('../../assets/seed/tazze-caffe.jpg'), cappuccinoFiori: require('../../assets/seed/cappuccino-fiori.jpg'), corona: require('../../assets/seed/corona.jpg'), cotolette: require('../../assets/seed/cotolette-birra.jpg'), brindisiBirra: require('../../assets/seed/brindisi-birra.jpg'), marienplatz: require('../../assets/seed/marienplatz.jpg'), finestrino: require('../../assets/seed/finestrino.jpg'), birraPianta: require('../../assets/seed/birra-pianta.jpg'),
+  spazio: require('../../assets/seed/spazio.mp4'), colosseo: require('../../assets/seed/colosseo.mp4'), positano: require('../../assets/seed/positano.mp4'), newYork: require('../../assets/seed/new-york.mp4'), pizzaPatatine: require('../../assets/seed/pizza-patatine.jpg'), tavolaCalici: require('../../assets/seed/tavola-calici.jpg'), aeroporto: require('../../assets/seed/aeroporto.jpg'), tvVintage: require('../../assets/seed/tv-vintage.jpg'), libro: require('../../assets/seed/libro.jpg'), formulaUno: require('../../assets/seed/formula-uno.jpg'), androne: require('../../assets/seed/androne.jpg'), codaPassaporti: require('../../assets/seed/coda-passaporti.jpg'), peugeot: require('../../assets/seed/peugeot.jpg'), pietraSmart: require('../../assets/seed/pietra-smart.jpg'), caffeFiltro: require('../../assets/seed/caffe-filtro.jpg'), menuBicerin: require('../../assets/seed/menu-bicerin.jpg'), nikis: require('../../assets/seed/nikis.jpg'), tavolinoFinestra: require('../../assets/seed/tavolino-finestra.jpg'), cocktailOlive: require('../../assets/seed/cocktail-olive.jpg'), burgerPatatine: require('../../assets/seed/burger-patatine.jpg'), pubFreccette: require('../../assets/seed/pub-freccette.jpg'), pizzaMucchio: require('../../assets/seed/pizza-patatine-mucchio.jpg'), cocktailScuri: require('../../assets/seed/cocktail-scuri.jpg'), burgerViola: require('../../assets/seed/burger-viola.jpg'), caffeInterno: require('../../assets/seed/caffe-interno.jpg'), tazzeCaffe: require('../../assets/seed/tazze-caffe.jpg'), cappuccinoFiori: require('../../assets/seed/cappuccino-fiori.jpg'), corona: require('../../assets/seed/corona.jpg'), cotolette: require('../../assets/seed/cotolette-birra.jpg'), brindisiBirra: require('../../assets/seed/brindisi-birra.jpg'), marienplatz: require('../../assets/seed/marienplatz.jpg'), finestrino: require('../../assets/seed/finestrino.jpg'), birraPianta: require('../../assets/seed/birra-pianta.jpg'), balconeSedie: require('../../assets/seed/balcone-sedie.jpg'), menuFastFood: require('../../assets/seed/menu-fast-food.jpg'), croissantCappuccino: require('../../assets/seed/croissant-cappuccino.jpg'), tettiMontagna: require('../../assets/seed/tetti-montagna.jpg'), panino28: require('../../assets/seed/panino-candeline.jpg'), vinoCocktail: require('../../assets/seed/vino-cocktail.jpg'), balconeSera: require('../../assets/seed/balcone-sera.jpg'), cenaTacos: require('../../assets/seed/cena-tacos.jpg'), cameraHotel: require('../../assets/seed/camera-hotel.jpg'), colazioneBanana: require('../../assets/seed/colazione-banana.jpg'), duomo: require('../../assets/seed/duomo.jpg'), cucciolo: require('../../assets/seed/cucciolo-prato.jpg'), anatre: require('../../assets/seed/anatre.jpg'), latteRosa: require('../../assets/seed/latte-rosa.jpg'), goldenAdulto: require('../../assets/seed/golden-adulto.jpg'), f1Tv: require('../../assets/seed/formula-uno-tv.jpg'),
 } as const;
 type Key = keyof typeof M;
 
@@ -68,6 +68,24 @@ const POSTS: { id: number; author: string; tag: string; media: 'photo' | 'video'
   { id: 343, author: 'Marco T.', tag: 'Cucina', media: 'photo', k: 'burgerPatatine', ks: ['burgerPatatine', 'burgerViola', 'pizzaPatatine', 'pizzaMucchio'], text: 'Pranzi da ricordare: hamburger, patate fatte in casa e la pizza con le patatine sopra. Peccato di gola.', h: 13, likes: 119 },
   { id: 344, author: 'Davide R.', tag: 'Viaggi', media: 'photo', k: 'aeroporto', ks: ['aeroporto', 'codaPassaporti', 'finestrino'], text: 'Giorno di viaggio: corridoio della stazione, coda ai controlli e poi il cielo dal finestrino.', h: 17, likes: 76 },
   { id: 345, author: 'Elena F.', tag: 'Casa', media: 'photo', k: 'androne', ks: ['androne', 'tvVintage', 'pietraSmart', 'tavolinoFinestra'], text: 'Dettagli di design: un androne in pietra, un televisore d’epoca, una pietra che parla e il tavolino vicino alla vetrata.', h: 24, likes: 93 },
+  { id: 360, author: 'Giulia M.', tag: 'Casa', media: 'photo', k: 'balconeSedie', text: 'Il balcone sistemato: bambù, sedie in filo e due tazze sul tavolino con la montagna davanti.', h: 2, likes: 81 },
+  { id: 361, author: 'Marco T.', tag: 'Cucina', media: 'photo', k: 'menuFastFood', text: 'Cena sul balcone a lume di candela: panino, nuggets e patatine. Il lusso è non cucinare.', h: 4, likes: 57 },
+  { id: 362, author: 'Sara B.', tag: 'Caffè', media: 'photo', k: 'croissantCappuccino', text: 'Colazione in hotel: espresso, croissant lucido e cappuccino con la foglia.', h: 6, likes: 66 },
+  { id: 363, author: 'Elena F.', tag: 'Viaggi', media: 'photo', k: 'tettiMontagna', text: 'Dal balcone: tetti rossi, una chiesa con il rosone e il monte che chiude la valle.', h: 8, likes: 102 },
+  { id: 364, author: 'Davide R.', tag: 'Amici', media: 'photo', k: 'panino28', text: 'Il panino che fa da torta: due candeline e un calice per brindare.', h: 10, likes: 125 },
+  { id: 365, author: 'Federica L.', tag: 'Serate', media: 'photo', k: 'vinoCocktail', text: 'Un bicchiere di bianco e un drink scuro con ghiaccio: aperitivo tardo nel vicolo.', h: 12, likes: 49 },
+  { id: 366, author: 'Chiara N.', tag: 'Casa', media: 'photo', k: 'balconeSera', text: 'Luce di fine giornata sul balcone: due bottiglie, le sedie e il monte arancione.', h: 14, likes: 73 },
+  { id: 367, author: 'Tommaso V.', tag: 'Cucina', media: 'photo', k: 'cenaTacos', text: 'Cena da gente affamata: hamburger con patate, anelli di cipolla, nuggets e due tacos di pesce.', h: 16, likes: 90 },
+  { id: 368, author: 'Sophie M.', tag: 'Viaggi', media: 'photo', k: 'cameraHotel', text: 'La camera con i due quadri della torre sul lago: sobria, luminosa, con i cuscini color senape.', h: 19, likes: 64 },
+  { id: 369, author: 'Luca Ferri', tag: 'Caffè', media: 'photo', k: 'colazioneBanana', text: 'Dolce alla banana con cioccolato e nocciole, succo d’arancia e un cappuccino con il cuore.', h: 21, likes: 53 },
+  { id: 370, author: 'Marco T.', tag: 'Viaggi', media: 'photo', k: 'duomo', text: 'Il Duomo di Milano nel pomeriggio: cielo blu, guglie di marmo e tantissima gente.', h: 23, likes: 138 },
+  { id: 371, author: 'Giulia M.', tag: 'Animali', media: 'photo', k: 'cucciolo', text: 'Il cucciolo di golden con la sua pallina sul prato: la lingua dice tutto.', h: 26, likes: 170 },
+  { id: 372, author: 'Elena F.', tag: 'Natura', media: 'photo', k: 'anatre', text: 'Due germani sul muretto del torrente: sembrano in attesa del turno per tuffarsi.', h: 28, likes: 58 },
+  { id: 373, author: 'Sara B.', tag: 'Caffè', media: 'photo', k: 'latteRosa', text: 'Latte rosa alla barbabietola con la foglia di schiuma: sa meglio di come sembra.', h: 30, likes: 71 },
+  { id: 374, author: 'Davide R.', tag: 'Animali', media: 'photo', k: 'goldenAdulto', text: 'Anche i golden grandi sanno posare: coccola, guinzaglio colorato e sole sul pavimento.', h: 32, likes: 144 },
+  { id: 375, author: 'Tommaso V.', tag: 'Sport', media: 'photo', k: 'f1Tv', text: 'Domenica mattina sul divano: Formula 1 con la luce rossa dietro alla TV.', h: 34, likes: 62 },
+  { id: 380, author: 'Giulia M.', tag: 'Casa', media: 'photo', k: 'balconeSedie', ks: ['balconeSedie','balconeSera','tettiMontagna'], text: 'Il balcone a tutte le ore: caffè al mattino, un bicchiere alla sera e sempre la montagna.', h: 5, likes: 109 },
+  { id: 381, author: 'Davide R.', tag: 'Animali', media: 'photo', k: 'cucciolo', ks: ['cucciolo','goldenAdulto','anatre'], text: 'Passeggiata al parco: golden, anatre e un pomeriggio senza orologio.', h: 15, likes: 131 },
 ];
 /** Momenti (Recap) di chi segui. */
 const STORIES: { id: string; author: string; k: Key; kind: 'photo' | 'video'; h: number; text?: string }[] = [
@@ -86,13 +104,16 @@ const STORIES: { id: string; author: string; k: Key; kind: 'photo' | 'video'; h:
   { id: 'seed-st-so2', author: 'Sophie M.', k: 'marienplatz', kind: 'photo', h: 1.4 },
   { id: 'seed-st-c2', author: 'Chiara N.', k: 'finestrino', kind: 'photo', h: 1.9 },
   { id: 'seed-st-f2', author: 'Federica L.', k: 'cocktailOlive', kind: 'photo', h: 2.4 },
+  { id: 'seed-st-d2', author: 'Davide R.', k: 'duomo', kind: 'photo', h: 0.3 },
+  { id: 'seed-st-g4', author: 'Giulia M.', k: 'cucciolo', kind: 'photo', h: 0.7 },
+  { id: 'seed-st-s3', author: 'Sara B.', k: 'latteRosa', kind: 'photo', h: 1.1 },
+  { id: 'seed-st-t2', author: 'Tommaso V.', k: 'f1Tv', kind: 'photo', h: 1.5000000000000002 },
 ];
 
+/** Percorsi dei file inclusi nell'app, senza moduli nativi aggiuntivi (funziona anche nella build già installata). */
 async function resolve(): Promise<Record<Key, string>> {
-  const keys = Object.keys(M) as Key[];
-  const assets = await Asset.loadAsync(keys.map((k) => M[k] as number));
   const out = {} as Record<Key, string>;
-  keys.forEach((k, i) => { out[k] = assets[i].localUri ?? assets[i].uri; });
+  (Object.keys(M) as Key[]).forEach((k) => { out[k] = Image.resolveAssetSource(M[k] as number)?.uri ?? ''; });
   return out;
 }
 

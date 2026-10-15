@@ -1,10 +1,12 @@
-import { useSeedMedia } from '@/lib/seedMedia';
 import { Safe } from '@/components/Safe';
 import { applyToFeed } from '@/lib/swipeDeck';
 import { StoriesBar } from '@/components/stories/StoriesBar';
 import { StoryPeekHost } from '@/components/stories/StoryPeekHost';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, PanResponder, Pressable, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, FlatList, PanResponder, Pressable, View, useWindowDimensions } from 'react-native';
+import { SwipeDeck } from '@/components/feed/SwipeDeck';
+import { useDeckCards } from '@/components/feed/useDeckCards';
+import { useSeedMedia } from '@/lib/seedMedia';
 import { pickQuotes, quoteCount, type Quote } from '@/lib/theiaQuotes';
 import { isTabSwipe, nextHomeTab, onEdgeSwipe, type HomeTab } from '@/lib/feedSwipe';
 import { Text } from '@/components/T';
@@ -206,7 +208,7 @@ export default function LifeNetwork() {
       {!searching && curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
           <Composer me={me} onPress={compose} />
-          <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Swipe', label: 'Swipe', bold: true }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={following ? 'Seguiti' : 'Per te'} onChange={(k) => { if (k === 'Swipe') go('swipeDeck'); else setPref('homeFilter', k); }} />
+          <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Swipe', label: 'Swipe', bold: true }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={following ? 'Seguiti' : 'Per te'} onChange={(k) => { if (k === 'Swipe') { setDeckShown(true); settleRef.current('Swipe'); } else setPref('homeFilter', k); }} />
           <View style={{ height: 8 }} />
         </View>
       )}
@@ -269,22 +271,67 @@ export default function LifeNetwork() {
     }
   };
 
-  /* scorrendo con il dito a sinistra/destra la Home passa da Per te a Swipe e Seguiti; con più foto prima si scorrono le foto */
+  /* Pager reale: Per te | Swipe | Seguiti affiancati; la schermata segue il dito e si vede quella accanto, come nei social. */
+  const { width: W } = useWindowDimensions();
+  const pos = useRef(new Animated.Value(following ? 2 * W : 0)).current;
+  const [deckShown, setDeckShown] = useState(false);
+  const [deckOpen, setDeckOpen] = useState(false);
+  const settle = (to: 'Per te' | 'Swipe' | 'Seguiti', fast?: boolean) => {
+    const target = to === 'Per te' ? 0 : to === 'Swipe' ? W : 2 * W;
+    if (to === 'Swipe') { setDeckShown(true); setDeckOpen(true); } else setDeckOpen(false);
+    Animated.timing(pos, { toValue: target, duration: fast ? 160 : 260, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() => {
+      if (to !== 'Swipe') setDeckShown(false);
+    });
+  };
+  const settleRef = useRef(settle); settleRef.current = settle;
+  /* se il filtro cambia da fuori (toggle), la posizione a riposo segue */
+  useEffect(() => { if (!deckOpen) pos.setValue(following ? 2 * W : 0); }, [following]); // eslint-disable-line react-hooks/exhaustive-deps
   const goTab = (dir: 1 | -1) => {
-    if (curTab !== 'Home' || searching) return;
+    if (curTab !== 'Home' || searching || deckOpen) return;
     const cur: HomeTab = following ? 'Seguiti' : 'Per te';
     const to = nextHomeTab(cur, dir);
-    if (to === 'Swipe') go('swipeDeck');
-    else if (to !== cur) setPref('homeFilter', to);
+    if (to === 'Swipe') { setDeckShown(true); settleRef.current('Swipe'); } else if (to !== cur) { setPref('homeFilter', to); }
   };
   const goTabRef = useRef(goTab); goTabRef.current = goTab;
   useEffect(() => onEdgeSwipe((d) => goTabRef.current(d)), []);
   const swipePan = useRef(PanResponder.create({
     onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8,
-    onPanResponderRelease: (_e, g) => { const d = isTabSwipe(g.dx, g.dy, g.vx); if (d) goTabRef.current(d); },
+    onPanResponderGrant: () => setDeckShown(true),
+    onPanResponderMove: (_e, g) => {
+      const fol = useNet.getState().prefs.homeFilter === 'Seguiti';
+      if (!fol && g.dx < 0) pos.setValue(Math.min(W, -g.dx));
+      else if (fol && g.dx > 0) pos.setValue(Math.max(W, 2 * W - g.dx));
+    },
+    onPanResponderRelease: (_e, g) => {
+      const fol = useNet.getState().prefs.homeFilter === 'Seguiti';
+      const d = fol ? g.dx : -g.dx;
+      if (d > 70 || (d > 28 && Math.abs(g.vx) > 0.6)) settleRef.current('Swipe');
+      else settleRef.current(fol ? 'Seguiti' : 'Per te', true);
+    },
+    onPanResponderTerminate: () => settleRef.current(useNet.getState().prefs.homeFilter === 'Seguiti' ? 'Seguiti' : 'Per te', true),
   })).current;
+  /* due pallini ai lati dello Swipe: si trascinano verso Per te (sinistra) o Seguiti (destra) */
+  const dotPan = (side: 'left' | 'right') => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => { setPref('homeFilter', side === 'left' ? 'Per te' : 'Seguiti'); },
+    onPanResponderMove: (_e, g) => pos.setValue(side === 'left' ? Math.max(0, W - Math.max(0, g.dx)) : Math.min(2 * W, W + Math.max(0, -g.dx))),
+    onPanResponderRelease: (_e, g) => {
+      const d = side === 'left' ? g.dx : -g.dx;
+      if (d > 70 || (d > 28 && Math.abs(g.vx) > 0.6)) settleRef.current(side === 'left' ? 'Per te' : 'Seguiti');
+      else settleRef.current('Swipe', true);
+    },
+    onPanResponderTerminate: () => settleRef.current('Swipe', true),
+  });
+  const leftDot = useRef(dotPan('left')).current, rightDot = useRef(dotPan('right')).current;
+  const deckCards = useDeckCards();
+  const homeX = following ? Animated.add(Animated.multiply(pos, -1), 2 * W) : Animated.multiply(pos, -1);
+  const deckX = Animated.add(Animated.multiply(pos, -1), W);
+  const dotStyle = (side: 'start' | 'end') => ({ position: 'absolute' as const, [side]: 6, top: '46%' as const, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' });
 
   return (
+    <View style={{ flex: 1, overflow: 'hidden', backgroundColor: '#000' }}>
+    <Animated.View style={{ flex: 1, transform: [{ translateX: homeX }] }} pointerEvents={deckOpen ? 'none' : 'auto'}>
     <Page id="lifenetwork" scroll={false}>
       <View style={{ flex: 1 }} {...swipePan.panHandlers}>
       <FlatList
@@ -305,5 +352,14 @@ export default function LifeNetwork() {
       </View>
       <Safe name="anteprima recap"><StoryPeekHost /></Safe>
     </Page>
+    </Animated.View>
+    {deckShown ? (
+      <Animated.View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: '#000', transform: [{ translateX: deckX }] }}>
+        <SwipeDeck cards={deckCards} onClose={() => settleRef.current('Per te')} />
+        <View accessibilityRole="button" accessibilityLabel="Trascina verso destra per tornare a Per te" {...leftDot.panHandlers} style={dotStyle('start')} hitSlop={{ top: 14, bottom: 14, left: 6, right: 14 }} />
+        <View accessibilityRole="button" accessibilityLabel="Trascina verso sinistra per andare a Seguiti" {...rightDot.panHandlers} style={dotStyle('end')} hitSlop={{ top: 14, bottom: 14, left: 14, right: 6 }} />
+      </Animated.View>
+    ) : null}
+    </View>
   );
 }

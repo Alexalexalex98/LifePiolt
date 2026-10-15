@@ -1,5 +1,5 @@
 {
- "count": 10606,
+ "count": 10626,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -50,7 +50,7 @@
   "src/app/(tabs)/lifefitness.tsx": 61,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
-  "src/app/(tabs)/lifenetwork.tsx": 39,
+  "src/app/(tabs)/lifenetwork.tsx": 41,
   "src/app/(tabs)/lifenotes.tsx": 3,
   "src/app/(tabs)/lifepointsPage.tsx": 36,
   "src/app/(tabs)/lifetask.tsx": 5,
@@ -433,7 +433,7 @@
   "src/lib/samplePdf.ts": 18,
   "src/lib/search/docs.ts": 1,
   "src/lib/search/fts.ts": 8,
-  "src/lib/seedMedia.ts": 74,
+  "src/lib/seedMedia.ts": 94,
   "src/lib/shop.ts": 14,
   "src/lib/shopActions.ts": 8,
   "src/lib/shopSeed.ts": 56,
