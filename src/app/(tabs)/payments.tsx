@@ -6,6 +6,7 @@ import { Text } from '@/components/T';
 import { LpTag, UserAvatar } from '@/components/network';
 import { PayQr } from '@/components/PayQr';
 import { QrScanner } from '@/components/QrScanner';
+import { go } from '@/lib/nav';
 import { Body, Btn, Card, Empty, H, Input, Item, Page, Row, Seg, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { fmtDate } from '@/i18n/format';
@@ -47,6 +48,7 @@ export default function Payments() {
   const lp = (n: number, size = 14) => <Row gap={2}><Text style={{ color: t.text, fontWeight: '800', fontSize: size + 2 }}>{n}</Text><LpTag size={size} /></Row>;
 
   function readCode(text: string) {
+    if (text.trim().startsWith('lp://gym/')) { setScan(false); go('fitnessGyms', { pay: text.trim() }); return; }
     const r = parsePayLink(text);
     setScan(false);
     if (!r) { toast('Questo non è un codice di pagamento LifePilot'); return; }
@@ -87,7 +89,7 @@ export default function Payments() {
           <Card>
             <H>Paga con un QR</H>
             <Btn icon="camera" title="Scansiona il QR" onPress={() => setScan(true)} />
-            <Input autoCapitalize="none" placeholder="Oppure incolla il codice (lp://pay/…)" value={code} onChangeText={(v) => { setCode(v); if (v.startsWith('lp://pay/')) readCode(v); }} />
+            <Input autoCapitalize="none" placeholder="Oppure incolla il codice (lp://pay/…)" value={code} onChangeText={(v) => { setCode(v); if (v.startsWith('lp://pay/') || v.startsWith('lp://gym/')) readCode(v); }} />
           </Card>
           <Card>
             <H>Invia LifePoints a una persona</H>

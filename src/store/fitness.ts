@@ -4,6 +4,7 @@ import type { Gym, Step } from '@/lib/fitness/data';
 import type { ExerciseX } from '@/lib/fitness/exerciseDb';
 import type { Body, Macros } from '@/lib/fitness/nutrition';
 import type { FitProfile, Workout } from '@/lib/fitness/plan';
+import { creditsLeft, makePurchase, payBlock, priceList, useCredit, type Purchase } from '@/lib/fitness/gymPay';
 import { checkIn, renewIfDue, startSub, PREMIUM_PRICE_LP, type Sub, type Visit } from '@/lib/fitness/premium';
 import { useNet } from '@/store/network';
 import { persisted } from './persist';
@@ -24,12 +25,16 @@ type State = {
   approved: Gym[];
   /** esercizi creati da te */
   customEx: ExerciseX[];
+  /** ingressi pagati in LifePoints con il QR */
+  purchases: Purchase[];
   /** le tue modifiche alle sessioni dei programmi (chiave «programma:sessione») */
   edits: Record<string, Step[]>;
   set: (p: Partial<Omit<State, 'set'>>) => void;
   logWorkout: (w: Omit<Workout, 'id'>) => void;
   addMeal: (m: Omit<Meal, 'id'>) => void;
   delMeal: (id: string) => void;
+  /** Paga una voce del listino di un centro (in LifePoints) e ottieni gli ingressi. */
+  payGym: (gym: Gym, itemId: string) => { ok: boolean; message: string };
   addCustomEx: (e: ExerciseX) => void;
   delCustomEx: (id: string) => void;
   setEdit: (key: string, steps: Step[]) => void;
@@ -48,11 +53,22 @@ const uid = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice
 /** Dati di LifeFitness: restano sul telefono (sono dati di salute). */
 export const useFitness = create<State>()(
   persisted<State>('fitness', (set, get) => ({
-    profile: null, body: null, activeProgram: null, history: [], meals: [], sub: null, visits: [], requests: [], approved: [], customEx: [], edits: {},
+    profile: null, body: null, activeProgram: null, history: [], meals: [], sub: null, visits: [], requests: [], approved: [], customEx: [], purchases: [], edits: {},
     set: (p) => set(p),
     logWorkout: (w) => set((s) => ({ history: [...s.history, { ...w, id: uid() }].slice(-1000) })),
     addMeal: (m) => set((s) => ({ meals: [{ ...m, id: uid() }, ...s.meals].slice(0, 2000) })),
     delMeal: (id) => set((s) => ({ meals: s.meals.filter((m) => m.id !== id) })),
+    payGym: (gym, itemId) => {
+      const item = priceList(gym).find((x) => x.id === itemId);
+      if (!item) return { ok: false, message: 'Voce non trovata nel listino del centro.' };
+      const net = useNet.getState();
+      const block = payBlock(net.lifePoints, item.lp);
+      if (block) return { ok: false, message: block };
+      if (!net.spend(item.lp, `${gym.name} · ${item.label}`, gym.name)) return { ok: false, message: 'Pagamento non riuscito.' };
+      const now = Date.now();
+      set((s) => ({ purchases: [makePurchase(uid(), gym, item, now), ...s.purchases].slice(0, 300) }));
+      return { ok: true, message: item.entries > 1 ? `Pagato ${item.lp} LP: hai ${item.entries} ingressi.` : `Pagato ${item.lp} LP: ingresso pronto.` };
+    },
     addCustomEx: (e) => set((s) => ({ customEx: [e, ...s.customEx.filter((x) => x.id !== e.id)].slice(0, 300) })),
     delCustomEx: (id) => set((s) => ({ customEx: s.customEx.filter((x) => x.id !== id) })),
     setEdit: (key, steps) => set((s) => ({ edits: { ...s.edits, [key]: steps } })),
@@ -72,10 +88,19 @@ export const useFitness = create<State>()(
     },
     enter: (gymId) => {
       const s = get();
-      const c = checkIn(s.sub, s.visits, gymId, Date.now());
-      if (!c.ok) return { ok: false, message: c.reason ?? 'Ingresso non possibile.' };
-      set({ visits: [{ id: uid(), gymId, ts: Date.now() }, ...s.visits].slice(0, 2000) });
-      return { ok: true, message: 'Ingresso registrato. Buon allenamento!' };
+      const now = Date.now();
+      const c = checkIn(s.sub, s.visits, gymId, now);
+      if (c.ok) {
+        set({ visits: [{ id: uid(), gymId, ts: now }, ...s.visits].slice(0, 2000) });
+        return { ok: true, message: 'Ingresso registrato. Buon allenamento!' };
+      }
+      /* senza LifePass: si usa un ingresso pagato in LifePoints (uno al giorno per centro) */
+      if (creditsLeft(s.purchases, gymId, now) > 0 && !s.visits.some((v) => v.gymId === gymId && new Date(v.ts).toDateString() === new Date(now).toDateString())) {
+        const u = useCredit(s.purchases, gymId, now);
+        set({ purchases: u.list, visits: [{ id: uid(), gymId, ts: now }, ...s.visits].slice(0, 2000) });
+        return { ok: true, message: `Ingresso registrato (ne restano ${creditsLeft(u.list, gymId, now)}). Buon allenamento!` };
+      }
+      return { ok: false, message: c.reason ?? 'Ingresso non possibile.' };
     },
     requestGym: (r) => set((s) => ({ requests: [{ ...r, id: uid(), ts: Date.now(), status: 'in verifica' as const }, ...s.requests] })),
     approveGym: (id) => set((s) => {
