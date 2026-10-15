@@ -103,8 +103,8 @@ export default function LifeFitness() {
           {state === 'nessuno' || state === 'scaduto' ? (
             <Card accent={FIT}>
               <Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass</H><Body small muted>{`${PREMIUM_PRICE_LP} LP ${tl('al mese')}`}</Body></View></Row>
-              <Body small muted style={{ marginVertical: 8 }}>Un solo pass per allenarti ovunque, analizzare i pasti con una foto e farti correggere l'esecuzione dal video.</Body>
-              {['Fotografi il piatto e ti faccio il resoconto: alimenti, grammi e valori nutrizionali', 'Ti filmi mentre fai un esercizio e Theia ti dice se l\'esecuzione è corretta', 'Accesso a tutti i centri convenzionati: palestre, piscine, centri sportivi', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 6 }} gap={8}><Icon name="check" size={15} color={FIT} stroke={2.6} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
+              <Body small muted style={{ marginVertical: 8 }}>Un solo pass per entrare in palestre, piscine e centri sportivi convenzionati.</Body>
+              {['Accesso a tutti i centri convenzionati: palestre, piscine, centri sportivi', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 6 }} gap={8}><Icon name="check" size={15} color={FIT} stroke={2.6} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
               {state === 'scaduto' ? <Body small color={t.warn} style={{ marginTop: 2 }}>Il tuo LifePass è scaduto.</Body> : null}
               <Btn style={{ marginTop: 8 }} title={tl('Attiva il LifePass · {0} LP', PREMIUM_PRICE_LP)} onPress={() => { const r = fit.subscribe(); toast(r.message); }} />
               <Body small muted style={{ marginTop: 6 }}>{tl('Hai {0} LP. Si rinnova da solo ogni 30 giorni, se hai i LifePoints.', net.lifePoints)}</Body>
@@ -123,7 +123,7 @@ export default function LifeFitness() {
               <View style={{ flex: 1 }}>
                 <H style={{ marginBottom: 2 }}>Pasti e calorie</H>
                 <Body small muted>{target ? tl('Obiettivo {0} kcal', target) : tl('Imposta il tuo obiettivo')}</Body>
-                <Body small muted style={{ marginTop: 4 }}>Oltre 2000 alimenti; con il LifePass basta una foto.</Body>
+                <Body small muted style={{ marginTop: 4 }}>Oltre 2000 alimenti; con il Premium di LifePilot basta una foto.</Body>
               </View>
             </Row>
             <Btn style={{ marginTop: 12 }} icon="camera" title="Aggiungi un pasto" onPress={() => go('fitnessMeal')} />

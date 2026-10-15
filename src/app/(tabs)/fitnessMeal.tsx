@@ -9,7 +9,7 @@ import { t as tl } from '@/i18n/core';
 import { FOODS, FOOD, dailyTarget, macrosFor, searchFoods, sumMacros, type Body as BodyT, type Food } from '@/lib/fitness/nutrition';
 import { matchRecipes, recipeAsFood, type Recipe } from '@/lib/fitness/foodDb';
 import { MEAL_PROMPT, parseMealReply, resolveItems, type Resolved } from '@/lib/fitness/mealPhoto';
-import { hasAccess } from '@/lib/fitness/premium';
+import { hasPremiumFeature } from '@/lib/premiumApp';
 import { routeRequest } from '@/lib/aiRouter';
 import { go } from '@/lib/nav';
 import { Icon } from '@/lib/icons';
@@ -49,10 +49,10 @@ export default function FitnessMeal() {
       let uri: string | null = null;
       if (camera) { const m = await takeNetPhoto(); if (m) uri = m.uri; }
       else { const l = await pickNetMediaMany(1); if (l[0] && l[0].media === 'photo') uri = l[0].uri; }
-      if (uri) { setPhoto(uri); setReport(null); if (hasAccess(fit.sub, Date.now())) void analyze(uri); }
+      if (uri) { setPhoto(uri); setReport(null); if (hasPremiumFeature('meal-photo')) void analyze(uri); }
     } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la fotocamera'); }
   };
-  const premium = hasAccess(fit.sub, Date.now());
+  const premium = hasPremiumFeature('meal-photo');
   const analyze = async (uriArg?: string) => {
     const uri = uriArg ?? photo;
     if (!uri || busy) return;
@@ -114,7 +114,7 @@ export default function FitnessMeal() {
         {photo ? <Image source={{ uri: photo }} style={{ width: '100%', height: 190, borderRadius: 14, marginTop: 10 }} contentFit="cover" /> : null}
         {photo ? (premium
           ? <Btn style={{ marginTop: 10 }} icon="sparkle" title={busy ? 'Analizzo il piatto…' : 'Analizza il piatto'} disabled={busy} onPress={() => void analyze()} />
-          : <View style={{ marginTop: 10 }}><Body small muted>Con il LifePass analizzo la foto: ti dico cosa c'è nel piatto e i valori nutrizionali.</Body><Btn style={{ marginTop: 6 }} ghost icon="lock" title="Scopri il LifePass" onPress={() => go('lifefitness')} /></View>) : <Body small muted style={{ marginTop: 8 }}>Scatta o scegli la foto del piatto: con il LifePass lo analizzo e ti faccio il resoconto. In ogni caso puoi comporlo tu qui sotto.</Body>}
+          : <View style={{ marginTop: 10 }}><Body small muted>L'analisi del piatto dalla foto è una funzione Premium di LifePilot.</Body></View>) : <Body small muted style={{ marginTop: 8 }}>Scatta o scegli la foto del piatto: con il Premium di LifePilot lo analizzo e ti faccio il resoconto. In ogni caso puoi comporlo tu qui sotto.</Body>}
         {report ? (
           <View style={{ marginTop: 10 }}>
             <Body bold>Resoconto del piatto</Body>

@@ -13,7 +13,7 @@ import { t as tl } from '@/i18n/core';
 import { routeRequest } from '@/lib/aiRouter';
 import { checkPrompt, frameTimes, parseCheck, type CheckResult } from '@/lib/fitness/execCheck';
 import { exById, guideOf } from '@/lib/fitness/exerciseDb';
-import { hasAccess } from '@/lib/fitness/premium';
+import { hasPremiumFeature } from '@/lib/premiumApp';
 import { Icon } from '@/lib/icons';
 import { go, goBack } from '@/lib/nav';
 import { pickNetMedia, takeNetVideo, type NetMedia } from '@/lib/netMedia';
@@ -41,7 +41,7 @@ export default function FitnessExercise() {
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<{ r?: CheckResult; note?: string } | null>(null);
   const [ticks, setTicks] = useState<Record<string, boolean>>({});
-  const access = hasAccess(fit.sub, Date.now());
+  const access = hasPremiumFeature('exercise-check');
 
   if (!ex) return <Page id="fitnessExercise" back title="Esercizio"><Card><Body muted>Esercizio non trovato.</Body></Card></Page>;
 
@@ -100,7 +100,7 @@ export default function FitnessExercise() {
             {guide.cues.length ? <Body small bold style={{ marginTop: 4 }}>{tl('{0} punti su {1}', ok, guide.cues.length)}</Body> : null}
             <View style={{ marginTop: 12 }}>
               {access ? <Btn icon="sparkle" title={busy ? 'Theia guarda il video…' : 'Chiedi a Theia'} disabled={busy} onPress={() => void ask()} />
-                : <View><Body small muted>Con il LifePass Theia guarda il tuo video e ti dice se l'esecuzione è corretta.</Body><Btn style={{ marginTop: 6 }} ghost icon="coin" title="Scopri il LifePass" onPress={() => go('lifefitness')} /></View>}
+                : <Body small muted>Il controllo dal video è una funzione Premium di LifePilot.</Body>}
             </View>
           </View>
         ) : null}
