@@ -1,7 +1,9 @@
 /** Personal trainer (modulo PURO): sceglie i programmi adatti, organizza la settimana e segue i progressi. */
-import { PROGRAMS, EX, type Goal, type Level, type Place, type Program } from './data.ts';
+import { type Goal, type Level, type Place, type Program, type Step } from './data.ts';
+import { exById } from './exerciseDb.ts';
+import { ALL_PROGRAMS } from './programsExtra.ts';
 
-export type FitProfile = { goal: Goal; level: Level; place: Place; days: number; minutes: number };
+export type FitProfile = { goal: Goal; level: Level; place: Place; days: number; minutes: number; /** bisogni scelti (es. «schiena», «over60», «corsa») */ needs?: string[] };
 export type Workout = { id: string; date: string; programId: string; session: number; minutes: number; sets: number };
 
 const LV: Record<Level, number> = { principiante: 0, intermedio: 1, avanzato: 2 };
@@ -15,9 +17,27 @@ export function matchScore(p: Program, f: FitProfile): number {
   s += dl === 0 ? 25 : dl === 1 ? 8 : -20;
   s += p.place === f.place ? 20 : f.place === 'palestra' && p.place === 'casa' ? 6 : -12;
   s += Math.max(0, 12 - Math.abs(p.days - f.days) * 5);
+  s += Math.max(0, 10 - Math.round(Math.abs(avgMinutes(p) - f.minutes) / 3));
+  const hit = (f.needs ?? []).filter((n) => p.tags?.includes(n)).length;
+  s += Math.min(90, hit * 45);
   return s;
 }
-export function recommend(f: FitProfile, n = 3, all: Program[] = PROGRAMS): Program[] {
+/** Durata media delle sessioni del programma, in minuti. */
+export function avgMinutes(p: Program): number { return Math.round(p.sessions.reduce((a, _s, i) => a + sessionMinutes(p, i), 0) / Math.max(1, p.sessions.length)); }
+/** Perché un programma è adatto a te (in parole semplici). */
+export function whyThis(p: Program, f: FitProfile): string[] {
+  const out: string[] = [];
+  const hit = (f.needs ?? []).filter((n) => p.tags?.includes(n));
+  if (hit.length) out.push(`Pensato per ciò che hai indicato: ${hit.join(', ')}`);
+  if (p.goal === f.goal) out.push(`Punta al tuo obiettivo: ${f.goal}`); else if (GOAL_NEAR[f.goal].includes(p.goal)) out.push(`Obiettivo vicino al tuo (${p.goal})`);
+  const dl = Math.abs(LV[p.level] - LV[f.level]);
+  out.push(dl === 0 ? `Livello ${p.level}, come il tuo` : dl === 1 ? `Livello ${p.level}: un gradino da te` : `Livello ${p.level}: lontano dal tuo`);
+  out.push(p.place === f.place ? `Si fa ${p.place === 'casa' ? 'a casa' : p.place === 'palestra' ? 'in palestra' : 'in piscina'}, dove ti alleni` : `Pensato per ${p.place}`);
+  out.push(p.days === f.days ? `${p.days} giorni a settimana, come vuoi tu` : `${p.days} giorni a settimana (tu: ${f.days})`);
+  out.push(`Sessioni da circa ${avgMinutes(p)} minuti (tu: ${f.minutes})`);
+  return out;
+}
+export function recommend(f: FitProfile, n = 3, all: Program[] = ALL_PROGRAMS): Program[] {
   return all.map((p, i) => ({ p, i, s: matchScore(p, f) })).sort((a, b) => b.s - a.s || a.i - b.i).slice(0, n).map((x) => x.p);
 }
 
@@ -56,8 +76,13 @@ export const stepMinutes = (s: { sets: number; reps?: number; secs?: number; res
   const work = s.secs ? s.sets * s.secs : s.sets * (s.reps ?? 10) * 3;
   return (work + Math.max(0, s.sets - 1) * s.rest) / 60;
 };
-export function sessionMinutes(p: Program, idx: number): number { return Math.max(5, Math.round(p.sessions[idx].steps.reduce((a, s) => a + stepMinutes(s), 0) + 4)); }
-export function equipmentOf(p: Program): string[] { return [...new Set(p.sessions.flatMap((s) => s.steps.map((x) => EX(x.ex)?.equip ?? 'nessuno')))].filter((e) => e !== 'nessuno'); }
+/** I passi di una sessione: quelli modificati da te, se ci sono, altrimenti quelli del programma. */
+export const stepsOf = (p: Program, idx: number, edits?: Record<string, Step[]>): Step[] => edits?.[`${p.id}:${idx}`] ?? p.sessions[idx].steps;
+export const editKey = (p: Program, idx: number) => `${p.id}:${idx}`;
+export function sessionMinutes(p: Program, idx: number, edits?: Record<string, Step[]>): number { return Math.max(5, Math.round(stepsOf(p, idx, edits).reduce((a, s) => a + stepMinutes(s), 0) + 4)); }
+export function equipmentOf(p: Program): string[] { return [...new Set(p.sessions.flatMap((s) => s.steps.map((x) => exById(x.ex)?.equip ?? 'nessuno')))].filter((e) => e !== 'nessuno'); }
+/** Un passo nuovo per un esercizio: serie e ripetizioni (o secondi) ragionevoli. */
+export const newStep = (ex: { id: string; timed?: boolean }): Step => (ex.timed ? { ex: ex.id, sets: 3, secs: 30, rest: 45 } : { ex: ex.id, sets: 3, reps: 10, rest: 60 });
 
 export type Stats = { week: number; month: number; minutesWeek: number; streakDays: number; total: number };
 export function stats(history: Workout[], now: Date): Stats {

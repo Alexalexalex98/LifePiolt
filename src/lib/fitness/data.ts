@@ -53,7 +53,7 @@ export type Level = 'principiante' | 'intermedio' | 'avanzato';
 export type Place = 'casa' | 'palestra' | 'piscina';
 export type Step = { ex: string; sets: number; reps?: number; secs?: number; rest: number };
 export type Session = { name: string; steps: Step[] };
-export type Program = { id: string; name: string; tagline: string; goal: Goal; level: Level; place: Place; days: number; weeks: number; specialty?: string; sessions: Session[] };
+export type Program = { id: string; name: string; tagline: string; goal: Goal; level: Level; place: Place; days: number; weeks: number; specialty?: string; sessions: Session[]; /** per chi è pensato */ who?: string; /** perché è fatto così */ why?: string; /** avvertenze */ caution?: string; /** bisogni a cui risponde */ tags?: string[] };
 
 const S = (ex: string, sets: number, reps: number, rest = 60): Step => ({ ex, sets, reps, rest });
 const T = (ex: string, sets: number, secs: number, rest = 45): Step => ({ ex, sets, secs, rest });

@@ -78,3 +78,15 @@ export async function takeNetPhoto(): Promise<NetMedia | null> {
     return r.canceled || !r.assets[0] ? null : await toNet(r.assets[0]);
   } catch (e) { throw readError(e); }
 }
+
+/** Gira un video con la fotocamera (fino a `maxSec` secondi). */
+export async function takeNetVideo(maxSec = 30): Promise<NetMedia | null> {
+  if (Platform.OS !== 'web') {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) throw new Error('Permesso fotocamera negato: abilitalo da Impostazioni del telefono.');
+  }
+  try {
+    const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['videos'], videoMaxDuration: maxSec, quality: 0.6 });
+    return r.canceled || !r.assets[0] ? null : await toNet(r.assets[0]);
+  } catch (e) { throw readError(e); }
+}

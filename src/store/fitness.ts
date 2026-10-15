@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
-import type { Gym } from '@/lib/fitness/data';
+import type { Gym, Step } from '@/lib/fitness/data';
+import type { ExerciseX } from '@/lib/fitness/exerciseDb';
 import type { Body, Macros } from '@/lib/fitness/nutrition';
 import type { FitProfile, Workout } from '@/lib/fitness/plan';
 import { checkIn, renewIfDue, startSub, PREMIUM_PRICE_LP, type Sub, type Visit } from '@/lib/fitness/premium';
@@ -21,10 +22,18 @@ type State = {
   visits: Visit[];
   requests: GymRequest[];
   approved: Gym[];
+  /** esercizi creati da te */
+  customEx: ExerciseX[];
+  /** le tue modifiche alle sessioni dei programmi (chiave «programma:sessione») */
+  edits: Record<string, Step[]>;
   set: (p: Partial<Omit<State, 'set'>>) => void;
   logWorkout: (w: Omit<Workout, 'id'>) => void;
   addMeal: (m: Omit<Meal, 'id'>) => void;
   delMeal: (id: string) => void;
+  addCustomEx: (e: ExerciseX) => void;
+  delCustomEx: (id: string) => void;
+  setEdit: (key: string, steps: Step[]) => void;
+  resetEdit: (key: string) => void;
   /** Attiva il LifePass pagando con i LifePoints. */
   subscribe: () => { ok: boolean; message: string };
   setAutoRenew: (on: boolean) => void;
@@ -39,11 +48,15 @@ const uid = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice
 /** Dati di LifeFitness: restano sul telefono (sono dati di salute). */
 export const useFitness = create<State>()(
   persisted<State>('fitness', (set, get) => ({
-    profile: null, body: null, activeProgram: null, history: [], meals: [], sub: null, visits: [], requests: [], approved: [],
+    profile: null, body: null, activeProgram: null, history: [], meals: [], sub: null, visits: [], requests: [], approved: [], customEx: [], edits: {},
     set: (p) => set(p),
     logWorkout: (w) => set((s) => ({ history: [...s.history, { ...w, id: uid() }].slice(-1000) })),
     addMeal: (m) => set((s) => ({ meals: [{ ...m, id: uid() }, ...s.meals].slice(0, 2000) })),
     delMeal: (id) => set((s) => ({ meals: s.meals.filter((m) => m.id !== id) })),
+    addCustomEx: (e) => set((s) => ({ customEx: [e, ...s.customEx.filter((x) => x.id !== e.id)].slice(0, 300) })),
+    delCustomEx: (id) => set((s) => ({ customEx: s.customEx.filter((x) => x.id !== id) })),
+    setEdit: (key, steps) => set((s) => ({ edits: { ...s.edits, [key]: steps } })),
+    resetEdit: (key) => set((s) => { const e = { ...s.edits }; delete e[key]; return { edits: e }; }),
     subscribe: () => {
       const net = useNet.getState();
       if (!net.spend(PREMIUM_PRICE_LP, 'LifeFitness LifePass (30 giorni)')) return { ok: false, message: `Servono ${PREMIUM_PRICE_LP} LifePoints: ne hai ${net.lifePoints}.` };

@@ -7,10 +7,12 @@ import { QrView } from '@/components/profile/CardFace';
 import { Body, Btn, Card, H, Item, Page, Pill, Row, Sheet, Switch } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
-import { PARTNER_GYMS, PROGRAMS, type Goal, type Level, type Place } from '@/lib/fitness/data';
+import { PARTNER_GYMS, type Goal, type Level, type Place } from '@/lib/fitness/data';
+import { ALL_PROGRAMS, NEEDS, programById } from '@/lib/fitness/programsExtra';
 import { dailyTarget, sumMacros } from '@/lib/fitness/nutrition';
-import { recommend, sessionMinutes, stats, weekView, type FitProfile } from '@/lib/fitness/plan';
+import { recommend, sessionMinutes, stats, weekView, whyThis, type FitProfile } from '@/lib/fitness/plan';
 import { PREMIUM_PRICE_LP, daysLeft, passPayload, premiumState } from '@/lib/fitness/premium';
+import { ExercisePicker } from '@/components/fitness/ExercisePicker';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
@@ -32,11 +34,12 @@ export default function LifeFitness() {
   const net = useNet();
     const [setup, setSetup] = useState(false);
   const [pass, setPass] = useState(false);
+  const [lib, setLib] = useState(false);
   const [draft, setDraft] = useState<FitProfile>(fit.profile ?? { goal: 'tonificare', level: 'principiante', place: 'casa', days: 3, minutes: 30 });
   useEffect(() => { fit.settle(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const now = Date.now();
   const state = premiumState(fit.sub, now);
-  const active = fit.activeProgram ? PROGRAMS.find((p) => p.id === fit.activeProgram) ?? null : null;
+  const active = fit.activeProgram ? programById(fit.activeProgram) ?? null : null;
   const week = active && fit.profile ? weekView(active, fit.profile, fit.history, new Date()) : [];
   const todayIso = new Date().toISOString().slice(0, 10);
   const today = week.find((d) => d.date === new Date(now - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)) ?? week.find((d) => d.date === todayIso);
@@ -100,8 +103,8 @@ export default function LifeFitness() {
           {state === 'nessuno' || state === 'scaduto' ? (
             <Card accent={FIT}>
               <Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass</H><Body small muted>{`${PREMIUM_PRICE_LP} LP ${tl('al mese')}`}</Body></View></Row>
-              <Body small muted style={{ marginVertical: 8 }}>Un solo pass per allenarti ovunque e per analizzare i tuoi pasti con una foto.</Body>
-              {['Fotografi il piatto e ti faccio il resoconto: alimenti, grammi e valori nutrizionali', 'Accesso a tutti i centri convenzionati: palestre, piscine, centri sportivi', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 6 }} gap={8}><Icon name="check" size={15} color={FIT} stroke={2.6} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
+              <Body small muted style={{ marginVertical: 8 }}>Un solo pass per allenarti ovunque, analizzare i pasti con una foto e farti correggere l'esecuzione dal video.</Body>
+              {['Fotografi il piatto e ti faccio il resoconto: alimenti, grammi e valori nutrizionali', 'Ti filmi mentre fai un esercizio e Theia ti dice se l\'esecuzione è corretta', 'Accesso a tutti i centri convenzionati: palestre, piscine, centri sportivi', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 6 }} gap={8}><Icon name="check" size={15} color={FIT} stroke={2.6} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
               {state === 'scaduto' ? <Body small color={t.warn} style={{ marginTop: 2 }}>Il tuo LifePass è scaduto.</Body> : null}
               <Btn style={{ marginTop: 8 }} title={tl('Attiva il LifePass · {0} LP', PREMIUM_PRICE_LP)} onPress={() => { const r = fit.subscribe(); toast(r.message); }} />
               <Body small muted style={{ marginTop: 6 }}>{tl('Hai {0} LP. Si rinnova da solo ogni 30 giorni, se hai i LifePoints.', net.lifePoints)}</Body>
@@ -128,15 +131,16 @@ export default function LifeFitness() {
           </Card>
 
           <H style={{ marginTop: 8 }}>{fit.profile ? 'Programmi per te' : 'Programmi'}</H>
-          {(fit.profile ? recs : PROGRAMS.slice(0, 4)).map((p) => (
+          {(fit.profile ? recs : ALL_PROGRAMS.slice(0, 4)).map((p) => (
             <Card key={p.id} onPress={() => go('fitnessProgram', { id: p.id })}>
-              <Row><View style={{ flex: 1 }}><Body bold>{p.name}</Body><Body small muted>{p.tagline}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+              <Row><View style={{ flex: 1 }}><Body bold>{p.name}</Body><Body small muted>{p.tagline}</Body>{fit.profile ? <Body small color={FIT} style={{ marginTop: 3 }}>{whyThis(p, fit.profile)[0]}</Body> : null}</View><Icon name="chevron" size={18} color={t.muted} /></Row>
               <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={6}>
                 <Pill label={cap(p.level)} off /><Pill label={cap(p.place)} off /><Pill label={`${p.days} gg/sett.`} off />{p.specialty ? <Pill label={p.specialty} off /> : null}
               </Row>
             </Card>
           ))}
-          <Btn ghost title={tl('Tutti i programmi ({0})', PROGRAMS.length)} onPress={() => go('fitnessProgram', { id: '' })} />
+          <Btn ghost title={tl('Tutte le schede ({0})', ALL_PROGRAMS.length)} onPress={() => go('fitnessProgram', { id: '' })} />
+          <Btn ghost icon="lifefitness" title="Libreria degli esercizi" onPress={() => setLib(true)} />
 
           <Card accent={FIT} onPress={() => go('fitnessGyms')}>
             <Row><View style={{ flex: 1 }}><H>Centri convenzionati</H><Body small muted>{tl('{0} centri: palestre, piscine, centri sportivi', PARTNER_GYMS.length + fit.approved.length)}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
@@ -152,12 +156,20 @@ export default function LifeFitness() {
           </Card>
       <Body small muted style={{ marginTop: 12 }}>I programmi e le calorie sono indicazioni generali, non sostituiscono il parere di un medico o di un allenatore. Se hai problemi di salute, parlane prima con il tuo medico.</Body>
 
+      <ExercisePicker visible={lib} title="Libreria degli esercizi" onClose={() => setLib(false)} onPick={(e) => { setLib(false); go('fitnessExercise', { id: e.id }); }} />
       <Sheet visible={setup} title="Il tuo piano" onClose={() => setSetup(false)}>
         {pick('goal', 'Obiettivo', GOALS)}
         {pick('level', 'Livello', LEVELS)}
         {pick('place', 'Dove ti alleni', PLACES)}
         {pick('days', 'Giorni a settimana', [2, 3, 4, 5, 6])}
         {pick('minutes', 'Minuti a sessione', [15, 30, 45, 60])}
+        <View style={{ marginBottom: 10 }}>
+          <Body bold style={{ marginBottom: 2 }}>Cosa ti serve? (facoltativo)</Body>
+          <Body small muted style={{ marginBottom: 6 }}>Scegli quello che ti riguarda: preparo una scheda pensata per te, non una scheda per tutti.</Body>
+          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={6}>
+            {NEEDS.map((n) => { const on = (draft.needs ?? []).includes(n.id); return <Pill key={n.id} label={n.label} on={on} onPress={() => setDraft({ ...draft, needs: on ? (draft.needs ?? []).filter((x) => x !== n.id) : [...(draft.needs ?? []), n.id] })} />; })}
+          </Row>
+        </View>
         <Btn title="Prepara il piano" onPress={saveProfile} />
       </Sheet>
       <Sheet visible={pass} title="Pass d'ingresso" onClose={() => setPass(false)}>
