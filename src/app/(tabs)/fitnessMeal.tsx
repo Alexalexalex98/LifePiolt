@@ -27,6 +27,8 @@ export default function FitnessMeal() {
   const [q, setQ] = useState('');
   const [plate, setPlate] = useState<{ food: Food; grams: string }[]>([]);
   const [busy, setBusy] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editTs, setEditTs] = useState(0);
   const [report, setReport] = useState<{ found: Resolved[]; note?: string } | null>(null);
   const [cookOpen, setCookOpen] = useState(false);
   const [cookQ, setCookQ] = useState('');
@@ -44,16 +46,19 @@ export default function FitnessMeal() {
 
   const snap = async (camera: boolean) => {
     try {
-      if (camera) { const m = await takeNetPhoto(); if (m) setPhoto(m.uri); }
-      else { const l = await pickNetMediaMany(1); if (l[0] && l[0].media === 'photo') setPhoto(l[0].uri); }
+      let uri: string | null = null;
+      if (camera) { const m = await takeNetPhoto(); if (m) uri = m.uri; }
+      else { const l = await pickNetMediaMany(1); if (l[0] && l[0].media === 'photo') uri = l[0].uri; }
+      if (uri) { setPhoto(uri); setReport(null); if (hasAccess(fit.sub, Date.now())) void analyze(uri); }
     } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la fotocamera'); }
   };
   const premium = hasAccess(fit.sub, Date.now());
-  const analyze = async () => {
-    if (!photo || busy) return;
+  const analyze = async (uriArg?: string) => {
+    const uri = uriArg ?? photo;
+    if (!uri || busy) return;
     setBusy(true); setReport(null);
     try {
-      const res = await routeRequest({ text: MEAL_PROMPT, lang: 'it', source: 'typed', images: [{ uri: photo, mime: 'image/jpeg' }] });
+      const res = await routeRequest({ text: MEAL_PROMPT, lang: 'it', source: 'typed', images: [{ uri, mime: 'image/jpeg' }] });
       if (res.status !== 'answered' || !res.text) { setReport({ found: [], note: res.message }); return; }
       const found = resolveItems(parseMealReply(res.text));
       if (!found.length) { setReport({ found: [], note: tl('Non riconosco cibo in questa foto. Prova con più luce o scegli tu gli alimenti.') }); return; }
@@ -69,8 +74,15 @@ export default function FitnessMeal() {
     if (!preview) { toast('Scegli gli alimenti e i grammi'); return; }
     const total = rows.reduce((a, r) => a + r.g, 0);
     const one = rows.length === 1;
-    fit.addMeal({ ts: Date.now(), name: name ?? (one ? rows[0].food.name : rows.map((r) => r.food.name).slice(0, 3).join(', ')), foodId: one ? rows[0].food.id : undefined, grams: Math.round(total), macros: preview, photo: photo ?? undefined, items: rows.map((r) => ({ foodId: r.food.id, name: r.food.name, grams: r.g })) });
-    toast(tl('Aggiunto: {0} kcal', preview.kcal)); setPlate([]); setPhoto(null); setQ('');
+    if (editId) fit.delMeal(editId);
+    fit.addMeal({ ts: editId ? editTs : Date.now(), name: name ?? (one ? rows[0].food.name : rows.map((r) => r.food.name).slice(0, 3).join(', ')), foodId: one ? rows[0].food.id : undefined, grams: Math.round(total), macros: preview, photo: photo ?? undefined, items: rows.map((r) => ({ foodId: r.food.id, name: r.food.name, grams: r.g })) });
+    toast(editId ? tl('Pasto aggiornato: {0} kcal', preview.kcal) : tl('Aggiunto: {0} kcal', preview.kcal)); setPlate([]); setPhoto(null); setQ(''); setEditId(null); setReport(null);
+  };
+  const editMeal = (m: (typeof fit.meals)[number]) => {
+    const items = m.items?.length ? m.items : m.foodId ? [{ foodId: m.foodId, name: m.name, grams: m.grams }] : [];
+    const rowsIn = items.flatMap((i) => { const f = FOOD(i.foodId); return f ? [{ food: f, grams: String(i.grams) }] : []; });
+    if (!rowsIn.length) { toast('Questo pasto non si può modificare: eliminalo e rifallo'); return; }
+    setPlate(rowsIn); setPhoto(m.photo ?? null); setEditId(m.id); setEditTs(m.ts); setReport(null); toast('Modifica gli alimenti e i grammi, poi salva');
   };
   const loadRecipe = (r: Recipe) => { setPlate(r.items.flatMap((i) => { const f = FOOD(i.foodId); return f ? [{ food: f, grams: String(i.grams) }] : []; })); setCookOpen(false); setCookSel(null); setCookQ(''); };
   const confirmRecipe = (r: Recipe) => {
@@ -108,7 +120,8 @@ export default function FitnessMeal() {
             <Body bold>Resoconto del piatto</Body>
             {report.note ? <Body small muted style={{ marginTop: 4 }}>{report.note}</Body> : null}
             {report.found.map((x, i) => <Body key={i} small>{x.food ? `${x.name} → ${x.food.name} · ${x.grams} g · ${macrosFor(x.food, x.grams).kcal} kcal` : tl('{0}: non lo trovo nel database, cercalo qui sotto', x.name)}</Body>)}
-            {report.found.length ? <Body small muted style={{ marginTop: 4 }}>È una stima dalla foto: controlla alimenti e grammi qui sotto e correggi se serve prima di aggiungere al diario.</Body> : null}
+            {report.found.length && preview ? <Btn style={{ marginTop: 8 }} title="Sì, è corretto: aggiungi al diario" onPress={() => add()} /> : null}
+            {report.found.length ? <Body small muted style={{ marginTop: 4 }}>Ho riconosciuto questo dalla foto: è una stima. Se è giusto tocca «Sì, è corretto», altrimenti correggi alimenti e grammi qui sotto.</Body> : null}
           </View>
         ) : null}
         <Btn style={{ marginTop: 10 }} ghost icon="note" title="Ho preparato un piatto" onPress={() => setCookOpen(true)} />
@@ -128,7 +141,8 @@ export default function FitnessMeal() {
               </Row>
             ))}
             {preview ? <Body bold style={{ marginTop: 8 }}>{preview.kcal} kcal · P {preview.p} g · C {preview.c} g · G {preview.f} g</Body> : null}
-            <Btn style={{ marginTop: 8 }} title="Aggiungi al diario" onPress={() => add()} />
+            <Btn style={{ marginTop: 8 }} title={editId ? 'Salva le modifiche' : 'Aggiungi al diario'} onPress={() => add()} />
+            {editId ? <Btn style={{ marginTop: 6 }} ghost title="Annulla la modifica" onPress={() => { setEditId(null); setPlate([]); setPhoto(null); }} /> : null}
           </View>
         ) : null}
       </Card>
@@ -141,6 +155,7 @@ export default function FitnessMeal() {
               <Row gap={10}>
                 {m.photo ? <Image source={{ uri: m.photo }} style={{ width: 44, height: 44, borderRadius: 10 }} contentFit="cover" /> : null}
                 <View style={{ flex: 1 }}><Body bold>{m.name}</Body><Body small muted>{m.grams} g · {m.macros.kcal} kcal</Body></View>
+                <Pressable accessibilityRole="button" accessibilityLabel={tl('Modifica')} onPress={() => editMeal(m)} hitSlop={10}><Icon name="edit" size={18} color={t.muted} /></Pressable>
                 <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina')} onPress={() => fit.delMeal(m.id)} hitSlop={10}><Icon name="trash" size={18} color={t.muted} /></Pressable>
               </Row>
             </Item>
@@ -174,10 +189,15 @@ export default function FitnessMeal() {
 
       <Sheet visible={bodyOpen} title="Il tuo obiettivo giornaliero" onClose={() => setBodyOpen(false)}>
         <Row style={{ justifyContent: 'flex-start' }} gap={8}>{(['f', 'm'] as const).map((x) => <Pill key={x} label={x === 'f' ? 'Donna' : 'Uomo'} on={body.sex === x} onPress={() => setBody({ ...body, sex: x })} />)}</Row>
-        <Row gap={8} style={{ marginTop: 8 }}>
-          <Input style={{ flex: 1 }} keyboardType="numeric" placeholder="Età" value={String(body.age || '')} onChangeText={(v) => num('age', v)} />
-          <Input style={{ flex: 1 }} keyboardType="numeric" placeholder="Peso kg" value={String(body.weightKg || '')} onChangeText={(v) => num('weightKg', v)} />
-          <Input style={{ flex: 1 }} keyboardType="numeric" placeholder="Altezza cm" value={String(body.heightCm || '')} onChangeText={(v) => num('heightCm', v)} />
+        <Body small muted style={{ marginTop: 6 }}>Servono solo per stimare quante calorie ti servono in un giorno. Restano sul tuo telefono.</Body>
+        <Row gap={8} style={{ marginTop: 8, alignItems: 'flex-start' }}>
+          {([['age', 'Età', 'anni', body.age], ['weightKg', 'Peso', 'kg', body.weightKg], ['heightCm', 'Altezza', 'cm', body.heightCm]] as const).map(([k, l, u, v]) => (
+            <View key={k} style={{ flex: 1 }}>
+              <Body bold>{l}</Body>
+              <Input keyboardType="numeric" placeholder={u} value={String(v || '')} onChangeText={(x) => num(k, x)} accessibilityLabel={`${l} (${u})`} />
+              <Body small muted>{u}</Body>
+            </View>
+          ))}
         </Row>
         <Body bold style={{ marginTop: 10, marginBottom: 6 }}>Quanto ti muovi</Body>
         <Row style={{ justifyContent: 'flex-start' }} gap={8}>{(['bassa', 'media', 'alta'] as const).map((x) => <Pill key={x} label={x.charAt(0).toUpperCase() + x.slice(1)} on={body.activity === x} onPress={() => setBody({ ...body, activity: x })} />)}</Row>
