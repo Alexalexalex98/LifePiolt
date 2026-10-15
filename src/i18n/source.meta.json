@@ -1,5 +1,5 @@
 {
- "count": 10626,
+ "count": 10652,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -115,6 +115,7 @@
   "src/components/JobsHub.tsx": 20,
   "src/components/KnowledgeHub.tsx": 59,
   "src/components/LanguagePicker.tsx": 7,
+  "src/components/LifePay.tsx": 19,
   "src/components/MediaPickerField.tsx": 8,
   "src/components/MonthCalcCard.tsx": 16,
   "src/components/MoodChart.tsx": 6,
@@ -387,6 +388,7 @@
   "src/lib/jobFiles.ts": 2,
   "src/lib/jobFit.ts": 3,
   "src/lib/knowledge.ts": 14,
+  "src/lib/lifepay.ts": 10,
   "src/lib/liveRoom.ts": 39,
   "src/lib/lpActions.ts": 5,
   "src/lib/lpIncomingActions.ts": 4,
@@ -477,5 +479,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1324
+ "withPlaceholders": 1329
 }

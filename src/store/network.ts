@@ -77,6 +77,9 @@ type NetState = {
   /** consigli di vita di Theia apprezzati (id) e quanti per categoria: più ne apprezzi, più ne escono di quel tipo */
   likedQuotes?: string[];
   quoteLikes?: Record<string, number>;
+  /** LifePay: cripto in portafoglio (demo) e cambi fatti */
+  crypto?: Partial<Record<'BTC' | 'ETH' | 'USDC' | 'SOL', number>>;
+  cryptoLog?: { ts: number; asset: string; amount: number; lp: number }[];
   receivedPayments: Record<string, number>;
   following: string[];
   mutedAuthors: string[];

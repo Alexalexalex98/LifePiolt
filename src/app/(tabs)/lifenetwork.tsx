@@ -295,7 +295,8 @@ export default function LifeNetwork() {
   const goTabRef = useRef(goTab); goTabRef.current = goTab;
   useEffect(() => onEdgeSwipe((d) => goTabRef.current(d)), []);
   const swipePan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8,
+    /* si prende il gesto solo se c'è una scheda accanto; ai bordi passa alla sezione vicina della barra */
+    onMoveShouldSetPanResponder: (_e, g) => { const fol = useNet.getState().prefs.homeFilter === 'Seguiti'; return Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8 && (fol ? g.dx > 0 : g.dx < 0); },
     onPanResponderGrant: () => setDeckShown(true),
     onPanResponderMove: (_e, g) => {
       const fol = useNet.getState().prefs.homeFilter === 'Seguiti';

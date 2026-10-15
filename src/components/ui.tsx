@@ -68,9 +68,11 @@ export function Press({ children, onPress, onLongPress, style, hitSlop, disabled
 }
 
 /* ---------- stato UI globale (menu) ---------- */
-export const useUI = create<{ menuOpen: boolean; setMenu: (v: boolean) => void; badges: { msg: number; notif: number }; setBadges: (b: { msg: number; notif: number }) => void }>((set) => ({
+export const useUI = create<{ menuOpen: boolean; setMenu: (v: boolean) => void; payOpen: boolean; setPay: (v: boolean) => void; badges: { msg: number; notif: number }; setBadges: (b: { msg: number; notif: number }) => void }>((set) => ({
   menuOpen: false,
   setMenu: (v) => set({ menuOpen: v }),
+  payOpen: false,
+  setPay: (v) => set({ payOpen: v }),
   badges: { msg: 0, notif: 0 },
   setBadges: (badges) => set({ badges }),
 }));

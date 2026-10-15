@@ -23,3 +23,16 @@ test('con più foto cambia scheda solo dall’ultima (o dalla prima verso destra
   assert.equal(carouselEdge(1, 3, -1), false);
   assert.equal(carouselEdge(0, 1, 1), false);
 });
+
+import { adjacentSection, sectionDirection } from '../src/lib/sectionSwipe.ts';
+test('sezioni della barra: vicina a sinistra/destra, ferma ai bordi', () => {
+  const it = ['home', 'plan', 'ai'];
+  assert.equal(adjacentSection(it, 'plan', 1), 'ai');
+  assert.equal(adjacentSection(it, 'plan', -1), 'home');
+  assert.equal(adjacentSection(it, 'ai', 1), null);
+  assert.equal(adjacentSection(it, 'x', 1), null);
+  assert.equal(sectionDirection(-120, 10), 1);
+  assert.equal(sectionDirection(120, 10), -1);
+  assert.equal(sectionDirection(-30, 5, -0.9), 1);
+  assert.equal(sectionDirection(-120, 100), 0);
+});
