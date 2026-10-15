@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, Share, View, useWindowDimensions } from 'react-native';
+import { SharePostSheet } from '@/components/feed/SharePostSheet';
+import { Animated, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 
 import { LIKE, MediaArea, useHeartBurst } from '@/components/feed/FeedPost';
@@ -79,13 +80,14 @@ export default function PostPage() {
     net.addComment(key, me, text.trim());
     setText('');
   };
-  const share = async () => { try { await Share.share({ message: tl('Post di {0} su LifePilot: {1}', post.author, post.text) }); } catch { toast('Condivisione non disponibile su questo dispositivo'); } };
+  const [sharing, setSharing] = useState(false);
   const doubleLike = () => { flash(); if (!useNet.getState().likedPosts.includes(key)) net.likePost(key); };
   const reply = (author: string) => { setText((v) => (v.startsWith('@' + author) ? v : `@${author} ${v}`)); setTimeout(() => input.current?.focus?.(), 50); };
   const canSend = text.trim().length > 0;
 
   return (
     <Page id="postPage" scroll={false} back>
+      <SharePostSheet visible={sharing} onClose={() => setSharing(false)} author={post.author} text={post.text} media={post.media} uri={post.uri} likeKey={key} />
       <ScrollView ref={scroller} style={{ flex: 1, marginHorizontal: -16 }} contentContainerStyle={{ paddingTop: 10, paddingBottom: 24 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingBottom: 10, gap: 10 }}>
           <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minHeight: 48 }} onPress={() => go('userProfile', { name: post.author })} accessibilityRole="link" accessibilityLabel={tl('Profilo di {0}', post.author)}>
@@ -103,7 +105,7 @@ export default function PostPage() {
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, marginTop: 4 }}>
           <IconBtn icon="heart" size={27} color={liked ? LIKE : t.text} fill={liked ? LIKE : 'none'} label={liked ? 'Togli il mi piace' : 'Mi piace'} onPress={() => net.likePost(key)} pop={liked} selected={liked} />
           <IconBtn icon="comment" label="Scrivi un commento…" onPress={() => input.current?.focus?.()} />
-          <IconBtn icon="send" label="Condividi" onPress={share} />
+          <IconBtn icon="send" label="Condividi nell’app" onPress={() => setSharing(true)} />
           {!donated && post.author !== me && <IconBtn icon="coin" size={26} color={t.accent} label="Dona il LifePoint di oggi" onPress={() => openSheet('donate', { author: post.author, key })} />}
           <View style={{ flex: 1 }} />
           <IconBtn icon="bookmark" fill={saved ? t.text : 'none'} label={saved ? 'Rimuovi dai salvati' : 'Salva'} selected={saved} onPress={() => { const on = net.toggleSavePost(key); toast(on ? 'Post salvato' : 'Rimosso dai salvati'); }} />

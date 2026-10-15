@@ -7,8 +7,12 @@ import { Animated, PanResponder, Platform, Pressable, View, useWindowDimensions 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
-import { UserAvatar } from '@/components/network';
+import { SharePostSheet } from '@/components/feed/SharePostSheet';
+import { UserAvatar, openSheet } from '@/components/network';
+import { go } from '@/lib/nav';
+import { toast } from '@/store/toast';
 import { t as tl } from '@/i18n/core';
+import { weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { addSignal } from '@/lib/relevance';
 import { SWIPE_SIGNAL, dwellSignal, nextCard, record, remaining, undoLast, type DeckCard } from '@/lib/swipeDeck';
@@ -19,6 +23,15 @@ export type SwipeCandidate = DeckCard & { tag?: string; uri?: string; /** file i
 const buzz = () => { if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined); };
 /** Quando compare la scritta piena («MI INTERESSA») la scelta è presa: il gesto si completa da solo. Prima, il post torna al centro. */
 const THRESHOLD = 64;
+
+/** Pulsante tondo della colonna di azioni a destra. */
+function RailBtn({ icon, label, onPress, on }: { icon: string; label: string; onPress: () => void; on?: boolean }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: !!on }} onPress={onPress} hitSlop={6} style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.42)', alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.92 : 1 }] })}>
+      <Icon name={icon} size={25} color={on ? '#ff3b5c' : '#fff'} fill={on ? '#ff3b5c' : 'none'} />
+    </Pressable>
+  );
+}
 
 type Vid = { rate: (r: number) => void; toggle: () => boolean; seek: (f: number) => void; frac: () => number };
 /** Video del post: parte da solo, muto finché non attivi l'audio, in loop. */
@@ -34,7 +47,7 @@ function DeckVideo({ source, muted, controls }: { source: number | { uri: string
     };
     return () => { controls.current = null; };
   }, [p, controls]);
-  return <VideoView player={p} style={{ width: '100%', height: '100%' }} nativeControls={false} contentFit="cover" />;
+  return <VideoView player={p} pointerEvents="none" style={{ width: '100%', height: '100%' }} nativeControls={false} contentFit="cover" />;
 }
 
 /**
@@ -56,7 +69,10 @@ export function SwipeDeck({ cards, onClose }: { cards: SwipeCandidate[]; onClose
   const shownAt = useRef(Date.now());
   const maxFrac = useRef(0);
   const x = useRef(new Animated.Value(0)).current;
+  const [sharing, setSharing] = useState(false);
+  const donated = useNet((s) => s.dailyPoint.lastGiven === weekdayShortDate());
   const card = useMemo(() => nextCard(cards, swipes, weights, me) as SwipeCandidate | null, [cards, swipes, weights, me]);
+  const liked = useNet((s) => !!card && s.likedPosts.includes(card.key));
   const left = remaining(cards, swipes, weights, me);
   const cardRef = useRef(card); cardRef.current = card;
   const isVideo = !!card && card.media === 'video' && (!!card.asset || !!card.uri);
@@ -85,6 +101,7 @@ export function SwipeDeck({ cards, onClose }: { cards: SwipeCandidate[]; onClose
   };
   const fling = (dir: 'yes' | 'no') => Animated.timing(x, { toValue: dir === 'yes' ? -width * 1.2 : width * 1.2, duration: 180, useNativeDriver: false }).start(() => decide(dir));
   const pan = useRef(PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2,
     onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2,
     onPanResponderMove: Animated.event([null, { dx: x }], { useNativeDriver: false }),
     onPanResponderRelease: (_e, g) => {
@@ -118,7 +135,7 @@ export function SwipeDeck({ cards, onClose }: { cards: SwipeCandidate[]; onClose
         <Pressable accessibilityRole="button" accessibilityLabel={isVideo ? tl('Video di {0}. Tocca per mettere in pausa o riprendere, tieni premuto per accelerare', card.author) : tl('Post di {0}', card.author)}
           onPress={() => { if (isVideo) setPaused(!(vid.current?.toggle() ?? true)); }}
           delayLongPress={260} onLongPress={() => { if (isVideo) { vid.current?.rate(2); setFast(true); } }} onPressOut={() => { if (fast) { vid.current?.rate(1); setFast(false); } }} style={{ flex: 1 }}>
-          {isVideo ? <DeckVideo key={card.key} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} /> : card.asset ? <Image source={card.asset} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image source={{ uri: card.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : (
+          {isVideo ? <DeckVideo key={card.key} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} /> : card.asset ? <Image source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image source={{ uri: card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : (
             <LinearGradient colors={['#4a3bd1', '#1b1f3a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
               <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900' }}>{card.text}</Text>
             </LinearGradient>
@@ -126,7 +143,7 @@ export function SwipeDeck({ cards, onClose }: { cards: SwipeCandidate[]; onClose
           <LinearGradient colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0)']} pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, end: 0, height: insets.top + 110 }} />
           <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.78)']} pointerEvents="none" style={{ position: 'absolute', bottom: 0, start: 0, end: 0, height: 330 }} />
         </Pressable>
-        <View pointerEvents="none" style={{ position: 'absolute', start: 18, end: 18, bottom: insets.bottom + 120 }}>
+        <View pointerEvents="none" style={{ position: 'absolute', start: 18, end: 84, bottom: insets.bottom + 104 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <UserAvatar name={card.author} size={38} />
             <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17, flex: 1 }}>{card.author}</Text>
@@ -150,14 +167,24 @@ export function SwipeDeck({ cards, onClose }: { cards: SwipeCandidate[]; onClose
       </View>
 
       {isVideo ? (
-        <View style={{ position: 'absolute', start: 18, end: 18, bottom: insets.bottom + 100, height: 28, justifyContent: 'center' }}>
+        <View style={{ position: 'absolute', start: 18, end: 18, bottom: insets.bottom + 84, height: 28, justifyContent: 'center' }}>
           <Pressable accessibilityRole="adjustable" accessibilityLabel={tl('Avanza nel video')} hitSlop={{ top: 14, bottom: 14 }} onPress={(e) => { const w = width - 36; vid.current?.seek(Math.max(0, Math.min(1, e.nativeEvent.locationX / w))); }} style={{ height: 28, justifyContent: 'center' }}>
             <View style={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)' }}><View style={{ width: `${Math.round(prog * 100)}%`, height: 4, borderRadius: 2, backgroundColor: '#fff' }} /></View>
           </Pressable>
         </View>
       ) : null}
 
-      <View pointerEvents="box-none" style={{ position: 'absolute', start: 0, end: 0, bottom: insets.bottom + 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 26 }}>
+      {card ? (
+        <View pointerEvents="box-none" style={{ position: 'absolute', end: 12, bottom: insets.bottom + 100, alignItems: 'center', gap: 16 }}>
+          <RailBtn icon="heart" label={liked ? tl('Togli il mi piace') : tl('Mi piace')} on={liked} onPress={() => { useNet.getState().likePost(card.key); buzz(); }} />
+          <RailBtn icon="comment" label={tl('Apri il post e i commenti')} onPress={() => { go('postPage', { key: card.key }); }} />
+          <RailBtn icon="send" label={tl('Condividi nell’app')} onPress={() => setSharing(true)} />
+          {!donated && card.author !== me ? <RailBtn icon="coin" label={tl('Dona il LifePoint di oggi')} onPress={() => openSheet('donate', { author: card.author, key: card.key })} /> : null}
+        </View>
+      ) : null}
+      {card ? <SharePostSheet visible={sharing} onClose={() => setSharing(false)} author={card.author} text={card.text} media={card.media} uri={card.uri} likeKey={card.key} /> : null}
+
+      <View pointerEvents="box-none" style={{ position: 'absolute', start: 0, end: 0, bottom: insets.bottom + 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 26 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Mi interessa')} onPress={() => fling('yes')} style={({ pressed }) => ({ width: 64, height: 64, borderRadius: 32, backgroundColor: '#2fd58a', alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.92 : 1 }] })}><Icon name="compass" size={28} color="#fff" /></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Torna all’ultimo')} onPress={undo} disabled={!(swipes ?? []).length} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', opacity: (swipes ?? []).length ? 1 : 0.35 }}><Icon name="repeat" size={20} color="#fff" /></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Non mi interessa')} onPress={() => fling('no')} style={({ pressed }) => ({ width: 64, height: 64, borderRadius: 32, backgroundColor: '#ff5d6c', alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.92 : 1 }] })}><Icon name="x" size={28} color="#fff" /></Pressable>

@@ -74,6 +74,9 @@ type NetState = {
   serviceInfo?: Record<string, import('@/data/marketSeed').ServiceInfo>;
   /** temi che interessano a chi usa l'app (non mostrati): servono a ordinare le proposte */
   themeWeights?: ThemeWeights;
+  /** consigli di vita di Theia apprezzati (id) e quanti per categoria: più ne apprezzi, più ne escono di quel tipo */
+  likedQuotes?: string[];
+  quoteLikes?: Record<string, number>;
   receivedPayments: Record<string, number>;
   following: string[];
   mutedAuthors: string[];

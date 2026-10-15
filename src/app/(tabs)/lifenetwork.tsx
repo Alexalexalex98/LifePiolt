@@ -4,7 +4,9 @@ import { applyToFeed } from '@/lib/swipeDeck';
 import { StoriesBar } from '@/components/stories/StoriesBar';
 import { StoryPeekHost } from '@/components/stories/StoryPeekHost';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, View, useWindowDimensions } from 'react-native';
+import { FlatList, PanResponder, Pressable, View, useWindowDimensions } from 'react-native';
+import { pickQuotes, quoteCount, type Quote } from '@/lib/theiaQuotes';
+import { isTabSwipe, nextHomeTab, onEdgeSwipe, type HomeTab } from '@/lib/feedSwipe';
 import { Text } from '@/components/T';
 
 import { EmptyFeed, FeedSkeleton, FilterToggle, Composer, NetHeader, NetTabs } from '@/components/feed/Header';
@@ -36,7 +38,7 @@ type Item =
   | { k: 'seminar'; id: string; s: Seminar }
   | { k: 'service'; id: string; p: Provider }
   | { k: 'product'; id: string; p: Product }
-  | { k: 'quote'; id: string; text: string; author: string }
+  | { k: 'quote'; id: string; q: Quote }
   | { k: 'community'; id: string; cid: number }
   | { k: 'jobs'; id: string }
   | { k: 'tools'; id: string }
@@ -82,6 +84,7 @@ export default function LifeNetwork() {
   const curTab = tabs.includes(prefs.lnTab) ? prefs.lnTab : 'Home';
   const following = prefs.homeFilter === 'Seguiti';
   const swipes = net.swipes;
+  const quoteLikes = net.quoteLikes;
 
   const verified = net.identity.verified;
   const { communities, posts, ideas, seminars, providers, products, hideIdeas, mutedIdeaAuthors, following: followingList, reach } = net;
@@ -103,7 +106,7 @@ export default function LifeNetwork() {
     const standalone: Item[] = posts.filter((p) => !p.hideFromFeed && visible('post', 'standalone:' + p.id, p.author)).map((p) => ({ k: 'post', id: 's' + p.id, likeKey: 'standalone:' + p.id, post: keep('s' + p.id, p) }));
     const ideaItems: Item[] = hideIdeas ? [] : ideas.filter((i) => !mutedIdeaAuthors.includes(i.author) && visible('idea', i.id, i.author)).map((idea) => ({ k: 'idea', id: 'i' + idea.id, idea }));
     const sem: Item[] = seminars.filter((s) => s.promoted && visible('seminar', s.id, s.host)).map((s) => ({ k: 'seminar', id: 'm' + s.id, s }));
-    const mot: Item[] = [{ k: 'quote', id: 'q0', text: tl('Il progresso non è lineare: anche un piccolo passo oggi conta.'), author: 'LifePilot' }, { k: 'quote', id: 'q1', text: tl('Non devi vedere tutta la scala, basta il primo gradino.'), author: 'LifePilot' }];
+    const mot: Item[] = pickQuotes(quoteLikes, quoteCount(quoteLikes), Math.floor(Date.now() / 86400000)).map((q) => ({ k: 'quote', id: 'q:' + q.id, q }));
     const rk = (it: Item) => (it.k === 'post' ? it.likeKey : it.k === 'idea' ? `idea:${it.idea.id}` : '');
     const pools = [byReach(standalone, rk, reach), byReach(comm, rk, reach), byReach(ideaItems, rk, reach), sem, mot].filter((p) => p.length);
     const feed: Item[] = [];
@@ -114,7 +117,7 @@ export default function LifeNetwork() {
       const a = it.k === 'post' ? it.post.author : it.k === 'idea' ? it.idea.author : null;
       return a && followingList.includes(a);
     });
-  }, [communities, posts, ideas, seminars, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep, reach, swipes, themeWeights]);
+  }, [communities, posts, ideas, seminars, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep, reach, swipes, themeWeights, quoteLikes]);
 
   const searching = people.trim().length >= 1;
   const data = useMemo<Item[]>(() => {
@@ -216,7 +219,7 @@ export default function LifeNetwork() {
       case 'seminar': return <SeminarFeedCard s={item.s} />;
       case 'service': return <ServiceFeedCard p={item.p} />;
       case 'product': return <ProductFeedCard p={item.p} />;
-      case 'quote': return <QuoteCard text={item.text} author={item.author} />;
+      case 'quote': return <QuoteCard q={item.q} />;
       case 'community': {
         const c = net.communities.find((x) => x.id === item.cid);
         if (!c) return null;
@@ -264,8 +267,24 @@ export default function LifeNetwork() {
     }
   };
 
+  /* scorrendo con il dito a sinistra/destra la Home passa da Per te a Swipe e Seguiti; con più foto prima si scorrono le foto */
+  const goTab = (dir: 1 | -1) => {
+    if (curTab !== 'Home' || searching) return;
+    const cur: HomeTab = following ? 'Seguiti' : 'Per te';
+    const to = nextHomeTab(cur, dir);
+    if (to === 'Swipe') go('swipeDeck');
+    else if (to !== cur) setPref('homeFilter', to);
+  };
+  const goTabRef = useRef(goTab); goTabRef.current = goTab;
+  useEffect(() => onEdgeSwipe((d) => goTabRef.current(d)), []);
+  const swipePan = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8,
+    onPanResponderRelease: (_e, g) => { const d = isTabSwipe(g.dx, g.dy, g.vx); if (d) goTabRef.current(d); },
+  })).current;
+
   return (
     <Page id="lifenetwork" scroll={false}>
+      <View style={{ flex: 1 }} {...swipePan.panHandlers}>
       <FlatList
         style={{ flex: 1, marginHorizontal: -FEED_GUTTER }}
         data={data}
@@ -281,6 +300,7 @@ export default function LifeNetwork() {
         contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
       />
+      </View>
       <Safe name="anteprima recap"><StoryPeekHost /></Safe>
     </Page>
   );

@@ -17,6 +17,8 @@ import { rateIdea, scoreColor } from '@/lib/network';
 import { fmtHour, pubLabel } from '@/lib/when';
 import { useVisible } from '@/lib/moderation';
 import { useApp } from '@/store/app';
+import { toggleQuoteLike, type Quote } from '@/lib/theiaQuotes';
+import { toast } from '@/store/toast';
 import { useNet, type Idea, type Seminar } from '@/store/network';
 import { dateBadgeParts, raisedPct } from './feedLogic.ts';
 import { heroPaletteFor } from './feedColors.ts';
@@ -161,17 +163,28 @@ export function SeminarFeedCard({ s, inset = true }: { s: Seminar; inset?: boole
   );
 }
 
-/** Citazione LifePilot: carta sobria, senza gradiente. */
-export function QuoteCard({ text, author }: { text: string; author: string }) {
+/** Consiglio di vita di Theia: carta sobria; con il cuore dici che lo apprezzi e quella categoria esce più spesso. */
+export function QuoteCard({ q }: { q: Quote }) {
   const t = useTheme();
+  const liked = useNet((x) => (x.likedQuotes ?? []).includes(q.id));
+  const like = () => {
+    const st = useNet.getState();
+    const r = toggleQuoteLike(st.quoteLikes, st.likedQuotes, q);
+    st.patch({ likedQuotes: r.liked, quoteLikes: r.likes });
+    toast(r.on ? `Ti piace: ne vedrai di più su «${q.cat}»` : 'Mi piace tolto');
+  };
   return (
     <View style={{ marginHorizontal: FEED_GUTTER, marginBottom: 26, borderRadius: FEED_RADIUS, backgroundColor: t.cardAlt, borderWidth: 1, borderColor: t.border, paddingVertical: 22, paddingHorizontal: 22, overflow: 'hidden' }}>
       <View style={{ position: 'absolute', top: 22, bottom: 22, start: 0, width: 3, backgroundColor: t.accent, borderRadius: 2 }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 10 }}>
         <Icon name="sparkle" size={15} color={t.accent} stroke={2} />
-        <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' }}>{author}</Text>
+        <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', flex: 1 }}>{translateText('Theia')} · {translateText(q.cat)}</Text>
       </View>
-      <Text style={{ color: t.text, fontSize: 19, lineHeight: 27, fontWeight: '600', letterSpacing: -0.2 }}>{text}</Text>
+      <Text style={{ color: t.text, fontSize: 19, lineHeight: 27, fontWeight: '600', letterSpacing: -0.2 }}>{translateText(q.text)}</Text>
+      <Pressable onPress={like} accessibilityRole="button" accessibilityState={{ selected: liked }} accessibilityLabel={translateText(liked ? 'Togli il mi piace al consiglio' : 'Mi piace questo consiglio')} hitSlop={8} style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 14, minHeight: 40 }}>
+        <Icon name="heart" size={22} color={liked ? '#ff3b5c' : t.muted} fill={liked ? '#ff3b5c' : 'none'} />
+        <Text style={{ color: liked ? '#ff3b5c' : t.muted, fontWeight: '700', fontSize: 13.5 }}>{translateText(liked ? 'Ti piace' : 'Mi piace')}</Text>
+      </Pressable>
     </View>
   );
 }

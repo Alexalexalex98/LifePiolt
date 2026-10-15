@@ -74,12 +74,12 @@ function NetSheetInner() {
       body = mine ? (
         <>
           <Item onPress={() => { close(); setTimeout(() => openSheet('editPost', { ref: p.ref }), 250); }}><IL icon="edit">Modifica</IL></Item>
-          <Item onPress={() => { Share.share({ message: `Post di ${author} su LifePilot` }); }}><Body>Condividi</Body></Item>
+          <Item onPress={() => { Share.share({ message: `Post di ${author} su LifePilot` }); }}><Body>Condividi fuori dall’app</Body></Item>
           <Item last onPress={() => { close(); setTimeout(() => deleteMyPost(String(p.ref), me), 250); }}><IL icon="trash" color={t.danger}>Elimina</IL></Item>
         </>
       ) : (
         <>
-          <Item onPress={() => { Share.share({ message: `Post di ${author} su LifePilot` }); }}><Body>Condividi</Body></Item>
+          <Item onPress={() => { Share.share({ message: `Post di ${author} su LifePilot` }); }}><Body>Condividi fuori dall’app</Body></Item>
           <Item onPress={() => { const f = net.toggleFollow(author); close(); toast(f ? 'Ora segui ' + author : 'Non segui più ' + author); }}><Body>{fol ? 'Smetti di seguire' : 'Segui'}</Body></Item>
           <Item onPress={() => { const m = net.toggleMuteAuthor(author); close(); toast(m ? `Post di ${author} silenziati` : `Post di ${author} riattivati`); }}><Body>{mutedP ? 'Riattiva ' + author : 'Silenzia ' + author}</Body></Item>
           {tag ? <Item onPress={() => { const m = net.toggleMuteTopic(tag); close(); toast(m ? `Post su ${tag} silenziati` : `Post su ${tag} riattivati`); }}><Body>{mutedT ? 'Riattiva argomento ' + tag : 'Silenzia argomento ' + tag}</Body></Item> : null}

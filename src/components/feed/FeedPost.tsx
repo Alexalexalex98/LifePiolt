@@ -1,7 +1,9 @@
+import { SharePostSheet } from '@/components/feed/SharePostSheet';
+import { carouselEdge, emitEdgeSwipe } from '@/lib/feedSwipe';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, Share, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated, Easing, Pressable, ScrollView, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { Text } from '@/components/T';
 
 import { UserAvatar, openMedia, openSheet } from '@/components/network';
@@ -71,6 +73,14 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
   const isPhoto = post.media === 'photo' && images.length > 0;
   const h = isPhoto ? Math.round(w * 1.25) : w;
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => setPage(pageIndex(e.nativeEvent.contentOffset.x, w, images.length)), [w, images.length]);
+  /* ultima foto e ancora un gesto verso sinistra (o prima foto verso destra): passa alla scheda vicina della Home */
+  const onEndDrag = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, velocity, contentSize, layoutMeasurement } = e.nativeEvent;
+    const pg = pageIndex(contentOffset.x, w, images.length);
+    const over = contentOffset.x + layoutMeasurement.width - contentSize.width;
+    const dir: 1 | -1 | 0 = (over > 24 || (velocity?.x ?? 0) > 0.4 && over > -2) ? 1 : (contentOffset.x < -24 || ((velocity?.x ?? 0) < -0.4 && contentOffset.x < 2)) ? -1 : 0;
+    if (dir && carouselEdge(pg, images.length, dir)) emitEdgeSwipe(dir);
+  }, [w, images.length]);
   let body;
   if (isPhoto) {
     const slide = (u: string, i: number) => (
@@ -79,7 +89,7 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
       </Pressable>
     );
     body = images.length > 1 ? (
-      <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16} style={{ width: w, height: h }} nestedScrollEnabled>
+      <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} onScrollEndDrag={onEndDrag} scrollEventThrottle={16} style={{ width: w, height: h }} nestedScrollEnabled>
         {images.map(slide)}
       </ScrollView>
     ) : slide(images[0], 0);
@@ -146,10 +156,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
   const like = () => useNet.getState().likePost(likeKey);
   const doubleLike = () => { flash(); if (!useNet.getState().likedPosts.includes(likeKey)) like(); };
   const single = () => { if (post.media) openMedia({ media: post.media, seed: post.author + post.text, uri: post.uri }); else go('postPage', { key: likeKey }); };
-  const share = async () => {
-    if (likeKey) useNet.getState().bumpReach(likeKey, 'share');
-    try { await Share.share({ message: tl('Post di {0} su LifePilot: {1}', post.author, post.text) }); } catch { toast('Condivisione non disponibile su questo dispositivo'); }
-  };
+  const [sharing, setSharing] = useState(false);
   const onLayout = (e: LayoutChangeEvent) => { const x = Math.round(e.nativeEvent.layout.width); if (x && x !== w) setW(x); };
 
   return (
@@ -167,12 +174,13 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
         </Pressable>
       </View>
 
+      <SharePostSheet visible={sharing} onClose={() => setSharing(false)} author={post.author} text={post.text} media={post.media} uri={post.uri ?? post.uris?.[0]} likeKey={likeKey} />
       <MediaArea post={post} w={w} onDouble={doubleLike} onSingle={single} heart={heart} />
 
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, marginTop: 4 }}>
         <IconBtn icon="heart" size={27} color={liked ? LIKE : t.text} fill={liked ? LIKE : 'none'} label={liked ? 'Togli il mi piace' : 'Mi piace'} onPress={like} pop={liked} selected={liked} />
         {post.commentsOff ? null : <IconBtn icon="comment" label="Apri il post e i commenti" onPress={() => go('postPage', { key: likeKey })} />}
-        <IconBtn icon="send" label="Condividi" onPress={share} />
+        <IconBtn icon="send" label="Condividi nell’app" onPress={() => setSharing(true)} />
         {!donated && post.author !== me && <IconBtn icon="coin" size={26} color={t.accent} label="Dona il LifePoint di oggi" onPress={() => openSheet('donate', { author: post.author, key: likeKey })} />}
         <View style={{ flex: 1 }} />
         <IconBtn icon="bookmark" color={t.text} fill={saved ? t.text : 'none'} label={saved ? 'Rimuovi dai salvati' : 'Salva'} selected={saved} onPress={() => { const on = useNet.getState().toggleSavePost(likeKey); toast(on ? 'Post salvato' : 'Rimosso dai salvati'); }} />

@@ -10,7 +10,7 @@ const M = {
   autoNotte: require('../../assets/seed/auto-notte.jpg'), barSera: require('../../assets/seed/bar-sera.jpg'), aperitivo: require('../../assets/seed/aperitivo.jpg'),
   cappuccino: require('../../assets/seed/cappuccino.jpg'), freccette: require('../../assets/seed/freccette.jpg'), birra: require('../../assets/seed/birra.jpg'),
   voloNotte: require('../../assets/seed/volo-notte.mp4'), spiaggia: require('../../assets/seed/spiaggia-tramonto.mp4'), roma: require('../../assets/seed/roma-tramonto.mp4'),
-  spazio: require('../../assets/seed/spazio.mp4'), colosseo: require('../../assets/seed/colosseo.mp4'), positano: require('../../assets/seed/positano.mp4'), newYork: require('../../assets/seed/new-york.mp4'),
+  spazio: require('../../assets/seed/spazio.mp4'), colosseo: require('../../assets/seed/colosseo.mp4'), positano: require('../../assets/seed/positano.mp4'), newYork: require('../../assets/seed/new-york.mp4'), pizzaPatatine: require('../../assets/seed/pizza-patatine.jpg'), tavolaCalici: require('../../assets/seed/tavola-calici.jpg'), aeroporto: require('../../assets/seed/aeroporto.jpg'), tvVintage: require('../../assets/seed/tv-vintage.jpg'), libro: require('../../assets/seed/libro.jpg'), formulaUno: require('../../assets/seed/formula-uno.jpg'), androne: require('../../assets/seed/androne.jpg'), codaPassaporti: require('../../assets/seed/coda-passaporti.jpg'), peugeot: require('../../assets/seed/peugeot.jpg'), pietraSmart: require('../../assets/seed/pietra-smart.jpg'), caffeFiltro: require('../../assets/seed/caffe-filtro.jpg'), menuBicerin: require('../../assets/seed/menu-bicerin.jpg'), nikis: require('../../assets/seed/nikis.jpg'), tavolinoFinestra: require('../../assets/seed/tavolino-finestra.jpg'), cocktailOlive: require('../../assets/seed/cocktail-olive.jpg'), burgerPatatine: require('../../assets/seed/burger-patatine.jpg'), pubFreccette: require('../../assets/seed/pub-freccette.jpg'), pizzaMucchio: require('../../assets/seed/pizza-patatine-mucchio.jpg'), cocktailScuri: require('../../assets/seed/cocktail-scuri.jpg'), burgerViola: require('../../assets/seed/burger-viola.jpg'), caffeInterno: require('../../assets/seed/caffe-interno.jpg'), tazzeCaffe: require('../../assets/seed/tazze-caffe.jpg'), cappuccinoFiori: require('../../assets/seed/cappuccino-fiori.jpg'), corona: require('../../assets/seed/corona.jpg'), cotolette: require('../../assets/seed/cotolette-birra.jpg'), brindisiBirra: require('../../assets/seed/brindisi-birra.jpg'), marienplatz: require('../../assets/seed/marienplatz.jpg'), finestrino: require('../../assets/seed/finestrino.jpg'), birraPianta: require('../../assets/seed/birra-pianta.jpg'),
 } as const;
 type Key = keyof typeof M;
 
@@ -33,6 +33,35 @@ const POSTS: { id: number; author: string; tag: string; media: 'photo' | 'video'
   { id: 207, author: 'Giulia M.', tag: 'Viaggi', media: 'video', k: 'newYork', text: 'New York al tramonto: il ponte e lo skyline dall’alto.', h: 20, likes: 83 },
   { id: 108, author: 'Tommaso V.', tag: 'Giochi', media: 'photo', k: 'freccette', text: 'Serata freccette al pub con i dardi nuovi. Sfida aperta a chi vuole.', h: 22, likes: 29 },
   { id: 109, author: 'Davide R.', tag: 'Amici', media: 'photo', k: 'birra', text: 'Serata all’aperto con gli amici sotto le lucine: la birra è la parte meno importante.', h: 26, likes: 61 },
+  { id: 300, author: 'Marco T.', tag: 'Cucina', media: 'photo', k: 'pizzaPatatine', text: 'Pizza e patatine fritte insieme: l’abbinamento che divide. Voi da che parte state?', h: 1.5, likes: 66 },
+  { id: 301, author: 'Federica L.', tag: 'Serate', media: 'photo', k: 'tavolaCalici', text: 'Tavola apparecchiata a lume di candela: calici, orchidee viola e occhiali da sole dimenticati.', h: 3.5, likes: 54 },
+  { id: 302, author: 'Davide R.', tag: 'Viaggi', media: 'photo', k: 'aeroporto', text: 'Corridoio della stazione verso i treni: valigie, insegne luminose e fretta di partire.', h: 4.5, likes: 27 },
+  { id: 303, author: 'Elena F.', tag: 'Mostre', media: 'photo', k: 'tvVintage', text: 'Alla mostra del design: un televisore a colori d’epoca e un proiettore anni Settanta.', h: 6.5, likes: 48 },
+  { id: 304, author: 'Sara B.', tag: 'Libri', media: 'photo', k: 'libro', text: 'Ultimo acquisto in libreria: una biografia che cercavo da tempo.', h: 8.5, likes: 36 },
+  { id: 305, author: 'Tommaso V.', tag: 'Sport', media: 'photo', k: 'formulaUno', text: 'Qualifiche del sabato: onboard dal circuito cittadino e classifica in diretta.', h: 10, likes: 59 },
+  { id: 306, author: 'Chiara N.', tag: 'Casa', media: 'photo', k: 'androne', text: 'Androne del palazzo nuovo: pavimento in graniglia, pianta e panca con i cuscini.', h: 12, likes: 31 },
+  { id: 307, author: 'Giulia M.', tag: 'Viaggi', media: 'photo', k: 'codaPassaporti', text: 'Coda ai controlli dei passaporti: pazienza, cuffie e un po’ di musica.', h: 13, likes: 42 },
+  { id: 308, author: 'Luca Ferri', tag: 'Viaggi', media: 'photo', k: 'peugeot', text: 'L’auto a noleggio per la gita: strada sterrata e tanta voglia di esplorare.', h: 15, likes: 25 },
+  { id: 309, author: 'Sophie M.', tag: 'Design', media: 'photo', k: 'pietraSmart', text: 'Un assistente per la casa scolpito come una pietra: il design può essere anche silenzioso.', h: 17, likes: 92 },
+  { id: 310, author: 'Sara B.', tag: 'Caffè', media: 'photo', k: 'caffeFiltro', text: 'Caffè filtro fatto con calma: macinatura media, acqua a 94 gradi e il bollitore a collo d’oca.', h: 19, likes: 57 },
+  { id: 311, author: 'Marco T.', tag: 'Cucina', media: 'photo', k: 'menuBicerin', text: 'Il menu del giorno: tartare, poké e gnocchetti al gorgonzola. Cosa ordinereste?', h: 21, likes: 38 },
+  { id: 312, author: 'Elena F.', tag: 'Locali', media: 'photo', k: 'nikis', text: 'Ristorante, bar e pasticceria all’angolo: aperti tutto il giorno.', h: 23, likes: 22 },
+  { id: 320, author: 'Giulia M.', tag: 'Caffè', media: 'photo', k: 'tavolinoFinestra', text: 'Il tavolino vicino alla vetrata: marmo, sedie grigie e la mattina che comincia piano.', h: 2.5, likes: 41 },
+  { id: 321, author: 'Federica L.', tag: 'Serate', media: 'photo', k: 'cocktailOlive', text: 'Aperitivo con cocktail, assaggi caldi e olive: si ordina tutto al centro.', h: 5.5, likes: 63 },
+  { id: 322, author: 'Marco T.', tag: 'Cucina', media: 'photo', k: 'burgerPatatine', text: 'Hamburger con uovo, cheddar e bacon, patatine ondulate a parte. Pranzo senza compromessi.', h: 7.5, likes: 74 },
+  { id: 323, author: 'Tommaso V.', tag: 'Giochi', media: 'photo', k: 'pubFreccette', text: 'Nel pub c’è ancora la vecchia macchina delle freccette: chi sfida chi?', h: 9.5, likes: 35 },
+  { id: 324, author: 'Davide R.', tag: 'Cucina', media: 'photo', k: 'pizzaMucchio', text: 'Pizza con le patatine sopra: giusto o sbagliato? Commentate senza pietà.', h: 11.5, likes: 97 },
+  { id: 325, author: 'Chiara N.', tag: 'Serate', media: 'photo', k: 'cocktailScuri', text: 'Locale in penombra: un negroni e un mule con il cetriolo.', h: 14.5, likes: 45 },
+  { id: 326, author: 'Luca Ferri', tag: 'Cucina', media: 'photo', k: 'burgerViola', text: 'Due hamburger con patate fatte in casa, piatti viola e tavolo al sole.', h: 16.5, likes: 52 },
+  { id: 327, author: 'Elena F.', tag: 'Caffè', media: 'photo', k: 'caffeInterno', text: 'Il nuovo caffè in centro: macchina verde, banco in pietra e sedie intrecciate.', h: 18.5, likes: 60 },
+  { id: 328, author: 'Sara B.', tag: 'Caffè', media: 'photo', k: 'tazzeCaffe', text: 'Doppio espresso finito e cappuccino ancora caldo: pausa di metà mattina.', h: 20.5, likes: 34 },
+  { id: 329, author: 'Giulia M.', tag: 'Caffè', media: 'photo', k: 'cappuccinoFiori', text: 'Cappuccino con il cuore di schiuma e fiori secchi sul tavolo.', h: 22.5, likes: 49 },
+  { id: 330, author: 'Davide R.', tag: 'Amici', media: 'photo', k: 'corona', text: 'Brindisi con le Corona dopo una lunga giornata.', h: 25, likes: 28 },
+  { id: 331, author: 'Marco T.', tag: 'Viaggi', media: 'photo', k: 'cotolette', text: 'Cotolette croccanti con insalata di patate e una birra chiara: la tappa bavarese.', h: 27, likes: 68 },
+  { id: 332, author: 'Federica L.', tag: 'Amici', media: 'photo', k: 'brindisiBirra', text: 'Cin cin sotto l’ombrellone: la birra più buona è quella in compagnia.', h: 29, likes: 46 },
+  { id: 333, author: 'Sophie M.', tag: 'Viaggi', media: 'photo', k: 'marienplatz', text: 'La piazza del municipio sotto un cielo blu: torre, orologio e bandiere colorate.', h: 31, likes: 110 },
+  { id: 334, author: 'Chiara N.', tag: 'Viaggi', media: 'photo', k: 'finestrino', text: 'Dal finestrino: le Alpi tra le nuvole e l’ala che taglia il cielo.', h: 33, likes: 86 },
+  { id: 335, author: 'Tommaso V.', tag: 'Serate', media: 'photo', k: 'birraPianta', text: 'Birra gelata a tarda sera, sotto l’ombrellone e con la pianta a fare compagnia.', h: 35, likes: 30 },
 ];
 /** Momenti (Recap) di chi segui. */
 const STORIES: { id: string; author: string; k: Key; kind: 'photo' | 'video'; h: number; text?: string }[] = [
@@ -41,6 +70,16 @@ const STORIES: { id: string; author: string; k: Key; kind: 'photo' | 'video'; h:
   { id: 'seed-st-s1', author: 'Sara B.', k: 'cappuccino', kind: 'photo', h: 3 },
   { id: 'seed-st-e1', author: 'Elena F.', k: 'spazio', kind: 'video', h: 4 },
   { id: 'seed-st-so1', author: 'Sophie M.', k: 'positano', kind: 'video', h: 5 },
+  { id: 'seed-st-d1', author: 'Davide R.', k: 'aeroporto', kind: 'photo', h: 1.5 },
+  { id: 'seed-st-f1', author: 'Federica L.', k: 'tavolaCalici', kind: 'photo', h: 2.5 },
+  { id: 'seed-st-t1', author: 'Tommaso V.', k: 'formulaUno', kind: 'photo', h: 3.5 },
+  { id: 'seed-st-c1', author: 'Chiara N.', k: 'androne', kind: 'photo', h: 4.5 },
+  { id: 'seed-st-s2', author: 'Sara B.', k: 'caffeFiltro', kind: 'photo', h: 5.5 },
+  { id: 'seed-st-g2b', author: 'Giulia M.', k: 'tavolinoFinestra', kind: 'photo', h: 0.4 },
+  { id: 'seed-st-m3', author: 'Marco T.', k: 'burgerPatatine', kind: 'photo', h: 0.9 },
+  { id: 'seed-st-so2', author: 'Sophie M.', k: 'marienplatz', kind: 'photo', h: 1.4 },
+  { id: 'seed-st-c2', author: 'Chiara N.', k: 'finestrino', kind: 'photo', h: 1.9 },
+  { id: 'seed-st-f2', author: 'Federica L.', k: 'cocktailOlive', kind: 'photo', h: 2.4 },
 ];
 
 async function resolve(): Promise<Record<Key, string>> {
