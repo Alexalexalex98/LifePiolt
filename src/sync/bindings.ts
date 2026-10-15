@@ -3,7 +3,7 @@
  * Non modifica il codice degli store: li osserva con subscribe/getState e scrive con setState parziale (adattatori inversi).
  * Il motore si avvia SOLO dopo l'idratazione di tutti gli store e in modo non bloccante (mai prima del primo disegno).
  */
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { isOnline } from '@/lib/offline';
 import { useChat } from '@/store/chat';
@@ -20,6 +20,8 @@ import { SyncEngine, type StoreLike } from './engine';
 import { MockServerTransport } from './mockServer';
 import { COLLECTIONS } from './registry';
 import { loadDeviceId, loadServerConfig } from './secure';
+import { getSupabase } from './supabaseClient';
+import { SupabaseTransport } from './supabaseTransport.ts';
 import { createTransport, DisconnectedTransport, registerTransport, type SyncTransport } from './transport';
 import { identityCodec, type PayloadCodec } from './codec';
 
@@ -47,6 +49,7 @@ let codec: PayloadCodec = identityCodec;
 let starting: Promise<SyncEngine> | null = null;
 
 registerTransport('mock-server', (cfg) => new MockServerTransport(devServer, cfg));
+registerTransport('supabase', (cfg) => new SupabaseTransport(getSupabase(cfg.url ?? '', cfg.anonKey ?? ''), cfg, Platform.OS));
 
 /** Imposta il codec di cifratura end-to-end (quando esistera'). Con 'identity' le categorie che richiedono E2E restano ferme. */
 export function setPayloadCodec(c: PayloadCodec) { codec = c; engine?.reconfigure(); }
@@ -100,8 +103,10 @@ export function startSync() {
 /** Sceglie il transport in base alle impostazioni (server finto di sviluppo oppure nessuno) e prova a collegarlo. */
 export async function applyTransport(): Promise<{ ok: boolean; message: string }> {
   const s = useSync.getState();
-  const cfg = await loadServerConfig();
-  const name = s.devMock ? 'mock-server' : s.transportName || 'disconnected';
+  const saved = await loadServerConfig();
+  /* indirizzo e chiave pubblica possono arrivare dalla build (EXPO_PUBLIC_SUPABASE_*): non sono segreti */
+  const cfg = { url: saved.url || process.env.EXPO_PUBLIC_SUPABASE_URL || '', anonKey: saved.anonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '' };
+  const name = s.devMock ? 'mock-server' : s.transportName || (cfg.url && cfg.anonKey ? 'supabase' : 'disconnected');
   transport = createTransport(name, { url: cfg.url || s.serverUrl, anonKey: cfg.anonKey, deviceId: useSyncData.getState().deviceId, deviceName: s.deviceName || 'Questo telefono' });
   const r = await transport.connect({ url: cfg.url || s.serverUrl, anonKey: cfg.anonKey, deviceId: useSyncData.getState().deviceId, deviceName: s.deviceName || 'Questo telefono' }).catch(() => ({ ok: false, message: 'Non riesco a collegarmi al server.' }));
   engine?.refreshStatus();

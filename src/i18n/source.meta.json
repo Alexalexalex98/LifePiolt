@@ -1,5 +1,5 @@
 {
- "count": 9944,
+ "count": 9970,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -218,7 +218,7 @@
   "src/components/stories/StoryPlayer.tsx": 22,
   "src/components/sync/SyncActivity.tsx": 24,
   "src/components/sync/SyncCategories.tsx": 11,
-  "src/components/sync/SyncServer.tsx": 20,
+  "src/components/sync/SyncServer.tsx": 34,
   "src/components/sync/SyncStatusCard.tsx": 31,
   "src/components/theia/AttachChips.tsx": 7,
   "src/components/theia/AttachSheet.tsx": 26,
@@ -458,6 +458,7 @@
   "src/sync/engine.ts": 11,
   "src/sync/mockServer.ts": 9,
   "src/sync/registry.ts": 45,
+  "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
  "withPlaceholders": 1289
