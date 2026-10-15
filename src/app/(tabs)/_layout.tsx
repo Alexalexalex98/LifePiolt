@@ -40,9 +40,14 @@ export default function TabsLayout() {
   const seg = path.split('/').filter(Boolean).pop() || 'index';
   const cur = seg === 'index' ? 'home' : seg;
   const curRef = useRef(cur); curRef.current = cur;
-  const itemsRef = useRef(navItems); itemsRef.current = navItems;
+  /* se la pagina attuale non è in barra (es. Network dal menu), per lo swipe si comporta come se fosse subito dopo l'ultima sezione della barra visitata */
+  const lastBar = useRef<string>(navItems[0] ?? 'home');
+  if (navItems.includes(cur)) lastBar.current = cur;
+  const virtual = navItems.includes(cur) ? navItems : (() => { const i = navItems.indexOf(lastBar.current); const a = navItems.slice(); a.splice(i < 0 ? a.length : i + 1, 0, cur); return a; })();
+  const itemsRef = useRef(virtual); itemsRef.current = virtual;
   const x = useRef(new Animated.Value(0)).current;
   const busy = useRef(false);
+  useEffect(() => { x.setValue(0); busy.current = false; }, [cur, x]);
   const EDGE = 24;
   /* Pager reale: le sezioni della barra sono affiancate (quella accanto è già montata), la schermata segue il dito e si vede subito dove stai andando. */
   const pan = useRef(PanResponder.create({
@@ -58,20 +63,21 @@ export default function TabsLayout() {
     onPanResponderRelease: (_e, g) => {
       const d = sectionDirection(g.dx, g.dy, g.vx);
       const to = d ? adjacentSection(itemsRef.current, curRef.current, d) : null;
-      if (!to) { Animated.spring(x, { toValue: 0, useNativeDriver: false, friction: 8 }).start(); return; }
+      if (!to) { Animated.spring(x, { toValue: 0, useNativeDriver: true, friction: 8 }).start(); return; }
       busy.current = true;
-      Animated.timing(x, { toValue: -d * W, duration: 170, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() => {
+      Animated.timing(x, { toValue: -d * W, duration: 140, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => {
+        /* x resta a fine corsa finché la sezione nuova non è davvero quella attiva: così la vecchia non riappare per un attimo */
+        const from = curRef.current;
         go(to);
-        x.setValue(0);
-        setTimeout(() => { busy.current = false; }, 60);
+        setTimeout(() => { if (curRef.current === from) { x.setValue(0); busy.current = false; } }, 600);
       });
     },
-    onPanResponderTerminate: () => { Animated.spring(x, { toValue: 0, useNativeDriver: false }).start(); },
+    onPanResponderTerminate: () => { Animated.spring(x, { toValue: 0, useNativeDriver: true }).start(); },
   })).current;
   /* le sezioni della barra restano montate (servono per vederle accanto durante il gesto) e si dispongono in fila */
   const screenOptions = ({ route }: { route: { name: string } }) => {
     const id = route.name === 'index' ? 'home' : route.name;
-    const inBar = navItems.includes(id);
+    const inBar = navItems.includes(id) || id === curRef.current;
     return {
       headerShown: false,
       lazy: !inBar,
