@@ -1,5 +1,5 @@
 {
- "count": 10504,
+ "count": 10510,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -57,7 +57,7 @@
   "src/app/(tabs)/lifetravel.tsx": 102,
   "src/app/(tabs)/liveRoom.tsx": 88,
   "src/app/(tabs)/lpStatement.tsx": 20,
-  "src/app/(tabs)/messagesPage.tsx": 34,
+  "src/app/(tabs)/messagesPage.tsx": 36,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,
   "src/app/(tabs)/myServices.tsx": 17,
@@ -156,6 +156,7 @@
   "src/components/chat/NewChat.tsx": 11,
   "src/components/chat/PinnedCalls.tsx": 2,
   "src/components/chat/ShareSheets.tsx": 94,
+  "src/components/chat/StoryReplyCard.tsx": 3,
   "src/components/chat/cards.tsx": 88,
   "src/components/chat/parts.tsx": 26,
   "src/components/chat/sheets.tsx": 34,
@@ -325,7 +326,7 @@
   "src/lib/callActions.ts": 12,
   "src/lib/callNotes.ts": 7,
   "src/lib/chatEvent.ts": 7,
-  "src/lib/chatList.ts": 37,
+  "src/lib/chatList.ts": 39,
   "src/lib/chatMedia.ts": 10,
   "src/lib/chatShare.ts": 8,
   "src/lib/chatSim.ts": 8,
@@ -471,5 +472,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1321
+ "withPlaceholders": 1323
 }

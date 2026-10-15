@@ -6,6 +6,7 @@ import { Icon } from '@/lib/icons';
 import { fmtClock, previewOf, reactionIcon, type ChatMessage } from '@/store/chat';
 import { AgendaCard, EventCard, OfferCard, DocReqCard, NoteCard, SlotsCard, TasksCard } from './cards';
 import { CallCard } from './CallCard';
+import { StoryReplyCard } from './StoryReplyCard';
 import { ContactCard, FileCard, LinkText, LocationCard, MediaThumb, PollCard, Ticks, VoiceBubble, senderColor, useChatColors } from './parts';
 import { translateText } from '@/i18n/core';
 import { ClubMsgCard } from '@/components/club/ClubMsgCard';
@@ -59,6 +60,7 @@ export const Bubble = memo(function Bubble(p: Props) {
     body = (
       <>
         {m.forwarded && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 }}><Icon name="forward" size={12} color={c.meta} /><Text style={{ color: c.meta, fontSize: 11, fontStyle: 'italic' }}>Inoltrato</Text></View>}
+        {m.storyReply ? <StoryReplyCard m={m} mine={mine} meta={c.meta} /> : null}
         {(m.kind === 'image' || m.kind === 'video') && <MediaThumb m={m} onOpen={p.onOpenMedia} onLongPress={p.onLongPress} />}
         {m.kind === 'audio' && <VoiceBubble m={m} mine={mine} />}
         {m.kind === 'file' && <FileCard m={m} onLongPress={p.onLongPress} />}

@@ -55,7 +55,7 @@ export default function MessagesPage() {
     <Page id="messagesPage" title={sel.length ? `${sel.length} selezionate` : archived ? 'Archiviate' : 'Messaggi'}
       right={<Row gap={8}>
         {archived && <Pressable onPress={() => setArchived(false)}><Text style={{ color: t.accent }}>Chiudi</Text></Pressable>}
-        {!sel.length && !archived ? <Pressable onPress={() => setNewOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Nuova chat')}><Icon name="plus" size={24} color={t.text} /></Pressable> : null}
+        {!sel.length && !archived && filter !== 'LifeClub' ? <Pressable onPress={() => setNewOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Nuova chat')}><Icon name="plus" size={24} color={t.text} /></Pressable> : null}
         <Pressable onPress={() => go('chatSettings')} hitSlop={8} accessibilityLabel={translateText("Impostazioni chat")}><Icon name="gear" size={21} color={t.text} /></Pressable>
       </Row>}>
       {sel.length > 0 ? (
@@ -75,7 +75,8 @@ export default function MessagesPage() {
         </>
       )}
 
-      {rows.length === 0 ? <Empty text={q ? 'Nessun risultato.' : filter === 'Non lette' ? 'Nessun messaggio non letto.' : archived ? 'Nessuna chat archiviata.' : 'Nessuna chat: premi “+” per iniziare.'} /> : rows.map(({ c, last, u, hit }) => {
+      {filter === 'LifeClub' && !archived && !sel.length ? <Item onPress={() => go('myClubs')}><Row><IL icon="lifeclub">Esplora i LifeClub</IL><Icon name="chevron" size={18} color={t.muted} /></Row></Item> : null}
+      {rows.length === 0 ? <Empty text={q ? 'Nessun risultato.' : filter === 'LifeClub' && !archived ? 'Non sei ancora in nessun LifeClub. I LifeClub li crea chi li gestisce: esplorali e iscriviti a quelli che ti interessano.' : filter === 'Non lette' ? 'Nessun messaggio non letto.' : archived ? 'Nessuna chat archiviata.' : 'Nessuna chat: premi “+” per iniziare.'} /> : rows.map(({ c, last, u, hit }) => {
         const unread = u > 0 || c.markedUnread;
         const muted = isMuted(c);
         const shown = q && hit ? hit : last;

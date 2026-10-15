@@ -7,6 +7,7 @@ export type LMsg = {
   from: string;
   kind: string;
   text?: string;
+  storyReply?: { kind: string };
   ts: number;
   hiddenFor?: string[];
   deletedForAll?: boolean;
@@ -33,6 +34,7 @@ export function fmtDur(ms: number): string {
 /** Icona (nome in '@/lib/icons') e testo breve di un messaggio, per lista chat, citazioni e ricerche. */
 export function previewParts(m: LMsg): { icon?: string; text: string } {
   if (m.deletedForAll) return { icon: 'block', text: 'Questo messaggio è stato eliminato' };
+  if (m.storyReply) return { icon: m.storyReply.kind === 'video' ? 'video' : 'image', text: 'Recap · ' + (m.text ?? '') };
   switch (m.kind) {
     case 'image': return { icon: 'image', text: m.text || 'Foto' };
     case 'video': return { icon: 'video', text: m.text || 'Video' };

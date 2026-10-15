@@ -62,6 +62,8 @@ export type ChatMessage = {
   deletedForAll?: boolean;
   hiddenFor?: string[];
   forwarded?: boolean;
+  /** risposta a un recap: il momento a cui si risponde (foto, video o testo) */
+  storyReply?: { author: string; kind: 'photo' | 'video' | 'text'; uri?: string; text?: string; bg?: [string, string]; mine: boolean };
   media?: Media;
   location?: { lat: number; lng: number; label?: string };
   contact?: { name: string; phone?: string };

@@ -2,7 +2,8 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, TextInput, View } from 'react-native';
+import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
@@ -29,6 +30,7 @@ export function StoryVideo({ uri, controls, sound }: { uri: string; controls?: b
 export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; start: number; onClose: () => void }) {
   const me = useApp((s) => s.account.name);
   const insets = useSafeAreaInsets();
+  const kb = useKeyboardInset();
   const net = useNet();
   const goBack = onClose;
   const [i, setI] = useState(start);
@@ -68,8 +70,8 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
     const t = text.trim(); if (!t) return;
     const chat = useChat.getState();
     const id = chat.ensureDm(cur.author, me);
-    chat.send(id, me, { kind: 'text', text: `${tl('Risposta al tuo recap')}: ${t}` });
-    setReply(''); setTyping(false); toast(tl('Inviato a {0}', cur.author));
+    chat.send(id, me, { kind: 'text', text: t, storyReply: { author: cur.author, kind: cur.kind, mine: false, ...(cur.uri ? { uri: cur.uri } : {}), ...(cur.kind === 'text' ? { text: cur.text, bg: cur.bg } : {}) } });
+    setReply(''); setTyping(false); Keyboard.dismiss(); toast(tl('Inviato a {0}', cur.author));
   };
   const remove = () => confirmDelete(tl('questo momento del recap'), () => {
     net.patch({ stories: (net.stories ?? []).filter((s) => s.id !== cur.id) });
@@ -91,10 +93,11 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
         </View>
       )}
       {/* zone di tocco: sinistra indietro, destra avanti, pressione lunga ferma */}
-      <View style={{ position: 'absolute', top: insets.top + 70, bottom: insets.bottom + 80, start: 0, end: 0, flexDirection: 'row' }}>
+      <View pointerEvents={typing ? 'none' : 'auto'} style={{ position: 'absolute', top: insets.top + 70, bottom: insets.bottom + 80, start: 0, end: 0, flexDirection: 'row' }}>
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Momento precedente')} style={{ flex: 1 }} onPress={() => (i > 0 ? setI(i - 1) : setP(0))} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={200} />
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Momento successivo')} style={{ flex: 2 }} onPress={next} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={200} />
       </View>
+      {typing ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi la tastiera')} onPress={() => Keyboard.dismiss()} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: 'rgba(0,0,0,0.35)' }} /> : null}
       <View pointerEvents="box-none" style={{ paddingTop: insets.top + 8, paddingHorizontal: 10 }}>
         {/* miniature delle foto, appena visibili in alto: tocca per saltare; la linea sotto la corrente mostra lo scorrere del tempo */}
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: -2 }}>
@@ -120,14 +123,14 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
         </Row>
       </View>
       <View style={{ flex: 1 }} pointerEvents="none" />
-      <View style={{ paddingHorizontal: 14, paddingBottom: insets.bottom + 12 }}>
+      <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: (kb.height > 0 ? kb.height : insets.bottom) + 12, backgroundColor: typing ? 'rgba(0,0,0,0.55)' : 'transparent' }}>
         {mine ? (
           <Pressable accessibilityRole="button" onPress={() => setViewers(true)} style={{ alignSelf: 'center', flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 }}>
             <Icon name="eye" size={18} color="#fff" /><Text style={{ color: '#fff', fontWeight: '800' }}>{tl('{0} visualizzazioni', viewerList.length)}</Text>
           </Pressable>
         ) : (
           <Row gap={10}>
-            <TextInput value={reply} onChangeText={setReply} onFocus={() => setTyping(true)} onBlur={() => setTyping(false)} onSubmitEditing={() => send(reply)} returnKeyType="send" placeholder={tl('Rispondi a {0}…', cur.author.split(' ')[0])} placeholderTextColor="rgba(255,255,255,0.7)" accessibilityLabel={tl('Rispondi al recap')} style={{ flex: 1, color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 }} />
+            <TextInput value={reply} onChangeText={setReply} onFocus={() => setTyping(true)} onBlur={() => setTyping(false)} onSubmitEditing={() => send(reply)} returnKeyType="send" placeholder={tl('Rispondi a {0}…', cur.author.split(' ')[0])} placeholderTextColor="rgba(255,255,255,0.7)" accessibilityLabel={tl('Rispondi al recap')} style={{ flex: 1, color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)', backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 }} />
             <Pressable accessibilityRole="button" accessibilityLabel={tl('Mi piace al recap')} onPress={() => send(tl('mi piace'))} hitSlop={8} style={{ padding: 8 }}><Icon name="heart" size={26} color="#fff" /></Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={tl('Invia')} onPress={() => send(reply)} hitSlop={8} style={{ padding: 8 }}><Icon name="send" size={24} color="#fff" /></Pressable>
           </Row>
