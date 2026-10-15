@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { ScrollView } from 'react-native';
 
 import { Text } from '@/components/T';
 import { Press } from '@/components/ui';
@@ -13,20 +13,20 @@ const tabs = [
   { page: 'stocks', n: 'Stock' }, // per chi investe: in fondo, non è la prima cosa che vede chi apre le Finanze
 ];
 
-/** Quattro schede in griglia 2x2 con larghezze uguali: nessuna etichetta spezzata male a 320pt. */
+/** Schede in una sola riga scorrevole: più sobria, stile app di finanza. */
 export function FinTabs({ current }: { current: string }) {
   void useSectionNames;
   const t = useTheme();
   return (
-    <View accessibilityRole="tablist" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist" style={{ marginHorizontal: -16, marginBottom: 12 }} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
       {tabs.map((x) => {
         const on = current === x.page;
         return (
-          <Press key={x.page} role="tab" selected={on} accessibilityLabel={x.n} onPress={() => go(x.page)} style={{ flexBasis: '48%', flexGrow: 1, minHeight: 44, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.text : t.chip }}>
-            <Text style={{ color: on ? t.bg : t.text, fontSize: 13, fontWeight: on ? '700' : '500', textAlign: 'center' }}>{x.n}</Text>
+          <Press key={x.page} role="tab" selected={on} accessibilityLabel={x.n} onPress={() => go(x.page)} style={{ minHeight: 38, paddingHorizontal: 16, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.text : 'transparent', borderWidth: on ? 0 : 1, borderColor: t.border }}>
+            <Text style={{ color: on ? t.bg : t.muted, fontSize: 13.5, fontWeight: on ? '800' : '600' }}>{x.n}</Text>
           </Press>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }

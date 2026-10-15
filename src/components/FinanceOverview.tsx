@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Platform, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Line, Path, Polygon, Polyline, Rect, Text as SvgText } from 'react-native-svg';
@@ -202,12 +203,71 @@ function TopSpenders({ a, onPick, ink }: { a: Analysis; onPick: (n: string) => v
   );
 }
 
+
+/* ---------------- hero: saldo, variazione, mini-andamento ---------------- */
+function Hero({ a, onMovements }: { a: Analysis; onMovements: () => void }) {
+  const th = useTheme();
+  const [W, onLayout] = useBox(300);
+  const cur = a.cur;
+  if (!cur) return null;
+  const bal = a.balance;
+  const prevEnd = bal.length > 1 ? bal[bal.length - 2] : null;
+  const delta = prevEnd != null ? cur.end - prevEnd : null;
+  const H = 54, pad = 4;
+  const all = bal.length > 1 ? bal : [cur.end, cur.end];
+  const mx = Math.max(...all), mn = Math.min(...all), span = mx - mn || 1;
+  const x = (i: number) => pad + ((W - 2 * pad) * i) / Math.max(1, all.length - 1);
+  const y = (v: number) => pad + (1 - (v - mn) / span) * (H - 2 * pad);
+  const pts = all.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const area = `${x(0)},${H} ${pts} ${x(all.length - 1)},${H}`;
+  const chip = (label: string, v: number, up: boolean | null) => (
+    <View key={label} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, paddingVertical: 9, paddingHorizontal: 10 }}>
+      <Text style={{ color: '#ffffffb8', fontSize: 11.5 }}>{translateText(label)}</Text>
+      <Row gap={4} style={{ justifyContent: 'flex-start', marginTop: 2 }}>
+        {up != null ? <Icon name={up ? 'arrow-up' : 'arrow-down'} size={13} color={up ? '#6ff0b0' : '#ff9a9a'} stroke={2.6} /> : null}
+        <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }} numberOfLines={1}>{compact(v)}</Text>
+      </Row>
+    </View>
+  );
+  return (
+    <LinearGradient colors={['#0f1f4d', '#1b2f6e', '#16466b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 18, marginBottom: 14, overflow: 'hidden' }}>
+      <Row>
+        <Text style={{ color: '#ffffffb8', fontSize: 13, fontWeight: '700', letterSpacing: 0.6 }}>{translateText('SALDO ATTUALE')}</Text>
+        <Press onPress={onMovements} accessibilityLabel={translateText('Movimenti')} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.14)' }}>
+          <Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '700' }}>{translateText('Movimenti')}</Text><Icon name="chevron-right" size={13} color="#fff" stroke={2.4} />
+        </Press>
+      </Row>
+      <Text style={{ color: '#fff', fontSize: 38, fontWeight: '800', letterSpacing: -1, marginTop: 6 }} numberOfLines={1} adjustsFontSizeToFit>{money(cur.end)}</Text>
+      {delta != null ? (
+        <Row gap={6} style={{ justifyContent: 'flex-start', marginTop: 2 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: delta >= 0 ? 'rgba(80,220,150,0.22)' : 'rgba(255,120,120,0.22)', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 8 }}>
+            <Icon name={delta >= 0 ? 'arrow-up' : 'arrow-down'} size={12} color={delta >= 0 ? '#6ff0b0' : '#ff9a9a'} stroke={2.8} />
+            <Text style={{ color: delta >= 0 ? '#6ff0b0' : '#ff9a9a', fontWeight: '800', fontSize: 12.5 }}>{money(Math.abs(delta))}</Text>
+          </View>
+          <Text style={{ color: '#ffffffa8', fontSize: 12.5 }}>{translateText('rispetto al mese scorso')}</Text>
+        </Row>
+      ) : null}
+      <View onLayout={onLayout} style={{ marginTop: 12, direction: 'ltr' }}>
+        <Svg width={W} height={H}>
+          <Polygon points={area} fill="#ffffff" opacity={0.12} />
+          <Polyline points={pts} fill="none" stroke="#9fd0ff" strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" />
+          <Circle cx={x(all.length - 1)} cy={y(all[all.length - 1])} r={4} fill="#fff" />
+        </Svg>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+        {chip('Entrate', cur.income, true)}{chip('Uscite', cur.expense, false)}{chip('Risparmio', cur.saved, cur.saved >= 0)}
+      </View>
+    </LinearGradient>
+  );
+}
+
 /* ---------------- pannello principale ---------------- */
 export function FinanceOverview({ h }: { h: OverviewHandlers }) {
   const th = useTheme();
   const ink = useInk();
   const f = useFin();
   const narrow = useWindowDimensions().width < 350;
+  const [allText, setAllText] = useState(false);
   const [sheet, setSheet] = useState<null | { kind: 'month'; i: number } | { kind: 'cat'; n: string } | { kind: 'gauge' } | { kind: 'point'; i: number }>(null);
 
   const { a, recap } = useMemo(() => {
@@ -247,13 +307,15 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
 
   return (
     <>
+      <Hero a={a} onMovements={() => h.onMovements(0)} />
       <UpcomingBillsCard onOpen={h.onBills} />
       {/* Recap a parole */}
       <Card accent={th.accent} style={{ padding: 18 }}>
         <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="note" size={18} color={th.accent} /><H style={{ marginBottom: 0 }}>Il tuo mese in parole</H></Row>
         <Body small muted style={{ marginTop: 2, marginBottom: 10 }}>{cur ? cap(monthLongOf(cur.label)) : ''} · riepilogo automatico dei tuoi movimenti, non è consulenza finanziaria</Body>
-        {recap.sentences.map((s, i) => <Text key={i} style={{ color: th.text, fontSize: 15, lineHeight: 22, marginBottom: 8 }}>{s}</Text>)}
-        {recap.actions.length > 0 && (
+        {(allText ? recap.sentences : recap.sentences.slice(0, 2)).map((s, i) => <Text key={i} style={{ color: th.text, fontSize: 15, lineHeight: 22, marginBottom: 8 }}>{s}</Text>)}
+        {recap.sentences.length > 2 ? <Press onPress={() => setAllText(!allText)} accessibilityLabel={translateText(allText ? 'Mostra meno' : 'Leggi tutto')} style={{ alignSelf: 'flex-start', paddingVertical: 6 }}><Text style={{ color: th.accent, fontWeight: '800', fontSize: 14 }}>{translateText(allText ? 'Mostra meno' : 'Leggi tutto')}</Text></Press> : null}
+        {allText && recap.actions.length > 0 && (
           <View style={{ marginTop: 6 }}>
             <Body small bold muted style={{ marginBottom: 6 }}>Cosa potresti guardare</Body>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -263,30 +325,21 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
         )}
       </Card>
 
-      {/* Saldo + numeri chiave */}
-      {cur && (
-        <Card>
-          <Row gap={8} style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <View style={{ flexGrow: 1 }}>
-              <Body small muted>Saldo attuale</Body>
-              <Text style={{ color: th.text, fontSize: narrow ? 28 : 32, fontWeight: '800' }}>{money(cur.end)}</Text>
-            </View>
-            <Btn small ghost title="Movimenti" icon="chevron-right" onPress={() => h.onMovements(0)} />
-          </Row>
-          <View style={{ flexDirection: narrow ? 'column' : 'row', gap: 8, marginTop: 12 }}>
-            {[{ l: 'Entrate', v: cur.income, c: th.accent }, { l: 'Uscite', v: cur.expense, c: th.warn }, { l: 'Risparmio', v: cur.saved, c: cur.saved >= 0 ? th.positive : th.danger }].map((k) => (
-              <View key={k.l} style={{ flex: narrow ? undefined : 1, flexDirection: narrow ? 'row' : 'column', justifyContent: 'space-between', alignItems: narrow ? 'center' : undefined, backgroundColor: th.tile, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 8, borderTopWidth: 3, borderTopColor: k.c }}>
-                <Body small muted>{k.l}</Body>
-                <Text style={{ color: th.text, fontSize: 14, fontWeight: '700', marginTop: narrow ? 0 : 2 }}>{money(k.v)}</Text>
-              </View>
-            ))}
-          </View>
-        </Card>
-      )}
-
       {/* (a) barre */}
       <Section title="Entrate e uscite" hint="Ultimi mesi, con il risparmio (entrate meno uscite) sulla linea. Tocca un mese per il dettaglio.">
         {enough ? <IncomeExpenseChart series={a.series} onPick={(i) => setSheet({ kind: 'month', i })} /> : <Empty text="Servono almeno 2 mesi di movimenti per il confronto." />}
+      </Section>
+
+      {/* (d) andamento */}
+      <Section title="Andamento del saldo" hint="Saldo a fine mese e stima dei prossimi 3 mesi, ipotizzando che il risparmio medio recente resti simile.">
+        {a.hasEnough.trend && a.forecast.length ? (
+          <>
+            <BalanceChart a={a} onPick={(i) => setSheet({ kind: 'point', i })} />
+            <Body small muted style={{ marginTop: 8 }}>
+              {a.forecastStep >= 0 ? t('Variazione media recente: +{0} al mese. È una stima, la situazione reale può cambiare.', money(a.forecastStep)) : t('Variazione media recente: -{0} al mese. È una stima, la situazione reale può cambiare.', money(-a.forecastStep))}
+            </Body>
+          </>
+        ) : <Empty text="Servono almeno 2 mesi di movimenti per vedere l'andamento e la stima." />}
       </Section>
 
       {/* (c) gauge */}
@@ -319,18 +372,6 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
             ))}
           </View>
         ) : <Empty text="Nessuna spesa registrata in questo periodo: appena ci sono movimenti vedrai la ripartizione." />}
-      </Section>
-
-      {/* (d) andamento */}
-      <Section title="Andamento del saldo" hint="Saldo a fine mese e stima dei prossimi 3 mesi, ipotizzando che il risparmio medio recente resti simile.">
-        {a.hasEnough.trend && a.forecast.length ? (
-          <>
-            <BalanceChart a={a} onPick={(i) => setSheet({ kind: 'point', i })} />
-            <Body small muted style={{ marginTop: 8 }}>
-              {a.forecastStep >= 0 ? t('Variazione media recente: +{0} al mese. È una stima, la situazione reale può cambiare.', money(a.forecastStep)) : t('Variazione media recente: -{0} al mese. È una stima, la situazione reale può cambiare.', money(-a.forecastStep))}
-            </Body>
-          </>
-        ) : <Empty text="Servono almeno 2 mesi di movimenti per vedere l'andamento e la stima." />}
       </Section>
 
       {/* (e) chi pesa di più */}

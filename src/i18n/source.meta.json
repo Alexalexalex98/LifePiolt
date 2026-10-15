@@ -1,5 +1,5 @@
 {
- "count": 10660,
+ "count": 10661,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -107,7 +107,7 @@
   "src/components/ErrorBanner.tsx": 5,
   "src/components/ErrorBoundary.tsx": 10,
   "src/components/FinTabs.tsx": 4,
-  "src/components/FinanceOverview.tsx": 54,
+  "src/components/FinanceOverview.tsx": 57,
   "src/components/GoalProgress.tsx": 16,
   "src/components/Inbox.tsx": 4,
   "src/components/InterestsPicker.tsx": 16,
