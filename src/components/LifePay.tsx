@@ -37,7 +37,9 @@ export function LifePayFab() {
   );
 }
 
-const TABS = ['Paga', 'Cripto'] as const;
+const TABS = ['Paga', 'Versa'] as const;
+const METHODS = ['Carta', 'Cripto'] as const;
+const CARD_AMOUNTS = [50, 100, 250, 500];
 
 export function LifePayHost() {
   const t = useTheme();
@@ -50,6 +52,8 @@ export function LifePayHost() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Paga');
   const [asset, setAsset] = useState<Asset>('ETH');
   const [amt, setAmt] = useState('');
+  const [method, setMethod] = useState<(typeof METHODS)[number]>('Carta');
+  const [cardLp, setCardLp] = useState(100);
   const bal = crypto?.[asset] ?? 0;
   const n = parseFloat(amt.replace(',', '.'));
   const q = amt ? quote(asset, n, bal) : null;
@@ -62,6 +66,7 @@ export function LifePayHost() {
     st.patch({ crypto: applyConversion(st.crypto, asset, n), cryptoLog: [{ ts: Date.now(), asset, amount: n, lp: q.lp }, ...(st.cryptoLog ?? [])].slice(0, 30) });
     setAmt(''); toast(`Hai ricevuto ${formatCHF(q.lp)} LP`);
   };
+  const topUpCard = () => { useNet.getState().earn(cardLp, 'Versamento con la carta'); toast(`Versati ${formatCHF(cardLp)} LP`); };
   const addDemo = () => { const st = useNet.getState(); st.patch({ crypto: { BTC: (st.crypto?.BTC ?? 0) + 0.01, ETH: (st.crypto?.ETH ?? 0) + 1, USDC: (st.crypto?.USDC ?? 0) + 500, SOL: (st.crypto?.SOL ?? 0) + 10 } }); toast('Cripto di prova aggiunte'); };
   return (
     <Sheet visible={open} title="LifePay" onClose={close}>
@@ -88,20 +93,38 @@ export function LifePayHost() {
         </>
       ) : (
         <>
-          <Body small muted style={{ marginBottom: 8 }}>Al posto della carta puoi cambiare le tue cripto in LifePoints. Si cambia solo verso LifePoints e solo qui; commissione {Math.round(CONVERT_FEE * 100)}%.</Body>
-          <Row style={{ flexWrap: 'wrap', justifyContent: 'flex-start', gap: 8, marginBottom: 10 }}>
-            {ASSETS.map((a) => (
-              <Pressable key={a.id} onPress={() => { setAsset(a.id); setAmt(''); }} accessibilityRole="button" accessibilityState={{ selected: asset === a.id }} style={{ paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, backgroundColor: asset === a.id ? t.text : t.chip }}>
-                <Text style={{ color: asset === a.id ? t.onText : t.text, fontWeight: '700' }}>{a.id}</Text>
-              </Pressable>
-            ))}
-          </Row>
-          <Body small muted>Hai {bal} {asset} · 1 {asset} ≈ {formatCHF(DEMO_RATES[asset])} LP (tasso dimostrativo)</Body>
-          <Input keyboardType="decimal-pad" placeholder={`Quanti ${asset} vuoi cambiare?`} value={amt} onChangeText={setAmt} style={{ marginTop: 8 }} />
-          {q ? (q.ok ? <Body small style={{ marginBottom: 8 }}>Ricevi {formatCHF(q.lp)} LP (commissione {formatCHF(q.fee)} LP)</Body> : <Body small color={t.warn} style={{ marginBottom: 8 }}>{q.reason}</Body>) : null}
-          <Btn title="Cambia in LifePoints" disabled={!q || !q.ok} onPress={convert} />
-          {demo ? <Btn ghost style={{ marginTop: 8 }} title="Solo demo: aggiungi cripto di prova" onPress={addDemo} /> : null}
-          <Body small muted style={{ marginTop: 10 }}>Nella versione demo il cambio è simulato. Il cambio vero richiede un fornitore autorizzato e la verifica dell'identità.</Body>
+          <Body small muted style={{ marginBottom: 8 }}>Versa per avere LifePoints: con la carta oppure cambiando cripto. Poi si paga sempre e solo in LifePoints.</Body>
+          <Seg options={[...METHODS]} value={method} onChange={(v) => setMethod(v as (typeof METHODS)[number])} />
+          {method === 'Carta' ? (
+            <>
+              <Row style={{ flexWrap: 'wrap', justifyContent: 'flex-start', gap: 8, marginVertical: 10 }}>
+                {CARD_AMOUNTS.map((a) => (
+                  <Pressable key={a} onPress={() => setCardLp(a)} accessibilityRole="button" accessibilityState={{ selected: cardLp === a }} style={{ paddingVertical: 9, paddingHorizontal: 16, borderRadius: 999, backgroundColor: cardLp === a ? t.text : t.chip }}>
+                    <Text style={{ color: cardLp === a ? t.onText : t.text, fontWeight: '700' }}>{a} LP</Text>
+                  </Pressable>
+                ))}
+              </Row>
+              <Btn icon="wallet" title={`Versa ${cardLp} LP con la carta`} onPress={topUpCard} />
+              <Body small muted style={{ marginTop: 10 }}>Nella versione demo il versamento con carta è simulato. Per quello vero serve un fornitore di pagamenti autorizzato (anche per Apple Pay e Google Pay).</Body>
+            </>
+          ) : (
+            <>
+              <Body small muted style={{ marginVertical: 8 }}>Cambi le tue cripto in LifePoints, come con la carta. Commissione {Math.round(CONVERT_FEE * 100)}%.</Body>
+              <Row style={{ flexWrap: 'wrap', justifyContent: 'flex-start', gap: 8, marginBottom: 10 }}>
+                {ASSETS.map((a) => (
+                  <Pressable key={a.id} onPress={() => { setAsset(a.id); setAmt(''); }} accessibilityRole="button" accessibilityState={{ selected: asset === a.id }} style={{ paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, backgroundColor: asset === a.id ? t.text : t.chip }}>
+                    <Text style={{ color: asset === a.id ? t.onText : t.text, fontWeight: '700' }}>{a.id}</Text>
+                  </Pressable>
+                ))}
+              </Row>
+              <Body small muted>Hai {bal} {asset} · 1 {asset} ≈ {formatCHF(DEMO_RATES[asset])} LP (tasso dimostrativo)</Body>
+              <Input keyboardType="decimal-pad" placeholder={`Quanti ${asset} vuoi cambiare?`} value={amt} onChangeText={setAmt} style={{ marginTop: 8 }} />
+              {q ? (q.ok ? <Body small style={{ marginBottom: 8 }}>Ricevi {formatCHF(q.lp)} LP (commissione {formatCHF(q.fee)} LP)</Body> : <Body small color={t.warn} style={{ marginBottom: 8 }}>{q.reason}</Body>) : null}
+              <Btn title="Cambia in LifePoints" disabled={!q || !q.ok} onPress={convert} />
+              {demo ? <Btn ghost style={{ marginTop: 8 }} title="Solo demo: aggiungi cripto di prova" onPress={addDemo} /> : null}
+              <Body small muted style={{ marginTop: 10 }}>Nella versione demo il cambio è simulato. Quello vero richiede un fornitore autorizzato e la verifica dell'identità.</Body>
+            </>
+          )}
         </>
       )}
     </Sheet>
