@@ -204,7 +204,7 @@ export default function LifeNetwork() {
           <View style={{ height: 8 }} />
         </View>
       )}
-      {!searching && curTab === 'Home' && <View {...storiesPan.panHandlers}><Safe name="recap"><StoriesBar /></Safe></View>}
+      {!searching && curTab === 'Home' && <View {...storiesPan.panHandlers}><Safe name="recap"><StoriesBar mode={following ? 'Seguiti' : 'Per te'} /></Safe></View>}
       {!searching && curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
           <Composer me={me} onPress={compose} />

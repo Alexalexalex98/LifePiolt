@@ -36,3 +36,11 @@ test('sezioni della barra: vicina a sinistra/destra, ferma ai bordi', () => {
   assert.equal(sectionDirection(-30, 5, -0.9), 1);
   assert.equal(sectionDirection(-120, 100), 0);
 });
+
+import { discoverAuthors, recapAuthors } from '../src/lib/storyDiscover.ts';
+test('recap: Per te include chi non segui ma hai aiutato o ti piace; Seguiti solo chi segui', () => {
+  const d = discoverAuthors({ me: 'Alex', following: ['Marco'], dailyHistory: [{ to: 'Sara' }], donorsLog: { Alex: [{ from: 'Elena' }, { from: 'Tu' }] }, likedAuthors: ['Marco', 'Sophie'], swipedYesAuthors: ['Sara', 'Alex'] });
+  assert.deepEqual(d.sort(), ['Elena', 'Sara', 'Sophie']);
+  assert.deepEqual(recapAuthors(['Marco'], d, 'Seguiti'), ['Marco']);
+  assert.deepEqual(recapAuthors(['Marco'], d, 'Per te').sort(), ['Elena', 'Marco', 'Sara', 'Sophie']);
+});

@@ -42,32 +42,54 @@ export default function TabsLayout() {
   const curRef = useRef(cur); curRef.current = cur;
   const itemsRef = useRef(navItems); itemsRef.current = navItems;
   const x = useRef(new Animated.Value(0)).current;
-  const negX = useRef(Animated.multiply(x, -1)).current;
   const busy = useRef(false);
-  /* trascini la sezione con il dito: se basta, esce da un lato e la nuova entra dall'altro */
+  const EDGE = 24;
+  /* Pager reale: le sezioni della barra sono affiancate (quella accanto è già montata), la schermata segue il dito e si vede subito dove stai andando. */
   const pan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_e, g) => !busy.current && Math.abs(g.dx) > 16 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8 && !!adjacentSection(itemsRef.current, curRef.current, g.dx < 0 ? 1 : -1),
-    onPanResponderMove: (_e, g) => { const to = adjacentSection(itemsRef.current, curRef.current, g.dx < 0 ? 1 : -1); x.setValue(to ? g.dx * 0.9 : 0); },
+    /* si parte solo dal bordo dello schermo (24 px): da sinistra verso destra = sezione precedente, da destra verso sinistra = successiva; un tocco normale non cambia sezione */
+    onMoveShouldSetPanResponderCapture: (e, g) => {
+      const x0 = (e.nativeEvent.pageX ?? g.moveX) - g.dx;
+      if (busy.current || Math.abs(g.dx) < 12 || Math.abs(g.dx) < Math.abs(g.dy) * 1.8) return false;
+      const fromLeft = x0 <= EDGE && g.dx > 0, fromRight = x0 >= W - EDGE && g.dx < 0;
+      return (fromLeft || fromRight) && !!adjacentSection(itemsRef.current, curRef.current, g.dx < 0 ? 1 : -1);
+    },
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderMove: (_e, g) => { const to = adjacentSection(itemsRef.current, curRef.current, g.dx < 0 ? 1 : -1); x.setValue(to ? Math.max(-W, Math.min(W, g.dx)) : 0); },
     onPanResponderRelease: (_e, g) => {
       const d = sectionDirection(g.dx, g.dy, g.vx);
       const to = d ? adjacentSection(itemsRef.current, curRef.current, d) : null;
       if (!to) { Animated.spring(x, { toValue: 0, useNativeDriver: false, friction: 8 }).start(); return; }
       busy.current = true;
-      Animated.timing(x, { toValue: -d * W, duration: 140, easing: Easing.in(Easing.quad), useNativeDriver: false }).start(() => {
+      Animated.timing(x, { toValue: -d * W, duration: 170, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() => {
         go(to);
-        x.setValue(d * W);
-        Animated.timing(x, { toValue: 0, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() => { busy.current = false; });
+        x.setValue(0);
+        setTimeout(() => { busy.current = false; }, 60);
       });
     },
     onPanResponderTerminate: () => { Animated.spring(x, { toValue: 0, useNativeDriver: false }).start(); },
   })).current;
+  /* le sezioni della barra restano montate (servono per vederle accanto durante il gesto) e si dispongono in fila */
+  const screenOptions = ({ route }: { route: { name: string } }) => {
+    const id = route.name === 'index' ? 'home' : route.name;
+    const inBar = navItems.includes(id);
+    return {
+      headerShown: false,
+      lazy: !inBar,
+      animation: inBar ? ('shift' as const) : ('none' as const),
+      transitionSpec: { animation: 'timing' as const, config: { duration: 0 } },
+      /* posizione in fila secondo l'ordine della barra (non quello dei file): chi sta accanto alla sezione attuale è a un passo */
+      sceneStyleInterpolator: () => {
+        const ni = itemsRef.current.indexOf(id), fi = itemsRef.current.indexOf(curRef.current);
+        const off = fi < 0 ? (ni + 1) * W : (ni - fi) * W;
+        return { sceneStyle: { transform: [{ translateX: Animated.add(x, off) }] } };
+      },
+    };
+  };
 
   return (
     <>
-      <View style={{ flex: 1, overflow: 'hidden' }} {...pan.panHandlers}>
-        <Animated.View style={{ flex: 1, transform: [{ translateX: x }] }}>
-          <Tabs backBehavior="history" tabBar={(p) => <Animated.View style={{ transform: [{ translateX: negX }] }}><NavBar {...p} /></Animated.View>} screenOptions={{ headerShown: false, lazy: true }} />
-        </Animated.View>
+      <View style={{ flex: 1 }} {...pan.panHandlers}>
+        <Tabs backBehavior="history" detachInactiveScreens={false} tabBar={(p) => <NavBar {...p} />} screenOptions={screenOptions as never} />
       </View>
       <LifePayFab />
       <LifePayHost />

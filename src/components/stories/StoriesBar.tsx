@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
+import { discoverAuthors, recapAuthors } from '@/lib/storyDiscover';
 import { BACKGROUNDS, makeStory, purgeStories, storyGroups, timeLabel, type Story, type StoryGroup } from '@/lib/stories';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
@@ -31,8 +32,24 @@ function useDemoStories() {
   }, [demo, net.storiesSeeded]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
+/** Chi compare nel recap: «Seguiti» solo chi segui; «Per te» anche chi hai aiutato o scrive cose simili a quelle che ti piacciono. */
+export function useRecapAllowed(mode: 'Per te' | 'Seguiti') {
+  const me = useApp((s) => s.account.name);
+  const following = useNet((s) => s.following);
+  const posts = useNet((s) => s.posts);
+  const liked = useNet((s) => s.likedPosts);
+  const swipes = useNet((s) => s.swipes);
+  const dailyHistory = useNet((s) => s.dailyHistory);
+  const donorsLog = useNet((s) => s.donorsLog);
+  return useMemo(() => {
+    const authorOf = (k: string) => (k.startsWith('standalone:') ? posts.find((p) => 'standalone:' + p.id === k)?.author : undefined);
+    const discovered = discoverAuthors({ me, following, dailyHistory, donorsLog, likedAuthors: liked.map(authorOf).filter((a): a is string => !!a), swipedYesAuthors: (swipes ?? []).filter((r) => r.dir === 'yes').map((r) => authorOf(r.key)).filter((a): a is string => !!a) });
+    return new Set(recapAuthors(following, discovered, mode));
+  }, [posts, liked, swipes, dailyHistory, donorsLog, following, me, mode]);
+}
+
 /** Fila di storie in cima alla Home: la tua con il «+», poi le persone che segui (anello colorato = ancora da vedere). */
-export function StoriesBar() {
+export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' }) {
   const t = useTheme();
   const me = useApp((s) => s.account.name);
   const stories = useNet((s) => s.stories);
@@ -47,7 +64,8 @@ export function StoriesBar() {
     const st = useNet.getState().stories;
     if (st && purgeStories(st, Date.now()).length !== st.length) useNet.getState().patch({ stories: purgeStories(st, Date.now()) });
   }, []);
-  const groups = useMemo(() => storyGroups(stories, me, (a) => following.includes(a), seen ?? [], now), [stories, seen, following, me]); // eslint-disable-line react-hooks/exhaustive-deps
+  const allowed = useRecapAllowed(mode);
+  const groups = useMemo(() => storyGroups(stories, me, (a) => allowed.has(a), seen ?? [], now), [stories, seen, allowed, me]); // eslint-disable-line react-hooks/exhaustive-deps
   const mine = groups.find((g) => g.mine);
   const others = groups.filter((g) => !g.mine);
   const preview = (st: Story, w: number, h: number) => st.kind === 'text'
