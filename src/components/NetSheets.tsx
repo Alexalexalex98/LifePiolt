@@ -1,3 +1,5 @@
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { Platform, Pressable, Share, View } from 'react-native';
 import { Text } from '@/components/T';
@@ -517,13 +519,22 @@ function ServiceEditor({ resume }: { resume?: boolean }) {
   const [dur, setDur] = useState(DURATIONS.find((d) => d[1] === (info?.durationMin ?? 60))?.[0] ?? '1 ora');
   const [mode, setMode] = useState<'online' | 'presenza'>(info?.mode ?? 'online'); const [place, setPlace] = useState(info?.place ?? ''); const [lang, setLang] = useState(info?.language ?? 'Italiano');
   const [slots, setSlots] = useState<string[]>(cur?.slots ?? []);
+  const [cover, setCover] = useState<string | undefined>(cur?.cover);
+  const pickCover = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted && perm.accessPrivileges !== 'limited') { toast('Permesso foto negato: abilitalo dalle impostazioni del telefono.'); return; }
+      const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [16, 9], quality: 0.8 });
+      if (!r.canceled && r.assets[0]) setCover(r.assets[0].uri);
+    } catch { toast('Non riesco ad aprire le foto'); }
+  };
   const [day, setDay] = useState<string>(WEEKDAYS[0]); const [time, setTime] = useState('16:00');
   const save = () => {
     const form: ServiceForm = { role, tag, price, durationMin: DURATIONS.find((d) => d[0] === dur)![1], mode, place, language: lang, desc, slots };
     const why = validateService(form);
     if (why) { toast(why); return; }
     const pr = parseFloat(price.replace(',', '.'));
-    const provider = { name: me, role: role.trim(), price: pr, rating: cur?.rating ?? 0, tag, media: cur?.media ?? null, slots: sortSlots(slots) };
+    const provider = { name: me, role: role.trim(), price: pr, rating: cur?.rating ?? 0, tag, media: cur?.media ?? null, slots: sortSlots(slots), cover };
     const lines = gets.split('\n').map((l) => l.trim()).filter(Boolean);
     const next: ServiceInfo = { desc: desc.trim(), gets: lines.length ? lines : [`Una sessione di ${fmtDuration(form.durationMin)}`], durationMin: form.durationMin, mode, place: place.trim(), language: lang, forWho: forWho.trim() || 'Chiunque voglia provare.', cancel: pr ? `Paghi ${pr} LP al momento della prenotazione. Puoi disdire fino a 24 ore prima con rimborso intero e lo slot torna disponibile; puoi sempre riprogrammare.` : 'Gratuito: puoi disdire in qualsiasi momento.' };
     net.patch({ providers: cur ? net.providers.map((x) => (x.name === me ? provider : x)) : [provider, ...net.providers], serviceInfo: { ...(net.serviceInfo ?? {}), [me]: next } });
@@ -547,6 +558,14 @@ function ServiceEditor({ resume }: { resume?: boolean }) {
   return (
     <>
       <Body small muted style={{ marginBottom: 8 }}>Chi prenota paga in LifePoints al momento della prenotazione e tu li ricevi alla fine di ogni sessione. Puoi cambiare tutto quando vuoi.</Body>
+      <Body small muted style={{ marginBottom: 4 }}>Banda in alto del servizio</Body>
+      <View style={{ height: 96, borderRadius: 14, overflow: 'hidden', marginBottom: 8, backgroundColor: t.input, alignItems: 'center', justifyContent: 'center' }}>
+        {cover ? <Image source={{ uri: cover }} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" /> : <Body small muted style={{ textAlign: 'center', paddingHorizontal: 16 }}>Senza foto, LifePilot sceglie lo sfondo per te</Body>}
+      </View>
+      <Row gap={8} style={{ marginBottom: 10 }}>
+        <Btn small ghost style={{ flex: 1 }} icon="image" title={cover ? 'Cambia foto' : 'Scegli una foto'} onPress={pickCover} />
+        {cover ? <Btn small ghost style={{ flex: 1 }} title="Sfondo automatico" onPress={() => setCover(undefined)} /> : null}
+      </Row>
       <Input placeholder="Cosa offri (es. Lezione di francese)" value={role} onChangeText={setRole} maxLength={60} />
       <Select title="Categoria" value={tag} options={topicList} onChange={setTag} />
       <Input multiline style={{ minHeight: 90 }} placeholder="Descrizione: come si svolge una sessione, cosa non è (almeno 40 caratteri)" value={desc} onChangeText={setDesc} />

@@ -66,34 +66,42 @@ export function CommunityCard({ c, joined, onToggle, onPostHere }: { c: Communit
   );
 }
 
+/** Banda in alto del servizio: foto scelta da chi lo offre oppure uno sfondo scelto da LifePilot; a destra tipo di sessione e recensioni. */
+export function ServiceBanner({ p }: { p: Provider }) {
+  const info = providerInfoFor(p);
+  const g = heroPaletteFor(p.name + p.role);
+  return (
+  <LinearGradient colors={[g.from, g.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18, paddingTop: 46, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden' }}>
+    {p.cover ? <><Image source={{ uri: p.cover }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" /><View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: 'rgba(0,0,0,0.38)' }} /></> : <ArtShapes seed={p.name} size={360} />}
+    <View style={{ position: 'absolute', top: 12, end: 12, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      <View style={{ backgroundColor: 'rgba(0,0,0,0.38)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{modeLabel(info.mode)}</Text></View>
+      <View style={{ backgroundColor: 'rgba(0,0,0,0.38)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}><RatingChip refKey={`service:${p.name}`} light /></View>
+    </View>
+    <UserAvatar name={p.name} size={56} />
+    <View style={{ flex: 1, gap: 3 }}>
+      <Text numberOfLines={1} style={{ color: '#fff', fontSize: 19, fontWeight: '800' }}>{p.name}</Text>
+      <Text numberOfLines={2} style={{ color: g.sub, fontSize: 14 }}>{p.role}</Text>
+    </View>
+  </LinearGradient>
+  );
+}
+
 /** Servizio di un professionista: intestazione a gradiente con ruolo e voto, prossimo slot, prezzo e prenotazione. */
 export function ServiceFeedCard({ p }: { p: Provider }) {
   const t = useTheme();
   const me = useApp((a) => a.account.name);
   const info = providerInfoFor(p);
-  const avg = useItemAvg(`service:${p.name}`);
   const slots = datedSlots(p);
   const enrollments = useNet((s) => s.enrollments);
   const open = enrollments.filter((e) => e.kind === 'service' && e.host === p.name && e.status === 'enrolled').length;
   const visible = useVisible();
   if (!visible('service', p.name, p.name)) return null;
-  const g = heroPaletteFor(p.name + p.role);
   const own = p.name === me;
   const disabled = !slots.length && !own;
   return (
     <View style={{ marginHorizontal: FEED_GUTTER, marginBottom: 20 }}>
       <PressScale onPress={() => go('servicePage', { name: p.name })} to={0.985} label={tl('Apri il servizio di {0}', p.name)} style={{ borderRadius: FEED_RADIUS, overflow: 'hidden', backgroundColor: t.card, borderWidth: t.mode === 'light' ? 1 : 0, borderColor: t.border }}>
-        <LinearGradient colors={[g.from, g.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <ArtShapes seed={p.name} size={360} />
-          <UserAvatar name={p.name} size={56} />
-          <View style={{ flex: 1, gap: 3 }}>
-            <Text numberOfLines={1} style={{ color: '#fff', fontSize: 19, fontWeight: '800' }}>{p.name}</Text>
-            <Text numberOfLines={2} style={{ color: g.sub, fontSize: 14 }}>{p.role}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.32)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}>
-            <Icon name="award" size={13} color="#ffd978" fill="#ffd978" stroke={1.4} /><Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '800' }}>{avg == null ? '–' : avg.toFixed(1)}</Text>
-          </View>
-        </LinearGradient>
+        <ServiceBanner p={p} />
         <View style={{ padding: 16, gap: 8 }}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icon name="clock" size={15} color={t.muted} /><Text style={{ color: t.text, fontSize: 13.5 }}>{fmtDuration(info.durationMin)}</Text></View>
@@ -103,7 +111,6 @@ export function ServiceFeedCard({ p }: { p: Provider }) {
             <Icon name="calendar" size={15} color={t.muted} />
             <Text style={{ color: slots.length ? t.text : t.muted, fontSize: 13.5, flex: 1 }}>{slots.length ? tl('Prossimo slot: {0}', fmtDateTime(slots[0].ts)) : 'Nessuno slot libero al momento'}</Text>
           </View>
-          <RatingChip refKey={`service:${p.name}`} />
           {open > 0 && <Text style={{ color: t.accent, fontSize: 13.5, fontWeight: '700' }}>{open === 1 ? tl('Hai {0} prenotazione con {1}', open, p.name) : tl('Hai {0} prenotazioni con {1}', open, p.name)}</Text>}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, flexShrink: 1 }}>

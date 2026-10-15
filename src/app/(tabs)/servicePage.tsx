@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { Pressable, Share, View } from 'react-native';
 
 import { LiveAccess } from '@/components/live/LiveAccess';
+import { ServiceBanner } from '@/components/feed/TabCards';
 import { ItemReviews } from '@/components/ItemReviews';
 import { ParticipantsCard } from '@/components/ParticipantsCard';
 import { EnrollmentBox, Price, datedSlots, modeLabel } from '@/components/market';
@@ -43,6 +44,7 @@ export default function ServicePage() {
 
   return (
     <Page id="servicePage" title={p.role} back right={<Row gap={10}><Btn small ghost icon="share" title="Condividi" onPress={() => Share.share({ message: `${p.role} con ${p.name} su LifePilot` })} />{!isMine && <ModButton kind="service" refId={p.name} label={`${p.role} · ${p.name}`} author={p.name} />}</Row>}>
+      <View style={{ borderRadius: 18, overflow: 'hidden', marginBottom: 12 }}><ServiceBanner p={p} /></View>
       <Card>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }} gap={6}>
           <Badge label={p.tag} color="#8fa4ff" />

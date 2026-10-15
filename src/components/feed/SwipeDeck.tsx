@@ -54,7 +54,7 @@ function DeckVideo({ source, muted, controls }: { source: number | { uri: string
  * Swipe a schermo intero: si vede solo il post, come nel recap. A sinistra «mi interessa», a destra «non mi interessa».
  * Toccando il post compare la spiegazione.
  */
-export function SwipeDeck({ cards, onClose }: { cards: SwipeCandidate[]; onClose: () => void }) {
+export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[]; onClose: () => void; startKey?: string }) {
   const me = useApp((s) => s.account.name);
   const swipes = useNet((s) => s.swipes);
   const weights = useNet((s) => s.themeWeights);
@@ -71,7 +71,12 @@ export function SwipeDeck({ cards, onClose }: { cards: SwipeCandidate[]; onClose
   const x = useRef(new Animated.Value(0)).current;
   const [sharing, setSharing] = useState(false);
   const donated = useNet((s) => s.dailyPoint.lastGiven === weekdayShortDate());
-  const card = useMemo(() => nextCard(cards, swipes, weights, me) as SwipeCandidate | null, [cards, swipes, weights, me]);
+  /* se arrivi toccando un contenuto, si parte proprio da quello (finché non lo scegli) */
+  const card = useMemo(() => {
+    const first = startKey ? cards.find((c) => c.key === startKey && c.author !== me) : undefined;
+    if (first && !(swipes ?? []).some((r) => r.key === first.key)) return first;
+    return nextCard(cards, swipes, weights, me) as SwipeCandidate | null;
+  }, [cards, swipes, weights, me, startKey]);
   const liked = useNet((s) => !!card && s.likedPosts.includes(card.key));
   const left = remaining(cards, swipes, weights, me);
   const cardRef = useRef(card); cardRef.current = card;

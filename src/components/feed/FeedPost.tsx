@@ -3,7 +3,7 @@ import { carouselEdge, emitEdgeSwipe } from '@/lib/feedSwipe';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated, Easing, Pressable, ScrollView, TextInput, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { Text } from '@/components/T';
 
 import { UserAvatar, openMedia, openSheet } from '@/components/network';
@@ -144,19 +144,21 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
   const role = useNet((s) => s.providers.find((p) => p.name === post.author)?.role);
   const visible = useVisible();
   const [open, setOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [draft, setDraft] = useState('');
   const { heart, flash } = useHeartBurst();
   if (muted || !visible('post', likeKey, post.author)) return null;
 
   const commentCount = (comments || []).length;
-  const first = (comments || [])[0];
+  const sendDraft = () => { const x = draft.trim(); if (!x) return; useNet.getState().addComment(likeKey, me, x); setDraft(''); };
+  const first = (comments || [])[(comments || []).length - 1];
   const hasMedia = !!post.media;
   const more = hasMedia && captionNeedsMore(post.text);
   const sub = [post.tag ?? role, fmtAgo(post.ts), post.editedAt ? translateText('modificato') : ''].filter(Boolean).join(' · ');
 
   const like = () => useNet.getState().likePost(likeKey);
   const doubleLike = () => { flash(); if (!useNet.getState().likedPosts.includes(likeKey)) like(); };
-  const single = () => { if (post.media) openMedia({ media: post.media, seed: post.author + post.text, uri: post.uri }); else go('postPage', { key: likeKey }); };
-  const [sharing, setSharing] = useState(false);
+  const single = () => { if (post.media && post.author !== me && (post.uri || post.uris?.length)) go('swipeDeck', { start: likeKey }); else if (post.media) openMedia({ media: post.media, seed: post.author + post.text, uri: post.uri }); else go('postPage', { key: likeKey }); };
   const onLayout = (e: LayoutChangeEvent) => { const x = Math.round(e.nativeEvent.layout.width); if (x && x !== w) setW(x); };
 
   return (
@@ -203,10 +205,11 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
           </Pressable>
         ) : null}
         {first ? <Text numberOfLines={1} style={{ color: t.text, fontSize: 14 }}><Text style={{ fontWeight: '800' }}>{first.author} </Text>{first.text}</Text> : null}
-        <Pressable onPress={() => go('postPage', { key: likeKey })} accessibilityRole="button" accessibilityLabel={translateText('Scrivi un commento…')} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 36 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40 }}>
           <UserAvatar name={me} size={24} />
-          <Text style={{ color: t.muted, fontSize: 14 }}>Aggiungi un commento…</Text>
-        </Pressable>
+          <TextInput value={draft} onChangeText={setDraft} placeholder={translateText('Aggiungi un commento…')} placeholderTextColor={t.muted} accessibilityLabel={translateText('Scrivi un commento…')} returnKeyType="send" blurOnSubmit onSubmitEditing={sendDraft} style={{ flex: 1, color: t.text, fontSize: 14, paddingVertical: 8 }} />
+          {draft.trim() ? <Pressable onPress={sendDraft} accessibilityRole="button" accessibilityLabel={translateText('Pubblica il commento')} hitSlop={8}><Text style={{ color: t.accent, fontWeight: '800', fontSize: 14 }}>{translateText('Pubblica')}</Text></Pressable> : null}
+        </View>
         </>)}
         {post.ts ? <Text style={{ color: t.muted, fontSize: 11.5, letterSpacing: 0.3, textTransform: 'uppercase' }}>{fmtDay(post.ts)}</Text> : null}
       </View>
