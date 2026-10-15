@@ -102,7 +102,7 @@ export default function FitnessMeal() {
         {photo ? <Image source={{ uri: photo }} style={{ width: '100%', height: 190, borderRadius: 14, marginTop: 10 }} contentFit="cover" /> : null}
         {photo ? (premium
           ? <Btn style={{ marginTop: 10 }} icon="sparkle" title={busy ? 'Analizzo il piatto…' : 'Analizza il piatto'} disabled={busy} onPress={() => void analyze()} />
-          : <View style={{ marginTop: 10 }}><Body small muted>Con Premium analizzo la foto: ti dico cosa c'è nel piatto e i valori nutrizionali.</Body><Btn style={{ marginTop: 6 }} ghost icon="lock" title="Scopri Premium" onPress={() => go('lifefitness')} /></View>) : <Body small muted style={{ marginTop: 8 }}>Scatta o scegli la foto del piatto: con Premium lo analizzo e ti faccio il resoconto. In ogni caso puoi comporlo tu qui sotto.</Body>}
+          : <View style={{ marginTop: 10 }}><Body small muted>Con il LifePass analizzo la foto: ti dico cosa c'è nel piatto e i valori nutrizionali.</Body><Btn style={{ marginTop: 6 }} ghost icon="lock" title="Scopri il LifePass" onPress={() => go('lifefitness')} /></View>) : <Body small muted style={{ marginTop: 8 }}>Scatta o scegli la foto del piatto: con il LifePass lo analizzo e ti faccio il resoconto. In ogni caso puoi comporlo tu qui sotto.</Body>}
         {report ? (
           <View style={{ marginTop: 10 }}>
             <Body bold>Resoconto del piatto</Body>

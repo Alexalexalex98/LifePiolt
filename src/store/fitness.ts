@@ -25,7 +25,7 @@ type State = {
   logWorkout: (w: Omit<Workout, 'id'>) => void;
   addMeal: (m: Omit<Meal, 'id'>) => void;
   delMeal: (id: string) => void;
-  /** Attiva il Premium pagando con i LifePoints. */
+  /** Attiva il LifePass pagando con i LifePoints. */
   subscribe: () => { ok: boolean; message: string };
   setAutoRenew: (on: boolean) => void;
   /** Rinnova da solo se è scaduto (paga con i LifePoints) o chiude l'abbonamento. */
@@ -46,15 +46,15 @@ export const useFitness = create<State>()(
     delMeal: (id) => set((s) => ({ meals: s.meals.filter((m) => m.id !== id) })),
     subscribe: () => {
       const net = useNet.getState();
-      if (!net.spend(PREMIUM_PRICE_LP, 'LifeFitness Premium (30 giorni)')) return { ok: false, message: `Servono ${PREMIUM_PRICE_LP} LifePoints: ne hai ${net.lifePoints}.` };
+      if (!net.spend(PREMIUM_PRICE_LP, 'LifeFitness LifePass (30 giorni)')) return { ok: false, message: `Servono ${PREMIUM_PRICE_LP} LifePoints: ne hai ${net.lifePoints}.` };
       set({ sub: startSub(Date.now()) });
-      return { ok: true, message: 'Premium attivo per 30 giorni.' };
+      return { ok: true, message: 'LifePass attivo per 30 giorni.' };
     },
     setAutoRenew: (on) => set((s) => (s.sub ? { sub: { ...s.sub, autoRenew: on } } : {})),
     settle: (now = Date.now()) => {
       const s = get();
       const r = renewIfDue(s.sub, now, useNet.getState().lifePoints);
-      if (r.charged > 0) useNet.getState().spend(r.charged, 'LifeFitness Premium (rinnovo)');
+      if (r.charged > 0) useNet.getState().spend(r.charged, 'LifeFitness LifePass (rinnovo)');
       if (r.sub !== s.sub) set({ sub: r.sub });
     },
     enter: (gymId) => {

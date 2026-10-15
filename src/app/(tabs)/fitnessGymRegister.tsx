@@ -31,7 +31,7 @@ export default function FitnessGymRegister() {
       <FitHero eyebrow="Per i centri" title="Entra nel programma" sub="Registrati gratis: offri un servizio e ricevi una parte dei ricavi." />
       <Card>
         <H>Entra nel programma LifeFitness</H>
-        <Body small muted style={{ marginVertical: 6 }}>Registrarsi è gratuito. Il centro offre l'accesso agli abbonati Premium e riceve una parte dei ricavi, in base agli ingressi. La percentuale si stabilisce insieme, prima dell'attivazione.</Body>
+        <Body small muted style={{ marginVertical: 6 }}>Registrarsi è gratuito. Il centro offre l'accesso agli titolari del LifePass e riceve una parte dei ricavi, in base agli ingressi. La percentuale si stabilisce insieme, prima dell'attivazione.</Body>
         <Input placeholder="Nome del centro" value={name} onChangeText={setName} maxLength={60} />
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 6 }} gap={8}>
           {(['palestra', 'piscina', 'centro'] as const).map((k) => <Pill key={k} label={k === 'centro' ? 'Centro sportivo' : k.charAt(0).toUpperCase() + k.slice(1)} on={kind === k} onPress={() => setKind(k)} />)}

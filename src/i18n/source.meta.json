@@ -46,7 +46,7 @@
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
   "src/app/(tabs)/lifefinance.tsx": 86,
-  "src/app/(tabs)/lifefitness.tsx": 61,
+  "src/app/(tabs)/lifefitness.tsx": 59,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
   "src/app/(tabs)/lifenetwork.tsx": 41,

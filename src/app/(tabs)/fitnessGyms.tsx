@@ -15,7 +15,7 @@ import { toast } from '@/store/toast';
 
 const KIND: Record<GymKind, string> = { palestra: 'Palestra', piscina: 'Piscina', centro: 'Centro sportivo' };
 
-/** I centri convenzionati: elenco, dettagli e ingresso con il Premium. */
+/** I centri convenzionati: elenco, dettagli e ingresso con il LifePass. */
 export default function FitnessGyms() {
   const t = useTheme();
   const fit = useFitness();
@@ -27,11 +27,11 @@ export default function FitnessGyms() {
   const enter = (g: Gym) => { const r = fit.enter(g.id); toast(r.message); if (r.ok) setOpen(null); };
   return (
     <Page id="fitnessGyms" back title="Centri convenzionati">
-      <FitHero eyebrow="Premium" title="Un abbonamento, tanti centri" sub="Palestre, piscine e centri sportivi convenzionati." />
+      <FitHero eyebrow="LifePass" title="Un solo pass, tanti centri" sub="Palestre, piscine e centri sportivi convenzionati." />
       <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginVertical: 10 }} gap={8}>
         {(['tutti', 'palestra', 'piscina', 'centro'] as const).map((k) => <Pill key={k} label={k === 'tutti' ? 'Tutti' : KIND[k]} on={kind === k} onPress={() => setKind(k)} />)}
       </Row>
-      {!access ? <Card accent={FIT}><Body small>Per entrare serve il Premium (30 LP al mese). Puoi comunque vedere i centri.</Body><Btn small style={{ marginTop: 8 }} title="Vedi il Premium" onPress={() => go('lifefitness')} /></Card> : null}
+      {!access ? <Card accent={FIT}><Body small>Per entrare serve il LifePass (30 LP al mese). Puoi comunque vedere i centri.</Body><Btn small style={{ marginTop: 8 }} title="Vedi il LifePass" onPress={() => go('lifefitness')} /></Card> : null}
       {list.map((g) => (
         <Card key={g.id} accent={FIT} onPress={() => setOpen(g)}>
           <Row><View style={{ flex: 1 }}><Body bold>{g.name}</Body><Body small muted>{KIND[g.kind]} · {g.city}</Body></View>{g.rating ? <Row gap={3}><Icon name="star" size={14} color={FIT} /><Body small>{g.rating.toFixed(1).replace('.', ',')}</Body></Row> : null}</Row>
@@ -44,7 +44,7 @@ export default function FitnessGyms() {
             <Body muted>{KIND[open.kind]} · {open.address}, {open.city}</Body>
             <Body small style={{ marginTop: 8 }}>{open.hours}</Body>
             <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={6}>{open.services.map((s) => <Pill key={s} label={s} off />)}</Row>
-            <Btn style={{ marginTop: 14 }} title={access ? 'Entra adesso' : 'Serve il Premium'} onPress={() => (access ? enter(open) : go('lifefitness'))} />
+            <Btn style={{ marginTop: 14 }} title={access ? 'Entra adesso' : 'Serve il LifePass'} onPress={() => (access ? enter(open) : go('lifefitness'))} />
             <Text style={{ color: t.muted, fontSize: 12, marginTop: 8 }}>{tl('Un ingresso al giorno per centro, fino a 2 centri al giorno.')}</Text>
           </>
         ) : null}

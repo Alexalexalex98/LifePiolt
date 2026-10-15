@@ -23,9 +23,9 @@ export function renewIfDue(sub: Sub | null | undefined, now: number, balance: nu
 }
 const sameDay = (a: number, b: number) => new Date(a).toDateString() === new Date(b).toDateString();
 export const MAX_GYMS_PER_DAY = 2;
-/** Ingresso in un centro: serve il Premium attivo; un ingresso al giorno per centro e al massimo due centri diversi al giorno. */
+/** Ingresso in un centro: serve il LifePass attivo; un ingresso al giorno per centro e al massimo due centri diversi al giorno. */
 export function checkIn(sub: Sub | null | undefined, visits: Visit[], gymId: string, now: number): { ok: boolean; reason?: string } {
-  if (!hasAccess(sub, now)) return { ok: false, reason: 'Serve il Premium attivo per entrare nei centri convenzionati.' };
+  if (!hasAccess(sub, now)) return { ok: false, reason: 'Serve il LifePass attivo per entrare nei centri convenzionati.' };
   const today = visits.filter((v) => sameDay(v.ts, now));
   if (today.some((v) => v.gymId === gymId)) return { ok: false, reason: 'Oggi sei già entrato in questo centro.' };
   if (new Set(today.map((v) => v.gymId)).size >= MAX_GYMS_PER_DAY) return { ok: false, reason: `Al massimo ${MAX_GYMS_PER_DAY} centri diversi al giorno.` };
