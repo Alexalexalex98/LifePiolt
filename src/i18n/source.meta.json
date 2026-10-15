@@ -1,5 +1,5 @@
 {
- "count": 10673,
+ "count": 10682,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -414,6 +414,7 @@
   "src/lib/places.ts": 2,
   "src/lib/planBooking.tsx": 23,
   "src/lib/planner.ts": 5,
+  "src/lib/posDemo.ts": 12,
   "src/lib/postEdit.ts": 2,
   "src/lib/premiumApp.ts": 2,
   "src/lib/presentation.ts": 1,

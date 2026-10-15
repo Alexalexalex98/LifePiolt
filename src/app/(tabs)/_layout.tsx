@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router/js-tabs';
 import { usePathname } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, PanResponder, View, useWindowDimensions } from 'react-native';
+import { PanResponder, View, useWindowDimensions } from 'react-native';
 import { go } from '@/lib/nav';
 import { adjacentSection, sectionDirection } from '@/lib/sectionSwipe';
 import { settleEscrow } from '@/lib/escrow';
@@ -40,62 +40,32 @@ export default function TabsLayout() {
   const seg = path.split('/').filter(Boolean).pop() || 'index';
   const cur = seg === 'index' ? 'home' : seg;
   const curRef = useRef(cur); curRef.current = cur;
-  /* se la pagina attuale non è in barra (es. Network dal menu), per lo swipe si comporta come se fosse subito dopo l'ultima sezione della barra visitata */
+  /* se la pagina attuale non è in barra (es. Network dal menu) si comporta come se stesse subito dopo l'ultima sezione della barra visitata */
   const lastBar = useRef<string>(navItems[0] ?? 'home');
   if (navItems.includes(cur)) lastBar.current = cur;
   const virtual = navItems.includes(cur) ? navItems : (() => { const i = navItems.indexOf(lastBar.current); const a = navItems.slice(); a.splice(i < 0 ? a.length : i + 1, 0, cur); return a; })();
   const itemsRef = useRef(virtual); itemsRef.current = virtual;
-  const x = useRef(new Animated.Value(0)).current;
-  const busy = useRef(false);
-  useEffect(() => { x.setValue(0); busy.current = false; }, [cur, x]);
   const EDGE = 24;
-  /* Pager reale: le sezioni della barra sono affiancate (quella accanto è già montata), la schermata segue il dito e si vede subito dove stai andando. */
+  /* Swipe dal bordo dello schermo tra le sezioni: semplice e senza effetti sulla navigazione (nessuna schermata resta aperta in più). */
   const pan = useRef(PanResponder.create({
-    /* si parte solo dal bordo dello schermo (24 px): da sinistra verso destra = sezione precedente, da destra verso sinistra = successiva; un tocco normale non cambia sezione */
     onMoveShouldSetPanResponderCapture: (e, g) => {
+      if (Math.abs(g.dx) < 14 || Math.abs(g.dx) < Math.abs(g.dy) * 1.8) return false;
       const x0 = (e.nativeEvent.pageX ?? g.moveX) - g.dx;
-      if (busy.current || Math.abs(g.dx) < 12 || Math.abs(g.dx) < Math.abs(g.dy) * 1.8) return false;
       const fromLeft = x0 <= EDGE && g.dx > 0, fromRight = x0 >= W - EDGE && g.dx < 0;
       return (fromLeft || fromRight) && !!adjacentSection(itemsRef.current, curRef.current, g.dx < 0 ? 1 : -1);
     },
     onPanResponderTerminationRequest: () => false,
-    onPanResponderMove: (_e, g) => { const to = adjacentSection(itemsRef.current, curRef.current, g.dx < 0 ? 1 : -1); x.setValue(to ? Math.max(-W, Math.min(W, g.dx)) : 0); },
     onPanResponderRelease: (_e, g) => {
       const d = sectionDirection(g.dx, g.dy, g.vx);
       const to = d ? adjacentSection(itemsRef.current, curRef.current, d) : null;
-      if (!to) { Animated.spring(x, { toValue: 0, useNativeDriver: true, friction: 8 }).start(); return; }
-      busy.current = true;
-      Animated.timing(x, { toValue: -d * W, duration: 140, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => {
-        /* x resta a fine corsa finché la sezione nuova non è davvero quella attiva: così la vecchia non riappare per un attimo */
-        const from = curRef.current;
-        go(to);
-        setTimeout(() => { if (curRef.current === from) { x.setValue(0); busy.current = false; } }, 600);
-      });
+      if (to) go(to);
     },
-    onPanResponderTerminate: () => { Animated.spring(x, { toValue: 0, useNativeDriver: true }).start(); },
   })).current;
-  /* le sezioni della barra restano montate (servono per vederle accanto durante il gesto) e si dispongono in fila */
-  const screenOptions = ({ route }: { route: { name: string } }) => {
-    const id = route.name === 'index' ? 'home' : route.name;
-    const inBar = navItems.includes(id) || id === curRef.current;
-    return {
-      headerShown: false,
-      lazy: !inBar,
-      animation: inBar ? ('shift' as const) : ('none' as const),
-      transitionSpec: { animation: 'timing' as const, config: { duration: 0 } },
-      /* posizione in fila secondo l'ordine della barra (non quello dei file): chi sta accanto alla sezione attuale è a un passo */
-      sceneStyleInterpolator: () => {
-        const ni = itemsRef.current.indexOf(id), fi = itemsRef.current.indexOf(curRef.current);
-        const off = fi < 0 ? (ni + 1) * W : (ni - fi) * W;
-        return { sceneStyle: { transform: [{ translateX: Animated.add(x, off) }] } };
-      },
-    };
-  };
 
   return (
     <>
       <View style={{ flex: 1 }} {...pan.panHandlers}>
-        <Tabs backBehavior="history" detachInactiveScreens={false} tabBar={(p) => <NavBar {...p} />} screenOptions={screenOptions as never} />
+        <Tabs backBehavior="history" tabBar={(p) => <NavBar {...p} />} screenOptions={{ headerShown: false, lazy: true }} />
       </View>
       <LifePayFab />
       <LifePayHost />

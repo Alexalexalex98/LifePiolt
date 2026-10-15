@@ -34,7 +34,7 @@ export function sendBlockReason(o: { from: string; to: string; amount: number; b
 }
 
 /* ---------- link / QR di pagamento ---------- */
-export type PayRequest = { to: string; amount?: number; mode: ReceiveMode };
+export type PayRequest = { to: string; amount?: number; mode: ReceiveMode; /** cosa si sta pagando (es. alla cassa di un negozio) */ item?: string };
 const PREFIX = 'lp://pay/';
 
 /** Link da mettere nel QR: «lp://pay/<nome>?a=<importo>&m=c». Resta corto (il QR minimale arriva a 106 byte). */
@@ -42,6 +42,7 @@ export function buildPayLink(r: PayRequest): string {
   const q: string[] = [];
   if (r.amount && r.amount > 0) q.push(`a=${Math.round(r.amount)}`);
   if (r.mode === 'cash') q.push('m=c');
+  if (r.item) q.push(`i=${encodeURIComponent(r.item.trim().slice(0, 28))}`);
   return `${PREFIX}${encodeURIComponent(r.to.trim())}${q.length ? '?' + q.join('&') : ''}`;
 }
 /** Legge un link di pagamento; null se non è valido (mai fidarsi di un codice letto: nome e importo vengono controllati). */
@@ -56,12 +57,14 @@ export function parsePayLink(text: string): PayRequest | null {
   if (!to || to.length > 60 || /[\u0000-\u001f<>]/.test(to)) return null;
   let amount: number | undefined;
   let mode: ReceiveMode = 'lp';
+  let item = '';
   for (const kv of query.split('&').filter(Boolean)) {
     const [k, v = ''] = kv.split('=');
     if (k === 'a') { const n = Number(v); if (Number.isInteger(n) && n >= 1 && n <= MAX_PAY) amount = n; else return null; }
     if (k === 'm') mode = v === 'c' ? 'cash' : 'lp';
+    if (k === 'i') { try { item = decodeURIComponent(v).trim().slice(0, 28); } catch { return null; } if (/[\u0000-\u001f<>]/.test(item)) return null; }
   }
-  return { to, ...(amount ? { amount } : {}), mode };
+  return { to, ...(amount ? { amount } : {}), mode, ...(item ? { item } : {}) };
 }
 /** Il QR minimale entra fino a 106 byte: controlla che il link ci stia. */
 export const payLinkFits = (link: string): boolean => new TextEncoder().encode(link).length <= 104;

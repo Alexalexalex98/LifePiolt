@@ -7,7 +7,7 @@ import { useNet } from '@/store/network';
 const newId = () => `pay${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 /** Invia LifePoints a una persona (dal QR, dalla chat o dalla pagina LifePoints). Chi paga paga sempre l'importo intero. */
-export function sendLP(to: string, amount: number, o: { note?: string; mode?: ReceiveMode; via: PayVia }): { ok: boolean; message: string; id?: string } {
+export function sendLP(to: string, amount: number, o: { note?: string; mode?: ReceiveMode; via: PayVia; /** cassa di un negozio: niente messaggio in chat */ merchant?: boolean }): { ok: boolean; message: string; id?: string } {
   const me = useApp.getState().account.name;
   const net = useNet.getState();
   const why = sendBlockReason({ from: me, to, amount, balance: net.lifePoints });
@@ -20,7 +20,7 @@ export function sendLP(to: string, amount: number, o: { note?: string; mode?: Re
   const rec: PaymentRecord = { id, ts: Date.now(), dir: 'out', peer: to.trim(), amount, mode, fee: sp.fee, net: sp.net, note, via: o.via };
   useNet.setState((s) => ({ payments: [rec, ...(s.payments ?? [])].slice(0, 500) }));
   // lo vede anche nella chat con quella persona
-  try {
+  if (!o.merchant) try {
     const chat = useChat.getState();
     const cid = chat.ensureDm(to.trim(), me);
     chat.send(cid, me, { kind: 'text', text: `Ti ho inviato ${amount} LP${note ? ` · ${note}` : ''}` });

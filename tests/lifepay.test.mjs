@@ -20,3 +20,16 @@ test('il saldo cripto scende e non va mai sotto zero', () => {
 test('il codice di pagamento cambia ogni minuto', () => {
   assert.equal(payToken(60000), payToken(119999)); assert.notEqual(payToken(60000), payToken(120000));
 });
+
+import { buildPayLink, parsePayLink, payLinkFits } from '../src/lib/payments.ts';
+import { POS_ITEMS, posLink } from '../src/lib/posDemo.ts';
+test('QR della cassa: negozio, prodotto e prezzo passano il giro e il QR ci sta', () => {
+  for (const p of POS_ITEMS) {
+    const l = posLink(p);
+    assert.ok(payLinkFits(l), l);
+    const r = parsePayLink(l);
+    assert.equal(r.to, p.shop); assert.equal(r.amount, p.lp); assert.equal(r.item, p.item); assert.equal(r.mode, 'lp');
+  }
+  assert.equal(parsePayLink('lp://pay/Bar?a=5&i=%3Cscript%3E'), null);
+  assert.equal(parsePayLink(buildPayLink({ to: 'Anna', amount: 10, mode: 'lp' })).item, undefined);
+});

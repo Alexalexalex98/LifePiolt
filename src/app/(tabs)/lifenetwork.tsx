@@ -279,7 +279,7 @@ export default function LifeNetwork() {
   const settle = (to: 'Per te' | 'Swipe' | 'Seguiti', fast?: boolean) => {
     const target = to === 'Per te' ? 0 : to === 'Swipe' ? W : 2 * W;
     if (to === 'Swipe') { setDeckShown(true); setDeckOpen(true); } else setDeckOpen(false);
-    Animated.timing(pos, { toValue: target, duration: fast ? 140 : 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => {
+    Animated.timing(pos, { toValue: target, duration: fast ? 140 : 220, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() => {
       if (to !== 'Swipe') setDeckShown(false);
     });
   };
@@ -326,9 +326,9 @@ export default function LifeNetwork() {
   });
   const leftDot = useRef(dotPan('left')).current, rightDot = useRef(dotPan('right')).current;
   const deckCards = useDeckCards();
-  const homeX = following ? Animated.add(Animated.multiply(pos, -1), 2 * W) : Animated.multiply(pos, -1);
-  const deckX = Animated.add(Animated.multiply(pos, -1), W);
-  const dotStyle = (side: 'start' | 'end') => ({ position: 'absolute' as const, [side]: 34, top: '46%' as const, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' });
+  const homeX = useMemo(() => (following ? Animated.add(Animated.multiply(pos, -1), 2 * W) : Animated.multiply(pos, -1)), [following, pos, W]);
+  const deckX = useMemo(() => Animated.add(Animated.multiply(pos, -1), W), [pos, W]);
+  const dotStyle = (side: 'start' | 'end') => ({ position: 'absolute' as const, [side]: 6, top: '46%' as const, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' });
 
   return (
     <View style={{ flex: 1, overflow: 'hidden', backgroundColor: '#000' }}>
@@ -357,7 +357,7 @@ export default function LifeNetwork() {
     {deckShown ? (
       <Animated.View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: '#000', transform: [{ translateX: deckX }] }}>
         <SwipeDeck cards={deckCards} onClose={() => settleRef.current('Per te')} />
-        <View accessibilityRole="button" accessibilityLabel="Trascina verso destra per tornare a Per te" {...leftDot.panHandlers} style={dotStyle('start')} hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }} />
+        <View accessibilityRole="button" accessibilityLabel="Trascina verso destra per tornare a Per te" {...leftDot.panHandlers} style={dotStyle('start')} hitSlop={{ top: 14, bottom: 14, left: 6, right: 14 }} />
         <View accessibilityRole="button" accessibilityLabel="Trascina verso sinistra per andare a Seguiti" {...rightDot.panHandlers} style={dotStyle('end')} hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }} />
       </Animated.View>
     ) : null}

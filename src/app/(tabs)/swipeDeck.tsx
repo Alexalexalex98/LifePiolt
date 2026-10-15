@@ -39,7 +39,7 @@ export default function SwipePage() {
     },
   });
   const leftDot = useRef(dot('left')).current, rightDot = useRef(dot('right')).current;
-  const dotStyle = (side: 'start' | 'end') => ({ position: 'absolute' as const, [side]: 34, top: '46%' as const, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' });
+  const dotStyle = (side: 'start' | 'end') => ({ position: 'absolute' as const, [side]: 6, top: '46%' as const, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' });
   return (
     <View style={{ flex: 1, backgroundColor: '#000', overflow: 'hidden' }}>
       <Animated.View style={{ flex: 1, transform: [{ translateX: x }] }}>
