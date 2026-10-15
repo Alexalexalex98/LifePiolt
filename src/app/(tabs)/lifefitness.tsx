@@ -129,24 +129,28 @@ export default function LifeFitness() {
       ) : (
         <>
           {state === 'nessuno' || state === 'scaduto' ? (
-            <Card accent={t.accent}>
-              <H>Premium: foto del piatto e centri convenzionati</H>
-              <Text style={{ color: t.text, fontSize: 30, fontWeight: '900', marginTop: 6 }}>{PREMIUM_PRICE_LP} LP <Text style={{ fontSize: 14, color: t.muted, fontWeight: '600' }}>{tl('al mese')}</Text></Text>
-              <Body small muted style={{ marginVertical: 8 }}>Con un solo abbonamento entri in palestre, piscine e centri sportivi convenzionati: sala pesi, corsi, nuoto, arrampicata e altro. Gli allenamenti, il personal trainer e il diario dei pasti restano gratis.</Body>
-              {['Fotografi il piatto e ti faccio il resoconto: alimenti, grammi e valori nutrizionali', 'Accesso a tutti i centri convenzionati', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="check" size={15} color={t.positive} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
-              {state === 'scaduto' ? <Body small color={t.warn} style={{ marginTop: 6 }}>Il tuo abbonamento è scaduto.</Body> : null}
-              <Btn style={{ marginTop: 12 }} title={tl('Attiva Premium · {0} LP', PREMIUM_PRICE_LP)} onPress={() => { const r = fit.subscribe(); toast(r.message); }} />
-              <Body small muted style={{ marginTop: 6 }}>Hai {net.lifePoints} LP. Si rinnova da solo ogni 30 giorni, se hai i LifePoints.</Body>
-            </Card>
+            <>
+              <FitHero eyebrow="Premium" title={`${PREMIUM_PRICE_LP} LP ${tl('al mese')}`} sub="Foto del piatto e tutti i centri convenzionati.">
+                <Btn title={tl('Attiva Premium · {0} LP', PREMIUM_PRICE_LP)} onPress={() => { const r = fit.subscribe(); toast(r.message); }} />
+              </FitHero>
+              <Card>
+                <Body small muted style={{ marginBottom: 8 }}>Palestre, piscine e centri sportivi convenzionati: sala pesi, corsi, nuoto, arrampicata e altro. Gli allenamenti, il personal trainer e il diario dei pasti restano gratis.</Body>
+                {['Fotografi il piatto e ti faccio il resoconto: alimenti, grammi e valori nutrizionali', 'Accesso a tutti i centri convenzionati', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 6 }} gap={8}><Icon name="check" size={15} color={FIT} stroke={2.6} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
+                {state === 'scaduto' ? <Body small color={t.warn} style={{ marginTop: 6 }}>Il tuo abbonamento è scaduto.</Body> : null}
+                <Body small muted style={{ marginTop: 4 }}>{tl('Hai {0} LP. Si rinnova da solo ogni 30 giorni, se hai i LifePoints.', net.lifePoints)}</Body>
+              </Card>
+            </>
           ) : (
-            <Card accent={t.positive}>
-              <Row><H>Premium attivo</H><Pill label={state === 'attivo' ? 'Si rinnova' : 'Non si rinnova'} off /></Row>
-              <Body small muted style={{ marginVertical: 6 }}>{tl('Ancora {0} giorni', daysLeft(fit.sub, now))}</Body>
-              <Btn icon="lifefitness" title="Mostra il pass d'ingresso" onPress={() => setPass(true)} />
-              <Row style={{ marginTop: 10 }}><Body style={{ flex: 1 }}>Rinnovo automatico</Body><Switch value={!!fit.sub?.autoRenew} onValueChange={(v) => fit.setAutoRenew(v)} accessibilityLabel="Rinnovo automatico" /></Row>
-            </Card>
+            <>
+              <FitHero eyebrow="Premium attivo" title={tl('Ancora {0} giorni', daysLeft(fit.sub, now))} sub={state === 'attivo' ? 'Si rinnova da solo.' : 'Non si rinnova.'}>
+                <Btn icon="lifefitness" title="Mostra il pass d'ingresso" onPress={() => setPass(true)} />
+              </FitHero>
+              <Card>
+                <Row><Body bold style={{ flex: 1 }}>Rinnovo automatico</Body><Switch value={!!fit.sub?.autoRenew} onValueChange={(v) => fit.setAutoRenew(v)} accessibilityLabel="Rinnovo automatico" /></Row>
+              </Card>
+            </>
           )}
-          <Card onPress={() => go('fitnessGyms')}>
+          <Card accent={FIT} onPress={() => go('fitnessGyms')}>
             <Row><View style={{ flex: 1 }}><H>Centri convenzionati</H><Body small muted>{tl('{0} centri: palestre, piscine, centri sportivi', PARTNER_GYMS.length + fit.approved.length)}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
           </Card>
           {fit.visits.length ? (

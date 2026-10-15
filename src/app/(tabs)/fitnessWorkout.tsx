@@ -69,7 +69,7 @@ export default function FitnessWorkout() {
   if (!p || !cur && phase !== 'done') return <Page id="fitnessWorkout" back title="Allenamento"><Card><Body muted>Programma non trovato.</Body></Card></Page>;
   if (phase === 'done') {
     return (
-      <Page id="fitnessWorkout" back title="Finito!">
+      <Page id="fitnessWorkout" back title="Allenamento">
         <FitHero eyebrow={p.sessions[sIdx].name} title="Bel lavoro" sub={tl('{0} serie completate', setsDone.current)} />
         <Card style={{ gap: 8 }}>
           <Btn title="Salva l'allenamento" onPress={save} />
@@ -80,7 +80,7 @@ export default function FitnessWorkout() {
   }
   const timed = !!cur.secs;
   return (
-    <Page id="fitnessWorkout" back title={p.sessions[sIdx].name}>
+    <Page id="fitnessWorkout" back title="Allenamento">
       <FitHero eyebrow={tl('Serie {0} di {1}', doneSets + 1, total)} title={p.sessions[sIdx].name} sub={tl('circa {0} min', sessionMinutes(p, sIdx))}>
         <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(28,11,4,0.22)', overflow: 'hidden' }}><View style={{ width: `${Math.max(3, Math.round((doneSets / Math.max(1, total)) * 100))}%`, height: 8, backgroundColor: '#1c0b04', borderRadius: 4 }} /></View>
       </FitHero>

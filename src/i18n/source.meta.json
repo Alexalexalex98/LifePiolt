@@ -1,5 +1,5 @@
 {
- "count": 9970,
+ "count": 9971,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -25,11 +25,11 @@
   "src/app/(tabs)/docView.tsx": 2,
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
-  "src/app/(tabs)/fitnessGymRegister.tsx": 18,
+  "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 12,
   "src/app/(tabs)/fitnessMeal.tsx": 52,
   "src/app/(tabs)/fitnessProgram.tsx": 16,
-  "src/app/(tabs)/fitnessWorkout.tsx": 19,
+  "src/app/(tabs)/fitnessWorkout.tsx": 18,
   "src/app/(tabs)/focus.tsx": 27,
   "src/app/(tabs)/groupCall.tsx": 78,
   "src/app/(tabs)/help.tsx": 20,
@@ -46,7 +46,7 @@
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
   "src/app/(tabs)/lifefinance.tsx": 86,
-  "src/app/(tabs)/lifefitness.tsx": 62,
+  "src/app/(tabs)/lifefitness.tsx": 61,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
   "src/app/(tabs)/lifenetwork.tsx": 41,
@@ -461,5 +461,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1289
+ "withPlaceholders": 1291
 }

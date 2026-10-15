@@ -1,3 +1,4 @@
+import { FitHero } from '@/components/fitness/kit';
 import { useState } from 'react';
 
 import { Body, Btn, Card, H, Input, Item, Page, Pill, Row } from '@/components/ui';
@@ -27,6 +28,7 @@ export default function FitnessGymRegister() {
   };
   return (
     <Page id="fitnessGymRegister" back title="Registra il tuo centro">
+      <FitHero eyebrow="Per i centri" title="Entra nel programma" sub="Registrati gratis: offri un servizio e ricevi una parte dei ricavi." />
       <Card>
         <H>Entra nel programma LifeFitness</H>
         <Body small muted style={{ marginVertical: 6 }}>Registrarsi è gratuito. Il centro offre l'accesso agli abbonati Premium e riceve una parte dei ricavi, in base agli ingressi. La percentuale si stabilisce insieme, prima dell'attivazione.</Body>
