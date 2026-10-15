@@ -1,6 +1,6 @@
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
-import { useState } from 'react';
-import { View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Modal, PanResponder, Pressable, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,38 +29,125 @@ export function navLabelFor(id: string, language: Parameters<typeof translate>[0
 const NAV_MAX = 6;
 const navChoices = ['home', 'ai', 'plan', 'lifenetwork', 'lifefinance', 'profile', 'lifehealth', 'lifefitness', 'lifenotes', 'lifetravel', 'lifedrive', 'lifetask', 'lifepointsPage', 'settings'];
 
-function NavEditSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+/** Modalità «Personalizza la barra»: sopra c'è lo spazio con tutti i pulsanti che non sono in barra, sotto la barra stessa.
+ *  Trascina un pulsante dallo spazio alla barra per aggiungerlo; tieni premuto un pulsante della barra per spostarlo
+ *  (o portalo nello spazio sopra per toglierlo). */
+function NavEditor({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const t = useTheme();
+  const insets = useSafeAreaInsets();
+  const { width: W, height: H } = useWindowDimensions();
   const { navItems, language, set } = useApp();
-  const move = (i: number, d: number) => { const a = navItems.slice(); const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; set({ navItems: a }); };
-  const remove = (id: string) => { if (id === 'home' || navItems.length <= 2) return; set({ navItems: navItems.filter((x) => x !== id) }); };
-  const add = (id: string) => { if (navItems.length >= NAV_MAX) { toast('La barra può avere al massimo 6 icone'); return; } set({ navItems: [...navItems, id] }); };
+  const items = useRef(navItems); items.current = navItems;
+  const [drag, setDrag] = useState<{ id: string; from: 'bar' | 'grid'; x: number; y: number } | null>(null);
+  const dragRef = useRef(drag); dragRef.current = drag;
+  const origin = useRef({ x: 0, y: 0 });
+  const rootRef = useRef<View>(null);
+  const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const start = useRef<{ id: string; from: 'bar' | 'grid'; x: number; y: number } | null>(null);
+
+  const barH = 64 + insets.bottom;
   const avail = navChoices.filter((id) => !navItems.includes(id));
-  const row = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, paddingVertical: 10 };
-  const small = { width: 36, height: 36, borderRadius: 18, alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: t.input, borderWidth: 1, borderColor: t.border };
+  const COLS = 4, TILE_H = 84, HEAD = 46;
+  const innerW = W - 24 - 24, tileW = innerW / COLS;
+  const rows = Math.max(1, Math.ceil(avail.length / COLS));
+  const panelH = 12 + HEAD + rows * TILE_H + 12;
+  const panelTop = H - barH - 12 - panelH;
+  const slotW = W / Math.max(1, navItems.length);
+  const inBar = (y: number) => y > H - barH - 18;
+  const slotAt = (x: number, n: number) => Math.max(0, Math.min(n - 1, Math.floor(x / (W / Math.max(1, n)))));
+
+  const hit = (x: number, y: number): { id: string; from: 'bar' | 'grid' } | null => {
+    if (y >= H - barH) { const i = slotAt(x, items.current.length); return { id: items.current[i], from: 'bar' }; }
+    const rx = x - 24, ry = y - panelTop - 12 - HEAD;
+    if (rx < 0 || rx >= innerW || ry < 0) return null;
+    const col = Math.floor(rx / tileW), row = Math.floor(ry / TILE_H);
+    const list = navChoices.filter((id) => !items.current.includes(id));
+    const id = list[row * COLS + col];
+    return id ? { id, from: 'grid' } : null;
+  };
+  const drop = (d: { id: string; from: 'bar' | 'grid'; x: number; y: number }) => {
+    const cur = items.current;
+    if (inBar(d.y)) {
+      if (d.from === 'grid') {
+        if (cur.length >= NAV_MAX) { toast('La barra può avere al massimo 6 icone'); return; }
+        const i = Math.max(0, Math.min(cur.length, Math.round(d.x / (W / (cur.length + 1)) - 0.5)));
+        const a = cur.slice(); a.splice(i, 0, d.id); set({ navItems: a });
+      } else {
+        const without = cur.filter((x) => x !== d.id);
+        const i = Math.max(0, Math.min(without.length, Math.round(d.x / (W / cur.length) - 0.5)));
+        without.splice(i, 0, d.id); set({ navItems: without });
+      }
+    } else if (d.from === 'bar') {
+      if (d.id === 'home') { toast('Home resta sempre nella barra'); return; }
+      if (cur.length <= 2) { toast('Servono almeno due icone nella barra'); return; }
+      set({ navItems: cur.filter((x) => x !== d.id) });
+    }
+  };
+  const api = useRef({ hit, drop }); api.current = { hit, drop };
+  const pan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: (e, g) => {
+      const x = g.x0 - origin.current.x, y = g.y0 - origin.current.y;
+      const h = api.current.hit(x, y);
+      start.current = h ? { ...h, x, y } : null;
+      if (hold.current) clearTimeout(hold.current);
+      if (h?.from === 'bar') hold.current = setTimeout(() => { if (start.current) setDrag({ ...start.current }); }, 220);
+    },
+    onPanResponderMove: (_e, g) => {
+      const x = g.moveX - origin.current.x, y = g.moveY - origin.current.y;
+      const st = start.current; if (!st) return;
+      if (!dragRef.current) {
+        if (st.from === 'grid' && Math.hypot(g.dx, g.dy) > 8) setDrag({ ...st, x, y });
+        else if (st.from === 'bar' && Math.hypot(g.dx, g.dy) > 12 && hold.current) { clearTimeout(hold.current); hold.current = null; }
+      } else setDrag({ ...dragRef.current, x, y });
+    },
+    onPanResponderRelease: (_e, g) => {
+      if (hold.current) { clearTimeout(hold.current); hold.current = null; }
+      const d = dragRef.current;
+      if (d) api.current.drop({ ...d, x: g.moveX - origin.current.x, y: g.moveY - origin.current.y });
+      setDrag(null); start.current = null;
+    },
+    onPanResponderTerminate: () => { if (hold.current) clearTimeout(hold.current); setDrag(null); start.current = null; },
+  })).current;
+
+  const shown = drag?.from === 'bar' ? navItems.filter((x) => x !== drag.id) : navItems;
+  const target = drag && inBar(drag.y) ? (drag.from === 'grid' ? Math.max(0, Math.min(navItems.length, Math.round(drag.x / (W / (navItems.length + 1)) - 0.5))) : Math.max(0, Math.min(shown.length, Math.round(drag.x / (W / Math.max(1, navItems.length)) - 0.5)))) : -1;
+  const barItems = target >= 0 ? [...shown.slice(0, target), '__gap', ...shown.slice(target)] : shown;
+  const cell = (id: string, big?: boolean) => (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <Icon name={id} size={big ? 26 : 22} color={t.text} />
+      <Text numberOfLines={1} style={{ color: t.text, fontSize: 11, marginTop: 4 }}>{navLabelFor(id, language)}</Text>
+    </View>
+  );
   return (
-    <Sheet visible={visible} title="Personalizza la barra" onClose={onClose}>
-      <Body small style={{ marginBottom: 8 }}>Scegli fino a 6 icone e spostale con le frecce. Home resta sempre in barra.</Body>
-      <Text style={{ color: t.muted, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 8 }}>{`In barra (${navItems.length}/${NAV_MAX})`}</Text>
-      {navItems.map((id, i) => (
-        <View key={id} style={row}>
-          <Icon name={id} size={20} color={t.text} />
-          <Text style={{ color: t.text, flex: 1, fontWeight: '500' }}>{navLabelFor(id, language)}</Text>
-          <Press onPress={() => move(i, -1)} disabled={i === 0} accessibilityLabel="Sposta a sinistra" style={[small, i === 0 && { opacity: 0.35 }]}><View style={{ transform: [{ rotate: '90deg' }] }}><Chev /></View></Press>
-          <Press onPress={() => move(i, 1)} disabled={i === navItems.length - 1} accessibilityLabel="Sposta a destra" style={[small, i === navItems.length - 1 && { opacity: 0.35 }]}><View style={{ transform: [{ rotate: '-90deg' }] }}><Chev /></View></Press>
-          <Press onPress={() => remove(id)} disabled={id === 'home'} accessibilityLabel="Togli dalla barra" style={[small, id === 'home' && { opacity: 0.35 }]}><Icon name="x" size={14} color={t.text} stroke={2.4} /></Press>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <View ref={rootRef} style={[{ flex: 1 }, { userSelect: 'none' } as never]} onLayout={() => { rootRef.current?.measureInWindow?.((x, y) => { origin.current = { x: x || 0, y: y || 0 }; }); }} {...pan.panHandlers}>
+        <Pressable accessibilityRole="button" accessibilityLabel={translateText('Chiudi')} onPress={onClose} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} />
+        <View pointerEvents="box-none" style={{ position: 'absolute', start: 12, end: 12, top: panelTop, height: panelH, borderRadius: 22, backgroundColor: t.mode === 'light' ? 'rgba(255,255,255,0.78)' : 'rgba(22,26,40,0.78)', borderWidth: 1, borderColor: t.border, padding: 12 }}>
+          <View style={{ height: HEAD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.text, fontWeight: '800', fontSize: 15 }}>{translateText('Altri pulsanti')}</Text>
+              <Text style={{ color: t.muted, fontSize: 12 }}>{translateText('Trascinane uno sulla barra (massimo 6)')}</Text>
+            </View>
+            <Pressable onPress={onClose} accessibilityRole="button" hitSlop={8} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, backgroundColor: t.text }}><Text style={{ color: t.onText, fontWeight: '800' }}>{translateText('Fatto')}</Text></Pressable>
+          </View>
+          {avail.length === 0 ? <Text style={{ color: t.muted, textAlign: 'center', marginTop: 24 }}>{translateText('Sono tutti già nella barra')}</Text> : (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {avail.map((id) => (
+                <View key={id} style={{ width: tileW, height: TILE_H, alignItems: 'center', justifyContent: 'center', opacity: drag?.id === id ? 0.25 : 1 }}>{cell(id, true)}</View>
+              ))}
+            </View>
+          )}
         </View>
-      ))}
-      {avail.length > 0 && <Text style={{ color: t.muted, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 14 }}>Aggiungi alla barra</Text>}
-      {avail.map((id) => (
-        <View key={id} style={row}>
-          <Icon name={id} size={20} color={t.text} />
-          <Text style={{ color: t.text, flex: 1, fontWeight: '500' }}>{navLabelFor(id, language)}</Text>
-          <Press onPress={() => add(id)} accessibilityLabel="Aggiungi alla barra" style={[small, navItems.length >= NAV_MAX && { opacity: 0.35 }]}><Icon name="plus" size={14} color={t.text} stroke={2.4} /></Press>
+        <View style={{ position: 'absolute', start: 0, end: 0, bottom: 0, height: barH, flexDirection: 'row', paddingTop: 10, paddingBottom: 10 + insets.bottom, backgroundColor: t.nav, borderTopWidth: 1, borderTopColor: t.navBorder }}>
+          {barItems.map((id, i) => id === '__gap'
+            ? <View key={'gap' + i} style={{ flex: 1, marginHorizontal: 6, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: t.accent }} />
+            : <View key={id} style={{ flex: 1, minHeight: 44, justifyContent: 'center' }}>{cell(id)}</View>)}
         </View>
-      ))}
-      <Btn title="Fatto" onPress={onClose} style={{ marginTop: 14 }} />
-    </Sheet>
+        {drag ? <View pointerEvents="none" style={{ position: 'absolute', start: drag.x - 36, top: drag.y - 52, width: 72, height: 72, borderRadius: 20, backgroundColor: t.mode === 'light' ? '#ffffffee' : '#2a3050ee', borderWidth: 1, borderColor: t.accent, alignItems: 'center', justifyContent: 'center', transform: [{ scale: 1.1 }] }}>{cell(drag.id, true)}</View> : null}
+      </View>
+    </Modal>
   );
 }
 
@@ -122,7 +209,7 @@ export function NavBar({ state }: BottomTabBarProps) {
           );
         })}
       </View>
-      <NavEditSheet visible={editing} onClose={() => setEditing(false)} />
+      <NavEditor visible={editing} onClose={() => setEditing(false)} />
     </View>
   );
 }

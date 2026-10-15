@@ -83,6 +83,8 @@ export default function LifeNetwork() {
   const tabLabel = (k: string) => ({ Home: tr('lnTabHome'), Community: tr('lnTabCommunity'), Idee: tr('lnTabIdeas'), Marketplace: tr('lnTabMarketplace') }[k] ?? k);
   const curTab = tabs.includes(prefs.lnTab) ? prefs.lnTab : 'Home';
   const following = prefs.homeFilter === 'Seguiti';
+  /* i gesti orizzontali sulle storie restano delle storie: non cambiano scheda */
+  const storiesPan = useRef(PanResponder.create({ onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) })).current;
   const swipes = net.swipes;
   const quoteLikes = net.quoteLikes;
 
@@ -200,7 +202,7 @@ export default function LifeNetwork() {
           <View style={{ height: 8 }} />
         </View>
       )}
-      {!searching && curTab === 'Home' && <Safe name="recap"><StoriesBar /></Safe>}
+      {!searching && curTab === 'Home' && <View {...storiesPan.panHandlers}><Safe name="recap"><StoriesBar /></Safe></View>}
       {!searching && curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
           <Composer me={me} onPress={compose} />

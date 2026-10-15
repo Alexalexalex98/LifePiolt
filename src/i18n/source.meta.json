@@ -1,5 +1,5 @@
 {
- "count": 10608,
+ "count": 10606,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -118,7 +118,7 @@
   "src/components/MediaPickerField.tsx": 8,
   "src/components/MonthCalcCard.tsx": 16,
   "src/components/MoodChart.tsx": 6,
-  "src/components/NavBar.tsx": 27,
+  "src/components/NavBar.tsx": 26,
   "src/components/NetSheets.tsx": 317,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 46,
@@ -477,5 +477,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1325
+ "withPlaceholders": 1324
 }
