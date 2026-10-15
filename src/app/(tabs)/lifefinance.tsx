@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
+import { BudgetPlanCard } from '@/components/BudgetPlanCard';
 import { BillsSection } from '@/components/bills/BillsSection';
 import { CsvImportSheet } from '@/components/CsvImportSheet';
 import { FinanceOverview } from '@/components/FinanceOverview';
@@ -142,6 +143,7 @@ export default function LifeFinance() {
       )}
       {tab === 'Budget' && (
         <>
+      <BudgetPlanCard />
       <Card>
         <Toggle label={<Body bold style={{ fontSize: 17 }}>Fondo di emergenza</Body>} value={f.budget.saveToEmergency} onChange={(v) => {
           const alloc = v ? defaultBudget(f.budget.salary, true, f.categories, f.months).alloc['Fondo emergenza'] : 0;

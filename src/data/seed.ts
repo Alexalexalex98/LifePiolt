@@ -132,7 +132,7 @@ const monthSpecs = (k: number): Spec[] => {
     [[11, 'Abbigliamento · Scarpe running', 99], [19, 'Viaggio estero · Treno e hotel Milano', 136], [26, 'Altro · Visita dentista', 90]],
   ];
   return [
-    [1, 'Stipendio', 3500], [2, 'Affitto', 1400], [3, 'Cassa malati', 480], [3, 'Abbonamenti · Palestra', 69],
+    [1, 'Stipendio', 3500], [2, 'Affitto', 1450], [3, 'Cassa malati', 480], [3, 'Abbonamenti · Palestra', 69],
     [4, 'Alimentari/Casa · Coop', spesa[0]], [5, 'Altro · Imposte accantonate', 150], [5, 'Fondo emergenza', 150],
     [6, 'Abbonamenti · Netflix', 15.9], [6, 'Abbonamenti · Spotify', 12.95], [7, 'Abbonamenti · Abbonamento trasporti', 85],
     [8, 'Alimentari/Casa · Elettricità', el], [9, 'Alimentari/Casa · Internet e telefono', 79],
@@ -168,7 +168,7 @@ export const demoInsights = (): Insight[] => [
   { id: 2, title: 'Shopping impulsivo: Amazon', detail: 'Hai speso più del solito questo mese.', saving: '125 CHF nei prossimi 2 mesi', dismissed: false },
 ];
 export const demoBills = (): Bill[] => [
-  { id: uid(), name: 'Affitto', amount: 1400, freq: 'monthly' }, { id: uid(), name: 'Cassa malati', amount: 480, freq: 'monthly' },
+  { id: uid(), name: 'Affitto', amount: 1450, freq: 'monthly' }, { id: uid(), name: 'Cassa malati', amount: 480, freq: 'monthly' },
   { id: uid(), name: 'Elettricità', amount: 62, freq: 'monthly' }, { id: uid(), name: 'Internet e telefono', amount: 79, freq: 'monthly' },
   { id: uid(), name: 'Assicurazione RC e economia domestica', amount: 190, freq: 'yearly' }, { id: uid(), name: 'Serafe (canone radio-TV)', amount: 335, freq: 'yearly' },
   { id: uid(), name: 'Abbonamento trasporti', amount: 85, freq: 'monthly' }, { id: uid(), name: 'Abbonamento SBB metà-prezzo', amount: 185, freq: 'yearly' },

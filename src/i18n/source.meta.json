@@ -1,5 +1,5 @@
 {
- "count": 10661,
+ "count": 10673,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -98,6 +98,7 @@
   "src/app/onboarding.tsx": 10,
   "src/components/ArrivalAdvice.tsx": 8,
   "src/components/Automations.tsx": 37,
+  "src/components/BudgetPlanCard.tsx": 15,
   "src/components/CalendarImportSheet.tsx": 18,
   "src/components/CalendarViews.tsx": 47,
   "src/components/ConfirmBadge.tsx": 4,
@@ -322,6 +323,7 @@
   "src/lib/booking.ts": 5,
   "src/lib/briefingCore.ts": 29,
   "src/lib/budgetAlerts.ts": 10,
+  "src/lib/budgetPlan.ts": 7,
   "src/lib/calendarColors.ts": 17,
   "src/lib/calendarImport.ts": 15,
   "src/lib/calendarLayout.ts": 1,
@@ -479,5 +481,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1331
+ "withPlaceholders": 1332
 }

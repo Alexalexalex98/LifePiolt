@@ -65,7 +65,7 @@ export function spendByCategory(months: FinMonth[], cats: FinCategory[]): Record
 
 /** Costi normali di una persona sola in Svizzera (CHF): proposti da "Aggiungi costi tipici". */
 export const typicalCosts: Omit<Bill, 'id'>[] = [
-  { name: 'Affitto', amount: 1400, freq: 'monthly' }, { name: 'Cassa malati', amount: 480, freq: 'monthly' },
+  { name: 'Affitto', amount: 1450, freq: 'monthly' }, { name: 'Cassa malati', amount: 480, freq: 'monthly' },
   { name: 'Elettricità', amount: 62, freq: 'monthly' }, { name: 'Internet e telefono', amount: 79, freq: 'monthly' },
   { name: 'Assicurazione RC e economia domestica', amount: 190, freq: 'yearly' }, { name: 'Serafe (canone radio-TV)', amount: 335, freq: 'yearly' },
   { name: 'Abbonamento trasporti', amount: 85, freq: 'monthly' }, { name: 'Palestra', amount: 69, freq: 'monthly' },
