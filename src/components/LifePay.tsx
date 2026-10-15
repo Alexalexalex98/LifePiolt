@@ -1,3 +1,5 @@
+import { Camera } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -5,6 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname } from 'expo-router';
 
 import { PayQr } from '@/components/PayQr';
+import { QrScanner } from '@/components/QrScanner';
+import { sendLP } from '@/lib/paymentActions';
+import { parsePayLink, type PayRequest } from '@/lib/payments';
 import { Text } from '@/components/T';
 import { LpTag } from '@/components/network';
 import { Body, Btn, Input, Row, Seg, Sheet, useUI } from '@/components/ui';
@@ -58,7 +63,35 @@ export function LifePayHost() {
   const n = parseFloat(amt.replace(',', '.'));
   const q = amt ? quote(asset, n, bal) : null;
   const link = buildPayLink({ to: me.slice(0, 30), mode: 'lp' }) + (open ? `?t=${payToken(Date.now())}` : '');
-  const close = () => setPay(false);
+  const close = () => { setPay(false); setFlow(null); setCode(''); };
+  const [flow, setFlow] = useState<null | { step: 'scan' } | { step: 'confirm'; req: PayRequest; amount: number } | { step: 'done'; req: PayRequest; amount: number }>(null);
+  const [code, setCode] = useState('');
+  const onCode = (text: string) => {
+    const tx = text.trim();
+    if (tx.startsWith('lp://gym/')) { close(); go('fitnessGyms', { pay: tx }); return; }
+    const r = parsePayLink(tx);
+    if (!r) { toast('Questo non è un codice di pagamento LifePilot'); setFlow(null); return; }
+    if (r.to === me) { toast('Questo è il tuo codice: non puoi pagare te stesso'); setFlow(null); return; }
+    if (!r.amount) { toast('Il codice non ha un importo: usa Movimenti e ricevi per scegliere quanto'); setFlow(null); return; }
+    setFlow({ step: 'confirm', req: r, amount: r.amount }); setCode('');
+  };
+  const fromPhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted && perm.accessPrivileges !== 'limited') { toast('Permesso foto negato: abilitalo dalle impostazioni del telefono.'); return; }
+      const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
+      if (r.canceled || !r.assets[0]) return;
+      const res = await Camera.scanFromURLAsync(r.assets[0].uri, ['qr']);
+      if (!res.length) { toast('Nessun QR trovato nell’immagine'); return; }
+      onCode(res[0].data);
+    } catch { toast('Non riesco a leggere l’immagine'); }
+  };
+  const payNow = () => {
+    if (!flow || flow.step !== 'confirm') return;
+    const res = sendLP(flow.req.to, flow.amount, { note: flow.req.item, via: 'qr', merchant: true });
+    if (!res.ok) { toast(res.message); return; }
+    setFlow({ step: 'done', req: flow.req, amount: flow.amount });
+  };
   const convert = () => {
     if (!q || !q.ok) { toast(q && !q.ok ? q.reason : 'Inserisci una quantità'); return; }
     const st = useNet.getState();
@@ -83,14 +116,47 @@ export function LifePayHost() {
       </LinearGradient>
       <Seg options={[...TABS]} value={tab} onChange={(v) => setTab(v as (typeof TABS)[number])} />
       {tab === 'Paga' ? (
+        flow?.step === 'scan' ? (
+          <>
+            <QrScanner onCode={onCode} onClose={() => setFlow(null)} />
+            <Btn ghost style={{ marginTop: 8 }} icon="image" title="Leggi da una foto o uno screenshot" onPress={fromPhoto} />
+            <Input autoCapitalize="none" placeholder="Oppure incolla il codice (lp://pay/…)" value={code} onChangeText={(v) => { setCode(v); if (v.startsWith('lp://')) onCode(v); }} style={{ marginTop: 8 }} />
+          </>
+        ) : flow?.step === 'confirm' ? (
+          <>
+            <View style={{ alignItems: 'center', paddingVertical: 14 }}>
+              <Text style={{ color: t.muted, fontSize: 13 }}>{translateText('Stai pagando')}</Text>
+              <Text style={{ color: t.text, fontSize: 22, fontWeight: '800', marginTop: 4, textAlign: 'center' }}>{flow.req.to}</Text>
+              {flow.req.item ? <Text style={{ color: t.text, fontSize: 16, marginTop: 4, textAlign: 'center' }}>{flow.req.item}</Text> : null}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 }}><Text style={{ color: t.text, fontSize: 44, fontWeight: '800' }}>{formatCHF(flow.amount)}</Text><LpTag size={28} /></View>
+              <Body small muted style={{ marginTop: 6 }}>Ti resteranno {formatCHF(Math.max(0, lp - flow.amount))} LP</Body>
+              {lp < flow.amount ? <Body small color={t.danger} style={{ marginTop: 4 }}>LifePoints insufficienti: versane con la scheda «Versa».</Body> : null}
+            </View>
+            <Btn title={`Paga ${formatCHF(flow.amount)} LP`} disabled={lp < flow.amount} onPress={payNow} />
+            <Btn ghost style={{ marginTop: 8 }} title="Annulla" onPress={() => setFlow(null)} />
+          </>
+        ) : flow?.step === 'done' ? (
+          <>
+            <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+              <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: t.positive, alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={34} color="#fff" stroke={3} /></View>
+              <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', marginTop: 12 }}>{translateText('Pagamento riuscito')}</Text>
+              <Body small muted style={{ marginTop: 6, textAlign: 'center' }}>{flow.req.to}{flow.req.item ? ` · ${flow.req.item}` : ''}</Body>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}><Text style={{ color: t.text, fontSize: 28, fontWeight: '800' }}>{formatCHF(flow.amount)}</Text><LpTag size={20} /></View>
+              <Body small muted style={{ marginTop: 6 }}>{new Date().toLocaleString()}</Body>
+            </View>
+            <Btn title="Fatto" onPress={() => setFlow(null)} />
+          </>
+        ) : (
         <>
           <View style={{ alignItems: 'center', marginVertical: 8 }}>
-            <PayQr text={link} size={200} />
+            <PayQr text={link} size={170} />
             <Body small muted style={{ textAlign: 'center', marginTop: 8 }}>Mostra il codice alla cassa: cambia ogni minuto. Il pagamento esce dal tuo saldo in LifePoints.</Body>
           </View>
-          <Btn icon="camera" title="Scansiona un QR e paga" onPress={() => { close(); go('payments'); }} />
+          <Btn icon="camera" title="Scansiona e paga" onPress={() => setFlow({ step: 'scan' })} />
+          <Btn ghost style={{ marginTop: 8 }} icon="wallet" title="Prova con una cassa di esempio" onPress={() => { close(); go('posDemo'); }} />
           <Btn ghost style={{ marginTop: 8 }} title="Movimenti e ricevi" onPress={() => { close(); go('payments'); }} />
         </>
+        )
       ) : (
         <>
           <Body small muted style={{ marginBottom: 8 }}>Versa per avere LifePoints: con la carta oppure cambiando cripto. Poi si paga sempre e solo in LifePoints.</Body>

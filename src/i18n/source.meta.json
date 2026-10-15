@@ -1,5 +1,5 @@
 {
- "count": 10682,
+ "count": 10699,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -67,6 +67,7 @@
   "src/app/(tabs)/payments.tsx": 35,
   "src/app/(tabs)/plan.tsx": 52,
   "src/app/(tabs)/portfolio.tsx": 33,
+  "src/app/(tabs)/posDemo.tsx": 8,
   "src/app/(tabs)/postPage.tsx": 33,
   "src/app/(tabs)/privacy.tsx": 2,
   "src/app/(tabs)/profile.tsx": 52,
@@ -117,7 +118,7 @@
   "src/components/JobsHub.tsx": 20,
   "src/components/KnowledgeHub.tsx": 59,
   "src/components/LanguagePicker.tsx": 7,
-  "src/components/LifePay.tsx": 27,
+  "src/components/LifePay.tsx": 43,
   "src/components/MediaPickerField.tsx": 8,
   "src/components/MonthCalcCard.tsx": 16,
   "src/components/MoodChart.tsx": 6,
@@ -483,5 +484,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1332
+ "withPlaceholders": 1333
 }
