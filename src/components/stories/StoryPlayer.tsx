@@ -27,7 +27,7 @@ export function StoryVideo({ uri, controls, sound }: { uri: string; controls?: b
 }
 
 /** Visualizzatore a schermo intero: tocca a destra per avanzare, a sinistra per tornare, tieni premuto per fermare. */
-export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; start: number; onClose: () => void }) {
+export function StoryPlayer({ stories, start, onClose, onEnd }: { stories: Story[]; start: number; onClose: () => void; /** dopo l'ultima storia: passa alla persona successiva (se manca, chiude) */ onEnd?: () => void }) {
   const me = useApp((s) => s.account.name);
   const insets = useSafeAreaInsets();
   const kb = useKeyboardInset();
@@ -56,7 +56,7 @@ export function StoryPlayer({ stories, start, onClose }: { stories: Story[]; sta
   const closing = useRef(false);
   // si chiude una volta sola: prima il timer continuava a girare e chiamava «indietro» a raffica, fino a uscire dalla schermata
   const close = () => { if (closing.current) return; closing.current = true; goBack(); };
-  const next = () => { if (closing.current) return; if (iRef.current >= stories.length - 1) close(); else setI(iRef.current + 1); };
+  const next = () => { if (closing.current) return; if (iRef.current >= stories.length - 1) { if (onEnd) { closing.current = true; onEnd(); } else close(); } else setI(iRef.current + 1); };
   useEffect(() => {
     if (!cur || paused || closing.current) return;
     const h = setInterval(() => setP((x) => x + 50 / (secs * 1000)), 50);

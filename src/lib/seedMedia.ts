@@ -16,7 +16,7 @@ type Key = keyof typeof M;
 
 const H = 3600000;
 /** Post di altre persone con foto e video, per vedere Home e Swipe pieni. Solo in modalità demo; i tuoi li pubblichi tu. */
-const POSTS: { id: number; author: string; tag: string; media: 'photo' | 'video'; k: Key; text: string; h: number; likes: number }[] = [
+const POSTS: { id: number; author: string; tag: string; media: 'photo' | 'video'; k: Key; /** più foto nello stesso post (carosello) */ ks?: Key[]; text: string; h: number; likes: number }[] = [
   { id: 201, author: 'Davide R.', tag: 'Viaggi', media: 'video', k: 'voloNotte', text: 'Atterraggio al tramonto: la città si accende sotto l’ala.', h: 2, likes: 52 },
   { id: 101, author: 'Marco T.', tag: 'Cucina', media: 'photo', k: 'pizza', text: 'Cena da pizzeria: margherita contro salame piccante. Voi quale scegliete?', h: 3, likes: 71 },
   { id: 202, author: 'Federica L.', tag: 'Viaggi', media: 'video', k: 'spiaggia', text: 'Tramonto rosa sulla spiaggia: palme, onde e niente fretta.', h: 4, likes: 88 },
@@ -62,6 +62,12 @@ const POSTS: { id: number; author: string; tag: string; media: 'photo' | 'video'
   { id: 333, author: 'Sophie M.', tag: 'Viaggi', media: 'photo', k: 'marienplatz', text: 'La piazza del municipio sotto un cielo blu: torre, orologio e bandiere colorate.', h: 31, likes: 110 },
   { id: 334, author: 'Chiara N.', tag: 'Viaggi', media: 'photo', k: 'finestrino', text: 'Dal finestrino: le Alpi tra le nuvole e l’ala che taglia il cielo.', h: 33, likes: 86 },
   { id: 335, author: 'Tommaso V.', tag: 'Serate', media: 'photo', k: 'birraPianta', text: 'Birra gelata a tarda sera, sotto l’ombrellone e con la pianta a fare compagnia.', h: 35, likes: 30 },
+  { id: 340, author: 'Giulia M.', tag: 'Viaggi', media: 'photo', k: 'marienplatz', ks: ['marienplatz', 'cotolette', 'brindisiBirra', 'finestrino'], text: 'Weekend in Baviera: piazza del municipio, cotolette e birra chiara, e il ritorno tra le nuvole. Scorri per vedere tutto.', h: 3, likes: 134 },
+  { id: 341, author: 'Sara B.', tag: 'Caffè', media: 'photo', k: 'caffeInterno', ks: ['caffeInterno', 'tazzeCaffe', 'cappuccinoFiori', 'caffeFiltro'], text: 'Giro di caffè nuovi: un locale in centro, espresso e cappuccino, poi a casa col filtro. Quale preferite?', h: 6, likes: 88 },
+  { id: 342, author: 'Federica L.', tag: 'Serate', media: 'photo', k: 'cocktailOlive', ks: ['cocktailOlive', 'cocktailScuri', 'pubFreccette', 'birraPianta'], text: 'Serata lunga: cocktail, un bar in penombra, freccette al pub e l’ultima birra sotto l’ombrellone.', h: 9, likes: 101 },
+  { id: 343, author: 'Marco T.', tag: 'Cucina', media: 'photo', k: 'burgerPatatine', ks: ['burgerPatatine', 'burgerViola', 'pizzaPatatine', 'pizzaMucchio'], text: 'Pranzi da ricordare: hamburger, patate fatte in casa e la pizza con le patatine sopra. Peccato di gola.', h: 13, likes: 119 },
+  { id: 344, author: 'Davide R.', tag: 'Viaggi', media: 'photo', k: 'aeroporto', ks: ['aeroporto', 'codaPassaporti', 'finestrino'], text: 'Giorno di viaggio: corridoio della stazione, coda ai controlli e poi il cielo dal finestrino.', h: 17, likes: 76 },
+  { id: 345, author: 'Elena F.', tag: 'Casa', media: 'photo', k: 'androne', ks: ['androne', 'tvVintage', 'pietraSmart', 'tavolinoFinestra'], text: 'Dettagli di design: un androne in pietra, un televisore d’epoca, una pietra che parla e il tavolino vicino alla vetrata.', h: 24, likes: 93 },
 ];
 /** Momenti (Recap) di chi segui. */
 const STORIES: { id: string; author: string; k: Key; kind: 'photo' | 'video'; h: number; text?: string }[] = [
@@ -101,7 +107,7 @@ export function useSeedMedia() {
       const now = Date.now();
       const st = useNet.getState();
       const have = new Map(st.posts.map((p) => [p.id, p]));
-      const fresh: Post[] = POSTS.map((p) => ({ id: p.id, author: p.author, text: p.text, media: p.media, tag: p.tag, likes: have.get(p.id)?.likes ?? p.likes, ts: have.get(p.id)?.ts ?? now - p.h * H, uri: uris[p.k] }));
+      const fresh: Post[] = POSTS.map((p) => ({ id: p.id, author: p.author, text: p.text, media: p.media, tag: p.tag, likes: have.get(p.id)?.likes ?? p.likes, ts: have.get(p.id)?.ts ?? now - p.h * H, uri: uris[p.k], ...(p.ks ? { uris: p.ks.map((k) => uris[k]) } : {}) }));
       const keepPosts = st.posts.filter((p) => !POSTS.some((x) => x.id === p.id));
       const oldS = new Map((st.stories ?? []).map((s) => [s.id, s]));
       const stories: Story[] = STORIES.flatMap((s) => {
