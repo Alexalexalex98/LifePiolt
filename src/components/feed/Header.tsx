@@ -117,16 +117,16 @@ export function Composer({ me, onPress, onPhoto }: { me: string; onPress: () => 
 }
 
 /** Interruttore discreto "Per te / Seguiti". */
-export function FilterToggle({ options, value, onChange }: { options: { key: string; label: string }[]; value: string; onChange: (k: string) => void }) {
+export function FilterToggle({ options, value, onChange }: { options: { key: string; label: string; bold?: boolean }[]; value: string; onChange: (k: string) => void }) {
   const t = useTheme();
   return (
-    <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: 18, paddingHorizontal: 16 }}>
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', paddingHorizontal: 16 }}>
       {options.map((o) => {
         const on = o.key === value;
         return (
-          <Pressable key={o.key} onPress={() => onChange(o.key)} accessibilityRole="tab" accessibilityLabel={translateText(o.label)} accessibilityState={{ selected: on }} style={{ minHeight: 44, justifyContent: 'center' }}>
-            <Text style={{ color: on ? t.text : t.muted, fontSize: 15, fontWeight: on ? '800' : '600' }}>{o.label}</Text>
-            <View style={{ height: 2.5, borderRadius: 2, marginTop: 4, backgroundColor: on ? t.accent : 'transparent' }} />
+          <Pressable key={o.key} onPress={() => onChange(o.key)} accessibilityRole="tab" accessibilityLabel={translateText(o.label)} accessibilityState={{ selected: on }} style={{ flex: 1, minHeight: 44, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ color: on || o.bold ? t.text : t.muted, fontSize: 15, fontWeight: on || o.bold ? '900' : '600' }}>{o.label}</Text>
+            <View style={{ height: 2.5, borderRadius: 2, marginTop: 4, alignSelf: 'stretch', backgroundColor: on ? t.accent : 'transparent' }} />
           </Pressable>
         );
       })}

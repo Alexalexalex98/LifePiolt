@@ -1,3 +1,4 @@
+import { useSeedMedia } from '@/lib/seedMedia';
 import { Safe } from '@/components/Safe';
 import { applyToFeed } from '@/lib/swipeDeck';
 import { StoriesBar } from '@/components/stories/StoriesBar';
@@ -54,6 +55,7 @@ function useHydrated() {
 }
 
 export default function LifeNetwork() {
+  useSeedMedia();
   const tr = useT();
   const t = useTheme();
   const win = useWindowDimensions().width;
@@ -199,7 +201,7 @@ export default function LifeNetwork() {
       {!searching && curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
           <Composer me={me} onPress={compose} />
-          <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Swipe', label: 'Swipe' }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={following ? 'Seguiti' : 'Per te'} onChange={(k) => { if (k === 'Swipe') go('swipeDeck'); else setPref('homeFilter', k); }} />
+          <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Swipe', label: 'Swipe', bold: true }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={following ? 'Seguiti' : 'Per te'} onChange={(k) => { if (k === 'Swipe') go('swipeDeck'); else setPref('homeFilter', k); }} />
           <View style={{ height: 8 }} />
         </View>
       )}

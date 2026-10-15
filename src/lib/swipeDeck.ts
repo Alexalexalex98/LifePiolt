@@ -60,3 +60,15 @@ export function applyToFeed<T>(items: T[], keyOf: (x: T) => string | null, textO
   }
   return [...liked.map((k) => byKey.get(k)).filter((x): x is T => x !== undefined), ...rest];
 }
+
+/**
+ * Tempo passato su un post: più resti, più il tema ti interessa (anche se poi non scegli nulla).
+ * Sotto 1,5 s è solo uno scorrimento veloce e non conta; ogni 6 s valgono 1 punto, fino a 2,5.
+ * Per un video, averne visto almeno l'80% aggiunge 1 punto (tetto totale 3).
+ */
+export function dwellSignal(ms: number, videoFraction?: number): number {
+  if (!(ms >= 1500)) return 0;
+  const base = Math.min(2.5, Math.round((ms / 6000) * 10) / 10);
+  const bonus = videoFraction !== undefined && videoFraction >= 0.8 ? 1 : 0;
+  return Math.min(3, base + bonus);
+}

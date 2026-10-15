@@ -4,11 +4,13 @@ import { SwipeDeck, type SwipeCandidate } from '@/components/feed/SwipeDeck';
 import { goBack } from '@/lib/nav';
 import { useVisible } from '@/lib/moderation';
 import { byReach } from '@/lib/reach';
+import { useSeedMedia } from '@/lib/seedMedia';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
 /** Swipe dei post a schermo intero: si vede solo il post. */
 export default function SwipePage() {
+  useSeedMedia();
   const me = useApp((s) => s.account.name);
   const visible = useVisible();
   const posts = useNet((s) => s.posts);

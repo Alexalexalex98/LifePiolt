@@ -1,5 +1,5 @@
 {
- "count": 9971,
+ "count": 10001,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -180,7 +180,7 @@
   "src/components/feed/Header.tsx": 14,
   "src/components/feed/SearchResults.tsx": 5,
   "src/components/feed/SpecialCards.tsx": 21,
-  "src/components/feed/SwipeDeck.tsx": 16,
+  "src/components/feed/SwipeDeck.tsx": 22,
   "src/components/feed/TabCards.tsx": 20,
   "src/components/fitness/kit.tsx": 1,
   "src/components/home/DayPlan.tsx": 11,
@@ -419,6 +419,7 @@
   "src/lib/samplePdf.ts": 18,
   "src/lib/search/docs.ts": 1,
   "src/lib/search/fts.ts": 8,
+  "src/lib/seedMedia.ts": 33,
   "src/lib/shop.ts": 14,
   "src/lib/shopActions.ts": 8,
   "src/lib/shopSeed.ts": 56,

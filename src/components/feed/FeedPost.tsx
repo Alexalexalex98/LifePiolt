@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, Share, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { Text } from '@/components/T';
@@ -38,6 +39,17 @@ export function useHeartBurst() {
   return { heart, flash };
 }
 
+/** Video nel feed: parte da solo, muto e in loop; un tocco lo apre a schermo intero. */
+function FeedVideo({ uri, width, height }: { uri: string; width: number; height: number }) {
+  const p = useVideoPlayer(uri, (pl) => { pl.loop = true; pl.muted = true; pl.play(); });
+  return (
+    <View pointerEvents="none" style={{ width, height, backgroundColor: '#000' }}>
+      <VideoView player={p} style={{ width, height }} nativeControls={false} contentFit="cover" />
+      <View style={{ position: 'absolute', top: 12, start: 12, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 }}><Icon name="video" size={14} color="#fff" /></View>
+    </View>
+  );
+}
+
 /** Media del post: carosello con puntini se ci sono più immagini; doppio tocco = mi piace; un tocco = schermo intero. */
 export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPostData; w: number; onDouble: () => void; onSingle: () => void; heart: Animated.Value }) {
   const images = post.uris?.length ? post.uris : post.uri ? [post.uri] : [];
@@ -71,6 +83,12 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
         {images.map(slide)}
       </ScrollView>
     ) : slide(images[0], 0);
+  } else if (post.media === 'video' && images.length > 0) {
+    body = (
+      <Pressable onPress={tap} accessibilityRole="imagebutton" accessibilityLabel={translateText('Video del post, tocca due volte per mettere mi piace')}>
+        <FeedVideo uri={images[0]} width={w} height={Math.round(w * 1.25)} />
+      </Pressable>
+    );
   } else if (post.media) {
     body = (
       <Pressable onPress={tap} accessibilityRole="imagebutton" accessibilityLabel={translateText(post.media === 'video' ? 'Video del post, tocca due volte per mettere mi piace' : 'Foto del post, tocca due volte per mettere mi piace')}>

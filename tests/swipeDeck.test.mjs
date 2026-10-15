@@ -33,3 +33,13 @@ test('«Per te»: scartati via, graditi in cima nell\'ordine dello swipe', () =>
   const out = applyToFeed(items, (x) => x.k, (x) => x.t, s, addSignal({}, 'corsa', -9));
   assert.deepEqual(out.map((x) => x.k), ['d', 'a', 'c']);
 });
+
+import { dwellSignal } from '../src/lib/swipeDeck.ts';
+test('il tempo di visione conta nell\'algoritmo', () => {
+  assert.equal(dwellSignal(500), 0);
+  assert.equal(dwellSignal(1400), 0);
+  assert.equal(dwellSignal(6000), 1);
+  assert.equal(dwellSignal(60000), 2.5);
+  assert.equal(dwellSignal(60000, 0.9), 3);
+  assert.equal(dwellSignal(3000, 0.5), 0.5);
+});
