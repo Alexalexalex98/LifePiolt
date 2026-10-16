@@ -75,7 +75,14 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
   const allowed = useRecapAllowed(mode);
   const groups = useMemo(() => storyGroups(stories, me, (a) => allowed.has(a), seen ?? [], now), [stories, seen, allowed, me]); // eslint-disable-line react-hooks/exhaustive-deps
   const mine = groups.find((g) => g.mine);
-  const others = groups.filter((g) => !g.mine);
+  /* i già visti si mettono a sinistra dei nuovi, subito sotto al tuo recap: la fila parte dal primo nuovo e, scorrendo indietro, ritrovi quelli visti (oscurati) */
+  const rest = groups.filter((g) => !g.mine);
+  const others = [...rest.filter((g) => g.unseen === 0).sort((a, b) => a.latest - b.latest), ...rest.filter((g) => g.unseen > 0)];
+  const seenCount = rest.filter((g) => g.unseen === 0).length;
+  const scroller = useRef<ScrollView>(null);
+  const prevSeen = useRef(seenCount);
+  const CARD_W = 124;
+  useEffect(() => { const first = prevSeen.current === seenCount; scroller.current?.scrollTo({ x: seenCount * CARD_W, animated: !first }); prevSeen.current = seenCount; }, [seenCount]);
   const preview = (st: Story, w: number, h: number) => st.kind === 'text'
     ? <LinearGradient colors={st.bg ?? ['#6c8cff', '#3b2a7a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: w, height: h, padding: 8, justifyContent: 'center' }}><Text numberOfLines={5} style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{st.text}</Text></LinearGradient>
     : st.kind === 'photo' ? <Image source={{ uri: st.uri }} style={{ width: w, height: h }} contentFit="cover" />
@@ -137,7 +144,7 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
           </Pressable>
         )}
         </View>
-      <ScrollView style={{ flex: 1 }} horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled scrollEnabled={!peeking} contentContainerStyle={{ paddingStart: 0, paddingEnd: 8, paddingVertical: 8, gap: 0 }} accessibilityLabel={tl('Recap della giornata')}>
+      <ScrollView ref={scroller} onContentSizeChange={() => scroller.current?.scrollTo({ x: seenCount * CARD_W, animated: false })} style={{ flex: 1 }} horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled scrollEnabled={!peeking} contentContainerStyle={{ paddingStart: 0, paddingEnd: 8, paddingVertical: 8, gap: 0 }} accessibilityLabel={tl('Recap della giornata')}>
         {others.map((g) => card(g.author, g, g.author.split(' ')[0], () => { void snapBackdrop().then(() => go('storyView', { author: g.author })); }))}
       </ScrollView>
       </View>
