@@ -1,5 +1,5 @@
 {
- "count": 10747,
+ "count": 10750,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -307,6 +307,7 @@
   "src/lib/assistant/theiaFlow.ts": 49,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
+  "src/lib/autoBg.ts": 3,
   "src/lib/automationRuntime.ts": 2,
   "src/lib/automationSuggest.ts": 59,
   "src/lib/background.ts": 7,

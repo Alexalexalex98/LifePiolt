@@ -21,7 +21,7 @@ export type TextPos = 'alto' | 'centro' | 'basso';
 export type Story = {
   id: string; author: string; ts: number; kind: StoryKind; keep?: Keep; attach?: StoryAttach; filter?: FilterId; textPos?: TextPos; textColor?: string;
   /** chi ha regalato il LifePoint giornaliero a questo momento (lo vede l'autore) */ gifts?: string[];
-  uri?: string; text?: string; /** colori dello sfondo delle storie di solo testo */ bg?: [string, string];
+  uri?: string; /** fotogramma di anteprima dei video: compare subito */ poster?: string; text?: string; /** colori dello sfondo delle storie di solo testo */ bg?: [string, string];
   /** chi l'ha vista (lo vede solo l'autore) */ views: string[];
 };
 export const BACKGROUNDS: [string, string][] = [['#6c8cff', '#3b2a7a'], ['#e0866b', '#a4343a'], ['#4fb58a', '#1f5a7a'], ['#c9a24a', '#6a3b12'], ['#141a2b', '#2a1f4a'], ['#d65f8a', '#5a2a7a']];

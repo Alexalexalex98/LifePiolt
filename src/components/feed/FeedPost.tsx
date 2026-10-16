@@ -22,7 +22,7 @@ import { captionNeedsMore, isDoubleTap, pageIndex, postLayout } from './feedLogi
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArtPlaceholder, IconBtn, NATIVE, RingAvatar, TextCard } from './parts';
 
-export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; uris?: string[]; editedAt?: number; hideLikes?: boolean; commentsOff?: boolean };
+export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; poster?: string; uris?: string[]; editedAt?: number; hideLikes?: boolean; commentsOff?: boolean };
 
 export const LIKE = '#ff4d6d';
 
@@ -66,14 +66,14 @@ function FeedImage({ uri, width, height }: { uri: string; width: number; height:
 }
 
 /** Video nel feed: parte da solo, muto e in loop; un tocco lo apre a schermo intero. */
-function FeedVideo({ uri, width, height }: { uri: string; width: number; height: number }) {
+function FeedVideo({ uri, width, height, poster }: { uri: string; width: number; height: number; poster?: string }) {
   const p = useVideoPlayer(uri, (pl) => { pl.loop = true; pl.muted = true; pl.play(); });
   const [shown, setShown] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
   const onFirst = () => { setShown(true); Animated.timing(fade, { toValue: 1, duration: 350, useNativeDriver: NATIVE }).start(); };
   return (
     <View pointerEvents="none" style={{ width, height }}>
-      {shown ? null : <MediaSkeleton width={width} height={height} />}
+      {shown ? null : poster ? <Image source={{ uri: poster }} pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, width, height }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : <MediaSkeleton width={width} height={height} />}
       <Animated.View style={{ width, height, opacity: fade }}><VideoView player={p} style={{ width, height }} nativeControls={false} contentFit="cover" onFirstFrameRender={onFirst} /></Animated.View>
       <View style={{ position: 'absolute', top: 12, start: 12, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 }}><Icon name="video" size={14} color="#fff" /></View>
     </View>
@@ -116,7 +116,7 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
   } else if (post.media === 'video' && images.length > 0) {
     body = (
       <Pressable onPress={tap} accessibilityRole="imagebutton" accessibilityLabel={translateText('Video del post, tocca due volte per mettere mi piace')}>
-        <FeedVideo uri={images[0]} width={w} height={Math.round(w * 1.25)} />
+        <FeedVideo uri={images[0]} width={w} height={Math.round(w * 1.25)} poster={post.poster} />
       </Pressable>
     );
   } else if (post.media) {

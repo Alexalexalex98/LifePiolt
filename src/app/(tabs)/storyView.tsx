@@ -17,6 +17,7 @@ export default function StoryView() {
   /* finita la storia di una persona si passa alla prossima, come nella barra del recap; l'ordine è fissato all'apertura */
   const [who, setWho] = useState(first);
   const queue = useRef<string[]>([]);
+  const back = useRef<string[]>([]);
   const allowed = useRecapAllowed(useNet((x) => x.prefs.homeFilter) === 'Seguiti' ? 'Seguiti' : 'Per te');
   const allowedRef = useRef(allowed); allowedRef.current = allowed;
   /* la pagina resta montata tra un'apertura e l'altra: a ogni apertura si riparte da capo, con le storie di chi hai toccato */
@@ -26,18 +27,27 @@ export default function StoryView() {
     const st = useNet.getState();
     const order = storyGroups(st.stories, me, (a) => allowedRef.current.has(a), st.storySeen ?? [], Date.now()).filter((g) => !g.mine).map((g) => g.author);
     const i = order.indexOf(first);
+    back.current = [];
     queue.current = i >= 0 ? order.slice(i + 1) : first === me ? order : [];
     setWho(first);
     setOpened((n) => n + 1);
   }, [first, me]));
   const advance = () => {
     const nxt = queue.current.shift();
-    if (nxt) { setWho(nxt); setOpened((n) => n + 1); } else goBack();
+    if (nxt) { back.current.push(who); setWho(nxt); setOpened((n) => n + 1); } else goBack();
+  };
+  /** sinistra = persona successiva (come a fine storie); destra = persona precedente. Restituisce true se ha cambiato persona o chiuso. */
+  const skip = (dir: 1 | -1) => {
+    if (dir === 1) { advance(); return true; }
+    const prev = back.current.pop();
+    if (!prev) return false;
+    queue.current.unshift(who); setWho(prev); setOpened((n) => n + 1);
+    return true;
   };
   const { stories, start } = useMemo(() => {
     const all = activeStories(net.stories, Date.now()).filter((s) => s.author === who && s.keep !== 'moment').sort((a, b) => a.ts - b.ts);
     const g = storyGroups(net.stories, me, () => true, net.storySeen ?? [], Date.now()).find((x) => x.author === who);
     return { stories: all, start: g ? Math.min(startIndex(g, net.storySeen ?? []), Math.max(0, all.length - 1)) : 0 };
   }, [who, opened]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <StoryPlayer key={`${who}:${opened}`} stories={stories} start={start} onClose={goBack} onEnd={advance} />;
+  return <StoryPlayer key={`${who}:${opened}`} stories={stories} start={start} onClose={goBack} onEnd={advance} onSkip={skip} />;
 }

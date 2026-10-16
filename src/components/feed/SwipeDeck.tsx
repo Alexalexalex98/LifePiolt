@@ -19,7 +19,7 @@ import { SWIPE_SIGNAL, dwellSignal, nextCard, record, remaining, undoLast, type 
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
-export type SwipeCandidate = DeckCard & { tag?: string; uri?: string; /** foto del carosello: nello Swipe non si scorrono, si scelgono */ uris?: string[]; /** file incluso nell'app (require) */ asset?: number; media?: 'photo' | 'video' | null };
+export type SwipeCandidate = DeckCard & { tag?: string; uri?: string; poster?: string; /** foto del carosello: nello Swipe non si scorrono, si scelgono */ uris?: string[]; /** file incluso nell'app (require) */ asset?: number; media?: 'photo' | 'video' | null };
 const buzz = () => { if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined); };
 /** Quando compare la scritta piena («MI INTERESSA») la scelta è presa: il gesto si completa da solo. Prima, il post torna al centro. */
 const THRESHOLD = 64;
@@ -35,7 +35,8 @@ function RailBtn({ icon, label, onPress, on }: { icon: string; label: string; on
 
 type Vid = { rate: (r: number) => void; toggle: () => boolean; seek: (f: number) => void; frac: () => number };
 /** Video del post: parte da solo, muto finché non attivi l'audio, in loop. */
-function DeckVideo({ source, muted, controls }: { source: number | { uri: string }; muted: boolean; controls: React.MutableRefObject<Vid | null> }) {
+function DeckVideo({ source, muted, controls, poster }: { source: number | { uri: string }; muted: boolean; controls: React.MutableRefObject<Vid | null>; poster?: string }) {
+  const [shown, setShown] = useState(false);
   const p = useVideoPlayer(source, (pl) => { pl.loop = true; pl.muted = true; pl.play(); });
   useEffect(() => { p.muted = muted; }, [p, muted]);
   useEffect(() => {
@@ -47,7 +48,12 @@ function DeckVideo({ source, muted, controls }: { source: number | { uri: string
     };
     return () => { controls.current = null; };
   }, [p, controls]);
-  return <VideoView player={p} pointerEvents="none" style={{ width: '100%', height: '100%' }} nativeControls={false} contentFit="cover" />;
+  return (
+    <View style={{ width: '100%', height: '100%' }}>
+      {poster ? <Image source={{ uri: poster }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
+      <VideoView player={p} pointerEvents="none" style={{ width: '100%', height: '100%', opacity: shown || !poster ? 1 : 0 }} nativeControls={false} contentFit="cover" onFirstFrameRender={() => setShown(true)} />
+    </View>
+  );
 }
 
 /**
@@ -82,11 +88,13 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   const left = remaining(cards, swipes, weights, me);
   const cardRef = useRef(card); cardRef.current = card;
   const isVideo = !!card && card.media === 'video' && (!!card.asset || !!card.uri);
-  /* le foto dei prossimi post si scaricano in anticipo: niente attesa quando scegli */
+  /* le foto (e le anteprime dei video) dei prossimi post si scaricano in anticipo: niente attesa quando scegli */
   useEffect(() => {
     const seen = new Set((swipes ?? []).map((r) => r.key));
-    const urls = cards.filter((c) => c.media !== 'video' && c.uri && !seen.has(c.key) && c.key !== card?.key).slice(0, 8).map((c) => c.uri as string);
+    const urls = cards.filter((c) => !seen.has(c.key) && c.key !== card?.key).slice(0, 14).flatMap((c) => (c.media === 'video' ? [c.poster] : c.uris ?? [c.uri])).filter((u): u is string => !!u);
     if (urls.length) void Image.prefetch(urls, 'memory-disk').catch(() => undefined);
+    /* i file dei prossimi video si scaldano in anticipo (conta soprattutto con Expo, che li serve dal computer) */
+    cards.filter((c) => c.media === 'video' && !seen.has(c.key) && c.key !== card?.key && c.uri && /^https?:/.test(c.uri)).slice(0, 3).forEach((c) => { fetch(c.uri as string).then((r) => r.blob()).catch(() => undefined); });
   }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   /* nuovo post: azzera il cronometro di visione e lo stato del video */
   useEffect(() => { shownAt.current = Date.now(); maxFrac.current = 0; setPaused(false); setFast(false); setProg(0); setPic(0); }, [card?.key]);
@@ -147,7 +155,7 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
         <Pressable accessibilityRole="button" accessibilityLabel={isVideo ? tl('Video di {0}. Tocca per mettere in pausa o riprendere, tieni premuto per accelerare', card.author) : tl('Post di {0}', card.author)}
           onPress={() => { if (isVideo) setPaused(!(vid.current?.toggle() ?? true)); }}
           delayLongPress={260} onLongPress={() => { if (isVideo) { vid.current?.rate(2); setFast(true); } }} onPressOut={() => { if (fast) { vid.current?.rate(1); setFast(false); } }} style={{ flex: 1 }}>
-          {isVideo ? <DeckVideo key={card.key} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} /> : card.asset ? <Image source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
+          {isVideo ? <DeckVideo key={card.key} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} poster={card.poster} /> : card.asset ? <Image source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
             <LinearGradient colors={['#4a3bd1', '#1b1f3a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
               <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900' }}>{card.text}</Text>
             </LinearGradient>

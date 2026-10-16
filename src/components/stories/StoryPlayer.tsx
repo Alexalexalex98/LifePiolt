@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, Pressable, TextInput, View } from 'react-native';
+import { Animated, Keyboard, PanResponder, Pressable, TextInput, View } from 'react-native';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
@@ -20,14 +20,21 @@ import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 
 /** Il video parte sempre senza audio: il suono si attiva solo toccando il volume. */
-export function StoryVideo({ uri, controls, sound }: { uri: string; controls?: boolean; sound?: boolean }) {
+export function StoryVideo({ uri, controls, sound, poster, paused }: { uri: string; controls?: boolean; sound?: boolean; poster?: string; /** tenendo premuto la storia si ferma, anche il video */ paused?: boolean }) {
   const p = useVideoPlayer(uri, (pl) => { pl.loop = false; pl.muted = true; if (!controls) pl.play(); });
+  const [shown, setShown] = useState(false);
   useEffect(() => { p.muted = !sound; }, [p, sound]);
-  return <VideoView player={p} style={{ width: '100%', height: '100%' }} nativeControls={!!controls} contentFit="cover" />;
+  useEffect(() => { if (controls) return; if (paused) p.pause(); else p.play(); }, [p, paused, controls]);
+  return (
+    <View style={{ width: '100%', height: '100%' }}>
+      {poster ? <Image source={{ uri: poster }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
+      <VideoView player={p} style={{ width: '100%', height: '100%', opacity: shown || !poster ? 1 : 0 }} nativeControls={!!controls} contentFit="cover" onFirstFrameRender={() => setShown(true)} />
+    </View>
+  );
 }
 
 /** Visualizzatore a schermo intero: tocca a destra per avanzare, a sinistra per tornare, tieni premuto per fermare. */
-export function StoryPlayer({ stories, start, onClose, onEnd }: { stories: Story[]; start: number; onClose: () => void; /** dopo l'ultima storia: passa alla persona successiva (se manca, chiude) */ onEnd?: () => void }) {
+export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { stories: Story[]; start: number; onClose: () => void; /** scorri a sinistra: salta alla persona successiva (+1); a destra torna alla precedente (-1) */ onSkip?: (dir: 1 | -1) => boolean; /** dopo l'ultima storia: passa alla persona successiva (se manca, chiude) */ onEnd?: () => void }) {
   const me = useApp((s) => s.account.name);
   const insets = useSafeAreaInsets();
   const kb = useKeyboardInset();
@@ -53,7 +60,30 @@ export function StoryPlayer({ stories, start, onClose, onEnd }: { stories: Story
     if (!(st.storySeen ?? []).includes(cur.id)) st.patch({ storySeen: [...(st.storySeen ?? []), cur.id], stories: addView(st.stories ?? [], cur.id, me) });
   }, [cur?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setP(0); }, [i]);
+  /* anteprime e file dei momenti successivi si scaricano in anticipo, così non si aspetta al cambio */
+  useEffect(() => {
+    const nxt = stories.slice(i + 1, i + 4);
+    const imgs = nxt.flatMap((x) => (x.kind === 'video' ? [x.poster] : [x.uri])).filter((u): u is string => !!u);
+    if (imgs.length) void Image.prefetch(imgs, 'memory-disk').catch(() => undefined);
+    nxt.filter((x) => x.kind === 'video' && x.uri && /^https?:/.test(x.uri)).forEach((x) => { fetch(x.uri as string).then((r) => r.blob()).catch(() => undefined); });
+  }, [i, stories]);
   const closing = useRef(false);
+  const dragY = useRef(new Animated.Value(0)).current;
+  const typingRef = useRef(false);
+  const skipRef = useRef(onSkip); skipRef.current = onSkip;
+  /* gesti del recap: giù = chiudi, sinistra = persona successiva, destra = persona precedente */
+  const swipe = useRef(PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_e, g) => !typingRef.current && !closing.current && (Math.abs(g.dx) > 18 || g.dy > 18) && (Math.abs(g.dx) > Math.abs(g.dy) * 1.2 || g.dy > Math.abs(g.dx) * 1.2),
+    onPanResponderGrant: () => setHeld(true),
+    onPanResponderMove: (_e, g) => { if (g.dy > 0 && Math.abs(g.dy) > Math.abs(g.dx)) dragY.setValue(g.dy); },
+    onPanResponderRelease: (_e, g) => {
+      setHeld(false);
+      if (g.dy > 110 && g.dy > Math.abs(g.dx)) { Animated.timing(dragY, { toValue: 600, duration: 160, useNativeDriver: false }).start(() => { if (!closing.current) { closing.current = true; goBack(); } }); return; }
+      Animated.spring(dragY, { toValue: 0, useNativeDriver: false, friction: 8 }).start();
+      if (Math.abs(g.dx) > 70 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) { const dir: 1 | -1 = g.dx < 0 ? 1 : -1; if (skipRef.current?.(dir)) closing.current = true; }
+    },
+    onPanResponderTerminate: () => { setHeld(false); Animated.spring(dragY, { toValue: 0, useNativeDriver: false }).start(); },
+  })).current;
   // si chiude una volta sola: prima il timer continuava a girare e chiamava «indietro» a raffica, fino a uscire dalla schermata
   const close = () => { if (closing.current) return; closing.current = true; goBack(); };
   const next = () => { if (closing.current) return; if (iRef.current >= stories.length - 1) { if (onEnd) { closing.current = true; onEnd(); } else close(); } else setI(iRef.current + 1); };
@@ -79,15 +109,16 @@ export function StoryPlayer({ stories, start, onClose, onEnd }: { stories: Story
   });
   const viewerList = cur.views;
 
+  typingRef.current = typing;
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
+    <Animated.View {...swipe.panHandlers} style={{ flex: 1, backgroundColor: '#000', transform: [{ translateY: dragY }], borderRadius: dragY.interpolate({ inputRange: [0, 200], outputRange: [0, 24], extrapolate: 'clamp' }), overflow: 'hidden' }}>
       {cur.kind === 'text' ? (
         <LinearGradient colors={cur.bg ?? ['#6c8cff', '#3b2a7a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, alignItems: 'center', justifyContent: 'center', padding: 28 }}>
           <Text style={{ color: '#fff', fontSize: 30, fontWeight: '800', textAlign: 'center' }}>{cur.text}</Text>
         </LinearGradient>
       ) : (
         <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}>
-          {cur.kind === 'video' && cur.uri ? <StoryVideo uri={cur.uri} sound={sound} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
+          {cur.kind === 'video' && cur.uri ? <StoryVideo uri={cur.uri} sound={sound} poster={cur.poster} paused={paused} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
           {tintOfFilter(cur.filter) ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: tintOfFilter(cur.filter)! }} /> : null}
           {cur.text ? <Text style={[{ position: 'absolute', start: 16, end: 16, color: cur.textColor ?? '#fff', fontSize: 24, fontWeight: '900', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 8 }, cur.textPos === 'alto' ? { top: insets.top + 100 } : cur.textPos === 'centro' ? { top: '46%' } : { bottom: insets.bottom + 90 }]}>{cur.text}</Text> : null}
         </View>
@@ -98,7 +129,7 @@ export function StoryPlayer({ stories, start, onClose, onEnd }: { stories: Story
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Momento successivo')} style={{ flex: 2 }} onPress={next} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={200} />
       </View>
       {typing ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi la tastiera')} onPress={() => Keyboard.dismiss()} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: 'rgba(0,0,0,0.35)' }} /> : null}
-      <View pointerEvents="box-none" style={{ paddingTop: insets.top + 8, paddingHorizontal: 10 }}>
+      <View pointerEvents={held ? 'none' : 'box-none'} style={{ paddingTop: insets.top + 8, paddingHorizontal: 10, opacity: held ? 0 : 1 }}>
         {/* miniature delle foto, appena visibili in alto: tocca per saltare; la linea sotto la corrente mostra lo scorrere del tempo */}
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: -2 }}>
           {stories.map((s, k) => (
@@ -123,7 +154,7 @@ export function StoryPlayer({ stories, start, onClose, onEnd }: { stories: Story
         </Row>
       </View>
       <View style={{ flex: 1 }} pointerEvents="none" />
-      <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: (kb.height > 0 ? kb.height : insets.bottom) + 12, backgroundColor: typing ? 'rgba(0,0,0,0.55)' : 'transparent' }}>
+      <View pointerEvents={held ? 'none' : 'auto'} style={{ opacity: held ? 0 : 1, paddingHorizontal: 14, paddingTop: 8, paddingBottom: (kb.height > 0 ? kb.height : insets.bottom) + 12, backgroundColor: typing ? 'rgba(0,0,0,0.55)' : 'transparent' }}>
         {mine ? (
           <Pressable accessibilityRole="button" onPress={() => setViewers(true)} style={{ alignSelf: 'center', flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 }}>
             <Icon name="eye" size={18} color="#fff" /><Text style={{ color: '#fff', fontWeight: '800' }}>{tl('{0} visualizzazioni', viewerList.length)}</Text>
@@ -141,6 +172,6 @@ export function StoryPlayer({ stories, start, onClose, onEnd }: { stories: Story
           <Item key={n} last={k === viewerList.length - 1}><Row gap={10}><UserAvatar name={n} size={34} /><Body bold>{n}</Body></Row></Item>
         ))}
       </Sheet>
-    </View>
+    </Animated.View>
   );
 }
