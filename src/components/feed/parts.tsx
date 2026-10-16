@@ -114,7 +114,8 @@ export function TextCard({ seed, text, tag, width, palette }: { seed: string; te
   const { tone, hc } = useFeedTone();
   const p = palette ?? paletteFor(seed, tone, hc);
   const fs = textCardFontSize(text.length);
-  const bg = seedUri(autoBgKey(text, tag));
+  const bgKey = autoBgKey(text, tag);
+  const bg = bgKey ? seedUri(bgKey) : null;
   return (
     <LinearGradient colors={[p.from, p.to]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={{ width, minHeight: width * 0.86, padding: 26, justifyContent: 'center', overflow: 'hidden' }}>
       {bg ? <><Image source={{ uri: bg }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" /><View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} /></> : <ArtShapes seed={seed} size={width} />}
