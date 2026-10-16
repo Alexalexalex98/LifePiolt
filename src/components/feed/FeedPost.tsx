@@ -122,6 +122,7 @@ function FeedVideo({ uri, width, height, poster }: { uri: string; width: number;
 export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPostData; w: number; onDouble: () => void; onSingle: () => void; heart: Animated.Value }) {
   const images = post.uris?.length ? post.uris : post.uri ? [post.uri] : [];
   const [page, setPage] = useState(0);
+  const scroller = useRef<ScrollView>(null);
   const lastTap = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
@@ -147,7 +148,7 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
       </Pressable>
     );
     body = images.length > 1 ? (
-      <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} onTouchStart={holdCarousel} onTouchEnd={releaseCarousel} onTouchCancel={releaseCarousel} onScrollEndDrag={releaseCarousel} bounces={false} overScrollMode="never" scrollEventThrottle={16} style={{ width: w, height: h }} nestedScrollEnabled>
+      <ScrollView ref={scroller} horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} onTouchStart={holdCarousel} onTouchEnd={releaseCarousel} onTouchCancel={releaseCarousel} onScrollEndDrag={releaseCarousel} bounces={false} overScrollMode="never" scrollEventThrottle={16} style={{ width: w, height: h }} nestedScrollEnabled>
         {images.map(slide)}
       </ScrollView>
     ) : slide(images[0], 0);
@@ -176,8 +177,13 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
       {images.length > 1 && (
         <>
           <View pointerEvents="none" style={{ position: 'absolute', top: 12, end: 12, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{page + 1}/{images.length}</Text></View>
-          <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ position: 'absolute', bottom: 12, alignSelf: 'center', flexDirection: 'row', gap: 5, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, direction: 'ltr' }}>
-            {images.map((_, i) => <View key={i} style={{ width: i === page ? 7 : 6, height: i === page ? 7 : 6, borderRadius: 4, backgroundColor: i === page ? '#fff' : 'rgba(255,255,255,0.55)' }} />)}
+          {/* miniature al posto dei puntini (stesse dello Swipe, più piccole): un tocco porta a quella foto */}
+          <View style={{ position: 'absolute', bottom: 12, alignSelf: 'center', flexDirection: 'row', gap: 6, padding: 5, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' }}>
+            {images.map((u, i) => (
+              <Pressable key={u + i} onPress={() => { scroller.current?.scrollTo({ x: i * w, animated: true }); setPage(i); }} hitSlop={3} accessibilityRole="button" accessibilityState={{ selected: i === page }} accessibilityLabel={tl('Foto {0} di {1}', i + 1, images.length)} style={{ width: 26, height: 34, borderRadius: 7, overflow: 'hidden', borderWidth: i === page ? 2 : 0, borderColor: '#fff', opacity: i === page ? 1 : 0.7 }}>
+                <Image source={{ uri: u }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" transition={0} recyclingKey={u} />
+              </Pressable>
+            ))}
           </View>
         </>
       )}
