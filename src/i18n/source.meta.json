@@ -1,5 +1,5 @@
 {
- "count": 10997,
+ "count": 11000,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -58,7 +58,7 @@
   "src/app/(tabs)/lifetravel.tsx": 102,
   "src/app/(tabs)/liveRoom.tsx": 88,
   "src/app/(tabs)/lpStatement.tsx": 20,
-  "src/app/(tabs)/menuPage.tsx": 23,
+  "src/app/(tabs)/menuPage.tsx": 28,
   "src/app/(tabs)/messagesPage.tsx": 36,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,
@@ -494,5 +494,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1362
+ "withPlaceholders": 1363
 }

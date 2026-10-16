@@ -40,7 +40,7 @@ function MenuTag({ author, itemId }: { author: string; itemId: string }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${translateText('Dal menù')}: ${itemLine(it)}`} onPress={() => go('menuPage', { name: author, item: itemId })}
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 16, backgroundColor: t.chip, opacity: pressed ? 0.9 : 1, marginBottom: 4 })}>
-      <Icon name="file" size={16} color={t.accent} />
+      {it.photo ? <Image source={{ uri: it.photo }} style={{ width: 40, height: 40, borderRadius: 10 }} contentFit="cover" /> : <Icon name="file" size={16} color={t.accent} />}
       <View style={{ flex: 1 }}>
         <Text numberOfLines={1} style={{ color: t.text, fontSize: 14, fontWeight: '800' }}>{it.name}</Text>
         {it.desc ? <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12 }}>{it.desc}</Text> : null}

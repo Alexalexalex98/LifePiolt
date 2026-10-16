@@ -5,7 +5,7 @@
  */
 export const MENU_CATS = ['Antipasti', 'Primi', 'Secondi', 'Pizze', 'Dolci', 'Bevande', 'Altro'] as const;
 export type MenuCat = (typeof MENU_CATS)[number];
-export type MenuItem = { id: string; name: string; price: number; cat: MenuCat; desc?: string };
+export type MenuItem = { id: string; name: string; price: number; cat: MenuCat; desc?: string; /** foto del piatto */ photo?: string };
 export type MenuFile = { id: string; name: string; uri: string; mime?: string; ts: number };
 export type Menu = { files: MenuFile[]; items: MenuItem[]; updatedAt: number };
 export const EMPTY_MENU: Menu = { files: [], items: [], updatedAt: 0 };
