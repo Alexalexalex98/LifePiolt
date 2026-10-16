@@ -18,7 +18,8 @@ import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 import { t as tl, translateText } from '@/i18n/core';
-import { captionNeedsMore, isDoubleTap, pageIndex } from './feedLogic.ts';
+import { captionNeedsMore, isDoubleTap, pageIndex, postLayout } from './feedLogic.ts';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ArtPlaceholder, IconBtn, NATIVE, RingAvatar, TextCard } from './parts';
 
 export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; uris?: string[]; editedAt?: number; hideLikes?: boolean; commentsOff?: boolean };
@@ -41,12 +42,39 @@ export function useHeartBurst() {
   return { heart, flash };
 }
 
+/** Segnaposto che pulsa dolcemente mentre foto e video si caricano (sfondo del colore dell'app, niente riquadro nero). */
+function MediaSkeleton({ width, height }: { width: number; height: number }) {
+  const t = useTheme();
+  const a = useRef(new Animated.Value(0.45)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([Animated.timing(a, { toValue: 1, duration: 800, useNativeDriver: NATIVE }), Animated.timing(a, { toValue: 0.45, duration: 800, useNativeDriver: NATIVE })]));
+    loop.start();
+    return () => loop.stop();
+  }, [a]);
+  return <Animated.View pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, width, height, backgroundColor: t.item, opacity: a }} />;
+}
+
+/** Foto del feed: segnaposto che pulsa, poi la foto compare con una dissolvenza. */
+function FeedImage({ uri, width, height }: { uri: string; width: number; height: number }) {
+  const [ready, setReady] = useState(false);
+  return (
+    <View style={{ width, height, backgroundColor: 'transparent' }}>
+      {ready ? null : <MediaSkeleton width={width} height={height} />}
+      <Image source={{ uri }} style={{ width, height }} contentFit="cover" transition={380} recyclingKey={uri} cachePolicy="memory-disk" onLoad={() => setReady(true)} />
+    </View>
+  );
+}
+
 /** Video nel feed: parte da solo, muto e in loop; un tocco lo apre a schermo intero. */
 function FeedVideo({ uri, width, height }: { uri: string; width: number; height: number }) {
   const p = useVideoPlayer(uri, (pl) => { pl.loop = true; pl.muted = true; pl.play(); });
+  const [shown, setShown] = useState(false);
+  const fade = useRef(new Animated.Value(0)).current;
+  const onFirst = () => { setShown(true); Animated.timing(fade, { toValue: 1, duration: 350, useNativeDriver: NATIVE }).start(); };
   return (
-    <View pointerEvents="none" style={{ width, height, backgroundColor: '#000' }}>
-      <VideoView player={p} style={{ width, height }} nativeControls={false} contentFit="cover" />
+    <View pointerEvents="none" style={{ width, height }}>
+      {shown ? null : <MediaSkeleton width={width} height={height} />}
+      <Animated.View style={{ width, height, opacity: fade }}><VideoView player={p} style={{ width, height }} nativeControls={false} contentFit="cover" onFirstFrameRender={onFirst} /></Animated.View>
       <View style={{ position: 'absolute', top: 12, start: 12, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 }}><Icon name="video" size={14} color="#fff" /></View>
     </View>
   );
@@ -77,7 +105,7 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
   if (isPhoto) {
     const slide = (u: string, i: number) => (
       <Pressable key={i} onPress={tap} accessibilityRole="imagebutton" accessibilityLabel={translateText(images.length > 1 ? 'Foto del post, tocca due volte per mettere mi piace' : 'Foto del post, tocca due volte per mettere mi piace')}>
-        <Image source={{ uri: u }} style={{ width: w, height: h }} contentFit="cover" transition={180} recyclingKey={u} />
+        <FeedImage uri={u} width={w} height={h} />
       </Pressable>
     );
     body = images.length > 1 ? (
@@ -145,6 +173,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
   const sendDraft = () => { const x = draft.trim(); if (!x) return; useNet.getState().addComment(likeKey, me, x); setDraft(''); };
   const first = (comments || [])[(comments || []).length - 1];
   const hasMedia = !!post.media;
+  const layout = postLayout(post, post.uris?.length ?? 1);
   const more = hasMedia && captionNeedsMore(post.text);
   const sub = [post.tag ?? role, fmtAgo(post.ts), post.editedAt ? translateText('modificato') : ''].filter(Boolean).join(' · ');
 
@@ -169,7 +198,17 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
       </View>
 
       <SharePostSheet visible={sharing} onClose={() => setSharing(false)} author={post.author} text={post.text} media={post.media} uri={post.uri ?? post.uris?.[0]} likeKey={likeKey} />
-      <MediaArea post={post} w={w} onDouble={doubleLike} onSingle={single} heart={heart} />
+      {layout === 'story' ? <Text style={{ color: t.text, fontSize: 18, lineHeight: 26, fontWeight: '700', letterSpacing: -0.2, paddingHorizontal: 14, paddingBottom: 12 }}>{post.text}</Text> : null}
+      {layout === 'story' ? (
+        <View style={{ marginHorizontal: 12, borderRadius: 20, overflow: 'hidden' }}><MediaArea post={post} w={w - 24} onDouble={doubleLike} onSingle={single} heart={heart} /></View>
+      ) : layout === 'overlay' ? (
+        <View>
+          <MediaArea post={post} w={w} onDouble={doubleLike} onSingle={single} heart={heart} />
+          <LinearGradient pointerEvents="none" colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.72)']} style={{ position: 'absolute', start: 0, end: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 56, paddingBottom: 16 }}>
+            <Text numberOfLines={3} style={{ color: '#fff', fontSize: 16, lineHeight: 22, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 6 }}>{post.text}</Text>
+          </LinearGradient>
+        </View>
+      ) : <MediaArea post={post} w={w} onDouble={doubleLike} onSingle={single} heart={heart} />}
 
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, marginTop: 4 }}>
         <IconBtn icon="heart" size={27} color={liked ? LIKE : t.text} fill={liked ? LIKE : 'none'} label={liked ? 'Togli il mi piace' : 'Mi piace'} onPress={like} pop={liked} selected={liked} />
@@ -182,7 +221,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
 
       <View style={{ paddingHorizontal: 14, gap: 5 }}>
         {post.hideLikes && post.author !== me ? null : <Text style={{ color: t.text, fontSize: 14.5, fontWeight: '800' }}>{tl(post.likes === 1 ? 'Piace a {0} persona' : 'Piace a {0} persone', post.likes)}{post.hideLikes ? ` · ${translateText('nascosto agli altri')}` : ''}</Text>}
-        {hasMedia && (
+        {hasMedia && layout === 'classic' && (
           <View>
             <Text numberOfLines={open || !more ? undefined : 2} style={{ color: t.text, fontSize: 14.5, lineHeight: 21 }}>
               <Text style={{ fontWeight: '800' }} onPress={() => go('userProfile', { name: post.author })}>{post.author} </Text>{post.text}

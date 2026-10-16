@@ -44,3 +44,15 @@ test('recap: Per te include chi non segui ma hai aiutato o ti piace; Seguiti sol
   assert.deepEqual(recapAuthors(['Marco'], d, 'Seguiti'), ['Marco']);
   assert.deepEqual(recapAuthors(['Marco'], d, 'Per te').sort(), ['Elena', 'Marco', 'Sara', 'Sophie']);
 });
+
+import { postLayout } from '../src/components/feed/feedLogic.ts';
+test('layout dei post: varia, è stabile e i caroselli restano classici', () => {
+  assert.equal(postLayout({ author: 'A', text: 'x', media: null }), 'text');
+  assert.equal(postLayout({ author: 'A', text: 'x', media: 'photo' }, 3), 'classic');
+  const seen = new Set();
+  for (let i = 0; i < 60; i++) seen.add(postLayout({ author: 'U' + i, text: 'post ' + i, media: 'photo' }));
+  assert.ok(seen.has('classic') && seen.has('overlay') && seen.has('story'));
+  const a = postLayout({ author: 'M', text: 'ciao', media: 'photo' }), b = postLayout({ author: 'M', text: 'ciao', media: 'photo' });
+  assert.equal(a, b);
+  for (let i = 0; i < 60; i++) assert.notEqual(postLayout({ author: 'V' + i, text: 't' + i, media: 'video' }), 'story');
+});

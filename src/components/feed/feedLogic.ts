@@ -34,3 +34,17 @@ export function chunk<T>(arr: T[], n: number): T[][] {
   for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
   return out;
 }
+
+export type PostLayout = 'text' | 'classic' | 'overlay' | 'story';
+/** Come si presenta un post: solo frase, foto/video con didascalia sotto, didascalia sopra la foto, oppure frase prima e foto dopo. Stesso post = stesso aspetto. */
+export function postLayout(p: { author: string; text: string; media?: 'photo' | 'video' | null }, count = 1): PostLayout {
+  if (!p.media) return 'text';
+  if (count > 1) return 'classic';
+  let h = 5;
+  const s = p.author + p.text;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  const k = Math.abs(h) % 3;
+  if (k === 0) return 'classic';
+  if (k === 1) return 'overlay';
+  return p.media === 'photo' ? 'story' : 'overlay';
+}
