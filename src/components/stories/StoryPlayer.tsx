@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
 import { UserAvatar } from '@/components/network';
-import { Body, Item, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Item, Pill, Row, Sheet } from '@/components/ui';
 import { t as tl } from '@/i18n/core';
 import { confirmDelete } from '@/lib/confirm';
 import { Icon } from '@/lib/icons';
@@ -49,12 +49,13 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
   /* il tempo di una storia video parte solo quando il video si vede davvero (con un limite di 3 s per non restare fermi) */
   const [ready, setReady] = useState(false);
   const [viewers, setViewers] = useState(false);
+  const [opts, setOpts] = useState(false);
   const [sound, setSound] = useState(false);
   const [reply, setReply] = useState('');
   const [typing, setTyping] = useState(false);
   const cur = stories[Math.min(i, stories.length - 1)];
   const mine = cur?.author === me;
-  const paused = held || viewers || typing;
+  const paused = held || viewers || typing || opts;
   const secs = cur?.kind === 'video' ? 10 : STORY_SECONDS;
   const iRef = useRef(i); iRef.current = i;
 
@@ -111,7 +112,8 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
   };
   const remove = () => confirmDelete(tl('questo momento del recap'), () => {
     net.patch({ stories: (net.stories ?? []).filter((s) => s.id !== cur.id) });
-    if (stories.length <= 1) close(); else setI(Math.max(0, i - 1));
+    /* tolto l'ultimo momento è la pagina del recap a chiudersi (e a proporre di aggiungerne uno) */
+    if (stories.length > 1) setI(Math.max(0, i - 1));
   });
   const viewerList = cur.views;
 
@@ -158,8 +160,8 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
           <UserAvatar name={cur.author} size={36} link={false} />
           <View style={{ flex: 1 }}><Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>{mine ? tl('Il tuo recap') : cur.author}</Text><Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{tl(ago(cur.ts, Date.now()))}</Text></View>
           {cur.kind === 'video' ? <Pressable accessibilityRole="button" accessibilityLabel={sound ? tl('Spegni il volume') : tl('Attiva il volume')} onPress={() => setSound((v) => !v)} hitSlop={10} style={{ padding: 6 }}><Icon name={sound ? 'volume' : 'volume-off'} size={22} color="#fff" /></Pressable> : null}
+          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Impostazioni del momento')} onPress={() => setOpts(true)} hitSlop={10} style={{ padding: 6 }}><Icon name="gear" size={22} color="#fff" /></Pressable> : null}
           {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al recap')} onPress={() => { onClose(); go('storyCreate'); }} hitSlop={10} style={{ padding: 6 }}><Icon name="plus" size={24} color="#fff" /></Pressable> : null}
-          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina dal recap')} onPress={remove} hitSlop={10} style={{ padding: 6 }}><Icon name="trash" size={22} color="#fff" /></Pressable> : null}
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={close} hitSlop={10} style={{ padding: 6 }}><Icon name="x" size={24} color="#fff" /></Pressable>
         </Row>
       </View>
@@ -177,6 +179,15 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
           </Row>
         )}
       </View>
+      <Sheet visible={opts} title={tl('Impostazioni del momento')} onClose={() => setOpts(false)}>
+        <Body bold style={{ marginBottom: 6 }}>{tl('Quanto resta')}</Body>
+        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
+          {(['day', 'week', 'moment'] as const).map((k) => <Pill key={k} label={tl(k === 'day' ? '24 ore' : k === 'week' ? '7 giorni' : 'Fisso nel profilo')} on={(cur.keep ?? 'day') === k} onPress={() => net.patch({ stories: (net.stories ?? []).map((x) => (x.id === cur.id ? { ...x, keep: k === 'day' ? undefined : k } : x)) })} />)}
+        </Row>
+        <Item onPress={() => { setOpts(false); setViewers(true); }}><Row><Body style={{ flex: 1 }}>{tl('Chi ha visto il recap')}</Body><Body muted>{cur.views.length}</Body></Row></Item>
+        <Btn style={{ marginTop: 12 }} ghost danger icon="trash" title={tl('Elimina questo momento')} onPress={() => { setOpts(false); remove(); }} />
+        <Btn style={{ marginTop: 8 }} icon="plus" title={tl('Aggiungi un altro momento')} onPress={() => { setOpts(false); onClose(); go('storyCreate'); }} />
+      </Sheet>
       <Sheet visible={viewers} title={tl('Chi ha visto il recap')} onClose={() => setViewers(false)}>
         {viewerList.length === 0 ? <Body muted>{tl('Nessuno l’ha ancora visto.')}</Body> : viewerList.map((n, k) => (
           <Item key={n} last={k === viewerList.length - 1}><Row gap={10}><UserAvatar name={n} size={34} /><Body bold>{n}</Body></Row></Item>

@@ -1,12 +1,13 @@
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useFocusEffect, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useRecapAllowed } from '@/components/stories/StoriesBar';
 import { StoryPlayer } from '@/components/stories/StoryPlayer';
-import { goBack } from '@/lib/nav';
+import { go, goBack } from '@/lib/nav';
 import { activeStories, fixedMoments, inFlow, startIndex, storyGroups } from '@/lib/stories';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
+import { toast } from '@/store/toast';
 
 /** Entri subito nella storia di una persona, a schermo intero, dalla prima non ancora vista. */
 export default function StoryView() {
@@ -53,5 +54,15 @@ export default function StoryView() {
     const g = storyGroups(net.stories, me, () => true, net.storySeen ?? [], Date.now()).find((x) => x.author === who);
     return { stories: all, start: g ? Math.min(startIndex(g, net.storySeen ?? []), Math.max(0, all.length - 1)) : 0 };
   }, [who, opened, onlyFixed, at]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* niente da vedere: non si apre un recap vuoto. Se è il tuo si propone di aggiungerne uno */
+  const empty = stories.length === 0;
+  const focused = useIsFocused();
+  useEffect(() => {
+    if (!empty || !focused) return;
+    const mineEmpty = who === me && !onlyFixed;
+    goBack();
+    if (mineEmpty) setTimeout(() => { toast('Non hai ancora un recap: aggiungine uno'); go('storyCreate'); }, 50);
+  }, [empty, focused]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (empty) return null;
   return <StoryPlayer key={`${who}:${opened}`} stories={stories} start={start} onClose={goBack} onEnd={advance} onSkip={skip} />;
 }
