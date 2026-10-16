@@ -29,7 +29,7 @@ export function UpcomingBillsCard({ onOpen }: { onOpen: () => void }) {
           {items.map((it, i) => {
             const d = diffDays(today, it.dueDate);
             return (
-              <Item key={it.key} last={i === items.length - 1} onPress={() => go('billDetail', { id: it.invoiceId })}>
+              <Item key={`${it.key}-${i}`} last={i === items.length - 1} onPress={() => go('billDetail', { id: it.invoiceId })}>
                 <Row>
                   <View style={{ flex: 1 }}>
                     <Body numberOfLines={1}>{it.issuer}</Body>

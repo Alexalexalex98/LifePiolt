@@ -28,11 +28,11 @@ function UpcomingBar({ today, items }: { today: string; items: ReturnType<typeof
     <View style={{ marginTop: 12 }}>
       <View accessible accessibilityLabel={t('Prossime scadenze: {0}', items.length)} style={{ height: 30, justifyContent: 'center' }}>
         <View style={{ height: 6, borderRadius: 3, backgroundColor: th.item }} />
-        {items.map((it) => {
+        {items.map((it, ix) => {
           const d = diffDays(today, it.dueDate);
           const pct = Math.max(0, Math.min(100, (Math.max(0, d) / 30) * 100));
           const c = tone(d < 0 ? 'scaduta' : d <= 7 ? 'in_scadenza' : 'da_pagare').fg;
-          return <View key={it.key} style={{ position: 'absolute', start: `${Math.min(pct, 97)}%`, top: 5, width: 12, height: 20, borderRadius: 6, backgroundColor: readable(c, th.card), borderWidth: 2, borderColor: th.card }} />;
+          return <View key={`${it.key}-${ix}`} style={{ position: 'absolute', start: `${Math.min(pct, 97)}%`, top: 5, width: 12, height: 20, borderRadius: 6, backgroundColor: readable(c, th.card), borderWidth: 2, borderColor: th.card }} />;
         })}
       </View>
       <Row style={{ marginTop: 2 }}>
@@ -95,7 +95,7 @@ export function BillsSection() {
             const nd = nextDueDate(inv) ?? inv.dueDate;
             const dd = nd ? diffDays(today, nd) : null;
             return (
-              <Item key={inv.id} last={i === list.length - 1} onPress={() => go('billDetail', { id: inv.id })}>
+              <Item key={`${inv.id}-${i}`} last={i === list.length - 1} onPress={() => go('billDetail', { id: inv.id })}>
                 <Row style={{ alignItems: 'flex-start' }}>
                   <View style={{ flex: 1, gap: 4 }}>
                     <Body bold numberOfLines={2}>{inv.issuer}</Body>
