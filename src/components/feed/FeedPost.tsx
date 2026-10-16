@@ -1,5 +1,5 @@
 import { SharePostSheet } from '@/components/feed/SharePostSheet';
-import { carouselEdge, emitEdgeSwipe } from '@/lib/feedSwipe';
+import { holdCarousel, releaseCarousel } from '@/lib/feedSwipe';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
@@ -73,14 +73,6 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
   const isPhoto = post.media === 'photo' && images.length > 0;
   const h = isPhoto ? Math.round(w * 1.25) : w;
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => setPage(pageIndex(e.nativeEvent.contentOffset.x, w, images.length)), [w, images.length]);
-  /* ultima foto e ancora un gesto verso sinistra (o prima foto verso destra): passa alla scheda vicina della Home */
-  const onEndDrag = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, velocity, contentSize, layoutMeasurement } = e.nativeEvent;
-    const pg = pageIndex(contentOffset.x, w, images.length);
-    const over = contentOffset.x + layoutMeasurement.width - contentSize.width;
-    const dir: 1 | -1 | 0 = (over > 24 || (velocity?.x ?? 0) > 0.4 && over > -2) ? 1 : (contentOffset.x < -24 || ((velocity?.x ?? 0) < -0.4 && contentOffset.x < 2)) ? -1 : 0;
-    if (dir && carouselEdge(pg, images.length, dir)) emitEdgeSwipe(dir);
-  }, [w, images.length]);
   let body;
   if (isPhoto) {
     const slide = (u: string, i: number) => (
@@ -89,7 +81,7 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
       </Pressable>
     );
     body = images.length > 1 ? (
-      <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} onScrollEndDrag={onEndDrag} scrollEventThrottle={16} style={{ width: w, height: h }} nestedScrollEnabled>
+      <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} onTouchStart={holdCarousel} onTouchEnd={releaseCarousel} onTouchCancel={releaseCarousel} onScrollEndDrag={releaseCarousel} bounces={false} overScrollMode="never" scrollEventThrottle={16} style={{ width: w, height: h }} nestedScrollEnabled>
         {images.map(slide)}
       </ScrollView>
     ) : slide(images[0], 0);

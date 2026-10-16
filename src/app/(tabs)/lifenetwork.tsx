@@ -8,7 +8,7 @@ import { SwipeDeck } from '@/components/feed/SwipeDeck';
 import { useDeckCards } from '@/components/feed/useDeckCards';
 import { useSeedMedia } from '@/lib/seedMedia';
 import { pickQuotes, quoteCount, type Quote } from '@/lib/theiaQuotes';
-import { onEdgeSwipe } from '@/lib/feedSwipe';
+import { carouselBusy } from '@/lib/feedSwipe';
 import { adjacentSection } from '@/lib/sectionSwipe';
 import { Text } from '@/components/T';
 
@@ -113,8 +113,8 @@ export default function LifeNetwork() {
   /* feed misto: stesso intreccio di prima (post, community, idee, seminari sponsorizzati, citazioni) */
   const feedItems = useMemo<Item[]>(() => {
     const comm: Item[] = [];
-    communities.filter((c) => c.members.includes(me) && visible('community', c.id, c.owner === 'system' ? undefined : c.owner)).forEach((c) => c.posts.forEach((p, pi) => comm.push({ k: 'post', id: `c${c.id}:${pi}`, likeKey: `community:${c.id}:${pi}`, post: keep(`c${c.id}:${pi}`, { author: p.author, text: p.text, media: p.media, tag: c.name, likes: p.likes, ts: p.ts, uri: p.uri, editedAt: p.editedAt }) })));
-    const standalone: Item[] = posts.filter((p) => !p.hideFromFeed && visible('post', 'standalone:' + p.id, p.author)).map((p) => ({ k: 'post', id: 's' + p.id, likeKey: 'standalone:' + p.id, post: keep('s' + p.id, p) }));
+    communities.filter((c) => c.members.includes(me) && visible('community', c.id, c.owner === 'system' ? undefined : c.owner)).forEach((c) => c.posts.forEach((p, pi) => { if (p.media && !p.uri) return; comm.push({ k: 'post', id: `c${c.id}:${pi}`, likeKey: `community:${c.id}:${pi}`, post: keep(`c${c.id}:${pi}`, { author: p.author, text: p.text, media: p.media, tag: c.name, likes: p.likes, ts: p.ts, uri: p.uri, editedAt: p.editedAt }) }); }));
+    const standalone: Item[] = posts.filter((p) => !p.hideFromFeed && !(p.media && !p.uri && !p.uris?.length) && visible('post', 'standalone:' + p.id, p.author)).map((p) => ({ k: 'post', id: 's' + p.id, likeKey: 'standalone:' + p.id, post: keep('s' + p.id, p) }));
     const ideaItems: Item[] = hideIdeas ? [] : ideas.filter((i) => !mutedIdeaAuthors.includes(i.author) && visible('idea', i.id, i.author)).map((idea) => ({ k: 'idea', id: 'i' + idea.id, idea }));
     const sem: Item[] = seminars.filter((s) => s.promoted && visible('seminar', s.id, s.host)).map((s) => ({ k: 'seminar', id: 'm' + s.id, s }));
     const mot: Item[] = pickQuotes(quoteLikes, quoteCount(quoteLikes), Math.floor(Date.now() / 86400000)).map((q) => ({ k: 'quote', id: 'q:' + q.id, q }));
@@ -305,12 +305,11 @@ export default function LifeNetwork() {
     if (to) go(to);
   };
   const goTabRef = useRef(goTab); goTabRef.current = goTab;
-  useEffect(() => onEdgeSwipe((d) => goTabRef.current(d)), []);
   const swipePan = useRef(PanResponder.create({
     /* si prende il gesto solo se c'è una scheda accanto; ai bordi passa alla sezione vicina della barra */
     onMoveShouldSetPanResponder: (e, g) => {
       const startY = (e.nativeEvent.pageY ?? g.moveY) - g.dy;
-      return Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8 && startY >= feedTop.current;
+      return !carouselBusy() && Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8 && startY >= feedTop.current;
     },
     onPanResponderGrant: () => { if (useNet.getState().prefs.homeFilter === 'Seguiti') prevTab.current = 'Seguiti'; else prevTab.current = 'Per te'; },
     onPanResponderMove: (_e, g) => {

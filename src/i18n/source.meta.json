@@ -1,5 +1,5 @@
 {
- "count": 10729,
+ "count": 10747,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -188,7 +188,7 @@
   "src/components/feed/SearchResults.tsx": 5,
   "src/components/feed/SharePostSheet.tsx": 3,
   "src/components/feed/SpecialCards.tsx": 28,
-  "src/components/feed/SwipeDeck.tsx": 27,
+  "src/components/feed/SwipeDeck.tsx": 28,
   "src/components/feed/TabCards.tsx": 20,
   "src/components/fitness/ExerciseFigure.tsx": 3,
   "src/components/fitness/ExercisePicker.tsx": 28,
@@ -440,7 +440,7 @@
   "src/lib/samplePdf.ts": 18,
   "src/lib/search/docs.ts": 1,
   "src/lib/search/fts.ts": 8,
-  "src/lib/seedMedia.ts": 124,
+  "src/lib/seedMedia.ts": 141,
   "src/lib/shop.ts": 14,
   "src/lib/shopActions.ts": 8,
   "src/lib/shopSeed.ts": 56,
@@ -484,5 +484,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1333
+ "withPlaceholders": 1334
 }

@@ -3,6 +3,7 @@ import { usePathname } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { PanResponder, View, useWindowDimensions } from 'react-native';
 import { go } from '@/lib/nav';
+import { carouselBusy } from '@/lib/feedSwipe';
 import { adjacentSection, sectionDirection } from '@/lib/sectionSwipe';
 import { settleEscrow } from '@/lib/escrow';
 import { ensureSampleParticipants, ensureSampleRecordings, ensureSampleShops } from '@/lib/shopSeed';
@@ -50,7 +51,7 @@ export default function TabsLayout() {
   const pan = useRef(PanResponder.create({
     onMoveShouldSetPanResponderCapture: (e, g) => {
       /* Network ha le sue regole (recap, Per te, Swipe, Seguiti): lì il cambio sezione lo gestisce la pagina */
-      if (curRef.current === 'lifenetwork' || curRef.current === 'swipeDeck') return false;
+      if (curRef.current === 'lifenetwork' || curRef.current === 'swipeDeck' || carouselBusy()) return false;
       if (Math.abs(g.dx) < 14 || Math.abs(g.dx) < Math.abs(g.dy) * 1.8) return false;
       const x0 = (e.nativeEvent.pageX ?? g.moveX) - g.dx;
       const fromLeft = x0 <= EDGE && g.dx > 0, fromRight = x0 >= W - EDGE && g.dx < 0;

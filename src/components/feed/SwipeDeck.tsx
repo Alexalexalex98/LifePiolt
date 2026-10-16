@@ -19,7 +19,7 @@ import { SWIPE_SIGNAL, dwellSignal, nextCard, record, remaining, undoLast, type 
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
-export type SwipeCandidate = DeckCard & { tag?: string; uri?: string; /** file incluso nell'app (require) */ asset?: number; media?: 'photo' | 'video' | null };
+export type SwipeCandidate = DeckCard & { tag?: string; uri?: string; /** foto del carosello: nello Swipe non si scorrono, si scelgono */ uris?: string[]; /** file incluso nell'app (require) */ asset?: number; media?: 'photo' | 'video' | null };
 const buzz = () => { if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined); };
 /** Quando compare la scritta piena («MI INTERESSA») la scelta è presa: il gesto si completa da solo. Prima, il post torna al centro. */
 const THRESHOLD = 64;
@@ -68,6 +68,7 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   const vid = useRef<Vid | null>(null);
   const shownAt = useRef(Date.now());
   const maxFrac = useRef(0);
+  const [pic, setPic] = useState(0);
   const x = useRef(new Animated.Value(0)).current;
   const [sharing, setSharing] = useState(false);
   const donated = useNet((s) => s.dailyPoint.lastGiven === weekdayShortDate());
@@ -88,7 +89,7 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
     if (urls.length) void Image.prefetch(urls, 'memory-disk').catch(() => undefined);
   }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   /* nuovo post: azzera il cronometro di visione e lo stato del video */
-  useEffect(() => { shownAt.current = Date.now(); maxFrac.current = 0; setPaused(false); setFast(false); setProg(0); }, [card?.key]);
+  useEffect(() => { shownAt.current = Date.now(); maxFrac.current = 0; setPaused(false); setFast(false); setProg(0); setPic(0); }, [card?.key]);
   useEffect(() => {
     if (!isVideo) return;
     const h = setInterval(() => { const f = vid.current?.frac() ?? 0; setProg(f); if (f > maxFrac.current) maxFrac.current = f; }, 250);
@@ -146,7 +147,7 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
         <Pressable accessibilityRole="button" accessibilityLabel={isVideo ? tl('Video di {0}. Tocca per mettere in pausa o riprendere, tieni premuto per accelerare', card.author) : tl('Post di {0}', card.author)}
           onPress={() => { if (isVideo) setPaused(!(vid.current?.toggle() ?? true)); }}
           delayLongPress={260} onLongPress={() => { if (isVideo) { vid.current?.rate(2); setFast(true); } }} onPressOut={() => { if (fast) { vid.current?.rate(1); setFast(false); } }} style={{ flex: 1 }}>
-          {isVideo ? <DeckVideo key={card.key} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} /> : card.asset ? <Image source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image source={{ uri: card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
+          {isVideo ? <DeckVideo key={card.key} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} /> : card.asset ? <Image source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
             <LinearGradient colors={['#4a3bd1', '#1b1f3a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
               <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900' }}>{card.text}</Text>
             </LinearGradient>
@@ -162,6 +163,15 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
           </View>
           {card.uri || card.asset ? <Text numberOfLines={4} style={{ color: '#fff', fontSize: 16, marginTop: 10, textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 6 }}>{card.text}</Text> : null}
         </View>
+        {card.uris && card.uris.length > 1 ? (
+          <View style={{ position: 'absolute', top: insets.top + 64, alignSelf: 'center', flexDirection: 'row', gap: 8, padding: 6, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.38)' }}>
+            {card.uris.map((u, i) => (
+              <Pressable key={u + i} onPress={() => setPic(i)} hitSlop={4} accessibilityRole="button" accessibilityState={{ selected: pic === i }} accessibilityLabel={tl('Foto {0} di {1}', i + 1, card.uris!.length)} style={{ width: 40, height: 52, borderRadius: 8, overflow: 'hidden', borderWidth: 2, borderColor: pic === i ? '#fff' : 'transparent', opacity: pic === i ? 1 : 0.7 }}>
+                <Image source={{ uri: u }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" />
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
         {isVideo && paused ? <View pointerEvents="none" style={{ position: 'absolute', top: '42%', alignSelf: 'center', width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={34} color="#fff" /></View> : null}
         {isVideo && fast ? <View pointerEvents="none" style={{ position: 'absolute', top: insets.top + 60, alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.55)' }}><Text style={{ color: '#fff', fontWeight: '900' }}>{tl('Velocità 2×')}</Text></View> : null}
         <Animated.View pointerEvents="none" style={{ position: 'absolute', top: insets.top + 90, end: 20, opacity: yesOp, borderWidth: 4, borderColor: '#2fd58a', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5, transform: [{ rotate: '10deg' }] }}><Text style={{ color: '#2fd58a', fontWeight: '900', fontSize: 26 }}>{tl('MI INTERESSA')}</Text></Animated.View>

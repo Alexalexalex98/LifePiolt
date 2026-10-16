@@ -1,3 +1,6 @@
+import { autoBgKey } from '@/lib/autoBg';
+import { seedUri } from '@/lib/seedMedia';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Animated, Easing, Platform, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -111,11 +114,12 @@ export function TextCard({ seed, text, tag, width, palette }: { seed: string; te
   const { tone, hc } = useFeedTone();
   const p = palette ?? paletteFor(seed, tone, hc);
   const fs = textCardFontSize(text.length);
+  const bg = seedUri(autoBgKey(text, tag));
   return (
-    <LinearGradient colors={[p.from, p.to]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={{ width, minHeight: width * 0.86, padding: 26, justifyContent: 'center' }}>
-      <ArtShapes seed={seed} size={width} />
+    <LinearGradient colors={[p.from, p.to]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={{ width, minHeight: width * 0.86, padding: 26, justifyContent: 'center', overflow: 'hidden' }}>
+      {bg ? <><Image source={{ uri: bg }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" /><View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} /></> : <ArtShapes seed={seed} size={width} />}
       {tag ? <Text style={{ color: p.sub, fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14 }} numberOfLines={1}>{tag}</Text> : null}
-      <Text numberOfLines={10} style={{ color: p.text, fontSize: fs, lineHeight: Math.round(fs * 1.28), fontWeight: '800', letterSpacing: -0.3 }}>{text}</Text>
+      <Text numberOfLines={10} style={{ color: bg ? '#fff' : p.text, fontSize: fs, lineHeight: Math.round(fs * 1.28), fontWeight: '800', letterSpacing: -0.3 }}>{text}</Text>
     </LinearGradient>
   );
 }

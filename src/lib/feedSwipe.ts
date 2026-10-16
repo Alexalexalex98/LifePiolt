@@ -24,3 +24,9 @@ type L = (dir: 1 | -1) => void;
 const listeners = new Set<L>();
 export const onEdgeSwipe = (l: L) => { listeners.add(l); return () => { listeners.delete(l); }; };
 export const emitEdgeSwipe = (dir: 1 | -1) => listeners.forEach((l) => l(dir));
+
+/** Mentre il dito è su un carosello di foto, nessun gesto cambia scheda o sezione: il carosello finisce lì. */
+export const carouselTouch = { active: false, until: 0 };
+export const holdCarousel = () => { carouselTouch.active = true; };
+export const releaseCarousel = () => { carouselTouch.until = Date.now() + 400; carouselTouch.active = false; };
+export const carouselBusy = () => carouselTouch.active || Date.now() < carouselTouch.until;
