@@ -10,6 +10,7 @@ import { t as tl } from '@/i18n/core';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { discoverAuthors, recapAuthors } from '@/lib/storyDiscover';
+import { VideoPoster } from '@/components/stories/VideoPoster';
 import { BACKGROUNDS, makeStory, purgeStories, storyGroups, timeLabel, type Story, type StoryGroup } from '@/lib/stories';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
@@ -71,7 +72,7 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
   const preview = (st: Story, w: number, h: number) => st.kind === 'text'
     ? <LinearGradient colors={st.bg ?? ['#6c8cff', '#3b2a7a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: w, height: h, padding: 8, justifyContent: 'center' }}><Text numberOfLines={5} style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{st.text}</Text></LinearGradient>
     : st.kind === 'photo' ? <Image source={{ uri: st.uri }} style={{ width: w, height: h }} contentFit="cover" />
-    : <View style={{ width: w, height: h, backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={26} color="#fff" /></View>;
+    : <VideoPoster uri={st.uri} poster={st.poster} width={w} height={h} />;
   const card = (key: string, g: StoryGroup, label: string, onPress: () => void, extra?: React.ReactNode) => {
     const W = 84, H = 118;
     const shown = g.stories.slice(0, 3); // si vedono al massimo le prime tre

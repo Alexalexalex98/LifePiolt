@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
+import { VideoPoster } from '@/components/stories/VideoPoster';
 import { Animated, Keyboard, PanResponder, Pressable, TextInput, View } from 'react-native';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -138,7 +139,7 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
               <View style={{ height: k === i ? 22 : 16, borderRadius: 7, overflow: 'hidden', borderWidth: k === i ? 1.5 : 0, borderColor: '#fff', backgroundColor: '#222' }}>
                 {s.kind === 'photo' ? <Image source={{ uri: s.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
                   : s.kind === 'text' ? <LinearGradient colors={s.bg ?? ['#6c8cff', '#3b2a7a']} style={{ flex: 1 }} />
-                  : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={9} color="#fff" /></View>}
+                  : <VideoPoster uri={s.uri} poster={s.poster} width={34} height={22} />}
               </View>
               {k === i ? <View style={{ height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.3)', marginTop: 3, overflow: 'hidden' }}><View style={{ width: `${Math.min(100, p * 100)}%`, height: 2, backgroundColor: '#fff' }} /></View> : null}
             </Pressable>
