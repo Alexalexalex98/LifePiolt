@@ -1,8 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Keyboard, Linking, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
@@ -43,6 +43,12 @@ export default function StoryCreate() {
   const [pos, setPos] = useState<TextPos>('basso');
   const [ink, setInk] = useState('#ffffff');
   const [keep, setKeep] = useState<Keep>('day');
+  const [kbd, setKbd] = useState(false);
+  useEffect(() => {
+    const a = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKbd(true));
+    const b = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKbd(false));
+    return () => { a.remove(); b.remove(); };
+  }, []);
   const [attach, setAttach] = useState<StoryAttach | null>(null);
   const [cur, setCur] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -189,7 +195,12 @@ export default function StoryCreate() {
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={goBack} hitSlop={12} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={20} color="#fff" /></Pressable>
       </View>
 
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Pressable accessible={false} onPress={Keyboard.dismiss} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        {kbd ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={tl('Fine')} onPress={Keyboard.dismiss} style={{ position: 'absolute', top: 4, end: 14, zIndex: 5, height: 38, paddingHorizontal: 20, borderRadius: 19, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#111', fontWeight: '800', fontSize: 14 }}>{tl('Fine')}</Text>
+          </Pressable>
+        ) : null}
         <View style={{ width: previewW, height: previewH, borderRadius: 24, overflow: 'hidden', backgroundColor: '#111' }}>
           {textMode
             ? <LinearGradient colors={BACKGROUNDS[bg]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} />
@@ -210,7 +221,7 @@ export default function StoryCreate() {
             </Pressable>
           ))}
         </View>
-      </View>
+      </Pressable>
 
       {/* pannello dello strumento scelto */}
       <View style={{ minHeight: panelH, justifyContent: 'center' }}>
