@@ -1,5 +1,5 @@
 {
- "count": 10938,
+ "count": 10942,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -350,7 +350,7 @@
   "src/lib/club/progress.ts": 1,
   "src/lib/club/reputation.ts": 5,
   "src/lib/confirm.ts": 7,
-  "src/lib/creatorStats.ts": 54,
+  "src/lib/creatorStats.ts": 60,
   "src/lib/csvImport.ts": 45,
   "src/lib/dashBrief.ts": 33,
   "src/lib/dashCandidates.ts": 22,

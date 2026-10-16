@@ -23,7 +23,8 @@ export function StoryPeekHost() {
   const [i, setI] = useState(0);
   const { width, height } = useWindowDimensions();
   const list = author ? (stories ?? []).filter((s) => s.author === author && inFlow(s, Date.now())).sort((a, b) => a.ts - b.ts) : [];
-  useEffect(() => { setI(0); }, [author]);
+  /* se tra i momenti c'è un video, l'anteprima parte da lì: il video deve partire subito */
+  useEffect(() => { const v = list.findIndex((x) => x.kind === 'video'); setI(v > 0 ? v : 0); }, [author]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!author || list.length < 2) return;
     const h = setInterval(() => setI((x) => (x + 1) % list.length), list[Math.min(i, list.length - 1)]?.kind === 'video' ? 4200 : 1600);

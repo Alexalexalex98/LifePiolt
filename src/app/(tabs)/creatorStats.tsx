@@ -74,7 +74,7 @@ function Bars({ rows, highlight }: { rows: Bar[]; highlight?: string }) {
         const on = highlight ? r.label === highlight : r.pct === max;
         return (
           <View key={r.label} accessibilityLabel={`${r.label}: ${r.pct}%`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Text style={{ color: t.muted, width: 58, fontSize: 12.5, fontWeight: '600' }}>{r.label}</Text>
+            <Text numberOfLines={1} style={{ color: t.muted, width: 84, fontSize: 12.5, fontWeight: '600' }}>{r.label}</Text>
             <View style={{ flex: 1, height: 10, borderRadius: 5, backgroundColor: t.item, overflow: 'hidden' }}>
               <View style={{ width: `${Math.max(2, (r.pct / max) * 100)}%`, height: 10, borderRadius: 5, backgroundColor: on ? t.accent : t.accent + '66' }} />
             </View>

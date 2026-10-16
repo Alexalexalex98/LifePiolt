@@ -31,6 +31,8 @@ export type Stats = {
 };
 
 const DAY = 86400000;
+const OWN: Record<Fmt, string> = { foto: 'Le tue foto', video: 'I tuoi video', frase: 'Le tue frasi', idea: 'Le tue idee', seminario: 'I tuoi seminari', servizio: 'I tuoi servizi' };
+const PLURAL: Record<Fmt, string> = { foto: 'foto', video: 'video', frase: 'frasi', idea: 'idee', seminario: 'seminari', servizio: 'servizi' };
 export const AGES = ['13-17', '18-24', '25-34', '35-44', '45-54', '55+'] as const;
 export const DAYS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'] as const;
 const CITIES = ['Lugano', 'Bellinzona', 'Locarno', 'Mendrisio', 'Chiasso', 'Zurigo', 'Milano', 'Como'];
@@ -149,7 +151,7 @@ export function suggest(s: Stats, items: CreatorItem[], now: number): Suggestion
   const dom = s.audience.age.reduce((b, x) => (x.pct > b.pct ? x : b), s.audience.age[0]);
   if (dom.pct >= 32) out.push({ id: 'age', priority: 2, area: 'pubblico', title: `Il tuo pubblico ha soprattutto ${dom.label} anni`, why: `${dom.pct}% di chi ti segue è in questa fascia: scegli temi, toni e orari pensati per loro.` });
   const best = s.content.byFmt[0], worst = s.content.byFmt[s.content.byFmt.length - 1];
-  if (s.content.byFmt.length > 1 && best.rate >= worst.rate * 1.25 && best.rate > 0) out.push({ id: 'fmt', priority: 2, area: 'formato', title: `I tuoi ${best.fmt} funzionano meglio`, why: `Interazione ${best.rate}% contro ${worst.rate}% dei ${worst.fmt}. Prova a farne di più e a usare i ${worst.fmt} come completamento.` });
+  if (s.content.byFmt.length > 1 && best.rate >= worst.rate * 1.25 && best.rate > 0) out.push({ id: 'fmt', priority: 2, area: 'formato', title: `${OWN[best.fmt]} funzionano meglio`, why: `Interazione ${best.rate}% contro ${worst.rate}% di ${PLURAL[worst.fmt]}. Prova a farne di più e a usare ${PLURAL[worst.fmt]} come completamento.` });
   out.push({ id: 'time', priority: 2, area: 'orari', title: `Pubblica di ${s.timing.bestDay} tra le ${s.timing.bestHours.replace('-', ' e le ')}`, why: `È il momento in cui il tuo pubblico risponde di più (${s.timing.days.find((d) => d.label === s.timing.bestDay)?.pct ?? 0}% dell'attività della settimana).` });
   if (s.video && s.video.avgWatchPct < 55) out.push({ id: 'video', priority: 1, area: 'video', title: `Chi guarda i tuoi video lascia dopo circa ${s.video.dropAtSec} secondi`, why: `In media se ne vede il ${s.video.avgWatchPct}%. Metti la scena più forte nei primi tre secondi e taglia le parti lente.` });
   const act = s.funnel[3].value, seen = s.funnel[0].value;
@@ -160,5 +162,10 @@ export function suggest(s: Stats, items: CreatorItem[], now: number): Suggestion
   const sem = items.filter((x) => (x.kind === 'seminar' || x.kind === 'service') && x.capacity);
   const fill = sem.length ? sem.reduce((a, x) => a + x.conv, 0) / sem.reduce((a, x) => a + (x.capacity ?? 0), 0) : null;
   if (fill != null && fill < 0.5) out.push({ id: 'fill', priority: 2, area: 'azione', title: `Posti riempiti: ${Math.round(fill * 100)}%`, why: 'Prova un orario di sera, un prezzo di lancio per le prime iscrizioni o un recap che mostri com\'è andata l\'ultima volta.' });
-  return out.sort((a, b) => a.priority - b.priority).slice(0, 6);
+  const sorted = out.sort((a, b) => a.priority - b.priority);
+  const top = sorted.slice(0, 6);
+  /* l'orario migliore c'è sempre: è il consiglio che si applica subito */
+  const time = sorted.find((x) => x.id === 'time');
+  if (time && !top.includes(time)) top[top.length - 1] = time;
+  return top;
 }

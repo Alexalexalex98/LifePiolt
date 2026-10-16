@@ -1,3 +1,4 @@
+import { diversify } from '@/components/feed/feedLogic';
 import { onPageRefresh } from '@/lib/pageRefresh';
 import { useStoryPeek } from '@/store/storyPeek';
 import { Safe } from '@/components/Safe';
@@ -152,7 +153,8 @@ export default function LifeNetwork() {
     }
     /* i consigli di Theia stanno sempre in alto */
     if (!following) {
-      const base = applyToFeed(feed, (it) => (it.k === 'post' ? it.likeKey : null), (it) => (it.k === 'post' ? `${it.post.text} ${it.post.tag ?? ''}` : ''), swipes, themeWeights);
+      const sig = (it: Item) => (it.k === 'post' ? `post:${it.post.media ?? 'frase'}` : it.k);
+      const base = diversify(applyToFeed(feed, (it) => (it.k === 'post' ? it.likeKey : null), (it) => (it.k === 'post' ? `${it.post.text} ${it.post.tag ?? ''}` : ''), swipes, themeWeights), sig);
       const withAds = base.slice();
       ads.forEach((ad, i) => { const at = Math.min(withAds.length, 3 + i * 6); withAds.splice(at, 0, ad); });
       return [...mot, ...withAds];

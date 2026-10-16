@@ -1,3 +1,4 @@
+import { topUpDemoMarket } from '@/store/demo';
 import { useEffect, useRef } from 'react';
 import { Image } from 'react-native';
 
@@ -195,6 +196,7 @@ export function useSeedMedia() {
   useEffect(() => {
     if (!demo || done.current) return;
     done.current = true;
+    try { topUpDemoMarket(useApp.getState().account.name); } catch { /* i dati di esempio restano com'erano */ }
     void resolve().then((uris) => {
       const now = Date.now();
       const st = useNet.getState();

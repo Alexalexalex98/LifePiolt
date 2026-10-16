@@ -183,6 +183,23 @@ export function applyDemo(me: string, email = '') {
   seedMarketplace(me); // seminari, iscrizioni, descrizioni e date di pubblicazione
 }
 
+/** In modalità demo, se mancano idee, servizi o seminari di altre persone (dati salvati prima che esistessero) li aggiunge: Home e Swipe devono avere un po' di tutto. */
+export function topUpDemoMarket(me: string) {
+  const st = useNet.getState();
+  const needProv = !st.providers.some((p) => p.name !== me);
+  const needIdea = !st.ideas.some((i) => i.author !== me);
+  const needSem = !st.seminars.some((x) => x.host !== me);
+  if (!needProv && !needIdea && !needSem) return;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const n = personalise(seed as any, me);
+  useNet.setState((x) => ({
+    ...(needProv ? { providers: [...x.providers, ...n.providers.filter((p: { name: string }) => !x.providers.some((q) => q.name === p.name))] } : {}),
+    ...(needIdea ? { ideas: [...x.ideas, ...n.ideas.filter((i: { id: number }) => !x.ideas.some((q) => q.id === i.id))] } : {}),
+    ...(needSem ? { seminars: [...x.seminars, ...n.seminars.filter((i: { id: number }) => !x.seminars.some((q) => q.id === i.id))] } : {}),
+  }));
+  if (needSem) seedMarketplace(me);
+}
+
 export function resetAllData() {
   useNet.getState().reset();
   useMod.getState().reset();

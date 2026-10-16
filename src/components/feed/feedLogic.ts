@@ -48,3 +48,21 @@ export function postLayout(p: { author: string; text: string; media?: 'photo' | 
   if (k === 1) return 'overlay';
   return p.media === 'photo' ? 'story' : 'overlay';
 }
+
+/**
+ * Varietà nel feed: riordina senza cambiare le proporzioni, in modo che due elementi di fila non abbiano la stessa «firma»
+ * (per esempio due frasi, tre foto o due servizi uno dopo l'altro), finché è possibile. L'ordine di importanza resta il più possibile quello di partenza.
+ */
+export function diversify<T>(items: T[], sigOf: (x: T) => string): T[] {
+  const left = items.slice();
+  const out: T[] = [];
+  while (left.length) {
+    const last = out.length ? sigOf(out[out.length - 1]) : null;
+    const prev = out.length > 1 ? sigOf(out[out.length - 2]) : null;
+    let i = left.findIndex((x) => sigOf(x) !== last && (prev === null || sigOf(x) !== prev || last !== prev));
+    if (i < 0) i = left.findIndex((x) => sigOf(x) !== last);
+    if (i < 0) i = 0;
+    out.push(left.splice(i, 1)[0]);
+  }
+  return out;
+}
