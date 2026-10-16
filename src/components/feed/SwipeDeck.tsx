@@ -1,6 +1,7 @@
 import { findItem, itemLine } from '@/lib/menu';
 import { useMenus } from '@/store/menus';
 import { mapsUrl } from '@/lib/maps';
+import { postByKey } from '@/lib/network';
 import type { Sponsor } from '@/store/network';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
@@ -35,11 +36,14 @@ function choose(pool: SwipeCandidate[], ads: SwipeCandidate[], n: number): Swipe
 }
 
 /** Pulsante tondo della colonna di azioni a destra. */
-function RailBtn({ icon, label, onPress, on }: { icon: string; label: string; onPress: () => void; on?: boolean }) {
+function RailBtn({ icon, label, onPress, on, count, onCount }: { icon: string; label: string; onPress: () => void; on?: boolean; /** numero sotto il pulsante; se c'è onCount il numero è toccabile (es. chi ha messo mi piace) */ count?: number; onCount?: () => void }) {
   return (
+    <View style={{ alignItems: 'center', gap: 2 }}>
     <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: !!on }} onPress={onPress} hitSlop={6} style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.42)', alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.92 : 1 }] })}>
       <Icon name={icon} size={25} color={on ? '#ff3b5c' : '#fff'} fill={on ? '#ff3b5c' : 'none'} />
     </Pressable>
+    {count !== undefined ? <Pressable disabled={!onCount} onPress={onCount} hitSlop={8} accessibilityRole={onCount ? 'button' : 'text'} accessibilityLabel={`${label}: ${count}`}><Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '800', textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 4 }}>{count}</Text></Pressable> : null}
+    </View>
   );
 }
 
@@ -127,6 +131,8 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
   const left = pool.length + adsLeft.length;
   /* la carta successiva è già pronta sotto (foto o anteprima del video): quando la corrente se ne va, c'è subito qualcosa */
   const upcoming: SwipeCandidate | null = useMemo(() => (card ? choose(pool.filter((c) => c.key !== card.key), adsLeft.filter((c) => c.key !== card.key), (swipes ?? []).length + 1) : null), [pool, adsLeft, swipes, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const likeCount = useNet((x) => (card ? postByKey(card.key)?.likes ?? 0 : 0));
+  const commentCount = useNet((x) => (card ? (x.comments?.[card.key] ?? []).length : 0));
   const dishItem = useMenus((m) => findItem(m.byOwner[card?.author ?? ''], (card as SwipeCandidate | null)?.menuItem));
   const dishLine = dishItem ? itemLine(dishItem) : null;
   const isSponsored = !!(card as SwipeCandidate | null)?.sponsor;
@@ -282,8 +288,8 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
 
       {card ? (
         <View pointerEvents="box-none" style={{ position: 'absolute', end: 12, bottom: insets.bottom + 100, alignItems: 'center', gap: 16 }}>
-          <RailBtn icon="heart" label={liked ? tl('Togli il mi piace') : tl('Mi piace')} on={liked} onPress={() => { useNet.getState().likePost(card.key); buzz(); }} />
-          <RailBtn icon="comment" label={tl('Apri il post e i commenti')} onPress={() => { const l = (card as SwipeCandidate).link; if (l) go(l.page, l.params); else go('postPage', { key: card.key }); }} />
+          <RailBtn icon="heart" label={liked ? tl('Togli il mi piace') : tl('Mi piace')} on={liked} count={likeCount} onCount={() => openSheet('likers', { key: card.key, author: card.author, count: likeCount })} onPress={() => { useNet.getState().likePost(card.key); buzz(); }} />
+          <RailBtn icon="comment" label={tl('Commenti')} count={commentCount} onCount={(card as SwipeCandidate).link ? undefined : () => openSheet('comments', { key: card.key })} onPress={() => { const l = (card as SwipeCandidate).link; if (l) go(l.page, l.params); else openSheet('comments', { key: card.key }); }} />
           <RailBtn icon="send" label={tl('Condividi nell’app')} onPress={() => setSharing(true)} />
           {!donated && card.author !== me ? <RailBtn icon="coin" label={tl('Dona il LifePoint di oggi')} onPress={() => openSheet('donate', { author: card.author, key: card.key })} /> : null}
         </View>

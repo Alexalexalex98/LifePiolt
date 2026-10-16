@@ -30,7 +30,7 @@ export const gradientFor = (seed: string) => photoGradients[Math.abs(hashStr(see
 export type SheetKind =
   | 'comments' | 'postMenu' | 'editPost' | 'editSeminar' | 'editService' | 'donate' | 'scoreExpl' | 'ideaMenu' | 'contribute' | 'newIdea' | 'newCommunity' | 'postToCommunity' | 'newSeminar'
   | 'promoteSeminar' | 'vote' | 'rating' | 'createClub' | 'clubManage' | 'statDetail' | 'following' | 'editProfile' | 'verification'
-  | 'contentMenu' | 'report' | 'topup' | 'lpDaily' | 'lpTotal' | 'cv' | 'newPost' | 'purchaseFinal' | 'sponsoredInfo' | 'confirmAttendance' | 'create';
+  | 'contentMenu' | 'report' | 'topup' | 'lpDaily' | 'lpTotal' | 'cv' | 'newPost' | 'purchaseFinal' | 'sponsoredInfo' | 'confirmAttendance' | 'create' | 'likers';
 
 type SheetState = { kind: SheetKind | null; p: Record<string, any>; open: (kind: SheetKind, p?: Record<string, any>) => void; close: () => void };
 export const useNetSheet = create<SheetState>((set) => ({ kind: null, p: {}, open: (kind, p = {}) => set({ kind, p }), close: () => set({ kind: null, p: {} }) }));

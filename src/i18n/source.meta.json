@@ -1,5 +1,5 @@
 {
- "count": 11002,
+ "count": 11006,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -126,7 +126,7 @@
   "src/components/MonthCalcCard.tsx": 16,
   "src/components/MoodChart.tsx": 6,
   "src/components/NavBar.tsx": 28,
-  "src/components/NetSheets.tsx": 325,
+  "src/components/NetSheets.tsx": 331,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 46,
   "src/components/ParticipantsCard.tsx": 14,

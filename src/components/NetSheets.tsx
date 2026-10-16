@@ -1,10 +1,12 @@
 import { itemLine } from '@/lib/menu';
+import { likersFor } from '@/lib/likers';
+import { peoplePool } from '@/lib/network';
 import { useMenus } from '@/store/menus';
 import { MentionSuggest, MentionText } from '@/components/MentionBox';
 import { CreateHubView } from '@/components/feed/CreateHub';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, View } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 
@@ -153,6 +155,7 @@ function NetSheetInner() {
       body = <ContributeView idea={idea} />;
       break;
     }
+    case 'likers': { title = 'Mi piace'; body = <LikersView k={p.key} author={p.author} count={p.count} />; break; }
     case 'create': { title = 'Crea'; body = <CreateHubView />; break; }
     case 'newIdea': { title = 'La tua idea'; body = <NewIdeaView resume={!!p.resume} />; break; }
     case 'newCommunity': { title = 'Crea community'; body = <NewCommunityView />; break; }
@@ -299,6 +302,30 @@ function NetSheetInner() {
 }
 
 /* ---------------- viste con stato locale ---------------- */
+/** Chi ha messo mi piace a un contenuto (elenco dimostrativo finché non c'è un server che lo registra). */
+function LikersView({ k, author, count }: { k: string; author?: string; count: number }) {
+  const t = useTheme();
+  const me = useApp((s) => s.account.name);
+  const liked = useNet((s) => s.likedPosts.includes(k));
+  const following = useNet((s) => s.following);
+  const list = useMemo(() => likersFor(k, count, peoplePool(me), me, liked, author), [k, count, me, liked, author]);
+  return (
+    <>
+      <Text style={{ color: t.muted, fontSize: 13, marginBottom: 8 }}>{count === 1 ? translateText('1 persona ha messo mi piace') : `${count} ${translateText('persone hanno messo mi piace')}`}</Text>
+      {list.names.length === 0 ? <Body small muted>Ancora nessun mi piace: sii il primo.</Body> : list.names.map((n, i) => (
+        <Item key={n} last={i === list.names.length - 1 && list.more === 0} onPress={() => { useNetSheet.getState().close(); go('userProfile', { name: n }); }}>
+          <Row style={{ justifyContent: 'flex-start' }} gap={12}>
+            <UserAvatar name={n} size={40} link={false} />
+            <Body bold style={{ flex: 1 }}>{n === me ? translateText('Tu') : n}</Body>
+            {n !== me && following.includes(n) ? <Text style={{ color: t.muted, fontSize: 12.5 }}>{translateText('Segui già')}</Text> : null}
+          </Row>
+        </Item>
+      ))}
+      {list.more > 0 ? <Body small muted style={{ marginTop: 8 }}>{`${translateText('e altre')} ${list.more} ${translateText('persone')}`}</Body> : null}
+    </>
+  );
+}
+
 function CommentsView({ k }: { k: string }) {
   const net = useNet();
   const me = useApp((s) => s.account.name);
