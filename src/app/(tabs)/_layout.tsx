@@ -68,7 +68,7 @@ export default function TabsLayout() {
   return (
     <>
       <View style={{ flex: 1 }} {...pan.panHandlers}>
-        <Tabs backBehavior="history" tabBar={(p) => <NavBar {...p} />} screenOptions={{ headerShown: false, lazy: true }} />
+        <Tabs backBehavior="history" tabBar={(p) => <NavBar {...p} />} screenOptions={{ headerShown: false, lazy: true, animation: 'shift', transitionSpec: { animation: 'timing', config: { duration: 230 } } }} />
       </View>
       <LifePayFab />
       <LifePayHost />
