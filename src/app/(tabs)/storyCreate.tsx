@@ -13,7 +13,8 @@ import { dayKey } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { goBack } from '@/lib/nav';
 import { pickNetMediaMany, takeNetPhoto, type NetMedia } from '@/lib/netMedia';
-import { BACKGROUNDS, FILTERS, KEEP_LABEL, MAX_STORY_TEXT, makeStory, tintOfFilter, type FilterId, type Keep, type StoryAttach, type TextPos } from '@/lib/stories';
+import { StoryFx, StoryStickers, storyTextStyle } from '@/components/stories/StoryFx';
+import { BACKGROUNDS, FILTERS, KEEP_LABEL, MAX_PEOPLE, MAX_STORY_TEXT, NO_ADJUST, cleanLink, cleanTags, isAdjusted, makeStory, type Adjust, type FilterId, type Keep, type Story, type StoryAttach, type StoryFit, type TextPos, type TextSize, type TextStyleId } from '@/lib/stories';
 import { useApp } from '@/store/app';
 import { useLife } from '@/store/life';
 import { newId, useNet } from '@/store/network';
@@ -41,7 +42,15 @@ export default function StoryCreate() {
   const [cur, setCur] = useState(0);
   const [busy, setBusy] = useState(false);
   const [filters, setFilters] = useState(false);
-  const [opts, setOpts] = useState(false);
+  const [add, setAdd] = useState(false);
+  const [adj, setAdj] = useState<Adjust>(NO_ADJUST);
+  const [fit, setFit] = useState<StoryFit>('cover');
+  const [textSize, setTextSize] = useState<TextSize>('M');
+  const [textStyle, setTextStyle] = useState<TextStyleId>('ombra');
+  const [tool, setTool] = useState<'filtri' | 'regola' | 'testo' | 'adatta' | 'sfondo'>('filtri');
+  const [people, setPeople] = useState<string[]>([]);
+  const [tagsTxt, setTagsTxt] = useState('');
+  const [link, setLink] = useState('');
   const [share, setShare] = useState(false);
   const [shPlace, setShPlace] = useState('');
   const [attachKind, setAttachKind] = useState<'none' | 'event' | 'seminar' | 'idea' | 'place'>('none');
@@ -60,10 +69,10 @@ export default function StoryCreate() {
   }
   const fromGallery = () => run(async () => { const m = await pickNetMediaMany(6); if (m.length) { setItems(m); setCur(0); buzz(); } });
   const fromCamera = () => run(async () => { const m = await takeNetPhoto(); if (m) { setItems((x) => [...x, m].slice(0, 6)); setCur(items.length); buzz(); } });
-  const reset = () => { setItems([]); setTextMode(false); setText(''); setFilter('none'); setFilters(false); };
+  const reset = () => { setItems([]); setTextMode(false); setText(''); setFilter('none'); setFilters(false); setAdj(NO_ADJUST); setFit('cover'); setPeople([]); setTagsTxt(''); setLink(''); setAttach(null); };
 
   function publish() {
-    const base = { author: me, now: Date.now(), text, keep, attach: attach ?? undefined, filter, textPos: pos, textColor: ink };
+    const base = { author: me, now: Date.now(), text, keep, attach: attach ?? undefined, filter, textPos: pos, textColor: ink, adj, fit, textSize, textStyle, people, tags: tagsTxt.split(/[\s,]+/), link };
     const made = textMode
       ? [makeStory({ ...base, id: String(newId()), kind: 'text', bg: BACKGROUNDS[bg] })]
       : items.map((m, i) => makeStory({ ...base, id: String(newId()) + i, now: base.now + i, kind: m.media, uri: m.uri, text: i === 0 ? text : '' }));
@@ -130,29 +139,35 @@ export default function StoryCreate() {
   }
 
   /* ---------- 2. ritocca e pubblica ---------- */
-  const tint = tintOfFilter(filter);
-  // l'anteprima sta tra la barra in alto, i filtri/il pulsante in basso e la colonna degli strumenti a destra
-  const maxH = height - insets.top - insets.bottom - (filters && !textMode ? 100 : 20) - 150;
-  const previewW = Math.min((width - 90), maxH * 9 / 16);
+  const draft: Story = { id: 'draft', author: me, ts: Date.now(), kind: textMode ? 'text' : items[cur]?.media ?? 'photo', views: [], filter, adj, textColor: ink, textSize, textStyle, ...(attach ? { attach } : {}), ...(people.length ? { people } : {}), ...(cleanTags(tagsTxt.split(/[\s,]+/)).length ? { tags: cleanTags(tagsTxt.split(/[\s,]+/)) } : {}), ...(cleanLink(link) ? { link: cleanLink(link) } : {}) };
+  const sideGap = 20;
+  // l'anteprima sta tra la barra in alto e il pannello degli strumenti
+  const panelH = tool === 'regola' ? 196 : tool === 'testo' ? 168 : 104;
+  const maxH = height - insets.top - insets.bottom - 56 - 44 - 66 - panelH - 74 - 34;
+  const previewW = Math.max(120, Math.min(width - sideGap * 2, maxH * 9 / 16));
   const previewH = previewW * 16 / 9;
-  const place$ = pos === 'alto' ? { top: 28 } : pos === 'centro' ? { top: previewH / 2 - 30 } : { bottom: 40 };
-  const rail = (icon: string, label: string, onPress: () => void, on?: boolean, extra?: string) => (
-    <Pressable key={label} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: !!on }} onPress={() => { buzz(); onPress(); }} style={{ alignItems: 'center', gap: 3 }}>
-      <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: on ? '#fff' : 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
-        {icon === 'Aa' ? <Text style={{ color: on ? '#111' : '#fff', fontWeight: '900', fontSize: 16 }}>Aa</Text> : <Icon name={icon as never} size={21} color={on ? '#111' : '#fff'} />}
-      </View>
-      <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10.5, fontWeight: '700' }}>{extra ?? label}</Text>
-    </Pressable>
-  );
+  const place$ = pos === 'alto' ? { top: 28 } : pos === 'centro' ? { top: previewH / 2 - 30 } : { bottom: 60 };
+  const tools: { id: typeof tool; icon: string; label: string; show: boolean }[] = [
+    { id: 'filtri', icon: 'sparkle', label: 'Filtri', show: !textMode },
+    { id: 'sfondo', icon: 'grid', label: 'Sfondo', show: textMode },
+    { id: 'regola', icon: 'gear', label: 'Regola', show: !textMode },
+    { id: 'testo', icon: 'edit', label: 'Testo', show: true },
+    { id: 'adatta', icon: 'image', label: 'Adatta', show: !textMode && items[cur]?.media === 'photo' },
+  ];
+  const active = tools.find((x) => x.id === tool && x.show) ?? tools.find((x) => x.show)!;
+  const pill = (label: string, on: boolean, onPress: () => void) => <Pill key={label} label={label} on={on} onPress={() => { buzz(); onPress(); }} />;
+  const sliders: { k: keyof Adjust; label: string; min: number }[] = [{ k: 'bright', label: 'Luminosità', min: -1 }, { k: 'warm', label: 'Calore', min: -1 }, { k: 'fade', label: 'Dissolvenza', min: 0 }, { k: 'vign', label: 'Vignetta', min: 0 }];
+  const addedCount = (attach ? 1 : 0) + people.length + cleanTags(tagsTxt.split(/[\s,]+/)).length + (cleanLink(link) ? 1 : 0);
+
   return (
     <View style={{ flex: 1, backgroundColor: '#07080d' }}>
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 56 + insets.top }}>
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Ricomincia')} onPress={reset} hitSlop={12} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}><Icon name="arrow-left" size={20} color="#fff" /></Pressable>
         {items.length > 1 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: 10 }} style={{ flex: 1 }}>
             {items.map((m, i) => (
-              <Pressable key={m.uri + i} accessibilityRole="button" accessibilityLabel={tl('Momento {0}', i + 1)} onPress={() => setCur(i)} style={{ width: 34, height: 46, borderRadius: 9, overflow: 'hidden', borderWidth: i === cur ? 2 : 0, borderColor: '#fff', opacity: i === cur ? 1 : 0.6 }}>
-                {m.media === 'photo' ? <Image source={{ uri: m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : <View style={{ flex: 1, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={12} color="#fff" /></View>}
+              <Pressable key={m.uri + i} accessibilityRole="button" accessibilityLabel={tl('Momento {0}', i + 1)} onPress={() => setCur(i)} style={{ width: 34, height: 46, borderRadius: 9, overflow: 'hidden', borderWidth: i === cur ? 2 : 0, borderColor: '#fff' }}>
+                {m.media === 'photo' ? <Image source={{ uri: m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : <View style={{ flex: 1, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={14} color="#fff" /></View>}
               </Pressable>
             ))}
           </ScrollView>
@@ -160,39 +175,94 @@ export default function StoryCreate() {
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={goBack} hitSlop={12} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={20} color="#fff" /></Pressable>
       </View>
 
-      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-        <View style={{ width: previewW, height: previewH, borderRadius: 26, overflow: 'hidden', backgroundColor: '#111' }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: previewW, height: previewH, borderRadius: 24, overflow: 'hidden', backgroundColor: '#111' }}>
           {textMode
             ? <LinearGradient colors={BACKGROUNDS[bg]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} />
-            : items[cur]?.media === 'photo' ? <Image source={{ uri: items[cur].uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+            : items[cur]?.media === 'photo' ? <Image source={{ uri: items[cur].uri }} style={{ width: '100%', height: '100%' }} contentFit={fit} />
             : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={44} color="#fff" /><Text style={{ color: '#fff', marginTop: 8, fontWeight: '700' }}>{tl('Video')}</Text></View>}
-          {tint ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: tint }} /> : null}
+          <StoryFx s={draft} />
           <View style={[{ position: 'absolute', start: 14, end: 14 }, textMode ? { top: previewH / 2 - 40 } : place$]}>
             <TextInput value={text} onChangeText={setText} multiline maxLength={MAX_STORY_TEXT} placeholder={tl(textMode ? 'Scrivi qui' : 'Aggiungi una scritta')} placeholderTextColor="rgba(255,255,255,0.6)" accessibilityLabel={tl('Scritta sul momento')}
-              style={{ color: ink, fontSize: textMode ? 28 : 22, fontWeight: '900', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.55)', textShadowRadius: 8, textShadowOffset: { width: 0, height: 1 } }} />
+              style={[storyTextStyle(draft, previewW / 390 * 1.15), { padding: 0 }]} />
           </View>
+          <StoryStickers s={draft} bottom={10} />
         </View>
-        <View style={{ gap: 14 }}>
-          {rail('Aa', tl('Posizione'), () => setPos(POS[(POS.indexOf(pos) + 1) % 3]), false, tl(pos === 'alto' ? 'Alto' : pos === 'centro' ? 'Centro' : 'Basso'))}
-          {rail('edit', tl('Colore'), () => setInk(INKS[(INKS.indexOf(ink) + 1) % INKS.length]), false, tl('Colore'))}
-          {textMode ? rail('grid', tl('Sfondo'), () => setBg((bg + 1) % BACKGROUNDS.length), false, tl('Sfondo')) : rail('sparkle', tl('Filtri'), () => setFilters((v) => !v), filters, tl('Filtri'))}
-          {rail('clock', tl('Opzioni'), () => setOpts(true), !!attach || keep !== 'day', keep === 'day' ? '24 ore' : keep === 'week' ? '7 giorni' : tl('Fisso'))}
+        {/* quanto resta: un tocco cambia solo il tempo */}
+        <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 6, marginTop: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 999, padding: 4 }}>
+          {(['day', 'week', 'moment'] as Keep[]).map((k) => (
+            <Pressable key={k} accessibilityRole="radio" accessibilityState={{ selected: keep === k }} accessibilityLabel={KEEP_LABEL[k]} onPress={() => { buzz(); setKeep(k); }} style={{ paddingHorizontal: 14, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: keep === k ? '#fff' : 'transparent' }}>
+              <Text style={{ color: keep === k ? '#111' : 'rgba(255,255,255,0.85)', fontWeight: '800', fontSize: 12.5 }}>{tl(k === 'day' ? '24 ore' : k === 'week' ? '7 giorni' : 'Fisso nel profilo')}</Text>
+            </Pressable>
+          ))}
         </View>
       </View>
 
-      {filters && !textMode ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingBottom: 10 }} style={{ flexGrow: 0 }}>
-          {FILTERS.map((f) => (
-            <Pressable key={f.id} accessibilityRole="button" accessibilityState={{ selected: filter === f.id }} accessibilityLabel={tl(f.label)} onPress={() => { buzz(); setFilter(f.id); }} style={{ alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 54, height: 72, borderRadius: 14, overflow: 'hidden', borderWidth: filter === f.id ? 2.5 : 0, borderColor: '#fff', backgroundColor: '#222' }}>
-                {items[cur]?.media === 'photo' ? <Image source={{ uri: items[cur].uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : null}
-                {f.tint ? <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: f.tint }} /> : null}
-              </View>
-              <Text style={{ color: '#fff', fontSize: 11, fontWeight: filter === f.id ? '800' : '500' }}>{tl(f.label)}</Text>
-            </Pressable>
-          ))}
+      {/* pannello dello strumento scelto */}
+      <View style={{ minHeight: panelH, justifyContent: 'center' }}>
+        {active.id === 'filtri' ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }} style={{ flexGrow: 0 }}>
+            {FILTERS.map((f) => (
+              <Pressable key={f.id} accessibilityRole="button" accessibilityState={{ selected: filter === f.id }} accessibilityLabel={tl(f.label)} onPress={() => { buzz(); setFilter(f.id); }} style={{ alignItems: 'center', gap: 4 }}>
+                <View style={{ width: 54, height: 72, borderRadius: 14, overflow: 'hidden', borderWidth: filter === f.id ? 2.5 : 0, borderColor: '#fff', backgroundColor: '#222' }}>
+                  {items[cur]?.media === 'photo' ? <Image source={{ uri: items[cur].uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : null}
+                  {f.tint ? <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: f.tint }} /> : null}
+                </View>
+                <Text style={{ color: '#fff', fontSize: 11, fontWeight: filter === f.id ? '800' : '500' }}>{tl(f.label)}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : null}
+        {active.id === 'sfondo' ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }} style={{ flexGrow: 0 }}>
+            {BACKGROUNDS.map((b, i) => (
+              <Pressable key={i} accessibilityRole="button" accessibilityLabel={tl('Sfondo {0}', i + 1)} accessibilityState={{ selected: bg === i }} onPress={() => { buzz(); setBg(i); }}>
+                <LinearGradient colors={b} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 54, height: 72, borderRadius: 14, borderWidth: bg === i ? 2.5 : 0, borderColor: '#fff' }} />
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : null}
+        {active.id === 'regola' ? (
+          <View style={{ paddingHorizontal: 22, gap: 6 }}>
+            {sliders.map((sl) => <Slider key={sl.k} label={tl(sl.label)} value={adj[sl.k]} min={sl.min} onChange={(v) => setAdj((a) => ({ ...a, [sl.k]: v }))} />)}
+            {isAdjusted(adj) ? <Pressable accessibilityRole="button" onPress={() => setAdj(NO_ADJUST)} style={{ alignSelf: 'flex-end' }}><Text style={{ color: '#b9a3ff', fontWeight: '800', fontSize: 12.5 }}>{tl('Azzera i ritocchi')}</Text></Pressable> : null}
+          </View>
+        ) : null}
+        {active.id === 'testo' ? (
+          <View style={{ paddingHorizontal: 16, gap: 10 }}>
+            <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={6}>
+              {(['S', 'M', 'L'] as TextSize[]).map((z) => pill(z === 'S' ? 'Piccolo' : z === 'M' ? 'Medio' : 'Grande', textSize === z, () => setTextSize(z)))}
+              {(['ombra', 'riquadro', 'evidenziato'] as TextStyleId[]).map((z) => pill(z === 'ombra' ? 'Ombra' : z === 'riquadro' ? 'Riquadro' : 'Evidenziato', textStyle === z, () => setTextStyle(z)))}
+            </Row>
+            {!textMode ? <Row style={{ justifyContent: 'flex-start' }} gap={6}>{POS.map((z) => pill(z === 'alto' ? 'In alto' : z === 'centro' ? 'Al centro' : 'In basso', pos === z, () => setPos(z)))}</Row> : null}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+              {INKS.map((c) => <Pressable key={c} accessibilityRole="button" accessibilityLabel={tl('Colore della scritta')} accessibilityState={{ selected: ink === c }} onPress={() => { buzz(); setInk(c); }} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: c, borderWidth: ink === c ? 3 : 1, borderColor: ink === c ? '#7b5cff' : 'rgba(255,255,255,0.4)' }} />)}
+            </ScrollView>
+          </View>
+        ) : null}
+        {active.id === 'adatta' ? (
+          <Row style={{ justifyContent: 'center' }} gap={8}>{pill('Riempi lo schermo', fit === 'cover', () => setFit('cover'))}{pill('Mostra tutta la foto', fit === 'contain', () => setFit('contain'))}</Row>
+        ) : null}
+      </View>
+
+      {/* strumenti + aggiungi */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 6, height: 66 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} style={{ flex: 1 }}>
+          {tools.filter((x) => x.show).map((x) => {
+            const on = active.id === x.id;
+            return (
+              <Pressable key={x.id} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={tl(x.label)} onPress={() => { buzz(); setTool(x.id); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 42, paddingHorizontal: 14, borderRadius: 21, backgroundColor: on ? '#fff' : 'rgba(255,255,255,0.14)' }}>
+                <Icon name={x.icon as never} size={18} color={on ? '#111' : '#fff'} />
+                <Text style={{ color: on ? '#111' : '#fff', fontWeight: '800', fontSize: 13 }}>{tl(x.label)}</Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
-      ) : null}
+        <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi: persone, luogo, hashtag, link')} onPress={() => { buzz(); setAdd(true); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 42, paddingHorizontal: 14, borderRadius: 21, backgroundColor: '#7b5cff' }}>
+          <Icon name="plus" size={18} color="#fff" stroke={3} />
+          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>{addedCount ? `${tl('Aggiungi')} · ${addedCount}` : tl('Aggiungi')}</Text>
+        </Pressable>
+      </View>
 
       <View style={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 12 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al recap')} onPress={publish} style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.97 : 1 }] })}>
@@ -203,23 +273,50 @@ export default function StoryCreate() {
         </Pressable>
       </View>
 
-      {shareSheet}
-      <Sheet visible={opts} title="Opzioni del momento" onClose={() => setOpts(false)}>
-        <Body bold style={{ marginBottom: 6 }}>Quanto resta</Body>
+      <Sheet visible={add} title="Aggiungi al momento" onClose={() => setAdd(false)}>
+        <Body bold style={{ marginBottom: 6 }}>Tagga persone</Body>
+        {net.following.length ? (
+          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
+            {net.following.slice(0, 20).map((n) => <Pill key={n} label={n} icon="profile" on={people.includes(n)} onPress={() => setPeople((p) => (p.includes(n) ? p.filter((x) => x !== n) : p.length < MAX_PEOPLE ? [...p, n] : p))} />)}
+          </Row>
+        ) : <Body small muted>Segui qualcuno per poterlo taggare.</Body>}
+        <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Posizione</Body>
+        <Input value={place} onChangeText={(v) => { setPlace(v); setAttachKind(v.trim() ? 'place' : 'none'); setAttach(v.trim() ? { kind: 'place', label: v.trim() } : null); }} placeholder="Es. Parco Ciani, Lugano" maxLength={60} />
+        <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Hashtag</Body>
+        <Input value={tagsTxt} onChangeText={setTagsTxt} placeholder="Es. #estate #mare" autoCapitalize="none" maxLength={80} />
+        <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Link</Body>
+        <Input value={link} onChangeText={setLink} placeholder="https://" autoCapitalize="none" keyboardType="url" maxLength={200} />
+        {link.trim() && !cleanLink(link) ? <Body small color="#ff6b6b">Il link deve iniziare con http:// o https://</Body> : null}
+        <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Collega qualcosa di tuo</Body>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
-          {(['day', 'week', 'moment'] as Keep[]).map((k) => <Pill key={k} label={KEEP_LABEL[k]} on={keep === k} onPress={() => setKeep(k)} />)}
+          {([['none', 'Niente'], ['event', 'Un impegno'], ['seminar', 'Un mio seminario'], ['idea', 'Una mia idea']] as const).map(([k, l]) => <Pill key={k} label={l} on={attachKind === k} onPress={() => { setAttachKind(k); setAttach(null); if (k !== 'none') setPlace(''); }} />)}
         </Row>
-        <Body small muted style={{ marginTop: 4 }}>{keep === 'moment' ? 'Resta nel tuo profilo finché non lo cancelli.' : keep === 'week' ? 'Resta visibile per una settimana.' : 'Sparisce da solo dopo un giorno.'}</Body>
-        <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Collega qualcosa</Body>
-        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
-          {([['none', 'Niente'], ['event', 'Un impegno'], ['seminar', 'Un mio seminario'], ['idea', 'Una mia idea'], ['place', 'Un luogo']] as const).map(([k, l]) => <Pill key={k} label={l} on={attachKind === k} onPress={() => { setAttachKind(k); setAttach(null); }} />)}
-        </Row>
-        {attachKind === 'event' ? (nextEvents.length ? nextEvents.map((e) => <Pill key={e.day + e.label} label={e.label} on={attach?.ref === e.day && attach.label === e.label} onPress={() => setAttach({ kind: 'event', label: e.label, ref: e.day })} />) : <Body small muted>Nessun impegno nei prossimi 7 giorni.</Body>) : null}
-        {attachKind === 'seminar' ? (mySeminars.length ? mySeminars.map((x) => <Pill key={x.id} label={x.title} on={attach?.ref === String(x.id)} onPress={() => setAttach({ kind: 'seminar', label: x.title, ref: String(x.id) })} />) : <Body small muted>Non hai seminari pubblicati.</Body>) : null}
+        {attachKind === 'event' ? (nextEvents.length ? nextEvents.map((e) => <Pill key={e.day + e.label} label={e.label} on={attach?.ref === e.day && attach.label === e.label} onPress={() => setAttach({ kind: 'event', label: e.label, ref: e.day })} />) : <Body small muted>Nessun impegno nei prossimi giorni.</Body>) : null}
+        {attachKind === 'seminar' ? (mySeminars.length ? mySeminars.map((x) => <Pill key={x.id} label={x.title} on={attach?.ref === String(x.id)} onPress={() => setAttach({ kind: 'seminar', label: x.title, ref: String(x.id) })} />) : <Body small muted>Non hai seminari.</Body>) : null}
         {attachKind === 'idea' ? (myIdeas.length ? myIdeas.map((x) => <Pill key={x.id} label={x.title} on={attach?.ref === String(x.id)} onPress={() => setAttach({ kind: 'idea', label: x.title, ref: String(x.id) })} />) : <Body small muted>Non hai idee pubblicate.</Body>) : null}
-        {attachKind === 'place' ? <Input value={place} onChangeText={(v) => { setPlace(v); setAttach(v.trim() ? { kind: 'place', label: v.trim() } : null); }} placeholder="Es. Parco Ciani, Lugano" maxLength={60} /> : null}
-        <Btn style={{ marginTop: 14 }} title="Fatto" onPress={() => setOpts(false)} />
+        <Btn style={{ marginTop: 14 }} title="Fatto" onPress={() => setAdd(false)} />
       </Sheet>
+      {shareSheet}
+    </View>
+  );
+}
+
+/** Cursore a tocco e trascinamento: da `min` a 1 (le barre con 0 al centro per i valori che vanno da -1). */
+function Slider({ label, value, min, onChange }: { label: string; value: number; min: number; onChange: (v: number) => void }) {
+  const [w, setW] = useState(0);
+  const set = (x: number) => { if (w <= 0) return; const f = Math.max(0, Math.min(1, x / w)); const v = min + f * (1 - min); onChange(Math.abs(v) < 0.04 ? 0 : Math.round(v * 100) / 100); };
+  const f = (value - min) / (1 - min);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <Text style={{ color: 'rgba(255,255,255,0.85)', width: 86, fontSize: 12.5, fontWeight: '700' }}>{label}</Text>
+      <View accessibilityRole="adjustable" accessibilityLabel={label} accessibilityValue={{ min: 0, max: 100, now: Math.round(f * 100) }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]} onAccessibilityAction={(e) => onChange(Math.max(min, Math.min(1, value + (e.nativeEvent.actionName === 'increment' ? 0.1 : -0.1))))}
+        onLayout={(e) => setW(e.nativeEvent.layout.width)} onStartShouldSetResponder={() => true} onMoveShouldSetResponder={() => true} onResponderTerminationRequest={() => false}
+        onResponderGrant={(e) => set(e.nativeEvent.locationX)} onResponderMove={(e) => set(e.nativeEvent.locationX)} style={{ flex: 1, height: 34, justifyContent: 'center' }}>
+        <View style={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)' }} />
+        <View style={{ position: 'absolute', start: 0, width: `${Math.max(0, Math.min(1, f)) * 100}%`, height: 4, borderRadius: 2, backgroundColor: '#fff' }} />
+        <View style={{ position: 'absolute', start: `${Math.max(0, Math.min(1, f)) * 100}%`, marginStart: -10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' }} />
+      </View>
     </View>
   );
 }

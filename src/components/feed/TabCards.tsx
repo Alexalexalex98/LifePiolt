@@ -17,6 +17,7 @@ import { useVisible } from '@/lib/moderation';
 import { useApp } from '@/store/app';
 import { SIGNAL } from '@/lib/relevance';
 import type { Product } from '@/lib/shop';
+import type { Job } from '@/store/jobs';
 import { useNet, type Community, type Provider } from '@/store/network';
 import { heroPaletteFor } from './feedColors.ts';
 import { ArtShapes, FEED_GUTTER, FEED_RADIUS, PressScale, SoftPill } from './parts';
@@ -144,6 +145,24 @@ export function ProductFeedCard({ p }: { p: Product }) {
             <Text style={{ color: p.stock > 0 ? t.muted : t.danger, fontSize: 12.5 }}>{p.stock > 0 ? tl('{0} disp.', p.stock) : 'Esaurito'}</Text>
           </View>
         </View>
+      </PressScale>
+    </View>
+  );
+}
+
+/** Offerta di lavoro nella Home: ruolo, azienda, luogo e competenze richieste; tocca per aprire il dettaglio. */
+export function JobFeedCard({ job }: { job: Job }) {
+  const t = useTheme();
+  return (
+    <View style={{ marginHorizontal: FEED_GUTTER, marginBottom: 20 }}>
+      <PressScale onPress={() => go('jobDetail', { id: job.id })} to={0.985} label={tl('Offerta di lavoro: {0}, {1}', job.title, job.company)} style={{ borderRadius: FEED_RADIUS, overflow: 'hidden', backgroundColor: t.card, borderWidth: t.mode === 'light' ? 1 : 0, borderColor: t.border, padding: 16, gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Icon name="briefcase" size={18} color={t.accent} />
+          <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', letterSpacing: 0.6 }}>{tl('LAVORO')}</Text>
+        </View>
+        <Text numberOfLines={2} style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>{job.title}</Text>
+        <Text style={{ color: t.muted, fontSize: 13.5 }}>{`${job.company} · ${job.location} · ${job.kind}`}</Text>
+        {job.pay ? <Text style={{ color: t.text, fontSize: 14, fontWeight: '700' }}>{job.pay}</Text> : null}
       </PressScale>
     </View>
   );

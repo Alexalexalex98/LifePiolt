@@ -14,7 +14,7 @@ export type CommPost = { author: string; text: string; media?: 'photo' | 'video'
 export type Community = { id: number; name: string; topic: string; owner: string; openPosting: boolean; members: string[]; posts: CommPost[]; desc?: string; rules?: string; ts?: number };
 export type Provider = { name: string; role: string; price: number; rating: number; tag: string; media: 'photo' | 'video' | null; slots: string[]; /** foto della banda in alto: se manca, LifePilot sceglie lo sfondo */ cover?: string };
 export type Booking = { id: string; provider: string; role: string; slot: string; price: number };
-export type Idea = { id: number; title: string; desc: string; author: string; raised: number; similarTo: number | null; rewardType: 'libero' | 'fisso'; fixedAmount: number | null; rewardDesc: string; target: number; ts?: number; /** durata della raccolta in giorni (max 90) */ days?: number; /** esito già registrato: pagata al titolare o rimborsata */ settled?: 'paid' | 'refunded'; media?: 'photo' | 'video' | null; uri?: string };
+export type Idea = { id: number; title: string; desc: string; author: string; raised: number; similarTo: number | null; rewardType: 'libero' | 'fisso'; fixedAmount: number | null; rewardDesc: string; target: number; ts?: number; /** durata della raccolta in giorni (max 90) */ days?: number; /** esito già registrato: pagata al titolare o rimborsata */ settled?: 'paid' | 'refunded'; media?: 'photo' | 'video' | null; uri?: string; /** altre foto del progetto: nello Swipe e nella Home sono un carosello */ uris?: string[] };
 export type SeminarMode = 'online' | 'presenza';
 /** I campi oltre a promoted sono opzionali solo per i dati salvati da versioni precedenti. */
 export type Seminar = {

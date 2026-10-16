@@ -64,3 +64,23 @@ test('filtri e posizione del testo', async () => {
   const d = m.makeStory({ id: '2', author: 'A', now: 5, kind: 'photo', uri: 'u', filter: 'none', textPos: 'basso', textColor: 'rosso' });
   assert.equal(d.filter, undefined); assert.equal(d.textPos, undefined); assert.equal(d.textColor, undefined);
 });
+
+import { adjustLayers, cleanAdjust, cleanLink, cleanTags } from '../src/lib/stories.ts';
+test('ritocchi: valori limitati, niente se tutto a zero, veli di colore', () => {
+  assert.equal(cleanAdjust({ bright: 0, warm: 0, fade: 0, vign: 0 }), undefined);
+  assert.deepEqual(cleanAdjust({ bright: 5, warm: -5, fade: 2, vign: -1 }), { bright: 1, warm: -1, fade: 1, vign: 0 });
+  assert.equal(adjustLayers({ bright: 0.5, warm: -0.5, fade: 0, vign: 0.4 }).length, 2);
+  assert.deepEqual(adjustLayers(undefined), []);
+});
+test('hashtag e link puliti; makeStory porta con sé persone, tag, link e ritocchi', () => {
+  assert.deepEqual(cleanTags(['#Estate', 'estate', 'a b!', '']), ['Estate', 'estate', 'ab']);
+  assert.equal(cleanLink('javascript:alert(1)'), undefined);
+  assert.equal(cleanLink(' https://example.com/x '), 'https://example.com/x');
+  const s = makeStory({ id: '1', author: 'Io', now: NOW, kind: 'photo', uri: 'file://a.jpg', people: ['Anna', 'Anna'], tags: ['#mare'], link: 'https://example.com', adj: { bright: 0.3 }, fit: 'contain', textSize: 'L' });
+  assert.deepEqual(s.people, ['Anna']);
+  assert.deepEqual(s.tags, ['mare']);
+  assert.equal(s.link, 'https://example.com');
+  assert.equal(s.adj.bright, 0.3);
+  assert.equal(s.fit, 'contain');
+  assert.equal(s.textSize, 'L');
+});

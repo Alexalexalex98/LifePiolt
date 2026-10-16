@@ -4,13 +4,15 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useRecapAllowed } from '@/components/stories/StoriesBar';
 import { StoryPlayer } from '@/components/stories/StoryPlayer';
 import { goBack } from '@/lib/nav';
-import { activeStories, startIndex, storyGroups } from '@/lib/stories';
+import { activeStories, fixedMoments, inFlow, startIndex, storyGroups } from '@/lib/stories';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
 /** Entri subito nella storia di una persona, a schermo intero, dalla prima non ancora vista. */
 export default function StoryView() {
-  const { author } = useLocalSearchParams<{ author?: string }>();
+  const { author, fixed, at } = useLocalSearchParams<{ author?: string; fixed?: string; at?: string }>();
+  /* «fissi nel profilo»: si guardano solo i momenti fissi di quella persona, partendo da quello toccato */
+  const onlyFixed = fixed === '1';
   const me = useApp((s) => s.account.name);
   const net = useNet();
   const first = author || me;
@@ -28,10 +30,10 @@ export default function StoryView() {
     const order = storyGroups(st.stories, me, (a) => allowedRef.current.has(a), st.storySeen ?? [], Date.now()).filter((g) => !g.mine).map((g) => g.author);
     const i = order.indexOf(first);
     back.current = [];
-    queue.current = i >= 0 ? order.slice(i + 1) : first === me ? order : [];
+    queue.current = onlyFixed ? [] : i >= 0 ? order.slice(i + 1) : first === me ? order : [];
     setWho(first);
     setOpened((n) => n + 1);
-  }, [first, me]));
+  }, [first, me, onlyFixed]));
   const advance = () => {
     const nxt = queue.current.shift();
     if (nxt) { back.current.push(who); setWho(nxt); setOpened((n) => n + 1); } else goBack();
@@ -45,9 +47,11 @@ export default function StoryView() {
     return true;
   };
   const { stories, start } = useMemo(() => {
-    const all = activeStories(net.stories, Date.now()).filter((s) => s.author === who && s.keep !== 'moment').sort((a, b) => a.ts - b.ts);
+    if (onlyFixed) { const f = fixedMoments(activeStories(net.stories, Date.now()).filter((s) => s.author === who)).reverse(); return { stories: f, start: Math.max(0, f.findIndex((x) => x.id === at)) }; }
+    const now = Date.now();
+    const all = (net.stories ?? []).filter((s) => s.author === who && inFlow(s, now)).sort((a, b) => a.ts - b.ts);
     const g = storyGroups(net.stories, me, () => true, net.storySeen ?? [], Date.now()).find((x) => x.author === who);
     return { stories: all, start: g ? Math.min(startIndex(g, net.storySeen ?? []), Math.max(0, all.length - 1)) : 0 };
-  }, [who, opened]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [who, opened, onlyFixed, at]); // eslint-disable-line react-hooks/exhaustive-deps
   return <StoryPlayer key={`${who}:${opened}`} stories={stories} start={start} onClose={goBack} onEnd={advance} onSkip={skip} />;
 }

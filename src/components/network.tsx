@@ -69,8 +69,14 @@ export const LpAmount = ({ n, size = 13, bold = true, color }: { n: number; size
   </Text>
 );
 
-export function UserAvatar({ name, size = 30 }: { name: string; size?: number }) {
-  return <Avatar name={name} size={size} />;
+/** La foto di un profilo, ovunque compaia, porta al suo profilo (anche la tua). `link={false}` la lascia solo decorativa. */
+export function UserAvatar({ name, size = 30, link = true }: { name: string; size?: number; link?: boolean }) {
+  if (!link || !name) return <Avatar name={name} size={size} />;
+  return (
+    <Pressable onPress={() => go('userProfile', { name })} accessibilityRole="link" accessibilityLabel={tl('Profilo di {0}', name)} hitSlop={4}>
+      <Avatar name={name} size={size} />
+    </Pressable>
+  );
 }
 
 /* ---------- visualizzatore a schermo intero per foto e video ---------- */

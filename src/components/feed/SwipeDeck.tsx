@@ -19,7 +19,7 @@ import { SWIPE_SIGNAL, dwellSignal, pickMixed, rankedPool, record, remaining, un
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
-export type SwipeCandidate = DeckCard & { tag?: string; uri?: string; poster?: string; /** foto del carosello: nello Swipe non si scorrono, si scelgono */ uris?: string[]; /** file incluso nell'app (require) */ asset?: number; media?: 'photo' | 'video' | null };
+export type SwipeCandidate = DeckCard & { /** per idee e servizi: dove porta il pulsante «apri» */ link?: { page: string; params: Record<string, string> }; tag?: string; uri?: string; poster?: string; /** foto del carosello: nello Swipe non si scorrono, si scelgono */ uris?: string[]; /** file incluso nell'app (require) */ asset?: number; media?: 'photo' | 'video' | null };
 const buzz = () => { if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined); };
 /** Quando compare la scritta piena («MI INTERESSA») la scelta è presa: il gesto si completa da solo. Prima, il post torna al centro. */
 const THRESHOLD = 64;
@@ -222,7 +222,7 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
       {card ? (
         <View pointerEvents="box-none" style={{ position: 'absolute', end: 12, bottom: insets.bottom + 100, alignItems: 'center', gap: 16 }}>
           <RailBtn icon="heart" label={liked ? tl('Togli il mi piace') : tl('Mi piace')} on={liked} onPress={() => { useNet.getState().likePost(card.key); buzz(); }} />
-          <RailBtn icon="comment" label={tl('Apri il post e i commenti')} onPress={() => { go('postPage', { key: card.key }); }} />
+          <RailBtn icon="comment" label={tl('Apri il post e i commenti')} onPress={() => { const l = (card as SwipeCandidate).link; if (l) go(l.page, l.params); else go('postPage', { key: card.key }); }} />
           <RailBtn icon="send" label={tl('Condividi nell’app')} onPress={() => setSharing(true)} />
           {!donated && card.author !== me ? <RailBtn icon="coin" label={tl('Dona il LifePoint di oggi')} onPress={() => openSheet('donate', { author: card.author, key: card.key })} /> : null}
         </View>

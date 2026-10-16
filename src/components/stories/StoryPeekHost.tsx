@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/T';
 
+import { StoryFx } from '@/components/stories/StoryFx';
 import { StoryVideo } from '@/components/stories/StoryPlayer';
 import { UserAvatar } from '@/components/network';
 import { t as tl } from '@/i18n/core';
 import { Icon } from '@/lib/icons';
-import { activeStories, ago, timeLabel, tintOfFilter } from '@/lib/stories';
+import { inFlow, ago, timeLabel } from '@/lib/stories';
 import { useNet } from '@/store/network';
 import { useStoryPeek } from '@/store/storyPeek';
 
@@ -21,7 +22,7 @@ export function StoryPeekHost() {
   const stories = useNet((s) => s.stories);
   const [i, setI] = useState(0);
   const { width, height } = useWindowDimensions();
-  const list = author ? activeStories(stories, Date.now()).filter((s) => s.author === author && s.keep !== 'moment').sort((a, b) => a.ts - b.ts) : [];
+  const list = author ? (stories ?? []).filter((s) => s.author === author && inFlow(s, Date.now())).sort((a, b) => a.ts - b.ts) : [];
   useEffect(() => { setI(0); }, [author]);
   useEffect(() => {
     if (!author || list.length < 2) return;
@@ -38,7 +39,7 @@ export function StoryPeekHost() {
           ? <LinearGradient colors={cur.bg ?? ['#6c8cff', '#3b2a7a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 }}><Text style={{ color: '#fff', fontSize: 20, fontWeight: '800', textAlign: 'center' }}>{cur.text}</Text></LinearGradient>
           : cur.kind === 'photo' ? <Image source={{ uri: cur.uri }} style={{ width: w, height: h }} contentFit="cover" />
           : cur.uri ? <StoryVideo key={cur.id} uri={cur.uri} poster={cur.poster} sound={false} /> : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={40} color="#fff" /></View>}
-        {tintOfFilter(cur.filter) ? <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: tintOfFilter(cur.filter)! }} /> : null}
+        <StoryFx s={cur} />
         <View style={{ position: 'absolute', top: 8, start: 8, end: 8, flexDirection: 'row', gap: 3 }}>
           {list.map((s, k) => <View key={s.id} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: k <= i ? '#fff' : 'rgba(255,255,255,0.35)' }} />)}
         </View>

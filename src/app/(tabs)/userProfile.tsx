@@ -10,8 +10,11 @@ import { chunk } from '@/components/feed/feedLogic';
 import { IdeaHero } from '@/components/feed/SpecialCards';
 import { ArtPlaceholder, ArtShapes, RingAvatar } from '@/components/feed/parts';
 import { IdBadge, LifePointsRow, StatsBar } from '@/components/profile/ProfileParts';
+import { VideoPoster } from '@/components/stories/VideoPoster';
 import { Body, Btn, Card, Chev, Empty, Page, Row } from '@/components/ui';
+import { activeStories, fixedMoments } from '@/lib/stories';
 import { useTheme } from '@/hooks/use-theme';
+import { t as tl } from '@/i18n/core';
 import { hashStr } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
@@ -147,6 +150,7 @@ export default function UserProfile() {
       </View>
     ),
   };
+  const fixedList = fixedMoments(activeStories(net.stories, Date.now()).filter((x) => x.author === name));
   const nameSize = look.nameSize === 'S' ? 20 : look.nameSize === 'L' ? 27 : 23;
   const headline = isMe ? (look.headline || net.bio || 'Il tuo profilo') : role;
 
@@ -214,6 +218,21 @@ export default function UserProfile() {
           </Row>
         </Card>
       )}
+
+      {fixedList.length > 0 && !(blockedUser || (!isMe && !visible('profile', name))) ? (
+        <View style={{ marginTop: 16 }}>
+          <Text accessibilityRole="header" style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, marginBottom: 8 }}>{tl('IN EVIDENZA')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+            {fixedList.map((m) => (
+              <Pressable key={m.id} onPress={() => go('storyView', { author: name, fixed: '1', at: m.id })} accessibilityRole="button" accessibilityLabel={m.text ? `${tl('Momento fisso')}: ${m.text}` : tl('Momento fisso')} style={{ width: 76, height: 104, borderRadius: 16, overflow: 'hidden', borderWidth: 2, borderColor: accent, backgroundColor: t.card }}>
+                {m.kind === 'photo' ? <Image source={{ uri: m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                  : m.kind === 'video' ? <VideoPoster uri={m.uri} poster={m.poster} width={72} height={100} />
+                  : <LinearGradient colors={m.bg ?? ['#6c8cff', '#3b2a7a']} style={{ flex: 1, padding: 6, justifyContent: 'center' }}><Text numberOfLines={5} style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{m.text}</Text></LinearGradient>}
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
       {visibleSections(look).map((id) => sections[id])}
     </Page>

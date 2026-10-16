@@ -1,3 +1,4 @@
+import { StoryFx, StoryStickers, storyTextStyle } from '@/components/stories/StoryFx';
 import { backdropUri } from '@/lib/storyBackdrop';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -126,9 +127,10 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
         </LinearGradient>
       ) : (
         <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}>
-          {cur.kind === 'video' && cur.uri ? <StoryVideo key={cur.id} uri={cur.uri} sound={sound} poster={cur.poster} paused={paused} onShown={() => setReady(true)} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
-          {tintOfFilter(cur.filter) ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: tintOfFilter(cur.filter)! }} /> : null}
-          {cur.text ? <Text style={[{ position: 'absolute', start: 16, end: 16, color: cur.textColor ?? '#fff', fontSize: 24, fontWeight: '900', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 8 }, cur.textPos === 'alto' ? { top: insets.top + 100 } : cur.textPos === 'centro' ? { top: '46%' } : { bottom: insets.bottom + 90 }]}>{cur.text}</Text> : null}
+          {cur.kind === 'video' && cur.uri ? <StoryVideo key={cur.id} uri={cur.uri} sound={sound} poster={cur.poster} paused={paused} onShown={() => setReady(true)} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit={cur.fit === 'contain' ? 'contain' : 'cover'} />}
+          <StoryFx s={cur} />
+          {cur.text ? <View pointerEvents="none" style={[{ position: 'absolute', start: 16, end: 16, alignItems: 'center' }, cur.textPos === 'alto' ? { top: insets.top + 100 } : cur.textPos === 'centro' ? { top: '46%' } : { bottom: insets.bottom + 90 }]}><Text style={storyTextStyle(cur)}>{cur.text}</Text></View> : null}
+          <StoryStickers s={cur} bottom={insets.bottom + 70 + (cur.text && !cur.textPos ? 52 : 0)} />
         </View>
       )}
       {/* zone di tocco: sinistra indietro, destra avanti, pressione lunga ferma */}
@@ -153,7 +155,7 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
           ))}
         </View>
         <Row style={{ marginTop: 10 }} gap={10}>
-          <UserAvatar name={cur.author} size={36} />
+          <UserAvatar name={cur.author} size={36} link={false} />
           <View style={{ flex: 1 }}><Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>{mine ? tl('Il tuo recap') : cur.author}</Text><Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{tl(ago(cur.ts, Date.now()))}</Text></View>
           {cur.kind === 'video' ? <Pressable accessibilityRole="button" accessibilityLabel={sound ? tl('Spegni il volume') : tl('Attiva il volume')} onPress={() => setSound((v) => !v)} hitSlop={10} style={{ padding: 6 }}><Icon name={sound ? 'volume' : 'volume-off'} size={22} color="#fff" /></Pressable> : null}
           {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al recap')} onPress={() => { onClose(); go('storyCreate'); }} hitSlop={10} style={{ padding: 6 }}><Icon name="plus" size={24} color="#fff" /></Pressable> : null}

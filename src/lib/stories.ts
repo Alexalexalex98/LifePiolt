@@ -18,8 +18,39 @@ export const FILTERS: { id: FilterId; label: string; tint: string | null }[] = [
 ];
 export const tintOfFilter = (id?: string): string | null => FILTERS.find((f) => f.id === id)?.tint ?? null;
 export type TextPos = 'alto' | 'centro' | 'basso';
+/** Ritocchi: luminosità e calore da -1 a 1, dissolvenza e vignetta da 0 a 1. Sono veli sopra la foto, come i filtri. */
+export type Adjust = { bright: number; warm: number; fade: number; vign: number };
+export const NO_ADJUST: Adjust = { bright: 0, warm: 0, fade: 0, vign: 0 };
+export const isAdjusted = (a?: Adjust | null) => !!a && (a.bright !== 0 || a.warm !== 0 || a.fade !== 0 || a.vign !== 0);
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Number.isFinite(n) ? n : 0));
+const r2 = (n: number) => Math.round(n * 100) / 100;
+export const cleanAdjust = (a?: Partial<Adjust> | null): Adjust | undefined => {
+  if (!a) return undefined;
+  const c = { bright: r2(clamp(a.bright ?? 0, -1, 1)), warm: r2(clamp(a.warm ?? 0, -1, 1)), fade: r2(clamp(a.fade ?? 0, 0, 1)), vign: r2(clamp(a.vign ?? 0, 0, 1)) };
+  return isAdjusted(c) ? c : undefined;
+};
+/** I veli di colore dei ritocchi, dal basso all'alto. */
+export function adjustLayers(a?: Adjust | null): string[] {
+  if (!a) return [];
+  const out: string[] = [];
+  if (a.bright > 0) out.push(`rgba(255,255,255,${r2(a.bright * 0.35)})`); else if (a.bright < 0) out.push(`rgba(0,0,0,${r2(-a.bright * 0.5)})`);
+  if (a.warm > 0) out.push(`rgba(255,150,50,${r2(a.warm * 0.3)})`); else if (a.warm < 0) out.push(`rgba(60,140,255,${r2(-a.warm * 0.3)})`);
+  if (a.fade > 0) out.push(`rgba(235,235,235,${r2(a.fade * 0.35)})`);
+  return out;
+}
+export type TextSize = 'S' | 'M' | 'L';
+export type TextStyleId = 'ombra' | 'riquadro' | 'evidenziato';
+export const TEXT_SIZES: Record<TextSize, number> = { S: 18, M: 24, L: 32 };
+export type StoryFit = 'cover' | 'contain';
+export const MAX_PEOPLE = 5;
+export const MAX_TAGS = 5;
+/** Hashtag puliti: senza #, spazi o simboli, al massimo MAX_TAGS. */
+export const cleanTags = (raw: string[]): string[] => [...new Set(raw.map((x) => x.replace(/^#+/, '').replace(/[^\p{L}\p{N}_]/gu, '').slice(0, 24)).filter(Boolean))].slice(0, MAX_TAGS);
+/** Solo link web (http/https) senza spazi. */
+export const cleanLink = (raw?: string): string | undefined => { const v = (raw ?? '').trim(); return /^https?:\/\/[^\s]{3,200}$/i.test(v) ? v : undefined; };
 export type Story = {
   id: string; author: string; ts: number; kind: StoryKind; keep?: Keep; attach?: StoryAttach; filter?: FilterId; textPos?: TextPos; textColor?: string;
+  adj?: Adjust; fit?: StoryFit; textSize?: TextSize; textStyle?: TextStyleId; /** persone taggate */ people?: string[]; /** hashtag */ tags?: string[]; link?: string;
   /** chi ha regalato il LifePoint giornaliero a questo momento (lo vede l'autore) */ gifts?: string[];
   uri?: string; /** fotogramma di anteprima dei video: compare subito */ poster?: string; text?: string; /** colori dello sfondo delle storie di solo testo */ bg?: [string, string];
   /** chi l'ha vista (lo vede solo l'autore) */ views: string[];
@@ -29,6 +60,8 @@ export const BACKGROUNDS: [string, string][] = [['#6c8cff', '#3b2a7a'], ['#e0866
 export const KEEP_MS: Record<Keep, number> = { day: STORY_MS, week: 7 * STORY_MS, moment: Infinity };
 export const KEEP_LABEL: Record<Keep, string> = { day: '24 ore', week: '7 giorni', moment: 'Fisso nel profilo' };
 export const isActive = (s: Story, now: number) => now - s.ts < KEEP_MS[s.keep ?? 'day'] && now >= s.ts - 60000;
+/** Nel recap di tutti: i momenti normali e i fissi appena pubblicati (dopo un giorno i fissi restano solo nel profilo, in «In evidenza»). */
+export const inFlow = (s: Story, now: number) => isActive(s, now) && (s.keep !== 'moment' || now - s.ts < STORY_MS);
 export const activeStories = (all: Story[] | undefined, now: number): Story[] => (all ?? []).filter((s) => isActive(s, now));
 /** Toglie le scadute (da fare ogni tanto, così lo store non cresce). */
 export const purgeStories = (all: Story[] | undefined, now: number): Story[] => activeStories(all, now);
@@ -39,7 +72,7 @@ export type StoryGroup = { author: string; stories: Story[]; unseen: number; lat
  */
 export function storyGroups(all: Story[] | undefined, me: string, visible: (author: string) => boolean, seen: string[], now: number): StoryGroup[] {
   const by = new Map<string, Story[]>();
-  for (const s of activeStories(all, now)) {
+  for (const s of (all ?? []).filter((x) => inFlow(x, now))) {
     if (s.author !== me && !visible(s.author)) continue;
     by.set(s.author, [...(by.get(s.author) ?? []), s]);
   }
@@ -67,11 +100,13 @@ export function ago(ts: number, now: number): string {
   return `${Math.floor(m / 60)} h`;
 }
 /** Una storia nuova con i controlli sul contenuto: testo non vuoto (max 140) o un file. */
-export function makeStory(a: { id: string; author: string; now: number; kind: StoryKind; uri?: string; text?: string; bg?: [string, string]; keep?: Keep; attach?: StoryAttach; filter?: FilterId; textPos?: TextPos; textColor?: string }): Story | null {
+export function makeStory(a: { id: string; author: string; now: number; kind: StoryKind; uri?: string; text?: string; bg?: [string, string]; keep?: Keep; attach?: StoryAttach; filter?: FilterId; textPos?: TextPos; textColor?: string; adj?: Partial<Adjust>; fit?: StoryFit; textSize?: TextSize; textStyle?: TextStyleId; people?: string[]; tags?: string[]; link?: string }): Story | null {
   const text = (a.text ?? '').trim().slice(0, MAX_STORY_TEXT);
   if (a.kind === 'text' ? !text : !a.uri) return null;
   const label = a.attach?.label.trim().slice(0, 60);
-  return { id: a.id, author: a.author, ts: a.now, kind: a.kind, ...(a.filter && a.filter !== 'none' ? { filter: a.filter } : {}), ...(a.textPos && a.textPos !== 'basso' ? { textPos: a.textPos } : {}), ...(a.textColor && /^#[0-9a-f]{6}$/i.test(a.textColor) && a.textColor.toLowerCase() !== '#ffffff' ? { textColor: a.textColor } : {}), ...(a.keep && a.keep !== 'day' ? { keep: a.keep } : {}), ...(a.attach && label ? { attach: { ...a.attach, label } } : {}), ...(a.uri ? { uri: a.uri } : {}), ...(text ? { text } : {}), ...(a.kind === 'text' ? { bg: a.bg ?? BACKGROUNDS[0] } : {}), views: [] };
+  const adj = cleanAdjust(a.adj), tags = cleanTags(a.tags ?? []), people = [...new Set(a.people ?? [])].slice(0, MAX_PEOPLE), link = cleanLink(a.link);
+  const extras = { ...(adj ? { adj } : {}), ...(a.fit === 'contain' ? { fit: 'contain' as const } : {}), ...(a.textSize && a.textSize !== 'M' ? { textSize: a.textSize } : {}), ...(a.textStyle && a.textStyle !== 'ombra' ? { textStyle: a.textStyle } : {}), ...(people.length ? { people } : {}), ...(tags.length ? { tags } : {}), ...(link ? { link } : {}) };
+  return { ...extras, id: a.id, author: a.author, ts: a.now, kind: a.kind, ...(a.filter && a.filter !== 'none' ? { filter: a.filter } : {}), ...(a.textPos && a.textPos !== 'basso' ? { textPos: a.textPos } : {}), ...(a.textColor && /^#[0-9a-f]{6}$/i.test(a.textColor) && a.textColor.toLowerCase() !== '#ffffff' ? { textColor: a.textColor } : {}), ...(a.keep && a.keep !== 'day' ? { keep: a.keep } : {}), ...(a.attach && label ? { attach: { ...a.attach, label } } : {}), ...(a.uri ? { uri: a.uri } : {}), ...(text ? { text } : {}), ...(a.kind === 'text' ? { bg: a.bg ?? BACKGROUNDS[0] } : {}), views: [] };
 }
 
 /* ---------- la giornata: momenti raggruppati per parte del giorno ---------- */
@@ -83,8 +118,8 @@ export function partOf(ts: number): Part {
 }
 export const timeLabel = (ts: number) => { const d = new Date(ts); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 /** I momenti di una persona, dal più vecchio al più recente, divisi per parte del giorno (le parti vuote non ci sono). I «fissi» vanno a parte. */
-export function dayParts(stories: Story[]): { part: Part; stories: Story[] }[] {
-  const flow = stories.filter((s) => s.keep !== 'moment').sort((a, b) => a.ts - b.ts);
+export function dayParts(stories: Story[], now = Date.now()): { part: Part; stories: Story[] }[] {
+  const flow = stories.filter((s) => s.keep !== 'moment' || now - s.ts < STORY_MS).sort((a, b) => a.ts - b.ts);
   return PART_ORDER.map((part) => ({ part, stories: flow.filter((s) => partOf(s.ts) === part) })).filter((x) => x.stories.length);
 }
 export const fixedMoments = (stories: Story[]) => stories.filter((s) => s.keep === 'moment').sort((a, b) => b.ts - a.ts);

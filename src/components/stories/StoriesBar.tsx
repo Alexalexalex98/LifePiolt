@@ -126,7 +126,7 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al tuo recap')} onPress={() => go('storyCreate')} style={({ pressed }) => ({ width: 84, height: 118, marginHorizontal: 20, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
             <LinearGradient colors={['#7b5cff', '#c13fd6', '#ff4d8d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 6 }}>
               <View>
-                <View style={{ borderRadius: 26, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.9)' }}><UserAvatar name={me} size={44} /></View>
+                <View style={{ borderRadius: 26, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.9)' }}><UserAvatar name={me} size={44} link={false} /></View>
                 <View style={{ position: 'absolute', end: -6, bottom: -4, width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={14} color="#7b5cff" stroke={3} /></View>
               </View>
               <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13, textAlign: 'center', lineHeight: 16 }}>{tl('Il tuo recap')}</Text>

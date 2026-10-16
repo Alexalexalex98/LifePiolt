@@ -16,13 +16,14 @@ import { Text } from '@/components/T';
 import { EmptyFeed, FeedSkeleton, FilterToggle, Composer, NetHeader, NetTabs } from '@/components/feed/Header';
 import { FeedPost, type FeedPostData } from '@/components/feed/FeedPost';
 import { byReach } from '@/lib/reach';
-import { CommunityCard, ProductFeedCard, ServiceFeedCard } from '@/components/feed/TabCards';
+import { CommunityCard, JobFeedCard, ProductFeedCard, ServiceFeedCard } from '@/components/feed/TabCards';
 import { SIGNAL, addSignal, rankMixed, type ThemeWeights } from '@/lib/relevance';
 import type { Product } from '@/lib/shop';
 import { INTEREST_CATALOG, useInterests } from '@/store/interests';
 import { IdeaHero, QuoteCard, SeminarFeedCard } from '@/components/feed/SpecialCards';
 import { FEED_GUTTER, FEED_RADIUS } from '@/components/feed/parts';
 import { JobsHub } from '@/components/JobsHub';
+import { useJobs, type Job } from '@/store/jobs';
 import { openSheet, UserAvatar } from '@/components/network';
 import { Body, Btn, Card, Empty, H, Input, Page, Select } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -45,6 +46,7 @@ type Item =
   | { k: 'quote'; id: string; q: Quote }
   | { k: 'community'; id: string; cid: number }
   | { k: 'jobs'; id: string }
+  | { k: 'job'; id: string; job: Job }
   | { k: 'tools'; id: string }
   | { k: 'empty'; id: string; text: string };
 
@@ -103,6 +105,7 @@ export default function LifeNetwork() {
   const quoteLikes = net.quoteLikes;
 
   const verified = net.identity.verified;
+  const jobsList = useJobs((x) => x.jobs);
   const { communities, posts, ideas, seminars, providers, products, hideIdeas, mutedIdeaAuthors, following: followingList, reach } = net;
 
   const interestLabels = useInterests((x) => x.selected);
@@ -121,10 +124,14 @@ export default function LifeNetwork() {
     communities.filter((c) => c.members.includes(me) && visible('community', c.id, c.owner === 'system' ? undefined : c.owner)).forEach((c) => c.posts.forEach((p, pi) => { if (p.media && !p.uri) return; comm.push({ k: 'post', id: `c${c.id}:${pi}`, likeKey: `community:${c.id}:${pi}`, post: keep(`c${c.id}:${pi}`, { author: p.author, text: p.text, media: p.media, tag: c.name, likes: p.likes, ts: p.ts, uri: p.uri, editedAt: p.editedAt }) }); }));
     const standalone: Item[] = posts.filter((p) => !p.hideFromFeed && !(p.media && !p.uri && !p.uris?.length) && visible('post', 'standalone:' + p.id, p.author)).map((p) => ({ k: 'post', id: 's' + p.id, likeKey: 'standalone:' + p.id, post: keep('s' + p.id, p) }));
     const ideaItems: Item[] = hideIdeas ? [] : ideas.filter((i) => !mutedIdeaAuthors.includes(i.author) && visible('idea', i.id, i.author)).map((idea) => ({ k: 'idea', id: 'i' + idea.id, idea }));
-    const sem: Item[] = seminars.filter((s) => s.promoted && visible('seminar', s.id, s.host)).map((s) => ({ k: 'seminar', id: 'm' + s.id, s }));
+    /* nella Home c'è tutto: post, idee, seminari, servizi, marketplace e offerte di lavoro (nello Swipe solo post, idee e servizi) */
+    const sem: Item[] = seminars.filter((s) => visible('seminar', s.id, s.host)).sort((a, b) => Number(b.promoted) - Number(a.promoted)).map((s) => ({ k: 'seminar', id: 'm' + s.id, s }));
+    const svc: Item[] = providers.filter((p) => p.name !== me).map((p) => ({ k: 'service', id: 'p' + p.name, p }));
+    const prod: Item[] = (products ?? []).filter((p) => p.shop !== me).map((p) => ({ k: 'product', id: 'pr' + p.id, p }));
+    const jobItems: Item[] = jobsList.filter((j) => j.owner !== me && j.status === 'open').map((job) => ({ k: 'job', id: 'j' + job.id, job }));
     const mot: Item[] = pickQuotes(quoteLikes, quoteCount(quoteLikes), Math.floor(Date.now() / 86400000)).map((q) => ({ k: 'quote', id: 'q:' + q.id, q }));
     const rk = (it: Item) => (it.k === 'post' ? it.likeKey : it.k === 'idea' ? `idea:${it.idea.id}` : '');
-    const pools = [byReach(standalone, rk, reach), byReach(comm, rk, reach), byReach(ideaItems, rk, reach), sem, mot].filter((p) => p.length);
+    const pools = [byReach(standalone, rk, reach), byReach(comm, rk, reach), byReach(ideaItems, rk, reach), sem, svc, prod, jobItems, mot].filter((p) => p.length);
     const feed: Item[] = [];
     let idx = 0;
     while (pools.some((p) => p.length)) { const pool = pools[idx % pools.length]; if (pool.length) feed.push(pool.shift()!); idx++; }
@@ -133,7 +140,7 @@ export default function LifeNetwork() {
       const a = it.k === 'post' ? it.post.author : it.k === 'idea' ? it.idea.author : null;
       return a && followingList.includes(a);
     });
-  }, [communities, posts, ideas, seminars, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep, reach, swipes, themeWeights, quoteLikes]);
+  }, [communities, posts, ideas, seminars, providers, products, jobsList, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep, reach, swipes, themeWeights, quoteLikes]);
 
   const searching = people.trim().length >= 1;
   const data = useMemo<Item[]>(() => {
@@ -231,6 +238,7 @@ export default function LifeNetwork() {
         if (!c) return null;
         return <CommunityCard c={c} joined={c.members.includes(me)} onToggle={() => toggleJoin(c.id)} onPostHere={() => { if (c.owner !== me && !c.openPosting) { toast('Solo il proprietario può pubblicare qui'); return; } openSheet('postToCommunity', { id: c.id }); }} />;
       }
+      case 'job': return <JobFeedCard job={item.job} />;
       case 'jobs': return <View style={{ paddingHorizontal: FEED_GUTTER }}><JobsHub /></View>;
       case 'empty':
         return curTab === 'Home'
