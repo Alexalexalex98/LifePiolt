@@ -81,6 +81,12 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   const left = remaining(cards, swipes, weights, me);
   const cardRef = useRef(card); cardRef.current = card;
   const isVideo = !!card && card.media === 'video' && (!!card.asset || !!card.uri);
+  /* le foto dei prossimi post si scaricano in anticipo: niente attesa quando scegli */
+  useEffect(() => {
+    const seen = new Set((swipes ?? []).map((r) => r.key));
+    const urls = cards.filter((c) => c.media !== 'video' && c.uri && !seen.has(c.key) && c.key !== card?.key).slice(0, 8).map((c) => c.uri as string);
+    if (urls.length) void Image.prefetch(urls, 'memory-disk').catch(() => undefined);
+  }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   /* nuovo post: azzera il cronometro di visione e lo stato del video */
   useEffect(() => { shownAt.current = Date.now(); maxFrac.current = 0; setPaused(false); setFast(false); setProg(0); }, [card?.key]);
   useEffect(() => {
@@ -140,7 +146,7 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
         <Pressable accessibilityRole="button" accessibilityLabel={isVideo ? tl('Video di {0}. Tocca per mettere in pausa o riprendere, tieni premuto per accelerare', card.author) : tl('Post di {0}', card.author)}
           onPress={() => { if (isVideo) setPaused(!(vid.current?.toggle() ?? true)); }}
           delayLongPress={260} onLongPress={() => { if (isVideo) { vid.current?.rate(2); setFast(true); } }} onPressOut={() => { if (fast) { vid.current?.rate(1); setFast(false); } }} style={{ flex: 1 }}>
-          {isVideo ? <DeckVideo key={card.key} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} /> : card.asset ? <Image source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image source={{ uri: card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : (
+          {isVideo ? <DeckVideo key={card.key} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} /> : card.asset ? <Image source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image source={{ uri: card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
             <LinearGradient colors={['#4a3bd1', '#1b1f3a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
               <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900' }}>{card.text}</Text>
             </LinearGradient>

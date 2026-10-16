@@ -1,5 +1,5 @@
 {
- "count": 10699,
+ "count": 10729,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -440,7 +440,7 @@
   "src/lib/samplePdf.ts": 18,
   "src/lib/search/docs.ts": 1,
   "src/lib/search/fts.ts": 8,
-  "src/lib/seedMedia.ts": 94,
+  "src/lib/seedMedia.ts": 124,
   "src/lib/shop.ts": 14,
   "src/lib/shopActions.ts": 8,
   "src/lib/shopSeed.ts": 56,

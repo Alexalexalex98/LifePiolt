@@ -11,7 +11,9 @@ import { useNet } from '@/store/network';
 /** Swipe dei post a schermo intero (apertura diretta da un contenuto). Dalla Home lo Swipe è un pannello affiancato. */
 export default function SwipePage() {
   useSeedMedia();
-  const { start } = useLocalSearchParams<{ start?: string }>();
+  const { start, solo } = useLocalSearchParams<{ start?: string; solo?: string }>();
+  /* aperto da un contenuto (come i reel): si scorrono altri post e si esce solo con la X, senza passare a Per te / Seguiti */
+  const onlyX = solo === '1';
   const { width } = useWindowDimensions();
   const x = useRef(new Animated.Value(width)).current;
   const busy = useRef(false);
@@ -44,8 +46,8 @@ export default function SwipePage() {
     <View style={{ flex: 1, backgroundColor: '#000', overflow: 'hidden' }}>
       <Animated.View style={{ flex: 1, transform: [{ translateX: x }] }}>
         <SwipeDeck cards={cards} onClose={() => leave(null)} startKey={start} />
-        <View accessibilityRole="button" accessibilityLabel="Trascina verso destra per tornare a Per te" {...leftDot.panHandlers} style={dotStyle('start')} hitSlop={{ top: 14, bottom: 14, left: 6, right: 14 }} />
-        <View accessibilityRole="button" accessibilityLabel="Trascina verso sinistra per andare a Seguiti" {...rightDot.panHandlers} style={dotStyle('end')} hitSlop={{ top: 14, bottom: 14, left: 14, right: 6 }} />
+        {onlyX ? null : <View accessibilityRole="button" accessibilityLabel="Trascina verso destra per tornare a Per te" {...leftDot.panHandlers} style={dotStyle('start')} hitSlop={{ top: 14, bottom: 14, left: 6, right: 14 }} />}
+        {onlyX ? null : <View accessibilityRole="button" accessibilityLabel="Trascina verso sinistra per andare a Seguiti" {...rightDot.panHandlers} style={dotStyle('end')} hitSlop={{ top: 14, bottom: 14, left: 14, right: 6 }} />}
       </Animated.View>
     </View>
   );
