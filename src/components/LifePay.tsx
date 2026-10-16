@@ -1,7 +1,7 @@
 import { Camera } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname } from 'expo-router';
@@ -21,9 +21,41 @@ import { Icon } from '@/lib/icons';
 import { ASSETS, CONVERT_FEE, DEMO_RATES, applyConversion, payToken, quote, type Asset } from '@/lib/lifepay';
 import { go } from '@/lib/nav';
 import { buildPayLink } from '@/lib/payments';
+import { QrView } from '@/components/profile/CardFace';
+import { daysLeft, passPayload, premiumState, PREMIUM_PRICE_LP } from '@/lib/fitness/premium';
 import { useApp } from '@/store/app';
+import { useFitness } from '@/store/fitness';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
+
+/** Scheda LifePass del portafoglio: il QR d'ingresso ai centri (diverso da quello dei pagamenti), che cambia ogni minuto. */
+function PassTab({ onClose }: { onClose: () => void }) {
+  const t = useTheme();
+  const me = useApp((s) => s.account.name);
+  const sub = useFitness((s) => s.sub);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const h = setInterval(() => setNow(Date.now()), 20000); return () => clearInterval(h); }, []);
+  const state = premiumState(sub, now);
+  if (!sub || state === 'nessuno' || state === 'scaduto') {
+    return (
+      <View style={{ alignItems: 'center', paddingVertical: 12, gap: 8 }}>
+        <Icon name="lifefitness" size={34} color={t.accent} />
+        <Text style={{ color: t.text, fontWeight: '800', fontSize: 17 }}>{translateText(state === 'scaduto' ? 'Il tuo LifePass è scaduto' : 'Non hai il LifePass')}</Text>
+        <Body small muted style={{ textAlign: 'center' }}>Un solo pass per entrare in palestre, piscine e centri sportivi convenzionati.</Body>
+        <Btn style={{ alignSelf: 'stretch', marginTop: 6 }} title={`${translateText('Attiva il LifePass')} · ${PREMIUM_PRICE_LP} LP`} onPress={() => { onClose(); go('lifefitness'); }} />
+      </View>
+    );
+  }
+  return (
+    <View style={{ alignItems: 'center', gap: 8, marginVertical: 8 }}>
+      <View style={{ backgroundColor: '#fff', padding: 12, borderRadius: 16 }}><QrView text={passPayload(me, sub, now)} size={180} color="#111" /></View>
+      <Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>{me}</Text>
+      <Body small muted>{`${translateText('Valido fino al')} ${new Date(sub.renewsAt).toLocaleDateString()} · ${daysLeft(sub, now)} ${translateText('giorni')}`}</Body>
+      <Body small muted style={{ textAlign: 'center' }}>Mostralo all'ingresso del centro: è il codice del LifePass, diverso da quello dei pagamenti, e cambia ogni minuto.</Body>
+      <Btn ghost style={{ alignSelf: 'stretch', marginTop: 4 }} title="Gestisci il LifePass" onPress={() => { onClose(); go('lifefitness'); }} />
+    </View>
+  );
+}
 
 /** Pulsante sempre raggiungibile: apre il portafoglio LifePay da qualsiasi schermata. */
 export function LifePayFab() {
@@ -42,7 +74,7 @@ export function LifePayFab() {
   );
 }
 
-const TABS = ['Paga', 'Versa'] as const;
+const TABS = ['Paga', 'Versa', 'LifePass'] as const;
 const METHODS = ['Carta', 'Cripto'] as const;
 const CARD_AMOUNTS = [50, 100, 250, 500];
 
@@ -115,7 +147,7 @@ export function LifePayHost() {
         <Text style={{ color: '#fff', fontWeight: '700', marginTop: 2 }}>{me}</Text>
       </LinearGradient>
       <Seg options={[...TABS]} value={tab} onChange={(v) => setTab(v as (typeof TABS)[number])} />
-      {tab === 'Paga' ? (
+      {tab === 'LifePass' ? <PassTab onClose={close} /> : tab === 'Paga' ? (
         flow?.step === 'scan' ? (
           <>
             <QrScanner onCode={onCode} onClose={() => setFlow(null)} />
