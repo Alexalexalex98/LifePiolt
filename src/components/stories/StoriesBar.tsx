@@ -1,7 +1,7 @@
 import { snapBackdrop } from '@/lib/storyBackdrop';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/T';
 
@@ -60,6 +60,9 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
   useDemoStories();
   const setPeek = useStoryPeek((x) => x.set);
   const peeking = useStoryPeek((x) => !!x.author);
+  /* il tocco sul ventaglio è gestito a mano: una volta aperta l'anteprima il dito resta suo, anche se lo sposti fuori, e nient'altro si muove (barra, pagina, sezioni) */
+  const hold = useRef<{ timer: ReturnType<typeof setTimeout> | null; on: boolean; x: number; y: number; moved: boolean }>({ timer: null, on: false, x: 0, y: 0, moved: false }).current;
+  const endHold = () => { if (hold.timer) clearTimeout(hold.timer); hold.timer = null; if (hold.on) { hold.on = false; setPeek(null); } };
   const now = Date.now();
   // pulizia delle scadute, una volta all'apertura
   useEffect(() => {
@@ -82,12 +85,16 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
     const rot = [0, -11, 11];
     const dx = [0, -13, 13];
     return (
-      <Pressable key={key} accessibilityRole="button"
+      <View key={key} accessible accessibilityRole="button"
         accessibilityLabel={`${label} · ${tl('Momenti: {0}', g.stories.length)}${g.unseen ? ` · ${tl('da vedere')}` : ''}`}
         accessibilityHint={tl('Tocca per entrare. Tieni premuto per un’anteprima senza essere visto')}
-        onPress={onPress} onLongPress={() => setPeek(g.author)} onPressOut={() => setPeek(null)} onTouchEnd={() => setPeek(null)} onTouchCancel={() => setPeek(null)} delayLongPress={450}
-        // col dito premuto puoi muoverti: l'anteprima resta finché non lo sollevi
-        pressRetentionOffset={{ top: 4000, bottom: 4000, left: 4000, right: 4000 }}
+        onAccessibilityTap={onPress}
+        onStartShouldSetResponder={() => true}
+        onResponderTerminationRequest={() => !hold.on}
+        onResponderGrant={(e) => { hold.moved = false; hold.x = e.nativeEvent.pageX; hold.y = e.nativeEvent.pageY; if (hold.timer) clearTimeout(hold.timer); hold.timer = setTimeout(() => { hold.timer = null; hold.on = true; setPeek(g.author); }, 450); }}
+        onResponderMove={(e) => { if (!hold.on && (Math.abs(e.nativeEvent.pageX - hold.x) > 10 || Math.abs(e.nativeEvent.pageY - hold.y) > 10)) { hold.moved = true; if (hold.timer) { clearTimeout(hold.timer); hold.timer = null; } } }}
+        onResponderRelease={() => { const wasPeek = hold.on; const tap = !wasPeek && !hold.moved && hold.timer != null; endHold(); if (tap) onPress(); }}
+        onResponderTerminate={endHold}
         style={{ width: W + 40, height: H + 34, alignItems: 'center' }}>
         <View style={{ width: W + 40, height: H, alignItems: 'center', justifyContent: 'center' }}>
           {shown.map((st, k) => ({ st, k })).reverse().map(({ st, k }) => {
@@ -102,7 +109,7 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
           {extra}
         </View>
         <Text numberOfLines={1} style={{ color: g.unseen ? t.text : t.muted, fontSize: 12, marginTop: 8, fontWeight: g.unseen ? '800' : '500' }}>{label}</Text>
-      </Pressable>
+      </View>
     );
   };
   return (
