@@ -1,3 +1,4 @@
+import { isDoubleTap, triggerPageRefresh } from '@/lib/pageRefresh';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useRef, useState } from 'react';
 import { Modal, PanResponder, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
@@ -175,6 +176,7 @@ export function NavBar({ state }: BottomTabBarProps) {
 
   const { width: W } = useWindowDimensions();
   const barScroll = useRef<ScrollView>(null);
+  const lastTap = useRef(0);
   const pos = useRef<Record<string, number>>({});
   /* l'icona della pagina attuale resta sempre in vista */
   const scrollTo = (id: string) => { const x = pos.current[id]; if (x == null) return; const w = W / (NAV_VISIBLE + 0.5); barScroll.current?.scrollTo({ x: Math.max(0, x - (W - w) / 2), animated: true }); };
@@ -184,7 +186,7 @@ export function NavBar({ state }: BottomTabBarProps) {
           const ink = locked ? t.muted : active ? t.text : t.navInactive;
           return (
             <TourTarget key={id} id={`nav.${id}`}>
-              <Press onPress={() => (locked ? requestUnlock(id) : go(id))} onLongPress={() => setEditing(true)} role="tab" selected={active} accessibilityLabel={translateText(navLabelFor(id, language)) + (locked ? translateText(', si sblocca presto') : '')} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} style={{ alignItems: 'center', minWidth: navItems.length > 5 ? 48 : 56, minHeight: 44, justifyContent: 'center', opacity: locked ? 0.5 : 1 }}>
+              <Press onPress={() => { if (locked) { requestUnlock(id); return; } if (active) { const now = Date.now(); if (isDoubleTap(lastTap.current, now)) { lastTap.current = 0; if (triggerPageRefresh(id)) toast('Pagina aggiornata'); } else lastTap.current = now; return; } go(id); }} onLongPress={() => setEditing(true)} role="tab" selected={active} accessibilityLabel={translateText(navLabelFor(id, language)) + (locked ? translateText(', si sblocca presto') : '')} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} style={{ alignItems: 'center', minWidth: navItems.length > 5 ? 48 : 56, minHeight: 44, justifyContent: 'center', opacity: locked ? 0.5 : 1 }}>
                 {active && <View style={{ position: 'absolute', top: -10, width: 4, height: 4, borderRadius: 2, backgroundColor: t.accent }} />}
                 <View>
                   <Icon name={id} size={20} color={ink} />

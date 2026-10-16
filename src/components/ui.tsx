@@ -1,5 +1,6 @@
+import { onPageRefresh } from '@/lib/pageRefresh';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -134,6 +135,9 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
   const params = useLocalSearchParams();
   const memKey = id + JSON.stringify(params);
   const scrollRef = useRef<ScrollView>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
+  /* doppio tocco sull'icona della barra: in cima e pagina ricaricata */
+  useEffect(() => onPageRefresh(id, () => { scrollRef.current?.scrollTo({ y: 0, animated: true }); scrollMemory.set(memKey, 0); setRefreshTick((n) => n + 1); }), [id, memKey]);
   const keep = KEEP_SCROLL.includes(id);
   useFocusEffect(useCallback(() => {
     if (keep) return;
@@ -160,7 +164,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
           {right}
         </View>
       )}
-      {children}
+      <Fragment key={refreshTick}>{children}</Fragment>
     </>
   );
   return (
