@@ -1,3 +1,4 @@
+import { useStoryPeek } from '@/store/storyPeek';
 import { Safe } from '@/components/Safe';
 import { applyToFeed } from '@/lib/swipeDeck';
 import { StoriesBar } from '@/components/stories/StoriesBar';
@@ -87,7 +88,7 @@ export default function LifeNetwork() {
   const curTab = tabs.includes(prefs.lnTab) ? prefs.lnTab : 'Home';
   const following = prefs.homeFilter === 'Seguiti';
   /* i gesti orizzontali sulle storie restano delle storie: non cambiano scheda */
-  const storiesPan = useRef(PanResponder.create({ onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) })).current;
+  const storiesPan = useRef(PanResponder.create({ onMoveShouldSetPanResponder: (_e, g) => !useStoryPeek.getState().author && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) })).current;
   const listRef = useRef<FlatList<Item>>(null);
   const offsetRef = useRef(0);
   /* da «Per te» a «Seguiti» (e viceversa) resti allo stesso punto della pagina, non torni in cima */
