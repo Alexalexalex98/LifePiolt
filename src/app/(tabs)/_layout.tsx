@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router/js-tabs';
 import { usePathname } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { PanResponder, View, useWindowDimensions } from 'react-native';
-import { go } from '@/lib/nav';
+import { goKeep } from '@/lib/nav';
 import { carouselBusy } from '@/lib/feedSwipe';
 import { adjacentSection, sectionDirection } from '@/lib/sectionSwipe';
 import { settleEscrow } from '@/lib/escrow';
@@ -61,7 +61,7 @@ export default function TabsLayout() {
     onPanResponderRelease: (_e, g) => {
       const d = sectionDirection(g.dx, g.dy, g.vx);
       const to = d ? adjacentSection(itemsRef.current, curRef.current, d) : null;
-      if (to) go(to);
+      if (to) goKeep(to);
     },
   })).current;
 

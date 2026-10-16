@@ -11,6 +11,12 @@ export const pageHref = (page: string, params?: Record<string, string>): Href =>
 export const navState = { forwardAt: 0 };
 export const isFreshForward = () => Date.now() - navState.forwardAt < 1500;
 
+/** Passa a un'altra sezione con lo swipe: la pagina riprende da dove l'avevi lasciata, non dall'inizio. */
+export function goKeep(page: string, params?: Record<string, string>) {
+  navState.forwardAt = 0;
+  try { router.navigate(pageHref(page, params)); } catch (e) { toast('Non riesco ad aprire questa pagina'); log.warn('nav', `Apertura pagina fallita: ${page}`, e); }
+}
+
 export function go(page: string, params?: Record<string, string>) {
   navState.forwardAt = Date.now();
   try { router.navigate(pageHref(page, params)); } catch (e) { toast('Non riesco ad aprire questa pagina'); log.warn('nav', `Apertura pagina fallita: ${page}`, e); }

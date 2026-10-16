@@ -27,7 +27,7 @@ import { Body, Btn, Card, Empty, H, Input, Page, Select } from '@/components/ui'
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/lib/i18n';
 import { Icon } from '@/lib/icons';
-import { go } from '@/lib/nav';
+import { go, goKeep } from '@/lib/nav';
 import { useVisible } from '@/lib/moderation';
 import { SearchResults } from '@/components/feed/SearchResults';
 import { t as tl } from '@/i18n/core';
@@ -88,6 +88,10 @@ export default function LifeNetwork() {
   const following = prefs.homeFilter === 'Seguiti';
   /* i gesti orizzontali sulle storie restano delle storie: non cambiano scheda */
   const storiesPan = useRef(PanResponder.create({ onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) })).current;
+  const listRef = useRef<FlatList<Item>>(null);
+  const offsetRef = useRef(0);
+  /* da «Per te» a «Seguiti» (e viceversa) resti allo stesso punto della pagina, non torni in cima */
+  useEffect(() => { const y = offsetRef.current; const h = requestAnimationFrame(() => listRef.current?.scrollToOffset({ offset: y, animated: false })); return () => cancelAnimationFrame(h); }, [prefs.homeFilter]);
   const swipes = net.swipes;
   /* zone di Network: il recap (in alto) non cambia mai sezione; solo l'area dei post (da «Per te / Swipe / Seguiti» in giù) sì */
   const toggleRef = useRef<View>(null);
@@ -302,7 +306,7 @@ export default function LifeNetwork() {
     const toDeck = cur === 'Per te' ? dir === 1 : dir === -1;
     if (toDeck) { prevTab.current = cur; setDeckShown(true); settleRef.current('Swipe'); return; }
     const to = adjacentSection(navItemsAll, 'lifenetwork', cur === 'Per te' ? -1 : 1);
-    if (to) go(to);
+    if (to) goKeep(to);
   };
   const goTabRef = useRef(goTab); goTabRef.current = goTab;
   const swipePan = useRef(PanResponder.create({
@@ -322,7 +326,7 @@ export default function LifeNetwork() {
       const toDeck = fol ? g.dx : -g.dx;
       const away = fol ? -g.dx : g.dx;
       if (toDeck > 70 || (toDeck > 28 && Math.abs(g.vx) > 0.6)) { prevTab.current = fol ? 'Seguiti' : 'Per te'; settleRef.current('Swipe'); }
-      else if (away > 70 || (away > 28 && Math.abs(g.vx) > 0.6)) { settleRef.current(fol ? 'Seguiti' : 'Per te', true); const to = adjacentSection(navItemsAll, 'lifenetwork', fol ? 1 : -1); if (to) go(to); }
+      else if (away > 70 || (away > 28 && Math.abs(g.vx) > 0.6)) { settleRef.current(fol ? 'Seguiti' : 'Per te', true); const to = adjacentSection(navItemsAll, 'lifenetwork', fol ? 1 : -1); if (to) goKeep(to); }
       else settleRef.current(fol ? 'Seguiti' : 'Per te', true);
     },
     onPanResponderTerminate: () => settleRef.current(useNet.getState().prefs.homeFilter === 'Seguiti' ? 'Seguiti' : 'Per te', true),
@@ -352,6 +356,9 @@ export default function LifeNetwork() {
     <Page id="lifenetwork" scroll={false}>
       <View style={{ flex: 1 }} {...swipePan.panHandlers}>
       <FlatList
+        ref={listRef}
+        onScroll={(e) => { offsetRef.current = e.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={32}
         onScrollEndDrag={measureFeed}
         onMomentumScrollEnd={measureFeed}
         style={{ flex: 1, marginHorizontal: -FEED_GUTTER }}
