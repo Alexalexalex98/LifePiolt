@@ -108,15 +108,18 @@ export default function UserProfile() {
     ),
     lifepoints: <View key="lifepoints" style={{ marginTop: 14 }}><LifePointsRow name={name} isMe={isMe} /></View>,
     pills: shownPills.length ? (
-      <View key="pills" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 16 }}>
+      <ScrollView key="pills" horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 18, flexGrow: 0, marginHorizontal: -16 }} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}>
         {shownPills.map((p) => (
-          <Pressable key={p.key} onPress={() => (p.key === 'altro' ? go('profileMore', { name }) : p.key === 'store' ? go('shopPage', { name }) : go('profileContent', { name, kind: p.key }))} accessibilityRole="button" accessibilityLabel={p.n < 0 ? p.label : `${p.label}: ${p.n}`} style={{ minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 16 }}>
-            <Icon name={p.icon} size={16} color={accent} />
-            {p.n >= 0 && <Text style={{ color: t.text, fontSize: 16, fontWeight: '800' }}>{p.n}</Text>}
-            <Text style={{ color: t.muted, fontSize: 13.5 }}>{p.label}</Text>
+          <Pressable key={p.key} onPress={() => (p.key === 'altro' ? go('profileMore', { name }) : p.key === 'store' ? go('shopPage', { name }) : go('profileContent', { name, kind: p.key }))} accessibilityRole="button" accessibilityLabel={p.n < 0 ? p.label : `${p.label}: ${p.n}`}
+            style={({ pressed }) => ({ width: 104, borderRadius: 22, padding: 12, gap: 10, backgroundColor: t.card, borderWidth: 1, borderColor: t.item, transform: [{ scale: pressed ? 0.97 : 1 }] })}>
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: accent + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={p.icon} size={18} color={accent} /></View>
+            <View>
+              <Text style={{ color: t.text, fontSize: p.n >= 0 ? 24 : 17, fontWeight: '900', letterSpacing: -0.5, minHeight: 28 }}>{p.n >= 0 ? p.n : '···'}</Text>
+              <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12.5, fontWeight: '600' }}>{p.label}</Text>
+            </View>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
     ) : null,
     others: others.length > 0 ? (
       <View key="others" style={{ marginTop: 20, marginBottom: 4 }}>
