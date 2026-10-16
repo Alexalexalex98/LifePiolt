@@ -167,18 +167,6 @@ export default function LifeNetwork() {
     return [{ k: 'tools', id: 'tools' }, ...body];
   }, [curTab, feedItems, communities, commTopic, commQ, ideas, ideaQ, seminars, providers, products, weights, prefs.marketFilter, visible, searching]);
 
-  if (!verified) {
-    return (
-      <Page id="lifenetwork" title="LifeNetwork">
-        <Card>
-          <H>Verifica la tua identità</H>
-          <Body small muted>Per accedere a LifeNetwork serve confermare l'età minima (di norma 16 anni, o l'età prevista dal tuo paese).</Body>
-          <Btn style={{ marginTop: 10 }} title="Verifica identità" onPress={() => openSheet('verification')} />
-        </Card>
-      </Page>
-    );
-  }
-
   const compose = () => openSheet('newPost');
 
   const toggleJoin = (id: number) => {
@@ -350,6 +338,17 @@ export default function LifeNetwork() {
   const deckX = useMemo(() => Animated.add(Animated.multiply(pos, -1), W), [pos, W]);
   const dotStyle = (side: 'start' | 'end') => ({ position: 'absolute' as const, [side]: 6, top: '46%' as const, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' });
 
+  const gate = !verified ? (
+      <Page id="lifenetwork" title="LifeNetwork">
+        <Card>
+          <H>Verifica la tua identità</H>
+          <Body small muted>Per accedere a LifeNetwork serve confermare l'età minima (di norma 16 anni, o l'età prevista dal tuo paese).</Body>
+          <Btn style={{ marginTop: 10 }} title="Verifica identità" onPress={() => openSheet('verification')} />
+        </Card>
+      </Page>
+  ) : null;
+
+  if (gate) return gate;
   return (
     <View style={{ flex: 1, overflow: 'hidden', backgroundColor: '#000' }}>
     <Animated.View style={{ flex: 1, transform: [{ translateX: homeX }] }} pointerEvents={deckOpen ? 'none' : 'auto'}>

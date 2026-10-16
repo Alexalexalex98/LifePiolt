@@ -66,6 +66,7 @@ export default function PostPage() {
     return () => clearTimeout(h);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, commentId, openedAt]);
+  const [sharing, setSharing] = useState(false);
   const post = key ? postByKey(key) : null;
   if (key && post && !visible('post', key, post.author)) return <Page id="postPage" title="Post" back><Card><Empty text="Hai nascosto o segnalato questo post, oppure l’autore è bloccato. Lo trovi in Segnalazioni inviate." /><Btn small ghost style={{ marginTop: 10 }} title="Segnalazioni inviate" onPress={() => go('reports')} /></Card></Page>;
   if (!key || !post) return <Page id="postPage" title="Post" back><Card><Empty text="Post non trovato: potrebbe essere stato rimosso." /></Card></Page>;
@@ -80,7 +81,6 @@ export default function PostPage() {
     net.addComment(key, me, text.trim());
     setText('');
   };
-  const [sharing, setSharing] = useState(false);
   const doubleLike = () => { flash(); if (!useNet.getState().likedPosts.includes(key)) net.likePost(key); };
   const reply = (author: string) => { setText((v) => (v.startsWith('@' + author) ? v : `@${author} ${v}`)); setTimeout(() => input.current?.focus?.(), 50); };
   const canSend = text.trim().length > 0;

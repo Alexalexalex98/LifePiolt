@@ -4,7 +4,7 @@ import type { Gym, Step } from '@/lib/fitness/data';
 import type { ExerciseX } from '@/lib/fitness/exerciseDb';
 import type { Body, Macros } from '@/lib/fitness/nutrition';
 import type { FitProfile, Workout } from '@/lib/fitness/plan';
-import { creditsLeft, makePurchase, payBlock, priceList, useCredit, type Purchase } from '@/lib/fitness/gymPay';
+import { creditsLeft, makePurchase, payBlock, priceList, consumeCredit, type Purchase } from '@/lib/fitness/gymPay';
 import { checkIn, renewIfDue, startSub, PREMIUM_PRICE_LP, type Sub, type Visit } from '@/lib/fitness/premium';
 import { useNet } from '@/store/network';
 import { persisted } from './persist';
@@ -96,7 +96,7 @@ export const useFitness = create<State>()(
       }
       /* senza LifePass: si usa un ingresso pagato in LifePoints (uno al giorno per centro) */
       if (creditsLeft(s.purchases, gymId, now) > 0 && !s.visits.some((v) => v.gymId === gymId && new Date(v.ts).toDateString() === new Date(now).toDateString())) {
-        const u = useCredit(s.purchases, gymId, now);
+        const u = consumeCredit(s.purchases, gymId, now);
         set({ purchases: u.list, visits: [{ id: uid(), gymId, ts: now }, ...s.visits].slice(0, 2000) });
         return { ok: true, message: `Ingresso registrato (ne restano ${creditsLeft(u.list, gymId, now)}). Buon allenamento!` };
       }

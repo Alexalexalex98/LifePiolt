@@ -65,7 +65,7 @@ export const payBlock = (balance: number, lp: number): string | null => (balance
 export const creditsLeft = (list: Purchase[], gymId: string, now: number): number => list.filter((p) => p.gymId === gymId && p.expires > now).reduce((a, p) => a + p.left, 0);
 export const totalCredits = (list: Purchase[], now: number): number => list.filter((p) => p.expires > now).reduce((a, p) => a + p.left, 0);
 /** Usa un ingresso: prende prima quello che scade prima. */
-export function useCredit(list: Purchase[], gymId: string, now: number): { list: Purchase[]; ok: boolean } {
+export function consumeCredit(list: Purchase[], gymId: string, now: number): { list: Purchase[]; ok: boolean } {
   const cand = list.filter((p) => p.gymId === gymId && p.expires > now && p.left > 0).sort((a, b) => a.expires - b.expires)[0];
   if (!cand) return { list, ok: false };
   return { ok: true, list: list.map((p) => (p.id === cand.id ? { ...p, left: p.left - 1 } : p)) };

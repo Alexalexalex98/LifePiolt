@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { priceList, buildGymLink, parseGymLink, resolveGymLink, makePurchase, creditsLeft, useCredit, payBlock, totalCredits } from '../src/lib/fitness/gymPay.ts';
+import { priceList, buildGymLink, parseGymLink, resolveGymLink, makePurchase, creditsLeft, consumeCredit, payBlock, totalCredits } from '../src/lib/fitness/gymPay.ts';
 import { PARTNER_GYMS } from '../src/lib/fitness/data.ts';
 
 const g = PARTNER_GYMS[0];
@@ -29,10 +29,10 @@ test('ingressi: acquisto, uso (prima il più vicino alla scadenza), scadenza, sa
   const [single, , pack] = priceList(g);
   let list = [makePurchase('a', g, pack, now), makePurchase('b', g, single, now)];
   assert.equal(creditsLeft(list, g.id, now), 11); assert.equal(totalCredits(list, now), 11);
-  let r = useCredit(list, g.id, now); assert.ok(r.ok); list = r.list;
+  let r = consumeCredit(list, g.id, now); assert.ok(r.ok); list = r.list;
   assert.equal(list.find((p) => p.id === 'b').left, 0);
   assert.equal(creditsLeft(list, g.id, now + 8 * 86400000), 10);
   assert.equal(creditsLeft(list, 'altro', now), 0);
-  assert.equal(useCredit([], g.id, now).ok, false);
+  assert.equal(consumeCredit([], g.id, now).ok, false);
   assert.match(payBlock(5, 12), /Servono 12/); assert.equal(payBlock(50, 12), null);
 });
