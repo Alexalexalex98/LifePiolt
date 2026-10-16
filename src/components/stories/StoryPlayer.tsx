@@ -1,6 +1,7 @@
 import { StoryFx, StoryStickers, storyTextStyle } from '@/components/stories/StoryFx';
 import { ShareStorySheet } from '@/components/stories/ShareStorySheet';
 import { backdropUri } from '@/lib/storyBackdrop';
+import { useIsFocused } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -57,7 +58,9 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
   const [typing, setTyping] = useState(false);
   const cur = stories[Math.min(i, stories.length - 1)];
   const mine = cur?.author === me;
-  const paused = held || viewers || typing || opts || sharing;
+  /* il tempo si ferma quando la schermata non è quella in primo piano (es. si sta aggiungendo un momento) */
+  const focused = useIsFocused();
+  const paused = held || viewers || typing || opts || sharing || !focused;
   const secs = cur?.kind === 'video' ? 10 : STORY_SECONDS;
   const iRef = useRef(i); iRef.current = i;
 
@@ -166,7 +169,7 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
           <View style={{ flex: 1 }}><Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>{mine ? tl('Il tuo recap') : cur.author}</Text><Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{tl(ago(cur.ts, Date.now()))}</Text></View>
           {cur.kind === 'video' ? <Pressable accessibilityRole="button" accessibilityLabel={sound ? tl('Spegni il volume') : tl('Attiva il volume')} onPress={() => setSound((v) => !v)} hitSlop={10} style={{ padding: 6 }}><Icon name={sound ? 'volume' : 'volume-off'} size={22} color="#fff" /></Pressable> : null}
           {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Impostazioni del momento')} onPress={() => setOpts(true)} hitSlop={10} style={{ padding: 6 }}><Icon name="gear" size={22} color="#fff" /></Pressable> : null}
-          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al recap')} onPress={() => { onClose(); go('storyCreate'); }} hitSlop={10} style={{ padding: 6 }}><Icon name="plus" size={24} color="#fff" /></Pressable> : null}
+          {mine ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al recap')} onPress={() => go('storyCreate')} hitSlop={10} style={{ padding: 6 }}><Icon name="plus" size={24} color="#fff" /></Pressable> : null}
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={close} hitSlop={10} style={{ padding: 6 }}><Icon name="x" size={24} color="#fff" /></Pressable>
         </Row>
       </View>
@@ -193,7 +196,7 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
         <Item onPress={() => { setOpts(false); setViewers(true); }}><Row><Body style={{ flex: 1 }}>{tl('Chi ha visto il recap')}</Body><Body muted>{cur.views.length}</Body></Row></Item>
         <Item><Row><Body style={{ flex: 1 }}>{tl('Mi piace')}</Body><Body muted>{liveLikes.length}</Body></Row></Item>
         <Btn style={{ marginTop: 12 }} ghost danger icon="trash" title={tl('Elimina questo momento')} onPress={() => { setOpts(false); remove(); }} />
-        <Btn style={{ marginTop: 8 }} icon="plus" title={tl('Aggiungi un altro momento')} onPress={() => { setOpts(false); onClose(); go('storyCreate'); }} />
+        <Btn style={{ marginTop: 8 }} icon="plus" title={tl('Aggiungi un altro momento')} onPress={() => { setOpts(false); go('storyCreate'); }} />
       </Sheet>
       <Sheet visible={viewers} title={tl('Chi ha visto il recap')} onClose={() => setViewers(false)}>
         {viewerList.length === 0 ? <Body muted>{tl('Nessuno l’ha ancora visto.')}</Body> : viewerList.map((n, k) => (
