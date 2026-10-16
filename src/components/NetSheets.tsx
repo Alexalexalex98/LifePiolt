@@ -1,3 +1,4 @@
+import { CreateHubView } from '@/components/feed/CreateHub';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
@@ -149,6 +150,7 @@ function NetSheetInner() {
       body = <ContributeView idea={idea} />;
       break;
     }
+    case 'create': { title = 'Crea'; body = <CreateHubView />; break; }
     case 'newIdea': { title = 'La tua idea'; body = <NewIdeaView resume={!!p.resume} />; break; }
     case 'newCommunity': { title = 'Crea community'; body = <NewCommunityView />; break; }
     case 'postToCommunity': {

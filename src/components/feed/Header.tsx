@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { Text, TextInput } from '@/components/T';
@@ -104,14 +105,15 @@ export function NetTabs({ tabs, value, onChange }: { tabs: { key: string; label:
 /** Riga "Cosa vuoi condividere?" con avatar, in stile compositore. Il tocco apre il compositore esistente. */
 export function Composer({ me, onPress, onPhoto }: { me: string; onPress: () => void; onPhoto?: () => void }) {
   const t = useTheme();
-  const narrow = useWindowDimensions().width < 340;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 }}>
       <UserAvatar name={me} size={38} />
       <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={translateText('Cosa vuoi condividere?')} style={({ pressed }) => ({ flex: 1, minHeight: 44, borderRadius: 999, borderWidth: 1, borderColor: t.border, backgroundColor: t.cardAlt, justifyContent: 'center', paddingHorizontal: 16, opacity: pressed ? 0.7 : 1 })}>
         <Text numberOfLines={1} style={{ color: t.muted, fontSize: 15 }}>Cosa vuoi condividere?</Text>
       </Pressable>
-      {!narrow && <Pressable onPress={onPhoto ?? onPress} accessibilityRole="button" accessibilityLabel={translateText('Nuovo post')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="image" size={24} color={t.accent} stroke={1.9} /></Pressable>}
+      <Pressable onPress={onPhoto ?? onPress} accessibilityRole="button" accessibilityLabel={translateText('Crea: post, recap, idea, seminario e altro')} style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.93 : 1 }] })}>
+        <LinearGradient colors={['#7b5cff', '#ff2d87']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={24} color="#fff" stroke={2.8} /></LinearGradient>
+      </Pressable>
     </View>
   );
 }

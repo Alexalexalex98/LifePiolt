@@ -1,5 +1,5 @@
 {
- "count": 10816,
+ "count": 10830,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -183,8 +183,9 @@
   "src/components/diagnostics/OutflowCard.tsx": 15,
   "src/components/diagnostics/SystemCards.tsx": 44,
   "src/components/doc/PdfView.tsx": 1,
+  "src/components/feed/CreateHub.tsx": 18,
   "src/components/feed/FeedPost.tsx": 25,
-  "src/components/feed/Header.tsx": 14,
+  "src/components/feed/Header.tsx": 15,
   "src/components/feed/SearchResults.tsx": 5,
   "src/components/feed/SharePostSheet.tsx": 3,
   "src/components/feed/SpecialCards.tsx": 28,

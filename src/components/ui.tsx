@@ -410,7 +410,10 @@ export function Avatar({ name, size = 30, uri }: { name: string; size?: number; 
   const me = useApp((a) => a.account.name);
   const photo = useApp((a) => a.account.photo);
   const [failed, setFailed] = useState(false);
-  useEffect(() => { setFailed(false); }, [photo, uri]);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => { setFailed(false); setLoaded(false); }, [photo, uri]);
+  /* se la foto scelta non compare entro 2,5 secondi (file sparito o illeggibile, senza errore) si usa quella predefinita */
+  useEffect(() => { if (loaded || failed || !photo || uri) return; const h = setTimeout(() => setFailed(true), 2500); return () => clearTimeout(h); }, [loaded, failed, photo, uri]);
   // se la foto scelta non si carica più (file temporaneo sparito) si ripiega su quella predefinita o sulle iniziali
   const mine = !!name && name === me;
   const src = !failed ? (uri ?? (mine ? (photo ? { uri: photo } : DEFAULT_PHOTO) : undefined)) : (mine ? DEFAULT_PHOTO : undefined);
@@ -419,7 +422,7 @@ export function Avatar({ name, size = 30, uri }: { name: string; size?: number; 
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: `hsl(${hash},45%,32%)`, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       <Text style={{ color: '#fff', fontWeight: '800', fontSize: size * 0.4 }}>{name[0]}</Text>
-      {src ? <Image source={src} onError={() => setFailed(true)} style={{ position: 'absolute', top: 0, start: 0, width: size, height: size, borderRadius: size / 2 }} /> : null}
+      {src ? <Image source={src} onLoad={() => setLoaded(true)} onError={() => setFailed(true)} style={{ position: 'absolute', top: 0, start: 0, width: size, height: size, borderRadius: size / 2 }} /> : null}
     </View>
   );
 }

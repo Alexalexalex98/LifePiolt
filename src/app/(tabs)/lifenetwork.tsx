@@ -209,14 +209,14 @@ export default function LifeNetwork() {
       </View>
       {!searching && curTab === 'Post' && (
         <View style={{ marginTop: 6 }}>
-          <Composer me={me} onPress={compose} />
+          <Composer me={me} onPress={compose} onPhoto={() => openSheet('create')} />
           <View style={{ height: 8 }} />
         </View>
       )}
       {!searching && curTab === 'Home' && <View {...storiesPan.panHandlers}><Safe name="recap"><StoriesBar mode={following ? 'Seguiti' : 'Per te'} /></Safe></View>}
       {!searching && curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
-          <Composer me={me} onPress={compose} />
+          <Composer me={me} onPress={compose} onPhoto={() => openSheet('create')} />
           <View ref={toggleRef} onLayout={measureFeed}>
             <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Swipe', label: 'Swipe', bold: true }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={following ? 'Seguiti' : 'Per te'} onChange={(k) => { if (k === 'Swipe') { prevTab.current = following ? 'Seguiti' : 'Per te'; setDeckShown(true); settleRef.current('Swipe'); } else setPref('homeFilter', k); }} />
           </View>
