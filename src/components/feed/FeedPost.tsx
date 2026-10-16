@@ -1,3 +1,4 @@
+import { MentionSuggest, MentionText } from '@/components/MentionBox';
 import { snapBackdrop } from '@/lib/storyBackdrop';
 import { SharePostSheet } from '@/components/feed/SharePostSheet';
 import { holdCarousel, releaseCarousel } from '@/lib/feedSwipe';
@@ -225,7 +226,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
         {hasMedia && layout === 'classic' && (
           <View>
             <Text numberOfLines={open || !more ? undefined : 2} style={{ color: t.text, fontSize: 14.5, lineHeight: 21 }}>
-              <Text style={{ fontWeight: '800' }} onPress={() => go('userProfile', { name: post.author })}>{post.author} </Text>{post.text}
+              <Text style={{ fontWeight: '800' }} onPress={() => go('userProfile', { name: post.author })}>{post.author} </Text><MentionText text={post.text} />
             </Text>
             {more && !open && <Pressable onPress={() => setOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Mostra tutta la didascalia')} style={{ paddingVertical: 4 }}><Text style={{ color: t.muted, fontSize: 14 }}>altro</Text></Pressable>}
           </View>
@@ -237,6 +238,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
           </Pressable>
         ) : null}
         {first ? <Text numberOfLines={1} style={{ color: t.text, fontSize: 14 }}><Text style={{ fontWeight: '800' }}>{first.author} </Text>{first.text}</Text> : null}
+        <MentionSuggest text={draft} onPick={setDraft} />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40 }}>
           <UserAvatar name={me} size={24} />
           <TextInput value={draft} onChangeText={setDraft} placeholder={translateText('Aggiungi un commento…')} placeholderTextColor={t.muted} accessibilityLabel={translateText('Scrivi un commento…')} returnKeyType="send" blurOnSubmit onSubmitEditing={sendDraft} style={{ flex: 1, color: t.text, fontSize: 14, paddingVertical: 8 }} />

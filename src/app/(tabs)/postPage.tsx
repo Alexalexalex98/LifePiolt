@@ -1,3 +1,4 @@
+import { MentionSuggest, MentionText } from '@/components/MentionBox';
 import { snapBackdrop } from '@/lib/storyBackdrop';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -148,7 +149,7 @@ export default function PostPage() {
             <Animated.View key={c.i} ref={(r) => { rowRefs.current[c.i] = r; }} onLayout={(e) => { rowY.current[c.i] = e.nativeEvent.layout.y; if (pendingFocus.current === c.i) focusComment(c.i); }} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 12, backgroundColor: flashIdx === c.i ? glow.interpolate({ inputRange: [0, 1], outputRange: ['rgba(0,0,0,0)', t.accent + '40'] }) : 'transparent' }}>
               <UserAvatar name={c.author} size={34} />
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={{ color: t.text, fontSize: 14.5, lineHeight: 21 }}><Text style={{ fontWeight: '800' }} onPress={() => go('userProfile', { name: c.author })}>{c.author} </Text>{c.text}</Text>
+                <Text style={{ color: t.text, fontSize: 14.5, lineHeight: 21 }}><Text style={{ fontWeight: '800' }} onPress={() => go('userProfile', { name: c.author })}>{c.author} </Text><MentionText text={c.text} /></Text>
                 <Pressable onPress={() => reply(c.author)} hitSlop={{ top: 12, bottom: 12, left: 8, right: 24 }} accessibilityRole="button" accessibilityLabel={tl('Rispondi a {0}', c.author)}><Text style={{ color: t.muted, fontSize: 13, fontWeight: '700' }}>Rispondi</Text></Pressable>
                 {(() => { const qp = qaPairs(post.author, post.text, allComments).find((q) => q.index === c.i); return qp && qp.asker === me ? <QaVote from={me} to={c.author} refId={qaRef(key, c.i)} /> : null; })()}
               </View>
@@ -162,6 +163,7 @@ export default function PostPage() {
 
       {post.commentsOff ? <View style={{ paddingVertical: 12 }}><Body small muted style={{ textAlign: 'center' }}>I commenti di questo post sono disattivati.</Body></View> : (
       <View style={{ marginHorizontal: -16, paddingStart: 14, paddingEnd: 14, paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.item, backgroundColor: t.bg, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: -8 }}>
+        <View style={{ position: 'absolute', bottom: '100%', start: 0, end: 0, paddingHorizontal: 14, backgroundColor: t.bg }}><MentionSuggest text={text} onPick={setText} /></View>
         <UserAvatar name={me} size={32} />
         <TextInput ref={input as never} value={text} onChangeText={setText} placeholder="Scrivi un commento…" placeholderTextColor={t.muted} accessibilityLabel={translateText('Scrivi un commento…')} returnKeyType="send" onSubmitEditing={send} style={{ flex: 1, minHeight: 44, borderRadius: 999, backgroundColor: t.input, borderWidth: 1, borderColor: t.inputBorder, color: t.text, fontSize: 15.5, paddingHorizontal: 16, paddingVertical: 8, outlineStyle: 'none' } as never} />
         <Pressable onPress={send} accessibilityRole="button" accessibilityLabel={translateText('Commenta')} accessibilityState={{ disabled: !canSend }} style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: canSend ? t.text : t.chip }}>

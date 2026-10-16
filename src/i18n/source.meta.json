@@ -1,5 +1,5 @@
 {
- "count": 10833,
+ "count": 10834,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -120,6 +120,7 @@
   "src/components/LanguagePicker.tsx": 7,
   "src/components/LifePay.tsx": 51,
   "src/components/MediaPickerField.tsx": 12,
+  "src/components/MentionBox.tsx": 1,
   "src/components/MonthCalcCard.tsx": 16,
   "src/components/MoodChart.tsx": 6,
   "src/components/NavBar.tsx": 27,

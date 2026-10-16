@@ -1,3 +1,4 @@
+import { MentionSuggest } from '@/components/MentionBox';
 import { Image } from 'expo-image';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
@@ -147,6 +148,7 @@ export function Composer(p: Props) {
           <Pressable onPress={p.onCancelContext} hitSlop={10}><Icon name="x" size={18} color={t.muted} /></Pressable>
         </View>
       )}
+      <View style={{ paddingHorizontal: 10 }}><MentionSuggest text={p.draft} onPick={p.onDraft} /></View>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', padding: 8, gap: 6 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end', backgroundColor: t.input, borderRadius: 22, borderWidth: 1, borderColor: t.inputBorder, paddingHorizontal: 10 }}>
           <TextInput

@@ -1,3 +1,4 @@
+import { MentionSuggest, MentionText } from '@/components/MentionBox';
 import { CreateHubView } from '@/components/feed/CreateHub';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -305,8 +306,9 @@ function CommentsView({ k }: { k: string }) {
   return (
     <>
       {list.length === 0 ? <Body small muted>Ancora nessun commento: scrivi il primo.</Body> : list.map((c, i) => (
-        <Item key={c.i}><Row style={{ justifyContent: 'flex-start', alignItems: 'flex-start' }} gap={8}><UserAvatar name={c.author} size={24} /><View style={{ flex: 1 }}><Body small bold>{c.author}</Body><Body small muted>{c.text}</Body></View></Row></Item>
+        <Item key={c.i}><Row style={{ justifyContent: 'flex-start', alignItems: 'flex-start' }} gap={8}><UserAvatar name={c.author} size={24} /><View style={{ flex: 1 }}><Body small bold>{c.author}</Body><Body small muted><MentionText text={c.text} /></Body></View></Row></Item>
       ))}
+      <MentionSuggest text={text} onPick={setText} />
       <Input multiline style={{ marginTop: 12, minHeight: 60 }} placeholder="Scrivi un commento…" value={text} onChangeText={setText} />
       <Btn small title="Commenta" onPress={() => { if (!text.trim()) return; net.addComment(k, me, text.trim()); setText(''); }} />
     </>
@@ -833,6 +835,7 @@ function NewPostView({ resume }: { resume?: boolean }) {
       {/* testo senza riquadro: si scrive e basta */}
       <TextInput multiline autoFocus={false} value={text} onChangeText={setText} maxLength={MAX_POST} placeholder={translateText('Cosa vuoi condividere?')} placeholderTextColor={t.muted} accessibilityLabel={translateText('Testo del post')}
         style={{ color: t.text, fontSize: 19, lineHeight: 27, minHeight: 120, textAlignVertical: 'top', paddingVertical: 8 }} />
+      <MentionSuggest text={text} onPick={setText} />
       <Text style={{ color: t.muted, fontSize: 12, alignSelf: 'flex-end', marginBottom: 8 }}>{text.length}/{MAX_POST}</Text>
       <MediaPickerField value={media} onChange={setMedia} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'newPost', { text, tag, media }, () => openSheet('newPost', { resume: true })) : undefined} />
       {/* argomento: scegli con un tocco */}

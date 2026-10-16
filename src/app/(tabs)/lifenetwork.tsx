@@ -135,7 +135,7 @@ export default function LifeNetwork() {
     const rk = (it: Item) => (it.k === 'post' ? it.likeKey : it.k === 'idea' ? `idea:${it.idea.id}` : '');
     /* intreccio: due post, poi un altro tipo di contenuto (idea, servizio, seminario, prodotto, lavoro, frase di Theia a turno), così in «Per te» c'è sempre varietà */
     const posts2: Item[] = [...byReach(standalone, rk, reach), ...byReach(comm, rk, reach)];
-    const others = [byReach(ideaItems, rk, reach), svc, sem, mot, prod, jobItems].filter((p) => p.length);
+    const others = [byReach(ideaItems, rk, reach), svc, sem, prod, jobItems].filter((p) => p.length);
     const feed: Item[] = [];
     let oi = 0, n = 0;
     while (posts2.length || others.some((p) => p.length)) {
@@ -148,11 +148,12 @@ export default function LifeNetwork() {
       } else if (posts2.length) feed.push(posts2.shift()!);
       n++;
     }
-    if (!following) return applyToFeed(feed, (it) => (it.k === 'post' ? it.likeKey : null), (it) => (it.k === 'post' ? `${it.post.text} ${it.post.tag ?? ''}` : ''), swipes, themeWeights);
-    return feed.filter((it) => {
+    /* i consigli di Theia stanno sempre in alto */
+    if (!following) return [...mot, ...applyToFeed(feed, (it) => (it.k === 'post' ? it.likeKey : null), (it) => (it.k === 'post' ? `${it.post.text} ${it.post.tag ?? ''}` : ''), swipes, themeWeights)];
+    return [...mot, ...feed.filter((it) => {
       const a = it.k === 'post' ? it.post.author : it.k === 'idea' ? it.idea.author : null;
       return a && followingList.includes(a);
-    });
+    })];
   }, [communities, posts, ideas, seminars, providers, products, jobsList, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep, reach, swipes, themeWeights, quoteLikes]);
 
   const searching = people.trim().length >= 1;
