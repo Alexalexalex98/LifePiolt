@@ -1,3 +1,4 @@
+import { DEFAULT_USER_PHOTO, LOGO, LP_ICON_B, LP_ICON_W } from '@/lib/embeddedAssets';
 import { onPageRefresh } from '@/lib/pageRefresh';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
@@ -94,7 +95,7 @@ function TopBar({ page }: { page: string }) {
   return (
     <View style={s.top}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1 }}>
-        <Image source={require('../../assets/proto/app-logo.png')} style={{ height: 30, width: 30, ...(t.mode === 'light' ? { tintColor: '#10151d' } : null) }} resizeMode="contain" accessibilityLabel="LifePilot" />
+        <Image source={LOGO} style={{ height: 30, width: 30, ...(t.mode === 'light' ? { tintColor: '#10151d' } : null) }} resizeMode="contain" accessibilityLabel="LifePilot" />
         <Text accessibilityRole="header" style={{ color: t.mode === 'light' ? t.text : (areaColors[page] ?? t.text), fontSize: 16, fontWeight: '700' }}>{tag}</Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -209,7 +210,7 @@ export function IL({ icon, children, color, small, bold, muted }: { icon: string
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
       {icon === 'lp'
-        ? <Image source={t.mode === 'light' ? require('../../assets/proto/lp-icon-b.png') : require('../../assets/proto/lp-icon-w.png')} style={{ width: small ? 14 : 17, height: small ? 17 : 21 }} resizeMode="contain" accessibilityLabel="LifePoints" />
+        ? <Image source={t.mode === 'light' ? LP_ICON_B : LP_ICON_W} style={{ width: small ? 14 : 17, height: small ? 17 : 21 }} resizeMode="contain" accessibilityLabel="LifePoints" />
         : <Icon name={icon} size={small ? 16 : 19} color={c} stroke={1.9} />}
       <Body small={small} bold={bold} color={c} style={{ flexShrink: 1 }}>{children}</Body>
     </View>
@@ -405,7 +406,7 @@ export function TabRow({ options, value, onChange }: { options: string[]; value:
 }
 
 /** La foto della persona (la sua, scelta dal profilo; altrimenti quella predefinita) compare ovunque il suo nome ha un avatar. */
-const DEFAULT_PHOTO = require('../../assets/proto/user-photo.jpg');
+const DEFAULT_PHOTO = DEFAULT_USER_PHOTO;
 export function Avatar({ name, size = 30, uri }: { name: string; size?: number; uri?: any }) {
   const me = useApp((a) => a.account.name);
   const photo = useApp((a) => a.account.photo);

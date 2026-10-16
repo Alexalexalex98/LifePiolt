@@ -79,7 +79,7 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
   useEffect(() => { if (ready || !cur) return; if (cur.kind !== 'video') { setReady(true); return; } const h = setTimeout(() => setReady(true), 3000); return () => clearTimeout(h); }, [cur?.id, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   /* anteprime e file dei momenti successivi si scaricano in anticipo, così non si aspetta al cambio */
   useEffect(() => {
-    const nxt = stories.slice(i + 1, i + 4);
+    const nxt = stories.slice(i + 1, i + 3);
     const imgs = nxt.flatMap((x) => (x.kind === 'video' ? [x.poster] : [x.uri])).filter((u): u is string => !!u);
     if (imgs.length) void Image.prefetch(imgs, 'memory-disk').catch(() => undefined);
     nxt.filter((x) => x.kind === 'video' && x.uri && /^https?:/.test(x.uri)).forEach((x) => { fetch(x.uri as string).then((r) => r.blob()).catch(() => undefined); });

@@ -115,10 +115,10 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
   /* le foto (e le anteprime dei video) dei prossimi post si scaricano in anticipo: niente attesa quando scegli */
   useEffect(() => {
     const seen = new Set((swipes ?? []).map((r) => r.key));
-    const urls = cards.filter((c) => !seen.has(c.key) && c.key !== card?.key).slice(0, 14).flatMap((c) => (c.media === 'video' ? [c.poster] : c.uris ?? [c.uri])).filter((u): u is string => !!u);
+    const urls = cards.filter((c) => !seen.has(c.key) && c.key !== card?.key).slice(0, 6).flatMap((c) => (c.media === 'video' ? [c.poster] : c.uris ?? [c.uri])).filter((u): u is string => !!u);
     if (urls.length) void Image.prefetch(urls, 'memory-disk').catch(() => undefined);
     /* i file dei prossimi video si scaldano in anticipo (conta soprattutto con Expo, che li serve dal computer) */
-    cards.filter((c) => c.media === 'video' && !seen.has(c.key) && c.key !== card?.key && c.uri && /^https?:/.test(c.uri)).slice(0, 3).forEach((c) => { fetch(c.uri as string).then((r) => r.blob()).catch(() => undefined); });
+    cards.filter((c) => c.media === 'video' && !seen.has(c.key) && c.key !== card?.key && c.uri && /^https?:/.test(c.uri)).slice(0, 1).forEach((c) => { fetch(c.uri as string).then((r) => r.blob()).catch(() => undefined); });
   }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   /* nuovo post: azzera il cronometro di visione e lo stato del video */
   useEffect(() => { shownAt.current = Date.now(); maxFrac.current = 0; setPaused(false); setFast(false); setProg(0); setPic(0); }, [card?.key]);

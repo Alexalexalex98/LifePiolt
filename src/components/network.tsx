@@ -1,3 +1,4 @@
+import { DEFAULT_USER_PHOTO, LOGO, LP_ICON_B, LP_ICON_W } from '@/lib/embeddedAssets';
 import { buildRef } from '@/lib/notifyLinks';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -59,7 +60,7 @@ export function LpTag({ size = 13, dark }: { size?: number; dark?: boolean }) {
   const t = useTheme();
   const light = t.mode === 'light';
   const useDark = dark ?? light;
-  return <Image source={useDark ? require('../../assets/proto/lp-icon-b.png') : require('../../assets/proto/lp-icon-w.png')} style={{ height: size, width: size * 0.8, marginHorizontal: 1 }} resizeMode="contain" />;
+  return <Image source={useDark ? LP_ICON_B : LP_ICON_W} style={{ height: size, width: size * 0.8, marginHorizontal: 1 }} resizeMode="contain" />;
 }
 
 export const LpAmount = ({ n, size = 13, bold = true, color }: { n: number; size?: number; bold?: boolean; color?: string }) => (
