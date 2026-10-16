@@ -2,7 +2,7 @@ import { DEFAULT_USER_PHOTO, LOGO, LP_ICON_B, LP_ICON_W } from '@/lib/embeddedAs
 import { onPageRefresh } from '@/lib/pageRefresh';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
+import { Animated, Image, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
@@ -433,8 +433,19 @@ export function Avatar({ name, size = 30, uri }: { name: string; size?: number; 
 let lastModalClose = 0;
 const MODAL_GAP = 420;
 
-export function Sheet({ visible, title, onClose, children }: { visible: boolean; title: string; onClose: () => void; children: ReactNode }) {
+export function Sheet({ visible, title, onClose, children, lowerable }: { visible: boolean; title: string; onClose: () => void; children: ReactNode; /** si può abbassare per continuare a guardare il contenuto dietro */ lowerable?: boolean }) {
   const t = useTheme();
+  const ty = useRef(new Animated.Value(0)).current;
+  const sheetH = useRef(0);
+  const lowered = useRef(false);
+  const settle = (low: boolean) => { lowered.current = low; Animated.spring(ty, { toValue: low ? Math.max(0, sheetH.current - 120) : 0, useNativeDriver: true, bounciness: 0 }).start(); };
+  useEffect(() => { if (!visible) { lowered.current = false; ty.setValue(0); } }, [visible, ty]);
+  const pan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => !!lowerable,
+    onMoveShouldSetPanResponder: (_e, g) => !!lowerable && Math.abs(g.dy) > 6,
+    onPanResponderMove: (_e, g) => { const base = lowered.current ? Math.max(0, sheetH.current - 120) : 0; ty.setValue(Math.max(0, Math.min(sheetH.current - 120, base + g.dy))); },
+    onPanResponderRelease: (_e, g) => { if (Math.abs(g.dy) < 6) { settle(!lowered.current); return; } settle(g.dy > 0); },
+  })).current;
   const insets = useSafeAreaInsets();
   const reduce = useReduceMotion();
   const kb = useKeyboardInset();
@@ -454,16 +465,19 @@ export function Sheet({ visible, title, onClose, children }: { visible: boolean;
   return (
     <Modal visible={shown} transparent animationType={reduce ? 'none' : 'slide'} onRequestClose={close} statusBarTranslucent>
       <KeyboardDock>
-        <Pressable style={{ flex: 1, backgroundColor: t.overlay }} onPress={close} accessibilityRole="button" accessibilityLabel={translateText('Chiudi')} />
-        <View accessibilityViewIsModal style={{ backgroundColor: t.sheet, borderTopLeftRadius: 26, borderTopRightRadius: 26, borderTopWidth: 1, borderTopColor: t.sheetBorder, maxHeight: sheetMaxHeight(win.height, insets.top, kb.height), paddingTop: 20 }}>
+        <Pressable style={{ flex: 1, backgroundColor: lowerable ? 'transparent' : t.overlay }} onPress={() => { if (lowerable && lowered.current) settle(false); else close(); }} accessibilityRole="button" accessibilityLabel={translateText('Chiudi')} />
+        <Animated.View accessibilityViewIsModal onLayout={(e) => { sheetH.current = e.nativeEvent.layout.height; }} style={{ transform: [{ translateY: ty }], backgroundColor: t.sheet, borderTopLeftRadius: 26, borderTopRightRadius: 26, borderTopWidth: 1, borderTopColor: t.sheetBorder, maxHeight: sheetMaxHeight(win.height, insets.top, kb.height), paddingTop: lowerable ? 8 : 20 }}>
+          <View {...(lowerable ? pan.panHandlers : {})} style={{ paddingTop: lowerable ? 4 : 0 }}>
+            {lowerable ? <View accessibilityRole="adjustable" accessibilityLabel={translateText('Abbassa o alza i commenti')} style={{ alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: t.muted, opacity: 0.6, marginBottom: 10 }} /> : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 }}>
             <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.lead, fontWeight: '700', flex: 1, marginEnd: 10 }} numberOfLines={2}>{title}</Text>
             <Btn small ghost title="Chiudi" onPress={onClose} />
           </View>
+          </View>
           <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: restingBottom(kb, insets.bottom) + 24 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
             {children}
           </ScrollView>
-        </View>
+        </Animated.View>
         <ModalToast />
       </KeyboardDock>
     </Modal>

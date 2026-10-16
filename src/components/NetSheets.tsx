@@ -298,7 +298,7 @@ function NetSheetInner() {
     default: break;
   }
 
-  return <Sheet visible={!!body} title={title} onClose={close}>{body}</Sheet>;
+  return <Sheet visible={!!body} title={title} onClose={close} lowerable={kind === 'comments'}>{body}</Sheet>;
 }
 
 /* ---------------- viste con stato locale ---------------- */

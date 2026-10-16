@@ -1,5 +1,5 @@
 {
- "count": 11025,
+ "count": 11026,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -254,7 +254,7 @@
   "src/components/tour/TourHost.tsx": 15,
   "src/components/tour/TourOverlay.tsx": 8,
   "src/components/tour/TutorialSettings.tsx": 11,
-  "src/components/ui.tsx": 11,
+  "src/components/ui.tsx": 12,
   "src/data/areas.ts": 8,
   "src/data/clubSeed.ts": 100,
   "src/data/features.ts": 103,
