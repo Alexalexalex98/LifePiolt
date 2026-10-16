@@ -1,3 +1,5 @@
+import { findItem, itemLine } from '@/lib/menu';
+import { useMenus } from '@/store/menus';
 import { mapsUrl } from '@/lib/maps';
 import type { Sponsor } from '@/store/network';
 import * as Haptics from 'expo-haptics';
@@ -21,7 +23,7 @@ import { SWIPE_SIGNAL, dwellSignal, pickMixed, rankedPool, record, remaining, un
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
-export type SwipeCandidate = DeckCard & { /** per idee e servizi: dove porta il pulsante «apri» */ link?: { page: string; params: Record<string, string> }; /** inserzione di un'attività */ sponsor?: Sponsor; tag?: string; uri?: string; poster?: string; /** foto del carosello: nello Swipe non si scorrono, si scelgono */ uris?: string[]; /** file incluso nell'app (require) */ asset?: number; media?: 'photo' | 'video' | null };
+export type SwipeCandidate = DeckCard & { /** per idee e servizi: dove porta il pulsante «apri» */ link?: { page: string; params: Record<string, string> }; /** inserzione di un'attività */ sponsor?: Sponsor; /** piatto del menù legato al contenuto */ menuItem?: string; tag?: string; uri?: string; poster?: string; /** foto del carosello: nello Swipe non si scorrono, si scelgono */ uris?: string[]; /** file incluso nell'app (require) */ asset?: number; media?: 'photo' | 'video' | null };
 const buzz = () => { if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined); };
 /** Quando compare la scritta piena («MI INTERESSA») la scelta è presa: il gesto si completa da solo. Prima, il post torna al centro. */
 const THRESHOLD = 64;
@@ -124,6 +126,8 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
   const left = remaining(cards, swipes, weights, me);
   /* la carta successiva è già pronta sotto (foto o anteprima del video): quando la corrente se ne va, c'è subito qualcosa */
   const upcoming: SwipeCandidate | null = useMemo(() => (card ? pickNext(cards as SwipeCandidate[], [...(swipes ?? []), { key: card.key, dir: 'yes', ts: 0 }], weights, me, (swipes ?? []).length + 1) : null), [cards, swipes, weights, me, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const dishItem = useMenus((m) => findItem(m.byOwner[card?.author ?? ''], (card as SwipeCandidate | null)?.menuItem));
+  const dishLine = dishItem ? itemLine(dishItem) : null;
   const isSponsored = !!(card as SwipeCandidate | null)?.sponsor;
   const curUnder = card ? (card.media === 'video' ? card.poster : card.uris?.[pic] ?? card.uri) : undefined;
   const upcomingUri = upcoming ? (upcoming.media === 'video' ? upcoming.poster : upcoming.uris?.[0] ?? upcoming.uri) : undefined;
@@ -240,6 +244,7 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
             <Text numberOfLines={1} style={{ color: '#fff', fontWeight: '900', fontSize: 17, flex: 1 }}>{card.author}</Text>
             {card.tag && !isSponsored ? <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.22)' }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{card.tag}</Text></View> : null}
           </View>
+          {dishLine ? <Text numberOfLines={1} style={{ color: '#fff', fontSize: 14.5, fontWeight: '800', marginTop: 8 }}>{dishLine}</Text> : null}
           {card.uri || card.asset ? <Text numberOfLines={4} style={{ color: '#fff', fontSize: 16, marginTop: 10, textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 6 }}>{card.text}</Text> : null}
         </View>
         {card.uris && card.uris.length > 1 ? (

@@ -1,3 +1,5 @@
+import { findItem, itemLine, priceLabel } from '@/lib/menu';
+import { useMenus } from '@/store/menus';
 import type { Sponsor } from '@/store/network';
 import { MentionSuggest, MentionText } from '@/components/MentionBox';
 import { snapBackdrop } from '@/lib/storyBackdrop';
@@ -26,9 +28,28 @@ import { captionNeedsMore, isDoubleTap, pageIndex, postLayout } from './feedLogi
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArtPlaceholder, IconBtn, NATIVE, RingAvatar, TextCard } from './parts';
 
-export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; poster?: string; uris?: string[]; editedAt?: number; hideLikes?: boolean; commentsOff?: boolean; sponsor?: Sponsor };
+export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; poster?: string; uris?: string[]; editedAt?: number; hideLikes?: boolean; commentsOff?: boolean; sponsor?: Sponsor; menuItem?: string };
 
 export const LIKE = '#ff4d6d';
+
+/** Piatto del menù legato al post: cos'è e quanto costa, per tutti. Tocca per aprire il menù del locale. */
+function MenuTag({ author, itemId }: { author: string; itemId: string }) {
+  const t = useTheme();
+  const it = useMenus((s) => findItem(s.byOwner[author], itemId));
+  if (!it) return null;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${translateText('Dal menù')}: ${itemLine(it)}`} onPress={() => go('menuPage', { name: author, item: itemId })}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 16, backgroundColor: t.chip, opacity: pressed ? 0.9 : 1, marginBottom: 4 })}>
+      <Icon name="file" size={16} color={t.accent} />
+      <View style={{ flex: 1 }}>
+        <Text numberOfLines={1} style={{ color: t.text, fontSize: 14, fontWeight: '800' }}>{it.name}</Text>
+        {it.desc ? <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12 }}>{it.desc}</Text> : null}
+      </View>
+      <Text style={{ color: t.text, fontSize: 14, fontWeight: '900' }}>{priceLabel(it.price)}</Text>
+      <Icon name="chevron-right" size={16} color={t.muted} />
+    </Pressable>
+  );
+}
 
 /** Pulsante dell'inserzione: porta alle mappe del telefono sul locale. */
 function SponsorCta({ sponsor, name }: { sponsor: Sponsor; name: string }) {
@@ -237,6 +258,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
       </View>
 
       <View style={{ paddingHorizontal: 14, gap: 5 }}>
+        {post.menuItem ? <MenuTag author={post.author} itemId={post.menuItem} /> : null}
         {post.sponsor ? <SponsorCta sponsor={post.sponsor} name={post.author} /> : null}
         {post.hideLikes && post.author !== me ? null : <Text style={{ color: t.text, fontSize: 14.5, fontWeight: '800' }}>{tl(post.likes === 1 ? 'Piace a {0} persona' : 'Piace a {0} persone', post.likes)}{post.hideLikes ? ` · ${translateText('nascosto agli altri')}` : ''}</Text>}
         {hasMedia && layout === 'classic' && (

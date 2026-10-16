@@ -1,3 +1,5 @@
+import type { MenuItem } from '@/lib/menu';
+import { useMenus } from '@/store/menus';
 import { topUpDemoMarket } from '@/store/demo';
 import { useEffect, useRef } from 'react';
 import { Image } from 'react-native';
@@ -30,11 +32,37 @@ export const seedUri = (k: string): string | null => { const a = (M as Record<st
 
 const H = 3600000;
 /* Attività di esempio che «hanno pagato» per comparire in Per te e nello Swipe (tutte inventate, solo per la dimostrazione). */
-const SPONSORS: { id: number; author: string; k: Key; text: string; sponsor: Sponsor }[] = [
-  { id: 900, author: 'Velluto Ristorante & Lounge', k: 'adVelluto', text: 'Cena a lume di candela, sala riservata e cocktail della casa. Questa settimana il tavolo per due include l’aperitivo.', sponsor: { cta: 'Prenota un tavolo', place: 'Lugano', kind: 'Ristorante' } },
-  { id: 901, author: 'Neon Cocktail Bar', k: 'adNeon', text: 'Dieci nuovi signature cocktail, shaker in rame e luci al neon. Il giovedì due drink al prezzo di uno fino alle 21.', sponsor: { cta: 'Vedi la carta', place: 'Locarno', kind: 'Cocktail bar' } },
-  { id: 902, author: 'Bar Rondò', k: 'adRondo', text: 'Il bancone più vivace del centro: aperitivo dalle 18, musica dal vivo il sabato.', sponsor: { cta: 'Scopri il locale', place: 'Bellinzona', kind: 'Bar' } },
-  { id: 903, author: 'Enoteca Calice', k: 'adCalice', text: 'Bollicine di Franciacorta al calice e tagliere del giorno. Serata degustazione ogni venerdì.', sponsor: { cta: 'Prenota l’aperitivo', place: 'Mendrisio', kind: 'Enoteca' } },
+/** Menù di esempio delle attività sponsorizzate (i prezzi sono inventati). */
+const DEMO_MENUS: Record<string, MenuItem[]> = {
+  'Velluto Ristorante & Lounge': [
+    { id: 'velluto-tartare', name: 'Tartare di manzo', price: 22, cat: 'Antipasti', desc: 'Manzo scelto, tuorlo marinato, pane croccante' },
+    { id: 'velluto-tagliolini', name: 'Tagliolini al tartufo', price: 26, cat: 'Primi', desc: 'Pasta fresca all’uovo, burro di montagna, tartufo nero' },
+    { id: 'velluto-filetto', name: 'Filetto alla brace', price: 38, cat: 'Secondi', desc: 'Con patate al rosmarino' },
+    { id: 'velluto-tiramisu', name: 'Tiramisù della casa', price: 12, cat: 'Dolci' },
+    { id: 'velluto-cocktail', name: 'Cocktail della casa', price: 16, cat: 'Bevande' },
+  ],
+  'Neon Cocktail Bar': [
+    { id: 'neon-sour', name: 'Neon Sour', price: 17, cat: 'Bevande', desc: 'Whisky, limone, albume, sciroppo di ciliegia' },
+    { id: 'neon-lagoon', name: 'Blue Lagoon', price: 16, cat: 'Bevande' },
+    { id: 'neon-spritz', name: 'Spritz classico', price: 12, cat: 'Bevande' },
+    { id: 'neon-nachos', name: 'Nachos da dividere', price: 14, cat: 'Antipasti' },
+  ],
+  'Bar Rondò': [
+    { id: 'rondo-caffe', name: 'Caffè', price: 3.2, cat: 'Bevande' },
+    { id: 'rondo-spritz', name: 'Spritz con stuzzichini', price: 9, cat: 'Bevande', desc: 'Dalle 18, con piccolo assaggio incluso' },
+    { id: 'rondo-tagliere', name: 'Tagliere misto', price: 18, cat: 'Antipasti' },
+  ],
+  'Enoteca Calice': [
+    { id: 'calice-franciacorta', name: 'Calice di Franciacorta', price: 10, cat: 'Bevande' },
+    { id: 'calice-tagliere', name: 'Tagliere del giorno', price: 22, cat: 'Antipasti' },
+    { id: 'calice-degustazione', name: 'Degustazione di tre vini', price: 28, cat: 'Bevande', desc: 'Il venerdì sera' },
+  ],
+};
+const SPONSORS: { id: number; author: string; k: Key; text: string; menuItem?: string; sponsor: Sponsor }[] = [
+  { id: 900, author: 'Velluto Ristorante & Lounge', k: 'adVelluto', menuItem: 'velluto-tagliolini', text: 'Cena a lume di candela, sala riservata e cocktail della casa. Questa settimana il tavolo per due include l’aperitivo.', sponsor: { cta: 'Prenota un tavolo', place: 'Lugano', kind: 'Ristorante' } },
+  { id: 901, author: 'Neon Cocktail Bar', k: 'adNeon', menuItem: 'neon-sour', text: 'Dieci nuovi signature cocktail, shaker in rame e luci al neon. Il giovedì due drink al prezzo di uno fino alle 21.', sponsor: { cta: 'Vedi la carta', place: 'Locarno', kind: 'Cocktail bar' } },
+  { id: 902, author: 'Bar Rondò', k: 'adRondo', menuItem: 'rondo-spritz', text: 'Il bancone più vivace del centro: aperitivo dalle 18, musica dal vivo il sabato.', sponsor: { cta: 'Scopri il locale', place: 'Bellinzona', kind: 'Bar' } },
+  { id: 903, author: 'Enoteca Calice', k: 'adCalice', menuItem: 'calice-franciacorta', text: 'Bollicine di Franciacorta al calice e tagliere del giorno. Serata degustazione ogni venerdì.', sponsor: { cta: 'Prenota l’aperitivo', place: 'Mendrisio', kind: 'Enoteca' } },
   { id: 904, author: 'Affilatura Bernasconi', k: 'adAffilatura', text: 'Coltelli da cucina, forbici e utensili: affilatura a mano in giornata, come una volta.', sponsor: { cta: 'Chiedi un preventivo', place: 'Chiasso', kind: 'Artigiano' } },
 ];
 /** Post di altre persone con foto e video, per vedere Home e Swipe pieni. Solo in modalità demo; i tuoi li pubblichi tu. */
@@ -201,7 +229,8 @@ export function useSeedMedia() {
       const now = Date.now();
       const st = useNet.getState();
       const have = new Map(st.posts.map((p) => [p.id, p]));
-      const sponsored: Post[] = SPONSORS.map((a) => ({ id: a.id, author: a.author, text: a.text, media: 'video', tag: a.sponsor.kind, likes: 0, ts: now - 3600000, uri: uris[a.k], poster: (uris as Record<string, string>)['poster_' + a.k], sponsor: a.sponsor, hideLikes: true } as Post));
+      const sponsored: Post[] = SPONSORS.map((a) => ({ id: a.id, author: a.author, text: a.text, media: 'video', tag: a.sponsor.kind, likes: 0, ts: now - 3600000, uri: uris[a.k], poster: (uris as Record<string, string>)['poster_' + a.k], sponsor: a.sponsor, hideLikes: true, ...(a.menuItem ? { menuItem: a.menuItem } : {}) } as Post));
+      Object.entries(DEMO_MENUS).forEach(([owner, items]) => { if (!useMenus.getState().byOwner[owner]) useMenus.getState().setMenu(owner, { files: [], items, updatedAt: now }); });
       const fresh0: Post[] = POSTS.map((p) => ({ id: p.id, author: p.author, text: p.text, media: p.media, tag: p.tag, likes: have.get(p.id)?.likes ?? p.likes, ts: have.get(p.id)?.ts ?? now - p.h * H, uri: uris[p.k], ...(p.media === 'video' && (uris as Record<string, string>)['poster_' + p.k] ? { poster: (uris as Record<string, string>)['poster_' + p.k] } : {}), ...(p.ks ? { uris: p.ks.map((k) => uris[k]) } : {}) }));
       const fresh: Post[] = [...fresh0, ...sponsored];
       const keepPosts = st.posts.filter((p) => !POSTS.some((x) => x.id === p.id) && !SPONSORS.some((x) => x.id === p.id));

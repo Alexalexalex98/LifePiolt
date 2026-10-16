@@ -1,3 +1,4 @@
+import { useMenus } from '@/store/menus';
 import { useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -53,10 +54,13 @@ export default function UserProfile() {
   const sellCount = net.seminars.filter((x) => x.host === name).length + (net.providers.some((x) => x.name === name) ? 1 : 0);
   const hasBusiness = useIdentity((x) => x.businesses).some((b) => b.owner === name);
   const shopCount = (net.products ?? []).filter((x) => x.shop === name).length;
+  const menuData = useMenus((x) => x.byOwner[name]);
+  const menuCount = menuData ? menuData.items.length + menuData.files.length : 0;
   const given = isMe ? net.ledger.filter((l) => l.desc.startsWith('Contributo a')).length : 0;
   // contributi per ultimo, dopo ciò che si offre; servizi/seminari solo se offerti
   const pills: { key: string; label: string; icon: string; n: number }[] = [
     { key: 'post', label: 'Post', icon: 'image', n: postCount },
+    ...(menuCount > 0 || (isMe && hasBusiness) ? [{ key: 'menu', label: 'Menù', icon: 'file', n: menuCount }] : []),
     { key: 'idee', label: 'Idee', icon: 'sparkle', n: ideasCount },
     ...(shopCount > 0 || (isMe && hasBusiness) ? [{ key: 'store', label: 'Store', icon: 'briefcase', n: shopCount }] : []),
     ...(sellCount > 0 ? [{ key: 'servizi', label: 'Servizi', icon: 'briefcase', n: sellCount }] : []),
@@ -110,7 +114,7 @@ export default function UserProfile() {
     pills: shownPills.length ? (
       <ScrollView key="pills" horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 18, flexGrow: 0, marginHorizontal: -16 }} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}>
         {shownPills.map((p) => (
-          <Pressable key={p.key} onPress={() => (p.key === 'altro' ? go('profileMore', { name }) : p.key === 'store' ? go('shopPage', { name }) : go('profileContent', { name, kind: p.key }))} accessibilityRole="button" accessibilityLabel={p.n < 0 ? p.label : `${p.label}: ${p.n}`}
+          <Pressable key={p.key} onPress={() => (p.key === 'altro' ? go('profileMore', { name }) : p.key === 'menu' ? go('menuPage', { name }) : p.key === 'store' ? go('shopPage', { name }) : go('profileContent', { name, kind: p.key }))} accessibilityRole="button" accessibilityLabel={p.n < 0 ? p.label : `${p.label}: ${p.n}`}
             style={({ pressed }) => ({ width: 104, borderRadius: 22, padding: 12, gap: 10, backgroundColor: t.card, borderWidth: 1, borderColor: t.item, transform: [{ scale: pressed ? 0.97 : 1 }] })}>
             <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: accent + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={p.icon} size={18} color={accent} /></View>
             <View>
@@ -213,6 +217,16 @@ export default function UserProfile() {
           </>
         )}
       </View>
+
+      {isMe && hasBusiness && menuCount === 0 ? (
+        <Card style={{ marginTop: 14 }} onPress={() => go('menuPage', { name })}>
+          <Row>
+            <Icon name="file" size={20} color={t.accent} />
+            <View style={{ flex: 1 }}><Body bold>Carica il tuo menù</Body><Body small muted>Foto, screenshot o PDF: chi ti trova vede subito cosa offri e quanto costa.</Body></View>
+            <Chev />
+          </Row>
+        </Card>
+      ) : null}
 
       {isMe && (status === 'none' || status === 'rejected' || status === 'pending') && (
         <Card style={{ marginTop: 14 }} onPress={() => go('identityVerify')}>

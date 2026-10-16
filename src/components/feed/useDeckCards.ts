@@ -17,7 +17,7 @@ export function useDeckCards(): SwipeCandidate[] {
   const providers = useNet((s) => s.providers);
   return useMemo<SwipeCandidate[]>(() => {
     const stand = posts.filter((p) => !p.hideFromFeed && !(p.media && !p.uri && !p.uris?.length) && p.author !== me && visible('post', 'standalone:' + p.id, p.author))
-      .map((p) => ({ key: 'standalone:' + p.id, text: p.text, author: p.author, tag: p.tag, uri: p.uri ?? p.uris?.[0], poster: p.poster, uris: p.uris && p.uris.length > 1 ? p.uris : undefined, media: p.media, sponsor: p.sponsor }));
+      .map((p) => ({ key: 'standalone:' + p.id, text: p.text, author: p.author, tag: p.tag, uri: p.uri ?? p.uris?.[0], poster: p.poster, uris: p.uris && p.uris.length > 1 ? p.uris : undefined, media: p.media, sponsor: p.sponsor, menuItem: p.menuItem }));
     const comm = communities.filter((c) => c.members.includes(me) && visible('community', c.id, c.owner === 'system' ? undefined : c.owner))
       .flatMap((c) => c.posts.filter((p) => !(p.media && !p.uri)).map((p, pi) => ({ key: `community:${c.id}:${pi}`, text: p.text, author: p.author, tag: c.name, uri: p.uri, media: p.media ?? null })).filter((x) => x.author !== me));
     /* idee (tutte le foto del progetto come carosello) e servizi che potrebbero interessarti; lavoro e marketplace restano solo nella Home */

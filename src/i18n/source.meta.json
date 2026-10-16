@@ -1,5 +1,5 @@
 {
- "count": 10942,
+ "count": 10997,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -58,6 +58,7 @@
   "src/app/(tabs)/lifetravel.tsx": 102,
   "src/app/(tabs)/liveRoom.tsx": 88,
   "src/app/(tabs)/lpStatement.tsx": 20,
+  "src/app/(tabs)/menuPage.tsx": 23,
   "src/app/(tabs)/messagesPage.tsx": 36,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,
@@ -95,7 +96,7 @@
   "src/app/(tabs)/swipeDeck.tsx": 4,
   "src/app/(tabs)/syncSettings.tsx": 2,
   "src/app/(tabs)/taxdecl.tsx": 76,
-  "src/app/(tabs)/userProfile.tsx": 45,
+  "src/app/(tabs)/userProfile.tsx": 48,
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/withdraw.tsx": 20,
   "src/app/onboarding.tsx": 10,
@@ -125,7 +126,7 @@
   "src/components/MonthCalcCard.tsx": 16,
   "src/components/MoodChart.tsx": 6,
   "src/components/NavBar.tsx": 28,
-  "src/components/NetSheets.tsx": 323,
+  "src/components/NetSheets.tsx": 325,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 46,
   "src/components/ParticipantsCard.tsx": 14,
@@ -186,7 +187,7 @@
   "src/components/diagnostics/SystemCards.tsx": 44,
   "src/components/doc/PdfView.tsx": 1,
   "src/components/feed/CreateHub.tsx": 30,
-  "src/components/feed/FeedPost.tsx": 27,
+  "src/components/feed/FeedPost.tsx": 28,
   "src/components/feed/Header.tsx": 15,
   "src/components/feed/SearchResults.tsx": 5,
   "src/components/feed/SharePostSheet.tsx": 3,
@@ -405,6 +406,7 @@
   "src/lib/lpActions.ts": 5,
   "src/lib/lpIncomingActions.ts": 4,
   "src/lib/lpStatement.ts": 17,
+  "src/lib/menu.ts": 11,
   "src/lib/modRules.ts": 17,
   "src/lib/moodAnalysis.ts": 57,
   "src/lib/nav.ts": 1,
@@ -448,7 +450,7 @@
   "src/lib/samplePdf.ts": 18,
   "src/lib/search/docs.ts": 1,
   "src/lib/search/fts.ts": 8,
-  "src/lib/seedMedia.ts": 166,
+  "src/lib/seedMedia.ts": 191,
   "src/lib/shop.ts": 14,
   "src/lib/shopActions.ts": 8,
   "src/lib/shopSeed.ts": 56,
@@ -492,5 +494,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1356
+ "withPlaceholders": 1362
 }

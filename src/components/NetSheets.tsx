@@ -1,3 +1,5 @@
+import { itemLine } from '@/lib/menu';
+import { useMenus } from '@/store/menus';
 import { MentionSuggest, MentionText } from '@/components/MentionBox';
 import { CreateHubView } from '@/components/feed/CreateHub';
 import { Image } from 'expo-image';
@@ -813,11 +815,13 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
   const me = useApp((s) => s.account.name);
   const close = useNetSheet((s) => s.close);
   const d = resume ? (drafts.newPost as { text: string; tag: string; media: NetMedia | null } | undefined) : undefined;
-  const [text, setText] = useState(d?.text ?? prefill ?? ''); const [tag, setTag] = useState(d?.tag ?? topicList[0]); const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
+  const [text, setText] = useState(d?.text ?? prefill ?? '');
+  const [dish, setDish] = useState<string | null>(null);
+  const myMenu = useMenus((x) => x.byOwner[me]); const [tag, setTag] = useState(d?.tag ?? topicList[0]); const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
   const t = useTheme();
   const publish = () => {
     if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
-    net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, tag, likes: 0, ts: Date.now() }, ...net.posts] });
+    net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, tag, likes: 0, ts: Date.now(), ...(dish ? { menuItem: dish } : {}) }, ...net.posts] });
     delete drafts.newPost;
     close(); toast('Post pubblicato');
   };
@@ -849,6 +853,16 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
         <Text style={{ color: t.muted, fontSize: 12 }}>{text.length}/{MAX_POST}</Text>
       </View>
       <MediaPickerField value={media} onChange={setMedia} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'newPost', { text, tag, media }, () => openSheet('newPost', { resume: true })) : undefined} />
+      {/* chi ha un menù può legare il post a un piatto: si vede cos'è e quanto costa */}
+      {myMenu && myMenu.items.length ? (
+        <View style={{ marginBottom: 8 }}>
+          <Text style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, marginBottom: 6 }}>{translateText('PIATTO DEL MENÙ')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ flexGrow: 0 }}>
+            <Pill label={translateText('Nessuno')} on={!dish} onPress={() => setDish(null)} />
+            {myMenu.items.map((it) => <Pill key={it.id} label={itemLine(it)} on={dish === it.id} onPress={() => setDish(it.id)} />)}
+          </ScrollView>
+        </View>
+      ) : null}
       {/* argomento: scegli con un tocco */}
       <Text style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, marginTop: 2, marginBottom: 6 }}>{translateText('ARGOMENTO')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }} style={{ flexGrow: 0 }}>

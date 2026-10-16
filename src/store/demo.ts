@@ -1,3 +1,4 @@
+import { useMenus } from '@/store/menus';
 import { buildRef } from '@/lib/notifyLinks';
 import { sampleProducts } from '@/lib/shopSeed';
 import seed from '@/data/network-seed.json';
@@ -202,6 +203,7 @@ export function topUpDemoMarket(me: string) {
 
 export function resetAllData() {
   useNet.getState().reset();
+  useMenus.getState().reset();
   useMod.getState().reset();
   useChat.getState().reset();
   useContext.getState().reset();
