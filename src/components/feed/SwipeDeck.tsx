@@ -106,6 +106,7 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
   const left = remaining(cards, swipes, weights, me);
   /* la carta successiva è già pronta sotto (foto o anteprima del video): quando la corrente se ne va, c'è subito qualcosa */
   const upcoming: SwipeCandidate | null = useMemo(() => (card ? pickNext(cards as SwipeCandidate[], [...(swipes ?? []), { key: card.key, dir: 'yes', ts: 0 }], weights, me, (swipes ?? []).length + 1) : null), [cards, swipes, weights, me, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const isSponsored = !!(card as SwipeCandidate | null)?.sponsor;
   const curUnder = card ? (card.media === 'video' ? card.poster : card.uris?.[pic] ?? card.uri) : undefined;
   const upcomingUri = upcoming ? (upcoming.media === 'video' ? upcoming.poster : upcoming.uris?.[0] ?? upcoming.uri) : undefined;
   useLayoutEffect(() => { x.setValue(0); }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -210,16 +211,16 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
         {(card as SwipeCandidate).sponsor ? (
           <>
             <View pointerEvents="none" style={{ position: 'absolute', start: 16, top: insets.top + 64, paddingHorizontal: 12, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800', letterSpacing: 0.4 }}>{tl('Sponsorizzato')}</Text></View>
-            <Pressable accessibilityRole="button" accessibilityLabel={`${(card as SwipeCandidate).sponsor!.cta}: ${card.author}`} onPress={() => { Linking.openURL(mapsUrl(`${card.author} ${(card as SwipeCandidate).sponsor!.place}`, Platform.OS)).catch(() => undefined); }} style={{ position: 'absolute', start: 18, end: 84, bottom: insets.bottom + 40, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={`${(card as SwipeCandidate).sponsor!.cta}: ${card.author}`} onPress={() => { Linking.openURL(mapsUrl(`${card.author} ${(card as SwipeCandidate).sponsor!.place}`, Platform.OS)).catch(() => undefined); }} style={{ position: 'absolute', start: 18, end: 84, bottom: insets.bottom + 120, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: '#111', fontSize: 15.5, fontWeight: '800' }}>{tl((card as SwipeCandidate).sponsor!.cta)}</Text>
             </Pressable>
           </>
         ) : null}
-        <View pointerEvents="none" style={{ position: 'absolute', start: 18, end: 84, bottom: insets.bottom + 104 }}>
+        <View pointerEvents="none" style={{ position: 'absolute', start: 18, end: 84, bottom: insets.bottom + (isSponsored ? 184 : 104) }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <UserAvatar name={card.author} size={38} />
-            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 17, flex: 1 }}>{card.author}</Text>
-            {card.tag ? <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.22)' }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{card.tag}</Text></View> : null}
+            <Text numberOfLines={1} style={{ color: '#fff', fontWeight: '900', fontSize: 17, flex: 1 }}>{card.author}</Text>
+            {card.tag && !isSponsored ? <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.22)' }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{card.tag}</Text></View> : null}
           </View>
           {card.uri || card.asset ? <Text numberOfLines={4} style={{ color: '#fff', fontSize: 16, marginTop: 10, textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 6 }}>{card.text}</Text> : null}
         </View>
