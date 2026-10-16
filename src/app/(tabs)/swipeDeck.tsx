@@ -5,6 +5,7 @@ import { Animated, Easing, PanResponder, View, useWindowDimensions } from 'react
 import { SwipeDeck } from '@/components/feed/SwipeDeck';
 import { useDeckCards } from '@/components/feed/useDeckCards';
 import { goBack } from '@/lib/nav';
+import { backdropUri } from '@/lib/storyBackdrop';
 import { postByKey } from '@/lib/network';
 import { useSeedMedia } from '@/lib/seedMedia';
 import { useNet } from '@/store/network';
@@ -58,7 +59,7 @@ export default function SwipePage() {
   return (
     <View style={{ flex: 1, backgroundColor: '#000', overflow: 'hidden' }}>
       <Animated.View style={{ flex: 1, transform: [{ translateX: x }] }}>
-        <SwipeDeck key={`${start ?? ''}:${opened}`} cards={cards} onClose={() => leave(null)} startKey={start} />
+        <SwipeDeck key={`${start ?? ''}:${opened}`} cards={cards} onClose={() => leave(null)} onDismiss={() => { busy.current = true; goBack(); }} backdrop={onlyX ? backdropUri() : null} startKey={start} />
         {onlyX ? null : <View accessibilityRole="button" accessibilityLabel="Trascina verso destra per tornare a Per te" {...leftDot.panHandlers} style={dotStyle('start')} hitSlop={{ top: 14, bottom: 14, left: 6, right: 14 }} />}
         {onlyX ? null : <View accessibilityRole="button" accessibilityLabel="Trascina verso sinistra per andare a Seguiti" {...rightDot.panHandlers} style={dotStyle('end')} hitSlop={{ top: 14, bottom: 14, left: 14, right: 6 }} />}
       </Animated.View>

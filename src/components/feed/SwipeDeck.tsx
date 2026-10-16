@@ -60,7 +60,7 @@ function DeckVideo({ source, muted, controls, poster }: { source: number | { uri
  * Swipe a schermo intero: si vede solo il post, come nel recap. A sinistra «mi interessa», a destra «non mi interessa».
  * Toccando il post compare la spiegazione.
  */
-export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[]; onClose: () => void; startKey?: string }) {
+export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { cards: SwipeCandidate[]; onClose: () => void; /** chiusura tirando giù (come i recap): se manca si usa onClose */ onDismiss?: () => void; /** schermata di partenza, che si vede dietro mentre tiri giù */ backdrop?: string | null; startKey?: string }) {
   const me = useApp((s) => s.account.name);
   const swipes = useNet((s) => s.swipes);
   const weights = useNet((s) => s.themeWeights);
@@ -79,6 +79,8 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   const x = useRef(new Animated.Value(0)).current;
   const [sharing, setSharing] = useState(false);
   const [startDone, setStartDone] = useState(false);
+  const dragY = useRef(new Animated.Value(0)).current;
+  const dragRad = dragY.interpolate({ inputRange: [0, 200], outputRange: [0, 24], extrapolate: 'clamp' });
   const donated = useNet((s) => s.dailyPoint.lastGiven === weekdayShortDate());
   /* se arrivi toccando un contenuto, si parte proprio da quello (finché non lo scegli) */
   const card = useMemo(() => {
@@ -134,9 +136,10 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   const pan = useRef(PanResponder.create({
     onMoveShouldSetPanResponderCapture: (_e, g) => (Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g),
     onMoveShouldSetPanResponder: (_e, g) => (Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g),
-    onPanResponderMove: (e, g) => { if (g.dy > Math.abs(g.dx) * 1.5) { x.setValue(0); } else x.setValue(g.dx); },
+    onPanResponderMove: (e, g) => { if (g.dy > Math.abs(g.dx) * 1.5) { x.setValue(0); dragY.setValue(Math.max(0, g.dy)); } else { dragY.setValue(0); x.setValue(g.dx); } },
     onPanResponderRelease: (_e, g) => {
-      if (g.dy > 110 && g.dy > Math.abs(g.dx) * 1.5) { leaveRef.current(); return; }
+      if (g.dy > 110 && g.dy > Math.abs(g.dx) * 1.5) { Animated.timing(dragY, { toValue: 900, duration: 170, useNativeDriver: false }).start(() => { const c = cardRef.current; if (c) { const d = dwellSignal(Date.now() - shownAt.current, c.media === 'video' ? maxFrac.current : undefined); if (d > 0) { const st = useNet.getState(); st.patch({ themeWeights: addSignal(st.themeWeights, `${c.text} ${c.tag ?? ''}`, d) }); } } (onDismiss ?? onClose)(); setTimeout(() => dragY.setValue(0), 400); }); return; }
+      if (g.dy > 0 && Math.abs(g.dx) < 24) { Animated.spring(dragY, { toValue: 0, useNativeDriver: false, friction: 8 }).start(); }
       if (g.dx <= -THRESHOLD || g.vx < -0.9) fling('yes');
       else if (g.dx >= THRESHOLD || g.vx > 0.9) fling('no');
       else Animated.spring(x, { toValue: 0, useNativeDriver: false, friction: 7 }).start();
@@ -163,6 +166,8 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   }
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
+      {backdrop ? <Image source={{ uri: backdrop }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" transition={0} /> : null}
+      <Animated.View style={{ flex: 1, backgroundColor: '#000', overflow: 'hidden', borderRadius: dragRad, transform: [{ translateY: dragY }] }}>
       {upcomingUri ? <Image source={{ uri: upcomingUri }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
       <Animated.View {...pan.panHandlers} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, transform: [{ translateX: x }, { rotate: rot }] }}>
         <Pressable accessibilityRole="button" accessibilityLabel={isVideo ? tl('Video di {0}. Tocca per mettere in pausa o riprendere, tieni premuto per accelerare', card.author) : tl('Post di {0}', card.author)}
@@ -246,6 +251,7 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
           <Text style={{ color: '#8fa4ff', fontWeight: '800' }}>{tl('Tocca per continuare')}</Text>
         </Pressable>
       ) : null}
+      </Animated.View>
     </View>
   );
 }

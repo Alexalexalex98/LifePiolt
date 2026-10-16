@@ -1,3 +1,4 @@
+import { snapBackdrop } from '@/lib/storyBackdrop';
 import { SharePostSheet } from '@/components/feed/SharePostSheet';
 import { holdCarousel, releaseCarousel } from '@/lib/feedSwipe';
 import { Image } from 'expo-image';
@@ -179,7 +180,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
 
   const like = () => useNet.getState().likePost(likeKey);
   const doubleLike = () => { flash(); if (!useNet.getState().likedPosts.includes(likeKey)) like(); };
-  const single = () => { if (post.media && post.author !== me && (post.uri || post.uris?.length)) go('swipeDeck', { start: likeKey, solo: '1' }); else if (post.media) openMedia({ media: post.media, seed: post.author + post.text, uri: post.uri }); else go('postPage', { key: likeKey }); };
+  const single = () => { if (post.media && post.author !== me && (post.uri || post.uris?.length)) void snapBackdrop().then(() => go('swipeDeck', { start: likeKey, solo: '1' })); else if (post.media) openMedia({ media: post.media, seed: post.author + post.text, uri: post.uri }); else go('postPage', { key: likeKey }); };
   const onLayout = (e: LayoutChangeEvent) => { const x = Math.round(e.nativeEvent.layout.width); if (x && x !== w) setW(x); };
 
   return (

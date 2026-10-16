@@ -1,3 +1,4 @@
+import { snapBackdrop } from '@/lib/storyBackdrop';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { SharePostSheet } from '@/components/feed/SharePostSheet';
@@ -87,7 +88,7 @@ export default function PostPage() {
   /* con una sola foto o un solo video, il contenuto resta fisso dietro e i commenti scorrono sopra */
   const layered = hasMedia && !!post.uri;
   /* la foto/il video si apre come uno Swipe: si scorrono anche gli altri contenuti */
-  const openPost = () => { if (!post.media) return; if (post.author !== me && post.uri) go('swipeDeck', { start: key, solo: '1' }); else openMedia({ media: post.media, seed: post.author + post.text, uri: post.uri }); };
+  const openPost = () => { if (!post.media) return; if (post.author !== me && post.uri) void snapBackdrop().then(() => go('swipeDeck', { start: key, solo: '1' })); else openMedia({ media: post.media, seed: post.author + post.text, uri: post.uri }); };
   const spacerH = Math.round(Math.min(win * 1.1, 520));
 
   return (
