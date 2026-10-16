@@ -65,7 +65,7 @@ export function LifePayFab() {
   const setPay = useUI((s) => s.setPay);
   const kb = useKeyboardInset();
   const pathname = usePathname();
-  if (open || kb.visible || /conversationPage|liveRoom|storyView|swipeDeck/.test(pathname)) return null;
+  if (open || kb.visible || /conversationPage|liveRoom|storyView|storyCreate|swipeDeck/.test(pathname)) return null;
   return (
     <Pressable onPress={() => setPay(true)} accessibilityRole="button" accessibilityLabel={translateText('Apri LifePay')} hitSlop={8}
       style={{ position: 'absolute', start: 14, bottom: 84 + insets.bottom, width: 44, height: 44, borderRadius: 22, backgroundColor: t.text, alignItems: 'center', justifyContent: 'center', opacity: 0.92, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 }}>

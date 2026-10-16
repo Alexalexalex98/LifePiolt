@@ -22,6 +22,7 @@ import { useLife } from '@/store/life';
 import { newId, useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 
+const TEMPLATES = ['Buongiorno', 'Oggi sto…', 'Cosa ne pensate?', 'Grazie a tutti', 'Weekend!', 'Una novità'];
 const INKS = ['#ffffff', '#ffd166', '#ff5d8f', '#6cf0c2', '#7aa2ff', '#111111'];
 const POS: TextPos[] = ['alto', 'centro', 'basso'];
 const buzz = () => { if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined); };
@@ -119,7 +120,7 @@ export default function StoryCreate() {
       </Pressable>
     );
     return (
-      <View style={{ flex: 1, backgroundColor: '#07080d' }}>
+      <ScrollView style={{ flex: 1, backgroundColor: '#07080d' }} contentContainerStyle={{ paddingBottom: insets.bottom + 90 }} showsVerticalScrollIndicator={false}>
         <View style={{ paddingTop: insets.top + 10, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center' }}>
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={goBack} hitSlop={12} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={20} color="#fff" /></Pressable>
         </View>
@@ -134,9 +135,20 @@ export default function StoryCreate() {
           {tile('share', tl('Condividi'), tl('Un evento, un’idea, un seminario, un luogo'), () => setShare(true))}
           {tile('Aa', tl('Solo testo'), tl('Una frase su un colore'), () => { setTextMode(true); buzz(); })}
         </View>
-        <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, textAlign: 'center', marginTop: 'auto', paddingBottom: insets.bottom + 18, paddingHorizontal: 30 }}>{tl('Il momento resta nel recap per 24 ore, se non scegli altro. Lo vede chi ti segue.')}</Text>
+        {/* modelli pronti: un tocco e la frase è già sul momento */}
+        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '800', letterSpacing: 0.8, paddingHorizontal: 24, marginTop: 24, marginBottom: 10 }}>{tl('MODELLI PRONTI')}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 20 }} style={{ flexGrow: 0 }}>
+          {TEMPLATES.map((tp, i) => (
+            <Pressable key={tp} accessibilityRole="button" accessibilityLabel={tl(tp)} onPress={() => { setText(tl(tp)); setBg(i % BACKGROUNDS.length); setTextMode(true); buzz(); }}>
+              <LinearGradient colors={BACKGROUNDS[i % BACKGROUNDS.length]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 104, height: 150, borderRadius: 18, padding: 10, justifyContent: 'center' }}>
+                <Text numberOfLines={5} style={{ color: '#fff', fontSize: 14, fontWeight: '900', textAlign: 'center' }}>{tl(tp)}</Text>
+              </LinearGradient>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, textAlign: 'center', marginTop: 24, paddingHorizontal: 30 }}>{tl('Il momento resta nel recap per 24 ore, se non scegli altro. Lo vede chi ti segue.')}</Text>
         {shareSheet}
-      </View>
+      </ScrollView>
     );
   }
 

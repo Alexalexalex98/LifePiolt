@@ -289,7 +289,7 @@ function NetSheetInner() {
       );
       break;
     }
-    case 'newPost': { title = 'Nuovo post'; body = <NewPostView resume={!!p.resume} />; break; }
+    case 'newPost': { title = 'Nuovo post'; body = <NewPostView resume={!!p.resume} prefill={p.prefill} />; break; }
     default: break;
   }
 
@@ -808,12 +808,12 @@ async function pickOutsideSheet(kind: 'photo' | 'video', key: string, state: Rec
 }
 const detachOnIos = Platform.OS === 'ios';
 
-function NewPostView({ resume }: { resume?: boolean }) {
+function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }) {
   const net = useNet();
   const me = useApp((s) => s.account.name);
   const close = useNetSheet((s) => s.close);
   const d = resume ? (drafts.newPost as { text: string; tag: string; media: NetMedia | null } | undefined) : undefined;
-  const [text, setText] = useState(d?.text ?? ''); const [tag, setTag] = useState(d?.tag ?? topicList[0]); const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
+  const [text, setText] = useState(d?.text ?? prefill ?? ''); const [tag, setTag] = useState(d?.tag ?? topicList[0]); const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
   const t = useTheme();
   const publish = () => {
     if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
@@ -836,7 +836,18 @@ function NewPostView({ resume }: { resume?: boolean }) {
       <TextInput multiline autoFocus={false} value={text} onChangeText={setText} maxLength={MAX_POST} placeholder={translateText('Cosa vuoi condividere?')} placeholderTextColor={t.muted} accessibilityLabel={translateText('Testo del post')}
         style={{ color: t.text, fontSize: 19, lineHeight: 27, minHeight: 120, textAlignVertical: 'top', paddingVertical: 8 }} />
       <MentionSuggest text={text} onPick={setText} />
-      <Text style={{ color: t.muted, fontSize: 12, alignSelf: 'flex-end', marginBottom: 8 }}>{text.length}/{MAX_POST}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={translateText('Tagga una persona')} onPress={() => setText((x) => (x && !/\s$/.test(x) ? x + ' @' : x + '@'))} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 34, borderRadius: 17, backgroundColor: t.chip }}>
+          <Text style={{ color: t.accent, fontWeight: '900', fontSize: 15 }}>@</Text>
+          <Text style={{ color: t.text, fontWeight: '700', fontSize: 13 }}>{translateText('Tagga')}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={translateText('Aggiungi un hashtag')} onPress={() => setText((x) => (x && !/\s$/.test(x) ? x + ' #' : x + '#'))} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 34, borderRadius: 17, backgroundColor: t.chip }}>
+          <Text style={{ color: t.accent, fontWeight: '900', fontSize: 15 }}>#</Text>
+          <Text style={{ color: t.text, fontWeight: '700', fontSize: 13 }}>{translateText('Hashtag')}</Text>
+        </Pressable>
+        <View style={{ flex: 1 }} />
+        <Text style={{ color: t.muted, fontSize: 12 }}>{text.length}/{MAX_POST}</Text>
+      </View>
       <MediaPickerField value={media} onChange={setMedia} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'newPost', { text, tag, media }, () => openSheet('newPost', { resume: true })) : undefined} />
       {/* argomento: scegli con un tocco */}
       <Text style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, marginTop: 2, marginBottom: 6 }}>{translateText('ARGOMENTO')}</Text>
