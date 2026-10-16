@@ -8,7 +8,8 @@ import { SwipeDeck } from '@/components/feed/SwipeDeck';
 import { useDeckCards } from '@/components/feed/useDeckCards';
 import { useSeedMedia } from '@/lib/seedMedia';
 import { pickQuotes, quoteCount, type Quote } from '@/lib/theiaQuotes';
-import { isTabSwipe, nextHomeTab, onEdgeSwipe, type HomeTab } from '@/lib/feedSwipe';
+import { onEdgeSwipe } from '@/lib/feedSwipe';
+import { adjacentSection } from '@/lib/sectionSwipe';
 import { Text } from '@/components/T';
 
 import { EmptyFeed, FeedSkeleton, FilterToggle, Composer, NetHeader, NetTabs } from '@/components/feed/Header';
@@ -88,6 +89,12 @@ export default function LifeNetwork() {
   /* i gesti orizzontali sulle storie restano delle storie: non cambiano scheda */
   const storiesPan = useRef(PanResponder.create({ onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) })).current;
   const swipes = net.swipes;
+  /* zone di Network: il recap (in alto) non cambia mai sezione; solo l'area dei post (da «Per te / Swipe / Seguiti» in giù) sì */
+  const toggleRef = useRef<View>(null);
+  const feedTop = useRef(0);
+  const measureFeed = useCallback(() => { toggleRef.current?.measureInWindow?.((_x, y) => { if (Number.isFinite(y)) feedTop.current = y; }); }, []);
+  const prevTab = useRef<'Per te' | 'Seguiti'>('Per te');
+  const navItemsAll = useApp((a) => a.navItems);
   const quoteLikes = net.quoteLikes;
 
   const verified = net.identity.verified;
@@ -208,7 +215,9 @@ export default function LifeNetwork() {
       {!searching && curTab === 'Home' && (
         <View style={{ marginTop: 6 }}>
           <Composer me={me} onPress={compose} />
-          <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Swipe', label: 'Swipe', bold: true }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={following ? 'Seguiti' : 'Per te'} onChange={(k) => { if (k === 'Swipe') { setDeckShown(true); settleRef.current('Swipe'); } else setPref('homeFilter', k); }} />
+          <View ref={toggleRef} onLayout={measureFeed}>
+            <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Swipe', label: 'Swipe', bold: true }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={following ? 'Seguiti' : 'Per te'} onChange={(k) => { if (k === 'Swipe') { prevTab.current = following ? 'Seguiti' : 'Per te'; setDeckShown(true); settleRef.current('Swipe'); } else setPref('homeFilter', k); }} />
+          </View>
           <View style={{ height: 8 }} />
         </View>
       )}
@@ -288,25 +297,33 @@ export default function LifeNetwork() {
   useEffect(() => { if (!deckOpen) pos.setValue(following ? 2 * W : 0); }, [following]); // eslint-disable-line react-hooks/exhaustive-deps
   const goTab = (dir: 1 | -1) => {
     if (curTab !== 'Home' || searching || deckOpen) return;
-    const cur: HomeTab = following ? 'Seguiti' : 'Per te';
-    const to = nextHomeTab(cur, dir);
-    if (to === 'Swipe') { setDeckShown(true); settleRef.current('Swipe'); } else if (to !== cur) { setPref('homeFilter', to); }
+    const cur: 'Per te' | 'Seguiti' = following ? 'Seguiti' : 'Per te';
+    /* Per te: a destra (dito verso destra) sezione precedente, a sinistra lo Swipe. Seguiti: a destra lo Swipe, a sinistra la sezione successiva. */
+    const toDeck = cur === 'Per te' ? dir === 1 : dir === -1;
+    if (toDeck) { prevTab.current = cur; setDeckShown(true); settleRef.current('Swipe'); return; }
+    const to = adjacentSection(navItemsAll, 'lifenetwork', cur === 'Per te' ? -1 : 1);
+    if (to) go(to);
   };
   const goTabRef = useRef(goTab); goTabRef.current = goTab;
   useEffect(() => onEdgeSwipe((d) => goTabRef.current(d)), []);
   const swipePan = useRef(PanResponder.create({
     /* si prende il gesto solo se c'è una scheda accanto; ai bordi passa alla sezione vicina della barra */
-    onMoveShouldSetPanResponder: (_e, g) => { const fol = useNet.getState().prefs.homeFilter === 'Seguiti'; return Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8 && (fol ? g.dx > 0 : g.dx < 0); },
-    onPanResponderGrant: () => setDeckShown(true),
+    onMoveShouldSetPanResponder: (e, g) => {
+      const startY = (e.nativeEvent.pageY ?? g.moveY) - g.dy;
+      return Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8 && startY >= feedTop.current;
+    },
+    onPanResponderGrant: () => { if (useNet.getState().prefs.homeFilter === 'Seguiti') prevTab.current = 'Seguiti'; else prevTab.current = 'Per te'; },
     onPanResponderMove: (_e, g) => {
       const fol = useNet.getState().prefs.homeFilter === 'Seguiti';
-      if (!fol && g.dx < 0) pos.setValue(Math.min(W, -g.dx));
-      else if (fol && g.dx > 0) pos.setValue(Math.max(W, 2 * W - g.dx));
+      if (!fol && g.dx < 0) { setDeckShown(true); pos.setValue(Math.min(W, -g.dx)); }
+      else if (fol && g.dx > 0) { setDeckShown(true); pos.setValue(Math.max(W, 2 * W - g.dx)); }
     },
     onPanResponderRelease: (_e, g) => {
       const fol = useNet.getState().prefs.homeFilter === 'Seguiti';
-      const d = fol ? g.dx : -g.dx;
-      if (d > 70 || (d > 28 && Math.abs(g.vx) > 0.6)) settleRef.current('Swipe');
+      const toDeck = fol ? g.dx : -g.dx;
+      const away = fol ? -g.dx : g.dx;
+      if (toDeck > 70 || (toDeck > 28 && Math.abs(g.vx) > 0.6)) { prevTab.current = fol ? 'Seguiti' : 'Per te'; settleRef.current('Swipe'); }
+      else if (away > 70 || (away > 28 && Math.abs(g.vx) > 0.6)) { settleRef.current(fol ? 'Seguiti' : 'Per te', true); const to = adjacentSection(navItemsAll, 'lifenetwork', fol ? 1 : -1); if (to) go(to); }
       else settleRef.current(fol ? 'Seguiti' : 'Per te', true);
     },
     onPanResponderTerminate: () => settleRef.current(useNet.getState().prefs.homeFilter === 'Seguiti' ? 'Seguiti' : 'Per te', true),
@@ -336,6 +353,8 @@ export default function LifeNetwork() {
     <Page id="lifenetwork" scroll={false}>
       <View style={{ flex: 1 }} {...swipePan.panHandlers}>
       <FlatList
+        onScrollEndDrag={measureFeed}
+        onMomentumScrollEnd={measureFeed}
         style={{ flex: 1, marginHorizontal: -FEED_GUTTER }}
         data={data}
         keyExtractor={(it) => it.id}
@@ -356,7 +375,7 @@ export default function LifeNetwork() {
     </Animated.View>
     {deckShown ? (
       <Animated.View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: '#000', transform: [{ translateX: deckX }] }}>
-        <SwipeDeck cards={deckCards} onClose={() => settleRef.current('Per te')} />
+        <SwipeDeck cards={deckCards} onClose={() => settleRef.current(prevTab.current)} />
         <View accessibilityRole="button" accessibilityLabel="Trascina verso destra per tornare a Per te" {...leftDot.panHandlers} style={dotStyle('start')} hitSlop={{ top: 14, bottom: 14, left: 6, right: 14 }} />
         <View accessibilityRole="button" accessibilityLabel="Trascina verso sinistra per andare a Seguiti" {...rightDot.panHandlers} style={dotStyle('end')} hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }} />
       </Animated.View>
