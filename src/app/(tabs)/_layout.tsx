@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 import { Icon } from '@/lib/icons';
 import { useTheme } from '@/hooks/use-theme';
-import { goKeep } from '@/lib/nav';
+import { goKeep, registerSlider } from '@/lib/nav';
 import { carouselBusy } from '@/lib/feedSwipe';
 import { adjacentSection, sectionDirection } from '@/lib/sectionSwipe';
 import { settleEscrow } from '@/lib/escrow';
@@ -71,6 +71,22 @@ export default function TabsLayout() {
     x.setValue(pd.dir * W);
     Animated.timing(x, { toValue: 0, duration: 190, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => { setPeek(null); busy.current = false; peekSet.current = false; });
   }, [cur, x, W]);
+  /* passaggio completo: la sezione attuale esce, poi la nuova entra scorrendo (usato anche da Network) */
+  const slide = (to: string, d: 1 | -1) => {
+    if (busy.current) { goKeep(to); return; }
+    busy.current = true;
+    setPeekDir(d);
+    setPeek(to);
+    const from = curRef.current;
+    /* sicurezza: qualunque cosa succeda, dopo 2 s si sblocca e la vista torna a posto */
+    setTimeout(() => { if (busy.current) { pending.current = null; x.setValue(0); setPeek(null); busy.current = false; peekSet.current = false; } }, 2000);
+    Animated.timing(x, { toValue: -d * W, duration: 120, easing: Easing.out(Easing.quad), useNativeDriver: true }).start(() => {
+      pending.current = { from, dir: d };
+      goKeep(to);
+    });
+  };
+  const slideRef = useRef(slide); slideRef.current = slide;
+  useEffect(() => { registerSlider((to, d) => slideRef.current(to, d)); return () => registerSlider(null); }, []);
   /* Swipe dal bordo: la sezione attuale segue il dito e sotto compare subito quella di destinazione (icona e nome), poi, al rilascio, il passaggio completa il movimento. */
   const pan = useRef(PanResponder.create({
     onMoveShouldSetPanResponderCapture: (e, g) => {
@@ -91,16 +107,8 @@ export default function TabsLayout() {
       const d = sectionDirection(g.dx, g.dy, g.vx);
       const to = d ? adjacentSection(itemsRef.current, curRef.current, d) : null;
       if (!to) { peekSet.current = false; Animated.spring(x, { toValue: 0, useNativeDriver: true, friction: 8 }).start(() => setPeek(null)); return; }
-      busy.current = true; peekSet.current = false;
-      setPeekDir(d as 1 | -1);
-      setPeek(to);
-      const from = curRef.current;
-      Animated.timing(x, { toValue: -d * W, duration: 120, easing: Easing.out(Easing.quad), useNativeDriver: true }).start(() => {
-        pending.current = { from, dir: d as 1 | -1 };
-        goKeep(to);
-        /* se per qualche motivo la sezione non cambia, si torna com'era */
-        setTimeout(() => { if (pending.current && curRef.current === from) { pending.current = null; x.setValue(0); setPeek(null); busy.current = false; } }, 1500);
-      });
+      peekSet.current = false;
+      slide(to, d as 1 | -1);
     },
     onPanResponderTerminate: () => { peekSet.current = false; Animated.spring(x, { toValue: 0, useNativeDriver: true }).start(() => setPeek(null)); },
   })).current;

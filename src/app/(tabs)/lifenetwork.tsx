@@ -28,7 +28,7 @@ import { Body, Btn, Card, Empty, H, Input, Page, Select } from '@/components/ui'
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/lib/i18n';
 import { Icon } from '@/lib/icons';
-import { go, goKeep } from '@/lib/nav';
+import { go, slideTo } from '@/lib/nav';
 import { useVisible } from '@/lib/moderation';
 import { SearchResults } from '@/components/feed/SearchResults';
 import { t as tl } from '@/i18n/core';
@@ -295,7 +295,7 @@ export default function LifeNetwork() {
     const toDeck = cur === 'Per te' ? dir === 1 : dir === -1;
     if (toDeck) { prevTab.current = cur; setDeckShown(true); settleRef.current('Swipe'); return; }
     const to = adjacentSection(navItemsAll, 'lifenetwork', cur === 'Per te' ? -1 : 1);
-    if (to) goKeep(to);
+    if (to) slideTo(to, cur === 'Per te' ? -1 : 1);
   };
   const goTabRef = useRef(goTab); goTabRef.current = goTab;
   const swipePan = useRef(PanResponder.create({
@@ -315,7 +315,7 @@ export default function LifeNetwork() {
       const toDeck = fol ? g.dx : -g.dx;
       const away = fol ? -g.dx : g.dx;
       if (toDeck > 70 || (toDeck > 28 && Math.abs(g.vx) > 0.6)) { prevTab.current = fol ? 'Seguiti' : 'Per te'; settleRef.current('Swipe'); }
-      else if (away > 70 || (away > 28 && Math.abs(g.vx) > 0.6)) { settleRef.current(fol ? 'Seguiti' : 'Per te', true); const to = adjacentSection(navItemsAll, 'lifenetwork', fol ? 1 : -1); if (to) goKeep(to); }
+      else if (away > 70 || (away > 28 && Math.abs(g.vx) > 0.6)) { settleRef.current(fol ? 'Seguiti' : 'Per te', true); const to = adjacentSection(navItemsAll, 'lifenetwork', fol ? 1 : -1); if (to) slideTo(to, fol ? 1 : -1); }
       else settleRef.current(fol ? 'Seguiti' : 'Per te', true);
     },
     onPanResponderTerminate: () => settleRef.current(useNet.getState().prefs.homeFilter === 'Seguiti' ? 'Seguiti' : 'Per te', true),

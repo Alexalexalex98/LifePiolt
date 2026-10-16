@@ -86,6 +86,8 @@ export default function PostPage() {
   const canSend = text.trim().length > 0;
   /* con una sola foto o un solo video, il contenuto resta fisso dietro e i commenti scorrono sopra */
   const layered = hasMedia && !!post.uri;
+  /* la foto/il video si apre come uno Swipe: si scorrono anche gli altri contenuti */
+  const openPost = () => { if (!post.media) return; if (post.author !== me && post.uri) go('swipeDeck', { start: key, solo: '1' }); else openMedia({ media: post.media, seed: post.author + post.text, uri: post.uri }); };
   const spacerH = Math.round(Math.min(win * 1.1, 520));
 
   return (
@@ -94,7 +96,7 @@ export default function PostPage() {
       <View style={{ flex: 1, marginHorizontal: -16 }}>
       {layered ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, end: 0 }}><MediaArea post={post} w={win} heart={heart} onDouble={() => {}} onSingle={() => {}} /></View> : null}
       <ScrollView ref={scroller} style={{ flex: 1 }} contentContainerStyle={{ paddingTop: layered ? 0 : 10, paddingBottom: 24 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {layered ? <Pressable accessibilityRole="imagebutton" accessibilityLabel={translateText(post.media === 'video' ? 'Apri il video a schermo intero' : 'Apri la foto a schermo intero')} onPress={() => openMedia({ media: post.media!, seed: post.author + post.text, uri: post.uri })} onLongPress={doubleLike} style={{ height: spacerH }} /> : null}
+        {layered ? <Pressable accessibilityRole="imagebutton" accessibilityLabel={translateText(post.media === 'video' ? 'Apri il video a schermo intero' : 'Apri la foto a schermo intero')} onPress={() => openPost()} onLongPress={doubleLike} style={{ height: spacerH }} /> : null}
         <View style={layered ? { backgroundColor: t.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 12, minHeight: 700 } : undefined}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingBottom: 10, gap: 10 }}>
           <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minHeight: 48 }} onPress={() => go('userProfile', { name: post.author })} accessibilityRole="link" accessibilityLabel={tl('Profilo di {0}', post.author)}>
@@ -107,7 +109,7 @@ export default function PostPage() {
           <Pressable onPress={() => openSheet('postMenu', { author: post.author, tag: post.tag, ref: key, label: post.text })} hitSlop={6} accessibilityRole="button" accessibilityLabel={translateText('Altre azioni sul post')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="more-h" size={22} color={t.text} stroke={2.2} /></Pressable>
         </View>
 
-        {layered ? null : <MediaArea post={post} w={win} heart={heart} onDouble={doubleLike} onSingle={() => { if (post.media) openMedia({ media: post.media, seed: post.author + post.text, uri: post.uri }); }} />}
+        {layered ? null : <MediaArea post={post} w={win} heart={heart} onDouble={doubleLike} onSingle={openPost} />}
 
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, marginTop: 4 }}>
           <IconBtn icon="heart" size={27} color={liked ? LIKE : t.text} fill={liked ? LIKE : 'none'} label={liked ? 'Togli il mi piace' : 'Mi piace'} onPress={() => net.likePost(key)} pop={liked} selected={liked} />

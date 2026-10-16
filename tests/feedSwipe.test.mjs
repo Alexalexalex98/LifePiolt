@@ -56,3 +56,15 @@ test('layout dei post: varia, è stabile e i caroselli restano classici', () => 
   assert.equal(a, b);
   for (let i = 0; i < 60; i++) assert.notEqual(postLayout({ author: 'V' + i, text: 't' + i, media: 'video' }), 'story');
 });
+
+import { rankedPool, pickMixed } from '../src/lib/swipeDeck.ts';
+test('swipe: foto e video si alternano', () => {
+  const cards = [];
+  for (let i = 0; i < 12; i++) cards.push({ key: 'p' + i, text: 'foto ' + i, author: 'X', media: 'photo' });
+  for (let i = 0; i < 4; i++) cards.push({ key: 'v' + i, text: 'video ' + i, author: 'X', media: 'video' });
+  let swipes = [];
+  const seq = [];
+  for (let n = 0; n < 8; n++) { const c = pickMixed(rankedPool(cards, swipes, {}, 'me'), swipes.length); seq.push(c.media); swipes = [...swipes, { key: c.key, dir: 'yes', ts: n }]; }
+  assert.equal(seq.filter((m) => m === 'video').length, 4);
+  assert.ok(seq.every((m, i) => (i % 2 === 0) === (m === 'video')));
+});

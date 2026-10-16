@@ -17,6 +17,11 @@ export function goKeep(page: string, params?: Record<string, string>) {
   try { router.navigate(pageHref(page, params)); } catch (e) { toast('Non riesco ad aprire questa pagina'); log.warn('nav', `Apertura pagina fallita: ${page}`, e); }
 }
 
+/** Scorrimento tra sezioni: lo registra il layout; se non c'è si passa direttamente. */
+let slider: ((to: string, dir: 1 | -1) => void) | null = null;
+export const registerSlider = (fn: ((to: string, dir: 1 | -1) => void) | null) => { slider = fn; };
+export function slideTo(to: string, dir: 1 | -1) { if (slider) slider(to, dir); else goKeep(to); }
+
 export function go(page: string, params?: Record<string, string>) {
   navState.forwardAt = Date.now();
   try { router.navigate(pageHref(page, params)); } catch (e) { toast('Non riesco ad aprire questa pagina'); log.warn('nav', `Apertura pagina fallita: ${page}`, e); }

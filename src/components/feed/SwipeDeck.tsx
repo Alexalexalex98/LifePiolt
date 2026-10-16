@@ -15,7 +15,7 @@ import { t as tl } from '@/i18n/core';
 import { weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { addSignal } from '@/lib/relevance';
-import { SWIPE_SIGNAL, dwellSignal, nextCard, record, remaining, undoLast, type DeckCard } from '@/lib/swipeDeck';
+import { SWIPE_SIGNAL, dwellSignal, pickMixed, rankedPool, record, remaining, undoLast, type DeckCard } from '@/lib/swipeDeck';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
@@ -75,6 +75,7 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   const shownAt = useRef(Date.now());
   const maxFrac = useRef(0);
   const [pic, setPic] = useState(0);
+  const lastTap = useRef(0);
   const x = useRef(new Animated.Value(0)).current;
   const [sharing, setSharing] = useState(false);
   const donated = useNet((s) => s.dailyPoint.lastGiven === weekdayShortDate());
@@ -82,10 +83,14 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   const card = useMemo(() => {
     const first = startKey ? cards.find((c) => c.key === startKey && c.author !== me) : undefined;
     if (first && !(swipes ?? []).some((r) => r.key === first.key)) return first;
-    return nextCard(cards, swipes, weights, me) as SwipeCandidate | null;
+    return pickMixed(rankedPool(cards as SwipeCandidate[], swipes, weights, me), (swipes ?? []).length);
   }, [cards, swipes, weights, me, startKey]);
   const liked = useNet((s) => !!card && s.likedPosts.includes(card.key));
   const left = remaining(cards, swipes, weights, me);
+  /* la carta successiva è già pronta sotto (foto o anteprima del video): quando la corrente se ne va, c'è subito qualcosa */
+  const upcoming = useMemo(() => (card ? pickMixed(rankedPool(cards as SwipeCandidate[], [...(swipes ?? []), { key: card.key, dir: 'yes', ts: 0 }], weights, me), (swipes ?? []).length + 1) : null), [cards, swipes, weights, me, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const upcomingUri = upcoming ? (upcoming.media === 'video' ? upcoming.poster : upcoming.uris?.[0] ?? upcoming.uri) : undefined;
+  useEffect(() => { x.setValue(0); }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const cardRef = useRef(card); cardRef.current = card;
   const isVideo = !!card && card.media === 'video' && (!!card.asset || !!card.uri);
   /* le foto (e le anteprime dei video) dei prossimi post si scaricano in anticipo: niente attesa quando scegli */
@@ -100,7 +105,7 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   useEffect(() => { shownAt.current = Date.now(); maxFrac.current = 0; setPaused(false); setFast(false); setProg(0); setPic(0); }, [card?.key]);
   useEffect(() => {
     if (!isVideo) return;
-    const h = setInterval(() => { const f = vid.current?.frac() ?? 0; setProg(f); if (f > maxFrac.current) maxFrac.current = f; }, 250);
+    const h = setInterval(() => { const f = vid.current?.frac() ?? 0; setProg((o) => (Math.abs(o - f) > 0.015 ? f : o)); if (f > maxFrac.current) maxFrac.current = f; }, 500);
     return () => clearInterval(h);
   }, [isVideo, card?.key]);
   /** Il tempo passato sul post entra nell'algoritmo, anche se non fai uno swipe. */
@@ -117,14 +122,18 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
     const dw = dwellFor(c);
     st.patch({ swipes: record(st.swipes, c.key, dir, Date.now()), themeWeights: addSignal(st.themeWeights, `${c.text} ${c.tag ?? ''}`, dir === 'yes' ? SWIPE_SIGNAL + dw : -SWIPE_SIGNAL + dw) });
     if (dir === 'yes') st.bumpReach(c.key, 'like');
-    x.setValue(0);
+    /* x resta a fine corsa: la carta scelta non ricompare per un attimo; si azzera quando arriva la nuova */
   };
   const fling = (dir: 'yes' | 'no') => Animated.timing(x, { toValue: dir === 'yes' ? -width * 1.2 : width * 1.2, duration: 180, useNativeDriver: false }).start(() => decide(dir));
+  const leaveRef = useRef(leave); leaveRef.current = leave;
+  /* tirare giù con il dito equivale a premere la X */
+  const pullDown = (g: { dx: number; dy: number }) => g.dy > 10 && g.dy > Math.abs(g.dx) * 1.5;
   const pan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2,
-    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2,
-    onPanResponderMove: Animated.event([null, { dx: x }], { useNativeDriver: false }),
+    onMoveShouldSetPanResponderCapture: (_e, g) => (Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g),
+    onMoveShouldSetPanResponder: (_e, g) => (Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g),
+    onPanResponderMove: (e, g) => { if (g.dy > Math.abs(g.dx) * 1.5) { x.setValue(0); } else x.setValue(g.dx); },
     onPanResponderRelease: (_e, g) => {
+      if (g.dy > 110 && g.dy > Math.abs(g.dx) * 1.5) { leaveRef.current(); return; }
       if (g.dx <= -THRESHOLD || g.vx < -0.9) fling('yes');
       else if (g.dx >= THRESHOLD || g.vx > 0.9) fling('no');
       else Animated.spring(x, { toValue: 0, useNativeDriver: false, friction: 7 }).start();
@@ -151,9 +160,16 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   }
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
+      {upcomingUri ? <Image source={{ uri: upcomingUri }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
       <Animated.View {...pan.panHandlers} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, transform: [{ translateX: x }, { rotate: rot }] }}>
         <Pressable accessibilityRole="button" accessibilityLabel={isVideo ? tl('Video di {0}. Tocca per mettere in pausa o riprendere, tieni premuto per accelerare', card.author) : tl('Post di {0}', card.author)}
-          onPress={() => { if (isVideo) setPaused(!(vid.current?.toggle() ?? true)); }}
+          onPress={() => {
+            const now = Date.now();
+            /* doppio tocco su un carosello: foto successiva; un tocco su un video: pausa o riprendi */
+            if (card.uris && card.uris.length > 1 && now - lastTap.current < 300) { lastTap.current = 0; setPic((i) => (i + 1) % card.uris!.length); buzz(); return; }
+            lastTap.current = now;
+            if (isVideo) setPaused(!(vid.current?.toggle() ?? true));
+          }}
           delayLongPress={260} onLongPress={() => { if (isVideo) { vid.current?.rate(2); setFast(true); } }} onPressOut={() => { if (fast) { vid.current?.rate(1); setFast(false); } }} style={{ flex: 1 }}>
           {isVideo ? <DeckVideo key={card.key} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} poster={card.poster} /> : card.asset ? <Image source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
             <LinearGradient colors={['#4a3bd1', '#1b1f3a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
@@ -172,9 +188,9 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
           {card.uri || card.asset ? <Text numberOfLines={4} style={{ color: '#fff', fontSize: 16, marginTop: 10, textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 6 }}>{card.text}</Text> : null}
         </View>
         {card.uris && card.uris.length > 1 ? (
-          <View style={{ position: 'absolute', top: insets.top + 64, alignSelf: 'center', flexDirection: 'row', gap: 8, padding: 6, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.38)' }}>
+          <View style={{ position: 'absolute', top: insets.top + 60, alignSelf: 'center', flexDirection: 'row', gap: 10, padding: 8, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}>
             {card.uris.map((u, i) => (
-              <Pressable key={u + i} onPress={() => setPic(i)} hitSlop={4} accessibilityRole="button" accessibilityState={{ selected: pic === i }} accessibilityLabel={tl('Foto {0} di {1}', i + 1, card.uris!.length)} style={{ width: 40, height: 52, borderRadius: 8, overflow: 'hidden', borderWidth: 2, borderColor: pic === i ? '#fff' : 'transparent', opacity: pic === i ? 1 : 0.7 }}>
+              <Pressable key={u + i} onPress={() => setPic(i)} hitSlop={4} accessibilityRole="button" accessibilityState={{ selected: pic === i }} accessibilityLabel={tl('Foto {0} di {1}', i + 1, card.uris!.length)} style={{ width: 58, height: 76, borderRadius: 12, overflow: 'hidden', borderWidth: pic === i ? 3 : 1.5, borderColor: pic === i ? '#fff' : 'rgba(255,255,255,0.55)', opacity: pic === i ? 1 : 0.92 }}>
                 <Image source={{ uri: u }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" />
               </Pressable>
             ))}

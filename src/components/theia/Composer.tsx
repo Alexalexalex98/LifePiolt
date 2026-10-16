@@ -56,8 +56,8 @@ function Wave({ level }: { level: number }) {
 }
 
 /** Compositore di Theia: testo (cresce fino a 5 righe), microfono in 12 lingue, allegati come in Claude (foto, file, testo, posizione, contatto, nota, impegno). */
-export function Composer({ appLang, busy, placeholder, onSend }: {
-  appLang: string; busy: boolean; placeholder: string; onSend: (m: ComposerSend) => void;
+export function Composer({ appLang, busy, placeholder, onSend, openAttach }: {
+  appLang: string; busy: boolean; placeholder: string; onSend: (m: ComposerSend) => void; /** cambia valore = si apre il menu degli allegati (usato dal pulsante di Theia) */ openAttach?: string;
 }) {
   const t = useTheme();
   const auto = useTheia((s) => s.voiceAuto);
@@ -68,6 +68,7 @@ export function Composer({ appLang, busy, placeholder, onSend }: {
   const [speech, dispatch] = useReducer(speechReducer, initialSpeech);
   const [voiceErr, setVoiceErr] = useState<{ code: SpeechErrorCode; raw?: string } | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
+  useEffect(() => { if (openAttach) setAttachOpen(true); }, [openAttach]);
   const [langOpen, setLangOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [focused, setFocused] = useState(false);

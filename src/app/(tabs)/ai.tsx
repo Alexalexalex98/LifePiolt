@@ -46,7 +46,7 @@ export default function LifeChat() {
     return () => clearTimeout(tm);
   }, [kb.visible, kb.height]); // eslint-disable-line react-hooks/exhaustive-deps
   // una scheda (es. suggerimento di Theia) può aprire la chat già con un comando da eseguire
-  const { ask } = useLocalSearchParams<{ ask?: string }>();
+  const { ask, attach } = useLocalSearchParams<{ ask?: string; attach?: string }>();
   useEffect(() => {
     if (!ask) return;
     router.setParams({ ask: '' });
@@ -180,7 +180,7 @@ export default function LifeChat() {
               );
             }}
           />
-          <Composer appLang={appLang} busy={busy} placeholder={section === GENERALE ? 'Scrivi a Theia…' : `Scrivi in ${section}…`} onSend={(m) => void deliver(m)} />
+          <Composer openAttach={attach} appLang={appLang} busy={busy} placeholder={section === GENERALE ? 'Scrivi a Theia…' : `Scrivi in ${section}…`} onSend={(m) => void deliver(m)} />
         </>
       )}
     </Page>

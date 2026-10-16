@@ -39,6 +39,17 @@ export function nextCard(cards: DeckCard[], swipes: SwipeRec[] | undefined, weig
   if (!pool.length) return null;
   return pool.map((c, i) => ({ c, i, s: scoreOf(c.text, weights) })).sort((a, b) => b.s - a.s || a.i - b.i)[0].c;
 }
+/** Carte ancora da vedere, dalla più adatta alla meno adatta. */
+export function rankedPool<T extends DeckCard>(cards: T[], swipes: SwipeRec[] | undefined, weights: ThemeWeights | undefined, me?: string): T[] {
+  const seen = swipedKeys(swipes), passed = passedKeys(swipes);
+  return cards.filter((c) => !seen.has(c.key) && c.author !== me && !isHidden(c, passed, weights)).map((c, i) => ({ c, i, s: scoreOf(c.text, weights) })).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.c);
+}
+/** Mescola foto e video: a turno (una carta sì e una no) si preferisce un video tra le prime proposte; se non ce ne sono, la prima in classifica. */
+export function pickMixed<T extends DeckCard & { media?: 'photo' | 'video' | null }>(ranked: T[], position: number, window = 14): T | null {
+  if (!ranked.length) return null;
+  if (position % 2 === 0) { const v = ranked.slice(0, window).find((c) => c.media === 'video'); if (v) return v; }
+  return ranked[0];
+}
 export const remaining = (cards: DeckCard[], swipes: SwipeRec[] | undefined, weights: ThemeWeights | undefined, me?: string): number => {
   const seen = swipedKeys(swipes), passed = passedKeys(swipes);
   return cards.filter((c) => !seen.has(c.key) && c.author !== me && !isHidden(c, passed, weights)).length;
