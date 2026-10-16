@@ -1,8 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Linking, Pressable, View } from 'react-native';
+import { Linking, Platform, Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { Icon } from '@/lib/icons';
+import { mapsUrl } from '@/lib/maps';
 import { go } from '@/lib/nav';
 import { TEXT_SIZES, adjustLayers, tintOfFilter, type Story } from '@/lib/stories';
 import { toast } from '@/store/toast';
@@ -39,7 +40,7 @@ export function StoryStickers({ s, bottom }: { s: Story; bottom: number }) {
   const chips: { key: string; icon: string; label: string; onPress?: () => void }[] = [];
   if (s.attach) {
     const a = s.attach;
-    chips.push({ key: 'att', icon: a.kind === 'place' ? 'location' : a.kind === 'event' ? 'calendar' : a.kind === 'idea' ? 'sparkle' : 'users', label: a.label, onPress: a.kind === 'seminar' && a.ref ? () => go('seminarPage', { id: a.ref! }) : a.kind === 'idea' && a.ref ? () => go('ideaProfile', { id: a.ref! }) : a.kind === 'event' ? () => go('plan') : undefined });
+    chips.push({ key: 'att', icon: a.kind === 'place' ? 'location' : a.kind === 'event' ? 'calendar' : a.kind === 'idea' ? 'sparkle' : 'users', label: a.label, onPress: a.kind === 'seminar' && a.ref ? () => go('seminarPage', { id: a.ref! }) : a.kind === 'idea' && a.ref ? () => go('ideaProfile', { id: a.ref! }) : a.kind === 'event' ? () => go('plan') : a.kind === 'place' ? () => { Linking.openURL(mapsUrl(a.label, Platform.OS)).catch(() => toast('Non riesco ad aprire le mappe')); } : undefined });
   }
   for (const p of s.people ?? []) chips.push({ key: 'p' + p, icon: 'profile', label: p, onPress: () => go('userProfile', { name: p }) });
   for (const t of s.tags ?? []) chips.push({ key: 't' + t, icon: 'search', label: '#' + t });

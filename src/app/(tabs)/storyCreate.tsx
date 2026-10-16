@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
@@ -11,6 +11,7 @@ import { t as tl } from '@/i18n/core';
 import { addDaysIso } from '@/lib/calendarMap';
 import { dayKey } from '@/lib/format';
 import { Icon } from '@/lib/icons';
+import { mapsUrl } from '@/lib/maps';
 import { goBack } from '@/lib/nav';
 import { pickNetMediaMany, takeNetPhoto, type NetMedia } from '@/lib/netMedia';
 import { StoryFx, StoryStickers, storyTextStyle } from '@/components/stories/StoryFx';
@@ -282,6 +283,7 @@ export default function StoryCreate() {
         ) : <Body small muted>Segui qualcuno per poterlo taggare.</Body>}
         <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Posizione</Body>
         <Input value={place} onChangeText={(v) => { setPlace(v); setAttachKind(v.trim() ? 'place' : 'none'); setAttach(v.trim() ? { kind: 'place', label: v.trim() } : null); }} placeholder="Es. Parco Ciani, Lugano" maxLength={60} />
+        {place.trim() ? <Btn small ghost icon="location" style={{ marginTop: 8, alignSelf: 'flex-start' }} title="Trova sulla mappa" onPress={() => { Linking.openURL(mapsUrl(place, Platform.OS)).catch(() => toast('Non riesco ad aprire le mappe')); }} /> : null}
         <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Hashtag</Body>
         <Input value={tagsTxt} onChangeText={setTagsTxt} placeholder="Es. #estate #mare" autoCapitalize="none" maxLength={80} />
         <Body bold style={{ marginTop: 14, marginBottom: 6 }}>Link</Body>
