@@ -50,9 +50,10 @@ function NavEditor({ visible, onClose }: { visible: boolean; onClose: () => void
 
   const barH = 64 + insets.bottom;
   const avail = navChoices.filter((id) => !navItems.includes(id));
-  const COLS = 4, TILE_H = 84, HEAD = 46;
+  const COLS = 4, TILE_H = 78, HEAD = 52;
   const innerW = W - 24 - 24, tileW = innerW / COLS;
-  const rows = Math.max(1, Math.ceil(avail.length / COLS));
+  /* il pannello ha sempre la stessa altezza (non salta quando togli o aggiungi un pulsante) */
+  const rows = Math.max(1, Math.ceil((navChoices.length - 2) / COLS));
   const panelH = 12 + HEAD + rows * TILE_H + 12;
   const panelTop = H - barH - 12 - panelH;
   const slotW = W / Math.max(1, navItems.length);
@@ -121,7 +122,7 @@ function NavEditor({ visible, onClose }: { visible: boolean; onClose: () => void
   const cell = (id: string, big?: boolean) => (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
       <Icon name={id} size={big ? 26 : compact ? 20 : 22} color={t.text} />
-      {big || !compact ? <Text numberOfLines={1} style={{ color: t.text, fontSize: 11, marginTop: 4 }}>{navLabelFor(id, language)}</Text> : null}
+      {big || !compact ? <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: t.text, fontSize: big ? 11.5 : 10.5, marginTop: 4, maxWidth: big ? tileW - 4 : W / Math.max(5, navItems.length) - 4 }}>{navLabelFor(id, language)}</Text> : null}
     </View>
   );
   return (
@@ -130,16 +131,16 @@ function NavEditor({ visible, onClose }: { visible: boolean; onClose: () => void
         <Pressable accessibilityRole="button" accessibilityLabel={translateText('Chiudi')} onPress={onClose} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} />
         <View pointerEvents="box-none" style={{ position: 'absolute', start: 12, end: 12, top: panelTop, height: panelH, borderRadius: 22, backgroundColor: t.mode === 'light' ? 'rgba(255,255,255,0.78)' : 'rgba(22,26,40,0.78)', borderWidth: 1, borderColor: t.border, padding: 12 }}>
           <View style={{ height: HEAD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: t.text, fontWeight: '800', fontSize: 15 }}>{translateText('Altri pulsanti')}</Text>
-              <Text style={{ color: t.muted, fontSize: 12 }}>{translateText('Trascinane uno sulla barra: con più di 5 la barra scorre di lato')}</Text>
+            <View style={{ flex: 1, paddingEnd: 10 }}>
+              <Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>{translateText('Altri pulsanti')}</Text>
+              <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }}>{translateText('Trascinali sulla barra')}</Text>
             </View>
             <Pressable onPress={onClose} accessibilityRole="button" hitSlop={8} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, backgroundColor: t.text }}><Text style={{ color: t.onText, fontWeight: '800' }}>{translateText('Fatto')}</Text></Pressable>
           </View>
           {avail.length === 0 ? <Text style={{ color: t.muted, textAlign: 'center', marginTop: 24 }}>{translateText('Sono tutti già nella barra')}</Text> : (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
               {avail.map((id) => (
-                <View key={id} style={{ width: tileW, height: TILE_H, alignItems: 'center', justifyContent: 'center', opacity: drag?.id === id ? 0.25 : 1 }}>{cell(id, true)}</View>
+                <View key={id} style={{ width: '25%', height: TILE_H, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2, opacity: drag?.id === id ? 0.25 : 1 }}>{cell(id, true)}</View>
               ))}
             </View>
           )}
