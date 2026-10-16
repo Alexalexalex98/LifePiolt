@@ -106,6 +106,7 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
   const left = remaining(cards, swipes, weights, me);
   /* la carta successiva è già pronta sotto (foto o anteprima del video): quando la corrente se ne va, c'è subito qualcosa */
   const upcoming: SwipeCandidate | null = useMemo(() => (card ? pickNext(cards as SwipeCandidate[], [...(swipes ?? []), { key: card.key, dir: 'yes', ts: 0 }], weights, me, (swipes ?? []).length + 1) : null), [cards, swipes, weights, me, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const curUnder = card ? (card.media === 'video' ? card.poster : card.uris?.[pic] ?? card.uri) : undefined;
   const upcomingUri = upcoming ? (upcoming.media === 'video' ? upcoming.poster : upcoming.uris?.[0] ?? upcoming.uri) : undefined;
   useLayoutEffect(() => { x.setValue(0); }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const cardRef = useRef(card); cardRef.current = card;
@@ -186,6 +187,8 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
       {backdrop ? <Image source={{ uri: backdrop }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" transition={0} /> : null}
       <Animated.View style={{ flex: 1, backgroundColor: '#000', overflow: 'hidden', borderRadius: dragRad, transform: [{ translateY: dragY }] }}>
       {upcomingUri ? <Image source={{ uri: upcomingUri }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
+      {/* sotto la carta c'è sempre la sua stessa immagine (o l'anteprima del video): finché quella sopra non è pronta non si vede mai un'altra foto */}
+      {curUnder ? <Image key={'under:' + card.key} source={{ uri: curUnder }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
       <Animated.View {...pan.panHandlers} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, transform: [{ translateX: x }, { rotate: rot }] }}>
         <Pressable accessibilityRole="button" accessibilityLabel={isVideo ? tl('Video di {0}. Tocca per mettere in pausa o riprendere, tieni premuto per accelerare', card.author) : tl('Post di {0}', card.author)}
           onPress={() => {

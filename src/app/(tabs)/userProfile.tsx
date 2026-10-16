@@ -203,6 +203,7 @@ export default function UserProfile() {
           <>
             <Btn style={{ flex: 1 }} icon="edit" title="Modifica profilo" onPress={() => go('editProfile')} />
             <Btn style={{ flex: 1 }} ghost icon="briefcase" title="Biglietto" onPress={() => go('cardEditor')} />
+            <Btn ghost icon="chart" title="Statistiche" onPress={() => go('creatorStats')} />
           </>
         ) : (
           <>

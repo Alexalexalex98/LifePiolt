@@ -1,6 +1,6 @@
 import { isDoubleTap, triggerPageRefresh } from '@/lib/pageRefresh';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, PanResponder, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,9 +27,8 @@ export function navLabelFor(id: string, language: Parameters<typeof translate>[0
   return sectionNamesFor(language)[id] || navCatalog[id] || id;
 }
 
-/** Nessun limite pratico: con più di 5 icone la barra scorre di lato. */
-const NAV_MAX = 14;
-const NAV_VISIBLE = 5;
+/** La barra è sempre ferma: fino a 7 icone (oltre 6 i nomi si vedono solo sulla pagina attuale). */
+const NAV_MAX = 7;
 const navChoices = ['home', 'ai', 'plan', 'lifenetwork', 'lifefinance', 'profile', 'lifehealth', 'lifefitness', 'lifenotes', 'lifetravel', 'lifedrive', 'lifetask', 'lifepointsPage', 'settings'];
 
 /** Modalità «Personalizza la barra»: sopra c'è lo spazio con tutti i pulsanti che non sono in barra, sotto la barra stessa.
@@ -73,7 +72,7 @@ function NavEditor({ visible, onClose }: { visible: boolean; onClose: () => void
     const cur = items.current;
     if (inBar(d.y)) {
       if (d.from === 'grid') {
-        if (cur.length >= NAV_MAX) { toast('La barra è piena'); return; }
+        if (cur.length >= NAV_MAX) { toast('La barra può avere al massimo 7 icone'); return; }
         const i = Math.max(0, Math.min(cur.length, Math.round(d.x / (W / (cur.length + 1)) - 0.5)));
         const a = cur.slice(); a.splice(i, 0, d.id); set({ navItems: a });
       } else {
@@ -133,7 +132,7 @@ function NavEditor({ visible, onClose }: { visible: boolean; onClose: () => void
           <View style={{ height: HEAD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, paddingEnd: 10 }}>
               <Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>{translateText('Altri pulsanti')}</Text>
-              <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }}>{translateText('Trascinali sulla barra')}</Text>
+              <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }}>{translateText('Trascinali sulla barra (massimo 7)')}</Text>
             </View>
             <Pressable onPress={onClose} accessibilityRole="button" hitSlop={8} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, backgroundColor: t.text }}><Text style={{ color: t.onText, fontWeight: '800' }}>{translateText('Fatto')}</Text></Pressable>
           </View>
@@ -176,11 +175,9 @@ export function NavBar({ state }: BottomTabBarProps) {
   }
 
   const { width: W } = useWindowDimensions();
-  const barScroll = useRef<ScrollView>(null);
   const lastTap = useRef(0);
-  const pos = useRef<Record<string, number>>({});
-  /* l'icona della pagina attuale resta sempre in vista */
-  const scrollTo = (id: string) => { const x = pos.current[id]; if (x == null) return; const w = W / (NAV_VISIBLE + 0.5); barScroll.current?.scrollTo({ x: Math.max(0, x - (W - w) / 2), animated: true }); };
+  /* chi aveva salvato più di 7 icone (quando la barra scorreva) riparte con le prime 7 */
+  useEffect(() => { if (navItems.length > NAV_MAX) set({ navItems: navItems.slice(0, NAV_MAX) }); }, [navItems, set]);
   const renderItem = (id: string) => {
           const active = id === current;
           const locked = lockedPage(id);
@@ -193,7 +190,7 @@ export function NavBar({ state }: BottomTabBarProps) {
                   <Icon name={id} size={20} color={ink} />
                   {locked && <View style={{ position: 'absolute', end: -7, bottom: -4, backgroundColor: t.nav, borderRadius: 7, padding: 1 }}><Icon name="lock" size={11} color={t.text} stroke={2.4} /></View>}
                 </View>
-                <Text style={{ color: ink, fontSize: 11, marginTop: 2, fontWeight: active ? '700' : '400' }}>{navLabelFor(id, language)}</Text>
+                {navItems.length <= 6 || active ? <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: ink, fontSize: navItems.length >= 6 ? 10 : 11, marginTop: 2, fontWeight: active ? '700' : '400', maxWidth: W / navItems.length - 2 }}>{navLabelFor(id, language)}</Text> : null}
               </Press>
             </TourTarget>
           );
@@ -219,13 +216,7 @@ export function NavBar({ state }: BottomTabBarProps) {
         </View>
       )}
       <View accessibilityRole="tablist" style={{ backgroundColor: t.nav, borderTopWidth: 1, borderTopColor: t.navBorder, paddingTop: 10, paddingBottom: 10 + insets.bottom }}>
-        {navItems.length > NAV_VISIBLE ? (
-          <ScrollView ref={barScroll} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 4 }}>
-            {navItems.map((id) => <View key={id} onLayout={(e) => { pos.current[id] = e.nativeEvent.layout.x; if (id === current) scrollTo(id); }} style={{ width: W / (NAV_VISIBLE + 0.5), alignItems: 'center', justifyContent: 'center' }}>{renderItem(id)}</View>)}
-          </ScrollView>
-        ) : (
-          <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>{navItems.map(renderItem)}</View>
-        )}
+        <View style={{ flexDirection: 'row' }}>{navItems.map((id) => <View key={id} style={{ flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' }}>{renderItem(id)}</View>)}</View>
       </View>
       <NavEditor visible={editing} onClose={() => setEditing(false)} />
     </View>
@@ -242,7 +233,7 @@ export function MenuSheet() {
   const groups = [
     { label: 'Principali', items: [['ai', 'LifeChat'], ['home', sn.home], ['plan', sn.plan]] },
     { label: 'Le tue sezioni', items: [['lifehealth', 'LifeHealth'], ['lifefitness', 'LifeFitness'], ['lifenetwork', 'LifeNetwork'], ['lifefinance', 'LifeFinance'], ['lifenotes', 'LifeNotes'], ['lifetravel', 'LifeTravel'], ['lifedrive', 'LifeDrive'], ['lifetask', 'LifeTask'], ['lifepointsPage', 'LifePoints'], ['myServices', 'I tuoi servizi'], ['myClubs', 'I tuoi LifeClub']] },
-    { label: 'Account', items: [['activity', 'La tua attività'], ['orders', 'I miei ordini'], ['savedPosts', 'Post salvati'], ['importSocial', 'Importa da un altro social'], ['help', 'Aiuto e domande'], ['settings', sn.settings]] },
+    { label: 'Account', items: [['activity', 'La tua attività'], ['creatorStats', 'Le tue statistiche'], ['orders', 'I miei ordini'], ['savedPosts', 'Post salvati'], ['importSocial', 'Importa da un altro social'], ['help', 'Aiuto e domande'], ['settings', sn.settings]] },
   ];
   return (
     <Sheet visible={open} title={translate(language, 'menuTitle')} onClose={() => setMenu(false)}>
@@ -264,7 +255,7 @@ export function MenuSheet() {
                 <Item key={id} last={i === g.items.length - 1} style={{ paddingHorizontal: 14, paddingVertical: 12 }} onPress={() => { setMenu(false); if (locked) requestUnlock(id); else go(id); }}>
                   <Row style={{ justifyContent: 'flex-start', opacity: locked ? 0.5 : 1 }}>
                     <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: color + '22', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name={id} size={17} color={color} stroke={1.9} />
+                      <Icon name={id === 'creatorStats' ? 'chart' : id} size={17} color={color} stroke={1.9} />
                     </View>
                     <Text style={{ color: t.text, fontWeight: '500', flex: 1 }}>{label}</Text>
                     {locked ? <Icon name="lock" size={16} color={t.muted} stroke={2.2} /> : <Chev />}
