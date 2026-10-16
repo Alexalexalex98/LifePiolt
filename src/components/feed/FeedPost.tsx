@@ -1,3 +1,4 @@
+import type { Sponsor } from '@/store/network';
 import { MentionSuggest, MentionText } from '@/components/MentionBox';
 import { snapBackdrop } from '@/lib/storyBackdrop';
 import { SharePostSheet } from '@/components/feed/SharePostSheet';
@@ -5,7 +6,7 @@ import { holdCarousel, releaseCarousel } from '@/lib/feedSwipe';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, TextInput, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated, Easing, Linking, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { Text } from '@/components/T';
 
 import { UserAvatar, openMedia, openSheet } from '@/components/network';
@@ -18,15 +19,29 @@ import { useVisible } from '@/lib/moderation';
 import { fmtAgo, fmtDay } from '@/lib/when';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
+import { mapsUrl } from '@/lib/maps';
 import { toast } from '@/store/toast';
 import { t as tl, translateText } from '@/i18n/core';
 import { captionNeedsMore, isDoubleTap, pageIndex, postLayout } from './feedLogic.ts';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArtPlaceholder, IconBtn, NATIVE, RingAvatar, TextCard } from './parts';
 
-export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; poster?: string; uris?: string[]; editedAt?: number; hideLikes?: boolean; commentsOff?: boolean };
+export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; poster?: string; uris?: string[]; editedAt?: number; hideLikes?: boolean; commentsOff?: boolean; sponsor?: Sponsor };
 
 export const LIKE = '#ff4d6d';
+
+/** Pulsante dell'inserzione: porta alle mappe del telefono sul locale. */
+function SponsorCta({ sponsor, name }: { sponsor: Sponsor; name: string }) {
+  const t = useTheme();
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${sponsor.cta}: ${name}`} onPress={() => { Linking.openURL(mapsUrl(`${name} ${sponsor.place}`, Platform.OS)).catch(() => toast('Non riesco ad aprire le mappe')); }}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingStart: 14, paddingEnd: 8, borderRadius: 999, backgroundColor: t.chip, opacity: pressed ? 0.9 : 1, marginBottom: 4 })}>
+      <Icon name="location" size={15} color={t.muted} />
+      <Text numberOfLines={1} style={{ flex: 1, color: t.muted, fontSize: 13 }}>{sponsor.place}</Text>
+      <View style={{ paddingHorizontal: 16, height: 36, borderRadius: 18, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.onText, fontWeight: '800', fontSize: 13.5 }}>{translateText(sponsor.cta)}</Text></View>
+    </Pressable>
+  );
+}
 
 /** Cuore che compare e svanisce al doppio tocco (con "Riduci animazioni": solo una breve comparsa, senza movimento). */
 export function useHeartBurst() {
@@ -191,7 +206,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
           <RingAvatar name={post.author} size={40} />
           <View style={{ flex: 1 }}>
             <Text numberOfLines={1} style={{ color: t.text, fontSize: 15, fontWeight: '800' }}>{post.author}</Text>
-            {sub ? <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12.5, marginTop: 1 }}>{sub}</Text> : null}
+            {post.sponsor ? <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12.5, marginTop: 1 }}><Text style={{ color: t.accent, fontWeight: '800' }}>{translateText('Sponsorizzato')}</Text>{` · ${post.sponsor.kind} · ${post.sponsor.place}`}</Text> : sub ? <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12.5, marginTop: 1 }}>{sub}</Text> : null}
           </View>
         </Pressable>
         <Pressable onPress={() => openSheet('postMenu', { author: post.author, tag: post.tag, ref: likeKey, label: post.text })} hitSlop={6} accessibilityRole="button" accessibilityLabel={translateText('Altre azioni sul post')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
@@ -222,6 +237,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
       </View>
 
       <View style={{ paddingHorizontal: 14, gap: 5 }}>
+        {post.sponsor ? <SponsorCta sponsor={post.sponsor} name={post.author} /> : null}
         {post.hideLikes && post.author !== me ? null : <Text style={{ color: t.text, fontSize: 14.5, fontWeight: '800' }}>{tl(post.likes === 1 ? 'Piace a {0} persona' : 'Piace a {0} persone', post.likes)}{post.hideLikes ? ` · ${translateText('nascosto agli altri')}` : ''}</Text>}
         {hasMedia && layout === 'classic' && (
           <View>

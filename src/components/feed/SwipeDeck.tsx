@@ -1,9 +1,11 @@
+import { mapsUrl } from '@/lib/maps';
+import type { Sponsor } from '@/store/network';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Animated, PanResponder, Platform, Pressable, View, useWindowDimensions } from 'react-native';
+import { Animated, Linking, PanResponder, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
@@ -14,15 +16,23 @@ import { toast } from '@/store/toast';
 import { t as tl } from '@/i18n/core';
 import { weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
-import { addSignal } from '@/lib/relevance';
-import { SWIPE_SIGNAL, dwellSignal, pickMixed, rankedPool, record, remaining, undoLast, type DeckCard } from '@/lib/swipeDeck';
+import { addSignal, type ThemeWeights } from '@/lib/relevance';
+import { SWIPE_SIGNAL, dwellSignal, pickMixed, rankedPool, record, remaining, undoLast, type DeckCard, type SwipeRec } from '@/lib/swipeDeck';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
-export type SwipeCandidate = DeckCard & { /** per idee e servizi: dove porta il pulsante «apri» */ link?: { page: string; params: Record<string, string> }; tag?: string; uri?: string; poster?: string; /** foto del carosello: nello Swipe non si scorrono, si scelgono */ uris?: string[]; /** file incluso nell'app (require) */ asset?: number; media?: 'photo' | 'video' | null };
+export type SwipeCandidate = DeckCard & { /** per idee e servizi: dove porta il pulsante «apri» */ link?: { page: string; params: Record<string, string> }; /** inserzione di un'attività */ sponsor?: Sponsor; tag?: string; uri?: string; poster?: string; /** foto del carosello: nello Swipe non si scorrono, si scelgono */ uris?: string[]; /** file incluso nell'app (require) */ asset?: number; media?: 'photo' | 'video' | null };
 const buzz = () => { if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined); };
 /** Quando compare la scritta piena («MI INTERESSA») la scelta è presa: il gesto si completa da solo. Prima, il post torna al centro. */
 const THRESHOLD = 64;
+
+/** Prossima carta: ogni cinque scelte tocca a un'inserzione (se ce n'è una non ancora vista), altrimenti la scelta normale per interesse. */
+function pickNext(list: SwipeCandidate[], sw: SwipeRec[] | undefined, weights: ThemeWeights | undefined, me: string, n: number): SwipeCandidate | null {
+  const swiped = new Set((sw ?? []).map((r) => r.key));
+  const ads = list.filter((c) => c.sponsor && !swiped.has(c.key));
+  if (ads.length && n % 5 === 3) return ads[0];
+  return pickMixed(rankedPool(list.filter((c) => !c.sponsor), sw, weights, me), n) as SwipeCandidate | null;
+}
 
 /** Pulsante tondo della colonna di azioni a destra. */
 function RailBtn({ icon, label, onPress, on }: { icon: string; label: string; onPress: () => void; on?: boolean }) {
@@ -88,14 +98,14 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
     /* il contenuto toccato si vede SEMPRE per primo, anche se l'avevi già scelto in passato (come un reel che si apre) */
     const first = startKey && !startDone ? cards.find((c) => c.key === startKey) : undefined;
     if (first) return first;
-    return pickMixed(rankedPool(cards as SwipeCandidate[], swipes, weights, me), (swipes ?? []).length);
+    return pickNext(cards as SwipeCandidate[], swipes, weights, me, (swipes ?? []).length);
   }, [cards, swipes, weights, me, startKey, startDone]);
   /* dopo una scelta la carta pronta sotto passa subito davanti; il salvataggio (e il ricalcolo pesante) arriva dopo, a carta già a schermo */
   const card = forced ?? computed;
   const liked = useNet((s) => !!card && s.likedPosts.includes(card.key));
   const left = remaining(cards, swipes, weights, me);
   /* la carta successiva è già pronta sotto (foto o anteprima del video): quando la corrente se ne va, c'è subito qualcosa */
-  const upcoming: SwipeCandidate | null = useMemo(() => (card ? pickMixed(rankedPool(cards as SwipeCandidate[], [...(swipes ?? []), { key: card.key, dir: 'yes', ts: 0 }], weights, me), (swipes ?? []).length + 1) : null), [cards, swipes, weights, me, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const upcoming: SwipeCandidate | null = useMemo(() => (card ? pickNext(cards as SwipeCandidate[], [...(swipes ?? []), { key: card.key, dir: 'yes', ts: 0 }], weights, me, (swipes ?? []).length + 1) : null), [cards, swipes, weights, me, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const upcomingUri = upcoming ? (upcoming.media === 'video' ? upcoming.poster : upcoming.uris?.[0] ?? upcoming.uri) : undefined;
   useLayoutEffect(() => { x.setValue(0); }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const cardRef = useRef(card); cardRef.current = card;
@@ -194,6 +204,14 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
           <LinearGradient colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0)']} pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, end: 0, height: insets.top + 110 }} />
           <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.78)']} pointerEvents="none" style={{ position: 'absolute', bottom: 0, start: 0, end: 0, height: 330 }} />
         </Pressable>
+        {(card as SwipeCandidate).sponsor ? (
+          <>
+            <View pointerEvents="none" style={{ position: 'absolute', start: 16, top: insets.top + 64, paddingHorizontal: 12, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800', letterSpacing: 0.4 }}>{tl('Sponsorizzato')}</Text></View>
+            <Pressable accessibilityRole="button" accessibilityLabel={`${(card as SwipeCandidate).sponsor!.cta}: ${card.author}`} onPress={() => { Linking.openURL(mapsUrl(`${card.author} ${(card as SwipeCandidate).sponsor!.place}`, Platform.OS)).catch(() => undefined); }} style={{ position: 'absolute', start: 18, end: 84, bottom: insets.bottom + 40, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: '#111', fontSize: 15.5, fontWeight: '800' }}>{tl((card as SwipeCandidate).sponsor!.cta)}</Text>
+            </Pressable>
+          </>
+        ) : null}
         <View pointerEvents="none" style={{ position: 'absolute', start: 18, end: 84, bottom: insets.bottom + 104 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <UserAvatar name={card.author} size={38} />

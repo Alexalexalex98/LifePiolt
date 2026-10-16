@@ -124,13 +124,15 @@ export default function LifeNetwork() {
   const feedItems = useMemo<Item[]>(() => {
     const comm: Item[] = [];
     communities.filter((c) => c.members.includes(me) && visible('community', c.id, c.owner === 'system' ? undefined : c.owner)).forEach((c) => c.posts.forEach((p, pi) => { if (p.media && !p.uri) return; comm.push({ k: 'post', id: `c${c.id}:${pi}`, likeKey: `community:${c.id}:${pi}`, post: keep(`c${c.id}:${pi}`, { author: p.author, text: p.text, media: p.media, tag: c.name, likes: p.likes, ts: p.ts, uri: p.uri, editedAt: p.editedAt }) }); }));
-    const standalone: Item[] = posts.filter((p) => !p.hideFromFeed && !(p.media && !p.uri && !p.uris?.length) && visible('post', 'standalone:' + p.id, p.author)).map((p) => ({ k: 'post', id: 's' + p.id, likeKey: 'standalone:' + p.id, post: keep('s' + p.id, p) }));
+    const standalone: Item[] = posts.filter((p) => !p.sponsor && !p.hideFromFeed && !(p.media && !p.uri && !p.uris?.length) && visible('post', 'standalone:' + p.id, p.author)).map((p) => ({ k: 'post', id: 's' + p.id, likeKey: 'standalone:' + p.id, post: keep('s' + p.id, p) }));
     const ideaItems: Item[] = hideIdeas ? [] : ideas.filter((i) => !mutedIdeaAuthors.includes(i.author) && visible('idea', i.id, i.author)).map((idea) => ({ k: 'idea', id: 'i' + idea.id, idea }));
     /* nella Home c'è tutto: post, idee, seminari, servizi, marketplace e offerte di lavoro (nello Swipe solo post, idee e servizi) */
     const sem: Item[] = seminars.filter((s) => visible('seminar', s.id, s.host)).sort((a, b) => Number(b.promoted) - Number(a.promoted)).map((s) => ({ k: 'seminar', id: 'm' + s.id, s }));
     const svc: Item[] = providers.filter((p) => p.name !== me).map((p) => ({ k: 'service', id: 'p' + p.name, p }));
     const prod: Item[] = (products ?? []).filter((p) => p.shop !== me).map((p) => ({ k: 'product', id: 'pr' + p.id, p }));
     const jobItems: Item[] = jobsList.filter((j) => j.owner !== me && j.status === 'open').map((job) => ({ k: 'job', id: 'j' + job.id, job }));
+    /* inserzioni: una ogni sei contenuti, a partire dal quarto (solo in «Per te») */
+    const ads: Item[] = posts.filter((p) => p.sponsor && visible('post', 'standalone:' + p.id, p.author)).map((p) => ({ k: 'post', id: 's' + p.id, likeKey: 'standalone:' + p.id, post: keep('s' + p.id, p) }));
     const mot: Item[] = pickQuotes(quoteLikes, quoteCount(quoteLikes), Math.floor(Date.now() / 86400000)).map((q) => ({ k: 'quote', id: 'q:' + q.id, q }));
     const rk = (it: Item) => (it.k === 'post' ? it.likeKey : it.k === 'idea' ? `idea:${it.idea.id}` : '');
     /* intreccio: due post, poi un altro tipo di contenuto (idea, servizio, seminario, prodotto, lavoro, frase di Theia a turno), così in «Per te» c'è sempre varietà */
@@ -149,7 +151,12 @@ export default function LifeNetwork() {
       n++;
     }
     /* i consigli di Theia stanno sempre in alto */
-    if (!following) return [...mot, ...applyToFeed(feed, (it) => (it.k === 'post' ? it.likeKey : null), (it) => (it.k === 'post' ? `${it.post.text} ${it.post.tag ?? ''}` : ''), swipes, themeWeights)];
+    if (!following) {
+      const base = applyToFeed(feed, (it) => (it.k === 'post' ? it.likeKey : null), (it) => (it.k === 'post' ? `${it.post.text} ${it.post.tag ?? ''}` : ''), swipes, themeWeights);
+      const withAds = base.slice();
+      ads.forEach((ad, i) => { const at = Math.min(withAds.length, 3 + i * 6); withAds.splice(at, 0, ad); });
+      return [...mot, ...withAds];
+    }
     return [...mot, ...feed.filter((it) => {
       const a = it.k === 'post' ? it.post.author : it.k === 'idea' ? it.idea.author : null;
       return a && followingList.includes(a);
