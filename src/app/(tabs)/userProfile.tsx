@@ -97,9 +97,9 @@ export default function UserProfile() {
 
   const sections: Record<SectionId, React.ReactNode> = {
     badges: badgesFor(name, me).length > 0 ? (
-      <View key="badges" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
-        {badgesFor(name, me).map((b) => <View key={b} style={{ backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}><Text style={{ color: t.text, fontSize: 12.5, fontWeight: '600' }}>{b}</Text></View>)}
-      </View>
+      <ScrollView key="badges" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ marginTop: 16, flexGrow: 0 }}>
+        {badgesFor(name, me).map((b) => <View key={b} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }}><Icon name="award" size={14} color={accent} /><Text style={{ color: t.text, fontSize: 12.5, fontWeight: '700' }}>{b}</Text></View>)}
+      </ScrollView>
     ) : null,
     stats: (
       <View key="stats" style={{ marginTop: 16 }}>
@@ -167,34 +167,38 @@ export default function UserProfile() {
         </Card>
       )}
 
-      {look.banner && isMe && (
-        <View style={{ height: 110, borderRadius: 18, overflow: 'hidden', marginTop: 8 }}>
-          <LinearGradient colors={[look.banner.c1, look.banner.c2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} />{look.banner.uri ? <Image source={{ uri: look.banner.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={150} /> : null}
+      {/* copertina e avatar al centro, nome, ruolo e luogo */}
+      <View style={{ marginTop: 8 }}>
+        <View style={{ height: 156, borderRadius: 28, overflow: 'hidden', backgroundColor: t.card }}>
+          <LinearGradient colors={look.banner && isMe ? [look.banner.c1, look.banner.c2] : [accent, accent + '33']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} />
+          {look.banner && isMe && look.banner.uri ? <Image source={{ uri: look.banner.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={150} /> : null}
+          <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.35)']} pointerEvents="none" style={{ position: 'absolute', bottom: 0, start: 0, end: 0, height: 80 }} />
         </View>
-      )}
-      {/* intestazione: avatar, nome con icona di verifica, ruolo */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: look.banner && isMe ? -28 : 8 }}>
-        <View style={{ borderRadius: 50, borderWidth: look.banner && isMe ? 3 : 0, borderColor: t.bg }}><RingAvatar name={name} size={72} color={accent} /></View>
-        <View style={{ flex: 1, gap: 3, paddingTop: look.banner && isMe ? 30 : 0 }}>
-          <Row gap={4} style={{ justifyContent: 'flex-start' }}>
-            <Text accessibilityRole="header" numberOfLines={1} style={{ color: t.text, fontSize: nameSize, fontWeight: '800', letterSpacing: -0.3, flexShrink: 1 }}>{name}</Text>
+        <View style={{ alignItems: 'center', marginTop: -56 }}>
+          <LinearGradient colors={[accent, '#ff2d87']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 112, height: 112, borderRadius: 56, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: 104, height: 104, borderRadius: 52, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' }}><UserAvatar name={name} size={94} link={false} /></View>
+          </LinearGradient>
+        </View>
+        <View style={{ alignItems: 'center', marginTop: 10, gap: 4 }}>
+          <Row gap={6} style={{ justifyContent: 'center' }}>
+            <Text accessibilityRole="header" numberOfLines={1} style={{ color: t.text, fontSize: nameSize + 4, fontWeight: '900', letterSpacing: -0.5, flexShrink: 1 }}>{name}</Text>
             {(!isMe || look.showVerified) && <IdBadge status={status} preview={isMe && !!idRec.preview} />}
           </Row>
-          <Text style={{ color: t.muted, fontSize: 13.5 }} numberOfLines={2}>{headline}</Text>
+          <Text style={{ color: t.muted, fontSize: 14.5, textAlign: 'center', paddingHorizontal: 16 }} numberOfLines={2}>{headline}</Text>
         </View>
       </View>
       {isMe && (look.place || link) ? (
-        <Row gap={14} style={{ justifyContent: 'flex-start', marginTop: 8, flexWrap: 'wrap' }}>
-          {look.place ? <Row gap={4}><Icon name="location" size={14} color={t.muted} /><Body small muted>{look.place}</Body></Row> : null}
-          {link ? <Pressable onPress={() => Linking.openURL(link).catch(() => toast('Non riesco ad aprire il link'))} accessibilityRole="link" hitSlop={8}><Row gap={4}><Icon name="link" size={14} color={accent} /><Text numberOfLines={1} style={{ color: accent, fontSize: 13, fontWeight: '600', maxWidth: 220 }}>{look.link.replace(/^https?:\/\//i, '')}</Text></Row></Pressable> : null}
+        <Row gap={8} style={{ justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+          {look.place ? <Row gap={5} style={{ backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}><Icon name="location" size={14} color={t.muted} /><Body small muted>{look.place}</Body></Row> : null}
+          {link ? <Pressable onPress={() => Linking.openURL(link).catch(() => toast('Non riesco ad aprire il link'))} accessibilityRole="link" hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}><Icon name="link" size={14} color={accent} /><Text numberOfLines={1} style={{ color: accent, fontSize: 13, fontWeight: '700', maxWidth: 200 }}>{link.replace(/^https?:\/\//, '')}</Text></Pressable> : null}
         </Row>
       ) : null}
-      {isMe && look.headline && net.bio ? <Text style={{ color: t.text, fontSize: 14.5, lineHeight: 21, marginTop: 8 }}>{net.bio}</Text> : null}
+      {isMe && look.headline && net.bio ? <Text style={{ color: t.text, fontSize: 14.5, lineHeight: 21, marginTop: 10, textAlign: 'center' }}>{net.bio}</Text> : null}
 
-      <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
         {isMe ? (
           <>
-            <Btn style={{ flex: 1 }} ghost title="Modifica profilo" onPress={() => go('editProfile')} />
+            <Btn style={{ flex: 1 }} icon="edit" title="Modifica profilo" onPress={() => go('editProfile')} />
             <Btn style={{ flex: 1 }} ghost icon="briefcase" title="Biglietto" onPress={() => go('cardEditor')} />
           </>
         ) : (
@@ -219,15 +223,26 @@ export default function UserProfile() {
         </Card>
       )}
 
-      {fixedList.length > 0 && !(blockedUser || (!isMe && !visible('profile', name))) ? (
-        <View style={{ marginTop: 16 }}>
-          <Text accessibilityRole="header" style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, marginBottom: 8 }}>{tl('IN EVIDENZA')}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+      {(fixedList.length > 0 || isMe) && !(blockedUser || (!isMe && !visible('profile', name))) ? (
+        <View style={{ marginTop: 22 }}>
+          <Text accessibilityRole="header" style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, marginBottom: 10 }}>{tl('IN EVIDENZA')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingEnd: 8 }}>
+            {isMe ? (
+              <Pressable onPress={() => go('storyCreate')} accessibilityRole="button" accessibilityLabel={tl('Aggiungi un momento fisso')} style={{ width: 72, alignItems: 'center', gap: 6 }}>
+                <View style={{ width: 68, height: 68, borderRadius: 34, borderWidth: 1.5, borderStyle: 'dashed', borderColor: t.muted, alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={26} color={t.muted} /></View>
+                <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12 }}>{tl('Nuovo')}</Text>
+              </Pressable>
+            ) : null}
             {fixedList.map((m) => (
-              <Pressable key={m.id} onPress={() => go('storyView', { author: name, fixed: '1', at: m.id })} accessibilityRole="button" accessibilityLabel={m.text ? `${tl('Momento fisso')}: ${m.text}` : tl('Momento fisso')} style={{ width: 76, height: 104, borderRadius: 16, overflow: 'hidden', borderWidth: 2, borderColor: accent, backgroundColor: t.card }}>
-                {m.kind === 'photo' ? <Image source={{ uri: m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-                  : m.kind === 'video' ? <VideoPoster uri={m.uri} poster={m.poster} width={72} height={100} />
-                  : <LinearGradient colors={m.bg ?? ['#6c8cff', '#3b2a7a']} style={{ flex: 1, padding: 6, justifyContent: 'center' }}><Text numberOfLines={5} style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{m.text}</Text></LinearGradient>}
+              <Pressable key={m.id} onPress={() => go('storyView', { author: name, fixed: '1', at: m.id })} accessibilityRole="button" accessibilityLabel={m.text ? `${tl('Momento fisso')}: ${m.text}` : tl('Momento fisso')} style={{ width: 72, alignItems: 'center', gap: 6 }}>
+                <LinearGradient colors={[accent, '#ff2d87']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ width: 66, height: 66, borderRadius: 33, overflow: 'hidden', borderWidth: 2.5, borderColor: t.bg, backgroundColor: t.card }}>
+                    {m.kind === 'photo' ? <Image source={{ uri: m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                      : m.kind === 'video' ? <VideoPoster uri={m.uri} poster={m.poster} width={66} height={66} />
+                      : <LinearGradient colors={m.bg ?? ['#6c8cff', '#3b2a7a']} style={{ flex: 1 }} />}
+                  </View>
+                </LinearGradient>
+                <Text numberOfLines={1} style={{ color: t.text, fontSize: 12, fontWeight: '600' }}>{m.text ? m.text.slice(0, 10) : tl('Fisso')}</Text>
               </Pressable>
             ))}
           </ScrollView>
