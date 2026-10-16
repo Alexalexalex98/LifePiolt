@@ -35,18 +35,11 @@ export function chunk<T>(arr: T[], n: number): T[][] {
   return out;
 }
 
-export type PostLayout = 'text' | 'classic' | 'overlay' | 'story';
-/** Come si presenta un post: solo frase, foto/video con didascalia sotto, didascalia sopra la foto, oppure frase prima e foto dopo. Stesso post = stesso aspetto. */
-export function postLayout(p: { author: string; text: string; media?: 'photo' | 'video' | null }, count = 1): PostLayout {
+export type PostLayout = 'text' | 'classic' | 'overlay';
+/** Due soli aspetti: la scritta sopra la foto (predefinito) o la didascalia fissa sotto, come primo commento. Chi non sceglie, o importa da altrove, ha la scritta sulla foto. */
+export function postLayout(p: { author: string; text: string; media?: 'photo' | 'video' | null; captionMode?: 'photo' | 'below' }): PostLayout {
   if (!p.media) return 'text';
-  if (count > 1) return 'classic';
-  let h = 5;
-  const s = p.author + p.text;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  const k = Math.abs(h) % 3;
-  if (k === 0) return 'classic';
-  if (k === 1) return 'overlay';
-  return p.media === 'photo' ? 'story' : 'overlay';
+  return p.captionMode === 'below' ? 'classic' : 'overlay';
 }
 
 /**

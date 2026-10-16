@@ -217,7 +217,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
   const sendDraft = () => { const x = draft.trim(); if (!x) return; useNet.getState().addComment(likeKey, me, x); setDraft(''); };
   const first = (comments || [])[(comments || []).length - 1];
   const hasMedia = !!post.media;
-  const layout = postLayout(post, post.uris?.length ?? 1);
+  const layout = postLayout(post);
   const more = hasMedia && captionNeedsMore(post.text);
   const sub = [post.tag ?? role, fmtAgo(post.ts), post.editedAt ? translateText('modificato') : ''].filter(Boolean).join(' · ');
 
@@ -242,10 +242,7 @@ export const FeedPost = memo(function FeedPost({ post, likeKey }: { post: FeedPo
       </View>
 
       <SharePostSheet visible={sharing} onClose={() => setSharing(false)} author={post.author} text={post.text} media={post.media} uri={post.uri ?? post.uris?.[0]} likeKey={likeKey} />
-      {layout === 'story' ? <Text style={{ color: t.text, fontSize: 18, lineHeight: 26, fontWeight: '700', letterSpacing: -0.2, paddingHorizontal: 14, paddingBottom: 12 }}>{post.text}</Text> : null}
-      {layout === 'story' ? (
-        <View style={{ marginHorizontal: 12, borderRadius: 20, overflow: 'hidden' }}><MediaArea post={post} w={w - 24} onDouble={doubleLike} onSingle={single} heart={heart} /></View>
-      ) : layout === 'overlay' ? (
+      {layout === 'overlay' ? (
         <View>
           <MediaArea post={post} w={w} onDouble={doubleLike} onSingle={single} heart={heart} />
           <LinearGradient pointerEvents="none" colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.72)']} style={{ position: 'absolute', start: 0, end: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 56, paddingBottom: 16 }}>

@@ -844,11 +844,12 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
   const d = resume ? (drafts.newPost as { text: string; tag: string; media: NetMedia | null } | undefined) : undefined;
   const [text, setText] = useState(d?.text ?? prefill ?? '');
   const [dish, setDish] = useState<string | null>(null);
+  const [capMode, setCapMode] = useState<'photo' | 'below'>('photo');
   const myMenu = useMenus((x) => x.byOwner[me]); const [tag, setTag] = useState(d?.tag ?? topicList[0]); const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
   const t = useTheme();
   const publish = () => {
     if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
-    net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, tag, likes: 0, ts: Date.now(), ...(dish ? { menuItem: dish } : {}) }, ...net.posts] });
+    net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, tag, likes: 0, ts: Date.now(), ...(dish ? { menuItem: dish } : {}), ...(media && capMode === 'below' ? { captionMode: 'below' as const } : {}) }, ...net.posts] });
     delete drafts.newPost;
     close(); toast('Post pubblicato');
   };
@@ -880,6 +881,16 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
         <Text style={{ color: t.muted, fontSize: 12 }}>{text.length}/{MAX_POST}</Text>
       </View>
       <MediaPickerField value={media} onChange={setMedia} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'newPost', { text, tag, media }, () => openSheet('newPost', { resume: true })) : undefined} />
+      {/* la scritta: sulla foto oppure didascalia fissa sotto, come primo commento */}
+      {media && text.trim() ? (
+        <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', backgroundColor: t.chip, borderRadius: 14, padding: 4, marginBottom: 10 }}>
+          {([['photo', 'Scritta sulla foto'], ['below', 'Didascalia fissa']] as const).map(([k, l]) => (
+            <Pressable key={k} accessibilityRole="radio" accessibilityState={{ selected: capMode === k }} accessibilityLabel={translateText(l)} onPress={() => setCapMode(k)} style={{ flex: 1, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: capMode === k ? t.accent : 'transparent' }}>
+              <Text style={{ color: capMode === k ? t.onText : t.text, fontWeight: '800', fontSize: 13.5 }}>{translateText(l)}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       {/* chi ha un menù può legare il post a un piatto: si vede cos'è e quanto costa */}
       {myMenu && myMenu.items.length ? (
         <View style={{ marginBottom: 8 }}>
