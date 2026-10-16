@@ -1,5 +1,4 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, View, useWindowDimensions } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { openSheet, useNetSheet } from '@/components/network';
@@ -10,40 +9,46 @@ import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { useIdentity } from '@/store/identity';
 
-type Tile = { key: string; icon: string; title: string; sub: string; colors: [string, string]; run: () => void; wide?: boolean };
+type Tile = { key: string; icon: string; title: string; sub: string; run: () => void };
 
-/** «Crea»: da qui si pubblica qualsiasi contenuto dell'app. Foto, video e frasi vanno in un post, il recap ha la sua schermata. */
+/** «Crea»: da qui si pubblica qualsiasi contenuto dell'app. Sobrio: un solo colore (quello dell'app), icone nitide, testo chiaro. */
 export function CreateHubView() {
   const t = useTheme();
   const me = useApp((s) => s.account.name);
   const hasBusiness = useIdentity((x) => x.businesses).some((b) => b.owner === me);
-  const { width } = useWindowDimensions();
   const close = () => useNetSheet.getState().close();
   const page = (p: string, params?: Record<string, string>) => () => { close(); go(p, params); };
+  const main: Tile = { key: 'post', icon: 'image', title: 'Post', sub: 'Foto, video o una frase', run: () => openSheet('newPost') };
   const tiles: Tile[] = [
-    { key: 'post', icon: 'image', title: 'Post', sub: 'Foto, video o una frase', colors: ['#7b5cff', '#c13fd6'], run: () => openSheet('newPost'), wide: true },
-    { key: 'recap', icon: 'sparkle', title: 'Recap', sub: 'Un momento per 24 ore', colors: ['#ff7a59', '#ff2d87'], run: page('storyCreate') },
-    { key: 'idea', icon: 'poll', title: 'Idea', sub: 'Raccogli sostegno', colors: ['#16c79a', '#1f7ae0'], run: () => openSheet('newIdea') },
-    { key: 'seminar', icon: 'calendar', title: 'Seminario', sub: 'Un evento con date', colors: ['#f5a623', '#e8543a'], run: () => openSheet('newSeminar') },
-    { key: 'service', icon: 'briefcase', title: 'Servizio o attività', sub: 'Offri il tuo lavoro', colors: ['#4facfe', '#5b6cff'], run: page('businessCreate') },
-    { key: 'job', icon: 'contact', title: 'Offerta di lavoro', sub: 'Cerca persone', colors: ['#38d9a9', '#12a37a'], run: page('jobEdit') },
-    { key: 'shop', icon: 'orders', title: 'Prodotto', sub: hasBusiness ? 'Nel tuo negozio' : 'Prima crea un’attività', colors: ['#b197fc', '#7048e8'], run: hasBusiness ? page('shopPage', { name: me }) : page('businessCreate') },
-    { key: 'community', icon: 'users', title: 'Community', sub: 'Un gruppo tematico', colors: ['#ff6b8b', '#d6336c'], run: () => openSheet('newCommunity') },
+    { key: 'recap', icon: 'sparkle', title: 'Recap', sub: 'Un momento per 24 ore', run: page('storyCreate') },
+    { key: 'idea', icon: 'poll', title: 'Idea', sub: 'Raccogli sostegno', run: () => openSheet('newIdea') },
+    { key: 'seminar', icon: 'calendar', title: 'Seminario', sub: 'Un evento con date', run: () => openSheet('newSeminar') },
+    { key: 'service', icon: 'briefcase', title: 'Servizio o attività', sub: 'Offri il tuo lavoro', run: page('businessCreate') },
+    { key: 'job', icon: 'contact', title: 'Offerta di lavoro', sub: 'Cerca persone', run: page('jobEdit') },
+    { key: 'shop', icon: 'orders', title: 'Prodotto', sub: hasBusiness ? 'Nel tuo negozio' : 'Prima crea un’attività', run: hasBusiness ? page('shopPage', { name: me }) : page('businessCreate') },
+    { key: 'community', icon: 'users', title: 'Community', sub: 'Un gruppo tematico', run: () => openSheet('newCommunity') },
   ];
-  const w = (width - 32 - 12) / 2;
   return (
-    <View>
-      <Text style={{ color: t.muted, fontSize: 13.5, marginBottom: 14 }}>{tl('Cosa vuoi pubblicare?')}</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        {tiles.map((x) => (
-          <Pressable key={x.key} accessibilityRole="button" accessibilityLabel={`${tl(x.title)}. ${tl(x.sub)}`} onPress={x.run} style={({ pressed }) => ({ width: x.wide ? width - 32 : w, transform: [{ scale: pressed ? 0.97 : 1 }] })}>
-            <LinearGradient colors={x.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 22, padding: 14, minHeight: x.wide ? 92 : 118, justifyContent: 'space-between', flexDirection: x.wide ? 'row' : 'column', alignItems: x.wide ? 'center' : 'flex-start', gap: 10 }}>
-              <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' }}><Icon name={x.icon as never} size={22} color="#fff" /></View>
-              <View style={{ flex: x.wide ? 1 : undefined }}>
-                <Text style={{ color: '#fff', fontSize: 17, fontWeight: '900' }}>{tl(x.title)}</Text>
-                <Text style={{ color: 'rgba(255,255,255,0.88)', fontSize: 12.5, marginTop: 2 }}>{tl(x.sub)}</Text>
-              </View>
-            </LinearGradient>
+    <View style={{ gap: 10 }}>
+      {/* azione principale */}
+      <Pressable accessibilityRole="button" accessibilityLabel={`${tl(main.title)}. ${tl(main.sub)}`} onPress={main.run} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 20, backgroundColor: t.accent, opacity: pressed ? 0.9 : 1 })}>
+        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' }}><Icon name={main.icon as never} size={22} color={t.onText} /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: t.onText, fontSize: 17, fontWeight: '800' }}>{tl(main.title)}</Text>
+          <Text style={{ color: t.onText, opacity: 0.8, fontSize: 13, marginTop: 2 }}>{tl(main.sub)}</Text>
+        </View>
+        <Icon name="chevron-right" size={20} color={t.onText} />
+      </Pressable>
+      {/* tutto il resto, in elenco ordinato */}
+      <View style={{ backgroundColor: t.card, borderRadius: 20, borderWidth: 1, borderColor: t.item, overflow: 'hidden' }}>
+        {tiles.map((x, i) => (
+          <Pressable key={x.key} accessibilityRole="button" accessibilityLabel={`${tl(x.title)}. ${tl(x.sub)}`} onPress={x.run} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 13, paddingHorizontal: 16, borderTopWidth: i ? 1 : 0, borderTopColor: t.item, backgroundColor: pressed ? t.chip : 'transparent' })}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name={x.icon as never} size={19} color={t.accent} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.text, fontSize: 15.5, fontWeight: '700' }}>{tl(x.title)}</Text>
+              <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 1 }}>{tl(x.sub)}</Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={t.muted} />
           </Pressable>
         ))}
       </View>

@@ -2,8 +2,8 @@ import { CreateHubView } from '@/components/feed/CreateHub';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Platform, Pressable, Share, View } from 'react-native';
-import { Text } from '@/components/T';
+import { Platform, Pressable, ScrollView, Share, View } from 'react-native';
+import { Text, TextInput } from '@/components/T';
 
 import { SPONSORED_TEXT } from '@/components/market';
 import { IdeaCard, LpTag, type ModTarget, MediaViewer, UserAvatar, doContribute, openPurchaseConfirm, openSheet, useNetSheet } from '@/components/network';
@@ -812,18 +812,38 @@ function NewPostView({ resume }: { resume?: boolean }) {
   const close = useNetSheet((s) => s.close);
   const d = resume ? (drafts.newPost as { text: string; tag: string; media: NetMedia | null } | undefined) : undefined;
   const [text, setText] = useState(d?.text ?? ''); const [tag, setTag] = useState(d?.tag ?? topicList[0]); const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
+  const t = useTheme();
+  const publish = () => {
+    if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
+    net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, tag, likes: 0, ts: Date.now() }, ...net.posts] });
+    delete drafts.newPost;
+    close(); toast('Post pubblicato');
+  };
+  const ready = !!text.trim() || !!media;
   return (
-    <>
-      <Input multiline placeholder="Cosa vuoi condividere?" value={text} onChangeText={setText} />
-      <Select title="Argomento" value={tag} options={topicList} onChange={setTag} />
+    <View style={{ gap: 4 }}>
+      {/* chi sei e dove pubblichi */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+        <UserAvatar name={me} size={44} link={false} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>{me}</Text>
+          <Text style={{ color: t.muted, fontSize: 12.5 }}>{translateText('Pubblichi in')} {tag}</Text>
+        </View>
+      </View>
+      {/* testo senza riquadro: si scrive e basta */}
+      <TextInput multiline autoFocus={false} value={text} onChangeText={setText} maxLength={MAX_POST} placeholder={translateText('Cosa vuoi condividere?')} placeholderTextColor={t.muted} accessibilityLabel={translateText('Testo del post')}
+        style={{ color: t.text, fontSize: 19, lineHeight: 27, minHeight: 120, textAlignVertical: 'top', paddingVertical: 8 }} />
+      <Text style={{ color: t.muted, fontSize: 12, alignSelf: 'flex-end', marginBottom: 8 }}>{text.length}/{MAX_POST}</Text>
       <MediaPickerField value={media} onChange={setMedia} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'newPost', { text, tag, media }, () => openSheet('newPost', { resume: true })) : undefined} />
-      <Btn title="Pubblica" onPress={() => {
-        if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
-        net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, tag, likes: 0, ts: Date.now() }, ...net.posts] });
-        delete drafts.newPost;
-        close(); toast('Post pubblicato');
-      }} />
-    </>
+      {/* argomento: scegli con un tocco */}
+      <Text style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, marginTop: 2, marginBottom: 6 }}>{translateText('ARGOMENTO')}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }} style={{ flexGrow: 0 }}>
+        {topicList.map((x) => <Pill key={x} label={x} on={tag === x} onPress={() => setTag(x)} />)}
+      </ScrollView>
+      <Pressable accessibilityRole="button" accessibilityState={{ disabled: !ready }} accessibilityLabel={translateText('Pubblica')} onPress={publish} style={({ pressed }) => ({ marginTop: 16, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', backgroundColor: ready ? t.accent : t.chip, opacity: pressed ? 0.9 : 1 })}>
+        <Text style={{ color: ready ? t.onText : t.muted, fontSize: 16.5, fontWeight: '800' }}>{translateText('Pubblica')}</Text>
+      </Pressable>
+    </View>
   );
 }
 

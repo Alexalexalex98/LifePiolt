@@ -56,9 +56,9 @@ export function ShareStorySheet({ visible, onClose, story }: { visible: boolean;
   const copy = async () => { try { await Clipboard.setStringAsync(LINK(story)); toast('Link copiato'); } catch { toast('Non riesco a copiare il link'); } done(); };
   const other = async () => { try { await Share.share({ message: `${tl('Recap di {0}', story.author)}${story.text ? `: ${story.text}` : ''} ${LINK(story)}` }); } catch { /* annullato */ } done(); };
 
-  const tile = (icon: string, label: string, colors: [string, string], onPress: () => void) => (
+  const tile = (icon: string, label: string, onPress: () => void) => (
     <Pressable key={label} accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => ({ flex: 1, alignItems: 'center', gap: 7, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
-      <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center' }}><Icon name={icon as never} size={24} color="#fff" /></LinearGradient>
+      <View style={{ width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: t.chip }}><Icon name={icon as never} size={24} color={t.text} /></View>
       <Text numberOfLines={2} style={{ color: t.text, fontSize: 11.5, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
     </Pressable>
   );
@@ -96,17 +96,17 @@ export function ShareStorySheet({ visible, onClose, story }: { visible: boolean;
         })}
       </ScrollView>
       <Pressable accessibilityRole="button" accessibilityState={{ disabled: !sel.length }} accessibilityLabel={sel.length ? tl('Invia a {0}', sel.length) : tl('Scegli una persona')} disabled={!sel.length} onPress={sendTo} style={({ pressed }) => ({ marginTop: 14, opacity: sel.length ? 1 : 0.45, transform: [{ scale: pressed ? 0.98 : 1 }] })}>
-        <LinearGradient colors={['#7b5cff', '#ff2d87']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 52, borderRadius: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <Icon name="send" size={20} color="#fff" />
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>{sel.length ? tl('Invia a {0}', sel.length) : tl('Scegli una persona')}</Text>
-        </LinearGradient>
+        <View style={{ height: 52, borderRadius: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: t.accent }}>
+          <Icon name="send" size={20} color={t.onText} />
+          <Text style={{ color: t.onText, fontSize: 16, fontWeight: '800' }}>{sel.length ? tl('Invia a {0}', sel.length) : tl('Scegli una persona')}</Text>
+        </View>
       </Pressable>
 
       {/* altre strade */}
       <View style={{ flexDirection: 'row', gap: 6, marginTop: 22, marginBottom: 6 }}>
-        {tile('plus', tl('Aggiungi al tuo recap'), ['#7b5cff', '#c13fd6'], toMyRecap)}
-        {tile('link', tl('Copia il link'), ['#16c79a', '#1f7ae0'], () => void copy())}
-        {tile('share', tl('Altre app'), ['#f5a623', '#e8543a'], () => void other())}
+        {tile('plus', tl('Aggiungi al tuo recap'), toMyRecap)}
+        {tile('link', tl('Copia il link'), () => void copy())}
+        {tile('share', tl('Altre app'), () => void other())}
       </View>
     </Sheet>
   );

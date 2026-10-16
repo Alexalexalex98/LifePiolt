@@ -112,7 +112,7 @@ export function Composer({ me, onPress, onPhoto }: { me: string; onPress: () => 
         <Text numberOfLines={1} style={{ color: t.muted, fontSize: 15 }}>Cosa vuoi condividere?</Text>
       </Pressable>
       <Pressable onPress={onPhoto ?? onPress} accessibilityRole="button" accessibilityLabel={translateText('Crea: post, recap, idea, seminario e altro')} style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.93 : 1 }] })}>
-        <LinearGradient colors={['#7b5cff', '#ff2d87']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={24} color="#fff" stroke={2.8} /></LinearGradient>
+        <View style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: t.accent }}><Icon name="plus" size={24} color={t.onText} stroke={2.6} /></View>
       </Pressable>
     </View>
   );

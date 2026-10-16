@@ -67,10 +67,14 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
   // segno la storia come vista
   useEffect(() => {
     /* conta come vista solo quando si vede davvero (foto subito, video dal primo fotogramma) */
-    if (!cur || mine || !ready) return;
-    const st = useNet.getState();
-    if (!(st.storySeen ?? []).includes(cur.id)) st.patch({ storySeen: [...(st.storySeen ?? []), cur.id], stories: addView(st.stories ?? [], cur.id, me) });
-  }, [cur?.id, ready]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!cur || mine || !ready || !focused) return;
+    /* visto = guardato per almeno 1,5 secondi (un tocco al volo o un passaggio veloce non conta) */
+    const h = setTimeout(() => {
+      const st = useNet.getState();
+      if (!(st.storySeen ?? []).includes(cur.id)) st.patch({ storySeen: [...(st.storySeen ?? []), cur.id], stories: addView(st.stories ?? [], cur.id, me) });
+    }, 1500);
+    return () => clearTimeout(h);
+  }, [cur?.id, ready, focused]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setP(0); setReady(false); }, [i]);
   useEffect(() => { if (ready || !cur) return; if (cur.kind !== 'video') { setReady(true); return; } const h = setTimeout(() => setReady(true), 3000); return () => clearTimeout(h); }, [cur?.id, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   /* anteprime e file dei momenti successivi si scaricano in anticipo, così non si aspetta al cambio */

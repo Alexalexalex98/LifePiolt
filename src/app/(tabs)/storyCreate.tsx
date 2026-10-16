@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
 import { Body, Btn, Input, Pill, Row, Sheet } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { addDaysIso } from '@/lib/calendarMap';
 import { dayKey } from '@/lib/format';
@@ -27,6 +28,8 @@ const buzz = () => { if (Platform.OS !== 'web') void Haptics.selectionAsync().ca
 
 /** Aggiungere al recap: scegli come (galleria, fotocamera, testo), poi ritocca con filtri e scritta e pubblica. Tutto in una schermata. */
 export default function StoryCreate() {
+  const th = useTheme();
+  const accent = th.accent, onAccent = th.onText;
   const me = useApp((s) => s.account.name);
   const net = useNet();
   const insets = useSafeAreaInsets();
@@ -108,30 +111,28 @@ export default function StoryCreate() {
 
   /* ---------- 1. come vuoi iniziare ---------- */
   if (!composing) {
-    const tile = (icon: string, label: string, sub: string, colors: [string, string], onPress: () => void, rot: string) => (
-      <Pressable key={label} accessibilityRole="button" accessibilityLabel={`${label}. ${sub}`} onPress={onPress} disabled={busy} style={({ pressed }) => ({ width: (width - 56) / 2, transform: [{ rotate: rot }, { scale: pressed ? 0.96 : 1 }] })}>
-        <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 170, borderRadius: 26, padding: 16, justifyContent: 'space-between' }}>
-          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' }}>{icon === 'Aa' ? <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>Aa</Text> : <Icon name={icon as never} size={24} color="#fff" />}</View>
-          <View><Text style={{ color: '#fff', fontSize: 20, fontWeight: '900' }}>{label}</Text><Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12.5, marginTop: 2 }}>{sub}</Text></View>
-        </LinearGradient>
+    const tile = (icon: string, label: string, sub: string, onPress: () => void) => (
+      <Pressable key={label} accessibilityRole="button" accessibilityLabel={`${label}. ${sub}`} onPress={onPress} disabled={busy} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 20, backgroundColor: pressed ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' })}>
+        <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: accent + '26', alignItems: 'center', justifyContent: 'center' }}>{icon === 'Aa' ? <Text style={{ color: accent, fontWeight: '900', fontSize: 17 }}>Aa</Text> : <Icon name={icon as never} size={22} color={accent} />}</View>
+        <View style={{ flex: 1 }}><Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>{label}</Text><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12.5, marginTop: 2 }}>{sub}</Text></View>
+        <Icon name="chevron-right" size={18} color="rgba(255,255,255,0.45)" />
       </Pressable>
     );
     return (
       <View style={{ flex: 1, backgroundColor: '#07080d' }}>
-        <LinearGradient colors={['#2a1458', '#07080d']} style={{ position: 'absolute', top: 0, start: 0, end: 0, height: height * 0.5 }} />
         <View style={{ paddingTop: insets.top + 10, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center' }}>
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={goBack} hitSlop={12} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={20} color="#fff" /></Pressable>
         </View>
         <View style={{ paddingHorizontal: 24, marginTop: 24 }}>
           <Text style={{ color: '#fff', fontSize: 38, fontWeight: '900', letterSpacing: -1 }}>{tl('Cosa stai')}</Text>
-          <Text style={{ color: '#b9a3ff', fontSize: 38, fontWeight: '900', letterSpacing: -1 }}>{tl('combinando?')}</Text>
+          <Text style={{ color: accent, fontSize: 38, fontWeight: '900', letterSpacing: -1 }}>{tl('combinando?')}</Text>
           <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 15, marginTop: 8 }}>{tl('Aggiungi un momento al tuo recap.')}</Text>
         </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingHorizontal: 20, marginTop: 28 }}>
-          {tile('image', tl('Galleria'), tl('Foto e video, anche più insieme'), ['#7b5cff', '#c13fd6'], () => void fromGallery(), '-2deg')}
-          {tile('camera', tl('Fotocamera'), tl('Scatta adesso'), ['#ff7a59', '#ff2d87'], () => void fromCamera(), '2deg')}
-          {tile('share', tl('Condividi'), tl('Un evento, un’idea, un seminario, un luogo'), ['#f5a623', '#e8543a'], () => setShare(true), '-1.5deg')}
-          {tile('Aa', tl('Solo testo'), tl('Una frase su un colore'), ['#16c79a', '#1f7ae0'], () => { setTextMode(true); buzz(); }, '1.5deg')}
+        <View style={{ gap: 10, paddingHorizontal: 20, marginTop: 28 }}>
+          {tile('image', tl('Galleria'), tl('Foto e video, anche più insieme'), () => void fromGallery())}
+          {tile('camera', tl('Fotocamera'), tl('Scatta adesso'), () => void fromCamera())}
+          {tile('share', tl('Condividi'), tl('Un evento, un’idea, un seminario, un luogo'), () => setShare(true))}
+          {tile('Aa', tl('Solo testo'), tl('Una frase su un colore'), () => { setTextMode(true); buzz(); })}
         </View>
         <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, textAlign: 'center', marginTop: 'auto', paddingBottom: insets.bottom + 18, paddingHorizontal: 30 }}>{tl('Il momento resta nel recap per 24 ore, se non scegli altro. Lo vede chi ti segue.')}</Text>
         {shareSheet}
@@ -226,7 +227,7 @@ export default function StoryCreate() {
         {active.id === 'regola' ? (
           <View style={{ paddingHorizontal: 22, gap: 6 }}>
             {sliders.map((sl) => <Slider key={sl.k} label={tl(sl.label)} value={adj[sl.k]} min={sl.min} onChange={(v) => setAdj((a) => ({ ...a, [sl.k]: v }))} />)}
-            {isAdjusted(adj) ? <Pressable accessibilityRole="button" onPress={() => setAdj(NO_ADJUST)} style={{ alignSelf: 'flex-end' }}><Text style={{ color: '#b9a3ff', fontWeight: '800', fontSize: 12.5 }}>{tl('Azzera i ritocchi')}</Text></Pressable> : null}
+            {isAdjusted(adj) ? <Pressable accessibilityRole="button" onPress={() => setAdj(NO_ADJUST)} style={{ alignSelf: 'flex-end' }}><Text style={{ color: accent, fontWeight: '800', fontSize: 12.5 }}>{tl('Azzera i ritocchi')}</Text></Pressable> : null}
           </View>
         ) : null}
         {active.id === 'testo' ? (
@@ -259,7 +260,7 @@ export default function StoryCreate() {
             );
           })}
         </ScrollView>
-        <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi: persone, luogo, hashtag, link')} onPress={() => { buzz(); setAdd(true); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 42, paddingHorizontal: 14, borderRadius: 21, backgroundColor: '#7b5cff' }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi: persone, luogo, hashtag, link')} onPress={() => { buzz(); setAdd(true); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 42, paddingHorizontal: 14, borderRadius: 21, backgroundColor: accent }}>
           <Icon name="plus" size={18} color="#fff" stroke={3} />
           <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>{addedCount ? `${tl('Aggiungi')} · ${addedCount}` : tl('Aggiungi')}</Text>
         </Pressable>
@@ -267,10 +268,10 @@ export default function StoryCreate() {
 
       <View style={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 12 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al recap')} onPress={publish} style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.97 : 1 }] })}>
-          <LinearGradient colors={['#7b5cff', '#ff2d87']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 56, borderRadius: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            <Icon name="plus" size={22} color="#fff" />
-            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '900' }}>{items.length > 1 ? tl('Aggiungi {0} momenti', items.length) : tl('Aggiungi al recap')}</Text>
-          </LinearGradient>
+          <View style={{ height: 56, borderRadius: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: accent }}>
+            <Icon name="plus" size={22} color={onAccent} />
+            <Text style={{ color: onAccent, fontSize: 17, fontWeight: '800' }}>{items.length > 1 ? tl('Aggiungi {0} momenti', items.length) : tl('Aggiungi al recap')}</Text>
+          </View>
         </Pressable>
       </View>
 

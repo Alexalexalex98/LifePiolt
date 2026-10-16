@@ -39,12 +39,16 @@ export function MediaPickerField({ value, onChange, detach }: { value: NetMedia 
     );
   }
   return (
-    <Row style={{ justifyContent: 'flex-start', marginBottom: 10 }} gap={8}>
-      {([['photo', 'image', 'Aggiungi foto'], ['video', 'video', 'Aggiungi video']] as const).map(([k, ic, label]) => (
-        <Pressable key={k} onPress={() => void pick(k)} disabled={busy} accessibilityRole="button" accessibilityLabel={translateText(label)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: t.border, backgroundColor: t.chip, opacity: busy ? 0.5 : 1 }}>
-          <Icon name={ic} size={19} color={t.text} /><Text style={{ color: t.text, fontWeight: '600' }}>{label}</Text>
+    <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+      {([['photo', 'image', 'Foto', 'Dalla galleria'], ['video', 'video', 'Video', 'Fino a 30 secondi']] as const).map(([k, ic, label, sub]) => (
+        <Pressable key={k} onPress={() => void pick(k)} disabled={busy} accessibilityRole="button" accessibilityLabel={translateText(k === 'photo' ? 'Aggiungi foto' : 'Aggiungi video')} style={({ pressed }) => ({ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, backgroundColor: t.chip, opacity: busy ? 0.5 : pressed ? 0.85 : 1 })}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.accent + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={ic} size={20} color={t.accent} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.text, fontWeight: '800', fontSize: 15 }}>{translateText(label)}</Text>
+            <Text numberOfLines={1} style={{ color: t.muted, fontSize: 11.5, marginTop: 1 }}>{translateText(sub)}</Text>
+          </View>
         </Pressable>
       ))}
-    </Row>
+    </View>
   );
 }

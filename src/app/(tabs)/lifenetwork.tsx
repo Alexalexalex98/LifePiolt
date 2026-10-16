@@ -133,10 +133,21 @@ export default function LifeNetwork() {
     const jobItems: Item[] = jobsList.filter((j) => j.owner !== me && j.status === 'open').map((job) => ({ k: 'job', id: 'j' + job.id, job }));
     const mot: Item[] = pickQuotes(quoteLikes, quoteCount(quoteLikes), Math.floor(Date.now() / 86400000)).map((q) => ({ k: 'quote', id: 'q:' + q.id, q }));
     const rk = (it: Item) => (it.k === 'post' ? it.likeKey : it.k === 'idea' ? `idea:${it.idea.id}` : '');
-    const pools = [byReach(standalone, rk, reach), byReach(comm, rk, reach), byReach(ideaItems, rk, reach), sem, svc, prod, jobItems, mot].filter((p) => p.length);
+    /* intreccio: due post, poi un altro tipo di contenuto (idea, servizio, seminario, prodotto, lavoro, frase di Theia a turno), così in «Per te» c'è sempre varietà */
+    const posts2: Item[] = [...byReach(standalone, rk, reach), ...byReach(comm, rk, reach)];
+    const others = [byReach(ideaItems, rk, reach), svc, sem, mot, prod, jobItems].filter((p) => p.length);
     const feed: Item[] = [];
-    let idx = 0;
-    while (pools.some((p) => p.length)) { const pool = pools[idx % pools.length]; if (pool.length) feed.push(pool.shift()!); idx++; }
+    let oi = 0, n = 0;
+    while (posts2.length || others.some((p) => p.length)) {
+      const wantOther = n % 3 === 2 || !posts2.length;
+      if (wantOther && others.some((p) => p.length)) {
+        let pool = others[oi % others.length]; let tries = 0;
+        while (!pool.length && tries++ < others.length) { oi++; pool = others[oi % others.length]; }
+        oi++;
+        if (pool.length) feed.push(pool.shift()!);
+      } else if (posts2.length) feed.push(posts2.shift()!);
+      n++;
+    }
     if (!following) return applyToFeed(feed, (it) => (it.k === 'post' ? it.likeKey : null), (it) => (it.k === 'post' ? `${it.post.text} ${it.post.tag ?? ''}` : ''), swipes, themeWeights);
     return feed.filter((it) => {
       const a = it.k === 'post' ? it.post.author : it.k === 'idea' ? it.idea.author : null;

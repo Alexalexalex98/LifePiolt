@@ -65,6 +65,8 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
   const endHold = () => { if (hold.timer) clearTimeout(hold.timer); hold.timer = null; if (hold.on) { hold.on = false; setPeek(null); } };
   const now = Date.now();
   const seenSet = useMemo(() => new Set(seen ?? []), [seen]);
+  /* i «già visti» registrati con la vecchia regola (bastava aprire) si azzerano una volta: ora conta guardarli davvero */
+  useEffect(() => { const st = useNet.getState(); if (st.storySeenV !== 2) st.patch({ storySeen: [], storySeenV: 2 }); }, []);
   // pulizia delle scadute, una volta all'apertura
   useEffect(() => {
     const st = useNet.getState().stories;
@@ -125,13 +127,13 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi un momento')} onPress={() => go('storyCreate')} hitSlop={8} style={{ position: 'absolute', end: 5, top: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: '#4f8cff', alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={14} color="#fff" /></Pressable>
         )) : (
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al tuo recap')} onPress={() => go('storyCreate')} style={({ pressed }) => ({ width: 84, height: 118, marginHorizontal: 20, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
-            <LinearGradient colors={['#7b5cff', '#c13fd6', '#ff4d8d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 6 }}>
+            <View style={{ flex: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 6, backgroundColor: t.card, borderWidth: 1.5, borderColor: t.accent + '99' }}>
               <View>
-                <View style={{ borderRadius: 26, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.9)' }}><UserAvatar name={me} size={44} link={false} /></View>
-                <View style={{ position: 'absolute', end: -6, bottom: -4, width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={14} color="#7b5cff" stroke={3} /></View>
+                <View style={{ borderRadius: 26, borderWidth: 2, borderColor: t.accent }}><UserAvatar name={me} size={44} link={false} /></View>
+                <View style={{ position: 'absolute', end: -6, bottom: -4, width: 22, height: 22, borderRadius: 11, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: t.card }}><Icon name="plus" size={13} color={t.onText} stroke={3} /></View>
               </View>
-              <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13, textAlign: 'center', lineHeight: 16 }}>{tl('Il tuo recap')}</Text>
-            </LinearGradient>
+              <Text style={{ color: t.text, fontWeight: '800', fontSize: 12.5, textAlign: 'center', lineHeight: 15 }}>{tl('Il tuo recap')}</Text>
+            </View>
           </Pressable>
         )}
         </View>

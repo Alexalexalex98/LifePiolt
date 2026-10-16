@@ -83,19 +83,23 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
   const dragRad = dragY.interpolate({ inputRange: [0, 200], outputRange: [0, 24], extrapolate: 'clamp' });
   const donated = useNet((s) => s.dailyPoint.lastGiven === weekdayShortDate());
   /* se arrivi toccando un contenuto, si parte proprio da quello (finché non lo scegli) */
-  const card = useMemo(() => {
+  const [forced, setForced] = useState<SwipeCandidate | null>(null);
+  const computed = useMemo(() => {
     /* il contenuto toccato si vede SEMPRE per primo, anche se l'avevi già scelto in passato (come un reel che si apre) */
     const first = startKey && !startDone ? cards.find((c) => c.key === startKey) : undefined;
     if (first) return first;
     return pickMixed(rankedPool(cards as SwipeCandidate[], swipes, weights, me), (swipes ?? []).length);
   }, [cards, swipes, weights, me, startKey, startDone]);
+  /* dopo una scelta la carta pronta sotto passa subito davanti; il salvataggio (e il ricalcolo pesante) arriva dopo, a carta già a schermo */
+  const card = forced ?? computed;
   const liked = useNet((s) => !!card && s.likedPosts.includes(card.key));
   const left = remaining(cards, swipes, weights, me);
   /* la carta successiva è già pronta sotto (foto o anteprima del video): quando la corrente se ne va, c'è subito qualcosa */
-  const upcoming = useMemo(() => (card ? pickMixed(rankedPool(cards as SwipeCandidate[], [...(swipes ?? []), { key: card.key, dir: 'yes', ts: 0 }], weights, me), (swipes ?? []).length + 1) : null), [cards, swipes, weights, me, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const upcoming: SwipeCandidate | null = useMemo(() => (card ? pickMixed(rankedPool(cards as SwipeCandidate[], [...(swipes ?? []), { key: card.key, dir: 'yes', ts: 0 }], weights, me), (swipes ?? []).length + 1) : null), [cards, swipes, weights, me, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const upcomingUri = upcoming ? (upcoming.media === 'video' ? upcoming.poster : upcoming.uris?.[0] ?? upcoming.uri) : undefined;
   useLayoutEffect(() => { x.setValue(0); }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const cardRef = useRef(card); cardRef.current = card;
+  const upRef = useRef(upcoming); upRef.current = upcoming;
   const isVideo = !!card && card.media === 'video' && (!!card.asset || !!card.uri);
   /* le foto (e le anteprime dei video) dei prossimi post si scaricano in anticipo: niente attesa quando scegli */
   useEffect(() => {
@@ -123,10 +127,13 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
     const c = cardRef.current; if (!c) return;
     buzz();
     setStartDone(true);
-    const st = useNet.getState();
     const dw = dwellFor(c);
-    st.patch({ swipes: record(st.swipes, c.key, dir, Date.now()), themeWeights: addSignal(st.themeWeights, `${c.text} ${c.tag ?? ''}`, dir === 'yes' ? SWIPE_SIGNAL + dw : -SWIPE_SIGNAL + dw) });
-    if (dir === 'yes') st.bumpReach(c.key, 'like');
+    if (upRef.current) setForced(upRef.current);
+    setTimeout(() => {
+      const st = useNet.getState();
+      st.patch({ swipes: record(st.swipes, c.key, dir, Date.now()), themeWeights: addSignal(st.themeWeights, `${c.text} ${c.tag ?? ''}`, dir === 'yes' ? SWIPE_SIGNAL + dw : -SWIPE_SIGNAL + dw) });
+      if (dir === 'yes') st.bumpReach(c.key, 'like');
+    }, 280);
     /* x resta a fine corsa: la carta scelta non ricompare per un attimo; si azzera quando arriva la nuova */
   };
   const fling = (dir: 'yes' | 'no') => Animated.timing(x, { toValue: dir === 'yes' ? -width * 1.2 : width * 1.2, duration: 180, useNativeDriver: false }).start(() => decide(dir));
@@ -148,7 +155,7 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
   const rot = x.interpolate({ inputRange: [-width, 0, width], outputRange: ['-9deg', '0deg', '9deg'] });
   const yesOp = x.interpolate({ inputRange: [-THRESHOLD, -16, 0], outputRange: [1, 0.1, 0], extrapolate: 'clamp' });
   const noOp = x.interpolate({ inputRange: [0, 16, THRESHOLD], outputRange: [0, 0.1, 1], extrapolate: 'clamp' });
-  const undo = () => { const st = useNet.getState(); const u = undoLast(st.swipes); if (u.undone) { st.patch({ swipes: u.swipes }); buzz(); } };
+  const undo = () => { const st = useNet.getState(); const u = undoLast(st.swipes); if (u.undone) { setForced(null); st.patch({ swipes: u.swipes }); buzz(); } };
   const close = (
     <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={leave} hitSlop={12} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={20} color="#fff" /></Pressable>
   );

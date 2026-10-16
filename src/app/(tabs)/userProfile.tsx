@@ -178,7 +178,7 @@ export default function UserProfile() {
           <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.35)']} pointerEvents="none" style={{ position: 'absolute', bottom: 0, start: 0, end: 0, height: 80 }} />
         </View>
         <View style={{ alignItems: 'center', marginTop: -56 }}>
-          <LinearGradient colors={[accent, '#ff2d87']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 112, height: 112, borderRadius: 56, alignItems: 'center', justifyContent: 'center' }}>
+          <LinearGradient colors={[accent, accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 112, height: 112, borderRadius: 56, alignItems: 'center', justifyContent: 'center' }}>
             <View style={{ width: 104, height: 104, borderRadius: 52, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' }}><UserAvatar name={name} size={94} link={false} /></View>
           </LinearGradient>
         </View>
@@ -238,7 +238,7 @@ export default function UserProfile() {
             ) : null}
             {fixedList.map((m) => (
               <Pressable key={m.id} onPress={() => go('storyView', { author: name, fixed: '1', at: m.id })} accessibilityRole="button" accessibilityLabel={m.text ? `${tl('Momento fisso')}: ${m.text}` : tl('Momento fisso')} style={{ width: 72, alignItems: 'center', gap: 6 }}>
-                <LinearGradient colors={[accent, '#ff2d87']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' }}>
+                <LinearGradient colors={[accent, accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' }}>
                   <View style={{ width: 66, height: 66, borderRadius: 33, overflow: 'hidden', borderWidth: 2.5, borderColor: t.bg, backgroundColor: t.card }}>
                     {m.kind === 'photo' ? <Image source={{ uri: m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
                       : m.kind === 'video' ? <VideoPoster uri={m.uri} poster={m.poster} width={66} height={66} />
