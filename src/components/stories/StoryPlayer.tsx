@@ -1,3 +1,4 @@
+import { backdropUri } from '@/lib/storyBackdrop';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -21,7 +22,7 @@ import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 
 /** Il video parte sempre senza audio: il suono si attiva solo toccando il volume. */
-export function StoryVideo({ uri, controls, sound, poster, paused }: { uri: string; controls?: boolean; sound?: boolean; poster?: string; /** tenendo premuto la storia si ferma, anche il video */ paused?: boolean }) {
+export function StoryVideo({ uri, controls, sound, poster, paused, onShown }: { uri: string; controls?: boolean; sound?: boolean; poster?: string; /** tenendo premuto la storia si ferma, anche il video */ paused?: boolean; /** il primo fotogramma è a schermo: da qui parte il tempo della storia */ onShown?: () => void }) {
   const p = useVideoPlayer(uri, (pl) => { pl.loop = false; pl.muted = true; if (!controls) pl.play(); });
   const [shown, setShown] = useState(false);
   useEffect(() => { p.muted = !sound; }, [p, sound]);
@@ -29,7 +30,7 @@ export function StoryVideo({ uri, controls, sound, poster, paused }: { uri: stri
   return (
     <View style={{ width: '100%', height: '100%' }}>
       {poster ? <Image source={{ uri: poster }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
-      <VideoView player={p} style={{ width: '100%', height: '100%', opacity: shown || !poster ? 1 : 0 }} nativeControls={!!controls} contentFit="cover" onFirstFrameRender={() => setShown(true)} />
+      <VideoView player={p} style={{ width: '100%', height: '100%', opacity: shown || !poster ? 1 : 0 }} nativeControls={!!controls} contentFit="cover" onFirstFrameRender={() => { setShown(true); onShown?.(); }} />
     </View>
   );
 }
@@ -44,6 +45,8 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
   const [i, setI] = useState(start);
   const [p, setP] = useState(0);
   const [held, setHeld] = useState(false);
+  /* il tempo di una storia video parte solo quando il video si vede davvero (con un limite di 3 s per non restare fermi) */
+  const [ready, setReady] = useState(false);
   const [viewers, setViewers] = useState(false);
   const [sound, setSound] = useState(false);
   const [reply, setReply] = useState('');
@@ -60,7 +63,8 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
     const st = useNet.getState();
     if (!(st.storySeen ?? []).includes(cur.id)) st.patch({ storySeen: [...(st.storySeen ?? []), cur.id], stories: addView(st.stories ?? [], cur.id, me) });
   }, [cur?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { setP(0); }, [i]);
+  useEffect(() => { setP(0); setReady(false); }, [i]);
+  useEffect(() => { if (ready || !cur) return; if (cur.kind !== 'video') { setReady(true); return; } const h = setTimeout(() => setReady(true), 3000); return () => clearTimeout(h); }, [cur?.id, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   /* anteprime e file dei momenti successivi si scaricano in anticipo, così non si aspetta al cambio */
   useEffect(() => {
     const nxt = stories.slice(i + 1, i + 4);
@@ -89,10 +93,10 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
   const close = () => { if (closing.current) return; closing.current = true; goBack(); };
   const next = () => { if (closing.current) return; if (iRef.current >= stories.length - 1) { if (onEnd) { closing.current = true; onEnd(); } else close(); } else setI(iRef.current + 1); };
   useEffect(() => {
-    if (!cur || paused || closing.current) return;
+    if (!cur || paused || !ready || closing.current) return;
     const h = setInterval(() => setP((x) => x + 50 / (secs * 1000)), 50);
     return () => clearInterval(h);
-  }, [cur?.id, paused, secs]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cur?.id, paused, ready, secs]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (p >= 1) next(); }, [p]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!cur) return <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}><Body style={{ color: '#fff' }}>{tl('Il recap è vuoto.')}</Body><Text onPress={goBack} style={{ color: '#8fa4ff', marginTop: 14, fontWeight: '800' }}>{tl('Indietro')}</Text></View>;
@@ -111,7 +115,10 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
   const viewerList = cur.views;
 
   typingRef.current = typing;
+  const back = backdropUri();
   return (
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
+      {back ? <Image source={{ uri: back }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" transition={0} /> : null}
     <Animated.View {...swipe.panHandlers} style={{ flex: 1, backgroundColor: '#000', transform: [{ translateY: dragY }], borderRadius: dragY.interpolate({ inputRange: [0, 200], outputRange: [0, 24], extrapolate: 'clamp' }), overflow: 'hidden' }}>
       {cur.kind === 'text' ? (
         <LinearGradient colors={cur.bg ?? ['#6c8cff', '#3b2a7a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, alignItems: 'center', justifyContent: 'center', padding: 28 }}>
@@ -119,7 +126,7 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
         </LinearGradient>
       ) : (
         <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}>
-          {cur.kind === 'video' && cur.uri ? <StoryVideo uri={cur.uri} sound={sound} poster={cur.poster} paused={paused} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
+          {cur.kind === 'video' && cur.uri ? <StoryVideo key={cur.id} uri={cur.uri} sound={sound} poster={cur.poster} paused={paused} onShown={() => setReady(true)} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
           {tintOfFilter(cur.filter) ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: tintOfFilter(cur.filter)! }} /> : null}
           {cur.text ? <Text style={[{ position: 'absolute', start: 16, end: 16, color: cur.textColor ?? '#fff', fontSize: 24, fontWeight: '900', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 8 }, cur.textPos === 'alto' ? { top: insets.top + 100 } : cur.textPos === 'centro' ? { top: '46%' } : { bottom: insets.bottom + 90 }]}>{cur.text}</Text> : null}
         </View>
@@ -155,7 +162,7 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
         </Row>
       </View>
       <View style={{ flex: 1 }} pointerEvents="none" />
-      <View pointerEvents={held ? 'none' : 'auto'} style={{ opacity: held ? 0 : 1, paddingHorizontal: 14, paddingTop: 8, paddingBottom: (kb.height > 0 ? kb.height : insets.bottom) + 12, backgroundColor: typing ? 'rgba(0,0,0,0.55)' : 'transparent' }}>
+      <View pointerEvents={held ? 'none' : 'auto'} style={{ opacity: held ? 0 : 1, paddingHorizontal: 14, paddingTop: 8, paddingBottom: (kb.height > 0 ? kb.height : 0) + 8, backgroundColor: typing ? 'rgba(0,0,0,0.55)' : 'transparent' }}>
         {mine ? (
           <Pressable accessibilityRole="button" onPress={() => setViewers(true)} style={{ alignSelf: 'center', flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 }}>
             <Icon name="eye" size={18} color="#fff" /><Text style={{ color: '#fff', fontWeight: '800' }}>{tl('{0} visualizzazioni', viewerList.length)}</Text>
@@ -174,5 +181,6 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
         ))}
       </Sheet>
     </Animated.View>
+    </View>
   );
 }

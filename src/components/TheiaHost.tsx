@@ -119,7 +119,7 @@ export function TheiaFab() {
   const selecting = useSelect((x) => !!x.uri);
   const kb = useKeyboardInset();
   // nelle chat il pulsante coprirebbe il microfono e il campo messaggio: lì si usa il menu del messaggio
-  if (open || selecting || kb.visible || /conversationPage|liveRoom|postPage|\/ai$/.test(pathname)) return null;
+  if (open || selecting || kb.visible || /conversationPage|liveRoom|postPage|storyView|swipeDeck|\/ai$/.test(pathname)) return null;
 
   async function shot() {
     // lo scatto è silenzioso: il pulsante sparisce per un attimo e l'utente vede subito la schermata "ferma", pronta per la selezione

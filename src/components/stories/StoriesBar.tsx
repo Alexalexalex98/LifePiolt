@@ -1,3 +1,4 @@
+import { snapBackdrop } from '@/lib/storyBackdrop';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo } from 'react';
@@ -108,7 +109,7 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
     <View>
       <Text accessibilityRole="header" style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, paddingHorizontal: 16, marginTop: 6 }}>{tl('RECAP')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled scrollEnabled={!peeking} contentContainerStyle={{ paddingStart: 22, paddingEnd: 8, paddingVertical: 8, gap: 0 }} accessibilityLabel={tl('Recap della giornata')}>
-        {mine ? card('me', mine, tl('Tu'), () => go('storyView', { author: me }), (
+        {mine ? card('me', mine, tl('Tu'), () => { void snapBackdrop().then(() => go('storyView', { author: me })); }, (
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi un momento')} onPress={() => go('storyCreate')} hitSlop={8} style={{ position: 'absolute', end: 5, top: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: '#4f8cff', alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={14} color="#fff" /></Pressable>
         )) : (
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi un momento')} onPress={() => go('storyCreate')} style={{ width: 84, height: 118, marginHorizontal: 20, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: t.border, alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -116,7 +117,7 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><Icon name="plus" size={14} color={t.accent} /><Text style={{ color: t.accent, fontWeight: '800', fontSize: 12 }}>{tl('Il tuo momento')}</Text></View>
           </Pressable>
         )}
-        {others.map((g) => card(g.author, g, g.author.split(' ')[0], () => go('storyView', { author: g.author })))}
+        {others.map((g) => card(g.author, g, g.author.split(' ')[0], () => { void snapBackdrop().then(() => go('storyView', { author: g.author })); }))}
       </ScrollView>
     </View>
   );
