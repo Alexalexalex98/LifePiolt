@@ -1,4 +1,5 @@
 import { StoryFx, StoryStickers, storyTextStyle } from '@/components/stories/StoryFx';
+import { ShareStorySheet } from '@/components/stories/ShareStorySheet';
 import { backdropUri } from '@/lib/storyBackdrop';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,7 +17,7 @@ import { t as tl } from '@/i18n/core';
 import { confirmDelete } from '@/lib/confirm';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
-import { STORY_SECONDS, addView, ago, tintOfFilter, type Story } from '@/lib/stories';
+import { STORY_SECONDS, addView, ago, toggleLike, tintOfFilter, type Story } from '@/lib/stories';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { useNet } from '@/store/network';
@@ -50,12 +51,13 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
   const [ready, setReady] = useState(false);
   const [viewers, setViewers] = useState(false);
   const [opts, setOpts] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [sound, setSound] = useState(false);
   const [reply, setReply] = useState('');
   const [typing, setTyping] = useState(false);
   const cur = stories[Math.min(i, stories.length - 1)];
   const mine = cur?.author === me;
-  const paused = held || viewers || typing || opts;
+  const paused = held || viewers || typing || opts || sharing;
   const secs = cur?.kind === 'video' ? 10 : STORY_SECONDS;
   const iRef = useRef(i); iRef.current = i;
 
@@ -117,6 +119,8 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
     if (stories.length > 1) setI(Math.max(0, i - 1));
   });
   const viewerList = cur.views;
+  const liveLikes = (net.stories ?? []).find((x) => x.id === cur.id)?.likes ?? [];
+  const liked = liveLikes.includes(me);
 
   typingRef.current = typing;
   const back = backdropUri();
@@ -175,17 +179,19 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
         ) : (
           <Row gap={10}>
             <TextInput value={reply} onChangeText={setReply} onFocus={() => setTyping(true)} onBlur={() => setTyping(false)} onSubmitEditing={() => send(reply)} returnKeyType="send" placeholder={tl('Rispondi a {0}…', cur.author.split(' ')[0])} placeholderTextColor="rgba(255,255,255,0.7)" accessibilityLabel={tl('Rispondi al recap')} style={{ flex: 1, color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)', backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 }} />
-            <Pressable accessibilityRole="button" accessibilityLabel={tl('Mi piace al recap')} onPress={() => send(tl('mi piace'))} hitSlop={8} style={{ padding: 8 }}><Icon name="heart" size={26} color="#fff" /></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={tl('Invia')} onPress={() => send(reply)} hitSlop={8} style={{ padding: 8 }}><Icon name="send" size={24} color="#fff" /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={liked ? tl('Togli il mi piace') : tl('Mi piace al recap')} onPress={() => { net.patch({ stories: toggleLike(net.stories ?? [], cur.id, me) }); }} hitSlop={8} accessibilityState={{ selected: liked }} style={{ padding: 8 }}><Icon name="heart" size={26} color={liked ? '#ff3b5c' : '#fff'} fill={liked ? '#ff3b5c' : 'none'} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={reply.trim() ? tl('Invia') : tl('Condividi il recap')} onPress={() => (reply.trim() ? send(reply) : setSharing(true))} hitSlop={8} style={{ padding: 8 }}><Icon name="send" size={24} color="#fff" /></Pressable>
           </Row>
         )}
       </View>
+      <ShareStorySheet visible={sharing} onClose={() => setSharing(false)} story={cur} />
       <Sheet visible={opts} title={tl('Impostazioni del momento')} onClose={() => setOpts(false)}>
         <Body bold style={{ marginBottom: 6 }}>{tl('Quanto resta')}</Body>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
           {(['day', 'week', 'moment'] as const).map((k) => <Pill key={k} label={tl(k === 'day' ? '24 ore' : k === 'week' ? '7 giorni' : 'Fisso nel profilo')} on={(cur.keep ?? 'day') === k} onPress={() => net.patch({ stories: (net.stories ?? []).map((x) => (x.id === cur.id ? { ...x, keep: k === 'day' ? undefined : k } : x)) })} />)}
         </Row>
         <Item onPress={() => { setOpts(false); setViewers(true); }}><Row><Body style={{ flex: 1 }}>{tl('Chi ha visto il recap')}</Body><Body muted>{cur.views.length}</Body></Row></Item>
+        <Item><Row><Body style={{ flex: 1 }}>{tl('Mi piace')}</Body><Body muted>{liveLikes.length}</Body></Row></Item>
         <Btn style={{ marginTop: 12 }} ghost danger icon="trash" title={tl('Elimina questo momento')} onPress={() => { setOpts(false); remove(); }} />
         <Btn style={{ marginTop: 8 }} icon="plus" title={tl('Aggiungi un altro momento')} onPress={() => { setOpts(false); onClose(); go('storyCreate'); }} />
       </Sheet>

@@ -84,3 +84,12 @@ test('hashtag e link puliti; makeStory porta con sé persone, tag, link e ritocc
   assert.equal(s.fit, 'contain');
   assert.equal(s.textSize, 'L');
 });
+
+import { toggleLike } from '../src/lib/stories.ts';
+test('mi piace al momento: un tocco lo mette, un altro lo toglie; non a se stessi', () => {
+  const all = [S('a', 'Anna', 5)];
+  const on = toggleLike(all, 'a', 'Io');
+  assert.deepEqual(on[0].likes, ['Io']);
+  assert.deepEqual(toggleLike(on, 'a', 'Io')[0].likes, []);
+  assert.equal(toggleLike(all, 'a', 'Anna')[0].likes, undefined);
+});

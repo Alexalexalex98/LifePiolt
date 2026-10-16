@@ -51,7 +51,7 @@ export const cleanLink = (raw?: string): string | undefined => { const v = (raw 
 export type Story = {
   id: string; author: string; ts: number; kind: StoryKind; keep?: Keep; attach?: StoryAttach; filter?: FilterId; textPos?: TextPos; textColor?: string;
   adj?: Adjust; fit?: StoryFit; textSize?: TextSize; textStyle?: TextStyleId; /** persone taggate */ people?: string[]; /** hashtag */ tags?: string[]; link?: string;
-  /** chi ha regalato il LifePoint giornaliero a questo momento (lo vede l'autore) */ gifts?: string[];
+  /** chi ha messo mi piace (il cuore: non manda nessun messaggio) */ likes?: string[]; /** chi ha regalato il LifePoint giornaliero a questo momento (lo vede l'autore) */ gifts?: string[];
   uri?: string; /** fotogramma di anteprima dei video: compare subito */ poster?: string; text?: string; /** colori dello sfondo delle storie di solo testo */ bg?: [string, string];
   /** chi l'ha vista (lo vede solo l'autore) */ views: string[];
 };
@@ -124,6 +124,10 @@ export function dayParts(stories: Story[], now = Date.now()): { part: Part; stor
 }
 export const fixedMoments = (stories: Story[]) => stories.filter((s) => s.keep === 'moment').sort((a, b) => b.ts - a.ts);
 /** Regalo del LifePoint giornaliero a un momento (una volta per persona, non a se stessi). */
+/** Mi piace a un momento: un tocco lo mette, un altro lo toglie. Non si mette a se stessi. */
+export function toggleLike(all: Story[], id: string, from: string): Story[] {
+  return all.map((s) => (s.id === id && s.author !== from ? { ...s, likes: (s.likes ?? []).includes(from) ? (s.likes ?? []).filter((x) => x !== from) : [...(s.likes ?? []), from] } : s));
+}
 export function addGift(all: Story[], id: string, from: string): Story[] {
   return all.map((s) => (s.id === id && s.author !== from && !(s.gifts ?? []).includes(from) ? { ...s, gifts: [...(s.gifts ?? []), from] } : s));
 }
