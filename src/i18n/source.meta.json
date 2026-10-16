@@ -1,5 +1,5 @@
 {
- "count": 10758,
+ "count": 10766,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -47,7 +47,7 @@
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
   "src/app/(tabs)/lifefinance.tsx": 86,
-  "src/app/(tabs)/lifefitness.tsx": 61,
+  "src/app/(tabs)/lifefitness.tsx": 75,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
   "src/app/(tabs)/lifenetwork.tsx": 41,
@@ -485,5 +485,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1334
+ "withPlaceholders": 1335
 }

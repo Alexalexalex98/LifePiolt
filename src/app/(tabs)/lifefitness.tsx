@@ -15,6 +15,7 @@ import { PREMIUM_PRICE_LP, daysLeft, passPayload, premiumState } from '@/lib/fit
 import { ExercisePicker } from '@/components/fitness/ExercisePicker';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
+import { fmtDate } from '@/lib/when';
 import { useApp } from '@/store/app';
 import { useFitness } from '@/store/fitness';
 import { useNet } from '@/store/network';
@@ -34,6 +35,9 @@ export default function LifeFitness() {
   const net = useNet();
     const [setup, setSetup] = useState(false);
   const [pass, setPass] = useState(false);
+  /* acquisto del LifePass come un abbonamento: riepilogo, conferma, elaborazione, esito */
+  const [buy, setBuy] = useState<'off' | 'ask' | 'busy' | 'done' | 'fail'>('off');
+  const [buyMsg, setBuyMsg] = useState('');
   const [lib, setLib] = useState(false);
   const [draft, setDraft] = useState<FitProfile>(fit.profile ?? { goal: 'tonificare', level: 'principiante', place: 'casa', days: 3, minutes: 30 });
   useEffect(() => { fit.settle(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -106,7 +110,7 @@ export default function LifeFitness() {
               <Body small muted style={{ marginVertical: 8 }}>Un solo pass per entrare in palestre, piscine e centri sportivi convenzionati.</Body>
               {['Accesso a tutti i centri convenzionati: palestre, piscine, centri sportivi', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 6 }} gap={8}><Icon name="check" size={15} color={FIT} stroke={2.6} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
               {state === 'scaduto' ? <Body small color={t.warn} style={{ marginTop: 2 }}>Il tuo LifePass è scaduto.</Body> : null}
-              <Btn style={{ marginTop: 8 }} title={tl('Attiva il LifePass · {0} LP', PREMIUM_PRICE_LP)} onPress={() => { const r = fit.subscribe(); toast(r.message); }} />
+              <Btn style={{ marginTop: 8 }} title={tl('Attiva il LifePass · {0} LP', PREMIUM_PRICE_LP)} onPress={() => setBuy('ask')} />
               <Body small muted style={{ marginTop: 6 }}>{tl('Hai {0} LP. Si rinnova da solo ogni 30 giorni, se hai i LifePoints.', net.lifePoints)}</Body>
             </Card>
           ) : (
@@ -171,6 +175,32 @@ export default function LifeFitness() {
           </Row>
         </View>
         <Btn title="Prepara il piano" onPress={saveProfile} />
+      </Sheet>
+      <Sheet visible={buy !== 'off'} title="Conferma abbonamento" onClose={() => { if (buy !== 'busy') setBuy('off'); }}>
+        {buy === 'done' || buy === 'fail' ? (
+          <View style={{ alignItems: 'center', paddingVertical: 12, gap: 10 }}>
+            <Icon name={buy === 'done' ? 'check' : 'alert'} size={46} color={buy === 'done' ? t.positive : t.danger} stroke={2.2} />
+            <H style={{ marginBottom: 0 }}>{buy === 'done' ? 'Abbonamento attivo' : 'Acquisto non riuscito'}</H>
+            <Body small muted style={{ textAlign: 'center' }}>{buyMsg}</Body>
+            <Btn style={{ alignSelf: 'stretch', marginTop: 6 }} title="Fine" onPress={() => setBuy('off')} />
+          </View>
+        ) : (
+          <View style={{ gap: 10 }}>
+            <Row gap={12}><Icon name="coin" size={34} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass</H><Body small muted>Abbonamento mensile · centri convenzionati</Body></View></Row>
+            <Card>
+              <Row><Body muted style={{ flex: 1 }}>Prezzo</Body><Body bold>{`${PREMIUM_PRICE_LP} LP ${tl('al mese')}`}</Body></Row>
+              <Row style={{ marginTop: 6 }}><Body muted style={{ flex: 1 }}>Primo rinnovo</Body><Body bold>{fmtDate(Date.now() + 30 * 86400000)}</Body></Row>
+              <Row style={{ marginTop: 6 }}><Body muted style={{ flex: 1 }}>Il tuo saldo</Body><Body bold color={net.lifePoints >= PREMIUM_PRICE_LP ? undefined : t.danger}>{`${net.lifePoints} LP`}</Body></Row>
+            </Card>
+            <Body small muted>Pagamento in LifePoints addebitato ora. L'abbonamento si rinnova da solo ogni 30 giorni, con lo stesso importo, finché non lo disattivi dal LifePass: il rinnovo si può disattivare in qualsiasi momento e il pass resta valido fino a fine periodo.</Body>
+            {net.lifePoints < PREMIUM_PRICE_LP ? <Body small color={t.danger}>{tl('Servono {0} LifePoints: ne hai {1}.', PREMIUM_PRICE_LP, net.lifePoints)}</Body> : null}
+            <Btn title={buy === 'busy' ? 'Elaborazione in corso…' : tl('Conferma e abbonati · {0} LP', PREMIUM_PRICE_LP)} disabled={buy === 'busy' || net.lifePoints < PREMIUM_PRICE_LP} onPress={() => {
+              setBuy('busy');
+              setTimeout(() => { const r = fit.subscribe(); setBuyMsg(r.message); setBuy(r.ok ? 'done' : 'fail'); }, 1200);
+            }} />
+            <Btn ghost title="Annulla" disabled={buy === 'busy'} onPress={() => setBuy('off')} />
+          </View>
+        )}
       </Sheet>
       <Sheet visible={pass} title="Pass d'ingresso" onClose={() => setPass(false)}>
         {fit.sub ? (
