@@ -1,6 +1,6 @@
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useRef, useState } from 'react';
-import { Modal, PanResponder, Pressable, View, useWindowDimensions } from 'react-native';
+import { Modal, PanResponder, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/T';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,7 +26,9 @@ export function navLabelFor(id: string, language: Parameters<typeof translate>[0
   return sectionNamesFor(language)[id] || navCatalog[id] || id;
 }
 
-const NAV_MAX = 6;
+/** Nessun limite pratico: con più di 5 icone la barra scorre di lato. */
+const NAV_MAX = 14;
+const NAV_VISIBLE = 5;
 const navChoices = ['home', 'ai', 'plan', 'lifenetwork', 'lifefinance', 'profile', 'lifehealth', 'lifefitness', 'lifenotes', 'lifetravel', 'lifedrive', 'lifetask', 'lifepointsPage', 'settings'];
 
 /** Modalità «Personalizza la barra»: sopra c'è lo spazio con tutti i pulsanti che non sono in barra, sotto la barra stessa.
@@ -69,7 +71,7 @@ function NavEditor({ visible, onClose }: { visible: boolean; onClose: () => void
     const cur = items.current;
     if (inBar(d.y)) {
       if (d.from === 'grid') {
-        if (cur.length >= NAV_MAX) { toast('La barra può avere al massimo 6 icone'); return; }
+        if (cur.length >= NAV_MAX) { toast('La barra è piena'); return; }
         const i = Math.max(0, Math.min(cur.length, Math.round(d.x / (W / (cur.length + 1)) - 0.5)));
         const a = cur.slice(); a.splice(i, 0, d.id); set({ navItems: a });
       } else {
@@ -114,10 +116,11 @@ function NavEditor({ visible, onClose }: { visible: boolean; onClose: () => void
   const shown = drag?.from === 'bar' ? navItems.filter((x) => x !== drag.id) : navItems;
   const target = drag && inBar(drag.y) ? (drag.from === 'grid' ? Math.max(0, Math.min(navItems.length, Math.round(drag.x / (W / (navItems.length + 1)) - 0.5))) : Math.max(0, Math.min(shown.length, Math.round(drag.x / (W / Math.max(1, navItems.length)) - 0.5)))) : -1;
   const barItems = target >= 0 ? [...shown.slice(0, target), '__gap', ...shown.slice(target)] : shown;
+  const compact = navItems.length > 6;
   const cell = (id: string, big?: boolean) => (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <Icon name={id} size={big ? 26 : 22} color={t.text} />
-      <Text numberOfLines={1} style={{ color: t.text, fontSize: 11, marginTop: 4 }}>{navLabelFor(id, language)}</Text>
+      <Icon name={id} size={big ? 26 : compact ? 20 : 22} color={t.text} />
+      {big || !compact ? <Text numberOfLines={1} style={{ color: t.text, fontSize: 11, marginTop: 4 }}>{navLabelFor(id, language)}</Text> : null}
     </View>
   );
   return (
@@ -128,7 +131,7 @@ function NavEditor({ visible, onClose }: { visible: boolean; onClose: () => void
           <View style={{ height: HEAD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: t.text, fontWeight: '800', fontSize: 15 }}>{translateText('Altri pulsanti')}</Text>
-              <Text style={{ color: t.muted, fontSize: 12 }}>{translateText('Trascinane uno sulla barra (massimo 6)')}</Text>
+              <Text style={{ color: t.muted, fontSize: 12 }}>{translateText('Trascinane uno sulla barra: con più di 5 la barra scorre di lato')}</Text>
             </View>
             <Pressable onPress={onClose} accessibilityRole="button" hitSlop={8} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, backgroundColor: t.text }}><Text style={{ color: t.onText, fontWeight: '800' }}>{translateText('Fatto')}</Text></Pressable>
           </View>
@@ -170,6 +173,28 @@ export function NavBar({ state }: BottomTabBarProps) {
     if (weakest && (pageVisits[best] || 0) > (pageVisits[weakest] || 0) * 1.5 && !dismissedNav.includes(`${weakest}>${best}`)) suggestion = { out: weakest, inn: best };
   }
 
+  const { width: W } = useWindowDimensions();
+  const barScroll = useRef<ScrollView>(null);
+  const pos = useRef<Record<string, number>>({});
+  /* l'icona della pagina attuale resta sempre in vista */
+  const scrollTo = (id: string) => { const x = pos.current[id]; if (x == null) return; const w = W / (NAV_VISIBLE + 0.5); barScroll.current?.scrollTo({ x: Math.max(0, x - (W - w) / 2), animated: true }); };
+  const renderItem = (id: string) => {
+          const active = id === current;
+          const locked = lockedPage(id);
+          const ink = locked ? t.muted : active ? t.text : t.navInactive;
+          return (
+            <TourTarget key={id} id={`nav.${id}`}>
+              <Press onPress={() => (locked ? requestUnlock(id) : go(id))} onLongPress={() => setEditing(true)} role="tab" selected={active} accessibilityLabel={translateText(navLabelFor(id, language)) + (locked ? translateText(', si sblocca presto') : '')} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} style={{ alignItems: 'center', minWidth: navItems.length > 5 ? 48 : 56, minHeight: 44, justifyContent: 'center', opacity: locked ? 0.5 : 1 }}>
+                {active && <View style={{ position: 'absolute', top: -10, width: 4, height: 4, borderRadius: 2, backgroundColor: t.accent }} />}
+                <View>
+                  <Icon name={id} size={20} color={ink} />
+                  {locked && <View style={{ position: 'absolute', end: -7, bottom: -4, backgroundColor: t.nav, borderRadius: 7, padding: 1 }}><Icon name="lock" size={11} color={t.text} stroke={2.4} /></View>}
+                </View>
+                <Text style={{ color: ink, fontSize: 11, marginTop: 2, fontWeight: active ? '700' : '400' }}>{navLabelFor(id, language)}</Text>
+              </Press>
+            </TourTarget>
+          );
+  };
   // la stanza live è a tutto schermo: nessuna barra di navigazione
   if (current === 'liveRoom') return null;
   // con la tastiera aperta la barra di navigazione sparisce: lo spazio serve alla barra di scrittura
@@ -190,24 +215,14 @@ export function NavBar({ state }: BottomTabBarProps) {
           </Card>
         </View>
       )}
-      <View accessibilityRole="tablist" style={{ flexDirection: 'row', justifyContent: 'space-around', backgroundColor: t.nav, borderTopWidth: 1, borderTopColor: t.navBorder, paddingTop: 10, paddingBottom: 10 + insets.bottom }}>
-        {navItems.map((id) => {
-          const active = id === current;
-          const locked = lockedPage(id);
-          const ink = locked ? t.muted : active ? t.text : t.navInactive;
-          return (
-            <TourTarget key={id} id={`nav.${id}`}>
-              <Press onPress={() => (locked ? requestUnlock(id) : go(id))} onLongPress={() => setEditing(true)} role="tab" selected={active} accessibilityLabel={translateText(navLabelFor(id, language)) + (locked ? translateText(', si sblocca presto') : '')} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} style={{ alignItems: 'center', minWidth: navItems.length > 5 ? 48 : 56, minHeight: 44, justifyContent: 'center', opacity: locked ? 0.5 : 1 }}>
-                {active && <View style={{ position: 'absolute', top: -10, width: 4, height: 4, borderRadius: 2, backgroundColor: t.accent }} />}
-                <View>
-                  <Icon name={id} size={20} color={ink} />
-                  {locked && <View style={{ position: 'absolute', end: -7, bottom: -4, backgroundColor: t.nav, borderRadius: 7, padding: 1 }}><Icon name="lock" size={11} color={t.text} stroke={2.4} /></View>}
-                </View>
-                <Text style={{ color: ink, fontSize: 11, marginTop: 2, fontWeight: active ? '700' : '400' }}>{navLabelFor(id, language)}</Text>
-              </Press>
-            </TourTarget>
-          );
-        })}
+      <View accessibilityRole="tablist" style={{ backgroundColor: t.nav, borderTopWidth: 1, borderTopColor: t.navBorder, paddingTop: 10, paddingBottom: 10 + insets.bottom }}>
+        {navItems.length > NAV_VISIBLE ? (
+          <ScrollView ref={barScroll} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 4 }}>
+            {navItems.map((id) => <View key={id} onLayout={(e) => { pos.current[id] = e.nativeEvent.layout.x; if (id === current) scrollTo(id); }} style={{ width: W / (NAV_VISIBLE + 0.5), alignItems: 'center', justifyContent: 'center' }}>{renderItem(id)}</View>)}
+          </ScrollView>
+        ) : (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>{navItems.map(renderItem)}</View>
+        )}
       </View>
       <NavEditor visible={editing} onClose={() => setEditing(false)} />
     </View>
