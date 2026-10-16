@@ -2,7 +2,20 @@
  * Swipe sui post (modulo PURO): un post alla volta; a sinistra «mi interessa», a destra «non mi interessa».
  * Quelli che interessano tornano in «Per te» nell'ordine in cui li hai scelti; gli altri (e i simili) non si propongono più.
  */
-import { scoreOf, type ThemeWeights } from './relevance.ts';
+import { scoreOf as rawScore, type ThemeWeights } from './relevance.ts';
+
+/** Punteggio di un testo: si ricorda per ogni insieme di pesi, perché la stessa carta si valuta più volte a ogni scelta. */
+let cacheW: ThemeWeights | undefined | null = null;
+const cache = new Map<string, number>();
+function scoreOf(text: string, weights: ThemeWeights | undefined): number {
+  if (cacheW !== weights) { cacheW = weights; cache.clear(); }
+  const hit = cache.get(text);
+  if (hit !== undefined) return hit;
+  const v = rawScore(text, weights);
+  if (cache.size > 2000) cache.clear();
+  cache.set(text, v);
+  return v;
+}
 
 export type SwipeDir = 'yes' | 'no';
 export type SwipeRec = { key: string; dir: SwipeDir; ts: number };

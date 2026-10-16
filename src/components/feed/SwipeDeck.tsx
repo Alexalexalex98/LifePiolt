@@ -28,12 +28,10 @@ const buzz = () => { if (Platform.OS !== 'web') void Haptics.selectionAsync().ca
 /** Quando compare la scritta piena («MI INTERESSA») la scelta è presa: il gesto si completa da solo. Prima, il post torna al centro. */
 const THRESHOLD = 64;
 
-/** Prossima carta: ogni cinque scelte tocca a un'inserzione (se ce n'è una non ancora vista), altrimenti la scelta normale per interesse. */
-function pickNext(list: SwipeCandidate[], sw: SwipeRec[] | undefined, weights: ThemeWeights | undefined, me: string, n: number): SwipeCandidate | null {
-  const swiped = new Set((sw ?? []).map((r) => r.key));
-  const ads = list.filter((c) => c.sponsor && !swiped.has(c.key));
+/** Prossima carta: ogni cinque scelte tocca a un'inserzione (se ce n'è una non ancora vista), altrimenti la più adatta ai tuoi interessi (con video e foto a turno). */
+function choose(pool: SwipeCandidate[], ads: SwipeCandidate[], n: number): SwipeCandidate | null {
   if (ads.length && n % 5 === 3) return ads[0];
-  return pickMixed(rankedPool(list.filter((c) => !c.sponsor), sw, weights, me), n) as SwipeCandidate | null;
+  return pickMixed(pool, n) as SwipeCandidate | null;
 }
 
 /** Pulsante tondo della colonna di azioni a destra. */
@@ -114,18 +112,21 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
   const donated = useNet((s) => s.dailyPoint.lastGiven === weekdayShortDate());
   /* se arrivi toccando un contenuto, si parte proprio da quello (finché non lo scegli) */
   const [forced, setForced] = useState<SwipeCandidate | null>(null);
+  /* la classifica si calcola UNA volta a ogni scelta e serve per la carta, per quella dopo e per il conteggio (prima si rifaceva tre volte) */
+  const pool = useMemo(() => rankedPool((cards as SwipeCandidate[]).filter((c) => !c.sponsor), swipes, weights, me), [cards, swipes, weights, me]);
+  const adsLeft = useMemo(() => { const done = new Set((swipes ?? []).map((r) => r.key)); return (cards as SwipeCandidate[]).filter((c) => c.sponsor && !done.has(c.key)); }, [cards, swipes]);
   const computed = useMemo(() => {
     /* il contenuto toccato si vede SEMPRE per primo, anche se l'avevi già scelto in passato (come un reel che si apre) */
     const first = startKey && !startDone ? cards.find((c) => c.key === startKey) : undefined;
     if (first) return first;
-    return pickNext(cards as SwipeCandidate[], swipes, weights, me, (swipes ?? []).length);
-  }, [cards, swipes, weights, me, startKey, startDone]);
+    return choose(pool, adsLeft, (swipes ?? []).length);
+  }, [cards, pool, adsLeft, swipes, startKey, startDone]);
   /* dopo una scelta la carta pronta sotto passa subito davanti; il salvataggio (e il ricalcolo pesante) arriva dopo, a carta già a schermo */
   const card = forced ?? computed;
   const liked = useNet((s) => !!card && s.likedPosts.includes(card.key));
-  const left = remaining(cards, swipes, weights, me);
+  const left = pool.length + adsLeft.length;
   /* la carta successiva è già pronta sotto (foto o anteprima del video): quando la corrente se ne va, c'è subito qualcosa */
-  const upcoming: SwipeCandidate | null = useMemo(() => (card ? pickNext(cards as SwipeCandidate[], [...(swipes ?? []), { key: card.key, dir: 'yes', ts: 0 }], weights, me, (swipes ?? []).length + 1) : null), [cards, swipes, weights, me, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const upcoming: SwipeCandidate | null = useMemo(() => (card ? choose(pool.filter((c) => c.key !== card.key), adsLeft.filter((c) => c.key !== card.key), (swipes ?? []).length + 1) : null), [pool, adsLeft, swipes, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const dishItem = useMenus((m) => findItem(m.byOwner[card?.author ?? ''], (card as SwipeCandidate | null)?.menuItem));
   const dishLine = dishItem ? itemLine(dishItem) : null;
   const isSponsored = !!(card as SwipeCandidate | null)?.sponsor;
