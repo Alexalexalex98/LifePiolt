@@ -1,3 +1,4 @@
+import { useIsFocused } from 'expo-router';
 import { findItem, itemLine } from '@/lib/menu';
 import { useMenus } from '@/store/menus';
 import { mapsUrl } from '@/lib/maps';
@@ -8,7 +9,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Linking, PanResponder, Platform, Pressable, View, useWindowDimensions } from 'react-native';
+import { Animated, AppState, Linking, PanResponder, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
@@ -52,7 +53,18 @@ type Vid = { rate: (r: number) => void; toggle: () => boolean; seek: (f: number)
 function DeckVideo({ source, muted, controls, poster }: { source: number | { uri: string }; muted: boolean; controls: React.MutableRefObject<Vid | null>; poster?: string }) {
   const [shown, setShown] = useState(false);
   const p = useVideoPlayer(source, (pl) => { pl.loop = true; pl.muted = true; pl.play(); });
-  useEffect(() => { p.muted = muted; }, [p, muted]);
+  /* uscendo dalla schermata (o con l'app in secondo piano) il video si ferma e il volume si toglie; al ritorno riparte solo se non l'avevi messo in pausa tu */
+  const focused = useIsFocused();
+  const resume = useRef(true);
+  useEffect(() => {
+    if (!focused) { resume.current = p.playing; p.pause(); p.muted = true; return; }
+    p.muted = muted;
+    if (resume.current) p.play();
+  }, [p, muted, focused]);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => { if (st !== 'active') { resume.current = p.playing; p.pause(); p.muted = true; } else if (focused) { p.muted = muted; if (resume.current) p.play(); } });
+    return () => sub.remove();
+  }, [p, muted, focused]);
   useEffect(() => {
     controls.current = {
       rate: (r) => { p.playbackRate = r; },

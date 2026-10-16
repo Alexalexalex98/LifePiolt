@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import { VideoPoster } from '@/components/stories/VideoPoster';
-import { Animated, Keyboard, PanResponder, Pressable, TextInput, View } from 'react-native';
+import { Animated, AppState, Keyboard, PanResponder, Pressable, TextInput, View } from 'react-native';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
@@ -28,7 +28,13 @@ import { toast } from '@/store/toast';
 export function StoryVideo({ uri, controls, sound, poster, paused, onShown }: { uri: string; controls?: boolean; sound?: boolean; poster?: string; /** tenendo premuto la storia si ferma, anche il video */ paused?: boolean; /** il primo fotogramma è a schermo: da qui parte il tempo della storia */ onShown?: () => void }) {
   const p = useVideoPlayer(uri, (pl) => { pl.loop = false; pl.muted = true; if (!controls) pl.play(); });
   const [shown, setShown] = useState(false);
-  useEffect(() => { p.muted = !sound; }, [p, sound]);
+  /* fuori schermo o app in secondo piano: niente audio */
+  const focused = useIsFocused();
+  useEffect(() => { p.muted = !sound || !focused; }, [p, sound, focused]);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => { if (st !== 'active') { p.pause(); p.muted = true; } else { p.muted = !sound || !focused; if (!controls && !paused) p.play(); } });
+    return () => sub.remove();
+  }, [p, sound, focused, controls, paused]);
   useEffect(() => { if (controls) return; if (paused) p.pause(); else p.play(); }, [p, paused, controls]);
   return (
     <View style={{ width: '100%', height: '100%' }}>
