@@ -56,7 +56,7 @@ export default function EditProfile() {
         </Row>
         {label('Copertina')}
         <View style={{ height: 84, borderRadius: 14, overflow: 'hidden', backgroundColor: t.item }}>
-          {look.banner ? (look.banner.uri ? <Image source={{ uri: look.banner.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : <LinearGradient colors={[look.banner.c1, look.banner.c2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }} />) : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Body small muted>Nessuna copertina</Body></View>}
+          {look.banner ? (<><LinearGradient colors={[look.banner.c1, look.banner.c2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} />{look.banner.uri ? <Image source={{ uri: look.banner.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : null}</>) : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Body small muted>Nessuna copertina</Body></View>}
         </View>
         <Row gap={8} style={{ justifyContent: 'flex-start', marginTop: 10, flexWrap: 'wrap' }}>
           {BANNERS.map((b) => (

@@ -165,7 +165,7 @@ export default function UserProfile() {
 
       {look.banner && isMe && (
         <View style={{ height: 110, borderRadius: 18, overflow: 'hidden', marginTop: 8 }}>
-          {look.banner.uri ? <Image source={{ uri: look.banner.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : <LinearGradient colors={[look.banner.c1, look.banner.c2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }} />}
+          <LinearGradient colors={[look.banner.c1, look.banner.c2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} />{look.banner.uri ? <Image source={{ uri: look.banner.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={150} /> : null}
         </View>
       )}
       {/* intestazione: avatar, nome con icona di verifica, ruolo */}
