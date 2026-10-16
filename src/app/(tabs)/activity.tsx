@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { Text } from '@/components/T';
+
 import { FeedPost } from '@/components/feed/FeedPost';
 import { UserAvatar } from '@/components/network';
-import { Body, Card, Empty, Item, Page, Pill, Row } from '@/components/ui';
+import { Body, Card, Empty, H, Item, Page, Press, Row } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
+import { Icon } from '@/lib/icons';
 import { t as tl } from '@/i18n/core';
 import { go } from '@/lib/nav';
 import { postByKey } from '@/lib/network';
@@ -11,10 +15,11 @@ import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
 type Tab = 'likes' | 'comments' | 'saved' | 'ideas' | 'bookings' | 'following';
-const TABS: [Tab, string][] = [['likes', 'Mi piace'], ['comments', 'Commenti'], ['saved', 'Salvati'], ['ideas', 'Idee sostenute'], ['bookings', 'Iscrizioni e prenotazioni'], ['following', 'Persone che segui']];
+const TABS: [Tab, string, string, string][] = [['likes', 'Mi piace', 'heart', '#ff4d6d'], ['comments', 'Commenti', 'comment', '#4dabf7'], ['saved', 'Salvati', 'bookmark', '#ffd43b'], ['ideas', 'Idee sostenute', 'coin', '#51cf66'], ['bookings', 'Iscrizioni e prenotazioni', 'calendar', '#b197fc'], ['following', 'Persone che segui', 'users', '#38d9a9']];
 
 /** Tutto ciò che hai fatto nella rete: mi piace, commenti, salvati, idee sostenute, iscrizioni e persone che segui. Solo tu lo vedi. */
 export default function Activity() {
+  const th = useTheme();
   const me = useApp((s) => s.account.name);
   const net = useNet();
   const [tab, setTab] = useState<Tab>('likes');
@@ -31,10 +36,22 @@ export default function Activity() {
     : <>{rows.map((r) => <View key={r.key} style={{ marginHorizontal: -16 }}><FeedPost post={r.post} likeKey={r.key} /></View>)}</>;
   return (
     <Page id="activity" back title="La tua attività">
-      <Body small muted style={{ marginBottom: 10 }}>Qui ritrovi tutto quello che hai fatto nella rete. Lo vedi solo tu.</Body>
-      <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 12 }} gap={8}>
-        {TABS.map(([k, l]) => <Pill key={k} label={`${tl(l)} · ${counts[k]}`} on={tab === k} onPress={() => setTab(k)} />)}
-      </Row>
+      <Body small muted style={{ marginBottom: 14 }}>Qui ritrovi tutto quello che hai fatto nella rete. Lo vedi solo tu.</Body>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
+        {TABS.map(([k, l, ic, col]) => {
+          const on = tab === k;
+          return (
+            <Press key={k} onPress={() => setTab(k)} selected={on} role="tab" accessibilityLabel={`${tl(l)}: ${counts[k]}`} style={{ flexGrow: 1, flexBasis: '30%', minHeight: 92, borderRadius: 18, padding: 12, justifyContent: 'space-between', backgroundColor: on ? col + '26' : th.card, borderWidth: 1.5, borderColor: on ? col : th.item }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: col + '2e' }}><Icon name={ic} size={18} color={col} fill={on && (k === 'likes' || k === 'saved') ? col : 'none'} stroke={2} /></View>
+                <Text style={{ color: th.text, fontSize: 24, fontWeight: '800' }}>{counts[k]}</Text>
+              </View>
+              <Text numberOfLines={2} style={{ color: on ? th.text : th.muted, fontSize: 12.5, fontWeight: on ? '800' : '600', marginTop: 8 }}>{tl(l)}</Text>
+            </Press>
+          );
+        })}
+      </View>
+      <H style={{ marginBottom: 10 }}>{tl(TABS.find((x) => x[0] === tab)![1])}</H>
       {tab === 'likes' && <FeedList rows={liked} empty="Non hai ancora messo mi piace a niente: tocca il cuore sotto un post." />}
       {tab === 'saved' && <FeedList rows={saved} empty="Non hai salvato niente: tocca il segnalibro sotto un post." />}
       {tab === 'comments' && (myComments.length === 0 ? <Card><Empty text="Non hai ancora commentato: apri un post e scrivi nella barra dei commenti." /></Card> : (
