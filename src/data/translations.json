@@ -1,6 +1,6 @@
 {
  "Italiano": {
-  "navHome": "Home",
+  "navHome": "Dashboard",
   "navAi": "AI",
   "navNetwork": "Network",
   "navFinance": "Finance",
@@ -93,7 +93,7 @@
   }
  },
  "English": {
-  "navHome": "Home",
+  "navHome": "Dashboard",
   "navAi": "AI",
   "navNetwork": "Network",
   "navFinance": "Finance",

@@ -137,7 +137,7 @@ export default function Dashboard() {
         </Card>
     </>
   );
-  const isMoreOpen = moreOpen ?? lay.moreOpen;
+  const isMoreOpen = moreOpen ?? false;
   const hasData = list.length > 0;
 
   return (
@@ -166,10 +166,11 @@ export default function Dashboard() {
       )}
 
       {/* ---------- 5. Altro ---------- */}
-      <MoreSection title="Approfondimento" subtitle="Punteggio, indicatori, correlazioni e report" open={isMoreOpen} onToggle={() => setMoreOpen(!isMoreOpen)}>
+      {/* il report resta in vista; tutto ciò che viene dopo sta in un solo campo «Altro» che si apre con un tocco */}
+      <View style={{ marginTop: 22 }}><WeeklyReportButton ghost /></View>
+      <MoreSection title="Altro" subtitle="Percorso, indicatori, correlazioni e il resto" open={isMoreOpen} onToggle={() => setMoreOpen(!isMoreOpen)}>
         <JourneyCard />
         <DiscoverCard />
-        <WeeklyReportButton ghost style={{ marginBottom: 12 }} />
         
         {hasData && (
           <>
