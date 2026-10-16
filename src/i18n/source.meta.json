@@ -1,5 +1,5 @@
 {
- "count": 11000,
+ "count": 11002,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -190,7 +190,7 @@
   "src/components/feed/FeedPost.tsx": 28,
   "src/components/feed/Header.tsx": 15,
   "src/components/feed/SearchResults.tsx": 5,
-  "src/components/feed/SharePostSheet.tsx": 3,
+  "src/components/feed/SharePostSheet.tsx": 12,
   "src/components/feed/SpecialCards.tsx": 28,
   "src/components/feed/SwipeDeck.tsx": 29,
   "src/components/feed/TabCards.tsx": 21,
@@ -494,5 +494,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1363
+ "withPlaceholders": 1362
 }
