@@ -151,18 +151,18 @@ export default function LifeNetwork() {
       } else if (posts2.length) feed.push(posts2.shift()!);
       n++;
     }
-    /* i consigli di Theia stanno sempre in alto */
+    /* i consigli di Theia sono sparsi lungo il feed (uno ogni sette contenuti circa), come una vera cronologia */
+    const spread = (list: Item[], extra: Item[], first: number, every: number) => { const out = list.slice(); extra.forEach((x, i) => { out.splice(Math.min(out.length, first + i * every), 0, x); }); return out; };
     if (!following) {
       const sig = (it: Item) => (it.k === 'post' ? `post:${it.post.media ?? 'frase'}` : it.k);
       const base = diversify(applyToFeed(feed, (it) => (it.k === 'post' ? it.likeKey : null), (it) => (it.k === 'post' ? `${it.post.text} ${it.post.tag ?? ''}` : ''), swipes, themeWeights), sig);
-      const withAds = base.slice();
-      ads.forEach((ad, i) => { const at = Math.min(withAds.length, 3 + i * 6); withAds.splice(at, 0, ad); });
-      return [...mot, ...withAds];
+      /* inserzioni: una ogni sei contenuti a partire dal quarto */
+      return spread(spread(base, ads, 3, 6), mot, 4, 7);
     }
-    return [...mot, ...feed.filter((it) => {
+    return spread(feed.filter((it) => {
       const a = it.k === 'post' ? it.post.author : it.k === 'idea' ? it.idea.author : null;
       return a && followingList.includes(a);
-    })];
+    }), mot, 3, 7);
   }, [communities, posts, ideas, seminars, providers, products, jobsList, hideIdeas, mutedIdeaAuthors, followingList, following, me, visible, keep, reach, swipes, themeWeights, quoteLikes]);
 
   const searching = people.trim().length >= 1;
