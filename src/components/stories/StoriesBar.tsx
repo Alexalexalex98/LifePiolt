@@ -81,6 +81,8 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
     const W = 84, H = 118;
     const shown = g.stories.slice(0, 3); // si vedono al massimo le prime tre
     const n = shown.length;
+    /* già visto per intero: resta in fondo alla fila e si vede oscurato */
+    const dim = !g.mine && g.unseen === 0;
     // la prima storia sta davanti dritta; le altre escono ai lati come un ventaglio
     const rot = [0, -11, 11];
     const dx = [0, -13, 13];
@@ -102,20 +104,22 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
             return (
               <View key={st.id} style={{ position: 'absolute', width: W, height: H, borderRadius: 14, overflow: 'hidden', borderWidth: top && g.unseen ? 2.5 : 1.5, borderColor: top && g.unseen ? '#6c8cff' : 'rgba(255,255,255,0.55)', transform: [{ translateX: dx[k] }, { rotate: `${rot[k]}deg` }], shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } }}>
                 {preview(st, W, H)}
+                {dim ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: 'rgba(8,10,20,0.62)' }} /> : null}
               </View>
             );
           })}
           {g.stories.length > 3 ? <View style={{ position: 'absolute', end: 4, top: 2, backgroundColor: '#4f8cff', borderRadius: 11, minWidth: 22, height: 22, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>+{g.stories.length - 3}</Text></View> : null}
           {extra}
         </View>
-        <Text numberOfLines={1} style={{ color: g.unseen ? t.text : t.muted, fontSize: 12, marginTop: 8, fontWeight: g.unseen ? '800' : '500' }}>{label}</Text>
+        <Text numberOfLines={1} style={{ color: g.unseen ? t.text : t.muted, opacity: dim ? 0.6 : 1, fontSize: 12, marginTop: 8, fontWeight: g.unseen ? '800' : '500' }}>{label}</Text>
       </View>
     );
   };
   return (
     <View>
       <Text accessibilityRole="header" style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, paddingHorizontal: 16, marginTop: 6 }}>{tl('RECAP')}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled scrollEnabled={!peeking} contentContainerStyle={{ paddingStart: 22, paddingEnd: 8, paddingVertical: 8, gap: 0 }} accessibilityLabel={tl('Recap della giornata')}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+        <View style={{ paddingStart: 22, paddingVertical: 8 }}>
         {mine ? card('me', mine, tl('Tu'), () => { void snapBackdrop().then(() => go('storyView', { author: me })); }, (
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi un momento')} onPress={() => go('storyCreate')} hitSlop={8} style={{ position: 'absolute', end: 5, top: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: '#4f8cff', alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={14} color="#fff" /></Pressable>
         )) : (
@@ -124,8 +128,11 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><Icon name="plus" size={14} color={t.accent} /><Text style={{ color: t.accent, fontWeight: '800', fontSize: 12 }}>{tl('Il tuo momento')}</Text></View>
           </Pressable>
         )}
+        </View>
+      <ScrollView style={{ flex: 1 }} horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled scrollEnabled={!peeking} contentContainerStyle={{ paddingStart: 0, paddingEnd: 8, paddingVertical: 8, gap: 0 }} accessibilityLabel={tl('Recap della giornata')}>
         {others.map((g) => card(g.author, g, g.author.split(' ')[0], () => { void snapBackdrop().then(() => go('storyView', { author: g.author })); }))}
       </ScrollView>
+      </View>
     </View>
   );
 }
