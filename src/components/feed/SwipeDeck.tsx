@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Animated, PanResponder, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
@@ -78,19 +78,21 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   const lastTap = useRef(0);
   const x = useRef(new Animated.Value(0)).current;
   const [sharing, setSharing] = useState(false);
+  const [startDone, setStartDone] = useState(false);
   const donated = useNet((s) => s.dailyPoint.lastGiven === weekdayShortDate());
   /* se arrivi toccando un contenuto, si parte proprio da quello (finché non lo scegli) */
   const card = useMemo(() => {
-    const first = startKey ? cards.find((c) => c.key === startKey && c.author !== me) : undefined;
-    if (first && !(swipes ?? []).some((r) => r.key === first.key)) return first;
+    /* il contenuto toccato si vede SEMPRE per primo, anche se l'avevi già scelto in passato (come un reel che si apre) */
+    const first = startKey && !startDone ? cards.find((c) => c.key === startKey) : undefined;
+    if (first) return first;
     return pickMixed(rankedPool(cards as SwipeCandidate[], swipes, weights, me), (swipes ?? []).length);
-  }, [cards, swipes, weights, me, startKey]);
+  }, [cards, swipes, weights, me, startKey, startDone]);
   const liked = useNet((s) => !!card && s.likedPosts.includes(card.key));
   const left = remaining(cards, swipes, weights, me);
   /* la carta successiva è già pronta sotto (foto o anteprima del video): quando la corrente se ne va, c'è subito qualcosa */
   const upcoming = useMemo(() => (card ? pickMixed(rankedPool(cards as SwipeCandidate[], [...(swipes ?? []), { key: card.key, dir: 'yes', ts: 0 }], weights, me), (swipes ?? []).length + 1) : null), [cards, swipes, weights, me, card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const upcomingUri = upcoming ? (upcoming.media === 'video' ? upcoming.poster : upcoming.uris?.[0] ?? upcoming.uri) : undefined;
-  useEffect(() => { x.setValue(0); }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => { x.setValue(0); }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const cardRef = useRef(card); cardRef.current = card;
   const isVideo = !!card && card.media === 'video' && (!!card.asset || !!card.uri);
   /* le foto (e le anteprime dei video) dei prossimi post si scaricano in anticipo: niente attesa quando scegli */
@@ -118,6 +120,7 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
   const decide = (dir: 'yes' | 'no') => {
     const c = cardRef.current; if (!c) return;
     buzz();
+    setStartDone(true);
     const st = useNet.getState();
     const dw = dwellFor(c);
     st.patch({ swipes: record(st.swipes, c.key, dir, Date.now()), themeWeights: addSignal(st.themeWeights, `${c.text} ${c.tag ?? ''}`, dir === 'yes' ? SWIPE_SIGNAL + dw : -SWIPE_SIGNAL + dw) });
@@ -171,7 +174,7 @@ export function SwipeDeck({ cards, onClose, startKey }: { cards: SwipeCandidate[
             if (isVideo) setPaused(!(vid.current?.toggle() ?? true));
           }}
           delayLongPress={260} onLongPress={() => { if (isVideo) { vid.current?.rate(2); setFast(true); } }} onPressOut={() => { if (fast) { vid.current?.rate(1); setFast(false); } }} style={{ flex: 1 }}>
-          {isVideo ? <DeckVideo key={card.key} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} poster={card.poster} /> : card.asset ? <Image source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
+          {isVideo ? <DeckVideo key={card.key} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} poster={card.poster} /> : card.asset ? <Image key={card.key} recyclingKey={card.key} source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image key={card.key} recyclingKey={card.key} source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
             <LinearGradient colors={['#4a3bd1', '#1b1f3a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
               <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900' }}>{card.text}</Text>
             </LinearGradient>

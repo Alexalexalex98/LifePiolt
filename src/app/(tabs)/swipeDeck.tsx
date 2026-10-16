@@ -1,10 +1,11 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, PanResponder, View, useWindowDimensions } from 'react-native';
 
 import { SwipeDeck } from '@/components/feed/SwipeDeck';
 import { useDeckCards } from '@/components/feed/useDeckCards';
 import { goBack } from '@/lib/nav';
+import { postByKey } from '@/lib/network';
 import { useSeedMedia } from '@/lib/seedMedia';
 import { useNet } from '@/store/network';
 
@@ -17,8 +18,20 @@ export default function SwipePage() {
   const { width } = useWindowDimensions();
   const x = useRef(new Animated.Value(width)).current;
   const busy = useRef(false);
-  const cards = useDeckCards();
+  const baseCards = useDeckCards();
+  /* il contenuto da cui arrivi c'è sempre, anche se l'algoritmo non lo avrebbe proposto (nascosto, già scelto…) */
+  const cards = useMemo(() => {
+    if (!start || baseCards.some((c) => c.key === start)) return baseCards;
+    const p = postByKey(start);
+    if (!p || (!p.uri && !p.text)) return baseCards;
+    const sp = start.startsWith('standalone:') ? useNet.getState().posts.find((x) => x.id === Number(start.split(':')[1])) : undefined;
+    const uris = sp?.uris && sp.uris.length > 1 ? sp.uris : undefined;
+    return [{ key: start, text: p.text, author: p.author, tag: p.tag, uri: p.uri ?? sp?.uris?.[0], poster: sp?.poster, uris, media: p.media ?? null }, ...baseCards];
+  }, [baseCards, start]);
+  /* la pagina resta montata: a ogni apertura si riparte da zero, così parte proprio dal contenuto toccato */
+  const [opened, setOpened] = useState(0);
   useFocusEffect(useCallback(() => {
+    setOpened((n) => n + 1);
     busy.current = false;
     x.setValue(width);
     Animated.timing(x, { toValue: 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
@@ -45,7 +58,7 @@ export default function SwipePage() {
   return (
     <View style={{ flex: 1, backgroundColor: '#000', overflow: 'hidden' }}>
       <Animated.View style={{ flex: 1, transform: [{ translateX: x }] }}>
-        <SwipeDeck cards={cards} onClose={() => leave(null)} startKey={start} />
+        <SwipeDeck key={`${start ?? ''}:${opened}`} cards={cards} onClose={() => leave(null)} startKey={start} />
         {onlyX ? null : <View accessibilityRole="button" accessibilityLabel="Trascina verso destra per tornare a Per te" {...leftDot.panHandlers} style={dotStyle('start')} hitSlop={{ top: 14, bottom: 14, left: 6, right: 14 }} />}
         {onlyX ? null : <View accessibilityRole="button" accessibilityLabel="Trascina verso sinistra per andare a Seguiti" {...rightDot.panHandlers} style={dotStyle('end')} hitSlop={{ top: 14, bottom: 14, left: 14, right: 6 }} />}
       </Animated.View>
