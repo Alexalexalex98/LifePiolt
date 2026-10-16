@@ -42,6 +42,8 @@ export default function StoryCreate() {
   const [busy, setBusy] = useState(false);
   const [filters, setFilters] = useState(false);
   const [opts, setOpts] = useState(false);
+  const [share, setShare] = useState(false);
+  const [shPlace, setShPlace] = useState('');
   const [attachKind, setAttachKind] = useState<'none' | 'event' | 'seminar' | 'idea' | 'place'>('none');
   const [place, setPlace] = useState('');
   const events = useLife((s) => s.events);
@@ -73,6 +75,27 @@ export default function StoryCreate() {
     goBack();
   }
 
+  const shareSheet = (
+      <Sheet visible={share} title="Condividi nel recap" onClose={() => setShare(false)}>
+        {(() => {
+          const pick = (a: StoryAttach, t: string) => { setAttach(a); setText(t); setTextMode(true); setShare(false); buzz(); };
+          return (
+            <View style={{ gap: 6 }}>
+              {myIdeas.length ? <Body bold>Le mie idee</Body> : null}
+              {myIdeas.map((x) => <Pill key={'i' + x.id} label={x.title} onPress={() => pick({ kind: 'idea', label: x.title, ref: String(x.id) }, x.title)} />)}
+              {mySeminars.length ? <Body bold style={{ marginTop: 8 }}>I miei seminari</Body> : null}
+              {mySeminars.map((x) => <Pill key={'s' + x.id} label={x.title} onPress={() => pick({ kind: 'seminar', label: x.title, ref: String(x.id) }, x.title)} />)}
+              {nextEvents.length ? <Body bold style={{ marginTop: 8 }}>I miei impegni</Body> : null}
+              {nextEvents.map((e) => <Pill key={e.day + e.label} label={e.label} onPress={() => pick({ kind: 'event', label: e.label, ref: e.day }, e.label)} />)}
+              <Body bold style={{ marginTop: 8 }}>Un luogo</Body>
+              <Input value={shPlace} onChangeText={setShPlace} placeholder="Es. Parco Ciani, Lugano" maxLength={60} />
+              <Btn small style={{ marginTop: 6 }} title="Condividi il luogo" disabled={!shPlace.trim()} onPress={() => pick({ kind: 'place', label: shPlace.trim() }, shPlace.trim())} />
+            </View>
+          );
+        })()}
+      </Sheet>
+  );
+
   /* ---------- 1. come vuoi iniziare ---------- */
   if (!composing) {
     const tile = (icon: string, label: string, sub: string, colors: [string, string], onPress: () => void, rot: string) => (
@@ -97,9 +120,11 @@ export default function StoryCreate() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingHorizontal: 20, marginTop: 28 }}>
           {tile('image', tl('Galleria'), tl('Foto e video, anche più insieme'), ['#7b5cff', '#c13fd6'], () => void fromGallery(), '-2deg')}
           {tile('camera', tl('Fotocamera'), tl('Scatta adesso'), ['#ff7a59', '#ff2d87'], () => void fromCamera(), '2deg')}
+          {tile('share', tl('Condividi'), tl('Un evento, un’idea, un seminario, un luogo'), ['#f5a623', '#e8543a'], () => setShare(true), '-1.5deg')}
           {tile('Aa', tl('Solo testo'), tl('Una frase su un colore'), ['#16c79a', '#1f7ae0'], () => { setTextMode(true); buzz(); }, '1.5deg')}
         </View>
         <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, textAlign: 'center', marginTop: 'auto', paddingBottom: insets.bottom + 18, paddingHorizontal: 30 }}>{tl('Il momento resta nel recap per 24 ore, se non scegli altro. Lo vede chi ti segue.')}</Text>
+        {shareSheet}
       </View>
     );
   }
@@ -178,6 +203,7 @@ export default function StoryCreate() {
         </Pressable>
       </View>
 
+      {shareSheet}
       <Sheet visible={opts} title="Opzioni del momento" onClose={() => setOpts(false)}>
         <Body bold style={{ marginBottom: 6 }}>Quanto resta</Body>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>

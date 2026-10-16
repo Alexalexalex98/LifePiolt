@@ -120,12 +120,17 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
       <Text accessibilityRole="header" style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, paddingHorizontal: 16, marginTop: 6 }}>{tl('RECAP')}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
         <View style={{ paddingStart: 22, paddingVertical: 8 }}>
-        {mine ? card('me', mine, tl('Tu'), () => { void snapBackdrop().then(() => go('storyView', { author: me })); }, (
+        {mine ? card('me', mine, tl('Il tuo recap'), () => { void snapBackdrop().then(() => go('storyView', { author: me })); }, (
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi un momento')} onPress={() => go('storyCreate')} hitSlop={8} style={{ position: 'absolute', end: 5, top: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: '#4f8cff', alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={14} color="#fff" /></Pressable>
         )) : (
-          <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi un momento')} onPress={() => go('storyCreate')} style={{ width: 84, height: 118, marginHorizontal: 20, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: t.border, alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <UserAvatar name={me} size={40} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><Icon name="plus" size={14} color={t.accent} /><Text style={{ color: t.accent, fontWeight: '800', fontSize: 12 }}>{tl('Il tuo momento')}</Text></View>
+          <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al tuo recap')} onPress={() => go('storyCreate')} style={({ pressed }) => ({ width: 84, height: 118, marginHorizontal: 20, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
+            <LinearGradient colors={['#7b5cff', '#c13fd6', '#ff4d8d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 6 }}>
+              <View>
+                <View style={{ borderRadius: 26, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.9)' }}><UserAvatar name={me} size={44} /></View>
+                <View style={{ position: 'absolute', end: -6, bottom: -4, width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={14} color="#7b5cff" stroke={3} /></View>
+              </View>
+              <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13, textAlign: 'center', lineHeight: 16 }}>{tl('Il tuo recap')}</Text>
+            </LinearGradient>
           </Pressable>
         )}
         </View>
