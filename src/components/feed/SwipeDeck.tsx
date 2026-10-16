@@ -72,8 +72,26 @@ function DeckVideo({ source, muted, controls, poster }: { source: number | { uri
  */
 export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { cards: SwipeCandidate[]; onClose: () => void; /** chiusura tirando giù (come i recap): se manca si usa onClose */ onDismiss?: () => void; /** schermata di partenza, che si vede dietro mentre tiri giù */ backdrop?: string | null; startKey?: string }) {
   const me = useApp((s) => s.account.name);
-  const swipes = useNet((s) => s.swipes);
-  const weights = useNet((s) => s.themeWeights);
+  /* le scelte si tengono qui, in locale, e si salvano tutte insieme dopo una pausa o all'uscita: salvare a ogni scelta faceva ricalcolare
+     l'intera Home sotto lo Swipe e bloccava per un attimo il cambio di immagine */
+  const [swipes, setSwipes] = useState(() => useNet.getState().swipes);
+  const [weights, setWeights] = useState(() => useNet.getState().themeWeights);
+  const swRef = useRef(swipes); swRef.current = swipes;
+  const wRef = useRef(weights); wRef.current = weights;
+  const reachQ = useRef<string[]>([]);
+  const dirty = useRef(false);
+  const flushT = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flush = () => {
+    if (flushT.current) { clearTimeout(flushT.current); flushT.current = null; }
+    if (!dirty.current) return;
+    dirty.current = false;
+    const st = useNet.getState();
+    st.patch({ swipes: swRef.current, themeWeights: wRef.current });
+    reachQ.current.splice(0).forEach((k) => st.bumpReach(k, 'like'));
+  };
+  const flushRef = useRef(flush); flushRef.current = flush;
+  const later = () => { dirty.current = true; if (flushT.current) clearTimeout(flushT.current); flushT.current = setTimeout(() => flushRef.current(), 3000); };
+  useEffect(() => () => { flushRef.current(); }, []);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [help, setHelp] = useState(false);
@@ -131,7 +149,8 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
   /** Il tempo passato sul post entra nell'algoritmo, anche se non fai uno swipe. */
   const dwellFor = (c: SwipeCandidate) => dwellSignal(Date.now() - shownAt.current, c.media === 'video' ? maxFrac.current : undefined);
   const leave = () => {
-    const c = cardRef.current; if (c) { const d = dwellFor(c); if (d > 0) { const st = useNet.getState(); st.patch({ themeWeights: addSignal(st.themeWeights, `${c.text} ${c.tag ?? ''}`, d) }); } }
+    const c = cardRef.current; if (c) { const d = dwellFor(c); if (d > 0) { wRef.current = addSignal(wRef.current, `${c.text} ${c.tag ?? ''}`, d); dirty.current = true; } }
+    flush();
     onClose();
   };
 
@@ -141,11 +160,10 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
     setStartDone(true);
     const dw = dwellFor(c);
     if (upRef.current) setForced(upRef.current);
-    setTimeout(() => {
-      const st = useNet.getState();
-      st.patch({ swipes: record(st.swipes, c.key, dir, Date.now()), themeWeights: addSignal(st.themeWeights, `${c.text} ${c.tag ?? ''}`, dir === 'yes' ? SWIPE_SIGNAL + dw : -SWIPE_SIGNAL + dw) });
-      if (dir === 'yes') st.bumpReach(c.key, 'like');
-    }, 280);
+    setSwipes((x) => record(x, c.key, dir, Date.now()));
+    setWeights((w) => addSignal(w, `${c.text} ${c.tag ?? ''}`, dir === 'yes' ? SWIPE_SIGNAL + dw : -SWIPE_SIGNAL + dw));
+    if (dir === 'yes') reachQ.current.push(c.key);
+    later();
     /* x resta a fine corsa: la carta scelta non ricompare per un attimo; si azzera quando arriva la nuova */
   };
   const fling = (dir: 'yes' | 'no') => Animated.timing(x, { toValue: dir === 'yes' ? -width * 1.2 : width * 1.2, duration: 180, useNativeDriver: false }).start(() => decide(dir));
@@ -157,7 +175,7 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
     onMoveShouldSetPanResponder: (_e, g) => (Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g),
     onPanResponderMove: (e, g) => { if (g.dy > Math.abs(g.dx) * 1.5) { x.setValue(0); dragY.setValue(Math.max(0, g.dy)); } else { dragY.setValue(0); x.setValue(g.dx); } },
     onPanResponderRelease: (_e, g) => {
-      if (g.dy > 110 && g.dy > Math.abs(g.dx) * 1.5) { Animated.timing(dragY, { toValue: 900, duration: 170, useNativeDriver: false }).start(() => { const c = cardRef.current; if (c) { const d = dwellSignal(Date.now() - shownAt.current, c.media === 'video' ? maxFrac.current : undefined); if (d > 0) { const st = useNet.getState(); st.patch({ themeWeights: addSignal(st.themeWeights, `${c.text} ${c.tag ?? ''}`, d) }); } } (onDismiss ?? onClose)(); setTimeout(() => dragY.setValue(0), 400); }); return; }
+      if (g.dy > 110 && g.dy > Math.abs(g.dx) * 1.5) { Animated.timing(dragY, { toValue: 900, duration: 170, useNativeDriver: false }).start(() => { const c = cardRef.current; if (c) { const d = dwellSignal(Date.now() - shownAt.current, c.media === 'video' ? maxFrac.current : undefined); if (d > 0) { wRef.current = addSignal(wRef.current, `${c.text} ${c.tag ?? ''}`, d); dirty.current = true; } } flushRef.current(); (onDismiss ?? onClose)(); setTimeout(() => dragY.setValue(0), 400); }); return; }
       if (g.dy > 0 && Math.abs(g.dx) < 24) { Animated.spring(dragY, { toValue: 0, useNativeDriver: false, friction: 8 }).start(); }
       if (g.dx <= -THRESHOLD || g.vx < -0.9) fling('yes');
       else if (g.dx >= THRESHOLD || g.vx > 0.9) fling('no');
@@ -167,7 +185,7 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
   const rot = x.interpolate({ inputRange: [-width, 0, width], outputRange: ['-9deg', '0deg', '9deg'] });
   const yesOp = x.interpolate({ inputRange: [-THRESHOLD, -16, 0], outputRange: [1, 0.1, 0], extrapolate: 'clamp' });
   const noOp = x.interpolate({ inputRange: [0, 16, THRESHOLD], outputRange: [0, 0.1, 1], extrapolate: 'clamp' });
-  const undo = () => { const st = useNet.getState(); const u = undoLast(st.swipes); if (u.undone) { setForced(null); st.patch({ swipes: u.swipes }); buzz(); } };
+  const undo = () => { const u = undoLast(swRef.current); if (u.undone) { setForced(null); setSwipes(u.swipes); later(); buzz(); } };
   const close = (
     <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={leave} hitSlop={12} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={20} color="#fff" /></Pressable>
   );
