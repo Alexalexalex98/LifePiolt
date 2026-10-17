@@ -116,7 +116,7 @@ function FeedVideo({ uri, width, height, poster, vfx }: { vfx?: VideoFx; uri: st
   return (
     <View pointerEvents="none" style={{ width, height }}>
       {shown ? null : poster ? <Image source={{ uri: poster }} pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, width, height }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : <MediaSkeleton width={width} height={height} />}
-      <Animated.View style={{ width, height, opacity: fade }}><VideoView player={p} style={{ width, height }} nativeControls={false} contentFit="cover" onFirstFrameRender={onFirst} /></Animated.View>
+      <Animated.View style={{ width, height, opacity: fade }}><VideoView player={p} surfaceType="textureView" style={{ width, height }} nativeControls={false} contentFit="cover" onFirstFrameRender={onFirst} /></Animated.View>
       <View style={{ position: 'absolute', top: 12, start: 12, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 }}><Icon name="video" size={14} color="#fff" /></View>
     </View>
   );

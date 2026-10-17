@@ -1,4 +1,5 @@
 import { useVideoFx } from '@/hooks/use-video-fx';
+import { acquirePlayer, preloadPlayer, releaseAllPlayers, releaseExcept } from '@/lib/videoPool';
 import { liveAccent } from '@/lib/liveTheme';
 import type { VideoFx } from '@/lib/videoFx';
 import { StoryFx } from '@/components/stories/StoryFx';
@@ -54,9 +55,11 @@ function RailBtn({ icon, label, onPress, on, count, onCount }: { icon: string; l
 
 type Vid = { rate: (r: number) => void; toggle: () => boolean; seek: (f: number) => void; frac: () => number };
 /** Video del post: parte da solo, muto finché non attivi l'audio, in loop. */
-function DeckVideo({ source, muted, controls, poster, vfx }: { vfx?: VideoFx; source: number | { uri: string }; muted: boolean; controls: React.MutableRefObject<Vid | null>; poster?: string }) {
+function DeckVideo({ playerKey, source, muted, controls, poster, vfx }: { playerKey: string; vfx?: VideoFx; source: number | { uri: string }; muted: boolean; controls: React.MutableRefObject<Vid | null>; poster?: string }) {
   const [shown, setShown] = useState(false);
-  const p = useVideoPlayer(source, (pl) => { pl.loop = true; pl.muted = true; pl.play(); });
+  /* il lettore può essere già pronto: l'ha caricato in anticipo la carta sotto */
+  const p = useMemo(() => acquirePlayer(playerKey, source), [playerKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { try { p.play(); } catch { /* rilasciato */ } const f = setTimeout(() => setShown(true), 1200); return () => clearTimeout(f); }, [p]);
   useVideoFx(p, vfx);
   if (vfx?.mute) muted = true;
   /* uscendo dalla schermata (o con l'app in secondo piano) il video si ferma e il volume si toglie; al ritorno riparte solo se non l'avevi messo in pausa tu */
@@ -83,7 +86,8 @@ function DeckVideo({ source, muted, controls, poster, vfx }: { vfx?: VideoFx; so
   return (
     <View style={{ width: '100%', height: '100%' }}>
       {poster ? <Image source={{ uri: poster }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
-      <VideoView player={p} pointerEvents="none" style={{ width: '100%', height: '100%', opacity: shown || !poster ? 1 : 0 }} nativeControls={false} contentFit="cover" onFirstFrameRender={() => setShown(true)} />
+      {/* su Android la superficie normale non segue rotazione e spostamento della carta e lascia l'ultimo fotogramma: qui serve la «textureView». Il video resta nascosto finché non c'è il primo fotogramma. */}
+      <VideoView player={p} pointerEvents="none" surfaceType="textureView" style={{ width: '100%', height: '100%', opacity: shown ? 1 : 0 }} nativeControls={false} contentFit="cover" onFirstFrameRender={() => setShown(true)} />
     </View>
   );
 }
@@ -168,6 +172,14 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
     /* i file dei prossimi video si scaldano in anticipo (conta soprattutto con Expo, che li serve dal computer) */
     cards.filter((c) => c.media === 'video' && !seen.has(c.key) && c.key !== card?.key && c.uri && /^https?:/.test(c.uri)).slice(0, 1).forEach((c) => { fetch(c.uri as string).then((r) => r.blob()).catch(() => undefined); });
   }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* il video che arriva dopo si carica già adesso (in pausa); gli altri lettori si liberano */
+  useEffect(() => {
+    const keep: string[] = [];
+    if (card && card.media === 'video' && (card.asset || card.uri)) keep.push(card.key);
+    if (upcoming && upcoming.media === 'video' && (upcoming.asset || upcoming.uri)) { keep.push(upcoming.key); preloadPlayer(upcoming.key, upcoming.asset ?? { uri: upcoming.uri as string }); }
+    releaseExcept(keep);
+  }, [card?.key, upcoming?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => releaseAllPlayers(), []);
   /* nuovo post: azzera il cronometro di visione e lo stato del video */
   useEffect(() => { shownAt.current = Date.now(); maxFrac.current = 0; setPaused(false); setFast(false); setProg(0); setPic(0); }, [card?.key]);
   useEffect(() => {
@@ -248,7 +260,7 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
           }}
           delayLongPress={260} onLongPress={() => { if (isVideo) { vid.current?.rate(2); setFast(true); } }} onPressOut={() => { if (fast) { vid.current?.rate(1); setFast(false); } }} style={{ flex: 1 }}>
           {card.fx ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, zIndex: 1 }}><StoryFx s={card.fx as never} uri={card.media === 'video' ? undefined : card.uris?.[pic] ?? card.uri} /></View> : null}
-          {isVideo ? <DeckVideo key={card.key} vfx={card.fx?.video} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} poster={card.poster} /> : card.asset ? <Image key={card.key} recyclingKey={card.key} source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image key={card.key} recyclingKey={card.key} source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
+          {isVideo ? <DeckVideo key={card.key} playerKey={card.key} vfx={card.fx?.video} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} poster={card.poster} /> : card.asset ? <Image key={card.key} recyclingKey={card.key} source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image key={card.key} recyclingKey={card.key} source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
             <LinearGradient colors={['#4a3bd1', '#1b1f3a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
               <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900' }}>{card.text}</Text>
             </LinearGradient>

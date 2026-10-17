@@ -42,7 +42,7 @@ export function StoryVideo({ uri, controls, sound, poster, paused, onShown, vfx 
   return (
     <View style={{ width: '100%', height: '100%' }}>
       {poster ? <Image source={{ uri: poster }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
-      <VideoView player={p} style={{ width: '100%', height: '100%', opacity: shown || !poster ? 1 : 0 }} nativeControls={!!controls} contentFit="cover" onFirstFrameRender={() => { setShown(true); onShown?.(); }} />
+      <VideoView player={p} surfaceType="textureView" style={{ width: '100%', height: '100%', opacity: shown || !poster ? 1 : 0 }} nativeControls={!!controls} contentFit="cover" onFirstFrameRender={() => { setShown(true); onShown?.(); }} />
     </View>
   );
 }
