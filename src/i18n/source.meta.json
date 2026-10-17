@@ -1,5 +1,5 @@
 {
- "count": 11160,
+ "count": 11179,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -84,7 +84,7 @@
   "src/app/(tabs)/security.tsx": 5,
   "src/app/(tabs)/seminarPage.tsx": 44,
   "src/app/(tabs)/servicePage.tsx": 31,
-  "src/app/(tabs)/settings.tsx": 108,
+  "src/app/(tabs)/settings.tsx": 115,
   "src/app/(tabs)/sharing.tsx": 2,
   "src/app/(tabs)/shopPage.tsx": 42,
   "src/app/(tabs)/skillProfile.tsx": 26,
@@ -467,6 +467,7 @@
   "src/lib/taxDeadlines.ts": 14,
   "src/lib/theia.ts": 86,
   "src/lib/theiaQuotes.ts": 40,
+  "src/lib/themeCustom.ts": 17,
   "src/lib/tour.ts": 47,
   "src/lib/travel.ts": 38,
   "src/lib/tripPlanner.ts": 102,

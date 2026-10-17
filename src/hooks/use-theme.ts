@@ -3,15 +3,17 @@ import { useColorScheme } from 'react-native';
 
 import { palettes, type Palette } from '@/constants/theme';
 import { readable } from '@/lib/a11y';
+import { customize } from '@/lib/themeCustom';
 import { useApp } from '@/store/app';
 
 /** Palette attiva: scuro / chiaro / sistema, con la variante ad alto contrasto vera (non solo due colori ritoccati). */
 export function useTheme(): Palette {
   const appearance = useApp((s) => s.appearance);
   const highContrast = useApp((s) => s.accessibility.highContrast);
+  const custom = useApp((s) => s.custom);
   const system = useColorScheme();
   const light = appearance === 'Chiaro' || (appearance === 'Sistema' && system === 'light');
-  return useMemo(() => (light ? (highContrast ? palettes.lightHC : palettes.light) : (highContrast ? palettes.darkHC : palettes.dark)) as Palette, [light, highContrast]);
+  return useMemo(() => customize((light ? (highContrast ? palettes.lightHC : palettes.light) : (highContrast ? palettes.darkHC : palettes.dark)) as Palette & { mode: string }, custom, highContrast) as Palette, [light, highContrast, custom]);
 }
 
 export const useIsLight = () => useTheme().mode === 'light';

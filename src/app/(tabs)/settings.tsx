@@ -10,6 +10,7 @@ import { navLabelFor } from '@/components/NavBar';
 import { WorkHoursSheet } from '@/components/plan';
 import { Body, Btn, Card, H, Input, Item, Link, Page, Pill, Row, Select, Sheet, Toggle, Chev } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
+import { ACCENTS, TONES, isHex, normHex } from '@/lib/themeCustom';
 import { exportBackup, pickBackup, restoreBackup, STORE_LABELS, wipeAllData, type BackupPreview } from '@/lib/backup';
 import { JourneyCard } from '@/components/home/HomeBlocks';
 import { formatErrors, logError, useErrorLog } from '@/lib/errorLog';
@@ -45,6 +46,7 @@ export default function Settings() {
   const { set } = app;
   const [edit, setEdit] = useState<null | 'name' | 'email' | 'assistant'>(null);
   const [editVal, setEditVal] = useState('');
+  const [hexDraft, setHexDraft] = useState('');
   const [demoAsk, setDemoAsk] = useState(false);
   const [wh, setWh] = useState(false);
   const [info, setInfo] = useState<null | 'help' | 'contact' | 'terms'>(null);
@@ -215,6 +217,25 @@ export default function Settings() {
       <Card>
         <H>{tr('stAppearance')}</H>
         <Select value={app.appearance} options={['Scuro', 'Chiaro', 'Sistema']} onChange={(v) => { set({ appearance: v as Appearance }); toast(tl('Aspetto: {0}', translateText(v))); }} />
+      </Card>
+
+      <Card>
+        <H>Colori</H>
+        <Body small muted style={{ marginBottom: 10 }}>Scegli il colore dell'app e il tono dello sfondo. Il testo resta sempre leggibile.</Body>
+        <Body bold style={{ marginBottom: 8 }}>Colore principale</Body>
+        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={10}>
+          {ACCENTS.map((a) => (
+            <Pressable key={a.id} accessibilityRole="button" accessibilityLabel={a.label} accessibilityState={{ selected: app.custom?.accent === a.hex }} onPress={() => { set({ custom: { ...app.custom, accent: a.hex } }); }} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: a.hex, alignItems: 'center', justifyContent: 'center', borderWidth: app.custom?.accent === a.hex ? 3 : 0, borderColor: t.text }}>
+              {app.custom?.accent === a.hex ? <Icon name="check" size={18} color="#111" stroke={3} /> : null}
+            </Pressable>
+          ))}
+        </Row>
+        <Input value={hexDraft} onChangeText={(v) => { setHexDraft(v); if (isHex(v)) set({ custom: { ...app.custom, accent: normHex(v) } }); }} placeholder="Un colore tuo, es. #ff7a00" autoCapitalize="none" maxLength={7} style={{ marginTop: 12 }} />
+        <Body bold style={{ marginTop: 6, marginBottom: 8 }}>Tono dello sfondo</Body>
+        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
+          {TONES.map((x) => <Pill key={x.id} label={x.label} on={(app.custom?.tone ?? 'standard') === x.id} onPress={() => set({ custom: { ...app.custom, tone: x.id === 'standard' ? undefined : x.id } })} />)}
+        </Row>
+        {app.custom?.accent || app.custom?.tone ? <Btn small ghost style={{ marginTop: 12 }} title="Ripristina i colori originali" onPress={() => { set({ custom: {} }); setHexDraft(''); toast('Colori originali ripristinati'); }} /> : null}
       </Card>
 
       <Card>

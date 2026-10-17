@@ -23,6 +23,8 @@ type AppState = {
   demo: boolean;
   account: { name: string; email: string; photo?: string };
   appearance: Appearance;
+  /** colore d'accento e tono dello sfondo scelti dall'utente */
+  custom: import('@/lib/themeCustom').CustomTheme;
   language: Language;
   timeFormat: '24h' | '12h';
   /** codice ISO della valuta mostrata (i dati non vengono convertiti: è solo l'unità); di default segue la lingua finché non la scegli a mano */
@@ -60,6 +62,7 @@ const initial = {
   demo: false,
   account: { name: '', email: '' },
   appearance: 'Scuro' as Appearance,
+  custom: {} as import('@/lib/themeCustom').CustomTheme,
   language: 'it' as Language,
   timeFormat: '24h' as const,
   currency: 'CHF',
