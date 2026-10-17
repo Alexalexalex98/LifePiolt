@@ -18,6 +18,8 @@ import { goBack } from '@/lib/nav';
 import { setEditorResult, takeEditorInput } from '@/lib/editorHandoff';
 import { openSheet } from '@/components/network';
 import { useLocalSearchParams } from 'expo-router';
+import { SPEEDS, cleanVideoFx, type VideoFx } from '@/lib/videoFx';
+import { VideoPoster } from '@/components/stories/VideoPoster';
 import { EDIT_SUGGESTIONS, RATIOS, addAdjust, cropRect, parseEdit, zoomRect, type Ratio } from '@/lib/photoEdit';
 import { pickNetMediaMany, takeNetPhoto, type NetMedia } from '@/lib/netMedia';
 import { StoryFx, StoryStickers, storyTextStyle } from '@/components/stories/StoryFx';
@@ -59,9 +61,10 @@ export default function StoryCreate() {
     if (inp.fx?.filter) setFilter(inp.fx.filter);
     if (inp.fx?.adj) setAdj(inp.fx.adj);
     if (inp.fx?.fit) setFit(inp.fx.fit);
+    if (inp.fx?.video) setVfxMap({ 0: inp.fx.video });
   }, [forPost]);
   const leavePost = (save: boolean) => {
-    if (save) setEditorResult({ items, fx: { filter, adj, fit } });
+    if (save) setEditorResult({ items, fx: { filter, adj, fit, video: vfxMap[0] } });
     goBack();
     setTimeout(() => openSheet('newPost', { resume: true }), 350);
   };
@@ -79,9 +82,11 @@ export default function StoryCreate() {
   const [fit, setFit] = useState<StoryFit>('cover');
   const [textSize, setTextSize] = useState<TextSize>('M');
   const [textStyle, setTextStyle] = useState<TextStyleId>('ombra');
-  const [tool, setTool] = useState<'filtri' | 'regola' | 'ritocca' | 'testo' | 'adatta' | 'sfondo'>('filtri');
+  const [tool, setTool] = useState<'filtri' | 'regola' | 'ritocca' | 'video' | 'testo' | 'adatta' | 'sfondo'>('filtri');
+  const [vfxMap, setVfxMap] = useState<Record<number, VideoFx>>({});
   const [area, setArea] = useState({ w: 0, h: 0 });
   const [undo, setUndo] = useState<Record<number, string[]>>({});
+  const [regGroup, setRegGroup] = useState<'luce' | 'colore' | 'effetti'>('luce');
   const [aiOpen, setAiOpen] = useState(false);
   const [aiText, setAiText] = useState('');
   const [aiNote, setAiNote] = useState('');
@@ -113,7 +118,7 @@ export default function StoryCreate() {
     const base = { author: me, now: Date.now(), text, keep, attach: attach ?? undefined, filter, textPos: pos, textColor: ink, adj, fit, textSize, textStyle, people, tags: tagsTxt.split(/[\s,]+/), link };
     const made = textMode
       ? [makeStory({ ...base, id: String(newId()), kind: 'text', bg: BACKGROUNDS[bg] })]
-      : items.map((m, i) => makeStory({ ...base, id: String(newId()) + i, now: base.now + i, kind: m.media, uri: m.uri, text: i === 0 ? text : '' }));
+      : items.map((m, i) => makeStory({ ...base, id: String(newId()) + i, now: base.now + i, kind: m.media, uri: m.uri, text: i === 0 ? text : '', vfx: cleanVideoFx(vfxMap[i], (m.durationMs ?? 0) / 1000) }));
     const ok = made.filter((x): x is NonNullable<typeof x> => !!x);
     if (!ok.length) { toast(textMode ? 'Scrivi qualcosa per il recap' : 'Scegli prima una foto o un video'); return; }
     net.patch({ stories: [...(net.stories ?? []), ...ok] });
@@ -213,6 +218,8 @@ export default function StoryCreate() {
     for (const op of ops) {
       if (op.k === 'adj') setAdj((a) => addAdjust(a, op.d));
       else if (op.k === 'filter') setFilter(op.id);
+      else if (op.k === 'speed') { if (items[cur]?.media === 'video') setVfxMap((m) => ({ ...m, [cur]: { ...(m[cur] ?? {}), speed: SPEEDS.reduce((a, b) => (Math.abs(b - op.f) < Math.abs(a - op.f) ? b : a)) } })); }
+      else if (op.k === 'mute') { if (items[cur]?.media === 'video') setVfxMap((m) => ({ ...m, [cur]: { ...(m[cur] ?? {}), mute: true } })); }
       else if (items[cur]?.media === 'photo') {
         if (op.k === 'rotate') await rotate(op.deg);
         else if (op.k === 'flip') await flip();
@@ -228,7 +235,7 @@ export default function StoryCreate() {
   const draft: Story = { id: 'draft', author: me, ts: Date.now(), kind: textMode ? 'text' : items[cur]?.media ?? 'photo', views: [], filter, adj, textColor: ink, textSize, textStyle, ...(attach ? { attach } : {}), ...(people.length ? { people } : {}), ...(cleanTags(tagsTxt.split(/[\s,]+/)).length ? { tags: cleanTags(tagsTxt.split(/[\s,]+/)) } : {}), ...(cleanLink(link) ? { link: cleanLink(link) } : {}) };
   const sideGap = 20;
   // l'anteprima prende lo spazio che resta tra la barra in alto e gli strumenti: niente calcoli a mano, niente sovrapposizioni
-  const panelH = tool === 'regola' ? 178 : tool === 'testo' ? 160 : tool === 'ritocca' ? 132 : 96;
+  const panelH = tool === 'regola' ? 206 : tool === 'testo' ? 160 : tool === 'ritocca' ? 132 : tool === 'video' ? 168 : 96;
   const maxH = Math.max(160, area.h - 56);
   const ar = forPost ? 5 / 4 : 16 / 9;
   const previewW = Math.max(110, Math.min(area.w - sideGap * 2 || width - sideGap * 2, maxH / ar));
@@ -239,12 +246,18 @@ export default function StoryCreate() {
     { id: 'sfondo', icon: 'grid', label: 'Sfondo', show: textMode },
     { id: 'regola', icon: 'gear', label: 'Regola', show: !textMode },
     { id: 'ritocca', icon: 'repeat', label: 'Ritocca', show: !textMode && items[cur]?.media === 'photo' },
+    { id: 'video', icon: 'video', label: 'Video', show: !textMode && items[cur]?.media === 'video' },
     { id: 'testo', icon: 'edit', label: 'Testo', show: !forPost },
     { id: 'adatta', icon: 'image', label: 'Adatta', show: !textMode && items[cur]?.media === 'photo' },
   ];
   const active = tools.find((x) => x.id === tool && x.show) ?? tools.find((x) => x.show)!;
   const pill = (label: string, on: boolean, onPress: () => void) => <Pill key={label} label={label} on={on} onPress={() => { buzz(); onPress(); }} />;
-  const sliders: { k: keyof Adjust; label: string; min: number }[] = [{ k: 'bright', label: 'Luminosità', min: -1 }, { k: 'warm', label: 'Calore', min: -1 }, { k: 'fade', label: 'Dissolvenza', min: 0 }, { k: 'vign', label: 'Vignetta', min: 0 }];
+  const GROUPS: { id: 'luce' | 'colore' | 'effetti'; label: string; sl: { k: keyof Adjust; label: string; min: number }[] }[] = [
+    { id: 'luce', label: 'Luce', sl: [{ k: 'bright', label: 'Esposizione', min: -1 }, { k: 'contrast', label: 'Contrasto', min: -1 }, { k: 'light', label: 'Alte luci', min: -1 }, { k: 'shadow', label: 'Ombre', min: -1 }] },
+    { id: 'colore', label: 'Colore', sl: [{ k: 'warm', label: 'Temperatura', min: -1 }, { k: 'tint', label: 'Tinta', min: -1 }, { k: 'desat', label: 'Bianco e nero', min: 0 }] },
+    { id: 'effetti', label: 'Effetti', sl: [{ k: 'fade', label: 'Dissolvenza', min: 0 }, { k: 'vign', label: 'Vignetta', min: 0 }] },
+  ];
+  const group = GROUPS.find((g) => g.id === regGroup)!;
   const addedCount = (attach ? 1 : 0) + people.length + cleanTags(tagsTxt.split(/[\s,]+/)).length + (cleanLink(link) ? 1 : 0);
 
   return (
@@ -283,8 +296,9 @@ export default function StoryCreate() {
           {textMode
             ? <LinearGradient colors={BACKGROUNDS[bg]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} />
             : items[cur]?.media === 'photo' ? <Image source={{ uri: items[cur].uri }} style={{ width: '100%', height: '100%' }} contentFit={fit} />
-            : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={44} color="#fff" /><Text style={{ color: '#fff', marginTop: 8, fontWeight: '700' }}>{tl('Video')}</Text></View>}
-          <StoryFx s={draft} />
+            
+            : <VideoPoster uri={items[cur]?.uri} width={previewW} height={previewH} />}
+          <StoryFx s={draft} uri={!textMode && items[cur]?.media === 'photo' ? items[cur].uri : undefined} fit={fit} />
           {forPost ? null : <View style={[{ position: 'absolute', start: 14, end: 14 }, textMode ? { top: previewH / 2 - 40 } : place$]}>
             <TextInput value={text} onChangeText={setText} multiline maxLength={MAX_STORY_TEXT} placeholder={tl(textMode ? 'Scrivi qui' : 'Aggiungi una scritta')} placeholderTextColor="rgba(255,255,255,0.6)" accessibilityLabel={tl('Scritta sul momento')}
               style={[storyTextStyle(draft, previewW / 390 * 1.15), { padding: 0 }]} />
@@ -326,9 +340,13 @@ export default function StoryCreate() {
           </ScrollView>
         ) : null}
         {active.id === 'regola' ? (
-          <View style={{ paddingHorizontal: 22, gap: 6 }}>
-            {sliders.map((sl) => <Slider key={sl.k} label={tl(sl.label)} value={adj[sl.k]} min={sl.min} onChange={(v) => setAdj((a) => ({ ...a, [sl.k]: v }))} />)}
-            {isAdjusted(adj) ? <Pressable accessibilityRole="button" onPress={() => setAdj(NO_ADJUST)} style={{ alignSelf: 'flex-end' }}><Text style={{ color: accent, fontWeight: '800', fontSize: 12.5 }}>{tl('Azzera i ritocchi')}</Text></Pressable> : null}
+          <View style={{ paddingHorizontal: 18, gap: 4 }}>
+            <Row style={{ justifyContent: 'flex-start' }} gap={6}>
+              {GROUPS.map((g) => pill(g.label, regGroup === g.id, () => setRegGroup(g.id)))}
+              <View style={{ flex: 1 }} />
+              {isAdjusted(adj) ? <Pressable accessibilityRole="button" onPress={() => setAdj(NO_ADJUST)} hitSlop={8}><Text style={{ color: accent, fontWeight: '800', fontSize: 12.5 }}>{tl('Azzera')}</Text></Pressable> : null}
+            </Row>
+            {group.sl.filter((x) => x.k !== 'contrast' || items[cur]?.media === 'photo').map((x) => <Slider key={x.k} label={tl(x.label)} value={adj[x.k] ?? 0} min={x.min} onChange={(v) => setAdj((a) => ({ ...a, [x.k]: v }))} />)}
           </View>
         ) : null}
         {active.id === 'testo' ? (
@@ -364,6 +382,26 @@ export default function StoryCreate() {
             </ScrollView>
           </View>
         ) : null}
+        {active.id === 'video' ? (() => {
+          const dur = (items[cur]?.durationMs ?? 0) / 1000;
+          const v = vfxMap[cur] ?? {};
+          const set = (d: Partial<VideoFx>) => setVfxMap((m) => ({ ...m, [cur]: { ...(m[cur] ?? {}), ...d } }));
+          return (
+            <View style={{ gap: 6 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }} style={{ flexGrow: 0 }}>
+                {SPEEDS.map((x) => pill(`${x}x`, (v.speed ?? 1) === x, () => set({ speed: x })))}
+                {pill(v.mute ? 'Senza audio' : 'Con audio', !!v.mute, () => set({ mute: !v.mute }))}
+              </ScrollView>
+              {dur > 1 ? (
+                <View style={{ paddingHorizontal: 18, gap: 2 }}>
+                  <Slider label={tl('Inizio')} value={(v.trimStart ?? 0) / dur} min={0} onChange={(f) => set({ trimStart: Math.min(f * dur, (v.trimEnd ?? dur) - 0.5) })} />
+                  <Slider label={tl('Fine')} value={(v.trimEnd ?? dur) / dur} min={0} onChange={(f) => set({ trimEnd: Math.max(f * dur, (v.trimStart ?? 0) + 0.5) })} />
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, textAlign: 'center' }}>{tl('Durata')}: {Math.max(0, ((v.trimEnd ?? dur) - (v.trimStart ?? 0)) / (v.speed ?? 1)).toFixed(1)} s</Text>
+                </View>
+              ) : null}
+            </View>
+          );
+        })() : null}
         {active.id === 'adatta' ? (
           <Row style={{ justifyContent: 'center' }} gap={8}>{pill('Riempi lo schermo', fit === 'cover', () => setFit('cover'))}{pill('Mostra tutta la foto', fit === 'contain', () => setFit('contain'))}</Row>
         ) : null}

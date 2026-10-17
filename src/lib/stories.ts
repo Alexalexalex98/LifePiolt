@@ -11,22 +11,26 @@ export type StoryAttach = { kind: 'event' | 'seminar' | 'idea' | 'place'; label:
 /** Quanto resta: un giorno (standard), una settimana, o fisso nel profilo come «momento». */
 export type Keep = 'day' | 'week' | 'moment';
 /** Filtri: una velatura di colore sopra la foto o il video. */
-export type FilterId = 'none' | 'caldo' | 'freddo' | 'neon' | 'notte' | 'rosa' | 'seppia';
+export type FilterId = 'none' | 'caldo' | 'freddo' | 'neon' | 'notte' | 'rosa' | 'seppia' | 'oro' | 'menta' | 'ghiaccio' | 'tramonto' | 'cinema';
 export const FILTERS: { id: FilterId; label: string; tint: string | null }[] = [
   { id: 'none', label: 'Originale', tint: null }, { id: 'caldo', label: 'Caldo', tint: 'rgba(255,150,60,0.28)' }, { id: 'freddo', label: 'Freddo', tint: 'rgba(60,140,255,0.26)' },
   { id: 'neon', label: 'Neon', tint: 'rgba(190,60,255,0.30)' }, { id: 'notte', label: 'Notte', tint: 'rgba(10,15,60,0.45)' }, { id: 'rosa', label: 'Rosa', tint: 'rgba(255,90,160,0.28)' }, { id: 'seppia', label: 'Seppia', tint: 'rgba(150,100,40,0.38)' },
+  { id: 'oro', label: 'Oro', tint: 'rgba(255,200,70,0.30)' }, { id: 'menta', label: 'Menta', tint: 'rgba(80,220,170,0.26)' }, { id: 'ghiaccio', label: 'Ghiaccio', tint: 'rgba(170,220,255,0.34)' }, { id: 'tramonto', label: 'Tramonto', tint: 'rgba(255,100,70,0.30)' }, { id: 'cinema', label: 'Cinema', tint: 'rgba(20,70,90,0.38)' },
 ];
 export const tintOfFilter = (id?: string): string | null => FILTERS.find((f) => f.id === id)?.tint ?? null;
 export type TextPos = 'alto' | 'centro' | 'basso';
 /** Ritocchi: luminosità e calore da -1 a 1, dissolvenza e vignetta da 0 a 1. Sono veli sopra la foto, come i filtri. */
-export type Adjust = { bright: number; warm: number; fade: number; vign: number };
+import { cleanVideoFx, type VideoFx } from './videoFx.ts';
+export type Adjust = { bright: number; warm: number; fade: number; vign: number; /** -1..1 */ contrast?: number; /** 0..1: toglie colore */ desat?: number; /** -1..1: scurisce o schiarisce le ombre */ shadow?: number; /** -1..1: alte luci */ light?: number; /** -1 verde .. 1 magenta */ tint?: number };
 export const NO_ADJUST: Adjust = { bright: 0, warm: 0, fade: 0, vign: 0 };
-export const isAdjusted = (a?: Adjust | null) => !!a && (a.bright !== 0 || a.warm !== 0 || a.fade !== 0 || a.vign !== 0);
+const EXTRA_KEYS = ['contrast', 'desat', 'shadow', 'light', 'tint'] as const;
+export const isAdjusted = (a?: Adjust | null) => !!a && (a.bright !== 0 || a.warm !== 0 || a.fade !== 0 || a.vign !== 0 || EXTRA_KEYS.some((k) => !!a[k]));
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Number.isFinite(n) ? n : 0));
 const r2 = (n: number) => Math.round(n * 100) / 100;
 export const cleanAdjust = (a?: Partial<Adjust> | null): Adjust | undefined => {
   if (!a) return undefined;
-  const c = { bright: r2(clamp(a.bright ?? 0, -1, 1)), warm: r2(clamp(a.warm ?? 0, -1, 1)), fade: r2(clamp(a.fade ?? 0, 0, 1)), vign: r2(clamp(a.vign ?? 0, 0, 1)) };
+  const c: Adjust = { bright: r2(clamp(a.bright ?? 0, -1, 1)), warm: r2(clamp(a.warm ?? 0, -1, 1)), fade: r2(clamp(a.fade ?? 0, 0, 1)), vign: r2(clamp(a.vign ?? 0, 0, 1)) };
+  for (const k of EXTRA_KEYS) { const v = r2(clamp(a[k] ?? 0, k === 'desat' ? 0 : -1, 1)); if (v) c[k] = v; }
   return isAdjusted(c) ? c : undefined;
 };
 /** I veli di colore dei ritocchi, dal basso all'alto. */
@@ -38,6 +42,20 @@ export function adjustLayers(a?: Adjust | null): string[] {
   if (a.fade > 0) out.push(`rgba(235,235,235,${r2(a.fade * 0.35)})`);
   return out;
 }
+/** Ritocchi «alla Lightroom» fatti con le modalità di fusione dei livelli: ombre, alte luci, tinta, colore. */
+export type Blend = 'normal' | 'soft-light' | 'color-dodge' | 'multiply' | 'saturation';
+export function blendLayers(a?: Adjust | null): { color: string; blend: Blend }[] {
+  if (!a) return [];
+  const out: { color: string; blend: Blend }[] = [];
+  if (a.shadow) out.push({ color: a.shadow > 0 ? `rgba(255,255,255,${r2(a.shadow * 0.7)})` : `rgba(0,0,0,${r2(-a.shadow * 0.7)})`, blend: 'soft-light' });
+  if (a.light) out.push(a.light > 0 ? { color: `rgba(120,120,120,${r2(a.light * 0.5)})`, blend: 'color-dodge' } : { color: `rgba(190,190,190,${r2(-a.light * 0.6)})`, blend: 'multiply' });
+  if (a.tint) out.push({ color: a.tint > 0 ? `rgba(255,40,200,${r2(a.tint * 0.22)})` : `rgba(40,220,90,${r2(-a.tint * 0.22)})`, blend: 'normal' });
+  if (a.desat) out.push({ color: `rgba(128,128,128,${r2(a.desat)})`, blend: 'saturation' });
+  if (a.contrast && a.contrast < 0) out.push({ color: `rgba(128,128,128,${r2(-a.contrast * 0.45)})`, blend: 'normal' });
+  return out;
+}
+/** Più contrasto: una copia della foto sopra se stessa in modalità «overlay» (solo per le foto). */
+export const contrastBoost = (a?: Adjust | null) => (a?.contrast && a.contrast > 0 ? r2(a.contrast * 0.9) : 0);
 export type TextSize = 'S' | 'M' | 'L';
 export type TextStyleId = 'ombra' | 'riquadro' | 'evidenziato';
 export const TEXT_SIZES: Record<TextSize, number> = { S: 18, M: 24, L: 32 };
@@ -50,7 +68,7 @@ export const cleanTags = (raw: string[]): string[] => [...new Set(raw.map((x) =>
 export const cleanLink = (raw?: string): string | undefined => { const v = (raw ?? '').trim(); return /^https?:\/\/[^\s]{3,200}$/i.test(v) ? v : undefined; };
 export type Story = {
   id: string; author: string; ts: number; kind: StoryKind; keep?: Keep; attach?: StoryAttach; filter?: FilterId; textPos?: TextPos; textColor?: string;
-  adj?: Adjust; fit?: StoryFit; textSize?: TextSize; textStyle?: TextStyleId; /** persone taggate */ people?: string[]; /** hashtag */ tags?: string[]; link?: string;
+  adj?: Adjust; /** montaggio del video: velocità, taglio, audio */ vfx?: VideoFx; fit?: StoryFit; textSize?: TextSize; textStyle?: TextStyleId; /** persone taggate */ people?: string[]; /** hashtag */ tags?: string[]; link?: string;
   /** chi ha messo mi piace (il cuore: non manda nessun messaggio) */ likes?: string[]; /** chi ha regalato il LifePoint giornaliero a questo momento (lo vede l'autore) */ gifts?: string[];
   uri?: string; /** fotogramma di anteprima dei video: compare subito */ poster?: string; text?: string; /** colori dello sfondo delle storie di solo testo */ bg?: [string, string];
   /** chi l'ha vista (lo vede solo l'autore) */ views: string[];
@@ -100,12 +118,13 @@ export function ago(ts: number, now: number): string {
   return `${Math.floor(m / 60)} h`;
 }
 /** Una storia nuova con i controlli sul contenuto: testo non vuoto (max 140) o un file. */
-export function makeStory(a: { id: string; author: string; now: number; kind: StoryKind; uri?: string; text?: string; bg?: [string, string]; keep?: Keep; attach?: StoryAttach; filter?: FilterId; textPos?: TextPos; textColor?: string; adj?: Partial<Adjust>; fit?: StoryFit; textSize?: TextSize; textStyle?: TextStyleId; people?: string[]; tags?: string[]; link?: string }): Story | null {
+export function makeStory(a: { id: string; author: string; now: number; kind: StoryKind; uri?: string; text?: string; bg?: [string, string]; keep?: Keep; attach?: StoryAttach; filter?: FilterId; textPos?: TextPos; textColor?: string; adj?: Partial<Adjust>; vfx?: VideoFx; fit?: StoryFit; textSize?: TextSize; textStyle?: TextStyleId; people?: string[]; tags?: string[]; link?: string }): Story | null {
   const text = (a.text ?? '').trim().slice(0, MAX_STORY_TEXT);
   if (a.kind === 'text' ? !text : !a.uri) return null;
   const label = a.attach?.label.trim().slice(0, 60);
   const adj = cleanAdjust(a.adj), tags = cleanTags(a.tags ?? []), people = [...new Set(a.people ?? [])].slice(0, MAX_PEOPLE), link = cleanLink(a.link);
-  const extras = { ...(adj ? { adj } : {}), ...(a.fit === 'contain' ? { fit: 'contain' as const } : {}), ...(a.textSize && a.textSize !== 'M' ? { textSize: a.textSize } : {}), ...(a.textStyle && a.textStyle !== 'ombra' ? { textStyle: a.textStyle } : {}), ...(people.length ? { people } : {}), ...(tags.length ? { tags } : {}), ...(link ? { link } : {}) };
+  const vfx = a.kind === 'video' ? cleanVideoFx(a.vfx) : undefined;
+  const extras = { ...(adj ? { adj } : {}), ...(vfx ? { vfx } : {}), ...(a.fit === 'contain' ? { fit: 'contain' as const } : {}), ...(a.textSize && a.textSize !== 'M' ? { textSize: a.textSize } : {}), ...(a.textStyle && a.textStyle !== 'ombra' ? { textStyle: a.textStyle } : {}), ...(people.length ? { people } : {}), ...(tags.length ? { tags } : {}), ...(link ? { link } : {}) };
   return { ...extras, id: a.id, author: a.author, ts: a.now, kind: a.kind, ...(a.filter && a.filter !== 'none' ? { filter: a.filter } : {}), ...(a.textPos && a.textPos !== 'basso' ? { textPos: a.textPos } : {}), ...(a.textColor && /^#[0-9a-f]{6}$/i.test(a.textColor) && a.textColor.toLowerCase() !== '#ffffff' ? { textColor: a.textColor } : {}), ...(a.keep && a.keep !== 'day' ? { keep: a.keep } : {}), ...(a.attach && label ? { attach: { ...a.attach, label } } : {}), ...(a.uri ? { uri: a.uri } : {}), ...(text ? { text } : {}), ...(a.kind === 'text' ? { bg: a.bg ?? BACKGROUNDS[0] } : {}), views: [] };
 }
 

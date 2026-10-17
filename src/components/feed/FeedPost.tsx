@@ -1,3 +1,5 @@
+import { useVideoFx } from '@/hooks/use-video-fx';
+import type { VideoFx } from '@/lib/videoFx';
 import { StoryFx } from '@/components/stories/StoryFx';
 import { findItem, itemLine, priceLabel } from '@/lib/menu';
 import { useMenus } from '@/store/menus';
@@ -105,8 +107,9 @@ function FeedImage({ uri, width, height }: { uri: string; width: number; height:
 }
 
 /** Video nel feed: parte da solo, muto e in loop; un tocco lo apre a schermo intero. */
-function FeedVideo({ uri, width, height, poster }: { uri: string; width: number; height: number; poster?: string }) {
+function FeedVideo({ uri, width, height, poster, vfx }: { vfx?: VideoFx; uri: string; width: number; height: number; poster?: string }) {
   const p = useVideoPlayer(uri, (pl) => { pl.loop = true; pl.muted = true; pl.play(); });
+  useVideoFx(p, vfx);
   const [shown, setShown] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
   const onFirst = () => { setShown(true); Animated.timing(fade, { toValue: 1, duration: 350, useNativeDriver: NATIVE }).start(); };
@@ -156,7 +159,7 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
   } else if (post.media === 'video' && images.length > 0) {
     body = (
       <Pressable onPress={tap} accessibilityRole="imagebutton" accessibilityLabel={translateText('Video del post, tocca due volte per mettere mi piace')}>
-        <FeedVideo uri={images[0]} width={w} height={Math.round(w * 1.25)} poster={post.poster} />
+        <FeedVideo vfx={post.fx?.video} uri={images[0]} width={w} height={Math.round(w * 1.25)} poster={post.poster} />
       </Pressable>
     );
   } else if (post.media) {
@@ -175,7 +178,7 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
   return (
     <View>
       {body}
-      {post.fx && post.media && images.length ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, end: 0, height: h }}><StoryFx s={post.fx as never} /></View> : null}
+      {post.fx && post.media && images.length ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, end: 0, height: h }}><StoryFx s={post.fx as never} uri={post.media === 'photo' ? images[page] ?? images[0] : undefined} /></View> : null}
       {images.length > 1 && (
         <>
           <View pointerEvents="none" style={{ position: 'absolute', top: 12, end: 12, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{page + 1}/{images.length}</Text></View>

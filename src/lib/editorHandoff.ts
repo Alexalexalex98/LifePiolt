@@ -3,9 +3,10 @@
  * Filtri e ritocchi sono veli non distruttivi (valgono anche per i video): si salvano accanto al post.
  */
 import type { NetMedia } from './netMedia.ts';
-import type { Adjust, FilterId, StoryFit } from './stories.ts';
+import { cleanVideoFx, type VideoFx } from './videoFx.ts';
+import { isAdjusted, type Adjust, type FilterId, type StoryFit } from './stories.ts';
 
-export type PostFx = { filter?: FilterId; adj?: Adjust; fit?: StoryFit };
+export type PostFx = { filter?: FilterId; adj?: Adjust; fit?: StoryFit; video?: VideoFx };
 type Payload = { items: NetMedia[]; fx?: PostFx };
 let input: Payload | null = null;
 let result: Payload | null = null;
@@ -18,7 +19,8 @@ export function cleanFx(fx?: PostFx | null): PostFx | undefined {
   if (!fx) return undefined;
   const out: PostFx = {};
   if (fx.filter && fx.filter !== 'none') out.filter = fx.filter;
-  if (fx.adj && (fx.adj.bright || fx.adj.warm || fx.adj.fade || fx.adj.vign)) out.adj = fx.adj;
+  if (fx.adj && isAdjusted(fx.adj)) out.adj = fx.adj;
   if (fx.fit === 'contain') out.fit = 'contain';
+  const v = cleanVideoFx(fx.video); if (v) out.video = v;
   return Object.keys(out).length ? out : undefined;
 }

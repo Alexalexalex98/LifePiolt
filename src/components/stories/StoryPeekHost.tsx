@@ -39,8 +39,8 @@ export function StoryPeekHost() {
         {cur.kind === 'text'
           ? <LinearGradient colors={cur.bg ?? ['#6c8cff', '#3b2a7a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 }}><Text style={{ color: '#fff', fontSize: 20, fontWeight: '800', textAlign: 'center' }}>{cur.text}</Text></LinearGradient>
           : cur.kind === 'photo' ? <Image source={{ uri: cur.uri }} style={{ width: w, height: h }} contentFit="cover" />
-          : cur.uri ? <StoryVideo key={cur.id} uri={cur.uri} poster={cur.poster} sound={false} /> : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={40} color="#fff" /></View>}
-        <StoryFx s={cur} />
+          : cur.uri ? <StoryVideo key={cur.id} uri={cur.uri} vfx={cur.vfx} poster={cur.poster} sound={false} /> : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={40} color="#fff" /></View>}
+        <StoryFx s={cur} uri={cur.kind === 'photo' ? cur.uri : undefined} fit={cur.fit} />
         <View style={{ position: 'absolute', top: 8, start: 8, end: 8, flexDirection: 'row', gap: 3 }}>
           {list.map((s, k) => <View key={s.id} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: k <= i ? '#fff' : 'rgba(255,255,255,0.35)' }} />)}
         </View>

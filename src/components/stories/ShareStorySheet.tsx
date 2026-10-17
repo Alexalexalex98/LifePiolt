@@ -71,7 +71,7 @@ export function ShareStorySheet({ visible, onClose, story }: { visible: boolean;
           {story.kind === 'text' ? <LinearGradient colors={story.bg ?? ['#6c8cff', '#3b2a7a']} style={{ flex: 1, padding: 6, justifyContent: 'center' }}><Text numberOfLines={5} style={{ color: '#fff', fontSize: 10.5, fontWeight: '800' }}>{story.text}</Text></LinearGradient>
             : story.kind === 'photo' ? <Image source={{ uri: story.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
             : <VideoPoster uri={story.uri} poster={story.poster} width={72} height={112} />}
-          {story.kind !== 'text' ? <StoryFx s={story} /> : null}
+          {story.kind !== 'text' ? <StoryFx s={story} uri={story.kind === 'photo' ? story.uri : undefined} fit={story.fit} /> : null}
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><UserAvatar name={story.author} size={26} link={false} /><Text numberOfLines={1} style={{ color: t.text, fontWeight: '800', fontSize: 15, flex: 1 }}>{story.author === me ? tl('Il tuo recap') : story.author}</Text></View>

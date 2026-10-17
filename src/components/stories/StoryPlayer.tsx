@@ -6,6 +6,8 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
+import { useVideoFx } from '@/hooks/use-video-fx';
+import type { VideoFx } from '@/lib/videoFx';
 import { VideoPoster } from '@/components/stories/VideoPoster';
 import { Animated, AppState, Keyboard, PanResponder, Pressable, TextInput, View } from 'react-native';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
@@ -25,12 +27,13 @@ import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 
 /** Il video parte sempre senza audio: il suono si attiva solo toccando il volume. */
-export function StoryVideo({ uri, controls, sound, poster, paused, onShown }: { uri: string; controls?: boolean; sound?: boolean; poster?: string; /** tenendo premuto la storia si ferma, anche il video */ paused?: boolean; /** il primo fotogramma è a schermo: da qui parte il tempo della storia */ onShown?: () => void }) {
+export function StoryVideo({ uri, controls, sound, poster, paused, onShown, vfx }: { uri: string; vfx?: VideoFx; controls?: boolean; sound?: boolean; poster?: string; /** tenendo premuto la storia si ferma, anche il video */ paused?: boolean; /** il primo fotogramma è a schermo: da qui parte il tempo della storia */ onShown?: () => void }) {
   const p = useVideoPlayer(uri, (pl) => { pl.loop = false; pl.muted = true; if (!controls) pl.play(); });
   const [shown, setShown] = useState(false);
+  useVideoFx(p, vfx);
   /* fuori schermo o app in secondo piano: niente audio */
   const focused = useIsFocused();
-  useEffect(() => { p.muted = !sound || !focused; }, [p, sound, focused]);
+  useEffect(() => { p.muted = !sound || !focused || !!vfx?.mute; }, [p, sound, focused, vfx?.mute]);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (st) => { if (st !== 'active') { p.pause(); p.muted = true; } else { p.muted = !sound || !focused; if (!controls && !paused) p.play(); } });
     return () => sub.remove();
@@ -147,8 +150,8 @@ export function StoryPlayer({ stories, start, onClose, onEnd, onSkip }: { storie
         </LinearGradient>
       ) : (
         <View style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}>
-          {cur.kind === 'video' && cur.uri ? <StoryVideo key={cur.id} uri={cur.uri} sound={sound} poster={cur.poster} paused={paused} onShown={() => setReady(true)} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit={cur.fit === 'contain' ? 'contain' : 'cover'} />}
-          <StoryFx s={cur} />
+          {cur.kind === 'video' && cur.uri ? <StoryVideo key={cur.id} uri={cur.uri} vfx={cur.vfx} sound={sound} poster={cur.poster} paused={paused} onShown={() => setReady(true)} /> : <Image source={{ uri: cur.uri }} style={{ width: '100%', height: '100%' }} contentFit={cur.fit === 'contain' ? 'contain' : 'cover'} />}
+          <StoryFx s={cur} uri={cur.kind === 'photo' ? cur.uri : undefined} fit={cur.fit} />
           {cur.text ? <View pointerEvents="none" style={[{ position: 'absolute', start: 16, end: 16, alignItems: 'center' }, cur.textPos === 'alto' ? { top: insets.top + 100 } : cur.textPos === 'centro' ? { top: '46%' } : { bottom: insets.bottom + 90 }]}><Text style={storyTextStyle(cur)}>{cur.text}</Text></View> : null}
           <StoryStickers s={cur} bottom={insets.bottom + 70 + (cur.text && !cur.textPos ? 52 : 0)} />
         </View>

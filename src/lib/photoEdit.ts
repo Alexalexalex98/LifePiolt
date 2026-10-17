@@ -15,7 +15,9 @@ export type Op =
   | { k: 'rotate'; deg: 90 | -90 | 180 }
   | { k: 'flip' }
   | { k: 'crop'; ratio: Ratio }
-  | { k: 'zoom'; f: number };
+  | { k: 'zoom'; f: number }
+  | { k: 'speed'; f: number }
+  | { k: 'mute' };
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -38,7 +40,9 @@ export function zoomRect(w: number, h: number, f: number): { originX: number; or
 }
 /** Somma ai ritocchi, sempre nei limiti. */
 export function addAdjust(a: Adjust, d: Partial<Adjust>): Adjust {
-  return { bright: r2(clamp(a.bright + (d.bright ?? 0), -1, 1)), warm: r2(clamp(a.warm + (d.warm ?? 0), -1, 1)), fade: r2(clamp(a.fade + (d.fade ?? 0), 0, 1)), vign: r2(clamp(a.vign + (d.vign ?? 0), 0, 1)) };
+  const out: Adjust = { bright: r2(clamp(a.bright + (d.bright ?? 0), -1, 1)), warm: r2(clamp(a.warm + (d.warm ?? 0), -1, 1)), fade: r2(clamp(a.fade + (d.fade ?? 0), 0, 1)), vign: r2(clamp(a.vign + (d.vign ?? 0), 0, 1)) };
+  for (const k of ['contrast', 'desat', 'shadow', 'light', 'tint'] as const) { const v = r2(clamp((a[k] ?? 0) + (d[k] ?? 0), k === 'desat' ? 0 : -1, 1)); if (v) out[k] = v; }
+  return out;
 }
 
 const has = (t: string, ...w: string[]) => w.some((x) => t.includes(x));
@@ -58,11 +62,18 @@ export function parseEdit(raw: string): Parsed {
   // temperatura
   if (has(t, 'calda', 'caldo', 'calore', 'tramonto', 'dorat')) ops.push({ k: 'adj', d: { warm: amt } });
   if (has(t, 'fredd', 'gelid', 'ghiacc')) ops.push({ k: 'adj', d: { warm: -amt } });
+  if (has(t, 'contrast')) ops.push({ k: 'adj', d: { contrast: less ? -amt : amt } });
+  if (has(t, 'ombre')) ops.push({ k: 'adj', d: { shadow: less ? -amt : amt } });
+  if (has(t, 'alte luci', 'luci alte', 'cielo bruciato')) ops.push({ k: 'adj', d: { light: -amt } });
+  if (has(t, 'desatur', 'spenta', 'meno colore', 'meno saturat', 'bianco e nero', 'bianconero', 'monocrom')) ops.push({ k: 'adj', d: { desat: has(t, 'bianco e nero', 'bianconero', 'monocrom') ? 1 : amt + 0.2 } });
   // atmosfera
   if (has(t, 'vintage', 'retro', 'sbiadit', 'pellicola', 'nostalg')) { ops.push({ k: 'adj', d: { fade: 0.35, warm: 0.2 } }); }
   if (has(t, 'drammatic', 'cinema', 'film', 'intens', 'vignett')) ops.push({ k: 'adj', d: { vign: 0.5, bright: -0.1 } });
   if (has(t, 'sognant', 'morbid', 'delicat', 'soft', 'dolce')) ops.push({ k: 'adj', d: { fade: 0.3, bright: 0.15 } });
   // filtri
+  if (has(t, 'oro', 'dorato')) ops.push({ k: 'filter', id: 'oro' });
+  if (has(t, 'ghiacci', 'gelo')) ops.push({ k: 'filter', id: 'ghiaccio' });
+  if (has(t, 'cinema', 'cinematograf')) ops.push({ k: 'filter', id: 'cinema' });
   if (has(t, 'neon', 'viola')) ops.push({ k: 'filter', id: 'neon' });
   if (has(t, 'notte', 'notturn')) ops.push({ k: 'filter', id: 'notte' });
   if (has(t, 'rosa')) ops.push({ k: 'filter', id: 'rosa' });
@@ -77,14 +88,17 @@ export function parseEdit(raw: string): Parsed {
   else if (has(t, '16:9', 'larga', 'panoramic', 'orizzontal')) ops.push({ k: 'crop', ratio: '16:9' });
   else if (has(t, '3:4')) ops.push({ k: 'crop', ratio: '3:4' });
   if (has(t, 'zoom', 'ingrandisc', 'avvicina', 'stringi')) ops.push({ k: 'zoom', f: more ? 1.6 : 1.3 });
+  // montaggio dei video
+  if (has(t, 'rallentat', 'slow', 'piu lent')) ops.push({ k: 'speed', f: 0.5 });
+  if (has(t, 'accelera', 'timelapse', 'piu veloce', 'piu rapid')) ops.push({ k: 'speed', f: 1.5 });
+  if (has(t, 'senza audio', 'muto', 'togli l audio', 'togli audio', 'silenzia')) ops.push({ k: 'mute' });
   // cose che servirebbero a un'AI per le immagini
   if (has(t, 'togli', 'rimuovi', 'cancella', 'elimina') && !has(t, 'filtro')) unsupported.push('togliere o cancellare qualcosa dalla foto');
   if (has(t, 'sfondo', 'cielo', 'sostituisci', 'aggiungi un', 'aggiungi una', 'persona', 'cambia il colore')) unsupported.push('cambiare lo sfondo o aggiungere elementi');
-  if (has(t, 'bianco e nero', 'bianconero', 'grigio', 'monocrom')) unsupported.push('il bianco e nero');
   if (has(t, 'nitid', 'definizione', 'sfoca', 'sfocatura', 'rumore')) unsupported.push('nitidezza e sfocatura');
   // dedup di regolazioni dello stesso tipo: la somma si fa applicando
   return { ops, unsupported: [...new Set(unsupported)] };
 }
 
 /** Frasi da suggerire all'utente, già comprensibili dall'app. */
-export const EDIT_SUGGESTIONS = ['Più luminosa e calda', 'Effetto vintage', 'Look drammatico', 'Più fredda e morbida', 'Ritaglia quadrata', 'Ruota a destra', 'Specchia', 'Zoom al centro'];
+export const EDIT_SUGGESTIONS = ['Più luminosa e calda', 'Effetto vintage', 'Look drammatico', 'Più fredda e morbida', 'Ritaglia quadrata', 'Ruota a destra', 'Specchia', 'Zoom al centro', 'Più contrasto', 'Bianco e nero', 'Al rallentatore', 'Senza audio'];

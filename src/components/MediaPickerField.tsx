@@ -34,7 +34,7 @@ export function MediaPickerField({ value, onChange, detach, onEdit, fx }: { valu
           {value.media === 'photo'
             ? <Image source={{ uri: value.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
             : <View style={{ alignItems: 'center', gap: 6 }}><Icon name="play" size={34} color={t.text} fill={t.text} /><Text style={{ color: t.muted, fontSize: 12 }}>Video scelto{value.durationMs ? ` · ${Math.round(value.durationMs / 1000)} s` : ''}</Text></View>}
-          <StoryFx s={{ filter: fx?.filter, adj: fx?.adj }} />
+          <StoryFx s={{ filter: fx?.filter, adj: fx?.adj }} uri={value.media === 'photo' ? value.uri : undefined} />
           {onEdit ? <Pressable onPress={onEdit} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Modifica')} style={{ position: 'absolute', bottom: 8, end: 8, height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: '#fffe', flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icon name="edit" size={15} color="#111" /><Text style={{ color: '#111', fontWeight: '800', fontSize: 13 }}>{translateText('Modifica')}</Text></Pressable> : null}
           <Pressable onPress={() => onChange(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText("Rimuovi")} style={{ position: 'absolute', top: 8, end: 8, width: 30, height: 30, borderRadius: 15, backgroundColor: '#000c', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={16} color="#fff" stroke={2.4} /></Pressable>
         </View>

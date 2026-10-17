@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Linking, Platform, Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
@@ -5,19 +6,23 @@ import { Text } from '@/components/T';
 import { Icon } from '@/lib/icons';
 import { mapsUrl } from '@/lib/maps';
 import { go } from '@/lib/nav';
-import { TEXT_SIZES, adjustLayers, tintOfFilter, type Story } from '@/lib/stories';
+import { TEXT_SIZES, adjustLayers, blendLayers, contrastBoost, tintOfFilter, type Story } from '@/lib/stories';
 import { toast } from '@/store/toast';
 
 const FILL = { position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 } as const;
 
 /** Filtro e ritocchi: veli di colore sopra la foto o il video (stessa resa in anteprima, nel recap e nell'editor). */
-export function StoryFx({ s }: { s: Pick<Story, 'filter' | 'adj'> }) {
+export function StoryFx({ s, uri, fit }: { s: Pick<Story, 'filter' | 'adj'>; /** della foto: serve al contrasto, che usa una copia dell'immagine */ uri?: string; fit?: 'cover' | 'contain' }) {
   const tint = tintOfFilter(s.filter);
   const layers = adjustLayers(s.adj);
+  const blends = blendLayers(s.adj);
+  const boost = uri ? contrastBoost(s.adj) : 0;
   const vign = s.adj?.vign ?? 0;
-  if (!tint && !layers.length && !vign) return null;
+  if (!tint && !layers.length && !vign && !blends.length && !boost) return null;
   return (
     <View pointerEvents="none" style={FILL}>
+      {boost && uri ? <View style={[FILL, { opacity: boost, mixBlendMode: 'overlay' }]}><Image source={{ uri }} contentFit={fit ?? 'cover'} style={{ width: '100%', height: '100%' }} /></View> : null}
+      {blends.map((b, i) => <View key={'b' + i} style={[FILL, { backgroundColor: b.color, mixBlendMode: b.blend }]} />)}
       {tint ? <View style={[FILL, { backgroundColor: tint }]} /> : null}
       {layers.map((c, i) => <View key={i} style={[FILL, { backgroundColor: c }]} />)}
       {vign ? <LinearGradient colors={[`rgba(0,0,0,${vign * 0.7})`, 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', `rgba(0,0,0,${vign * 0.7})`]} locations={[0, 0.3, 0.7, 1]} style={FILL} /> : null}

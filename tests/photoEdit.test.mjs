@@ -30,7 +30,8 @@ test('richieste scritte: luce e calore, geometria, filtri; cosa non si può fare
   assert.ok(parseEdit('effetto vintage').ops.some((o) => o.k === 'adj' && o.d.fade > 0));
   assert.ok(parseEdit('metti il filtro neon').ops.some((o) => o.k === 'filter' && o.id === 'neon'));
   const u = parseEdit('togli la persona sullo sfondo e fai bianco e nero');
-  assert.equal(u.ops.length, 0);
-  assert.ok(u.unsupported.length >= 2);
+  assert.ok(u.ops.some((o) => o.k === 'adj' && o.d.desat === 1));
+  assert.ok(u.unsupported.length >= 1);
+  assert.ok(parseEdit('più contrasto e ombre più chiare').ops.length >= 2);
   assert.deepEqual(parseEdit('ciao').ops, []);
 });
