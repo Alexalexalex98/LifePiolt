@@ -1,6 +1,7 @@
+import { StoryFx } from '@/components/stories/StoryFx';
 import { findItem, itemLine, priceLabel } from '@/lib/menu';
 import { useMenus } from '@/store/menus';
-import type { Sponsor } from '@/store/network';
+import type { Post, Sponsor } from '@/store/network';
 import { MentionSuggest, MentionText } from '@/components/MentionBox';
 import { snapBackdrop } from '@/lib/storyBackdrop';
 import { SharePostSheet } from '@/components/feed/SharePostSheet';
@@ -28,7 +29,7 @@ import { captionNeedsMore, isDoubleTap, pageIndex, postLayout } from './feedLogi
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArtPlaceholder, IconBtn, NATIVE, RingAvatar, TextCard } from './parts';
 
-export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; poster?: string; uris?: string[]; editedAt?: number; hideLikes?: boolean; commentsOff?: boolean; sponsor?: Sponsor; menuItem?: string };
+export type FeedPostData = { author: string; text: string; media?: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; poster?: string; uris?: string[]; editedAt?: number; hideLikes?: boolean; commentsOff?: boolean; sponsor?: Sponsor; menuItem?: string; fx?: Post['fx'] };
 
 export const LIKE = '#ff4d6d';
 
@@ -174,6 +175,7 @@ export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPo
   return (
     <View>
       {body}
+      {post.fx && post.media && images.length ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, end: 0, height: h }}><StoryFx s={post.fx as never} /></View> : null}
       {images.length > 1 && (
         <>
           <View pointerEvents="none" style={{ position: 'absolute', top: 12, end: 12, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{page + 1}/{images.length}</Text></View>

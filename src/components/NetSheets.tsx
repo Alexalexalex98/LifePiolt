@@ -6,7 +6,8 @@ import { MentionSuggest, MentionText } from '@/components/MentionBox';
 import { CreateHubView } from '@/components/feed/CreateHub';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { cleanFx, setEditorInput, takeEditorResult, type PostFx } from '@/lib/editorHandoff';
 import { Platform, Pressable, ScrollView, Share, View } from 'react-native';
 import { Text, TextInput } from '@/components/T';
 
@@ -841,15 +842,30 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
   const net = useNet();
   const me = useApp((s) => s.account.name);
   const close = useNetSheet((s) => s.close);
-  const d = resume ? (drafts.newPost as { text: string; tag: string; media: NetMedia | null } | undefined) : undefined;
+  const d = resume ? (drafts.newPost as { text: string; tag: string; media: NetMedia | null; fx?: PostFx; capMode?: 'photo' | 'below'; dish?: string | null } | undefined) : undefined;
   const [text, setText] = useState(d?.text ?? prefill ?? '');
-  const [dish, setDish] = useState<string | null>(null);
-  const [capMode, setCapMode] = useState<'photo' | 'below'>('photo');
+  const [dish, setDish] = useState<string | null>(d?.dish ?? null);
+  const [capMode, setCapMode] = useState<'photo' | 'below'>(d?.capMode ?? 'photo');
+  const [fx, setFx] = useState<PostFx | undefined>(d?.fx);
   const myMenu = useMenus((x) => x.byOwner[me]); const [tag, setTag] = useState(d?.tag ?? topicList[0]); const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
   const t = useTheme();
+  // tornando dall'editor: la foto (ritagliata) e i ritocchi scelti
+  useEffect(() => {
+    if (!resume) return;
+    const r = takeEditorResult();
+    if (r?.items[0]) { setMedia(r.items[0]); setFx(cleanFx(r.fx)); }
+  }, [resume]);
+  const editMedia = () => {
+    if (!media) return;
+    const state = { text, tag, media, fx, capMode, dish };
+    drafts.newPost = state;
+    setEditorInput({ items: [media], fx });
+    close();
+    setTimeout(() => go('storyCreate', { for: 'post' }), 250);
+  };
   const publish = () => {
     if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
-    net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, tag, likes: 0, ts: Date.now(), ...(dish ? { menuItem: dish } : {}), ...(media && capMode === 'below' ? { captionMode: 'below' as const } : {}) }, ...net.posts] });
+    net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, tag, likes: 0, ts: Date.now(), ...(dish ? { menuItem: dish } : {}), ...(media && capMode === 'below' ? { captionMode: 'below' as const } : {}), ...(media && cleanFx(fx) ? { fx: cleanFx(fx) } : {}) }, ...net.posts] });
     delete drafts.newPost;
     close(); toast('Post pubblicato');
   };
@@ -880,7 +896,7 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
         <View style={{ flex: 1 }} />
         <Text style={{ color: t.muted, fontSize: 12 }}>{text.length}/{MAX_POST}</Text>
       </View>
-      <MediaPickerField value={media} onChange={setMedia} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'newPost', { text, tag, media }, () => openSheet('newPost', { resume: true })) : undefined} />
+      <MediaPickerField value={media} onChange={(m) => { setMedia(m); setFx(undefined); }} onEdit={editMedia} fx={fx} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'newPost', { text, tag, media, capMode, dish }, () => openSheet('newPost', { resume: true })) : undefined} />
       {/* la scritta: sulla foto oppure didascalia fissa sotto, come primo commento */}
       {media && text.trim() ? (
         <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', backgroundColor: t.chip, borderRadius: 14, padding: 4, marginBottom: 10 }}>

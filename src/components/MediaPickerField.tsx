@@ -1,3 +1,5 @@
+import { StoryFx } from '@/components/stories/StoryFx';
+import type { PostFx } from '@/lib/editorHandoff';
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -11,7 +13,7 @@ import { toast } from '@/store/toast';
 import { translateText } from '@/i18n/core';
 
 /** Scelta di foto o video con anteprima e possibilità di rimuoverli prima di pubblicare. */
-export function MediaPickerField({ value, onChange, detach }: { value: NetMedia | null; onChange: (v: NetMedia | null) => void; /** dentro una finestra (Modal) su iPhone il selettore non si apre: chi usa il campo chiude la finestra, sceglie e la riapre */ detach?: (kind: 'photo' | 'video') => void }) {
+export function MediaPickerField({ value, onChange, detach, onEdit, fx }: { value: NetMedia | null; onChange: (v: NetMedia | null) => void; /** apre l'editor, lo stesso dei recap */ onEdit?: () => void; fx?: PostFx; /** dentro una finestra (Modal) su iPhone il selettore non si apre: chi usa il campo chiude la finestra, sceglie e la riapre */ detach?: (kind: 'photo' | 'video') => void }) {
   const t = useTheme();
   const [busy, setBusy] = useState(false);
   async function pick(kind: 'photo' | 'video') {
@@ -32,6 +34,8 @@ export function MediaPickerField({ value, onChange, detach }: { value: NetMedia 
           {value.media === 'photo'
             ? <Image source={{ uri: value.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
             : <View style={{ alignItems: 'center', gap: 6 }}><Icon name="play" size={34} color={t.text} fill={t.text} /><Text style={{ color: t.muted, fontSize: 12 }}>Video scelto{value.durationMs ? ` · ${Math.round(value.durationMs / 1000)} s` : ''}</Text></View>}
+          <StoryFx s={{ filter: fx?.filter, adj: fx?.adj }} />
+          {onEdit ? <Pressable onPress={onEdit} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Modifica')} style={{ position: 'absolute', bottom: 8, end: 8, height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: '#fffe', flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icon name="edit" size={15} color="#111" /><Text style={{ color: '#111', fontWeight: '800', fontSize: 13 }}>{translateText('Modifica')}</Text></Pressable> : null}
           <Pressable onPress={() => onChange(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText("Rimuovi")} style={{ position: 'absolute', top: 8, end: 8, width: 30, height: 30, borderRadius: 15, backgroundColor: '#000c', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={16} color="#fff" stroke={2.4} /></Pressable>
         </View>
         <Body small muted style={{ marginTop: 4 }}>Anteprima: così apparirà nel post. Tocca la X per toglierla.</Body>

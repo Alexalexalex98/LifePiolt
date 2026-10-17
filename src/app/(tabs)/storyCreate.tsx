@@ -2,6 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
+import { manipulateAsync, FlipType, SaveFormat } from 'expo-image-manipulator';
 import { Keyboard, Linking, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
@@ -14,6 +15,10 @@ import { dayKey } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { mapsUrl } from '@/lib/maps';
 import { goBack } from '@/lib/nav';
+import { setEditorResult, takeEditorInput } from '@/lib/editorHandoff';
+import { openSheet } from '@/components/network';
+import { useLocalSearchParams } from 'expo-router';
+import { EDIT_SUGGESTIONS, RATIOS, addAdjust, cropRect, parseEdit, zoomRect, type Ratio } from '@/lib/photoEdit';
 import { pickNetMediaMany, takeNetPhoto, type NetMedia } from '@/lib/netMedia';
 import { StoryFx, StoryStickers, storyTextStyle } from '@/components/stories/StoryFx';
 import { BACKGROUNDS, FILTERS, KEEP_LABEL, MAX_PEOPLE, MAX_STORY_TEXT, NO_ADJUST, cleanLink, cleanTags, isAdjusted, makeStory, type Adjust, type FilterId, type Keep, type Story, type StoryAttach, type StoryFit, type TextPos, type TextSize, type TextStyleId } from '@/lib/stories';
@@ -35,6 +40,7 @@ export default function StoryCreate() {
   const net = useNet();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
+  const forPost = useLocalSearchParams<{ for?: string }>().for === 'post';
   const [items, setItems] = useState<NetMedia[]>([]);
   const [textMode, setTextMode] = useState(false);
   const [text, setText] = useState('');
@@ -44,6 +50,21 @@ export default function StoryCreate() {
   const [ink, setInk] = useState('#ffffff');
   const [keep, setKeep] = useState<Keep>('day');
   const [kbd, setKbd] = useState(false);
+  // dal compositore dei post: stessa schermata, con la foto o il video già scelto
+  useEffect(() => {
+    if (!forPost) return;
+    const inp = takeEditorInput();
+    if (!inp) return;
+    setItems(inp.items); setCur(0);
+    if (inp.fx?.filter) setFilter(inp.fx.filter);
+    if (inp.fx?.adj) setAdj(inp.fx.adj);
+    if (inp.fx?.fit) setFit(inp.fx.fit);
+  }, [forPost]);
+  const leavePost = (save: boolean) => {
+    if (save) setEditorResult({ items, fx: { filter, adj, fit } });
+    goBack();
+    setTimeout(() => openSheet('newPost', { resume: true }), 350);
+  };
   useEffect(() => {
     const a = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKbd(true));
     const b = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKbd(false));
@@ -58,7 +79,12 @@ export default function StoryCreate() {
   const [fit, setFit] = useState<StoryFit>('cover');
   const [textSize, setTextSize] = useState<TextSize>('M');
   const [textStyle, setTextStyle] = useState<TextStyleId>('ombra');
-  const [tool, setTool] = useState<'filtri' | 'regola' | 'testo' | 'adatta' | 'sfondo'>('filtri');
+  const [tool, setTool] = useState<'filtri' | 'regola' | 'ritocca' | 'testo' | 'adatta' | 'sfondo'>('filtri');
+  const [area, setArea] = useState({ w: 0, h: 0 });
+  const [undo, setUndo] = useState<Record<number, string[]>>({});
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiText, setAiText] = useState('');
+  const [aiNote, setAiNote] = useState('');
   const [people, setPeople] = useState<string[]>([]);
   const [tagsTxt, setTagsTxt] = useState('');
   const [link, setLink] = useState('');
@@ -83,6 +109,7 @@ export default function StoryCreate() {
   const reset = () => { setItems([]); setTextMode(false); setText(''); setFilter('none'); setFilters(false); setAdj(NO_ADJUST); setFit('cover'); setPeople([]); setTagsTxt(''); setLink(''); setAttach(null); };
 
   function publish() {
+    if (forPost) { leavePost(true); return; }
     const base = { author: me, now: Date.now(), text, keep, attach: attach ?? undefined, filter, textPos: pos, textColor: ink, adj, fit, textSize, textStyle, people, tags: tagsTxt.split(/[\s,]+/), link };
     const made = textMode
       ? [makeStory({ ...base, id: String(newId()), kind: 'text', bg: BACKGROUNDS[bg] })]
@@ -158,20 +185,61 @@ export default function StoryCreate() {
     );
   }
 
+  /* ---------- ritocco della foto: ruota, specchia, ritaglia, zoom (modifica davvero i pixel) ---------- */
+  const geom = async (build: (w: number, h: number) => Parameters<typeof manipulateAsync>[1]) => {
+    const it = items[cur];
+    if (!it || it.media !== 'photo' || busy) return;
+    setBusy(true);
+    try {
+      const info = await manipulateAsync(it.uri, []);
+      const out = await manipulateAsync(it.uri, build(info.width, info.height), { compress: 0.92, format: SaveFormat.JPEG });
+      setUndo((u) => ({ ...u, [cur]: [...(u[cur] ?? []), it.uri] }));
+      setItems((xs) => xs.map((x, i) => (i === cur ? { ...x, uri: out.uri } : x)));
+    } catch { toast('Non riesco a modificare la foto'); } finally { setBusy(false); }
+  };
+  const rotate = (deg: 90 | -90 | 180) => geom(() => [{ rotate: deg }]);
+  const flip = () => geom(() => [{ flip: FlipType.Horizontal }]);
+  const crop = (r: Ratio) => geom((w, h) => [{ crop: cropRect(w, h, r) }]);
+  const zoom = (f: number) => geom((w, h) => [{ crop: zoomRect(w, h, f) }]);
+  const undoGeom = () => {
+    const prev = undo[cur]?.[undo[cur].length - 1];
+    if (!prev) return;
+    setUndo((u) => ({ ...u, [cur]: u[cur].slice(0, -1) }));
+    setItems((xs) => xs.map((x, i) => (i === cur ? { ...x, uri: prev } : x)));
+  };
+  const runAi = async () => {
+    const { ops, unsupported } = parseEdit(aiText);
+    if (!ops.length && !unsupported.length) { setAiNote('Non ho capito la richiesta. Prova con una delle idee qui sopra.'); return; }
+    for (const op of ops) {
+      if (op.k === 'adj') setAdj((a) => addAdjust(a, op.d));
+      else if (op.k === 'filter') setFilter(op.id);
+      else if (items[cur]?.media === 'photo') {
+        if (op.k === 'rotate') await rotate(op.deg);
+        else if (op.k === 'flip') await flip();
+        else if (op.k === 'crop') await crop(op.ratio);
+        else if (op.k === 'zoom') await zoom(op.f);
+      }
+    }
+    setAiNote(unsupported.length ? `Fatto quello che so fare. Non posso ancora: ${unsupported.join(', ')} (serve un servizio di immagini AI non ancora collegato).` : 'Fatto. Se non ti piace, puoi annullare o azzerare dai ritocchi.');
+    if (!unsupported.length) { setAiOpen(false); setAiText(''); setAiNote(''); toast('Modifica applicata'); }
+  };
+
   /* ---------- 2. ritocca e pubblica ---------- */
   const draft: Story = { id: 'draft', author: me, ts: Date.now(), kind: textMode ? 'text' : items[cur]?.media ?? 'photo', views: [], filter, adj, textColor: ink, textSize, textStyle, ...(attach ? { attach } : {}), ...(people.length ? { people } : {}), ...(cleanTags(tagsTxt.split(/[\s,]+/)).length ? { tags: cleanTags(tagsTxt.split(/[\s,]+/)) } : {}), ...(cleanLink(link) ? { link: cleanLink(link) } : {}) };
   const sideGap = 20;
-  // l'anteprima sta tra la barra in alto e il pannello degli strumenti
-  const panelH = tool === 'regola' ? 196 : tool === 'testo' ? 168 : 104;
-  const maxH = height - insets.top - insets.bottom - 56 - 44 - 66 - panelH - 74 - 34;
-  const previewW = Math.max(120, Math.min(width - sideGap * 2, maxH * 9 / 16));
-  const previewH = previewW * 16 / 9;
+  // l'anteprima prende lo spazio che resta tra la barra in alto e gli strumenti: niente calcoli a mano, niente sovrapposizioni
+  const panelH = tool === 'regola' ? 178 : tool === 'testo' ? 160 : tool === 'ritocca' ? 132 : 96;
+  const maxH = Math.max(160, area.h - 56);
+  const ar = forPost ? 5 / 4 : 16 / 9;
+  const previewW = Math.max(110, Math.min(area.w - sideGap * 2 || width - sideGap * 2, maxH / ar));
+  const previewH = previewW * ar;
   const place$ = pos === 'alto' ? { top: 28 } : pos === 'centro' ? { top: previewH / 2 - 30 } : { bottom: 60 };
   const tools: { id: typeof tool; icon: string; label: string; show: boolean }[] = [
     { id: 'filtri', icon: 'sparkle', label: 'Filtri', show: !textMode },
     { id: 'sfondo', icon: 'grid', label: 'Sfondo', show: textMode },
     { id: 'regola', icon: 'gear', label: 'Regola', show: !textMode },
-    { id: 'testo', icon: 'edit', label: 'Testo', show: true },
+    { id: 'ritocca', icon: 'repeat', label: 'Ritocca', show: !textMode && items[cur]?.media === 'photo' },
+    { id: 'testo', icon: 'edit', label: 'Testo', show: !forPost },
     { id: 'adatta', icon: 'image', label: 'Adatta', show: !textMode && items[cur]?.media === 'photo' },
   ];
   const active = tools.find((x) => x.id === tool && x.show) ?? tools.find((x) => x.show)!;
@@ -182,7 +250,7 @@ export default function StoryCreate() {
   return (
     <View style={{ flex: 1, backgroundColor: '#07080d' }}>
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 56 + insets.top }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={tl('Ricomincia')} onPress={reset} hitSlop={12} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}><Icon name="arrow-left" size={20} color="#fff" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={tl(forPost ? 'Indietro' : 'Ricomincia')} onPress={forPost ? () => leavePost(false) : reset} hitSlop={12} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}><Icon name="arrow-left" size={20} color="#fff" /></Pressable>
         {items.length > 1 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: 10 }} style={{ flex: 1 }}>
             {items.map((m, i) => (
@@ -192,10 +260,20 @@ export default function StoryCreate() {
             ))}
           </ScrollView>
         ) : <View style={{ flex: 1 }} />}
-        <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={goBack} hitSlop={12} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={20} color="#fff" /></Pressable>
+        <View style={{ flexDirection: 'row', gap: 8, marginEnd: 8 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={tl('Modifica con AI')} onPress={() => { buzz(); setAiNote(''); setAiOpen(true); }} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: accent, alignItems: 'center', justifyContent: 'center', gap: 0 }}>
+          <Icon name="sparkle" size={15} color={onAccent} />
+          <Text style={{ color: onAccent, fontWeight: '900', fontSize: 9.5 }}>AI</Text>
+        </Pressable>
+        {forPost ? null : <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi: persone, luogo, hashtag, link')} onPress={() => { buzz(); setAdd(true); }} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="plus" size={19} color="#fff" stroke={2.6} />
+          {addedCount ? <View style={{ position: 'absolute', top: -3, end: -3, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: accent, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: onAccent, fontSize: 10, fontWeight: '900' }}>{addedCount}</Text></View> : null}
+        </Pressable>}
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} onPress={forPost ? () => leavePost(false) : goBack} hitSlop={12} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={20} color="#fff" /></Pressable>
       </View>
 
-      <Pressable accessible={false} onPress={Keyboard.dismiss} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Pressable accessible={false} onPress={Keyboard.dismiss} onLayout={(e) => setArea({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 4 }}>
         {kbd ? (
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Fine')} onPress={Keyboard.dismiss} style={{ position: 'absolute', top: 4, end: 14, zIndex: 5, height: 38, paddingHorizontal: 20, borderRadius: 19, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ color: '#111', fontWeight: '800', fontSize: 14 }}>{tl('Fine')}</Text>
@@ -207,24 +285,24 @@ export default function StoryCreate() {
             : items[cur]?.media === 'photo' ? <Image source={{ uri: items[cur].uri }} style={{ width: '100%', height: '100%' }} contentFit={fit} />
             : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={44} color="#fff" /><Text style={{ color: '#fff', marginTop: 8, fontWeight: '700' }}>{tl('Video')}</Text></View>}
           <StoryFx s={draft} />
-          <View style={[{ position: 'absolute', start: 14, end: 14 }, textMode ? { top: previewH / 2 - 40 } : place$]}>
+          {forPost ? null : <View style={[{ position: 'absolute', start: 14, end: 14 }, textMode ? { top: previewH / 2 - 40 } : place$]}>
             <TextInput value={text} onChangeText={setText} multiline maxLength={MAX_STORY_TEXT} placeholder={tl(textMode ? 'Scrivi qui' : 'Aggiungi una scritta')} placeholderTextColor="rgba(255,255,255,0.6)" accessibilityLabel={tl('Scritta sul momento')}
               style={[storyTextStyle(draft, previewW / 390 * 1.15), { padding: 0 }]} />
-          </View>
-          <StoryStickers s={draft} bottom={10} />
+          </View>}
+          {forPost ? null : <StoryStickers s={draft} bottom={10} />}
         </View>
         {/* quanto resta: un tocco cambia solo il tempo */}
-        <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 6, marginTop: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 999, padding: 4 }}>
+        {forPost ? null : <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 6, marginTop: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 999, padding: 4 }}>
           {(['day', 'week', 'moment'] as Keep[]).map((k) => (
             <Pressable key={k} accessibilityRole="radio" accessibilityState={{ selected: keep === k }} accessibilityLabel={KEEP_LABEL[k]} onPress={() => { buzz(); setKeep(k); }} style={{ paddingHorizontal: 14, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: keep === k ? '#fff' : 'transparent' }}>
               <Text style={{ color: keep === k ? '#111' : 'rgba(255,255,255,0.85)', fontWeight: '800', fontSize: 12.5 }}>{tl(k === 'day' ? '24 ore' : k === 'week' ? '7 giorni' : 'Fisso nel profilo')}</Text>
             </Pressable>
           ))}
-        </View>
+        </View>}
       </Pressable>
 
       {/* pannello dello strumento scelto */}
-      <View style={{ minHeight: panelH, justifyContent: 'center' }}>
+      <View style={{ height: panelH, justifyContent: 'center' }}>
         {active.id === 'filtri' ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }} style={{ flexGrow: 0 }}>
             {FILTERS.map((f) => (
@@ -265,39 +343,63 @@ export default function StoryCreate() {
             </ScrollView>
           </View>
         ) : null}
+        {active.id === 'ritocca' ? (
+          <View style={{ gap: 10 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }} style={{ flexGrow: 0 }}>
+              {([['Ruota a sinistra', () => rotate(-90)], ['Ruota a destra', () => rotate(90)], ['Specchia', flip], ['Zoom +', () => zoom(1.25)]] as const).map(([l, fn]) => (
+                <Pressable key={l} accessibilityRole="button" accessibilityLabel={tl(l)} onPress={() => { buzz(); void fn(); }} style={{ height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.14)', justifyContent: 'center' }}>
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{tl(l)}</Text>
+                </Pressable>
+              ))}
+              <Pressable accessibilityRole="button" accessibilityState={{ disabled: !undo[cur]?.length }} accessibilityLabel={tl('Annulla')} onPress={() => { buzz(); undoGeom(); }} style={{ height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.14)', justifyContent: 'center', opacity: undo[cur]?.length ? 1 : 0.4 }}>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{tl('Annulla')}</Text>
+              </Pressable>
+            </ScrollView>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }} style={{ flexGrow: 0 }}>
+              {RATIOS.map((r) => (
+                <Pressable key={r.id} accessibilityRole="button" accessibilityLabel={tl('Ritaglia {0}', r.id)} onPress={() => { buzz(); void crop(r.id); }} style={{ height: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)', justifyContent: 'center' }}>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{r.id}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
         {active.id === 'adatta' ? (
           <Row style={{ justifyContent: 'center' }} gap={8}>{pill('Riempi lo schermo', fit === 'cover', () => setFit('cover'))}{pill('Mostra tutta la foto', fit === 'contain', () => setFit('contain'))}</Row>
         ) : null}
       </View>
 
-      {/* strumenti + aggiungi */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 6, height: 66 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} style={{ flex: 1 }}>
-          {tools.filter((x) => x.show).map((x) => {
-            const on = active.id === x.id;
-            return (
-              <Pressable key={x.id} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={tl(x.label)} onPress={() => { buzz(); setTool(x.id); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 42, paddingHorizontal: 14, borderRadius: 21, backgroundColor: on ? '#fff' : 'rgba(255,255,255,0.14)' }}>
-                <Icon name={x.icon as never} size={18} color={on ? '#111' : '#fff'} />
-                <Text style={{ color: on ? '#111' : '#fff', fontWeight: '800', fontSize: 13 }}>{tl(x.label)}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi: persone, luogo, hashtag, link')} onPress={() => { buzz(); setAdd(true); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 42, paddingHorizontal: 14, borderRadius: 21, backgroundColor: accent }}>
-          <Icon name="plus" size={18} color="#fff" stroke={3} />
-          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>{addedCount ? `${tl('Aggiungi')} · ${addedCount}` : tl('Aggiungi')}</Text>
-        </Pressable>
+      {/* strumenti: occupano tutta la riga, nessuno finisce sotto un altro */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 6, height: 70 }}>
+        {tools.filter((x) => x.show).map((x) => {
+          const on = active.id === x.id;
+          return (
+            <Pressable key={x.id} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={tl(x.label)} onPress={() => { buzz(); setTool(x.id); }} style={{ flex: 1, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 3, backgroundColor: on ? '#fff' : 'rgba(255,255,255,0.12)' }}>
+              <Icon name={x.icon as never} size={20} color={on ? '#111' : '#fff'} />
+              <Text numberOfLines={1} style={{ color: on ? '#111' : '#fff', fontWeight: '800', fontSize: 11 }}>{tl(x.label)}</Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 12 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al recap')} onPress={publish} style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.97 : 1 }] })}>
-          <View style={{ height: 56, borderRadius: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: accent }}>
-            <Icon name="plus" size={22} color={onAccent} />
-            <Text style={{ color: onAccent, fontSize: 17, fontWeight: '800' }}>{items.length > 1 ? tl('Aggiungi {0} momenti', items.length) : tl('Aggiungi al recap')}</Text>
+          <View style={{ height: 54, borderRadius: 27, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: accent }}>
+            <Icon name="check" size={22} color={onAccent} stroke={2.6} />
+            <Text style={{ color: onAccent, fontSize: 17, fontWeight: '800' }}>{items.length > 1 ? tl('Pubblica {0} momenti', items.length) : tl(forPost ? 'Fatto' : 'Pubblica nel recap')}</Text>
           </View>
         </Pressable>
       </View>
 
+      <Sheet visible={aiOpen} title="Modifica con AI" onClose={() => setAiOpen(false)}>
+        <Body small muted style={{ marginBottom: 8 }}>Scrivi cosa vuoi cambiare: luce, colori, atmosfera, ritaglio, rotazione.</Body>
+        <Input multiline value={aiText} onChangeText={setAiText} placeholder="Es. più calda e luminosa, ritagliala quadrata" style={{ minHeight: 70 }} />
+        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={8}>
+          {EDIT_SUGGESTIONS.map((x) => <Pill key={x} label={x} on={false} onPress={() => setAiText((v) => (v.trim() ? `${v.trim()}, ${x.toLowerCase()}` : x))} />)}
+        </Row>
+        {aiNote ? <Body small color="#ffb454" style={{ marginTop: 10 }}>{aiNote}</Body> : null}
+        <Btn style={{ marginTop: 14 }} title="Applica" onPress={() => void runAi()} />
+      </Sheet>
       <Sheet visible={add} title="Aggiungi al momento" onClose={() => setAdd(false)}>
         <Body bold style={{ marginBottom: 6 }}>Tagga persone</Body>
         {net.following.length ? (
