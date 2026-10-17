@@ -9,6 +9,8 @@ import { FinanceOverview } from '@/components/FinanceOverview';
 import { MonthCalcCard } from '@/components/MonthCalcCard';
 import { confirmDelete } from '@/lib/confirm';
 import { FinTabs } from '@/components/FinTabs';
+import { InvestTab } from '@/components/money/InvestTab';
+import { WalletTab } from '@/components/money/WalletTab';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Pill, Progress, Row, Seg, Select, Sheet, Tag, Toggle, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, shortDate } from '@/lib/format';
@@ -29,7 +31,7 @@ export default function LifeFinance() {
   const f = useFin();
   const color = areaColors.lifefinance;
   const [hist, setHist] = useState<number | null>(null);
-  const [tab, setTab] = useState('Panoramica');
+  const [tab, setTab] = useState('Conto');
   const [alertSheet, setAlertSheet] = useState(false);
   const [tips, setTips] = useState(false);
   const [ef, setEf] = useState(false);
@@ -90,9 +92,12 @@ export default function LifeFinance() {
     <Page id="lifefinance" title="LifeFinance" back>
       <FinTabs current="lifefinance" />
 
-      <Seg options={['Panoramica', 'Budget', 'Bollette']} value={tab} onChange={setTab} />
+      <Seg options={['Conto', 'Investi', 'Analisi', 'Budget', 'Bollette']} value={tab} onChange={setTab} />
 
-      {tab === 'Panoramica' && (
+      {tab === 'Conto' && <WalletTab onInvest={() => setTab('Investi')} />}
+      {tab === 'Investi' && <InvestTab />}
+
+      {tab === 'Analisi' && (
         <>
           <FinanceOverview h={{ onAlerts: () => setAlertSheet(true), onBills: () => setTab('Bollette'), onEmergency: () => setTab('Budget'), onImport: () => setCsvSheet(true), onMovements: (i) => setHist(i) }} />
       <MonthCalcCard />

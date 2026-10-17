@@ -1,5 +1,5 @@
 {
- "count": 11054,
+ "count": 11160,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -47,7 +47,7 @@
   "src/app/(tabs)/jobTest.tsx": 47,
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
-  "src/app/(tabs)/lifefinance.tsx": 86,
+  "src/app/(tabs)/lifefinance.tsx": 88,
   "src/app/(tabs)/lifefitness.tsx": 75,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
@@ -215,6 +215,8 @@
   "src/components/live/RecordingsSection.tsx": 7,
   "src/components/live/VideoSurface.tsx": 11,
   "src/components/market.tsx": 54,
+  "src/components/money/InvestTab.tsx": 44,
+  "src/components/money/WalletTab.tsx": 84,
   "src/components/network.tsx": 42,
   "src/components/plan.tsx": 104,
   "src/components/profile/CardFace.tsx": 11,
@@ -405,7 +407,10 @@
   "src/lib/liveRoom.ts": 39,
   "src/lib/lpActions.ts": 5,
   "src/lib/lpIncomingActions.ts": 4,
+  "src/lib/lpMoney.ts": 8,
   "src/lib/lpStatement.ts": 17,
+  "src/lib/markets/catalog.ts": 9,
+  "src/lib/markets/invest.ts": 6,
   "src/lib/menu.ts": 11,
   "src/lib/modRules.ts": 17,
   "src/lib/moodAnalysis.ts": 57,
@@ -483,6 +488,8 @@
   "src/store/interests.ts": 12,
   "src/store/jobs.ts": 2,
   "src/store/life.ts": 9,
+  "src/store/lpMoney.ts": 1,
+  "src/store/markets.ts": 4,
   "src/store/network.ts": 18,
   "src/store/prefs.ts": 6,
   "src/store/sharing.ts": 1,
@@ -495,5 +502,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1364
+ "withPlaceholders": 1379
 }
