@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { liveAccent } from '@/lib/liveTheme';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -56,7 +57,7 @@ export function DuoCall(p: {
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <Rings on={p.state === 'ringing'} />
         <UserAvatar name={p.other} size={150} />
-        {p.state === 'noanswer' ? <Text onPress={p.onRetry} style={{ color: '#8fa4ff', fontSize: 16, fontWeight: '800', marginTop: 24 }}>{tl('Richiama')}</Text> : null}
+        {p.state === 'noanswer' ? <Text onPress={p.onRetry} style={{ color: liveAccent(), fontSize: 16, fontWeight: '800', marginTop: 24 }}>{tl('Richiama')}</Text> : null}
       </View>
       {p.video && !p.camOff ? (
         <View style={{ position: 'absolute', top: insets.top + 24, end: 14, width: 100, height: 140, borderRadius: 14, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)', backgroundColor: '#000' }}>

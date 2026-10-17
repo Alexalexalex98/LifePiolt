@@ -8,6 +8,7 @@ import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Progress, R
 import { useTheme } from '@/hooks/use-theme';
 import { avg } from '@/lib/format';
 import { areaColors, Icon } from '@/lib/icons';
+import { sectionColor } from '@/lib/liveTheme';
 import { computeScores } from '@/lib/scores';
 import { healthMeta, last, moodOptions, streakOf, useHealth, type Metric as M } from '@/store/health';
 import { toast } from '@/store/toast';
@@ -40,7 +41,7 @@ export default function LifeHealth() {
   const [f1, setF1] = useState('');
   const [f2, setF2] = useState('');
   const [today, setToday] = useState<Record<string, string>>({});
-  const color = areaColors.lifehealth;
+  const color = sectionColor(areaColors.lifehealth);
   const [busy, setBusy] = useState(false);
   const [hkMsg, setHkMsg] = useState('');
   const [hkOk, setHkOk] = useState(false);

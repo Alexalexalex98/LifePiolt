@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
+import { liveAccent } from '@/lib/liveTheme';
 import { Pressable, Share, View } from 'react-native';
 
 import { LiveAccess } from '@/components/live/LiveAccess';
@@ -44,7 +45,7 @@ export default function SeminarPage() {
       <Card>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 6 }} gap={6}>
           {s.promoted && <Badge label="Sponsorizzato" color="#c9b6ff" onPress={() => openSheet('sponsoredInfo')} />}
-          <Badge label={modeLabel(s.mode)} color="#8fa4ff" />
+          <Badge label={modeLabel(s.mode)} color={liveAccent()} />
           {ended && <Badge label="Concluso" color="#8e98a8" />}
         </Row>
         {s.promoted && <Body small muted style={{ marginBottom: 8 }}>{SPONSORED_TEXT}</Body>}

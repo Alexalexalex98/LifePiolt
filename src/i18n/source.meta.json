@@ -1,5 +1,5 @@
 {
- "count": 11179,
+ "count": 11183,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -84,7 +84,7 @@
   "src/app/(tabs)/security.tsx": 5,
   "src/app/(tabs)/seminarPage.tsx": 44,
   "src/app/(tabs)/servicePage.tsx": 31,
-  "src/app/(tabs)/settings.tsx": 115,
+  "src/app/(tabs)/settings.tsx": 119,
   "src/app/(tabs)/sharing.tsx": 2,
   "src/app/(tabs)/shopPage.tsx": 42,
   "src/app/(tabs)/skillProfile.tsx": 26,
@@ -405,6 +405,7 @@
   "src/lib/knowledge.ts": 14,
   "src/lib/lifepay.ts": 10,
   "src/lib/liveRoom.ts": 39,
+  "src/lib/liveTheme.ts": 4,
   "src/lib/lpActions.ts": 5,
   "src/lib/lpIncomingActions.ts": 4,
   "src/lib/lpMoney.ts": 8,

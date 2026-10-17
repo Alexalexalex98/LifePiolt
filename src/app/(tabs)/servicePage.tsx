@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
+import { liveAccent } from '@/lib/liveTheme';
 import { Pressable, Share, View } from 'react-native';
 
 import { LiveAccess } from '@/components/live/LiveAccess';
@@ -47,8 +48,8 @@ export default function ServicePage() {
       <View style={{ borderRadius: 18, overflow: 'hidden', marginBottom: 12 }}><ServiceBanner p={p} /></View>
       <Card>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }} gap={6}>
-          <Badge label={p.tag} color="#8fa4ff" />
-          <Badge label={modeLabel(info.mode)} color="#8fa4ff" />
+          <Badge label={p.tag} color={liveAccent()} />
+          <Badge label={modeLabel(info.mode)} color={liveAccent()} />
         </Row>
         <View style={{ gap: 8 }}>
           <IL icon="clock" bold>Sessione di {fmtDuration(info.durationMin)}</IL>

@@ -1,4 +1,5 @@
 import { Pressable, View } from 'react-native';
+import { liveAccent } from '@/lib/liveTheme';
 import { Icon } from '@/lib/icons';
 import { Text } from '@/components/T';
 
@@ -35,7 +36,7 @@ export function statusOf(e: Enrollment | undefined, now = Date.now()): { label: 
   if (!e) return null;
   if (e.status === 'attended') return { label: 'Partecipazione confermata', color: '#7be0b0' };
   if (e.status === 'declined') return { label: 'Non partecipato', color: '#8e98a8' };
-  return hasEnded(e, now) ? { label: 'Da confermare', color: '#ffb84f' } : { label: e.kind === 'seminar' ? 'Iscritto' : 'Prenotato', color: '#8fa4ff' };
+  return hasEnded(e, now) ? { label: 'Da confermare', color: '#ffb84f' } : { label: e.kind === 'seminar' ? 'Iscritto' : 'Prenotato', color: liveAccent() };
 }
 
 /** L'iscrizione "piu' rilevante" dell'utente a un seminario (quella ancora aperta, altrimenti l'ultima). */
@@ -97,13 +98,13 @@ export function ServiceCard({ p }: { p: Provider }) {
           <Body bold>{p.name}</Body>
           <Body small muted>{p.role} · {avg == null ? 'nessuna recensione' : `${avg.toFixed(1)}/5`} · {slots.length} slot liberi</Body>
         </View>
-        <Badge label={p.tag} color="#8fa4ff" />
+        <Badge label={p.tag} color={liveAccent()} />
       </Row>
       <MediaBlock media={p.media} seed={p.name + p.role} />
       <View style={{ gap: 5, marginTop: 6 }}>
         <IL icon="clock" small>{fmtDuration(info.durationMin)} · {modeLabel(info.mode)}</IL>
         <IL icon="calendar" small muted>{slots.length ? `Prossimo slot: ${fmtDateTime(slots[0].ts)}` : 'Nessuno slot libero al momento'}</IL>
-        {open > 0 && <IL icon="check" small color="#8fa4ff">Hai {open} {open === 1 ? 'prenotazione' : 'prenotazioni'} con {p.name}</IL>}
+        {open > 0 && <IL icon="check" small color={liveAccent()}>Hai {open} {open === 1 ? 'prenotazione' : 'prenotazioni'} con {p.name}</IL>}
       </View>
       <View style={{ marginTop: 8 }}><RatingChip refKey={`service:${p.name}`} /></View>
       <Row style={{ marginTop: 10 }}>

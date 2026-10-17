@@ -21,6 +21,7 @@ import { KIND_ORDER, KINDS, kindEnabled } from '@/lib/notifyKinds';
 import { TutorialSettings } from '@/components/tour/TutorialSettings';
 import { NotifStatus, NotifTools, ReminderSettings } from '@/components/NotifSettings';
 import { areaColors, Icon } from '@/lib/icons';
+import { TEXT_SCALES, sectionColor } from '@/lib/liveTheme';
 import { navCatalog, useApp, type Appearance } from '@/store/app';
 import { useFin } from '@/store/finance';
 import { useHealth } from '@/store/health';
@@ -152,7 +153,7 @@ export default function Settings() {
         <Body small muted style={{ marginBottom: 10 }}>{tr('stNavCustomizeDesc')}</Body>
         {Object.keys(navCatalog).map((id) => {
           const checked = app.navItems.includes(id);
-          const c = areaColors[id] ?? '#8fa4ff';
+          const c = sectionColor(areaColors[id]);
           return (
             <Item key={id} onPress={() => toggleNav(id)}>
               <Row>
@@ -235,7 +236,16 @@ export default function Settings() {
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
           {TONES.map((x) => <Pill key={x.id} label={x.label} on={(app.custom?.tone ?? 'standard') === x.id} onPress={() => set({ custom: { ...app.custom, tone: x.id === 'standard' ? undefined : x.id } })} />)}
         </Row>
-        {app.custom?.accent || app.custom?.tone ? <Btn small ghost style={{ marginTop: 12 }} title="Ripristina i colori originali" onPress={() => { set({ custom: {} }); setHexDraft(''); toast('Colori originali ripristinati'); }} /> : null}
+        <Body bold style={{ marginTop: 14, marginBottom: 8 }}>Colori delle sezioni</Body>
+        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
+          <Pill label="Quelli di ogni sezione" on={(app.custom?.sections ?? 'original') === 'original'} onPress={() => set({ custom: { ...app.custom, sections: 'original' } })} />
+          <Pill label="Il mio colore ovunque" on={app.custom?.sections === 'accent'} onPress={() => set({ custom: { ...app.custom, sections: 'accent' } })} />
+        </Row>
+        <Body bold style={{ marginTop: 14, marginBottom: 8 }}>Dimensione del testo</Body>
+        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
+          {TEXT_SCALES.map((x) => <Pill key={x.id} label={x.label} on={(app.custom?.textScale ?? 1) === x.id} onPress={() => set({ custom: { ...app.custom, textScale: x.id === 1 ? undefined : x.id } })} />)}
+        </Row>
+        {app.custom?.accent || app.custom?.tone || app.custom?.sections || app.custom?.textScale ? <Btn small ghost style={{ marginTop: 12 }} title="Ripristina i colori originali" onPress={() => { set({ custom: {} }); setHexDraft(''); toast('Colori originali ripristinati'); }} /> : null}
       </Card>
 
       <Card>

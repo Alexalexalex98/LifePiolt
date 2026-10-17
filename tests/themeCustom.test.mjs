@@ -25,3 +25,17 @@ test('codici colore', () => {
   assert.ok(!isHex('#abc') && !isHex('rosso'));
   assert.equal(normHex(' A1B2C3 '), '#a1b2c3');
 });
+
+import { sectionColor, setLiveTheme, liveAccent, textFactor } from '../src/lib/liveTheme.ts';
+test('colori delle sezioni e dimensione del testo', () => {
+  setLiveTheme('#ff6f61');
+  assert.equal(sectionColor('#7be0b0'), '#7be0b0');
+  assert.equal(sectionColor(undefined, '#111111'), '#111111');
+  setLiveTheme('#ff6f61', 'accent');
+  assert.equal(sectionColor('#7be0b0'), '#ff6f61');
+  assert.equal(liveAccent(), '#ff6f61');
+  assert.equal(textFactor(undefined, false, 1.15), 1);
+  assert.equal(textFactor(undefined, true, 1.15), 1.15);
+  assert.equal(textFactor(1.25, true, 1.15), 1.25);
+  assert.equal(textFactor(9, false, 1.15), 1);
+});

@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { liveAccent } from '@/lib/liveTheme';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
@@ -226,7 +227,7 @@ export default function GroupCall() {
               <Icon name="sparkle" size={14} color="#c9d3ff" />
               <Text numberOfLines={1} style={{ color: '#fff', fontSize: 13, fontWeight: '800', flex: 1 }}>{tr.listening ? tl('Theia ascolta e prende appunti') : mine === false ? tl('La tua voce non viene trascritta') : tl('Theia prende appunti')}</Text>
             </View>
-            <Text onPress={() => setNotesOpen(true)} style={{ color: '#8fa4ff', fontSize: 13, fontWeight: '800' }}>{tl('Appunti')} ({live.decisions.length + live.actions.length + live.questions.length})</Text>
+            <Text onPress={() => setNotesOpen(true)} style={{ color: liveAccent(), fontSize: 13, fontWeight: '800' }}>{tl('Appunti')} ({live.decisions.length + live.actions.length + live.questions.length})</Text>
           </Row>
           {tr.problem ? <Text style={{ color: '#ffd166', fontSize: 11.5 }}>{tr.problem}</Text> : null}
           {transcript.slice(-2).map((l, i) => <Text key={i} numberOfLines={2} style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12.5 }}><Text style={{ fontWeight: '800' }}>{l.speaker === me ? tl('Tu') : l.speaker}: </Text>{l.text}</Text>)}

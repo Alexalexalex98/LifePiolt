@@ -15,6 +15,7 @@ import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Pill, Progr
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, shortDate } from '@/lib/format';
 import { areaColors, Icon } from '@/lib/icons';
+import { sectionColor } from '@/lib/liveTheme';
 import { alertsFor } from '@/lib/budgetState';
 import { detectRecurring, movementsToDated } from '@/lib/recurring';
 import { avgRecentNet, defaultBudget, emergencyByMonth, monthEnd, normBill, typicalCosts, useFin } from '@/store/finance';
@@ -29,7 +30,7 @@ import { endAlign } from '@/lib/rtl';
 export default function LifeFinance() {
   const t = useTheme();
   const f = useFin();
-  const color = areaColors.lifefinance;
+  const color = sectionColor(areaColors.lifefinance);
   const [hist, setHist] = useState<number | null>(null);
   const [tab, setTab] = useState('Conto');
   const [alertSheet, setAlertSheet] = useState(false);

@@ -10,6 +10,7 @@ import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useTheme } from '@/hooks/use-theme';
 import { translate, sectionNamesFor } from '@/lib/i18n';
 import { Icon, areaColors } from '@/lib/icons';
+import { sectionColor } from '@/lib/liveTheme';
 import { go } from '@/lib/nav';
 import { navCatalog, useApp } from '@/store/app';
 import { toast } from '@/store/toast';
@@ -249,7 +250,7 @@ export function MenuSheet() {
           <Text style={{ color: t.muted, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 14, marginBottom: 6, marginStart: 2 }}>{g.label}</Text>
           <View style={{ backgroundColor: t.input, borderWidth: 1, borderColor: t.border, borderRadius: 16, overflow: 'hidden' }}>
             {g.items.map(([id, label], i) => {
-              const color = t.mode === 'light' ? t.accent : (areaColors[id] ?? t.accent);
+              const color = t.mode === 'light' ? t.accent : sectionColor(areaColors[id], t.accent);
               const locked = !isUnlocked({ mode: tourMode, level: tourLevel, allUnlocked: tourAll }, id);
               return (
                 <Item key={id} last={i === g.items.length - 1} style={{ paddingHorizontal: 14, paddingVertical: 12 }} onPress={() => { setMenu(false); if (locked) requestUnlock(id); else go(id); }}>

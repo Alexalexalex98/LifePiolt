@@ -17,6 +17,7 @@ import { useSectionNames } from '@/lib/i18n';
 import { readable } from '@/lib/a11y';
 import { log } from '@/lib/log';
 import { areaColors, Icon } from '@/lib/icons';
+import { sectionColor } from '@/lib/liveTheme';
 import { goBack, go, isFreshForward } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { installTextScale } from '@/lib/textScale';
@@ -96,7 +97,7 @@ function TopBar({ page }: { page: string }) {
     <View style={s.top}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1 }}>
         <Image source={LOGO} style={{ height: 30, width: 30, ...(t.mode === 'light' ? { tintColor: '#10151d' } : null) }} resizeMode="contain" accessibilityLabel="LifePilot" />
-        <Text accessibilityRole="header" style={{ color: t.mode === 'light' ? t.text : (areaColors[page] ?? t.text), fontSize: 16, fontWeight: '700' }}>{tag}</Text>
+        <Text accessibilityRole="header" style={{ color: t.mode === 'light' ? t.text : sectionColor(areaColors[page], t.text), fontSize: 16, fontWeight: '700' }}>{tag}</Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Press style={s.menuBtn} onPress={() => go('messagesPage')} accessibilityLabel={badges.msg > 0 ? `Messaggi, ${badges.msg} da leggere` : 'Messaggi'}>

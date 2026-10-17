@@ -4,7 +4,7 @@
  */
 import { contrast, parseHex, readable } from './a11y.ts';
 
-export type CustomTheme = { /** #rrggbb */ accent?: string; /** id di un tono di sfondo */ tone?: string };
+export type CustomTheme = { /** #rrggbb */ accent?: string; /** id di un tono di sfondo */ tone?: string; /** colori delle sezioni: i loro (predefinito) o quello principale */ sections?: 'original' | 'accent'; /** dimensione dei testi (1 = normale) */ textScale?: number };
 export const ACCENTS: { id: string; label: string; hex: string }[] = [
   { id: 'indaco', label: 'Indaco', hex: '#8fa4ff' }, { id: 'azzurro', label: 'Azzurro', hex: '#4aa8ff' }, { id: 'turchese', label: 'Turchese', hex: '#2fd0c4' },
   { id: 'verde', label: 'Verde', hex: '#4cd18a' }, { id: 'lime', label: 'Lime', hex: '#b4e04a' }, { id: 'oro', label: 'Oro', hex: '#f0c040' },

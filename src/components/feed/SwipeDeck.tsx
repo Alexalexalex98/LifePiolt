@@ -1,4 +1,5 @@
 import { useVideoFx } from '@/hooks/use-video-fx';
+import { liveAccent } from '@/lib/liveTheme';
 import type { VideoFx } from '@/lib/videoFx';
 import { StoryFx } from '@/components/stories/StoryFx';
 import { useIsFocused } from 'expo-router';
@@ -222,10 +223,10 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
     return (
       <View style={{ flex: 1, backgroundColor: '#07080d', alignItems: 'center', justifyContent: 'center', padding: 28, gap: 10 }}>
         <View style={{ position: 'absolute', top: insets.top + 10, end: 16 }}>{close}</View>
-        <Icon name="sparkle" size={38} color="#8fa4ff" />
+        <Icon name="sparkle" size={38} color={liveAccent()} />
         <Text style={{ color: '#fff', fontSize: 22, fontWeight: '900', textAlign: 'center' }}>{tl('Per ora hai visto tutto')}</Text>
         <Text style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>{tl('Quando ci saranno nuovi post che potrebbero interessarti, li trovi qui. I tuoi preferiti sono già in «Per te».')}</Text>
-        {(swipes ?? []).length ? <Pressable accessibilityRole="button" onPress={undo} style={{ marginTop: 10 }}><Text style={{ color: '#8fa4ff', fontWeight: '800' }}>{tl('Annulla l’ultima scelta')}</Text></Pressable> : null}
+        {(swipes ?? []).length ? <Pressable accessibilityRole="button" onPress={undo} style={{ marginTop: 10 }}><Text style={{ color: liveAccent(), fontWeight: '800' }}>{tl('Annulla l’ultima scelta')}</Text></Pressable> : null}
       </View>
     );
   }
@@ -325,7 +326,7 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><Icon name="arrow-left" size={34} color="#2fd58a" /><Text style={{ color: '#fff', fontSize: 20, fontWeight: '900', flexShrink: 1 }}>{tl('Swipe a sinistra: mi interessa')}</Text></View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><Text style={{ color: '#fff', fontSize: 20, fontWeight: '900', flexShrink: 1, textAlign: 'right' }}>{tl('Swipe a destra: non mi interessa')}</Text><Icon name="arrow-right" size={34} color="#ff5d6c" /></View>
           <Text style={{ color: 'rgba(255,255,255,0.75)', textAlign: 'center', fontSize: 14 }}>{tl('Quelli che ti interessano tornano in «Per te», nell’ordine in cui li scegli. Gli altri, e quelli simili, non te li propongo più.')}</Text>
-          <Text style={{ color: '#8fa4ff', fontWeight: '800' }}>{tl('Tocca per continuare')}</Text>
+          <Text style={{ color: liveAccent(), fontWeight: '800' }}>{tl('Tocca per continuare')}</Text>
         </Pressable>
       ) : null}
       </Animated.View>
