@@ -4,7 +4,6 @@ import { Text } from '@/components/T';
 import { LpTag } from '@/components/network';
 import { Press } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
-import { formatCHF } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 
 /** Importo in LifePoints con il simbolo LP accanto. */
@@ -12,7 +11,7 @@ export function Amount({ n, size = 16, bold = true, color, sign }: { n: number; 
   const t = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <Text style={{ color: color ?? t.text, fontSize: size, fontWeight: bold ? '800' : '500', letterSpacing: size > 24 ? -1 : 0 }}>{sign && n > 0 ? '+' : ''}{formatCHF(n)}</Text>
+      <Text style={{ color: color ?? t.text, fontSize: size, fontWeight: bold ? '800' : '500', letterSpacing: size > 24 ? -1 : 0 }}>{sign && n > 0 ? '+' : ''}{n.toLocaleString('de-CH', { maximumFractionDigits: 2 })}</Text>
       <LpTag size={Math.round(size * 0.85)} />
     </View>
   );
