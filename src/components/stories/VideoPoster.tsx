@@ -1,19 +1,18 @@
 import { Image } from 'expo-image';
-import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { Icon } from '@/lib/icons';
+import { cachedThumb, videoThumb } from '@/lib/videoThumb';
 
-const cache = new Map<string, string>();
 
 /** Anteprima di un video: usa il fotogramma già pronto, altrimenti lo ricava dal video (e lo ricorda). Mentre arriva resta un riquadro scuro con il simbolo play. */
 export function VideoPoster({ uri, poster, width, height }: { uri?: string; poster?: string; width: number; height: number }) {
-  const [thumb, setThumb] = useState<string | null>(poster ?? (uri ? cache.get(uri) ?? null : null));
+  const [thumb, setThumb] = useState<string | null>(poster ?? (uri ? cachedThumb(uri) ?? null : null));
   useEffect(() => {
-    if (poster || !uri || cache.has(uri)) return;
+    if (poster || !uri || cachedThumb(uri)) return;
     let live = true;
-    VideoThumbnails.getThumbnailAsync(uri, { time: 500, quality: 0.5 }).then((r) => { cache.set(uri, r.uri); if (live) setThumb(r.uri); }).catch(() => undefined);
+    void videoThumb(uri, 500).then((r) => { if (live && r) setThumb(r); });
     return () => { live = false; };
   }, [uri, poster]);
   return (

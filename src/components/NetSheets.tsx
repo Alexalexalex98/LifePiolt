@@ -7,6 +7,7 @@ import { CreateHubView } from '@/components/feed/CreateHub';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useMemo, useState } from 'react';
+import { videoThumb } from '@/lib/videoThumb';
 import { cleanFx, setEditorInput, takeEditorResult, type PostFx } from '@/lib/editorHandoff';
 import { Platform, Pressable, ScrollView, Share, View } from 'react-native';
 import { Text, TextInput } from '@/components/T';
@@ -863,9 +864,11 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
     close();
     setTimeout(() => go('storyCreate', { for: 'post' }), 250);
   };
-  const publish = () => {
+  const publish = async () => {
     if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
-    net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, tag, likes: 0, ts: Date.now(), ...(dish ? { menuItem: dish } : {}), ...(media && capMode === 'below' ? { captionMode: 'below' as const } : {}), ...(media && cleanFx(fx) ? { fx: cleanFx(fx) } : {}) }, ...net.posts] });
+    /* l'anteprima del video si crea ora: poi compare subito, senza nero */
+    const poster = media?.media === 'video' ? await videoThumb(media.uri) : undefined;
+    net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, ...(poster ? { poster } : {}), tag, likes: 0, ts: Date.now(), ...(dish ? { menuItem: dish } : {}), ...(media && capMode === 'below' ? { captionMode: 'below' as const } : {}), ...(media && cleanFx(fx) ? { fx: cleanFx(fx) } : {}) }, ...net.posts] });
     delete drafts.newPost;
     close(); toast('Post pubblicato');
   };
@@ -922,7 +925,7 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }} style={{ flexGrow: 0 }}>
         {topicList.map((x) => <Pill key={x} label={x} on={tag === x} onPress={() => setTag(x)} />)}
       </ScrollView>
-      <Pressable accessibilityRole="button" accessibilityState={{ disabled: !ready }} accessibilityLabel={translateText('Pubblica')} onPress={publish} style={({ pressed }) => ({ marginTop: 16, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', backgroundColor: ready ? t.accent : t.chip, opacity: pressed ? 0.9 : 1 })}>
+      <Pressable accessibilityRole="button" accessibilityState={{ disabled: !ready }} accessibilityLabel={translateText('Pubblica')} onPress={() => void publish()} style={({ pressed }) => ({ marginTop: 16, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', backgroundColor: ready ? t.accent : t.chip, opacity: pressed ? 0.9 : 1 })}>
         <Text style={{ color: ready ? t.onText : t.muted, fontSize: 16.5, fontWeight: '800' }}>{translateText('Pubblica')}</Text>
       </Pressable>
     </View>

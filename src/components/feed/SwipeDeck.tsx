@@ -1,4 +1,5 @@
 import { useVideoFx } from '@/hooks/use-video-fx';
+import { cachedThumb, videoThumb } from '@/lib/videoThumb';
 import { acquirePlayer, preloadPlayer, releaseAllPlayers, releaseExcept } from '@/lib/videoPool';
 import { liveAccent } from '@/lib/liveTheme';
 import type { VideoFx } from '@/lib/videoFx';
@@ -158,8 +159,11 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
   const dishItem = useMenus((m) => findItem(m.byOwner[card?.author ?? ''], (card as SwipeCandidate | null)?.menuItem));
   const dishLine = dishItem ? itemLine(dishItem) : null;
   const isSponsored = !!(card as SwipeCandidate | null)?.sponsor;
-  const curUnder = card ? (card.media === 'video' ? card.poster : card.uris?.[pic] ?? card.uri) : undefined;
-  const upcomingUri = upcoming ? (upcoming.media === 'video' ? upcoming.poster : upcoming.uris?.[0] ?? upcoming.uri) : undefined;
+  /* i video senza anteprima ne ricevono una subito: così non si vede mai il nero ad aspettare il primo fotogramma */
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const posterOf = (c: SwipeCandidate | null | undefined) => (c ? c.poster ?? thumbs[c.key] ?? (c.uri ? cachedThumb(c.uri) : undefined) : undefined);
+  const curUnder = card ? (card.media === 'video' ? posterOf(card as SwipeCandidate) : card.uris?.[pic] ?? card.uri) : undefined;
+  const upcomingUri = upcoming ? (upcoming.media === 'video' ? posterOf(upcoming) : upcoming.uris?.[0] ?? upcoming.uri) : undefined;
   useLayoutEffect(() => { x.setValue(0); }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const cardRef = useRef(card); cardRef.current = card;
   const upRef = useRef(upcoming); upRef.current = upcoming;
@@ -172,6 +176,11 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
     /* i file dei prossimi video si scaldano in anticipo (conta soprattutto con Expo, che li serve dal computer) */
     cards.filter((c) => c.media === 'video' && !seen.has(c.key) && c.key !== card?.key && c.uri && /^https?:/.test(c.uri)).slice(0, 1).forEach((c) => { fetch(c.uri as string).then((r) => r.blob()).catch(() => undefined); });
   }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const seen = new Set((swipes ?? []).map((r) => r.key));
+    const want = [card, upcoming, ...cards.filter((c) => !seen.has(c.key)).slice(0, 4)].filter((c): c is SwipeCandidate => !!c && c.media === 'video' && !c.poster && !c.asset && !!c.uri);
+    want.forEach((c) => { if (!thumbs[c.key]) void videoThumb(c.uri as string).then((u) => { if (u) setThumbs((t) => (t[c.key] ? t : { ...t, [c.key]: u })); }); });
+  }, [card?.key, upcoming?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   /* il video che arriva dopo si carica già adesso (in pausa); gli altri lettori si liberano */
   useEffect(() => {
     const keep: string[] = [];
@@ -260,7 +269,7 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
           }}
           delayLongPress={260} onLongPress={() => { if (isVideo) { vid.current?.rate(2); setFast(true); } }} onPressOut={() => { if (fast) { vid.current?.rate(1); setFast(false); } }} style={{ flex: 1 }}>
           {card.fx ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, zIndex: 1 }}><StoryFx s={card.fx as never} uri={card.media === 'video' ? undefined : card.uris?.[pic] ?? card.uri} /></View> : null}
-          {isVideo ? <DeckVideo key={card.key} playerKey={card.key} vfx={card.fx?.video} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} poster={card.poster} /> : card.asset ? <Image key={card.key} recyclingKey={card.key} source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image key={card.key} recyclingKey={card.key} source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
+          {isVideo ? <DeckVideo key={card.key} playerKey={card.key} vfx={card.fx?.video} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} poster={posterOf(card as SwipeCandidate)} /> : card.asset ? <Image key={card.key} recyclingKey={card.key} source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image key={card.key} recyclingKey={card.key} source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
             <LinearGradient colors={['#4a3bd1', '#1b1f3a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
               <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900' }}>{card.text}</Text>
             </LinearGradient>

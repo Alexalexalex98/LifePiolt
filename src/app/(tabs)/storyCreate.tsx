@@ -15,6 +15,7 @@ import { dayKey } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { mapsUrl } from '@/lib/maps';
 import { goBack } from '@/lib/nav';
+import { videoThumb } from '@/lib/videoThumb';
 import { setEditorResult, takeEditorInput } from '@/lib/editorHandoff';
 import { openSheet } from '@/components/network';
 import { useLocalSearchParams } from 'expo-router';
@@ -113,7 +114,7 @@ export default function StoryCreate() {
   const fromCamera = () => run(async () => { const m = await takeNetPhoto(); if (m) { setItems((x) => [...x, m].slice(0, 6)); setCur(items.length); buzz(); } });
   const reset = () => { setItems([]); setTextMode(false); setText(''); setFilter('none'); setFilters(false); setAdj(NO_ADJUST); setFit('cover'); setPeople([]); setTagsTxt(''); setLink(''); setAttach(null); };
 
-  function publish() {
+  async function publish() {
     if (forPost) { leavePost(true); return; }
     const base = { author: me, now: Date.now(), text, keep, attach: attach ?? undefined, filter, textPos: pos, textColor: ink, adj, fit, textSize, textStyle, people, tags: tagsTxt.split(/[\s,]+/), link };
     const made = textMode
@@ -121,6 +122,8 @@ export default function StoryCreate() {
       : items.map((m, i) => makeStory({ ...base, id: String(newId()) + i, now: base.now + i, kind: m.media, uri: m.uri, text: i === 0 ? text : '', vfx: cleanVideoFx(vfxMap[i], (m.durationMs ?? 0) / 1000) }));
     const ok = made.filter((x): x is NonNullable<typeof x> => !!x);
     if (!ok.length) { toast(textMode ? 'Scrivi qualcosa per il recap' : 'Scegli prima una foto o un video'); return; }
+    // anteprima dei video: il recap si apre subito, senza nero
+    for (const st of ok) if (st.kind === 'video' && st.uri && !st.poster) st.poster = await videoThumb(st.uri);
     net.patch({ stories: [...(net.stories ?? []), ...ok] });
     buzz();
     toast(ok.length > 1 ? tl('{0} momenti aggiunti al recap', ok.length) : 'Aggiunto al recap');
@@ -421,7 +424,7 @@ export default function StoryCreate() {
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 12 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al recap')} onPress={publish} style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.97 : 1 }] })}>
+        <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi al recap')} onPress={() => void publish()} style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.97 : 1 }] })}>
           <View style={{ height: 54, borderRadius: 27, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: accent }}>
             <Icon name="check" size={22} color={onAccent} stroke={2.6} />
             <Text style={{ color: onAccent, fontSize: 17, fontWeight: '800' }}>{items.length > 1 ? tl('Pubblica {0} momenti', items.length) : tl(forPost ? 'Fatto' : 'Pubblica nel recap')}</Text>

@@ -12,7 +12,9 @@ export function acquirePlayer(key: string, source: VideoSource): VideoPlayer {
   if (t) { clearTimeout(t); timers.delete(key); }
   let p = pool.get(key);
   if (!p) {
-    p = createVideoPlayer(source);
+    // dal server: il video si tiene anche sul telefono, la seconda volta parte subito
+    const src = typeof source === 'object' && source && 'uri' in source && /^https?:/.test(String(source.uri)) ? { ...source, useCaching: true } : source;
+    p = createVideoPlayer(src as VideoSource);
     p.loop = true; p.muted = true;
     pool.set(key, p);
   }
