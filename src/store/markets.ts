@@ -21,6 +21,9 @@ type MarketsState = {
   positions: Record<string, Position>;
   orders: Order[];
   watch: string[];
+  /** dati societari scritti a mano dall'utente (utili, dividendo...): la fonte dei prezzi non li dà */
+  facts: Record<string, { pe?: number; epsGrowth?: number; div?: number; debt?: number }>;
+  setFact: (sym: string, f: { pe?: number; epsGrowth?: number; div?: number; debt?: number }) => void;
   refreshing: boolean;
   refresh: (force?: boolean) => Promise<void>;
   toggleWatch: (sym: string) => void;
@@ -36,7 +39,7 @@ async function get(url: string): Promise<string> {
 }
 
 export const useMarkets = create<MarketsState>()(persisted<MarketsState>('markets', (set, get_) => ({
-  quotes: {}, closes: {}, usdChf: FALLBACK_USDCHF, updatedAt: 0, live: false, positions: {}, orders: [], watch: ['AAPL', 'NVDA', 'GLD', 'SPY'], refreshing: false,
+  quotes: {}, closes: {}, usdChf: FALLBACK_USDCHF, updatedAt: 0, live: false, positions: {}, orders: [], watch: ['AAPL', 'NVDA', 'GLD', 'SPY'], facts: {}, setFact: (sym, f) => set((s) => ({ facts: { ...s.facts, [sym]: { ...s.facts[sym], ...f } } })), refreshing: false,
   refresh: async (force) => {
     const s = get_();
     if (s.refreshing || (!force && Date.now() - s.updatedAt < STALE_MS)) return;
@@ -85,7 +88,7 @@ export const useMarkets = create<MarketsState>()(persisted<MarketsState>('market
     return { ok: true };
   },
   reset: () => set({ positions: {}, orders: [], watch: ['AAPL', 'NVDA', 'GLD', 'SPY'] }),
-}), (s) => ({ quotes: s.quotes, closes: s.closes, usdChf: s.usdChf, updatedAt: s.updatedAt, live: s.live, positions: s.positions, orders: s.orders, watch: s.watch } as Partial<MarketsState>)));
+}), (s) => ({ quotes: s.quotes, closes: s.closes, usdChf: s.usdChf, updatedAt: s.updatedAt, live: s.live, positions: s.positions, orders: s.orders, watch: s.watch, facts: s.facts } as Partial<MarketsState>)));
 
 /** Prezzo in dollari: quello della fonte dati se c'è, altrimenti dimostrativo. */
 export function priceUsd(s: Pick<MarketsState, 'quotes'>, sym: string, now = Date.now()): number {

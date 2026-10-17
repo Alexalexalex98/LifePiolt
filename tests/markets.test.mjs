@@ -54,3 +54,17 @@ test('compravendita in LP: quote frazionate, costi proporzionali, errori chiari'
   assert.deepEqual([p.value, p.gain, Math.round(p.pct)], [400, 100, 33]);
   assert.equal(portfolio([{ sym: 'A', units: 1, costLp: 100 }, { sym: 'B', units: 2, costLp: 50 }], (s) => (s === 'A' ? 150 : 10)).gain, 20);
 });
+
+import { searchInstruments, extractTicker, looksLikeTicker } from '../src/lib/markets/identify.ts';
+test('ricerca e riconoscimento di un titolo', () => {
+  assert.equal(searchInstruments('aapl')[0].sym, 'AAPL');
+  assert.equal(searchInstruments('apple')[0].sym, 'AAPL');
+  assert.ok(searchInstruments('oro').some((i) => i.sym === 'GLD'));
+  assert.deepEqual(searchInstruments('   '), []);
+  assert.equal(extractTicker('{"symbol":"nvda","price":120}'), 'NVDA');
+  assert.equal(extractTicker('Il titolo $TSLA sale'), 'TSLA');
+  assert.equal(extractTicker('Microsoft (MSFT) chiude a 420'), 'MSFT');
+  assert.equal(extractTicker('guarda Nvidia oggi'), 'NVDA');
+  assert.equal(extractTicker('niente qui'), null);
+  assert.ok(looksLikeTicker('BRK-B') && looksLikeTicker('xyz') && !looksLikeTicker('due parole'));
+});

@@ -12,6 +12,11 @@ import { CATALOG, BY_SYM, KINDS, KIND_LABEL, type Instrument, type Kind } from '
 import { portfolio, pnl } from '@/lib/markets/invest';
 import { usdToLp } from '@/lib/markets/quotes';
 import { dayChangePct, loadHistory, priceLp, priceUsd, useMarkets } from '@/store/markets';
+import { Image } from 'expo-image';
+import { routeWithRuntime } from '@/lib/aiRouter/runtime';
+import { SCREENSHOT_PROMPT, extractTicker, looksLikeTicker, searchInstruments } from '@/lib/markets/identify';
+import { go } from '@/lib/nav';
+import { pickNetMedia } from '@/lib/netMedia';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 
@@ -19,6 +24,45 @@ const RANGES = [{ n: '1M', len: 22 }, { n: '3M', len: 65 }, { n: '1A', len: 260 
 const PAGE = 30;
 const fmt = (n: number, d = 2) => n.toLocaleString('de-CH', { minimumFractionDigits: d, maximumFractionDigits: d });
 const parse = (v: string) => { const n = parseFloat(v.replace(',', '.')); return Number.isFinite(n) ? n : 0; };
+
+/** Analizza un titolo: lo cerchi per nome o simbolo, oppure carichi uno screenshot e Theia lo riconosce. */
+function AnalyzeCard() {
+  const t = useTheme();
+  const [q, setQ] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [shot, setShot] = useState<{ uri: string; msg: string } | null>(null);
+  const hits = searchInstruments(q, 5);
+  const open = (s: string) => go('stockAnalysis', { sym: s.toUpperCase() });
+  const fromShot = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const m = await pickNetMedia('photo');
+      if (!m) return;
+      setShot({ uri: m.uri, msg: tl('Theia sta leggendo lo screenshot…') });
+      const r = await routeWithRuntime({ text: SCREENSHOT_PROMPT, lang: 'it', images: [{ uri: m.uri, mime: 'image/jpeg' }], source: 'typed' });
+      const sym = r.status === 'answered' ? extractTicker(r.text ?? '') : null;
+      if (sym) { setShot(null); open(sym); return; }
+      setShot({ uri: m.uri, msg: r.status === 'answered' ? tl('Non riesco a capire quale titolo sia. Scrivine il simbolo qui sotto.') : tl('Per leggere lo screenshot serve il collegamento con il server di Theia, non ancora attivo. Scrivi qui il simbolo che vedi (per esempio AAPL) e apro l’analisi.') });
+    } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la libreria'); } finally { setBusy(false); }
+  };
+  return (
+    <View style={{ marginTop: 14, marginBottom: 4, backgroundColor: t.card, borderRadius: 24, borderWidth: 1, borderColor: t.border, padding: 16 }}>
+      <Row><Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{tl('Analizza un titolo')}</Text><Icon name="sparkle" size={18} color={t.accent} /></Row>
+      <Text style={{ color: t.muted, fontSize: 13, marginTop: 4, lineHeight: 18 }}>{tl('Cerca un titolo o carica uno screenshot: Theia ti mostra le informazioni principali e gli strumenti per analizzarlo.')}</Text>
+      <Input placeholder="Nome o simbolo (es. Apple, NVDA)" value={q} onChangeText={setQ} autoCapitalize="none" style={{ marginTop: 10, marginBottom: 6 }} />
+      {hits.map((i) => <Press key={i.sym} onPress={() => open(i.sym)} accessibilityLabel={i.name} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 }}><Logo sym={i.sym} /><View style={{ flex: 1 }}><Text style={{ color: t.text, fontWeight: '800' }}>{i.name}</Text><Text style={{ color: t.muted, fontSize: 12.5 }}>{i.sym} · {tl(i.sector)}</Text></View><Icon name="chevron-right" size={18} color={t.muted} /></Press>)}
+      {q.trim() && hits.length === 0 && looksLikeTicker(q) ? <Btn small ghost title={`${tl('Prova con')} ${q.trim().toUpperCase()}`} onPress={() => open(q.trim())} /> : null}
+      <Btn style={{ marginTop: 8 }} ghost icon="image" title={busy ? tl('Un attimo…') : tl('Carica uno screenshot')} onPress={() => void fromShot()} disabled={busy} />
+      {shot ? (
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 10, alignItems: 'center' }}>
+          <Image source={{ uri: shot.uri }} style={{ width: 64, height: 86, borderRadius: 10 }} contentFit="cover" />
+          <Text style={{ color: t.muted, fontSize: 13, flex: 1, lineHeight: 18 }}>{shot.msg}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 function Chg({ pct }: { pct: number }) {
   const t = useTheme();
@@ -88,6 +132,7 @@ export function InvestTab() {
 
       {inner === 'Mercato' ? (
         <>
+          <AnalyzeCard />
           <Input placeholder="Cerca un titolo, un ETF, un settore" value={q} onChangeText={(v) => { setQ(v); setShown(PAGE); }} style={{ marginTop: 14 }} />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
             <Pill label={tl('Tutti')} on={kind === 'tutti'} onPress={() => { setKind('tutti'); setShown(PAGE); }} />
@@ -143,7 +188,7 @@ export function InvestTab() {
   );
 }
 
-function InstrumentSheet({ sym, onClose }: { sym: string; onClose: () => void }) {
+export function InstrumentSheet({ sym, onClose }: { sym: string; onClose: () => void }) {
   const t = useTheme();
   const net = useNet();
   const mk = useMarkets();
@@ -167,7 +212,7 @@ function InstrumentSheet({ sym, onClose }: { sym: string; onClose: () => void })
   const up = series.length < 2 || series[series.length - 1] >= series[0];
   const a = parse(amt);
   const watched = mk.watch.includes(sym);
-  const go = () => {
+  const confirmTrade = () => {
     const r = side === 'buy' ? mk.buy(sym, a) : mk.sell(sym, a);
     if (!r.ok) { toast(r.error ?? 'Non riuscito'); return; }
     toast(side === 'buy' ? `Hai comprato ${sym}` : `Hai venduto ${sym}`);
@@ -184,6 +229,7 @@ function InstrumentSheet({ sym, onClose }: { sym: string; onClose: () => void })
           <Row style={{ marginTop: 6 }}><Text style={{ color: t.muted }}>{fmt(pos.units, 4)} {tl('quote')} · {tl('investiti')} {fmt(pos.costLp)} LP</Text><Text style={{ color: p.gain >= 0 ? t.positive : t.danger, fontWeight: '800' }}>{p.gain >= 0 ? '+' : ''}{fmt(p.gain)} LP ({p.pct.toFixed(1)}%)</Text></Row>
         </Panel>
       ) : null}
+      <Btn ghost small icon="chart" title={tl('Analisi completa')} onPress={() => { onClose(); go('stockAnalysis', { sym }); }} style={{ marginTop: 10 }} />
       {side ? (
         <View style={{ marginTop: 12 }}>
           <Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>{side === 'buy' ? tl('Quanto vuoi investire?') : tl('Quanto vuoi vendere?')}</Text>
@@ -194,7 +240,7 @@ function InstrumentSheet({ sym, onClose }: { sym: string; onClose: () => void })
           </Row>
           <Text style={{ color: t.muted, fontSize: 12.5, marginVertical: 8 }}>{a > 0 ? `${side === 'buy' ? tl('Compri circa') : tl('Vendi circa')} ${fmt(a / price, 4)} ${tl('quote')} · ${tl('nessuna commissione')}` : ''}{side === 'buy' ? ` · ${tl('Saldo')}: ${fmt(net.lifePoints)} LP` : ''}</Text>
           <Text style={{ color: t.muted, fontSize: 12, marginBottom: 8 }}>{tl('Gli LP vengono cambiati in valuta reale al momento dell’ordine e il titolo è acquistato subito; vendendo, il percorso è inverso. Puoi perdere parte di quanto investi.')}</Text>
-          <Btn title={side === 'buy' ? tl('Conferma acquisto') : tl('Conferma vendita')} tone={side} onPress={go} />
+          <Btn title={side === 'buy' ? tl('Conferma acquisto') : tl('Conferma vendita')} tone={side} onPress={confirmTrade} />
           <Btn ghost title={tl('Annulla')} onPress={() => { setSide(null); setAmt(''); }} />
         </View>
       ) : (
