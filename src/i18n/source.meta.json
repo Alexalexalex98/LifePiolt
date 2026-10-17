@@ -1,5 +1,5 @@
 {
- "count": 11308,
+ "count": 11394,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -90,7 +90,7 @@
   "src/app/(tabs)/skillProfile.tsx": 26,
   "src/app/(tabs)/skillVerify.tsx": 27,
   "src/app/(tabs)/starredPage.tsx": 2,
-  "src/app/(tabs)/stockAnalysis.tsx": 86,
+  "src/app/(tabs)/stockAnalysis.tsx": 72,
   "src/app/(tabs)/stocks.tsx": 40,
   "src/app/(tabs)/storyCreate.tsx": 116,
   "src/app/(tabs)/storyView.tsx": 3,
@@ -216,6 +216,7 @@
   "src/components/live/RecordingsSection.tsx": 7,
   "src/components/live/VideoSurface.tsx": 11,
   "src/components/market.tsx": 54,
+  "src/components/money/Fundamentals.tsx": 45,
   "src/components/money/InvestTab.tsx": 55,
   "src/components/money/WalletTab.tsx": 84,
   "src/components/network.tsx": 42,
@@ -413,6 +414,7 @@
   "src/lib/lpStatement.ts": 17,
   "src/lib/markets/analysis.ts": 40,
   "src/lib/markets/catalog.ts": 9,
+  "src/lib/markets/fundamentals.ts": 62,
   "src/lib/markets/identify.ts": 1,
   "src/lib/markets/invest.ts": 6,
   "src/lib/menu.ts": 11,
@@ -507,5 +509,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1393
+ "withPlaceholders": 1403
 }

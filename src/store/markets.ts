@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { BY_SYM, CATALOG } from '@/lib/markets/catalog';
+import type { Facts } from '@/lib/markets/fundamentals';
 import { buy as doBuy, sell as doSell, type Order, type Position } from '@/lib/markets/invest';
 import { FALLBACK_USDCHF, chunk, feedCode, parseHistoryCsv, parseQuotesCsv, simulatedHistory, simulatedPrice, usdToLp, type Quote } from '@/lib/markets/quotes';
 import { useNet } from './network';
@@ -22,8 +23,9 @@ type MarketsState = {
   orders: Order[];
   watch: string[];
   /** dati societari scritti a mano dall'utente (utili, dividendo...): la fonte dei prezzi non li dà */
-  facts: Record<string, { pe?: number; epsGrowth?: number; div?: number; debt?: number }>;
-  setFact: (sym: string, f: { pe?: number; epsGrowth?: number; div?: number; debt?: number }) => void;
+  facts: Record<string, Facts>;
+  setFact: (sym: string, f: Facts) => void;
+  clearFacts: (sym: string) => void;
   refreshing: boolean;
   refresh: (force?: boolean) => Promise<void>;
   toggleWatch: (sym: string) => void;
@@ -39,7 +41,8 @@ async function get(url: string): Promise<string> {
 }
 
 export const useMarkets = create<MarketsState>()(persisted<MarketsState>('markets', (set, get_) => ({
-  quotes: {}, closes: {}, usdChf: FALLBACK_USDCHF, updatedAt: 0, live: false, positions: {}, orders: [], watch: ['AAPL', 'NVDA', 'GLD', 'SPY'], facts: {}, setFact: (sym, f) => set((s) => ({ facts: { ...s.facts, [sym]: { ...s.facts[sym], ...f } } })), refreshing: false,
+  quotes: {}, closes: {}, usdChf: FALLBACK_USDCHF, updatedAt: 0, live: false, positions: {}, orders: [], watch: ['AAPL', 'NVDA', 'GLD', 'SPY'], facts: {}, setFact: (sym, f) => set((s) => ({ facts: { ...s.facts, [sym]: { ...s.facts[sym], ...f } } })),
+  clearFacts: (sym) => set((s) => { const facts = { ...s.facts }; delete facts[sym]; return { facts }; }), refreshing: false,
   refresh: async (force) => {
     const s = get_();
     if (s.refreshing || (!force && Date.now() - s.updatedAt < STALE_MS)) return;
@@ -117,4 +120,12 @@ export async function loadHistory(sym: string, currentUsd: number): Promise<{ cl
     if (closes.length > 10) { memHistory.set(sym, { at: Date.now(), closes }); return { closes, live: true }; }
   } catch { /* si passa al dimostrativo */ }
   return { closes: simulatedHistory(sym, currentUsd), live: false };
+}
+
+/** Il nostro server dei dati di bilancio (non ancora collegato): `GET {EXPO_PUBLIC_FUNDAMENTALS_URL}/fundamentals/{simbolo}` -> { eps, bvps, ... } come in `Facts`. */
+export const fundamentalsConfigured = Boolean(process.env.EXPO_PUBLIC_FUNDAMENTALS_URL);
+export async function fetchFacts(sym: string): Promise<Facts | null> {
+  const base = process.env.EXPO_PUBLIC_FUNDAMENTALS_URL;
+  if (!base) return null;
+  try { const j = JSON.parse(await get(`${base}/fundamentals/${encodeURIComponent(sym)}`)) as Record<string, unknown>; const out: Facts = {}; for (const [k, v] of Object.entries(j)) if (typeof v === 'number' && Number.isFinite(v)) (out as Record<string, number>)[k] = v; return Object.keys(out).length ? out : null; } catch { return null; }
 }

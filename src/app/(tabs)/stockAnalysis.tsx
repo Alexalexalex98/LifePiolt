@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { AnalysisChart } from '@/components/money/AnalysisChart';
+import { Fundamentals } from '@/components/money/Fundamentals';
 import { InstrumentSheet } from '@/components/money/InvestTab';
 import { Amount, Bar, Panel, SectionTitle } from '@/components/money/parts';
 import { Text } from '@/components/T';
@@ -103,7 +104,6 @@ export default function StockAnalysis() {
   const cmpLp = cmpHist.map((x) => usdToLp(x, fx));
   const nC = Math.min(nShow, lp.length, cmpLp.length);
   const corrCmp = correlation(lp, cmpLp);
-  const fact = mk.facts[sym] ?? {};
 
   const askTheia = async () => {
     setTheia({ busy: true });
@@ -268,25 +268,7 @@ export default function StockAnalysis() {
         </>
       ) : null}
 
-      {/* dati societari a mano */}
-      <SectionTitle>{tl('Dati della società')}</SectionTitle>
-      <Panel>
-        <Text style={{ color: t.muted, fontSize: 12.5, marginBottom: 8, lineHeight: 18 }}>{tl('Utili, rapporto prezzo/utili e dividendo non arrivano dalla fonte dei prezzi. Scrivili tu (da un sito o da uno screenshot) e ti dico cosa significano.')}</Text>
-        <Row style={{ gap: 8 }}>
-          <View style={{ flex: 1, minWidth: 0 }}><Input style={{ marginBottom: 0 }} keyboardType="decimal-pad" defaultValue={fact.pe ? String(fact.pe) : ''} onChangeText={(v) => mk.setFact(sym, { pe: num(v) || undefined })} placeholder="P/E" /></View>
-          <View style={{ flex: 1, minWidth: 0 }}><Input style={{ marginBottom: 0 }} keyboardType="decimal-pad" defaultValue={fact.epsGrowth ? String(fact.epsGrowth) : ''} onChangeText={(v) => mk.setFact(sym, { epsGrowth: num(v) || undefined })} placeholder="Utili %/anno" /></View>
-        </Row>
-        <Row style={{ gap: 8, marginTop: 8 }}>
-          <View style={{ flex: 1, minWidth: 0 }}><Input style={{ marginBottom: 0 }} keyboardType="decimal-pad" defaultValue={fact.div ? String(fact.div) : ''} onChangeText={(v) => mk.setFact(sym, { div: num(v) || undefined })} placeholder="Dividendo %" /></View>
-          <View style={{ flex: 1, minWidth: 0 }}><Input style={{ marginBottom: 0 }} keyboardType="decimal-pad" defaultValue={fact.debt ? String(fact.debt) : ''} onChangeText={(v) => mk.setFact(sym, { debt: num(v) || undefined })} placeholder="Debito/capitale" /></View>
-        </Row>
-        {[
-          fact.pe ? (fact.pe < 12 ? 'P/E basso: il mercato paga poco gli utili (può essere una occasione o un segnale di problemi).' : fact.pe > 30 ? 'P/E alto: il prezzo sconta molta crescita futura; se la crescita delude, il calo può essere forte.' : 'P/E nella norma per un titolo quotato.') : null,
-          fact.pe && fact.epsGrowth ? `PEG ≈ ${(fact.pe / fact.epsGrowth).toFixed(1)}: ${fact.pe / fact.epsGrowth < 1 ? 'sotto 1, prezzo basso rispetto alla crescita' : fact.pe / fact.epsGrowth > 2 ? 'sopra 2, prezzo alto rispetto alla crescita' : 'tra 1 e 2, abbastanza equilibrato'}.` : null,
-          fact.div ? (fact.div > 5 ? 'Dividendo molto alto: verifica che sia sostenibile.' : fact.div > 0 ? `Il dividendo rende circa ${fact.div}% l'anno.` : null) : null,
-          fact.debt ? (fact.debt > 2 ? 'Debito alto rispetto al capitale: più rischio se i tassi salgono o gli utili calano.' : 'Debito contenuto rispetto al capitale.') : null,
-        ].filter(Boolean).map((x, i) => <Text key={i} style={{ color: t.text, marginTop: 8, lineHeight: 19 }}>• {x}</Text>)}
-      </Panel>
+      <Fundamentals sym={sym} priceUsd={usd} sector={inst?.sector ?? ''} />
 
       {/* azioni */}
       <SectionTitle>{tl('Cosa vuoi fare?')}</SectionTitle>
