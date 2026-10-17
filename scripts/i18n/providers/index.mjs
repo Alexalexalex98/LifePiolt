@@ -3,10 +3,11 @@ import anthropic from './anthropic.mjs';
 import deepl from './deepl.mjs';
 import google from './google.mjs';
 import libretranslate from './libretranslate.mjs';
+import manual from './manual.mjs';
 import mock from './mock.mjs';
 import none from './none.mjs';
 
-export const REGISTRY = { anthropic, deepl, google, libretranslate, mock, none };
+export const REGISTRY = { anthropic, deepl, google, libretranslate, manual, mock, none };
 export const AUTO_ORDER = ['anthropic', 'deepl', 'google', 'libretranslate'];
 
 export const NO_KEY_MESSAGE =
