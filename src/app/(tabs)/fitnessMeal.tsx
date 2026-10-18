@@ -15,7 +15,7 @@ import { MEAL_PROMPT, parseMealReply, resolveItems, type Resolved } from '@/lib/
 import { hasPremiumFeature } from '@/lib/premiumApp';
 import { routeRequest } from '@/lib/aiRouter';
 import { aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
-import { askSend, logSend } from '@/lib/aiConsent';
+import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { go } from '@/lib/nav';
 import { Icon } from '@/lib/icons';
 import { pickNetMediaMany, takeNetPhoto } from '@/lib/netMedia';
@@ -71,9 +71,13 @@ export default function FitnessMeal() {
         reply = await aiReadFiles(MEAL_PROMPT, [{ uri, mime: 'image/jpeg' }], 30000);
       }
       else {
-        const res = await routeRequest({ text: MEAL_PROMPT, lang: 'it', source: 'typed', images: [{ uri, mime: 'image/jpeg' }] });
-        if (res.status !== 'answered' || !res.text) { setReport({ found: [], note: res.message }); return; }
-        reply = res.text;
+        const gate = await askSendRouted('food');
+        if (!gate.ok) { setReport({ found: [], note: tl('Non invio la foto: senza il permesso non posso analizzare il piatto. Puoi comporlo tu qui sotto.') }); return; }
+        try {
+          const res = await routeRequest({ text: MEAL_PROMPT, lang: 'it', source: 'typed', images: [{ uri, mime: 'image/jpeg' }] });
+          if (res.status !== 'answered' || !res.text) { setReport({ found: [], note: res.message }); return; }
+          reply = res.text;
+        } finally { gate.restore(); }
       }
       const found = resolveItems(parseMealReply(reply));
       if (!found.length) { setReport({ found: [], note: tl('Non ho trovato nessun piatto in questa foto. Inquadra il cibo da vicino e con più luce, oppure scegli tu gli alimenti qui sotto.') }); return; }

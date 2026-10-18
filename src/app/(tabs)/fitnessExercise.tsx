@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { routeRequest } from '@/lib/aiRouter';
 import { aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
+import { askSendRouted } from '@/lib/aiConsent';
 import { AiNote } from '@/components/AiNote';
 import { checkPrompt, frameTimes, parseCheck, type CheckResult } from '@/lib/fitness/execCheck';
 import { exById, guideOf } from '@/lib/fitness/exerciseDb';
@@ -64,9 +65,13 @@ export default function FitnessExercise() {
       let reply = '';
       if (aiServerConfigured) reply = await aiReadFiles(checkPrompt(ex), frames);
       else {
-        const out = await routeRequest({ text: checkPrompt(ex), lang: 'it', source: 'typed', images: frames });
-        if (out.status !== 'answered' || !out.text) { setRes({ note: out.message }); return; }
-        reply = out.text;
+        const gate = await askSendRouted('files', tl('Fotogrammi del tuo video'));
+        if (!gate.ok) { setRes({ note: tl('Non invio il video: senza il permesso non posso controllare l’esecuzione.') }); return; }
+        try {
+          const out = await routeRequest({ text: checkPrompt(ex), lang: 'it', source: 'typed', images: frames });
+          if (out.status !== 'answered' || !out.text) { setRes({ note: out.message }); return; }
+          reply = out.text;
+        } finally { gate.restore(); }
       }
       setRes({ r: parseCheck(reply) });
     } catch (e) { setRes({ note: e instanceof AiServerError ? e.message : tl('Non sono riuscito a contattare il servizio di analisi.') }); }

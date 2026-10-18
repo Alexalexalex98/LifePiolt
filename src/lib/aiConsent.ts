@@ -37,3 +37,17 @@ export function askSend(kind: SendKind, what?: string): Promise<boolean> {
 export function logSend(kind: SendKind, bytes: number, parts: string[]) {
   useAiRouter.getState().addLog({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ts: Date.now(), kind: 'vision_read', provider: 'Google Gemini', bytes, parts, redacted: 0 });
 }
+
+/**
+ * Per il vecchio percorso (senza server AI collegato) chiede PRIMA il consenso e, se arriva, apre l'AI esterna per quella richiesta
+ * anche se in Intelligenza di Theia era su «Solo sul telefono». Con «Consenti una volta» la scelta torna com'era a richiesta finita.
+ * Chiamare `restore()` alla fine (anche in caso di errore).
+ */
+export async function askSendRouted(kind: SendKind, what?: string): Promise<{ ok: boolean; restore: () => void }> {
+  if (!(await askSend(kind, what))) return { ok: false, restore: () => {} };
+  const st = useAiRouter.getState();
+  const was = st.prefs.phoneOnly;
+  if (was) st.setPrefs({ phoneOnly: false });
+  const always = modeOf(useAiRouter.getState().fileConsent[kind]) === 'always';
+  return { ok: true, restore: () => { if (was && !always) useAiRouter.getState().setPrefs({ phoneOnly: true }); } };
+}

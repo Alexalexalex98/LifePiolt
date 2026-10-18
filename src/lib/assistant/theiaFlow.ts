@@ -12,7 +12,7 @@ import { useNet } from '@/store/network';
 import { helpAnswer, looksLikeHelp, searchHelp } from '@/lib/helpKb';
 import { routeRequest, type RouteResult } from '@/lib/aiRouter';
 import { aiServerConfigured } from '@/lib/aiServer';
-import { askSend, logSend } from '@/lib/aiConsent';
+import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
 import { describeAnalysis, isBillType } from '@/lib/docAnalysis';
 import { useFin } from '@/store/finance';
@@ -165,7 +165,13 @@ export async function sendTheia(i: SendInput): Promise<void> {
         : t('Ho salvato il file sul tuo telefono. Non so ancora leggerne il contenuto (PDF, Word, Excel): serve il servizio di analisi dei documenti, non ancora collegato. Se è una bolletta o una fattura puoi usare «Analizza come bolletta/fattura».'));
       return;
     }
-    await delegate({ text: [text, payload].filter(Boolean).join('\n\n'), lang: i.lang, source: i.source, images: images.length ? images : undefined, files: images.length ? 0 : files });
+    const what = [...images.map(() => t('Foto')), ...atts.filter(needsAnalysis).map((a) => a.name)].slice(0, 4).join(', ');
+    const gate = await askSendRouted('files', what);
+    if (!gate.ok) {
+      pushAi(t('Va bene, non invio nulla: il file resta sul tuo telefono. Senza il permesso non posso capire file, foto e documenti.'));
+      return;
+    }
+    try { await delegate({ text: [text, payload].filter(Boolean).join('\n\n'), lang: i.lang, source: i.source, images: images.length ? images : undefined, files: images.length ? 0 : files }); } finally { gate.restore(); }
     return;
   }
 

@@ -12,7 +12,7 @@ import { t } from '@/i18n/core';
 import { currentCurrency, currentLocale } from '@/i18n/format';
 import { routeRequest } from '@/lib/aiRouter';
 import { aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
-import { askSend, logSend } from '@/lib/aiConsent';
+import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { AiNote } from '@/components/AiNote';
 import { addBillToCalendar } from '@/lib/bills/calendar';
 import { diffDays, todayIso } from '@/lib/bills/dates';
@@ -143,9 +143,13 @@ export default function BillReview() {
         if (!(await askSend('files', file.name))) { setAiMsg(t('Non invio il file: senza il permesso non posso leggerlo. Compila i campi a mano.')); return; }
         logSend('files', file.size ?? 0, [mime]);
       }
-      const res = aiServerConfigured
-        ? { status: 'answered' as const, text: await aiReadFiles(prompt, [{ uri: file.uri, mime }]), message: '' }
-        : await routeRequest({ text: prompt, lang: 'it', source: 'typed', images: [{ uri: file.uri, mime }] });
+      let res: { status: string; text?: string; message: string };
+      if (aiServerConfigured) res = { status: 'answered', text: await aiReadFiles(prompt, [{ uri: file.uri, mime }]), message: '' };
+      else {
+        const gate = await askSendRouted('files', file.name);
+        if (!gate.ok) { setAiMsg(t('Non invio il file: senza il permesso non posso leggerlo. Compila i campi a mano.')); return; }
+        try { res = await routeRequest({ text: prompt, lang: 'it', source: 'typed', images: [{ uri: file.uri, mime }] }); } finally { gate.restore(); }
+      }
       if (res.status === 'answered' && res.text) {
         const merged = applyAiExtraction(draft ?? draftFromText('', parseOpts()), { text: res.text }, parseOpts());
         const nf = formFromDraft(merged, currentCurrency());

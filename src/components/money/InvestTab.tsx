@@ -15,7 +15,7 @@ import { dayChangePct, loadHistory, priceLp, priceUsd, useMarkets } from '@/stor
 import { Image } from 'expo-image';
 import { routeWithRuntime } from '@/lib/aiRouter/runtime';
 import { aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
-import { askSend, logSend } from '@/lib/aiConsent';
+import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { AiNote } from '@/components/AiNote';
 import { SCREENSHOT_PROMPT, extractTicker, looksLikeTicker, searchInstruments } from '@/lib/markets/identify';
 import { go } from '@/lib/nav';
@@ -50,8 +50,12 @@ function AnalyzeCard() {
         const img = await imageForAi(m.uri);
         try { if (img) { text = await aiVision(img.base64, img.mime, SCREENSHOT_PROMPT); answered = true; } } catch (e) { problem = e instanceof Error ? e.message : ''; }
       } else {
-        const r = await routeWithRuntime({ text: SCREENSHOT_PROMPT, lang: 'it', images: [{ uri: m.uri, mime: 'image/jpeg' }], source: 'typed' });
-        answered = r.status === 'answered'; text = r.text ?? '';
+        const gate = await askSendRouted('files', tl('Screenshot di un titolo'));
+        if (!gate.ok) { setShot({ uri: m.uri, msg: tl('Non invio lo screenshot: senza il permesso Theia non può leggerlo. Scrivi qui il simbolo del titolo (per esempio AAPL).') }); return; }
+        try {
+          const r = await routeWithRuntime({ text: SCREENSHOT_PROMPT, lang: 'it', images: [{ uri: m.uri, mime: 'image/jpeg' }], source: 'typed' });
+          answered = r.status === 'answered'; text = r.text ?? '';
+        } finally { gate.restore(); }
       }
       const sym = answered ? extractTicker(text) : null;
       if (sym) { setShot(null); open(sym); return; }
