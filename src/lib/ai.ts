@@ -1,4 +1,5 @@
 import type { ChatMsg } from '@/store/life';
+import { aiChat, aiServerConfigured } from '@/lib/aiServer';
 
 /**
  * L'assistente completo deve parlare con il TUO backend (che custodisce la chiave API).
@@ -55,6 +56,10 @@ export function captureTask(text: string): string | null {
 }
 
 export async function askAssistant(topic: string, history: ChatMsg[]): Promise<string> {
+  if (aiServerConfigured) {
+    const recent = history.slice(-12).map((m) => `${m.who === 'me' ? 'Utente' : 'Assistente'}: ${m.text}`).join('\n');
+    return aiChat(`Sei l'assistente di LifePilot, area «${topic}». Rispondi in italiano, breve e concreto, senza inventare dati e senza consigli medici, legali o finanziari. Conversazione finora:\n${recent}\nAssistente:`);
+  }
   if (!API_URL) return `LifePilot · ${topic}\n${catReplies[topic] ?? catReplies.General}\n\nL'assistente AI completo si attiva collegando l'app a un server (EXPO_PUBLIC_API_URL).`;
   const res = await fetch(`${API_URL}/chat`, {
     method: 'POST',

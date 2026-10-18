@@ -13,6 +13,7 @@ import { totalUnread, useChat } from '@/store/chat';
 import { useApp, navCatalog } from '@/store/app';
 import { joinReasons, rankTasks } from '@/lib/priority';
 import { t, translateText } from '@/i18n/core';
+import { aiChat, aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
 import { useLife } from '@/store/life';
 
 /**
@@ -27,7 +28,7 @@ import { useLife } from '@/store/life';
  *   risposta: { reply: string, tasks?: string[] }
  */
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
-export const theiaOnline = Boolean(API_URL);
+export const theiaOnline = Boolean(API_URL) || aiServerConfigured;
 
 export type TheiaSource = 'chat' | 'note' | 'screen' | 'clipboard' | 'home' | 'free';
 export type TheiaRequest = { text?: string; imageUri?: string; source: TheiaSource; label?: string; replyToChat?: string; /** domanda da fare subito all'apertura */ ask?: string };
@@ -260,6 +261,18 @@ async function toBase64(uri: string): Promise<string | null> {
 }
 
 export async function askTheia(question: string, req: TheiaRequest): Promise<TheiaAnswer> {
+  if (aiServerConfigured) {
+    const app0 = useApp.getState();
+    const ctx = app0.privacy['AI Memory'] ? buildContext(true) : '';
+    const prompt = `Sei ${app0.assistantName || 'Theia'}, l'assistente personale dentro l'app LifePilot. Rispondi in italiano, breve e concreto. Non inventare dati e non dare consigli medici, legali o finanziari: spiega e dai indicazioni generali.${ctx ? `\n\nContesto dell'utente:\n${ctx}` : ''}${req.text ? `\n\nTesto selezionato:\n"${req.text}"` : ''}\n\nRichiesta: ${question}`;
+    const img = req.imageUri ? await imageForAi(req.imageUri) : null;
+    try {
+      const text = img ? await aiVision(img.base64, img.mime, prompt) : await aiChat(prompt);
+      return { offline: false, text: text || t('Risposta vuota dal server.') };
+    } catch (e) {
+      return { offline: true, text: `${e instanceof Error ? e.message : t('Errore del server AI.')}\n\n${localAnswer(question, req.text, !!req.imageUri).text}` };
+    }
+  }
   if (!API_URL) return localAnswer(question, req.text, !!req.imageUri);
   const app = useApp.getState();
   const image = req.imageUri ? await toBase64(req.imageUri) : null;

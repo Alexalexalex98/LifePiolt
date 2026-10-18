@@ -14,6 +14,7 @@ import { usdToLp } from '@/lib/markets/quotes';
 import { dayChangePct, loadHistory, priceLp, priceUsd, useMarkets } from '@/store/markets';
 import { Image } from 'expo-image';
 import { routeWithRuntime } from '@/lib/aiRouter/runtime';
+import { aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
 import { SCREENSHOT_PROMPT, extractTicker, looksLikeTicker, searchInstruments } from '@/lib/markets/identify';
 import { go } from '@/lib/nav';
 import { pickNetMedia } from '@/lib/netMedia';
@@ -40,10 +41,18 @@ function AnalyzeCard() {
       const m = await pickNetMedia('photo');
       if (!m) return;
       setShot({ uri: m.uri, msg: tl('Theia sta leggendo lo screenshot…') });
-      const r = await routeWithRuntime({ text: SCREENSHOT_PROMPT, lang: 'it', images: [{ uri: m.uri, mime: 'image/jpeg' }], source: 'typed' });
-      const sym = r.status === 'answered' ? extractTicker(r.text ?? '') : null;
+      let answered = false, text = '', problem = '';
+      if (aiServerConfigured) {
+        const img = await imageForAi(m.uri);
+        try { if (img) { text = await aiVision(img.base64, img.mime, SCREENSHOT_PROMPT); answered = true; } } catch (e) { problem = e instanceof Error ? e.message : ''; }
+      } else {
+        const r = await routeWithRuntime({ text: SCREENSHOT_PROMPT, lang: 'it', images: [{ uri: m.uri, mime: 'image/jpeg' }], source: 'typed' });
+        answered = r.status === 'answered'; text = r.text ?? '';
+      }
+      const sym = answered ? extractTicker(text) : null;
       if (sym) { setShot(null); open(sym); return; }
-      setShot({ uri: m.uri, msg: r.status === 'answered' ? tl('Non riesco a capire quale titolo sia. Scrivine il simbolo qui sotto.') : tl('Per leggere lo screenshot serve il collegamento con il server di Theia, non ancora attivo. Scrivi qui il simbolo che vedi (per esempio AAPL) e apro l’analisi.') });
+      if (problem) { setShot({ uri: m.uri, msg: problem }); return; }
+      setShot({ uri: m.uri, msg: answered ? tl('Non riesco a capire quale titolo sia. Scrivine il simbolo qui sotto.') : tl('Per leggere lo screenshot serve il collegamento con il server di Theia, non ancora attivo. Scrivi qui il simbolo che vedi (per esempio AAPL) e apro l’analisi.') });
     } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la libreria'); } finally { setBusy(false); }
   };
   return (
