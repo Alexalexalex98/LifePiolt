@@ -8,6 +8,7 @@ import { Text } from '@/components/T';
 import { Body, Input, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { runAction, sendTheia } from '@/lib/assistant/theiaFlow';
+import { LogoLoader } from '@/components/LogoLoader';
 import { Composer, type ComposerSend } from '@/components/theia/Composer';
 import { MessageAttachments } from '@/components/theia/AttachChips';
 import { MessageFooter, MessageImages } from '@/components/theia/MessageExtras';
@@ -161,6 +162,7 @@ export default function LifeChat() {
                 <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 12, textAlign: 'center' }}>Scrivi un comando o una domanda: ti suggerisco io cosa so fare.</Text>
               </View>
             }
+            ListFooterComponent={busy ? <View style={{ alignSelf: 'flex-start', marginVertical: 6, marginLeft: 4 }}><LogoLoader size={54} /></View> : null}
             renderItem={({ item }) => {
               const me = item.who === 'me';
               return (
