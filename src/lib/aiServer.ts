@@ -79,3 +79,9 @@ export async function aiReadFilesFull(prompt: string, files: { uri: string; mime
 }
 
 export const aiReadFiles = async (prompt: string, files: { uri: string; mime: string }[], timeoutMs?: number): Promise<string> => (await aiReadFilesFull(prompt, files, timeoutMs)).reply;
+
+/** Un PDF letto in testo libero (niente schema fisso): serve quando la risposta e' un elenco o un JSON deciso da noi. */
+export async function aiReadPdfFree(prompt: string, uri: string, timeoutMs = 90000): Promise<string> {
+  const [f] = await prepFiles([{ uri, mime: 'application/pdf' }]);
+  return (await call<{ reply: string }>('/vision', { image: f.data, mime: f.mime, prompt }, timeoutMs)).reply;
+}

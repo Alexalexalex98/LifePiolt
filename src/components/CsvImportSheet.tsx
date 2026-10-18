@@ -4,6 +4,10 @@ import { View } from 'react-native';
 
 import { Body, Btn, Item, Row, Select, Sheet, Toggle } from '@/components/ui';
 import { alertT } from '@/lib/alert';
+import { AiNote } from '@/components/AiNote';
+import { aiReadPdfFree, aiServerConfigured, AiServerError } from '@/lib/aiServer';
+import { askSend, logSend } from '@/lib/aiConsent';
+import { STATEMENT_PDF_PROMPT, movesToCsv, parseStatementReply } from '@/lib/statementPdf';
 import { announceStatement } from '@/lib/statementReport';
 import { useTheme } from '@/hooks/use-theme';
 import { movementLabel, parseCsv, splitDuplicates, toAppDate, monthLabelOfIso, type CsvRow } from '@/lib/csvImport';
@@ -26,6 +30,7 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
   const [dupRows, setDupRows] = useState<CsvRow[]>([]);
   /* l'estratto conto ha la precedenza: di base sostituisce i movimenti attuali */
   const [replace, setReplace] = useState(true);
+  const [aiRead, setAiRead] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const reset = () => { setRows(null); setOff({}); setInfo([]); setSkipped(0); setDups(0); setDupRows([]); setFileName(''); };
@@ -36,12 +41,24 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       const r = await DocumentPicker.getDocumentAsync({ type: ['text/csv', 'text/comma-separated-values', 'text/plain', 'application/vnd.ms-excel', '*/*'], copyToCacheDirectory: true });
       if (r.canceled || !r.assets[0]) return;
       const a = r.assets[0];
-      const text = await readPickedText(a as { uri: string; file?: unknown });
+      const isPdf = a.mimeType === 'application/pdf' || /\.pdf$/i.test(a.name ?? '');
+      let text: string;
+      if (isPdf) {
+        /* estratto conto in PDF: lo legge l'AI (solo dopo il consenso) e lo trasformo in righe che l'importazione conosce */
+        if (!aiServerConfigured) { setInfo(['Per leggere un estratto in PDF serve il server AI, che qui non è collegato. Scarica l’estratto in formato CSV dal tuo e-banking e riprova.']); return; }
+        if (!(await askSend('files', a.name))) { setInfo(['Non invio il PDF: senza il permesso non posso leggerlo. Puoi caricare il file CSV della banca.']); return; }
+        logSend('files', a.size ?? 0, ['application/pdf']);
+        const moves = parseStatementReply(await aiReadPdfFree(STATEMENT_PDF_PROMPT, a.uri));
+        if (!moves.length) { setInfo(['Non ho trovato movimenti in questo PDF. Controlla che sia l’estratto conto, oppure carica il CSV della banca.']); return; }
+        text = movesToCsv(moves);
+        setAiRead(true);
+      } else { text = await readPickedText(a as { uri: string; file?: unknown }); setAiRead(false); }
       const parsed = parseCsv(text, catNames);
       const existing = useFin.getState().months.flatMap((m) => m.movements.map((x) => ({ monthLabel: m.label, date: x.date, amount: x.amount })));
       const { fresh, duplicates } = splitDuplicates(parsed.rows, existing);
       setFileName(a.name); setRows(fresh); setOff({}); setInfo(parsed.warnings); setSkipped(parsed.skipped); setDups(duplicates.length); setDupRows(duplicates);
-    } catch {
+    } catch (e) {
+      if (e instanceof AiServerError) { setInfo([e.message]); return; }
       toast('Impossibile leggere il file');
       setInfo(['Impossibile leggere il file. Esporta di nuovo l’estratto in formato CSV e riprova.']);
     } finally { setBusy(false); }
@@ -80,7 +97,7 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
     <Sheet visible={visible} title="Importa movimenti" onClose={() => { reset(); onClose(); }}>
       {!rows ? (
         <>
-          <Body small muted style={{ marginBottom: 10 }}>Scegli il file CSV scaricato dal tuo e-banking (UBS, PostFinance, Raiffeisen, ZKB, Revolut…). Riconosco da solo separatori, date e importi in formato svizzero; vedrai un’anteprima prima di importare e i movimenti già presenti non vengono duplicati.</Body>
+          <Body small muted style={{ marginBottom: 10 }}>Scegli il file CSV (o l’estratto in PDF) scaricato dal tuo e-banking (UBS, PostFinance, Raiffeisen, ZKB, Revolut…). Riconosco da solo separatori, date e importi in formato svizzero; vedrai un’anteprima prima di importare e i movimenti già presenti non vengono duplicati.</Body>
           <Btn icon="plus" title={busy ? 'Leggo il file…' : 'Scegli un file CSV'} disabled={busy} onPress={pick} />
           {info.map((w, i) => <Body key={i} small color={t.warn} style={{ marginTop: 8 }}>{w}</Body>)}
         </>
@@ -88,6 +105,8 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
         <>
           <Body bold>{fileName}</Body>
           <Body small muted style={{ marginTop: 2 }}>{rows.length} {rows.length === 1 ? 'movimento nuovo' : 'movimenti nuovi'}{dups ? ` · ${dups} già presenti, ignorati` : ''}{skipped ? ` · ${skipped} righe non valide` : ''}</Body>
+          {aiRead ? <AiNote /> : null}
+          {aiRead ? <Body small muted>Letto da un PDF con l’AI: confronta importi e date con il tuo estratto prima di applicarlo.</Body> : null}
           {info.map((w, i) => <Body key={i} small color={t.warn} style={{ marginTop: 6 }}>{w}</Body>)}
           {rows.length === 0 && <Body small muted style={{ marginTop: 10 }}>Non c’è nulla da importare.</Body>}
           <View style={{ marginTop: 10 }}>
