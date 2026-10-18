@@ -1,5 +1,5 @@
 {
- "count": 11511,
+ "count": 11518,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -108,7 +108,7 @@
   "src/components/CalendarImportSheet.tsx": 18,
   "src/components/CalendarViews.tsx": 47,
   "src/components/ConfirmBadge.tsx": 4,
-  "src/components/CsvImportSheet.tsx": 36,
+  "src/components/CsvImportSheet.tsx": 41,
   "src/components/DataChart.tsx": 2,
   "src/components/Discover.tsx": 21,
   "src/components/ErrorBanner.tsx": 5,
@@ -475,7 +475,7 @@
   "src/lib/shopSeed.ts": 56,
   "src/lib/speech.ts": 4,
   "src/lib/speechCore.ts": 29,
-  "src/lib/statementPdf.ts": 1,
+  "src/lib/statementPdf.ts": 3,
   "src/lib/statementReport.ts": 7,
   "src/lib/stories.ts": 19,
   "src/lib/taskDecompose.ts": 40,
@@ -518,5 +518,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1430
+ "withPlaceholders": 1434
 }

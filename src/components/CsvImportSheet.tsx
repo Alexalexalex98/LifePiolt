@@ -5,9 +5,10 @@ import { View } from 'react-native';
 import { Body, Btn, Item, Row, Select, Sheet, Toggle } from '@/components/ui';
 import { alertT } from '@/lib/alert';
 import { AiNote } from '@/components/AiNote';
-import { aiReadPdfFree, aiServerConfigured, AiServerError } from '@/lib/aiServer';
+import { aiChat, aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
+import { readLocally } from '@/lib/bills/files';
 import { askSend, logSend } from '@/lib/aiConsent';
-import { STATEMENT_PDF_PROMPT, movesToCsv, parseStatementReply } from '@/lib/statementPdf';
+import { STATEMENT_PDF_PROMPT, chunkLines, movesToCsv, parseStatementReply, statementChunkPrompt, statementLines, type StatementMove } from '@/lib/statementPdf';
 import { announceStatement } from '@/lib/statementReport';
 import { useTheme } from '@/hooks/use-theme';
 import { movementLabel, parseCsv, splitDuplicates, toAppDate, monthLabelOfIso, type CsvRow } from '@/lib/csvImport';
@@ -31,6 +32,7 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
   /* l'estratto conto ha la precedenza: di base sostituisce i movimenti attuali */
   const [replace, setReplace] = useState(true);
   const [aiRead, setAiRead] = useState(false);
+  const [progress, setProgress] = useState('');
   const [busy, setBusy] = useState(false);
 
   const reset = () => { setRows(null); setOff({}); setInfo([]); setSkipped(0); setDups(0); setDupRows([]); setFileName(''); };
@@ -42,14 +44,31 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       if (r.canceled || !r.assets[0]) return;
       const a = r.assets[0];
       const isPdf = a.mimeType === 'application/pdf' || /\.pdf$/i.test(a.name ?? '');
+      const isImage = (a.mimeType ?? '').startsWith('image/');
       let text: string;
-      if (isPdf) {
-        /* estratto conto in PDF: lo legge l'AI (solo dopo il consenso) e lo trasformo in righe che l'importazione conosce */
-        if (!aiServerConfigured) { setInfo(['Per leggere un estratto in PDF serve il server AI, che qui non è collegato. Scarica l’estratto in formato CSV dal tuo e-banking e riprova.']); return; }
-        if (!(await askSend('files', a.name))) { setInfo(['Non invio il PDF: senza il permesso non posso leggerlo. Puoi caricare il file CSV della banca.']); return; }
-        logSend('files', a.size ?? 0, ['application/pdf']);
-        const moves = parseStatementReply(await aiReadPdfFree(STATEMENT_PDF_PROMPT, a.uri));
-        if (!moves.length) { setInfo(['Non ho trovato movimenti in questo PDF. Controlla che sia l’estratto conto, oppure carica il CSV della banca.']); return; }
+      if (isPdf || isImage) {
+        /* PDF o foto dell'estratto: l'AI legge solo le RIGHE dei movimenti (il resto del documento non esce dal telefono) */
+        if (!aiServerConfigured) { setInfo(['Per leggere un estratto in PDF o in foto serve il server AI, che qui non è collegato. Scarica l’estratto in formato CSV dal tuo e-banking e riprova.']); return; }
+        let moves: StatementMove[] = [];
+        if (isImage) {
+          if (!(await askSend('files', a.name))) { setInfo(['Non invio la foto: senza il permesso non posso leggerla. Puoi caricare il file CSV della banca.']); return; }
+          logSend('files', a.size ?? 0, [a.mimeType ?? 'image']);
+          setProgress('Leggo la foto…');
+          moves = parseStatementReply(await aiReadFiles(STATEMENT_PDF_PROMPT, [{ uri: a.uri, mime: a.mimeType ?? 'image/jpeg' }]));
+        } else {
+          const read = await readLocally({ uri: a.uri, name: a.name ?? 'estratto.pdf', mime: 'application/pdf', size: a.size });
+          if (read.kind !== 'text') { setInfo([read.message]); return; }
+          const { lines, year } = statementLines(read.text);
+          if (!lines.length) { setInfo(['Non trovo righe di movimenti in questo PDF: potrebbe essere una scansione. Carica il CSV della banca o una foto leggibile.']); return; }
+          const parts = chunkLines(lines);
+          if (!(await askSend('files', `${a.name} · ${lines.length} righe di movimenti`))) { setInfo(['Non invio i movimenti: senza il permesso non posso leggere il PDF. Puoi caricare il file CSV della banca.']); return; }
+          logSend('files', lines.join('\n').length, ['movimenti']);
+          for (let i = 0; i < parts.length; i++) {
+            setProgress(`Leggo il PDF… ${i + 1} di ${parts.length}`);
+            moves.push(...parseStatementReply(await aiChat(statementChunkPrompt(parts[i], year))));
+          }
+        }
+        if (!moves.length) { setInfo(['Non ho trovato movimenti in questo file. Controlla che sia l’estratto conto, oppure carica il CSV della banca.']); return; }
         text = movesToCsv(moves);
         setAiRead(true);
       } else { text = await readPickedText(a as { uri: string; file?: unknown }); setAiRead(false); }
@@ -61,7 +80,7 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       if (e instanceof AiServerError) { setInfo([e.message]); return; }
       toast('Impossibile leggere il file');
       setInfo(['Impossibile leggere il file. Esporta di nuovo l’estratto in formato CSV e riprova.']);
-    } finally { setBusy(false); }
+    } finally { setBusy(false); setProgress(''); }
   }
 
   const chosen = (rows ?? []).filter((_, i) => !off[i]);
@@ -98,7 +117,7 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       {!rows ? (
         <>
           <Body small muted style={{ marginBottom: 10 }}>Scegli il file CSV (o l’estratto in PDF) scaricato dal tuo e-banking (UBS, PostFinance, Raiffeisen, ZKB, Revolut…). Riconosco da solo separatori, date e importi in formato svizzero; vedrai un’anteprima prima di importare e i movimenti già presenti non vengono duplicati.</Body>
-          <Btn icon="plus" title={busy ? 'Leggo il file…' : 'Scegli un file CSV'} disabled={busy} onPress={pick} />
+          <Btn icon="plus" title={busy ? (progress || 'Leggo il file…') : 'Scegli un file (CSV, PDF o foto)'} disabled={busy} onPress={pick} />
           {info.map((w, i) => <Body key={i} small color={t.warn} style={{ marginTop: 8 }}>{w}</Body>)}
         </>
       ) : (
