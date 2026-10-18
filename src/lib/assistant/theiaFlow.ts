@@ -91,7 +91,7 @@ const TIPO = /^\s*TIPO:\s*(\w+)\s*$/im;
 const FILE_SUFFIX = '\n\nSe nel file riconosci una bolletta o una fattura da pagare, chiudi la risposta con una riga a parte: TIPO: bolletta';
 
 /** Legge file e foto con l'AI, solo dopo il consenso. Se e' una bolletta propone di aggiungerla; non inserisce nulla senza conferma. */
-async function readFilesWithAi(question: string, files: { uri: string; mime: string; name?: string }[]): Promise<void> {
+export async function readFilesWithAi(question: string, files: { uri: string; mime: string; name?: string }[]): Promise<void> {
   const what = files.map((f) => f.name ?? t('Foto')).slice(0, 4).join(', ');
   if (!(await askSend('files', what))) {
     pushAi(t('Va bene, non invio nulla: il file resta sul tuo telefono. Senza il permesso non posso capire file, foto e documenti.'), {

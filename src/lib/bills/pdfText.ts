@@ -41,6 +41,46 @@ function fixed() {
 }
 
 /** Decomprime dati zlib (con intestazione di 2 byte) o deflate grezzo. Lancia un errore se i dati sono corrotti. */
+
+/** ASCII85 (con <~ ~> facoltativi). */
+export function ascii85(src: Uint8Array): Uint8Array {
+  const out: number[] = [];
+  let group: number[] = [];
+  let i = 0;
+  const s = src;
+  if (s[0] === 0x3c && s[1] === 0x7e) i = 2;
+  const flush = (n: number) => {
+    let v = 0;
+    for (let k = 0; k < 5; k++) v = v * 85 + ((group[k] ?? 84) );
+    const bytes = [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255];
+    for (let k = 0; k < n - 1; k++) out.push(bytes[k]);
+  };
+  for (; i < s.length; i++) {
+    const c = s[i];
+    if (c === 0x7e) break; // "~>"
+    if (c === 0x7a && group.length === 0) { out.push(0, 0, 0, 0); continue; } // 'z'
+    if (c <= 0x20) continue;
+    if (c < 0x21 || c > 0x75) continue;
+    group.push(c - 33);
+    if (group.length === 5) { flush(5); group = []; }
+  }
+  if (group.length > 1) flush(group.length);
+  return Uint8Array.from(out);
+}
+
+function asciiHex(src: Uint8Array): Uint8Array {
+  const out: number[] = [];
+  let hi = -1;
+  for (const c of src) {
+    if (c === 0x3e) break;
+    const v = c >= 48 && c <= 57 ? c - 48 : c >= 65 && c <= 70 ? c - 55 : c >= 97 && c <= 102 ? c - 87 : -1;
+    if (v < 0) continue;
+    if (hi < 0) hi = v; else { out.push(hi * 16 + v); hi = -1; }
+  }
+  if (hi >= 0) out.push(hi * 16);
+  return Uint8Array.from(out);
+}
+
 export function inflate(src: Uint8Array, maxOut = 64 * 1024 * 1024): Uint8Array {
   let pos = 0;
   if (src.length > 2 && (src[0] & 0x0f) === 8 && ((src[0] << 8) | src[1]) % 31 === 0) pos = 2;
@@ -165,9 +205,18 @@ function readObjects(bytes: Uint8Array): { objs: Map<number, PdfObj>; encrypted:
       if (lenM) { const cand = a + +lenM[1]; if (s.slice(cand, cand + 12).replace(/^[\r\n ]+/, '').startsWith('endstream')) z = cand; }
       if (z < 0) { const e = s.indexOf('endstream', a); z = e < 0 ? end : e; if (bytes[z - 1] === 10) z--; if (bytes[z - 1] === 13) z--; }
       let data: Uint8Array | undefined = bytes.subarray(a, z);
-      if (/\/FlateDecode|\/Fl\b/.test(dict)) {
-        try { data = inflate(data); } catch { data = undefined; }
-      } else if (/\/Filter/.test(dict)) data = undefined;
+      /* filtri in cascata (es. [/ASCII85Decode /FlateDecode] di ReportLab): si applicano nell'ordine in cui sono scritti */
+      const fm = /\/Filter\s*(\[[^\]]*\]|\/[A-Za-z0-9]+)/.exec(dict);
+      const filters = fm ? (fm[1].match(/\/[A-Za-z0-9]+/g) ?? []).map((x) => x.slice(1)) : [];
+      try {
+        for (const f of filters) {
+          if (!data) break;
+          if (f === 'FlateDecode' || f === 'Fl') data = inflate(data);
+          else if (f === 'ASCII85Decode' || f === 'A85') data = ascii85(data);
+          else if (f === 'ASCIIHexDecode' || f === 'AHx') data = asciiHex(data);
+          else data = undefined;
+        }
+      } catch { data = undefined; }
       objs.set(st.num, { num: st.num, dict, data });
     } else objs.set(st.num, { num: st.num, dict: body.replace(/endobj[\s\S]*$/, '') });
   }
@@ -266,11 +315,16 @@ function decodeBytes(codes: number[], f: Font | undefined): string {
 }
 
 /** Operatori di testo di un flusso di contenuto -> righe di testo. */
-function contentText(src: string, fonts: Map<string, Font>): string {
+export type PdfRun = { x: number; y: number; text: string };
+export type PdfRect = { x: number; y: number; w: number; h: number };
+export type PdfLayoutPage = { runs: PdfRun[]; rects: PdfRect[] };
+
+function contentText(src: string, fonts: Map<string, Font>, sink?: PdfLayoutPage): string {
   const lines: string[] = [];
   let cur = '';
   let font: Font | undefined;
   let y = 0;
+  let tx = 0, ty = 0; // posizione del testo (solo per il layout)
   const flush = () => { if (cur.trim()) lines.push(cur.replace(/[ ]{2,}/g, ' ').trimEnd()); cur = ''; };
   const stack: unknown[] = [];
   let i = 0;
@@ -327,16 +381,19 @@ function contentText(src: string, fonts: Map<string, Font>): string {
     if (/^[+-]?(\d+\.?\d*|\.\d+)$/.test(tok)) { stack.push(parseFloat(tok)); continue; }
     switch (tok) {
       case 'Tf': { const nm = stack[stack.length - 2]; if (typeof nm === 'string') font = fonts.get(nm.slice(1)); break; }
-      case 'Tj': { const v = stack[stack.length - 1]; if (Array.isArray(v)) showStr(v as number[]); break; }
+      case 'Tj': { const v = stack[stack.length - 1]; if (Array.isArray(v)) { const b = cur.length; showStr(v as number[]); if (sink && cur.length > b) sink.runs.push({ x: tx, y: ty, text: cur.slice(b) }); } break; }
       case "'": case '"': { flush(); const v = stack[stack.length - 1]; if (Array.isArray(v)) showStr(v as number[]); break; }
       case 'TJ': {
         const arr = stack[stack.length - 1];
+        const b = cur.length;
         if (Array.isArray(arr)) for (const it of arr) { if (typeof it === 'number') { if (it < -180 && cur && !cur.endsWith(' ')) cur += ' '; } else if (Array.isArray(it)) showStr(it as number[]); }
+        if (sink && cur.length > b) sink.runs.push({ x: tx, y: ty, text: cur.slice(b) });
         break;
       }
-      case 'Td': case 'TD': { const ty = stack[stack.length - 1]; const tx = stack[stack.length - 2]; if (typeof ty === 'number' && ty !== 0) { flush(); y += ty; } else if (typeof tx === 'number' && tx > 0 && cur && !cur.endsWith(' ')) cur += ' '; break; }
+      case 're': { const [rx, ry, rw, rh] = stack.slice(-4); if (sink && [rx, ry, rw, rh].every((v) => typeof v === 'number')) sink.rects.push({ x: rx as number, y: ry as number, w: rw as number, h: rh as number }); break; }
+      case 'Td': case 'TD': { const dty = stack[stack.length - 1]; const dtx = stack[stack.length - 2]; if (typeof dtx === 'number' && typeof dty === 'number') { tx += dtx; ty += dty; } if (typeof dty === 'number' && dty !== 0) { flush(); y += dty; } else if (typeof dtx === 'number' && dtx > 0 && cur && !cur.endsWith(' ')) cur += ' '; break; }
       case 'T*': flush(); break;
-      case 'Tm': { const ty = stack[stack.length - 1]; if (typeof ty === 'number') { if (Math.abs(ty - y) > 1) flush(); else if (cur && !cur.endsWith(' ')) cur += ' '; y = ty; } break; }
+      case 'Tm': { const tmY = stack[stack.length - 1]; const tmX = stack[stack.length - 2]; if (typeof tmX === 'number' && typeof tmY === 'number') { tx = tmX; ty = tmY; } if (typeof tmY === 'number') { if (Math.abs(tmY - y) > 1) flush(); else if (cur && !cur.endsWith(' ')) cur += ' '; y = tmY; } break; }
       case 'ET': flush(); break;
       case 'BT': flush(); break;
       default: break;
@@ -404,4 +461,30 @@ export function extractPdfText(bytes: Uint8Array): PdfTextResult {
   } catch {
     return { ok: false, reason: 'error' };
   }
+}
+
+
+/** Testo del PDF CON le posizioni (x, y) e i rettangoli delle celle: serve a leggere le tabelle (colonne Addebito / Accredito). */
+export function extractPdfLayout(bytes: Uint8Array): PdfLayoutPage[] | null {
+  try {
+    if (!(bytes.length > 8 && latin1(bytes, 0, 1024).includes('%PDF-'))) return null;
+    const { objs, encrypted } = readObjects(bytes);
+    if (encrypted) return null;
+    const pages = [...objs.values()].filter((o) => /\/Type\s*\/Page\b(?!s)/.test(o.dict)).sort((a, b) => a.num - b.num);
+    const out: PdfLayoutPage[] = [];
+    for (const page of pages) {
+      let res = dictAfter(page.dict, 'Resources') ?? '';
+      if (!res) { const r = refOf(page.dict, 'Resources'); if (r && objs.get(r)) res = objs.get(r)!.dict; }
+      const fonts = fontsOf(objs, res);
+      const cm = /\/Contents\s*(?:(\d+)\s+\d+\s+R|\[([^\]]*)\])/.exec(page.dict);
+      const ids: number[] = [];
+      if (cm) { if (cm[1]) ids.push(+cm[1]); else for (const x of cm[2].matchAll(/(\d+)\s+\d+\s+R/g)) ids.push(+x[1]); }
+      const parts = ids.map((id) => objs.get(id)?.data).filter((d): d is Uint8Array => !!d).map((d) => latin1(d));
+      if (!parts.length) continue;
+      const sink: PdfLayoutPage = { runs: [], rects: [] };
+      contentText(parts.join('\n'), fonts, sink);
+      out.push(sink);
+    }
+    return out.length ? out : null;
+  } catch { return null; }
 }

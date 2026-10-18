@@ -49,7 +49,7 @@ export async function pickPhoto(camera: boolean): Promise<PickResult> {
   } catch { return { ok: false, message: t('Impossibile aprire le foto') }; }
 }
 
-async function readBytes(f: { uri: string; file?: unknown }): Promise<Uint8Array> {
+export async function readBytes(f: { uri: string; file?: unknown }): Promise<Uint8Array> {
   if (Platform.OS === 'web') {
     const b = f.file as Blob | undefined;
     return new Uint8Array(b && typeof b.arrayBuffer === 'function' ? await b.arrayBuffer() : await (await fetch(f.uri)).arrayBuffer());

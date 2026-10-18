@@ -103,7 +103,7 @@ export default function LifeFinance() {
           <Card onPress={() => setCsvSheet(true)}>
             <Row gap={10}>
               <Icon name="file" size={20} color={t.accent} />
-              <View style={{ flex: 1 }}><Body bold>Carica l’estratto conto della banca</Body><Body small muted>File CSV o PDF del tuo e-banking: ha la precedenza su tutto il resto.</Body></View>
+              <View style={{ flex: 1 }}><Body bold>Carica un file</Body><Body small muted>Estratto conto (CSV o PDF): ha la precedenza su tutto il resto. Qualsiasi altro file lo guarda Theia e ti dice cos’è.</Body></View>
               <Icon name="chevron-right" size={18} color={t.muted} />
             </Row>
           </Card>

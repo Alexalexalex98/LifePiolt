@@ -4,11 +4,13 @@ import { View } from 'react-native';
 
 import { Body, Btn, Item, Row, Select, Sheet, Toggle } from '@/components/ui';
 import { alertT } from '@/lib/alert';
+import { go } from '@/lib/nav';
 import { AiNote } from '@/components/AiNote';
 import { aiChat, aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
-import { readLocally } from '@/lib/bills/files';
+import { readBytes, readLocally } from '@/lib/bills/files';
+import { extractPdfLayout } from '@/lib/bills/pdfText';
 import { askSend, logSend } from '@/lib/aiConsent';
-import { STATEMENT_PDF_PROMPT, chunkLines, movesToCsv, parseStatementReply, statementChunkPrompt, statementLines, type StatementMove } from '@/lib/statementPdf';
+import { STATEMENT_PDF_PROMPT, chunkLines, parseTableStatement, movesToCsv, parseStatementReply, statementChunkPrompt, statementLines, type StatementMove } from '@/lib/statementPdf';
 import { announceStatement } from '@/lib/statementReport';
 import { useTheme } from '@/hooks/use-theme';
 import { movementLabel, parseCsv, splitDuplicates, toAppDate, monthLabelOfIso, type CsvRow } from '@/lib/csvImport';
@@ -33,9 +35,21 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
   const [replace, setReplace] = useState(true);
   const [aiRead, setAiRead] = useState(false);
   const [progress, setProgress] = useState('');
+  const [explained, setExplained] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const reset = () => { setRows(null); setOff({}); setInfo([]); setSkipped(0); setDups(0); setDupRows([]); setFileName(''); };
+  const reset = () => { setExplained(false); setRows(null); setOff({}); setInfo([]); setSkipped(0); setDups(0); setDupRows([]); setFileName(''); };
+
+  /* qualsiasi altro file: non e' un estratto conto, quindi Theia guarda cos'e' e lo racconta in chat (con il consenso) */
+  async function explainFile(a: { uri: string; name?: string; mimeType?: string }): Promise<boolean> {
+    if (!aiServerConfigured) return false;
+    const { readFilesWithAi } = await import('@/lib/assistant/theiaFlow');
+    setProgress('Guardo cos’è questo file…');
+    await readFilesWithAi('', [{ uri: a.uri, mime: a.mimeType ?? 'application/octet-stream', name: a.name }]);
+    setInfo(['Non sembra un estratto conto, quindi non ho inserito nulla. Ho guardato cos’è e ti rispondo nella chat di Theia.']);
+    setExplained(true);
+    return true;
+  }
 
   async function pick() {
     setBusy(true);
@@ -46,7 +60,18 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       const isPdf = a.mimeType === 'application/pdf' || /\.pdf$/i.test(a.name ?? '');
       const isImage = (a.mimeType ?? '').startsWith('image/');
       let text: string;
-      if (isPdf || isImage) {
+      /* PDF con tabella (Data, Testo, Addebito, Accredito): si legge tutto SUL TELEFONO, senza AI e senza inviare niente */
+      let localText: string | null = null;
+      if (isPdf) {
+        try {
+          setProgress('Leggo il PDF…');
+          const layout = extractPdfLayout(await readBytes({ uri: a.uri, file: (a as { file?: unknown }).file }));
+          const mv = layout ? parseTableStatement(layout) : [];
+          if (mv.length) localText = movesToCsv(mv);
+        } catch { /* si prova in altri modi */ }
+      }
+      if (localText) { text = localText; setAiRead(false); }
+      else if (isPdf || isImage) {
         /* PDF o foto dell'estratto: l'AI legge solo le RIGHE dei movimenti (il resto del documento non esce dal telefono) */
         if (!aiServerConfigured) { setInfo(['Per leggere un estratto in PDF o in foto serve il server AI, che qui non è collegato. Scarica l’estratto in formato CSV dal tuo e-banking e riprova.']); return; }
         let moves: StatementMove[] = [];
@@ -57,9 +82,9 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
           moves = parseStatementReply(await aiReadFiles(STATEMENT_PDF_PROMPT, [{ uri: a.uri, mime: a.mimeType ?? 'image/jpeg' }]));
         } else {
           const read = await readLocally({ uri: a.uri, name: a.name ?? 'estratto.pdf', mime: 'application/pdf', size: a.size });
-          if (read.kind !== 'text') { setInfo([read.message]); return; }
+          if (read.kind !== 'text') { if (await explainFile(a)) return; setInfo([read.message]); return; }
           const { lines, year } = statementLines(read.text);
-          if (!lines.length) { setInfo(['Non trovo righe di movimenti in questo PDF: potrebbe essere una scansione. Carica il CSV della banca o una foto leggibile.']); return; }
+          if (!lines.length) { if (await explainFile(a)) return; setInfo(['Non trovo righe di movimenti in questo PDF: potrebbe essere una scansione. Carica il CSV della banca o una foto leggibile.']); return; }
           const parts = chunkLines(lines);
           if (!(await askSend('files', `${a.name} · ${lines.length} righe di movimenti`))) { setInfo(['Non invio i movimenti: senza il permesso non posso leggere il PDF. Puoi caricare il file CSV della banca.']); return; }
           logSend('files', lines.join('\n').length, ['movimenti']);
@@ -68,11 +93,12 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
             moves.push(...parseStatementReply(await aiChat(statementChunkPrompt(parts[i], year))));
           }
         }
-        if (!moves.length) { setInfo(['Non ho trovato movimenti in questo file. Controlla che sia l’estratto conto, oppure carica il CSV della banca.']); return; }
+        if (!moves.length) { if (await explainFile(a)) return; setInfo(['Non ho trovato movimenti in questo file. Controlla che sia l’estratto conto, oppure carica il CSV della banca.']); return; }
         text = movesToCsv(moves);
         setAiRead(true);
       } else { text = await readPickedText(a as { uri: string; file?: unknown }); setAiRead(false); }
       const parsed = parseCsv(text, catNames);
+      if (!parsed.rows.length && !isPdf && !isImage && (await explainFile(a))) return;
       const existing = useFin.getState().months.flatMap((m) => m.movements.map((x) => ({ monthLabel: m.label, date: x.date, amount: x.amount })));
       const { fresh, duplicates } = splitDuplicates(parsed.rows, existing);
       setFileName(a.name); setRows(fresh); setOff({}); setInfo(parsed.warnings); setSkipped(parsed.skipped); setDups(duplicates.length); setDupRows(duplicates);
@@ -116,9 +142,10 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
     <Sheet visible={visible} title="Importa movimenti" onClose={() => { reset(); onClose(); }}>
       {!rows ? (
         <>
-          <Body small muted style={{ marginBottom: 10 }}>Scegli il file CSV (o l’estratto in PDF) scaricato dal tuo e-banking (UBS, PostFinance, Raiffeisen, ZKB, Revolut…). Riconosco da solo separatori, date e importi in formato svizzero; vedrai un’anteprima prima di importare e i movimenti già presenti non vengono duplicati.</Body>
+          <Body small muted style={{ marginBottom: 10 }}>Scegli un file. Se è l’estratto conto del tuo e-banking (CSV o PDF: UBS, PostFinance, Raiffeisen, ZKB, Revolut…) lo leggo e lo inserisco; se è un altro tipo di file ti dico cos’è. Riconosco da solo separatori, date e importi in formato svizzero; vedrai un’anteprima prima di importare e i movimenti già presenti non vengono duplicati.</Body>
           <Btn icon="plus" title={busy ? (progress || 'Leggo il file…') : 'Scegli un file (CSV, PDF o foto)'} disabled={busy} onPress={pick} />
           {info.map((w, i) => <Body key={i} small color={t.warn} style={{ marginTop: 8 }}>{w}</Body>)}
+          {explained ? <Btn style={{ marginTop: 10 }} ghost title="Apri la chat di Theia" onPress={() => { reset(); onClose(); go('ai'); }} /> : null}
         </>
       ) : (
         <>

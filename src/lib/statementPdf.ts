@@ -52,3 +52,83 @@ export function chunkLines(lines: string[], max = 5500): string[][] {
 
 export const statementChunkPrompt = (lines: string[], year?: number) =>
   `Queste sono righe dei movimenti di un estratto conto bancario, tali e quali (testo estratto da un PDF, quindi le colonne possono essere mescolate).${year ? ` L'anno di riferimento è ${year}: se una data non ha l'anno, usa questo.` : ''} Per ogni riga che è un movimento restituisci data (AAAA-MM-GG), una descrizione breve e l'importo: negativo per le uscite (addebiti, pagamenti, prelievi) e positivo per le entrate (accrediti, stipendio, versamenti), con il punto come separatore decimale e senza apostrofi. Se la riga ha anche il saldo, il saldo NON è l'importo: usa la sua variazione rispetto alla riga precedente per capire se è un'uscita o un'entrata. Ignora i saldi iniziali e finali e i totali. Rispondi SOLO con un elenco JSON del tipo [{"data":"2026-10-03","descrizione":"Coop Lugano","importo":-45.90}].\n\n${lines.join('\n')}`;
+
+/* ---------------------------------------------------------------- tabelle con colonne (Addebito / Accredito) */
+import type { PdfLayoutPage, PdfRun } from './bills/pdfText.ts';
+
+const H_DATE = /^(data|date|datum|data contabile|buchungsdatum|data operazione)$/i;
+const H_TEXT = /^(testo|text|descrizione|beschreibung|buchungstext|description|causale|dettagli)$/i;
+const H_DEBIT = /^(addebito|addebiti|debit|belastung|dare|uscite|soll)$/i;
+const H_CREDIT = /^(accredito|accrediti|credit|gutschrift|avere|entrate|haben)$/i;
+const H_AMOUNT = /^(importo|betrag|amount)$/i;
+const FULL_DATE = /^(\d{1,2})[./](\d{1,2})[./](\d{2,4})$/;
+const SKIP = /^(saldo|totale|riporto|summe|saldovortrag|total)\b/i;
+
+type Col = 'date' | 'text' | 'debit' | 'credit' | 'amount';
+type Cols = { col: Col; from: number; to: number }[];
+
+const isoOf = (s: string): string | null => {
+  const m = FULL_DATE.exec(s.trim());
+  if (!m) return null;
+  const y = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
+  const mo = Number(m[2]), d = Number(m[1]);
+  return mo >= 1 && mo <= 12 && d >= 1 && d <= 31 ? `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}` : null;
+};
+const numOf = (s: string): number | null => {
+  const t = s.trim().replace(/['’\s]/g, '');
+  if (!/^[-+]?\d+([.,]\d{1,2})?-?$/.test(t)) return null;
+  const neg = t.startsWith('-') || t.endsWith('-');
+  const n = Number(t.replace(/[-+]/g, '').replace(',', '.'));
+  return Number.isFinite(n) ? (neg ? -n : n) : null;
+};
+
+function headerOf(runs: PdfRun[], rects: PdfLayoutPage['rects']): { y: number; cols: Cols } | null {
+  const byY = new Map<number, PdfRun[]>();
+  for (const r of runs) { const k = Math.round(r.y); byY.set(k, [...(byY.get(k) ?? []), r]); }
+  for (const [y, row] of byY) {
+    const named = row.map((r) => ({ r, col: H_DATE.test(r.text.trim()) ? 'date' : H_TEXT.test(r.text.trim()) ? 'text' : H_DEBIT.test(r.text.trim()) ? 'debit' : H_CREDIT.test(r.text.trim()) ? 'credit' : H_AMOUNT.test(r.text.trim()) ? 'amount' : null })).filter((x): x is { r: PdfRun; col: Col } => !!x.col);
+    const has = (c: Col) => named.some((x) => x.col === c);
+    if (!(has('date') && has('text') && (has('debit') || has('credit') || has('amount')))) continue;
+    named.sort((a, b) => a.r.x - b.r.x);
+    const cols: Cols = named.map((n, i) => {
+      const cell = rects.find((q) => n.r.x >= q.x - 1 && n.r.x <= q.x + q.w + 1 && Math.abs(q.y - n.r.y) < 14 && q.w > 10);
+      const next = named[i + 1];
+      const from = cell ? cell.x - 0.5 : i === 0 ? -1e9 : (named[i - 1].r.x + n.r.x) / 2;
+      const to = cell ? cell.x + cell.w + 0.5 : next ? (n.r.x + next.r.x) / 2 : 1e9;
+      return { col: n.col, from, to };
+    });
+    return { y, cols };
+  }
+  return null;
+}
+
+/** Legge un estratto conto in tabella usando le posizioni: la colonna dice se e' un addebito o un accredito. Senza intestazione riconoscibile restituisce []. */
+export function parseTableStatement(pages: PdfLayoutPage[]): StatementMove[] {
+  const out: StatementMove[] = [];
+  let cols: Cols | null = null;
+  let cur: { date: string; label: string; amount: number | null } | null = null;
+  const commit = () => { if (cur && cur.amount !== null && cur.amount !== 0 && cur.label && !SKIP.test(cur.label)) out.push({ date: cur.date, label: clean(cur.label), amount: cur.amount }); cur = null; };
+  for (const pg of pages) {
+    const h = headerOf(pg.runs, pg.rects);
+    let top = Infinity;
+    if (h) { cols = h.cols; top = h.y; }
+    if (!cols) continue;
+    const rows = new Map<number, PdfRun[]>();
+    for (const r of pg.runs) { if (r.y >= top - 0.5) continue; const k = Math.round(r.y * 2) / 2; rows.set(k, [...(rows.get(k) ?? []), r]); }
+    const ys = [...rows.keys()].sort((a, b) => b - a);
+    for (const y of ys) {
+      const row = rows.get(y)!.sort((a, b) => a.x - b.x);
+      const inCol = (c: Col) => row.filter((r) => { const k = cols!.find((x) => x.col === c); return !!k && r.x >= k.from && r.x < k.to; });
+      const dateRun = inCol('date').map((r) => ({ r, iso: isoOf(r.text) })).find((x) => x.iso);
+      const textRuns = inCol('text');
+      let amount: number | null = null;
+      for (const r of inCol('debit')) { const n = numOf(r.text); if (n !== null) amount = -Math.abs(n); }
+      for (const r of inCol('credit')) { const n = numOf(r.text); if (n !== null) amount = Math.abs(n); }
+      for (const r of inCol('amount')) { const n = numOf(r.text); if (n !== null) amount = n; }
+      if (dateRun) { commit(); cur = { date: dateRun.iso!, label: textRuns[0]?.text.trim() ?? '', amount }; }
+      else if (cur) { if (cur.amount === null && amount !== null) cur.amount = amount; if (!cur.label && textRuns[0]) cur.label = textRuns[0].text.trim(); }
+    }
+  }
+  commit();
+  return out;
+}
