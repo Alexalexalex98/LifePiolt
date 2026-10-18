@@ -1,5 +1,6 @@
 import { FIT, MacroBar, Ring } from '@/components/fitness/kit';
 import { Image } from 'expo-image';
+import { LogoLoader } from '@/components/LogoLoader';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
@@ -27,7 +28,7 @@ export default function FitnessMeal() {
   const fit = useFitness();
   const [photo, setPhoto] = useState<string | null>(null);
   const [q, setQ] = useState('');
-  const [plate, setPlate] = useState<{ food: Food; grams: string }[]>([]);
+  const [plate, setPlate] = useState<{ food: Food; grams: string; share?: number }[]>([]);
   const [busy, setBusy] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [editTs, setEditTs] = useState(0);
@@ -42,7 +43,7 @@ export default function FitnessMeal() {
   const target = fit.body ? dailyTarget(fit.body) : null;
   const found = q.trim() ? searchFoods(q, 14) : FOODS.slice(0, 8);
   const gOf = (v: string) => Number(v.replace(',', '.')) || 0;
-  const rows = plate.map((x) => ({ ...x, g: gOf(x.grams), m: macrosFor(x.food, gOf(x.grams)) }));
+  const rows = plate.map((x) => { const g = Math.round(gOf(x.grams) * (x.share ?? 1) * 10) / 10; return { ...x, g, m: macrosFor(x.food, g) }; });
   const preview = rows.length && rows.every((r) => r.g > 0) ? sumMacros(rows.map((r) => r.m)) : null;
   const cooked = cookQ.trim() ? matchRecipes(cookQ) : [];
 
@@ -80,6 +81,8 @@ export default function FitnessMeal() {
   };
   const choose = (f: Food) => { setPlate((p) => [...p, { food: f, grams: String(f.portion) }]); setQ(''); };
   const setG = (i: number, v: string) => setPlate((p) => p.map((x, j) => (j === i ? { ...x, grams: v } : x)));
+  const dup = (i: number) => setPlate((p) => [...p.slice(0, i + 1), { ...p[i] }, ...p.slice(i + 1)]);
+  const setShare = (i: number, s: number) => setPlate((p) => p.map((x, j) => (j === i ? { ...x, share: s } : x)));
   const drop = (i: number) => setPlate((p) => p.filter((_, j) => j !== i));
   const add = (name?: string) => {
     if (!preview) { toast('Scegli gli alimenti e i grammi'); return; }
@@ -111,11 +114,12 @@ export default function FitnessMeal() {
       <Card accent={FIT}>
         <Row><H>Oggi</H><Btn small ghost title={target ? 'Obiettivo' : 'Imposta l\'obiettivo'} onPress={() => setBodyOpen(true)} /></Row>
         <Row gap={16} style={{ marginTop: 4 }}>
-          <Ring size={112} stroke={12} value={target ? sum.kcal / target : 0} big={String(sum.kcal)} small={target ? `/ ${target} kcal` : 'kcal'} color={target && sum.kcal > target ? t.warn : FIT} />
+          <Ring size={112} stroke={12} value={target ? sum.kcal / target : 0} big={String(sum.kcal)} small={target ? `/ ${target} kcal` : 'kcal'} color={target && sum.kcal > target ? t.danger : FIT} />
           <View style={{ flex: 1, gap: 8 }}>
             {(() => { const tot = Math.max(1, sum.p + sum.c + sum.f); return [['Proteine', sum.p, '#6ec9dd'], ['Carboidrati', sum.c, FIT], ['Grassi', sum.f, '#e0c97b']].map(([l, v, c]) => <MacroBar key={String(l)} label={tl(String(l))} grams={Number(v)} color={String(c)} pct={(Number(v) / tot) * 100} />); })()}
           </View>
         </Row>
+        {target && sum.kcal > target ? <Body bold style={{ marginTop: 8, color: t.danger }}>{tl('Hai superato il fabbisogno di oggi di {0} kcal', sum.kcal - target)}</Body> : null}
       </Card>
 
       <Card>
@@ -128,19 +132,15 @@ export default function FitnessMeal() {
         {photo ? (premium
           ? <Btn style={{ marginTop: 10 }} icon="sparkle" title={busy ? 'Analizzo il piatto…' : 'Analizza il piatto'} disabled={busy} onPress={() => void analyze()} />
           : <View style={{ marginTop: 10 }}><Body small muted>L'analisi del piatto dalla foto è una funzione Premium di LifePilot.</Body></View>) : <Body small muted style={{ marginTop: 8 }}>Scatta o scegli la foto del piatto: con il Premium di LifePilot lo analizzo e ti faccio il resoconto. In ogni caso puoi comporlo tu qui sotto.</Body>}
+        {busy ? <Row gap={10} style={{ marginTop: 10, justifyContent: 'flex-start' }}><LogoLoader size={44} /><Body muted style={{ flex: 1 }}>Sto analizzando il piatto: ci vogliono alcuni secondi.</Body></Row> : null}
         {report ? (
           <View style={{ marginTop: 10 }}>
             <Body bold>Resoconto del piatto</Body>
             {report.note ? <Body small muted style={{ marginTop: 4 }}>{report.note}</Body> : null}
-            {report.found.map((x, i) => {
-              if (!x.food) return <Body key={i} small>{tl('{0}: non lo trovo nel database, cercalo qui sotto', x.name)}</Body>;
-              const m = macrosFor(x.food, x.grams);
-              return <Body key={i} small>{`${x.source === 'ai' ? x.name : `${x.name} → ${x.food.name}`} · ${x.grams} g · ${m.kcal} kcal · ${tl('proteine {0} g · carboidrati {1} g · grassi {2} g', m.p, m.c, m.f)}`}</Body>;
-            })}
+            {report.found.filter((x) => !x.food).map((x, i) => <Body key={i} small>{tl('{0}: non lo trovo nel database, cercalo qui sotto', x.name)}</Body>)}
             {report.found.some((x) => x.food) ? (() => { const tot = sumMacros(report.found.flatMap((x) => (x.food ? [macrosFor(x.food, x.grams)] : []))); return <Body bold style={{ marginTop: 4 }}>{tl('Totale stimato: {0} kcal · proteine {1} g · carboidrati {2} g · grassi {3} g', tot.kcal, tot.p, tot.c, tot.f)}</Body>; })() : null}
             {report.found.some((x) => x.source === 'ai') ? <Body small muted>I valori con la stima dell'AI sono approssimativi: dipendono dalla porzione che vede nella foto.</Body> : null}
-            {report.found.length && preview ? <Btn style={{ marginTop: 8 }} title="Sì, è corretto: aggiungi al diario" onPress={() => add()} /> : null}
-            {report.found.length ? <Body small muted style={{ marginTop: 4 }}>Ho riconosciuto questo dalla foto: è una stima. Se è giusto tocca «Sì, è corretto», altrimenti correggi alimenti e grammi qui sotto.</Body> : null}
+            {report.found.length ? <Body small muted style={{ marginTop: 4 }}>Ho riconosciuto questo dalla foto: è una stima. Qui sotto, in «Il tuo piatto», puoi correggere i grammi, duplicare o togliere un alimento, aggiungerne altri e scegliere quanto ne hai mangiato tu.</Body> : null}
           </View>
         ) : null}
         <Btn style={{ marginTop: 10 }} ghost icon="note" title="Ho preparato un piatto" onPress={() => setCookOpen(true)} />
@@ -152,12 +152,19 @@ export default function FitnessMeal() {
           <View style={{ marginTop: 10 }}>
             <Body bold>Il tuo piatto</Body>
             {rows.map((r, i) => (
-              <Row key={i} gap={8} style={{ marginTop: 6 }}>
-                <View style={{ flex: 1 }}><Body>{r.food.name}</Body><Body small muted>{r.m.kcal} kcal</Body></View>
-                <Input style={{ width: 80 }} keyboardType="numeric" placeholder="g" value={r.grams} onChangeText={(v) => setG(i, v)} />
-                <Body muted>g</Body>
-                <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina')} onPress={() => drop(i)} hitSlop={10}><Icon name="trash" size={18} color={t.muted} /></Pressable>
-              </Row>
+              <View key={i} style={{ marginTop: 8, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: t.border }}>
+                <Row gap={8}>
+                  <View style={{ flex: 1 }}><Body>{r.food.name}</Body><Body small muted>{r.m.kcal} kcal{(r.share ?? 1) < 1 ? ` · ${tl('la tua parte')}` : ''}</Body></View>
+                  <Input style={{ width: 80 }} keyboardType="numeric" placeholder="g" value={r.grams} onChangeText={(v) => setG(i, v)} />
+                  <Body muted>g</Body>
+                  <Pressable accessibilityRole="button" accessibilityLabel={tl('Duplica')} onPress={() => dup(i)} hitSlop={10}><Icon name="copy" size={18} color={t.muted} /></Pressable>
+                  <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina')} onPress={() => drop(i)} hitSlop={10}><Icon name="trash" size={18} color={t.muted} /></Pressable>
+                </Row>
+                <Row gap={6} style={{ marginTop: 6, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+                  <Body small muted>{tl('Quanto ne hai mangiato?')}</Body>
+                  {([[1, 'Tutto'], [0.5, '1/2'], [1 / 3, '1/3'], [0.25, '1/4']] as [number, string][]).map(([s, l]) => <Pill key={l} label={l} on={Math.abs((r.share ?? 1) - s) < 0.01} onPress={() => setShare(i, s)} />)}
+                </Row>
+              </View>
             ))}
             {preview ? <Body bold style={{ marginTop: 8 }}>{preview.kcal} kcal · P {preview.p} g · C {preview.c} g · G {preview.f} g</Body> : null}
             <Btn style={{ marginTop: 8 }} title={editId ? 'Salva le modifiche' : 'Aggiungi al diario'} onPress={() => add()} />

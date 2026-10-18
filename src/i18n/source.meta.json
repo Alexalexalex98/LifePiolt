@@ -1,5 +1,5 @@
 {
- "count": 11459,
+ "count": 11463,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -29,7 +29,7 @@
   "src/app/(tabs)/fitnessExercise.tsx": 28,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 23,
-  "src/app/(tabs)/fitnessMeal.tsx": 63,
+  "src/app/(tabs)/fitnessMeal.tsx": 66,
   "src/app/(tabs)/fitnessProgram.tsx": 36,
   "src/app/(tabs)/fitnessWorkout.tsx": 25,
   "src/app/(tabs)/focus.tsx": 27,
@@ -366,7 +366,7 @@
   "src/lib/dashBrief.ts": 33,
   "src/lib/dashCandidates.ts": 22,
   "src/lib/dashPlan.ts": 31,
-  "src/lib/dashSections.ts": 41,
+  "src/lib/dashSections.ts": 46,
   "src/lib/dataCatalog.ts": 214,
   "src/lib/dataTable.ts": 6,
   "src/lib/diagnostics.ts": 14,
@@ -384,7 +384,6 @@
   "src/lib/fitness/exerciseDb.ts": 2,
   "src/lib/fitness/foodDb.ts": 24,
   "src/lib/fitness/gymPay.ts": 11,
-  "src/lib/fitness/mealPhoto.ts": 1,
   "src/lib/fitness/nutrition.ts": 67,
   "src/lib/fitness/plan.ts": 15,
   "src/lib/fitness/poses.ts": 353,
@@ -516,5 +515,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1418
+ "withPlaceholders": 1419
 }

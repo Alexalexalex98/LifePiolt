@@ -11,6 +11,7 @@ export type SectionInput = {
   scores: { salute: number | null; mente: number | null; finanza: number | null };
   tasks: { open: number; urgent: number };
   lifePoints: number;
+  /** calorie mangiate oggi e fabbisogno (se impostato) */ nutrition?: { eaten: number; target: number | null; meals: number };
   /** giorni di fila in cui doni il tuo LifePoint */ streak: number;
   now: number;
 };
@@ -54,6 +55,12 @@ export function buildSections(i: SectionInput): SectionRow[] {
     ? { id: 'task', icon: 'tasks', title: 'Da fare', headline: plural(i.tasks.open, 'cosa da fare', 'cose da fare'), detail: i.tasks.urgent ? plural(i.tasks.urgent, 'urgente', 'urgenti') : 'Nessuna urgente', tone: i.tasks.urgent ? 'warn' : 'neutral', page: 'lifetask' }
     : { id: 'task', icon: 'tasks', title: 'Da fare', headline: 'Tutto fatto', detail: 'Nessun task aperto', tone: 'good', page: 'lifetask' });
 
+  if (i.nutrition && i.nutrition.meals > 0) {
+    const n = i.nutrition;
+    rows.push(n.target && n.eaten > n.target
+      ? { id: 'calorie', icon: 'lifehealth', title: 'Calorie di oggi', headline: `${n.eaten} kcal`, detail: `Superato il fabbisogno di ${n.eaten - n.target} kcal`, tone: 'bad', page: 'fitnessMeal' }
+      : { id: 'calorie', icon: 'lifehealth', title: 'Calorie di oggi', headline: `${n.eaten} kcal`, detail: n.target ? `Ancora ${n.target - n.eaten} kcal al fabbisogno` : 'Imposta il fabbisogno per il confronto', tone: n.target ? 'good' : 'neutral', page: 'fitnessMeal' });
+  }
   rows.push({ id: 'lifepoints', icon: 'coin', title: 'I tuoi LifePoints', headline: `${i.lifePoints.toLocaleString('it-IT')} LP`, detail: i.streak > 0 ? `Streak: ${plural(i.streak, 'giorno', 'giorni')} di fila` : 'Dona il tuo LifePoint di oggi', tone: i.streak >= 7 ? 'good' : 'neutral', page: 'lifepointsPage' });
   return rows;
 }

@@ -22,6 +22,8 @@ import { donationStreak } from '@/lib/network';
 import { rankMixed } from '@/lib/relevance';
 import { ActionsCard, DayPlanSheet, animateLayout, useDayPlan, type PlanData } from '@/components/home/DayPlan';
 import { totalUnread } from '@/store/chat';
+import { useFitness } from '@/store/fitness';
+import { dailyTarget } from '@/lib/fitness/nutrition';
 import { buildSections, type SectionRow, type Tone } from '@/lib/dashSections';
 import { translateText } from '@/i18n/core';
 import { showUndoToast, toast } from '@/store/toast';
@@ -236,6 +238,7 @@ export function TheiaDashboard({ dash, needs, name, onPlan, onMetric, moodToday 
   }, [dash.byId, fin.invoices, eventsToday.length, today, me]);
   const { plan, complete } = useDayPlan(pd);
 
+  const fitMeals = useFitness((s) => s.meals), fitBody = useFitness((s) => s.body);
   const rows = useMemo(() => {
     const booked = net.seminars.filter((s) => s.host === me).map((s) => ({ title: s.title, count: (net.participants?.[`seminar:${s.id}`] ?? []).length, startsAt: s.startsAt ?? 0 }))
       .concat((net.participants?.[`service:${me}`] ? [{ title: 'Le tue sedute', count: net.participants[`service:${me}`].length, startsAt: Date.now() + 1 }] : []));
@@ -247,11 +250,12 @@ export function TheiaDashboard({ dash, needs, name, onPlan, onMetric, moodToday 
     const built = buildSections({
       next: next ? { title: next.ev.title, time: next.ev.time, daysAhead: next.daysAhead } : null, booked, comments: { count: cc, last },
       invest: { hasHoldings: hold.length > 0, dayPct: value - dayAbs > 0 ? (dayAbs / (value - dayAbs)) * 100 : 0, totalPct: invested ? ((value - invested) / invested) * 100 : 0 },
+      nutrition: (() => { const ms = fitMeals.filter((m) => new Date(m.ts).toDateString() === new Date().toDateString()); return { eaten: Math.round(ms.reduce((a, m) => a + m.macros.kcal, 0)), target: fitBody ? dailyTarget(fitBody) : null, meals: ms.length }; })(),
       streak: donationStreak(), scores: dash.scores, tasks: { open: open.length, urgent: open.filter((x) => x.urgent).length }, lifePoints: net.lifePoints, now: Date.now(),
     });
     const rank: Record<string, number> = { bad: 0, warn: 1, good: 2, neutral: 3, none: 4 };
     return built.map((r, k) => ({ r, k })).sort((a, b) => (rank[a.r.tone] - rank[b.r.tone]) || (a.k - b.k)).map((x) => x.r);
-  }, [net.seminars, net.participants, net.posts, net.comments, net.lifePoints, fin.stocks, dash.scores, open.length, next, me]);
+  }, [net.seminars, net.participants, net.posts, net.comments, net.lifePoints, fin.stocks, dash.scores, open.length, next, me, fitMeals, fitBody]);
 
   // quando una sezione cambia stato le righe si riassettano con un'animazione breve
   const rowSig = rows.map((r) => r.id + r.tone).join('|');

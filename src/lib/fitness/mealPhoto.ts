@@ -1,7 +1,7 @@
 /** Foto del piatto (modulo PURO): prompt per la lettura esterna, lettura della risposta e abbinamento agli alimenti del database. */
 import { searchFoods, type Food } from './nutrition.ts';
 
-export const MEAL_PROMPT = 'Guarda la foto del piatto e riconosci ogni alimento visibile (anche condimenti, pane, bevande). Stima i grammi di ciascuno nella porzione mostrata e i suoi valori nutrizionali per quella porzione (non per 100 g). Rispondi SOLO con un elenco JSON del tipo [{"nome":"Riso bianco cotto","grammi":150,"kcal":195,"proteine":4,"carboidrati":42,"grassi":0.5}], con nomi comuni in italiano e senza altro testo. Se è un prodotto di una catena, indica la sua porzione standard. Se non vedi cibo rispondi [].';
+export const MEAL_PROMPT = 'Guarda la foto del piatto e riconosci ogni alimento visibile (anche condimenti, salse, pane, bevande). Conta con attenzione ogni singolo prodotto, anche se è dentro una scatola, aperto, parzialmente coperto o in secondo piano; se ci sono più pezzi uguali (per esempio due panini) scrivi una voce sola con i grammi totali e il numero nel nome, come «Big Mac x2». Stima i grammi di ciascuno nella porzione mostrata e i suoi valori nutrizionali per quella porzione (non per 100 g). Rispondi SOLO con un elenco JSON del tipo [{"nome":"Riso bianco cotto","grammi":150,"kcal":195,"proteine":4,"carboidrati":42,"grassi":0.5}], con nomi comuni in italiano e senza altro testo. Se è un prodotto di una catena, indica la sua porzione standard. Se non vedi cibo rispondi [].';
 
 export type Est = { kcal: number; p: number; c: number; f: number };
 export type Detected = { name: string; grams: number; est?: Est };
