@@ -62,13 +62,13 @@ export default function FitnessMeal() {
   const analyze = async (uriArg?: string) => {
     const uri = uriArg ?? photo;
     if (!uri || busy) return;
-    setBusy(true); setReport(null);
+    setBusy(true); setReport(null); if (!editId) setPlate([]);
     try {
       let reply = '';
       if (aiServerConfigured) {
         if (!(await askSend('food'))) { setReport({ found: [], note: tl('Non invio la foto: senza il permesso non posso analizzare il piatto. Puoi comporlo tu qui sotto.') }); return; }
         logSend('food', 0, ['image/jpeg']);
-        reply = await aiReadFiles(MEAL_PROMPT, [{ uri, mime: 'image/jpeg' }]);
+        reply = await aiReadFiles(MEAL_PROMPT, [{ uri, mime: 'image/jpeg' }], 30000);
       }
       else {
         const res = await routeRequest({ text: MEAL_PROMPT, lang: 'it', source: 'typed', images: [{ uri, mime: 'image/jpeg' }] });
@@ -76,7 +76,7 @@ export default function FitnessMeal() {
         reply = res.text;
       }
       const found = resolveItems(parseMealReply(reply));
-      if (!found.length) { setReport({ found: [], note: tl('Non riconosco cibo in questa foto. Prova con più luce o scegli tu gli alimenti.') }); return; }
+      if (!found.length) { setReport({ found: [], note: tl('Non ho trovato nessun piatto in questa foto. Inquadra il cibo da vicino e con più luce, oppure scegli tu gli alimenti qui sotto.') }); return; }
       setPlate(found.flatMap((x) => (x.food ? [{ food: x.food, grams: String(x.grams) }] : [])));
       setReport({ found });
     } catch (e) { setReport({ found: [], note: e instanceof AiServerError ? e.message : tl('Non sono riuscito a contattare il servizio di analisi.') }); }
@@ -194,7 +194,7 @@ export default function FitnessMeal() {
         {report ? (
           <View style={{ marginTop: 10 }}>
             <Body bold>Resoconto del piatto</Body>
-            {report.note ? <Body small muted style={{ marginTop: 4 }}>{report.note}</Body> : null}
+            {report.note ? <Body small muted={report.found.length > 0} style={{ marginTop: 4 }}>{report.note}</Body> : null}
             {report.found.filter((x) => !x.food).map((x, i) => <Body key={i} small>{tl('{0}: non lo trovo nel database, cercalo qui sotto', x.name)}</Body>)}
             {report.found.some((x) => x.food) ? (() => { const tot = sumMacros(report.found.flatMap((x) => (x.food ? [macrosFor(x.food, x.grams)] : []))); return <Body bold style={{ marginTop: 4 }}>{tl('Totale stimato: {0} kcal · proteine {1} g · carboidrati {2} g · grassi {3} g', tot.kcal, tot.p, tot.c, tot.f)}</Body>; })() : null}
             <AiNote />

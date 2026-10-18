@@ -72,10 +72,10 @@ async function prepFiles(files: { uri: string; mime: string }[]): Promise<{ data
  * Legge immagini (anche piu' d'una) o un PDF con il server AI. Una sola immagine va su /vision (testo libero),
  * il resto su /analyze (risposta strutturata in `result`, con `reply` in JSON). Il testo e' grezzo (senza humanize).
  */
-export async function aiReadFilesFull(prompt: string, files: { uri: string; mime: string }[]): Promise<{ reply: string; result?: unknown }> {
+export async function aiReadFilesFull(prompt: string, files: { uri: string; mime: string }[], timeoutMs = 45000): Promise<{ reply: string; result?: unknown }> {
   const ready = await prepFiles(files);
-  if (ready.length === 1 && ready[0].mime.startsWith('image/')) return { reply: (await call<{ reply: string }>('/vision', { image: ready[0].data, mime: ready[0].mime, prompt })).reply };
+  if (ready.length === 1 && ready[0].mime.startsWith('image/')) return { reply: (await call<{ reply: string }>('/vision', { image: ready[0].data, mime: ready[0].mime, prompt }, timeoutMs)).reply };
   return aiAnalyze(ready, prompt);
 }
 
-export const aiReadFiles = async (prompt: string, files: { uri: string; mime: string }[]): Promise<string> => (await aiReadFilesFull(prompt, files)).reply;
+export const aiReadFiles = async (prompt: string, files: { uri: string; mime: string }[], timeoutMs?: number): Promise<string> => (await aiReadFilesFull(prompt, files, timeoutMs)).reply;
