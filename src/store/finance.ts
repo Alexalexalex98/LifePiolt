@@ -168,6 +168,9 @@ type FinState = {
   /** L'estratto conto ha la precedenza: i movimenti attuali vengono sostituiti da quelli dell'estratto (i mesi senza estratto restano vuoti). */
   replaceWithStatement: (rows: { date: string; label: string; amount: number }[]) => { added: number; removed: number; months: number; future: number; previous: FinMonth[] };
   restoreMonths: (months: FinMonth[]) => void;
+  /** quando hai caricato l'ultimo estratto conto (serve al promemoria mensile) */
+  statementAt: number | null;
+  setStatementAt: (ts: number | null) => void;
 
   addStock: (symbol: string, name: string) => void;
   delStock: (symbol: string) => void;
@@ -301,6 +304,8 @@ export const useFin = create<FinState>()(
 
 
     restoreMonths: (months) => set({ months }),
+    statementAt: null,
+    setStatementAt: (ts) => set({ statementAt: ts }),
     replaceWithStatement: (rows) => {
       const names = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
       const keyOfLabel = (l: string) => { const [n, y] = l.split(' '); const i = names.indexOf(n); return i < 0 || !y ? -1 : Number(y) * 12 + i; };

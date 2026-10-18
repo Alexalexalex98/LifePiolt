@@ -32,7 +32,7 @@ export default function LifeFinance() {
   const f = useFin();
   const color = sectionColor(areaColors.lifefinance);
   const [hist, setHist] = useState<number | null>(null);
-  const [tab, setTab] = useState('Situazione');
+  const [tab, setTab] = useState('Quadro');
   const [alertSheet, setAlertSheet] = useState(false);
   const [tips, setTips] = useState(false);
   const [ef, setEf] = useState(false);
@@ -93,13 +93,20 @@ export default function LifeFinance() {
     <Page id="lifefinance" title="LifeFinance" back>
       <FinTabs current="lifefinance" />
 
-      <Seg options={['Situazione', 'Budget', 'Bollette', 'Investi', 'LifePoints']} value={tab} onChange={setTab} />
+      <Seg options={['Quadro', 'Budget', 'Bollette', 'Investi', 'LP']} value={tab} onChange={setTab} />
 
-      {tab === 'LifePoints' && <WalletTab onInvest={() => setTab('Investi')} />}
+      {tab === 'LP' && <WalletTab onInvest={() => setTab('Investi')} />}
       {tab === 'Investi' && <InvestTab />}
 
-      {tab === 'Situazione' && (
+      {tab === 'Quadro' && (
         <>
+          <Card onPress={() => setCsvSheet(true)}>
+            <Row gap={10}>
+              <Icon name="file" size={20} color={t.accent} />
+              <View style={{ flex: 1 }}><Body bold>Carica l’estratto conto della banca</Body><Body small muted>File CSV del tuo e-banking: ha la precedenza su tutto il resto.</Body></View>
+              <Icon name="chevron-right" size={18} color={t.muted} />
+            </Row>
+          </Card>
           <FinanceOverview h={{ onAlerts: () => setAlertSheet(true), onBills: () => setTab('Bollette'), onEmergency: () => setTab('Budget'), onImport: () => setCsvSheet(true), onMovements: (i) => setHist(i) }} />
       <MonthCalcCard />
       {alerts.length > 0 && (

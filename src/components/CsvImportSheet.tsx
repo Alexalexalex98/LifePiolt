@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { Body, Btn, Item, Row, Select, Sheet, Toggle } from '@/components/ui';
 import { alertT } from '@/lib/alert';
+import { announceStatement } from '@/lib/statementReport';
 import { useTheme } from '@/hooks/use-theme';
 import { movementLabel, parseCsv, splitDuplicates, toAppDate, monthLabelOfIso, type CsvRow } from '@/lib/csvImport';
 import { readPickedText } from '@/lib/readPicked';
@@ -52,6 +53,8 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
     const res = useFin.getState().replaceWithStatement(all);
     if (!res.added) { toast('Nessun movimento utilizzabile nell’estratto'); return; }
     const prev = res.previous;
+    useFin.getState().setStatementAt(Date.now());
+    announceStatement({ added: res.added, months: res.months });
     showUndoToast(`Estratto conto applicato: ${res.added} movimenti in ${res.months} ${res.months === 1 ? 'mese' : 'mesi'}${res.removed ? ` · tolti ${res.removed} movimenti precedenti` : ''}`, () => useFin.getState().restoreMonths(prev));
     reset(); onClose();
   }
@@ -66,6 +69,8 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       return;
     }
     const res = useFin.getState().importMovements(chosen.map((r) => ({ date: r.date, label: movementLabel(r), amount: r.amount })));
+    useFin.getState().setStatementAt(Date.now());
+    announceStatement({ added: res.added, months: Math.max(1, res.newMonths) });
     toast(`Importati ${res.added} movimenti${res.newMonths ? ` (${res.newMonths} ${res.newMonths === 1 ? 'mese aggiunto' : 'mesi aggiunti'})` : ''}${res.future ? ` · ${res.future} nel futuro ignorati` : ''}`);
     reset(); onClose();
   }

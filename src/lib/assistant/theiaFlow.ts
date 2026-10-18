@@ -15,6 +15,7 @@ import { aiServerConfigured } from '@/lib/aiServer';
 import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
 import { describeAnalysis, isBillType } from '@/lib/docAnalysis';
+import { statementSummary } from '@/lib/statementReport';
 import { useFin } from '@/store/finance';
 import { refreshBillReminders } from '@/lib/bills/schedule';
 import { openBillReview } from '@/components/theia/billRoute';
@@ -395,6 +396,22 @@ function showRoute(r: RouteResult, req: { text: string; lang: string; source: 't
   pushAi(r.message, { ext: { actions: [retry], provider: r.provider } });
 }
 
+/** Approfondimento dell'estratto conto con l'AI: dopo il consenso, manda solo un riepilogo (totali), mai i singoli movimenti. */
+async function deepStatementAnalysis(): Promise<void> {
+  store().push({ who: 'me', text: t('Approfondisci con l’AI'), source: 'chat' });
+  const summary = statementSummary();
+  const gate = aiOn() ? { ok: await askSend('files', t('Riepilogo dei tuoi mesi (totali e categorie, senza i singoli movimenti)')), restore: () => {} } : await askSendRouted('files', t('Riepilogo dei tuoi mesi (totali e categorie, senza i singoli movimenti)'));
+  if (!gate.ok) { pushAi(t('Va bene, non invio nulla. Quello che vedi qui sopra l’ho calcolato sul telefono.')); return; }
+  try {
+    logSend('files', summary.length, ['riepilogo']);
+    const q = `Questo è il riepilogo delle mie finanze degli ultimi mesi (non sono consigli finanziari, spiegami solo in modo semplice):\n\n${summary}\n\nCosa noti? Dove spendo di più, come va il risparmio e cosa potrei controllare? Rispondi in modo breve e concreto, in italiano.`;
+    if (aiServerConfigured) pushAi(await askTheiaChat(q) || t('Risposta vuota dal server.'));
+    else await delegate({ text: q, lang: 'it', source: 'typed' });
+  } catch (e) {
+    pushAi(e instanceof Error ? e.message : t('Errore del server AI.'));
+  } finally { gate.restore(); }
+}
+
 /** Tocco su un pulsante di azione di un messaggio. */
 export async function runAction(msgId: string, action: TheiaAction): Promise<void> {
   const msg = store().log.find((m) => m.id === msgId);
@@ -411,6 +428,7 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
       if (!(await runLocal(action.command))) pushAi(t('Non l\'ho capito neanche così. Prova a scrivermelo in un altro modo.'));
       return;
     }
+    case 'ai-analysis': await deepStatementAnalysis(); return;
     case 'add-invoices': addInvoicesFromChat(action); return;
     case 'bill': openBillReview({ uri: action.uri, mime: action.mime, name: action.name }); return;
     case 'read-files': store().push({ who: 'me', text: action.label, source: 'chat' }); await readFilesWithAi(action.text, action.files); return;

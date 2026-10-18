@@ -124,6 +124,9 @@ export function predictNeeds(now = new Date()): Suggestion[] {
 
   // 5) messaggi
   const unread = totalUnread(app.account.name);
+  /* promemoria mensile: se hai gia' caricato un estratto conto e da un mese non ne arriva uno nuovo, te lo chiedo */
+  const stAt = useFin.getState().statementAt;
+  if (stAt && now.getTime() - stAt > 28 * 86400000) out.push({ id: 'statement', title: t('Carica il nuovo estratto conto'), detail: t('È passato un mese dall’ultimo: caricalo e ti dico cosa è cambiato.'), why: t('Promemoria mensile'), page: 'lifefinance', cta: t('Carica l’estratto'), score: 55 });
   if (unread > 0) out.push({ id: 'chat', title: unread === 1 ? t('1 chat da leggere') : t('{0} chat da leggere', unread), detail: t('Qualcuno ti ha scritto.'), why: t('Messaggi non letti'), page: 'messagesPage', cta: t('Apri messaggi'), score: 50 });
 
   // 6) segnali dall'analisi dati (salute, mente, finanze)

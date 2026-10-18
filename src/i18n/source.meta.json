@@ -1,5 +1,5 @@
 {
- "count": 11490,
+ "count": 11506,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -47,7 +47,7 @@
   "src/app/(tabs)/jobTest.tsx": 47,
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
-  "src/app/(tabs)/lifefinance.tsx": 87,
+  "src/app/(tabs)/lifefinance.tsx": 89,
   "src/app/(tabs)/lifefitness.tsx": 75,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
@@ -322,7 +322,7 @@
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 69,
+  "src/lib/assistant/theiaFlow.ts": 73,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -475,10 +475,11 @@
   "src/lib/shopSeed.ts": 56,
   "src/lib/speech.ts": 4,
   "src/lib/speechCore.ts": 29,
+  "src/lib/statementReport.ts": 7,
   "src/lib/stories.ts": 19,
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taxDeadlines.ts": 14,
-  "src/lib/theia.ts": 93,
+  "src/lib/theia.ts": 97,
   "src/lib/theiaQuotes.ts": 40,
   "src/lib/themeCustom.ts": 17,
   "src/lib/tour.ts": 47,
@@ -516,5 +517,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1426
+ "withPlaceholders": 1430
 }
