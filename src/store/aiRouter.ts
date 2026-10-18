@@ -8,7 +8,8 @@ import type { TaskGroup } from '@/lib/aiRouter/types';
 import { persisted } from './persist';
 
 /** Intelligenza di Theia: preferenze, piano, consensi per fornitore, contatori d'uso e cronologia "Cosa è stato inviato". Tutto sul telefono. */
-export type FileConsent = { food: boolean; files: 'ask' | 'always' | 'never' };
+export type ConsentMode = 'ask' | 'always' | 'never';
+export type FileConsent = { food: ConsentMode; files: ConsentMode };
 type State = {
   prefs: AiPrefs;
   planId: PlanId;
@@ -42,7 +43,7 @@ export const useAiRouter = create<State>()(
     consents: {},
     usage: [],
     sendLog: [],
-    fileConsent: { food: false, files: 'ask' },
+    fileConsent: { food: 'ask', files: 'ask' },
     setFileConsent: (p) => set((s) => ({ fileConsent: { ...s.fileConsent, ...p } })),
     setPrefs: (p) => set((s) => ({ prefs: { ...s.prefs, ...p } })),
     setTaskPref: (g, v) => set((s) => ({ prefs: { ...s.prefs, taskPref: { ...s.prefs.taskPref, [g]: v } } })),
@@ -57,6 +58,6 @@ export const useAiRouter = create<State>()(
     clearLog: () => set({ sendLog: [] }),
     restoreAllLog: (sendLog) => set({ sendLog }),
     resetUsageDev: () => { if (typeof __DEV__ !== 'undefined' && __DEV__) set({ usage: [] }); },
-    reset: () => set({ prefs: DEFAULT_PREFS, planId: 'free', consents: {}, usage: [], sendLog: [], fileConsent: { food: false, files: 'ask' } }),
+    reset: () => set({ prefs: DEFAULT_PREFS, planId: 'free', consents: {}, usage: [], sendLog: [], fileConsent: { food: 'ask', files: 'ask' } }),
   })),
 );

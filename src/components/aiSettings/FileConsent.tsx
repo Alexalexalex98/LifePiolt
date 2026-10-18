@@ -11,8 +11,9 @@ export function FileConsentCard() {
       <Body small muted style={{ marginTop: 4 }}>Per leggere foto, documenti e bollette Theia deve mandarli al servizio AI (Google Gemini), tramite il server di LifePilot. Se non lo permetti, Theia non può capire file, foto e documenti: restano solo sul telefono.</Body>
       <Body bold style={{ marginTop: 10 }}>Foto dei piatti</Body>
       <Row gap={8} style={{ marginTop: 6 }}>
-        <Pill label="Chiedi" on={!c.food} onPress={() => set({ food: false })} />
-        <Pill label="Consenti sempre" on={c.food} onPress={() => set({ food: true })} />
+        <Pill label="Chiedi ogni volta" on={c.food === 'ask'} onPress={() => set({ food: 'ask' })} />
+        <Pill label="Consenti sempre" on={c.food === 'always' || (c.food as unknown) === true} onPress={() => set({ food: 'always' })} />
+        <Pill label="Non consentire" on={c.food === 'never'} onPress={() => set({ food: 'never' })} />
       </Row>
       <Body bold style={{ marginTop: 12 }}>File e foto in chat, bollette e screenshot</Body>
       <Row gap={8} style={{ marginTop: 6 }}>
