@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 import type { Gym, Step } from '@/lib/fitness/data';
 import type { ExerciseX } from '@/lib/fitness/exerciseDb';
-import type { Body, Macros } from '@/lib/fitness/nutrition';
+import { registerFood, type Body, type Food, type Macros } from '@/lib/fitness/nutrition';
 import type { FitProfile, Workout } from '@/lib/fitness/plan';
 import { creditsLeft, makePurchase, payBlock, priceList, consumeCredit, type Purchase } from '@/lib/fitness/gymPay';
 import { checkIn, renewIfDue, startSub, PREMIUM_PRICE_LP, type Sub, type Visit } from '@/lib/fitness/premium';
@@ -25,6 +25,8 @@ type State = {
   approved: Gym[];
   /** esercizi creati da te */
   customEx: ExerciseX[];
+  /** alimenti stimati dall'AI dalle foto dei piatti (servono per rileggere i pasti salvati) */
+  aiFoods: Food[];
   /** ingressi pagati in LifePoints con il QR */
   purchases: Purchase[];
   /** le tue modifiche alle sessioni dei programmi (chiave «programma:sessione») */
@@ -53,7 +55,7 @@ const uid = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice
 /** Dati di LifeFitness: restano sul telefono (sono dati di salute). */
 export const useFitness = create<State>()(
   persisted<State>('fitness', (set, get) => ({
-    profile: null, body: null, activeProgram: null, history: [], meals: [], sub: null, visits: [], requests: [], approved: [], customEx: [], purchases: [], edits: {},
+    profile: null, body: null, activeProgram: null, history: [], meals: [], sub: null, visits: [], requests: [], approved: [], customEx: [], aiFoods: [], purchases: [], edits: {},
     set: (p) => set(p),
     logWorkout: (w) => set((s) => ({ history: [...s.history, { ...w, id: uid() }].slice(-1000) })),
     addMeal: (m) => set((s) => ({ meals: [{ ...m, id: uid() }, ...s.meals].slice(0, 2000) })),
@@ -111,3 +113,7 @@ export const useFitness = create<State>()(
     }),
   })),
 );
+
+/** Gli alimenti stimati dall'AI tornano disponibili per id appena lo store e' caricato (e a ogni nuova stima). */
+useFitness.subscribe((s) => { for (const f of s.aiFoods ?? []) registerFood(f); });
+for (const f of useFitness.getState().aiFoods ?? []) registerFood(f);

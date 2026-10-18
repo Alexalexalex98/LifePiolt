@@ -80,6 +80,8 @@ export default function FitnessMeal() {
     if (!preview) { toast('Scegli gli alimenti e i grammi'); return; }
     const total = rows.reduce((a, r) => a + r.g, 0);
     const one = rows.length === 1;
+    const aiUsed = rows.filter((r) => r.food.id.startsWith('ai-')).map((r) => r.food);
+    if (aiUsed.length) fit.set({ aiFoods: [...aiUsed, ...fit.aiFoods.filter((f) => !aiUsed.some((u) => u.id === f.id))].slice(0, 300) });
     if (editId) fit.delMeal(editId);
     fit.addMeal({ ts: editId ? editTs : Date.now(), name: name ?? (one ? rows[0].food.name : rows.map((r) => r.food.name).slice(0, 3).join(', ')), foodId: one ? rows[0].food.id : undefined, grams: Math.round(total), macros: preview, photo: photo ?? undefined, items: rows.map((r) => ({ foodId: r.food.id, name: r.food.name, grams: r.g })) });
     toast(editId ? tl('Pasto aggiornato: {0} kcal', preview.kcal) : tl('Aggiunto: {0} kcal', preview.kcal)); setPlate([]); setPhoto(null); setQ(''); setEditId(null); setReport(null);
@@ -125,7 +127,13 @@ export default function FitnessMeal() {
           <View style={{ marginTop: 10 }}>
             <Body bold>Resoconto del piatto</Body>
             {report.note ? <Body small muted style={{ marginTop: 4 }}>{report.note}</Body> : null}
-            {report.found.map((x, i) => <Body key={i} small>{x.food ? `${x.name} → ${x.food.name} · ${x.grams} g · ${macrosFor(x.food, x.grams).kcal} kcal` : tl('{0}: non lo trovo nel database, cercalo qui sotto', x.name)}</Body>)}
+            {report.found.map((x, i) => {
+              if (!x.food) return <Body key={i} small>{tl('{0}: non lo trovo nel database, cercalo qui sotto', x.name)}</Body>;
+              const m = macrosFor(x.food, x.grams);
+              return <Body key={i} small>{`${x.source === 'ai' ? x.name : `${x.name} → ${x.food.name}`} · ${x.grams} g · ${m.kcal} kcal · ${tl('proteine {0} g · carboidrati {1} g · grassi {2} g', m.p, m.c, m.f)}`}</Body>;
+            })}
+            {report.found.some((x) => x.food) ? (() => { const tot = sumMacros(report.found.flatMap((x) => (x.food ? [macrosFor(x.food, x.grams)] : []))); return <Body bold style={{ marginTop: 4 }}>{tl('Totale stimato: {0} kcal · proteine {1} g · carboidrati {2} g · grassi {3} g', tot.kcal, tot.p, tot.c, tot.f)}</Body>; })() : null}
+            {report.found.some((x) => x.source === 'ai') ? <Body small muted>I valori con la stima dell'AI sono approssimativi: dipendono dalla porzione che vede nella foto.</Body> : null}
             {report.found.length && preview ? <Btn style={{ marginTop: 8 }} title="Sì, è corretto: aggiungi al diario" onPress={() => add()} /> : null}
             {report.found.length ? <Body small muted style={{ marginTop: 4 }}>Ho riconosciuto questo dalla foto: è una stima. Se è giusto tocca «Sì, è corretto», altrimenti correggi alimenti e grammi qui sotto.</Body> : null}
           </View>

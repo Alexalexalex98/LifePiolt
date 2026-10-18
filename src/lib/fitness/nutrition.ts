@@ -23,6 +23,8 @@ const BASE_FOODS: Food[] = [
 export const FOODS: Food[] = [...BASE_FOODS, ...DB_FOODS.filter((d) => !BASE_FOODS.some((b) => b.id === d.id))];
 const BY_ID = new Map(FOODS.map((f) => [f.id, f]));
 export const FOOD = (id: string): Food | undefined => BY_ID.get(id);
+/** Alimenti stimati dall'AI dalla foto: restano ritrovabili per id (modifica del pasto, diario) senza entrare nella ricerca. */
+export const registerFood = (f: Food) => { if (!BY_ID.has(f.id)) BY_ID.set(f.id, f); };
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 /** Cerca per nome o parole collegate («spaghetti» → pasta). */
 export function searchFoods(q: string, max = 8): Food[] {
