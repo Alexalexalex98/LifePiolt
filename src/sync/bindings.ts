@@ -106,7 +106,9 @@ export async function applyTransport(): Promise<{ ok: boolean; message: string }
   const saved = await loadServerConfig();
   /* indirizzo e chiave pubblica possono arrivare dalla build (EXPO_PUBLIC_SUPABASE_*): non sono segreti */
   const cfg = { url: saved.url || process.env.EXPO_PUBLIC_SUPABASE_URL || '', anonKey: saved.anonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '' };
-  const name = s.devMock ? 'mock-server' : s.transportName || (cfg.url && cfg.anonKey ? 'supabase' : 'disconnected');
+  /* 'disconnected' e' il valore iniziale: non deve bloccare il collegamento quando indirizzo e chiave ci sono */
+  const chosen = s.transportName && s.transportName !== 'disconnected' ? s.transportName : '';
+  const name = s.devMock ? 'mock-server' : chosen || (cfg.url && cfg.anonKey ? 'supabase' : 'disconnected');
   transport = createTransport(name, { url: cfg.url || s.serverUrl, anonKey: cfg.anonKey, deviceId: useSyncData.getState().deviceId, deviceName: s.deviceName || 'Questo telefono' });
   const r = await transport.connect({ url: cfg.url || s.serverUrl, anonKey: cfg.anonKey, deviceId: useSyncData.getState().deviceId, deviceName: s.deviceName || 'Questo telefono' }).catch(() => ({ ok: false, message: 'Non riesco a collegarmi al server.' }));
   engine?.refreshStatus();
