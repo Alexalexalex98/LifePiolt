@@ -30,6 +30,7 @@ export default function FitnessMeal() {
   const fit = useFitness();
   const [photo, setPhoto] = useState<string | null>(null);
   const [q, setQ] = useState('');
+  const [manualOpen, setManualOpen] = useState(false);
   const [plate, setPlate] = useState<{ food: Food; grams: string; share?: number }[]>([]);
   const [busy, setBusy] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -43,7 +44,7 @@ export default function FitnessMeal() {
   const today = fit.meals.filter((m) => new Date(m.ts).toDateString() === new Date().toDateString());
   const sum = sumMacros(today.map((m) => m.macros));
   const target = fit.body ? dailyTarget(fit.body) : null;
-  const found = q.trim() ? searchFoods(q, 14) : FOODS.slice(0, 8);
+  const found = q.trim() ? searchFoods(q, 14) : [];
   const gOf = (v: string) => Number(v.replace(',', '.')) || 0;
   const rows = plate.map((x) => { const g = Math.round(gOf(x.grams) * (x.share ?? 1) * 10) / 10; return { ...x, g, m: macrosFor(x.food, g) }; });
   const preview = rows.length && rows.every((r) => r.g > 0) ? sumMacros(rows.map((r) => r.m)) : null;
@@ -94,7 +95,7 @@ export default function FitnessMeal() {
     if (aiUsed.length) fit.set({ aiFoods: [...aiUsed, ...fit.aiFoods.filter((f) => !aiUsed.some((u) => u.id === f.id))].slice(0, 300) });
     if (editId) fit.delMeal(editId);
     fit.addMeal({ ts: editId ? editTs : Date.now(), name: name ?? (one ? rows[0].food.name : rows.map((r) => r.food.name).slice(0, 3).join(', ')), foodId: one ? rows[0].food.id : undefined, grams: Math.round(total), macros: preview, photo: photo ?? undefined, items: rows.map((r) => ({ foodId: r.food.id, name: r.food.name, grams: r.g })) });
-    toast(editId ? tl('Pasto aggiornato: {0} kcal', preview.kcal) : tl('Aggiunto: {0} kcal', preview.kcal)); setPlate([]); setPhoto(null); setQ(''); setEditId(null); setReport(null);
+    toast(editId ? tl('Pasto aggiornato: {0} kcal', preview.kcal) : tl('Aggiunto: {0} kcal', preview.kcal)); setPlate([]); setPhoto(null); setQ(''); setEditId(null); setReport(null); setManualOpen(false);
   };
   const editMeal = (m: (typeof fit.meals)[number]) => {
     const items = m.items?.length ? m.items : m.foodId ? [{ foodId: m.foodId, name: m.name, grams: m.grams }] : [];
@@ -111,6 +112,42 @@ export default function FitnessMeal() {
   };
   const num = (k: 'age' | 'weightKg' | 'heightCm', v: string) => setBody({ ...body, [k]: Number(v.replace(',', '.')) || 0 });
 
+  const cancelEdit = () => { setEditId(null); setPlate([]); setPhoto(null); setQ(''); };
+  const editor = rows.length ? (
+
+      <View style={{ marginTop: 10 }}>
+        <Body bold>Il tuo piatto</Body>
+        {rows.map((r, i) => (
+          <View key={i} style={{ marginTop: 8, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: t.border }}>
+            <Row gap={8}>
+              <View style={{ flex: 1 }}><Body>{r.food.name}</Body><Body small muted>{r.m.kcal} kcal{(r.share ?? 1) < 1 ? ` · ${tl('la tua parte')}` : ''}</Body></View>
+              <Input style={{ width: 80 }} keyboardType="numeric" placeholder="g" value={r.grams} onChangeText={(v) => setG(i, v)} />
+              <Body muted>g</Body>
+              <Pressable accessibilityRole="button" accessibilityLabel={tl('Duplica')} onPress={() => dup(i)} hitSlop={10}><Icon name="copy" size={18} color={t.muted} /></Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina')} onPress={() => drop(i)} hitSlop={10}><Icon name="trash" size={18} color={t.muted} /></Pressable>
+            </Row>
+            <Row gap={6} style={{ marginTop: 6, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+              <Body small muted>{tl('Quanto ne hai mangiato?')}</Body>
+              {([[1, 'Tutto'], [0.5, '1/2'], [1 / 3, '1/3'], [0.25, '1/4']] as [number, string][]).map(([s, l]) => <Pill key={l} label={l} on={Math.abs((r.share ?? 1) - s) < 0.01} onPress={() => setShare(i, s)} />)}
+            </Row>
+          </View>
+        ))}
+        {preview ? <Body bold style={{ marginTop: 8 }}>{preview.kcal} kcal · P {preview.p} g · C {preview.c} g · G {preview.f} g</Body> : null}
+        <Btn style={{ marginTop: 8 }} title={editId ? 'Salva le modifiche' : 'Aggiungi al diario'} onPress={() => add()} />
+        {editId ? <Btn style={{ marginTop: 6 }} ghost title="Annulla la modifica" onPress={cancelEdit} /> : null}
+      </View>
+      ) : null;
+  const manual = (manualOpen || (!photo && !rows.length)) ? (
+    <View style={{ marginTop: 8 }}>
+        <Btn style={{ marginTop: 4 }} ghost icon="note" title="Ho preparato un piatto" onPress={() => setCookOpen(true)} />
+        <Input placeholder="Cerca tra oltre 2000 alimenti (es. pasta, pizza, insalata)" value={q} onChangeText={setQ} />
+        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
+          {found.map((f) => <Pill key={f.id} label={f.name} onPress={() => choose(f)} />)}
+        </Row>
+    </View>
+  ) : (
+    <Btn style={{ marginTop: 12 }} ghost icon="plus" title="Aggiungi o cerca alimenti a mano" onPress={() => setManualOpen(true)} />
+  );
   return (
     <Page id="fitnessMeal" back title="Pasti e calorie">
       <Card accent={FIT}>
@@ -165,34 +202,8 @@ export default function FitnessMeal() {
             {report.found.length ? <Body small muted style={{ marginTop: 4 }}>Ho riconosciuto questo dalla foto: è una stima. Qui sotto, in «Il tuo piatto», puoi correggere i grammi, duplicare o togliere un alimento, aggiungerne altri e scegliere quanto ne hai mangiato tu.</Body> : null}
           </View>
         ) : null}
-        <Btn style={{ marginTop: 10 }} ghost icon="note" title="Ho preparato un piatto" onPress={() => setCookOpen(true)} />
-        <Input placeholder="Cerca tra oltre 2000 alimenti (es. pasta, pizza, insalata)" value={q} onChangeText={setQ} />
-        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
-          {found.map((f) => <Pill key={f.id} label={f.name} onPress={() => choose(f)} />)}
-        </Row>
-        {rows.length ? (
-          <View style={{ marginTop: 10 }}>
-            <Body bold>Il tuo piatto</Body>
-            {rows.map((r, i) => (
-              <View key={i} style={{ marginTop: 8, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: t.border }}>
-                <Row gap={8}>
-                  <View style={{ flex: 1 }}><Body>{r.food.name}</Body><Body small muted>{r.m.kcal} kcal{(r.share ?? 1) < 1 ? ` · ${tl('la tua parte')}` : ''}</Body></View>
-                  <Input style={{ width: 80 }} keyboardType="numeric" placeholder="g" value={r.grams} onChangeText={(v) => setG(i, v)} />
-                  <Body muted>g</Body>
-                  <Pressable accessibilityRole="button" accessibilityLabel={tl('Duplica')} onPress={() => dup(i)} hitSlop={10}><Icon name="copy" size={18} color={t.muted} /></Pressable>
-                  <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina')} onPress={() => drop(i)} hitSlop={10}><Icon name="trash" size={18} color={t.muted} /></Pressable>
-                </Row>
-                <Row gap={6} style={{ marginTop: 6, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-                  <Body small muted>{tl('Quanto ne hai mangiato?')}</Body>
-                  {([[1, 'Tutto'], [0.5, '1/2'], [1 / 3, '1/3'], [0.25, '1/4']] as [number, string][]).map(([s, l]) => <Pill key={l} label={l} on={Math.abs((r.share ?? 1) - s) < 0.01} onPress={() => setShare(i, s)} />)}
-                </Row>
-              </View>
-            ))}
-            {preview ? <Body bold style={{ marginTop: 8 }}>{preview.kcal} kcal · P {preview.p} g · C {preview.c} g · G {preview.f} g</Body> : null}
-            <Btn style={{ marginTop: 8 }} title={editId ? 'Salva le modifiche' : 'Aggiungi al diario'} onPress={() => add()} />
-            {editId ? <Btn style={{ marginTop: 6 }} ghost title="Annulla la modifica" onPress={() => { setEditId(null); setPlate([]); setPhoto(null); }} /> : null}
-          </View>
-        ) : null}
+        {!editId ? editor : null}
+        {!editId ? manual : null}
       </Card>
 
       {today.length ? (
@@ -233,6 +244,11 @@ export default function FitnessMeal() {
             <Btn style={{ marginTop: 10 }} ghost title="Compongo io il piatto" onPress={() => setCookOpen(false)} />
           </View>
         )}
+      </Sheet>
+
+      <Sheet visible={!!editId} title="Modifica il piatto" onClose={cancelEdit}>
+        {editor}
+        {manual}
       </Sheet>
 
       <Sheet visible={bodyOpen} title="Il tuo obiettivo giornaliero" onClose={() => setBodyOpen(false)}>
