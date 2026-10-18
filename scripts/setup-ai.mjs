@@ -30,13 +30,20 @@ if (process.argv.includes('--test')) {
 let txt = read();
 txt = set(txt, 'EXPO_PUBLIC_AI_URL', get(txt, 'EXPO_PUBLIC_AI_URL') || DEFAULT_URL);
 let token = get(txt, 'EXPO_PUBLIC_AI_TOKEN');
-const fresh = !token;
-if (fresh) { token = crypto.randomBytes(24).toString('hex'); txt = set(txt, 'EXPO_PUBLIC_AI_TOKEN', token); }
+let fresh = false;
+if (!token) {
+  // si chiede la tua APP_TOKEN di Cloudflare; se non la ricordi, invio e se ne crea una nuova
+  const rl = (await import('node:readline/promises')).createInterface({ input: process.stdin, output: process.stdout });
+  token = (await rl.question('Incolla la tua APP_TOKEN di Cloudflare (la stessa del Worker), oppure premi invio per crearne una nuova: ')).trim();
+  rl.close();
+  if (!token) { token = crypto.randomBytes(24).toString('hex'); fresh = true; }
+  txt = set(txt, 'EXPO_PUBLIC_AI_TOKEN', token);
+}
 fs.writeFileSync(FILE, txt);
 console.log(`Scritto ${FILE} con l'indirizzo del Worker.`);
 if (fresh) {
   console.log('\nParola d\'ordine NUOVA (copiala, serve in Cloudflare):\n');
   console.log(`  ${token}\n`);
   console.log('In Cloudflare: Workers & Pages > lifepilot-api > Settings > Variables and Secrets > APP_TOKEN > Edit > incolla questa parola > Deploy.');
-} else console.log('La parola d\'ordine in .env.local c\'era già: non l\'ho cambiata.');
+} else console.log('Parola d\'ordine salvata in .env.local: è quella del tuo Worker, in Cloudflare non devi cambiare nulla.');
 console.log('\nPoi: node scripts/setup-ai.mjs --test   e   npx expo start -c');
