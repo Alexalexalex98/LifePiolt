@@ -14,13 +14,22 @@ const dir = 'supabase/migrations';
 const files = fs.readdirSync(dir).filter((f) => /^\d+_.*\.sql$/.test(f)).sort();
 console.log(`Migrazioni trovate: ${files.join(', ')}`);
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const conn = (await rl.question('Incolla l\'indirizzo di connessione (postgresql://...): ')).trim();
+let conn = (await rl.question('Incolla l\'indirizzo di connessione (postgresql://...), lasciando [YOUR-PASSWORD] com\'è: ')).trim();
+if (/\[YOUR-PASSWORD\]/i.test(conn)) {
+  // la password si chiede a parte e si codifica: simboli come @ # / : nella password rompevano l'indirizzo
+  const pw = (await rl.question('Password del database (senza parentesi quadre): ')).trim().replace(/^\[|\]$/g, '');
+  conn = conn.replace(/\[YOUR-PASSWORD\]/i, encodeURIComponent(pw));
+}
 rl.close();
 if (!/^postgres(ql)?:\/\//i.test(conn)) { console.error('Quello non sembra un indirizzo di connessione (deve iniziare con postgresql://).'); process.exit(1); }
-if (/\[YOUR-PASSWORD\]/i.test(conn)) { console.error('Nell\'indirizzo c\'è ancora [YOUR-PASSWORD]: al suo posto va la password del database che hai scelto.'); process.exit(1); }
 
 const client = new pg.Client({ connectionString: conn, ssl: { rejectUnauthorized: false } });
-try { await client.connect(); } catch (e) { console.error(`Non riesco a collegarmi: ${e.message}\nControlla password e indirizzo (prova la voce "Session pooler" se "Direct" non risponde).`); process.exit(1); }
+try { await client.connect(); } catch (e) {
+  console.error(`Non riesco a collegarmi: ${e.message}`);
+  if (/password authentication failed/i.test(e.message)) console.error('La password non è quella del database. Reimpostala da Supabase (Project Settings > Database > Reset database password), scegline una SENZA simboli speciali (solo lettere e numeri) e riprova.');
+  else console.error('Prova la voce "Session pooler" della finestra Connect se "Direct" non risponde.');
+  process.exit(1);
+}
 for (const f of files) {
   process.stdout.write(`${f} ... `);
   try { await client.query(fs.readFileSync(path.join(dir, f), 'utf8')); console.log('ok'); }
