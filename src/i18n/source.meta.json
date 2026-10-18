@@ -1,5 +1,5 @@
 {
- "count": 11394,
+ "count": 11417,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -286,7 +286,8 @@
   "src/domain/operation.ts": 1,
   "src/domain/operations.ts": 10,
   "src/lib/a11y.ts": 1,
-  "src/lib/ai.ts": 23,
+  "src/lib/ai.ts": 26,
+  "src/lib/aiPersona.ts": 11,
   "src/lib/aiRouter/adapters/index.ts": 1,
   "src/lib/aiRouter/adapters/mock.ts": 1,
   "src/lib/aiRouter/adapters/serverProxy.ts": 4,
@@ -301,6 +302,7 @@
   "src/lib/aiRouter/rewrite.ts": 41,
   "src/lib/aiRouter/runtime.ts": 5,
   "src/lib/aiRouter/select.ts": 18,
+  "src/lib/aiServer.ts": 7,
   "src/lib/analytics.ts": 64,
   "src/lib/analyticsData.ts": 30,
   "src/lib/arrival.ts": 8,
@@ -471,7 +473,7 @@
   "src/lib/stories.ts": 19,
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taxDeadlines.ts": 14,
-  "src/lib/theia.ts": 86,
+  "src/lib/theia.ts": 91,
   "src/lib/theiaQuotes.ts": 40,
   "src/lib/themeCustom.ts": 17,
   "src/lib/tour.ts": 47,
@@ -509,5 +511,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1403
+ "withPlaceholders": 1409
 }

@@ -11,6 +11,7 @@ import { Body, Btn, Card, H, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { routeRequest } from '@/lib/aiRouter';
+import { aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
 import { checkPrompt, frameTimes, parseCheck, type CheckResult } from '@/lib/fitness/execCheck';
 import { exById, guideOf } from '@/lib/fitness/exerciseDb';
 import { hasPremiumFeature } from '@/lib/premiumApp';
@@ -59,10 +60,15 @@ export default function FitnessExercise() {
       const frames: { uri: string; mime: string }[] = [];
       for (const ms of times) { try { const f = await VideoThumbnails.getThumbnailAsync(clip.uri, { time: ms, quality: 0.6 }); frames.push({ uri: f.uri, mime: 'image/jpeg' }); } catch { /* si prosegue con quelli riusciti */ } }
       if (frames.length < 3) { setRes({ note: tl('Non riesco a estrarre i fotogrammi da questo video. Prova a riprenderlo.') }); return; }
-      const out = await routeRequest({ text: checkPrompt(ex), lang: 'it', source: 'typed', images: frames });
-      if (out.status !== 'answered' || !out.text) { setRes({ note: out.message }); return; }
-      setRes({ r: parseCheck(out.text) });
-    } catch { setRes({ note: tl('Non sono riuscito a contattare il servizio di analisi.') }); }
+      let reply = '';
+      if (aiServerConfigured) reply = await aiReadFiles(checkPrompt(ex), frames);
+      else {
+        const out = await routeRequest({ text: checkPrompt(ex), lang: 'it', source: 'typed', images: frames });
+        if (out.status !== 'answered' || !out.text) { setRes({ note: out.message }); return; }
+        reply = out.text;
+      }
+      setRes({ r: parseCheck(reply) });
+    } catch (e) { setRes({ note: e instanceof AiServerError ? e.message : tl('Non sono riuscito a contattare il servizio di analisi.') }); }
     finally { setBusy(false); }
   };
   const ok = guide.cues.filter((c) => ticks[c]).length;

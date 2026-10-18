@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n/core';
 import { currentCurrency, currentLocale } from '@/i18n/format';
 import { routeRequest } from '@/lib/aiRouter';
+import { aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
 import { addBillToCalendar } from '@/lib/bills/calendar';
 import { diffDays, todayIso } from '@/lib/bills/dates';
 import { fileKind, openBillFile, readLocally, storeBillFile, type PickedBill } from '@/lib/bills/files';
@@ -129,7 +130,10 @@ export default function BillReview() {
     setAiBusy(true); setAiMsg(undefined);
     try {
       const prompt = t('Leggi questa bolletta o fattura e riporta in testo semplice: fornitore, importo totale da pagare con valuta, data di emissione, data di scadenza, numero del documento, IBAN e riferimento di pagamento. Non inventare nulla.');
-      const res = await routeRequest({ text: prompt, lang: 'it', source: 'typed', images: [{ uri: file.uri, mime: file.mime || (isImage ? 'image/jpeg' : 'application/pdf') }] });
+      const mime = file.mime || (isImage ? 'image/jpeg' : 'application/pdf');
+      const res = aiServerConfigured
+        ? { status: 'answered' as const, text: await aiReadFiles(prompt, [{ uri: file.uri, mime }]), message: '' }
+        : await routeRequest({ text: prompt, lang: 'it', source: 'typed', images: [{ uri: file.uri, mime }] });
       if (res.status === 'answered' && res.text) {
         const merged = applyAiExtraction(draft ?? draftFromText('', parseOpts()), { text: res.text }, parseOpts());
         const nf = formFromDraft(merged, currentCurrency());
@@ -143,7 +147,7 @@ export default function BillReview() {
         setNoTextWhy(undefined);
         setAiMsg(t('Ho riempito i campi con la lettura esterna: controllali, sono tutti da confermare.'));
       } else setAiMsg(res.message);
-    } catch { setAiMsg(t('Non sono riuscito a contattare il servizio esterno.')); }
+    } catch (e) { setAiMsg(e instanceof AiServerError ? e.message : t('Non sono riuscito a contattare il servizio esterno.')); }
     finally { setAiBusy(false); setAiSheet(false); }
   }
 

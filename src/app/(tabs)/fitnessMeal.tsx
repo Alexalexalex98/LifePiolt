@@ -11,6 +11,7 @@ import { matchRecipes, recipeAsFood, type Recipe } from '@/lib/fitness/foodDb';
 import { MEAL_PROMPT, parseMealReply, resolveItems, type Resolved } from '@/lib/fitness/mealPhoto';
 import { hasPremiumFeature } from '@/lib/premiumApp';
 import { routeRequest } from '@/lib/aiRouter';
+import { aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
 import { go } from '@/lib/nav';
 import { Icon } from '@/lib/icons';
 import { pickNetMediaMany, takeNetPhoto } from '@/lib/netMedia';
@@ -58,13 +59,18 @@ export default function FitnessMeal() {
     if (!uri || busy) return;
     setBusy(true); setReport(null);
     try {
-      const res = await routeRequest({ text: MEAL_PROMPT, lang: 'it', source: 'typed', images: [{ uri, mime: 'image/jpeg' }] });
-      if (res.status !== 'answered' || !res.text) { setReport({ found: [], note: res.message }); return; }
-      const found = resolveItems(parseMealReply(res.text));
+      let reply = '';
+      if (aiServerConfigured) reply = await aiReadFiles(MEAL_PROMPT, [{ uri, mime: 'image/jpeg' }]);
+      else {
+        const res = await routeRequest({ text: MEAL_PROMPT, lang: 'it', source: 'typed', images: [{ uri, mime: 'image/jpeg' }] });
+        if (res.status !== 'answered' || !res.text) { setReport({ found: [], note: res.message }); return; }
+        reply = res.text;
+      }
+      const found = resolveItems(parseMealReply(reply));
       if (!found.length) { setReport({ found: [], note: tl('Non riconosco cibo in questa foto. Prova con più luce o scegli tu gli alimenti.') }); return; }
       setPlate(found.flatMap((x) => (x.food ? [{ food: x.food, grams: String(x.grams) }] : [])));
       setReport({ found });
-    } catch { setReport({ found: [], note: tl('Non sono riuscito a contattare il servizio di analisi.') }); }
+    } catch (e) { setReport({ found: [], note: e instanceof AiServerError ? e.message : tl('Non sono riuscito a contattare il servizio di analisi.') }); }
     finally { setBusy(false); }
   };
   const choose = (f: Food) => { setPlate((p) => [...p, { food: f, grams: String(f.portion) }]); setQ(''); };
