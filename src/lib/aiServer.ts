@@ -50,11 +50,8 @@ export async function imageForAi(uri: string): Promise<{ base64: string; mime: '
   } catch { return null; }
 }
 
-/**
- * Legge immagini (anche piu' d'una) o un PDF con il server AI e restituisce il testo. Una sola immagine va su /vision,
- * il resto su /analyze. Il testo e' grezzo (senza humanize) perche' spesso e' un JSON da interpretare.
- */
-export async function aiReadFiles(prompt: string, files: { uri: string; mime: string }[]): Promise<string> {
+/** File pronti per il server: immagini ridotte, altri file (PDF) in base64. */
+async function prepFiles(files: { uri: string; mime: string }[]): Promise<{ data: string; mime: string }[]> {
   const ready: { data: string; mime: string }[] = [];
   for (const f of files) {
     if (f.mime.startsWith('image/')) {
@@ -68,6 +65,17 @@ export async function aiReadFiles(prompt: string, files: { uri: string; mime: st
     }
   }
   if (!ready.length) throw new AiServerError('Non riesco a leggere il file: provane un altro.');
-  if (ready.length === 1 && ready[0].mime.startsWith('image/')) return (await call<{ reply: string }>('/vision', { image: ready[0].data, mime: ready[0].mime, prompt })).reply;
-  return (await aiAnalyze(ready, prompt)).reply;
+  return ready;
 }
+
+/**
+ * Legge immagini (anche piu' d'una) o un PDF con il server AI. Una sola immagine va su /vision (testo libero),
+ * il resto su /analyze (risposta strutturata in `result`, con `reply` in JSON). Il testo e' grezzo (senza humanize).
+ */
+export async function aiReadFilesFull(prompt: string, files: { uri: string; mime: string }[]): Promise<{ reply: string; result?: unknown }> {
+  const ready = await prepFiles(files);
+  if (ready.length === 1 && ready[0].mime.startsWith('image/')) return { reply: (await call<{ reply: string }>('/vision', { image: ready[0].data, mime: ready[0].mime, prompt })).reply };
+  return aiAnalyze(ready, prompt);
+}
+
+export const aiReadFiles = async (prompt: string, files: { uri: string; mime: string }[]): Promise<string> => (await aiReadFilesFull(prompt, files)).reply;

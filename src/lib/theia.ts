@@ -15,7 +15,7 @@ import { joinReasons, rankTasks } from '@/lib/priority';
 import { t, translateText } from '@/i18n/core';
 import { humanize, styleHints } from '@/lib/aiPersona';
 import { useAssistant } from '@/store/assistant';
-import { aiChat, aiReadFiles, aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
+import { aiChat, aiReadFilesFull, aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
 import { useLife } from '@/store/life';
 
 /**
@@ -277,9 +277,10 @@ export async function askTheiaChat(question: string): Promise<string> {
   return humanize(await aiChat(theiaPrompt(question)));
 }
 
-/** Domanda su file o foto inviati (consenso gia' dato): risponde il server AI leggendo i file. */
-export async function askTheiaFiles(question: string, files: { uri: string; mime: string }[]): Promise<string> {
-  return humanize(await aiReadFiles(theiaPrompt(question), files));
+/** Domanda su file o foto inviati (consenso gia' dato): risponde il server AI leggendo i file. `result` e' la lettura strutturata dei documenti. */
+export async function askTheiaFiles(question: string, files: { uri: string; mime: string }[]): Promise<{ reply: string; result?: unknown }> {
+  const r = await aiReadFilesFull(theiaPrompt(question), files);
+  return { reply: humanize(r.reply), result: r.result };
 }
 
 export async function askTheia(question: string, req: TheiaRequest): Promise<TheiaAnswer> {

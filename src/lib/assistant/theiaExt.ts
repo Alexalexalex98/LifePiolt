@@ -15,6 +15,8 @@ export type TheiaAction =
   | { kind: 'open'; label: string; page?: string; params?: Record<string, string>; url?: string }
   /** apre l'analisi bolletta/fattura su un file ricevuto in chat */
   | { kind: 'bill'; label: string; uri: string; mime: string; name: string }
+  /** aggiunge alle bollette le fatture lette da un documento (dopo la conferma) */
+  | { kind: 'add-invoices'; label: string; invoices: { issuer: string; amount: number; currency: string; number?: string; dueDate?: string }[]; fileUri?: string; fileName?: string; fileMime?: string }
   /** manda a Theia i file (dopo il consenso) per leggerli */
   | { kind: 'read-files'; label: string; text: string; files: { uri: string; mime: string; name?: string }[] }
   | { kind: 'dismiss'; label: string };

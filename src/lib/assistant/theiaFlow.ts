@@ -14,6 +14,9 @@ import { routeRequest, type RouteResult } from '@/lib/aiRouter';
 import { aiServerConfigured } from '@/lib/aiServer';
 import { askSend, logSend } from '@/lib/aiConsent';
 import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
+import { describeAnalysis, isBillType } from '@/lib/docAnalysis';
+import { useFin } from '@/store/finance';
+import { refreshBillReminders } from '@/lib/bills/schedule';
 import { openBillReview } from '@/components/theia/billRoute';
 import { BILL_FOLDER } from '@/lib/bills/files';
 import { useLife } from '@/store/life';
@@ -94,14 +97,42 @@ async function readFilesWithAi(question: string, files: { uri: string; mime: str
   }
   logSend('files', 0, files.map((f) => f.mime));
   try {
-    const raw = await askTheiaFiles(`${question || t('Dimmi di cosa si tratta e cosa mi consigli di farne.')}${FILE_SUFFIX}`, files);
-    const bill = (TIPO.exec(raw)?.[1] ?? '').toLowerCase().startsWith('bollett') || /fattur/i.test(TIPO.exec(raw)?.[1] ?? '');
-    const text = raw.replace(TIPO, '').trim();
+    const { reply, result } = await askTheiaFiles(`${question || t('Dimmi di cosa si tratta e cosa mi consigli di farne.')}${FILE_SUFFIX}`, files);
     const first = files[0];
+    const d = describeAnalysis(result);
+    if (d) {
+      const actions: TheiaAction[] = [];
+      if (d.invoices.length && first) actions.push({ kind: 'add-invoices', label: d.invoices.length > 1 ? t('Aggiungi le {0} fatture alle bollette', d.invoices.length) : t('Aggiungi la fattura alle bollette'), invoices: d.invoices, fileUri: first.uri, fileName: first.name, fileMime: first.mime });
+      else if (isBillType(d.tipo) && first) actions.push({ kind: 'bill', label: t('Aggiungi alle bollette'), uri: first.uri, mime: first.mime, name: first.name ?? t('Bolletta') });
+      if (actions.length) actions.push({ kind: 'dismiss', label: t('No, grazie') });
+      pushAi(d.text || t('Risposta vuota dal server.'), actions.length ? { ext: { actions } } : undefined);
+      return;
+    }
+    const kind = TIPO.exec(reply)?.[1] ?? '';
+    const bill = /^bollett|fattur/i.test(kind);
+    const text = reply.replace(TIPO, '').trim();
     pushAi(text || t('Risposta vuota dal server.'), bill && first ? { ext: { actions: [{ kind: 'bill', label: t('Aggiungi alle bollette'), uri: first.uri, mime: first.mime, name: first.name ?? t('Bolletta') }, { kind: 'dismiss', label: t('No, grazie') }] } } : undefined);
   } catch (e) {
     pushAi(e instanceof Error ? e.message : t('Errore del server AI.'));
   }
+}
+
+/** Fatture lette da un documento: entrano nelle bollette solo dopo il tocco dell'utente, collegate al file in LifeDrive. */
+function addInvoicesFromChat(a: Extract<TheiaAction, { kind: 'add-invoices' }>) {
+  const fin = useFin.getState();
+  const drive = useLife.getState().drive.find((d) => d.uri === a.fileUri);
+  let added = 0;
+  for (const inv of a.invoices) {
+    if (fin.invoices.some((x) => x.number === inv.number && x.issuer === inv.issuer && Math.abs(x.amount - inv.amount) < 0.01)) continue;
+    fin.addInvoice({
+      issuer: inv.issuer, kind: 'altro', amount: inv.amount, currency: inv.currency, ...(inv.number ? { number: inv.number } : {}), ...(inv.dueDate ? { dueDate: inv.dueDate } : {}),
+      ...(a.fileUri ? { fileUri: a.fileUri, fileName: a.fileName, fileMime: a.fileMime, ...(drive ? { fileId: drive.id } : {}) } : {}),
+      remind: true, calendar: false,
+    }, 'Aggiunta da Theia (documento in chat)');
+    added++;
+  }
+  void refreshBillReminders().catch(() => {});
+  pushAi(added ? (added > 1 ? t('Fatto: ho aggiunto {0} fatture alle bollette, con il file collegato.', added) : t('Fatto: ho aggiunto la fattura alle bollette, con il file collegato.')) : t('Queste fatture ci sono già nelle bollette: non le ho duplicate.'), { ext: { actions: [{ kind: 'open', label: t('Apri Finanze'), page: 'lifefinance' }] } });
 }
 
 export async function sendTheia(i: SendInput): Promise<void> {
@@ -364,6 +395,7 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
       if (!(await runLocal(action.command))) pushAi(t('Non l\'ho capito neanche così. Prova a scrivermelo in un altro modo.'));
       return;
     }
+    case 'add-invoices': addInvoicesFromChat(action); return;
     case 'bill': openBillReview({ uri: action.uri, mime: action.mime, name: action.name }); return;
     case 'read-files': store().push({ who: 'me', text: action.label, source: 'chat' }); await readFilesWithAi(action.text, action.files); return;
     case 'ask-ai': case 'retry':

@@ -1,5 +1,5 @@
 {
- "count": 11449,
+ "count": 11459,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -321,7 +321,7 @@
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 60,
+  "src/lib/assistant/theiaFlow.ts": 67,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -371,6 +371,7 @@
   "src/lib/dataTable.ts": 6,
   "src/lib/diagnostics.ts": 14,
   "src/lib/diagnosticsReport.ts": 14,
+  "src/lib/docAnalysis.ts": 5,
   "src/lib/docCheck.ts": 42,
   "src/lib/e2eModel.ts": 37,
   "src/lib/enroll.ts": 31,
@@ -515,5 +516,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1412
+ "withPlaceholders": 1418
 }
