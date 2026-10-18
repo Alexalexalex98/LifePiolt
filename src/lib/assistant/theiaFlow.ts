@@ -83,6 +83,9 @@ function saveToDrive(atts: Att[]) {
   }
 }
 
+/** «aggiungi / carica / inserisci una bolletta o fattura» */
+const BILL_ADD = /\b(aggiung|carica|caricare|inserisc|registr|nuov|metti|mettere|salva|salvare)\w*\b.*\b(bolletta|bollette|fattura|fatture)\b/;
+
 const TIPO = /^\s*TIPO:\s*(\w+)\s*$/im;
 const FILE_SUFFIX = '\n\nSe nel file riconosci una bolletta o una fattura da pagare, chiudi la risposta con una riga a parte: TIPO: bolletta';
 
@@ -211,6 +214,13 @@ export async function sendTheia(i: SendInput): Promise<void> {
 
   // «devo prenotare un dentista»: prima i professionisti di LifePilot, poi (solo se nessuno è abbastanza buono) la ricerca fuori dall'app
   // frasi intere (livello più preciso): «voglio ordinare una pizza», «mi serve un dentista», «quanto ho speso questo mese»…
+  // «aggiungi una bolletta»: si fa subito, senza rimandare alla guida
+  if (!pending && BILL_ADD.test(norm(text))) {
+    pushAi(t('Certo. Allega con la graffetta il PDF o la foto della bolletta: la leggo e ti propongo di aggiungerla. Oppure aprila qui e la compili a mano o da file.'), {
+      ext: { actions: [{ kind: 'open', label: t('Aggiungi una bolletta'), page: 'billReview' }, { kind: 'dismiss', label: t('No, grazie') }] },
+    });
+    return;
+  }
   if (!pending && (await handlePhrase(command ?? text))) return;
   // dove si trova / come si fa: risposta precisa dalla guida, con il pulsante per aprire la pagina
   if (!pending && looksLikeHelp(text)) {
