@@ -1,5 +1,5 @@
 {
- "count": 11483,
+ "count": 11490,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -47,7 +47,7 @@
   "src/app/(tabs)/jobTest.tsx": 47,
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
-  "src/app/(tabs)/lifefinance.tsx": 88,
+  "src/app/(tabs)/lifefinance.tsx": 87,
   "src/app/(tabs)/lifefitness.tsx": 75,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
@@ -108,7 +108,7 @@
   "src/components/CalendarImportSheet.tsx": 18,
   "src/components/CalendarViews.tsx": 47,
   "src/components/ConfirmBadge.tsx": 4,
-  "src/components/CsvImportSheet.tsx": 23,
+  "src/components/CsvImportSheet.tsx": 32,
   "src/components/DataChart.tsx": 2,
   "src/components/Discover.tsx": 21,
   "src/components/ErrorBanner.tsx": 5,
@@ -516,5 +516,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1422
+ "withPlaceholders": 1426
 }

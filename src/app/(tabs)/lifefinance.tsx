@@ -32,7 +32,7 @@ export default function LifeFinance() {
   const f = useFin();
   const color = sectionColor(areaColors.lifefinance);
   const [hist, setHist] = useState<number | null>(null);
-  const [tab, setTab] = useState('Conto');
+  const [tab, setTab] = useState('Situazione');
   const [alertSheet, setAlertSheet] = useState(false);
   const [tips, setTips] = useState(false);
   const [ef, setEf] = useState(false);
@@ -93,12 +93,12 @@ export default function LifeFinance() {
     <Page id="lifefinance" title="LifeFinance" back>
       <FinTabs current="lifefinance" />
 
-      <Seg options={['Conto', 'Investi', 'Analisi', 'Budget', 'Bollette']} value={tab} onChange={setTab} />
+      <Seg options={['Situazione', 'Budget', 'Bollette', 'Investi', 'LifePoints']} value={tab} onChange={setTab} />
 
-      {tab === 'Conto' && <WalletTab onInvest={() => setTab('Investi')} />}
+      {tab === 'LifePoints' && <WalletTab onInvest={() => setTab('Investi')} />}
       {tab === 'Investi' && <InvestTab />}
 
-      {tab === 'Analisi' && (
+      {tab === 'Situazione' && (
         <>
           <FinanceOverview h={{ onAlerts: () => setAlertSheet(true), onBills: () => setTab('Bollette'), onEmergency: () => setTab('Budget'), onImport: () => setCsvSheet(true), onMovements: (i) => setHist(i) }} />
       <MonthCalcCard />

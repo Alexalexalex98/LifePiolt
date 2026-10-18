@@ -2,12 +2,13 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { Body, Btn, Item, Row, Select, Sheet } from '@/components/ui';
+import { Body, Btn, Item, Row, Select, Sheet, Toggle } from '@/components/ui';
+import { alertT } from '@/lib/alert';
 import { useTheme } from '@/hooks/use-theme';
 import { movementLabel, parseCsv, splitDuplicates, toAppDate, monthLabelOfIso, type CsvRow } from '@/lib/csvImport';
 import { readPickedText } from '@/lib/readPicked';
 import { useFin } from '@/store/finance';
-import { toast } from '@/store/toast';
+import { showUndoToast, toast } from '@/store/toast';
 import { formatMoney } from '@/i18n/format';
 
 /** Importa movimenti da un CSV/estratto conto: scelta del file, anteprima con categorie modificabili, conferma. */
@@ -21,9 +22,12 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
   const [info, setInfo] = useState<string[]>([]);
   const [skipped, setSkipped] = useState(0);
   const [dups, setDups] = useState(0);
+  const [dupRows, setDupRows] = useState<CsvRow[]>([]);
+  /* l'estratto conto ha la precedenza: di base sostituisce i movimenti attuali */
+  const [replace, setReplace] = useState(true);
   const [busy, setBusy] = useState(false);
 
-  const reset = () => { setRows(null); setOff({}); setInfo([]); setSkipped(0); setDups(0); setFileName(''); };
+  const reset = () => { setRows(null); setOff({}); setInfo([]); setSkipped(0); setDups(0); setDupRows([]); setFileName(''); };
 
   async function pick() {
     setBusy(true);
@@ -35,7 +39,7 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       const parsed = parseCsv(text, catNames);
       const existing = useFin.getState().months.flatMap((m) => m.movements.map((x) => ({ monthLabel: m.label, date: x.date, amount: x.amount })));
       const { fresh, duplicates } = splitDuplicates(parsed.rows, existing);
-      setFileName(a.name); setRows(fresh); setOff({}); setInfo(parsed.warnings); setSkipped(parsed.skipped); setDups(duplicates.length);
+      setFileName(a.name); setRows(fresh); setOff({}); setInfo(parsed.warnings); setSkipped(parsed.skipped); setDups(duplicates.length); setDupRows(duplicates);
     } catch {
       toast('Impossibile leggere il file');
       setInfo(['Impossibile leggere il file. Esporta di nuovo l’estratto in formato CSV e riprova.']);
@@ -43,8 +47,24 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
   }
 
   const chosen = (rows ?? []).filter((_, i) => !off[i]);
+  function doReplace() {
+    const all = [...chosen, ...dupRows].map((r) => ({ date: r.date, label: movementLabel(r), amount: r.amount }));
+    const res = useFin.getState().replaceWithStatement(all);
+    if (!res.added) { toast('Nessun movimento utilizzabile nell’estratto'); return; }
+    const prev = res.previous;
+    showUndoToast(`Estratto conto applicato: ${res.added} movimenti in ${res.months} ${res.months === 1 ? 'mese' : 'mesi'}${res.removed ? ` · tolti ${res.removed} movimenti precedenti` : ''}`, () => useFin.getState().restoreMonths(prev));
+    reset(); onClose();
+  }
   function confirm() {
-    if (!chosen.length) { toast('Nessun movimento selezionato'); return; }
+    if (!chosen.length && !(replace && dupRows.length)) { toast('Nessun movimento selezionato'); return; }
+    if (replace) {
+      const have = useFin.getState().months.reduce((s, m) => s + m.movements.length, 0);
+      alertT('L’estratto conto ha la precedenza', `Sostituisco i ${have} movimenti attuali con quelli dell’estratto conto (${chosen.length + dupRows.length}). Quello che non viene dalla banca sarà tolto. Subito dopo puoi annullare.`, [
+        { text: 'Annulla', style: 'cancel' },
+        { text: 'Sostituisci', style: 'destructive', onPress: doReplace },
+      ]);
+      return;
+    }
     const res = useFin.getState().importMovements(chosen.map((r) => ({ date: r.date, label: movementLabel(r), amount: r.amount })));
     toast(`Importati ${res.added} movimenti${res.newMonths ? ` (${res.newMonths} ${res.newMonths === 1 ? 'mese aggiunto' : 'mesi aggiunti'})` : ''}${res.future ? ` · ${res.future} nel futuro ignorati` : ''}`);
     reset(); onClose();
@@ -83,9 +103,10 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
             ))}
           </View>
           <Body small muted style={{ marginTop: 10 }}>Saldo dei movimenti selezionati: {total >= 0 ? '+' : ''}{formatMoney(total, { decimals: 2 })}. I mesi che non hai ancora in app vengono aggiunti come storico.</Body>
+          <Toggle label="L’estratto conto ha la precedenza" value={replace} onChange={setReplace} hint="Sostituisce i movimenti attuali con quelli della banca e toglie tutto il resto. Puoi annullare subito dopo." />
           <Row style={{ marginTop: 12 }} gap={8}>
             <Btn ghost style={{ flex: 1 }} title="Altro file" onPress={reset} />
-            <Btn style={{ flex: 1 }} disabled={!chosen.length} title={`Importa ${chosen.length}`} onPress={confirm} />
+            <Btn style={{ flex: 1 }} disabled={!chosen.length && !(replace && dupRows.length)} title={replace ? `Applica l’estratto (${chosen.length + dupRows.length})` : `Importa ${chosen.length}`} onPress={confirm} />
           </Row>
         </>
       )}

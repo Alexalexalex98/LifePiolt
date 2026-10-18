@@ -165,6 +165,9 @@ type FinState = {
   rollMonth: () => void;
   /** Aggiunge movimenti importati (data ISO). Crea i mesi mancanti (chiusi) e tiene coerenti i saldi. */
   importMovements: (rows: { date: string; label: string; amount: number }[]) => { added: number; newMonths: number; future: number };
+  /** L'estratto conto ha la precedenza: i movimenti attuali vengono sostituiti da quelli dell'estratto (i mesi senza estratto restano vuoti). */
+  replaceWithStatement: (rows: { date: string; label: string; amount: number }[]) => { added: number; removed: number; months: number; future: number; previous: FinMonth[] };
+  restoreMonths: (months: FinMonth[]) => void;
 
   addStock: (symbol: string, name: string) => void;
   delStock: (symbol: string) => void;
@@ -297,6 +300,35 @@ export const useFin = create<FinState>()(
     }),
 
 
+    restoreMonths: (months) => set({ months }),
+    replaceWithStatement: (rows) => {
+      const names = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+      const keyOfLabel = (l: string) => { const [n, y] = l.split(' '); const i = names.indexOf(n); return i < 0 || !y ? -1 : Number(y) * 12 + i; };
+      const labelOfIso = (iso: string) => `${names[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
+      const previous = get().months;
+      const removed = previous.reduce((s, m) => s + m.movements.length, 0);
+      const curKey = previous.length ? keyOfLabel(previous[0].label) : -1;
+      const groups = new Map<string, { date: string; label: string; amount: number }[]>();
+      let future = 0;
+      rows.forEach((r) => {
+        const lab = labelOfIso(r.date);
+        if (curKey >= 0 && keyOfLabel(lab) > curKey) { future++; return; }
+        groups.set(lab, [...(groups.get(lab) ?? []), r]);
+      });
+      if (!groups.size) return { added: 0, removed: 0, months: 0, future, previous };
+      const order = [...groups.entries()].sort((a, b) => keyOfLabel(b[0]) - keyOfLabel(a[0]));
+      const months: FinMonth[] = [];
+      let added = 0;
+      order.forEach(([lab, list], i) => {
+        const mvs: Movement[] = list.slice().sort((a, b) => a.date.localeCompare(b.date)).map((r) => ({ date: `${r.date.slice(8, 10)}/${r.date.slice(5, 7)}`, label: r.label, amount: r.amount }));
+        const net = mvs.reduce((sum, x) => sum + x.amount, 0);
+        const newerStart = i === 0 ? (previous.find((m) => m.label === lab)?.start ?? 0) + net : months[i - 1].start;
+        months.push({ label: lab, start: newerStart - net, locked: i > 0, movements: mvs });
+        added += mvs.length;
+      });
+      set({ months });
+      return { added, removed, months: months.length, future, previous };
+    },
     importMovements: (rows) => {
       const names = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
       const keyOfLabel = (l: string) => { const [n, y] = l.split(' '); const i = names.indexOf(n); return i < 0 || !y ? -1 : Number(y) * 12 + i; };
