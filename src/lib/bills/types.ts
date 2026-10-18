@@ -91,6 +91,8 @@ export type Invoice = {
   fileUri?: string;
   fileName?: string;
   fileMime?: string;
+  /** contenuto del QR-bill svizzero (letto dalla fattura): si ridisegna nella pagina della bolletta */
+  qr?: string;
   paidAt?: string;
   paidAmount?: number;
   /** Movimento registrato al pagamento (per annullarlo). */

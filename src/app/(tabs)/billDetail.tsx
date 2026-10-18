@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Image, View } from 'react-native';
 
 import { PlanList } from '@/components/bills/PlanCard';
+import { QrCode } from '@/components/bills/QrCode';
 import { Note, StatusPill, dueText, fmtDay, money, usePlan } from '@/components/bills/shared';
 import { Body, Btn, Card, Empty, H, Input, Item, Metric, Page, Pill, Row, Sheet, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -249,6 +250,13 @@ export default function BillDetail() {
         <Body small muted style={{ marginTop: 6 }}>{t('Le notifiche partono dal telefono, senza server. Per scegliere i momenti e l\'ora: Finanze > Bollette > Promemoria.')}</Body>
       </Card>
 
+      {inv.qr ? (
+        <Card>
+          <H>{t('Codice QR di pagamento')}</H>
+          <View style={{ alignItems: 'center', marginTop: 10 }}><QrCode value={inv.qr} size={230} swissCross /></View>
+          <Body small muted style={{ marginTop: 8 }}>{t('Ridisegnato dai dati della fattura: puoi inquadrarlo con l’app della tua banca.')}</Body>
+        </Card>
+      ) : null}
       <Card>
         <H>{t('Dati')}</H>
         <DataRow label="Tipo" value={t(KIND_LABEL[inv.kind])} />

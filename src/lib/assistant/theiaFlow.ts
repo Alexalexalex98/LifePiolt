@@ -11,7 +11,16 @@ import { domainsIn } from './dictionary';
 import { useNet } from '@/store/network';
 import { helpAnswer, looksLikeHelp, searchHelp } from '@/lib/helpKb';
 import { routeRequest, type RouteResult } from '@/lib/aiRouter';
-import { needsAnalysis, textPayload, type Att } from '@/lib/attachments';
+import { aiServerConfigured } from '@/lib/aiServer';
+import { askSend, logSend } from '@/lib/aiConsent';
+import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
+import { openBillReview } from '@/components/theia/billRoute';
+import { BILL_FOLDER } from '@/lib/bills/files';
+import { useLife } from '@/store/life';
+import { useAiRouter } from '@/store/aiRouter';
+import { weekdayShortDate } from '@/lib/format';
+import { fmtBytes, needsAnalysis, textPayload, type Att } from '@/lib/attachments';
+import { isNo, isYes } from './appActionCore';
 import { t } from '@/i18n/core';
 import { understand } from '@/lib/langLexicon';
 import { go } from '@/lib/nav';
@@ -48,6 +57,53 @@ const store = () => useAssistant.getState();
 const pushAi = (text: string, extra: { chips?: string[]; ext?: TheiaExt } = {}): AMsg => store().push({ who: 'ai', text, source: 'chat', chips: extra.chips, ext: extra.ext });
 const clean = (s: string) => s.replace(/["“”«»]/g, '').replace(/\s+/g, ' ').trim();
 
+/** Il server AI e' collegato e l'utente non ha scelto "Solo sul telefono". */
+const aiOn = () => aiServerConfigured && !useAiRouter.getState().prefs.phoneOnly;
+
+/** Saluti, ringraziamenti, si/no senza domanda in sospeso e frasi libere: risponde l'AI come una persona. */
+const SMALLTALK = /^(ciao|salve|hey|ehi|buongiorno|buonasera|buon pomeriggio|buonanotte|hi|hello|grazie|thanks|thank you)\b/;
+
+async function aiChatReply(text: string): Promise<void> {
+  try {
+    pushAi(await askTheiaChat(text) || t('Risposta vuota dal server.'));
+  } catch (e) {
+    pushAi(`${e instanceof Error ? e.message : t('Errore del server AI.')}\n\n${t('I comandi sul tuo piano, i task e i report funzionano comunque.')}`);
+  }
+}
+
+/** Il documento ricevuto in chat finisce SEMPRE in LifeDrive (resta sul telefono): niente invio, nessun consenso necessario. */
+function saveToDrive(atts: Att[]) {
+  const life = useLife.getState();
+  for (const a of atts) {
+    if (a.kind !== 'document' || !a.uri || life.drive.some((d) => d.uri === a.uri)) continue;
+    life.addFile({ n: a.name, s: fmtBytes(a.size) || '—', folder: a.billish ? BILL_FOLDER : 'Chat con Theia', date: weekdayShortDate(), uri: a.uri });
+  }
+}
+
+const TIPO = /^\s*TIPO:\s*(\w+)\s*$/im;
+const FILE_SUFFIX = '\n\nSe nel file riconosci una bolletta o una fattura da pagare, chiudi la risposta con una riga a parte: TIPO: bolletta';
+
+/** Legge file e foto con l'AI, solo dopo il consenso. Se e' una bolletta propone di aggiungerla; non inserisce nulla senza conferma. */
+async function readFilesWithAi(question: string, files: { uri: string; mime: string; name?: string }[]): Promise<void> {
+  const what = files.map((f) => f.name ?? t('Foto')).slice(0, 4).join(', ');
+  if (!(await askSend('files', what))) {
+    pushAi(t('Va bene, non invio nulla: il file resta sul tuo telefono. Senza il permesso non posso capire file, foto e documenti.'), {
+      ext: { actions: [{ kind: 'read-files', label: t('Fammi leggere il file'), text: question, files }, { kind: 'dismiss', label: t('No, grazie') }] },
+    });
+    return;
+  }
+  logSend('files', 0, files.map((f) => f.mime));
+  try {
+    const raw = await askTheiaFiles(`${question || t('Dimmi di cosa si tratta e cosa mi consigli di farne.')}${FILE_SUFFIX}`, files);
+    const bill = (TIPO.exec(raw)?.[1] ?? '').toLowerCase().startsWith('bollett') || /fattur/i.test(TIPO.exec(raw)?.[1] ?? '');
+    const text = raw.replace(TIPO, '').trim();
+    const first = files[0];
+    pushAi(text || t('Risposta vuota dal server.'), bill && first ? { ext: { actions: [{ kind: 'bill', label: t('Aggiungi alle bollette'), uri: first.uri, mime: first.mime, name: first.name ?? t('Bolletta') }, { kind: 'dismiss', label: t('No, grazie') }] } } : undefined);
+  } catch (e) {
+    pushAi(e instanceof Error ? e.message : t('Errore del server AI.'));
+  }
+}
+
 export async function sendTheia(i: SendInput): Promise<void> {
   const text = i.text.trim();
   if (i.voiceNote) {
@@ -66,6 +122,11 @@ export async function sendTheia(i: SendInput): Promise<void> {
   // immagini o documenti che il telefono non sa leggere (PDF, Word, Excel): restano salvati e, se serve l'analisi, risponde il router (oggi non collegato)
   if (images.length || atts.some(needsAnalysis)) {
     store().push({ who: 'me', text, source: 'chat', topic: i.topic, ext: { images: images.length ? images.map((x) => x.uri) : undefined, ...withAtts, lang: i.lang, voice: i.source === 'voice' } });
+    saveToDrive(atts);
+    if (aiOn()) {
+      const list = [...images.map((x) => ({ uri: x.uri, mime: x.mime })), ...atts.filter((a) => a.kind === 'document' && a.uri && !a.text).map((a) => ({ uri: a.uri!, mime: a.mime ?? 'application/pdf', name: a.name }))];
+      if (list.length) { await readFilesWithAi([text, payload].filter(Boolean).join('\n\n'), list); return; }
+    }
     const files = atts.filter(needsAnalysis).length;
     if (!text && !images.length) {
       pushAi(files > 1
@@ -95,6 +156,12 @@ export async function sendTheia(i: SendInput): Promise<void> {
   const topic = i.topic ?? (command ? topicOf(command) ?? undefined : undefined);
   store().push({ who: 'me', text, source: 'chat', topic, ext: { ...withAtts, lang: u.lang, voice: i.source === 'voice' } });
 
+  // con l'AI collegata, saluti e frasi senza una domanda in sospeso le gestisce l'AI come una persona
+  if (aiOn() && !pending && !eng.pending) {
+    const n = norm(text);
+    const loneAnswer = (isYes(text) || isNo(text)) && n.split(' ').length > 3;
+    if ((SMALLTALK.test(n) && n.split(' ').length <= 8) || loneAnswer) { await aiChatReply([text, payload].filter(Boolean).join('\n\n')); return; }
+  }
   // funzioni dell'app (pubblica un post, crea un LifeClub, invia LifePoints...): le svolge Theia, anche a più domande
   if (handleAppAction(command ?? text, (m, x) => { pushAi(m, x); })) return;
 
@@ -130,6 +197,7 @@ export async function sendTheia(i: SendInput): Promise<void> {
       return;
     }
   }
+  if (aiOn() && !pending) { await aiChatReply([text, payload].filter(Boolean).join('\n\n')); return; }
   clarify(text, u.lang, i.source, [text, payload].filter(Boolean).join('\n\n'));
 }
 
@@ -296,6 +364,8 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
       if (!(await runLocal(action.command))) pushAi(t('Non l\'ho capito neanche così. Prova a scrivermelo in un altro modo.'));
       return;
     }
+    case 'bill': openBillReview({ uri: action.uri, mime: action.mime, name: action.name }); return;
+    case 'read-files': store().push({ who: 'me', text: action.label, source: 'chat' }); await readFilesWithAi(action.text, action.files); return;
     case 'ask-ai': case 'retry':
       await delegate({ text: action.text, lang: action.lang, source: action.source, images: action.kind === 'retry' ? action.images : undefined });
   }

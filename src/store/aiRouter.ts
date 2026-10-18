@@ -8,12 +8,16 @@ import type { TaskGroup } from '@/lib/aiRouter/types';
 import { persisted } from './persist';
 
 /** Intelligenza di Theia: preferenze, piano, consensi per fornitore, contatori d'uso e cronologia "Cosa è stato inviato". Tutto sul telefono. */
+export type FileConsent = { food: boolean; files: 'ask' | 'always' | 'never' };
 type State = {
   prefs: AiPrefs;
   planId: PlanId;
   consents: Consents;
   usage: UsageEntry[];
   sendLog: SendLogEntry[];
+  /** consenso a mandare foto e file al servizio AI: il cibo si chiede una volta sola, i file della chat ogni volta o per sempre */
+  fileConsent: FileConsent;
+  setFileConsent: (p: Partial<FileConsent>) => void;
   setPrefs: (p: Partial<AiPrefs>) => void;
   setTaskPref: (g: TaskGroup, v: string) => void;
   toggleBlocked: (providerId: string) => void;
@@ -38,6 +42,8 @@ export const useAiRouter = create<State>()(
     consents: {},
     usage: [],
     sendLog: [],
+    fileConsent: { food: false, files: 'ask' },
+    setFileConsent: (p) => set((s) => ({ fileConsent: { ...s.fileConsent, ...p } })),
     setPrefs: (p) => set((s) => ({ prefs: { ...s.prefs, ...p } })),
     setTaskPref: (g, v) => set((s) => ({ prefs: { ...s.prefs, taskPref: { ...s.prefs.taskPref, [g]: v } } })),
     toggleBlocked: (id) => set((s) => ({ prefs: { ...s.prefs, blockedProviders: s.prefs.blockedProviders.includes(id) ? s.prefs.blockedProviders.filter((x) => x !== id) : [...s.prefs.blockedProviders, id] } })),
@@ -51,6 +57,6 @@ export const useAiRouter = create<State>()(
     clearLog: () => set({ sendLog: [] }),
     restoreAllLog: (sendLog) => set({ sendLog }),
     resetUsageDev: () => { if (typeof __DEV__ !== 'undefined' && __DEV__) set({ usage: [] }); },
-    reset: () => set({ prefs: DEFAULT_PREFS, planId: 'free', consents: {}, usage: [], sendLog: [] }),
+    reset: () => set({ prefs: DEFAULT_PREFS, planId: 'free', consents: {}, usage: [], sendLog: [], fileConsent: { food: false, files: 'ask' } }),
   })),
 );

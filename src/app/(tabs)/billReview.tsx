@@ -12,12 +12,14 @@ import { t } from '@/i18n/core';
 import { currentCurrency, currentLocale } from '@/i18n/format';
 import { routeRequest } from '@/lib/aiRouter';
 import { aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
+import { askSend, logSend } from '@/lib/aiConsent';
 import { addBillToCalendar } from '@/lib/bills/calendar';
 import { diffDays, todayIso } from '@/lib/bills/dates';
 import { fileKind, openBillFile, readLocally, storeBillFile, type PickedBill } from '@/lib/bills/files';
 import { emptyForm, formFromDraft, inputToIso, validateForm, isoToInput, type BillForm, type FormErrors } from '@/lib/bills/form';
 import { applyAiExtraction, draftFromText } from '@/lib/bills';
 import { takePendingText } from '@/lib/bills/pending';
+import { scanQrFromImage, swissQrFrom } from '@/lib/bills/qrScan';
 import { splitInstallments, statusOf } from '@/lib/bills/plan';
 import { RECURRENCE_LABEL, KIND_LABEL, BILL_KINDS, type BillDraft, type BillKind, type Recurrence } from '@/lib/bills/types';
 import { refreshBillReminders, previewReminders } from '@/lib/bills/schedule';
@@ -46,6 +48,7 @@ export default function BillReview() {
   const [stage, setStage] = useState<Stage>('loading');
   const [file, setFile] = useState<PickedBill | undefined>();
   const [text, setText] = useState<string | undefined>();
+  const [qrPayload, setQrPayload] = useState<string | undefined>();
   const [draft, setDraft] = useState<BillDraft | undefined>();
   const [form, setForm] = useState<BillForm>(emptyForm(currentCurrency()));
   const [initial, setInitial] = useState<BillForm>(emptyForm(currentCurrency()));
@@ -106,7 +109,11 @@ export default function BillReview() {
       if (my !== run.current) return;
       if (r.kind === 'text') { setLocalNote(r.note); apply(draftFromText(r.text, parseOpts()), r.text); return; }
       setNoTextWhy(r.message);
-      apply(blank());
+      // foto della fattura: il QR-bill si legge sul telefono (senza AI e senza inviare nulla) e riempie IBAN, importo e riferimento
+      const qr = (pf.mime ?? '').startsWith('image/') ? await scanQrFromImage(pf.uri) : null;
+      if (my !== run.current) return;
+      setQrPayload(qr ?? undefined);
+      apply(qr ? draftFromText(qr, parseOpts()) : blank(), qr ?? undefined);
       return;
     }
     setFile(undefined);
@@ -131,6 +138,10 @@ export default function BillReview() {
     try {
       const prompt = t('Leggi questa bolletta o fattura e riporta in testo semplice: fornitore, importo totale da pagare con valuta, data di emissione, data di scadenza, numero del documento, IBAN e riferimento di pagamento. Non inventare nulla.');
       const mime = file.mime || (isImage ? 'image/jpeg' : 'application/pdf');
+      if (aiServerConfigured) {
+        if (!(await askSend('files', file.name))) { setAiMsg(t('Non invio il file: senza il permesso non posso leggerlo. Compila i campi a mano.')); return; }
+        logSend('files', file.size ?? 0, [mime]);
+      }
       const res = aiServerConfigured
         ? { status: 'answered' as const, text: await aiReadFiles(prompt, [{ uri: file.uri, mime }]), message: '' }
         : await routeRequest({ text: prompt, lang: 'it', source: 'typed', images: [{ uri: file.uri, mime }] });
@@ -173,7 +184,7 @@ export default function BillReview() {
         }
         const installments = rate > 1 ? splitInstallments(v.amount, rate, v.dueDate) : undefined;
         const how = text ? (file ? 'Aggiunta da file' : 'Aggiunta da testo incollato') : file ? 'Aggiunta dal documento (compilata a mano)' : 'Aggiunta a mano';
-        const id = st.addInvoice({ ...v, ...fileInfo, ...(installments ? { installments } : {}), remind, calendar: false }, installments ? `${how} · rateizzata in ${rate} rate` : how);
+        const id = st.addInvoice({ ...v, ...fileInfo, ...((qrPayload ?? swissQrFrom(text)) ? { qr: (qrPayload ?? swissQrFrom(text))! } : {}), ...(installments ? { installments } : {}), remind, calendar: false }, installments ? `${how} · rateizzata in ${rate} rate` : how);
         if (calendar) {
           const inv = useFin.getState().invoices.find((i) => i.id === id);
           if (inv && addBillToCalendar(inv, money(inv.amount, inv.currency)).length) useFin.getState().patchInvoice(id, { calendar: true });

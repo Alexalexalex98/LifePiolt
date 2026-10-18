@@ -15,6 +15,7 @@ import { dayChangePct, loadHistory, priceLp, priceUsd, useMarkets } from '@/stor
 import { Image } from 'expo-image';
 import { routeWithRuntime } from '@/lib/aiRouter/runtime';
 import { aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
+import { askSend, logSend } from '@/lib/aiConsent';
 import { SCREENSHOT_PROMPT, extractTicker, looksLikeTicker, searchInstruments } from '@/lib/markets/identify';
 import { go } from '@/lib/nav';
 import { pickNetMedia } from '@/lib/netMedia';
@@ -40,6 +41,8 @@ function AnalyzeCard() {
     try {
       const m = await pickNetMedia('photo');
       if (!m) return;
+      if (aiServerConfigured && !(await askSend('files', tl('Screenshot di un titolo')))) { setShot({ uri: m.uri, msg: tl('Non invio lo screenshot: senza il permesso Theia non può leggerlo. Scrivi qui il simbolo del titolo (per esempio AAPL).') }); return; }
+      if (aiServerConfigured) logSend('files', 0, ['image/jpeg']);
       setShot({ uri: m.uri, msg: tl('Theia sta leggendo lo screenshot…') });
       let answered = false, text = '', problem = '';
       if (aiServerConfigured) {

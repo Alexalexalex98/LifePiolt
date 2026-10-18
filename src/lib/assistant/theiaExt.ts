@@ -13,6 +13,10 @@ export type TheiaAction =
   | { kind: 'run'; label: string; command: string }
   /** apre una pagina dell'app o un indirizzo web (es. la ricerca sulle mappe) */
   | { kind: 'open'; label: string; page?: string; params?: Record<string, string>; url?: string }
+  /** apre l'analisi bolletta/fattura su un file ricevuto in chat */
+  | { kind: 'bill'; label: string; uri: string; mime: string; name: string }
+  /** manda a Theia i file (dopo il consenso) per leggerli */
+  | { kind: 'read-files'; label: string; text: string; files: { uri: string; mime: string; name?: string }[] }
   | { kind: 'dismiss'; label: string };
 
 export type TheiaExt = {
