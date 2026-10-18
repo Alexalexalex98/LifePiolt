@@ -1,6 +1,6 @@
 /** Calorie e pasti (modulo PURO): tabella di alimenti, calcolo per porzione e fabbisogno giornaliero. */
 import { DB_FOODS } from './foodDb.ts';
-export type Food = { id: string; name: string; kcal: number; p: number; c: number; f: number; /** porzione tipica in grammi */ portion: number; tags?: string; fib?: number; cat?: string; recipe?: boolean };
+export type Food = { id: string; name: string; kcal: number; p: number; c: number; f: number; /** porzione tipica in grammi */ portion: number; tags?: string; fib?: number; /** grassi saturi, zuccheri e sale per 100 g (se noti) */ sat?: number; sug?: number; salt?: number; cat?: string; recipe?: boolean };
 const F = (id: string, name: string, kcal: number, p: number, c: number, f: number, portion: number, tags = ''): Food => ({ id, name, kcal, p, c, f, portion, ...(tags ? { tags } : {}) });
 /** Valori per 100 g (medie indicative). */
 const BASE_FOODS: Food[] = [
@@ -34,13 +34,20 @@ export function searchFoods(q: string, max = 8): Food[] {
   for (const f of FOODS) { const hay = norm(`${f.name} ${f.tags ?? ''}`); const hs = hay.split(/\s+/); const hits = words.filter((w) => hay.includes(w) || hs.some((h) => h.startsWith(w))).length; if (hits) out.push({ f, hits }); }
   return out.sort((a, b) => b.hits - a.hits).slice(0, max).map((x) => x.f);
 }
-export type Macros = { kcal: number; p: number; c: number; f: number };
+export type Macros = { kcal: number; p: number; c: number; f: number; sat?: number; sug?: number; fib?: number; salt?: number };
+const OPT = ['sat', 'sug', 'fib', 'salt'] as const;
 const r1 = (n: number) => Math.round(n * 10) / 10;
 export function macrosFor(food: Food, grams: number): Macros {
   const k = Math.max(0, grams) / 100;
-  return { kcal: Math.round(food.kcal * k), p: r1(food.p * k), c: r1(food.c * k), f: r1(food.f * k) };
+  const m: Macros = { kcal: Math.round(food.kcal * k), p: r1(food.p * k), c: r1(food.c * k), f: r1(food.f * k) };
+  for (const o of OPT) { const v = o === 'fib' ? food.fib : food[o]; if (typeof v === 'number') m[o] = r1(v * k); }
+  return m;
 }
-export const sumMacros = (list: Macros[]): Macros => list.reduce((a, m) => ({ kcal: a.kcal + m.kcal, p: r1(a.p + m.p), c: r1(a.c + m.c), f: r1(a.f + m.f) }), { kcal: 0, p: 0, c: 0, f: 0 });
+export const sumMacros = (list: Macros[]): Macros => {
+  const out: Macros = list.reduce((a, m) => ({ kcal: a.kcal + m.kcal, p: r1(a.p + m.p), c: r1(a.c + m.c), f: r1(a.f + m.f) }), { kcal: 0, p: 0, c: 0, f: 0 });
+  for (const o of OPT) if (list.some((m) => typeof m[o] === 'number')) out[o] = r1(list.reduce((a, m) => a + (m[o] ?? 0), 0));
+  return out;
+};
 
 export type Body = { sex: 'f' | 'm'; age: number; weightKg: number; heightCm: number; activity: 'bassa' | 'media' | 'alta'; goal: 'dimagrire' | 'mantenere' | 'massa' };
 /** Fabbisogno giornaliero indicativo (Mifflin-St Jeor) con correzione per l'obiettivo. Non è un consiglio medico. */
@@ -50,3 +57,13 @@ export function dailyTarget(b: Body): number {
   const adj = { dimagrire: 0.85, mantenere: 1, massa: 1.1 }[b.goal];
   return Math.max(1200, Math.round((bmr * act * adj) / 10) * 10);
 }
+
+/** Obiettivi e limiti GENERALI e indicativi (stile indicazioni OMS/EFSA) a partire dal fabbisogno: non sono un consiglio medico. */
+export function dailyTargets(b: Body) {
+  const kcal = dailyTarget(b);
+  const protein = Math.round(b.weightKg * (b.goal === 'massa' ? 1.8 : b.goal === 'dimagrire' ? 1.6 : 1.2));
+  const fat = Math.round((kcal * 0.3) / 9);
+  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+  return { kcal, protein, carbs, fat, fibre: Math.max(25, Math.round((kcal / 1000) * 14)), sugarMax: Math.round((kcal * 0.1) / 4), satMax: Math.round((kcal * 0.1) / 9), saltMax: 5, waterL: Math.round(b.weightKg * 0.033 * 10) / 10 };
+}
+export const NUTRITION_DISCLAIMER = 'Questi valori sono indicativi: derivano da formule generali e dalle stime dell’AI e non sono un consiglio medico né dietetico. LifePilot non sostituisce un medico o un dietista: per un parere personale rivolgiti a un professionista.';

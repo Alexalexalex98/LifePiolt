@@ -1,13 +1,15 @@
 import { FIT, MacroBar, Ring } from '@/components/fitness/kit';
 import { Image } from 'expo-image';
 import { LogoLoader } from '@/components/LogoLoader';
+import { Text } from '@/components/T';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Body, Btn, Card, H, Input, Item, Page, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
-import { FOODS, FOOD, dailyTarget, macrosFor, searchFoods, sumMacros, type Body as BodyT, type Food } from '@/lib/fitness/nutrition';
+import { AiNote } from '@/components/AiNote';
+import { FOODS, FOOD, NUTRITION_DISCLAIMER, dailyTarget, dailyTargets, macrosFor, searchFoods, sumMacros, type Body as BodyT, type Food } from '@/lib/fitness/nutrition';
 import { matchRecipes, recipeAsFood, type Recipe } from '@/lib/fitness/foodDb';
 import { MEAL_PROMPT, parseMealReply, resolveItems, type Resolved } from '@/lib/fitness/mealPhoto';
 import { hasPremiumFeature } from '@/lib/premiumApp';
@@ -119,6 +121,25 @@ export default function FitnessMeal() {
             {(() => { const tot = Math.max(1, sum.p + sum.c + sum.f); return [['Proteine', sum.p, '#6ec9dd'], ['Carboidrati', sum.c, FIT], ['Grassi', sum.f, '#e0c97b']].map(([l, v, c]) => <MacroBar key={String(l)} label={tl(String(l))} grams={Number(v)} color={String(c)} pct={(Number(v) / tot) * 100} />); })()}
           </View>
         </Row>
+        {today.length ? (() => {
+          const tg = fit.body ? dailyTargets(fit.body) : null;
+          const rowsX: { label: string; v: number | undefined; max?: number; min?: number; unit: string }[] = [
+            { label: 'Grassi saturi', v: sum.sat, max: tg?.satMax, unit: 'g' }, { label: 'Zuccheri', v: sum.sug, max: tg?.sugarMax, unit: 'g' },
+            { label: 'Fibre', v: sum.fib, min: tg?.fibre, unit: 'g' }, { label: 'Sale', v: sum.salt, max: tg?.saltMax, unit: 'g' },
+          ];
+          if (rowsX.every((r) => r.v === undefined)) return null;
+          return (
+            <View style={{ marginTop: 10, gap: 4 }}>
+              <Body bold>Altri valori di oggi</Body>
+              {rowsX.map((r) => {
+                const over = r.v !== undefined && r.max !== undefined && r.v > r.max;
+                const low = r.v !== undefined && r.min !== undefined && r.v < r.min;
+                return <Row key={r.label}><Body small muted>{r.label}</Body><Body small bold style={over ? { color: t.danger } : undefined}>{r.v === undefined ? '—' : `${r.v} ${r.unit}`}{r.max !== undefined ? ` / max ${r.max}` : r.min !== undefined ? ` / almeno ${r.min}` : ''}{over ? ` · ${tl('superato')}` : low ? '' : ''}</Body></Row>;
+              })}
+              <Body small muted>Il totale conta solo gli alimenti di cui conosco questi dati (quelli stimati dalla foto o con valori completi): può essere inferiore al reale.</Body>
+            </View>
+          );
+        })() : null}
         {target && sum.kcal > target ? <Body bold style={{ marginTop: 8, color: t.danger }}>{tl('Hai superato il fabbisogno di oggi di {0} kcal', sum.kcal - target)}</Body> : null}
       </Card>
 
@@ -139,6 +160,7 @@ export default function FitnessMeal() {
             {report.note ? <Body small muted style={{ marginTop: 4 }}>{report.note}</Body> : null}
             {report.found.filter((x) => !x.food).map((x, i) => <Body key={i} small>{tl('{0}: non lo trovo nel database, cercalo qui sotto', x.name)}</Body>)}
             {report.found.some((x) => x.food) ? (() => { const tot = sumMacros(report.found.flatMap((x) => (x.food ? [macrosFor(x.food, x.grams)] : []))); return <Body bold style={{ marginTop: 4 }}>{tl('Totale stimato: {0} kcal · proteine {1} g · carboidrati {2} g · grassi {3} g', tot.kcal, tot.p, tot.c, tot.f)}</Body>; })() : null}
+            <AiNote />
             {report.found.some((x) => x.source === 'ai') ? <Body small muted>I valori con la stima dell'AI sono approssimativi: dipendono dalla porzione che vede nella foto.</Body> : null}
             {report.found.length ? <Body small muted style={{ marginTop: 4 }}>Ho riconosciuto questo dalla foto: è una stima. Qui sotto, in «Il tuo piatto», puoi correggere i grammi, duplicare o togliere un alimento, aggiungerne altri e scegliere quanto ne hai mangiato tu.</Body> : null}
           </View>
@@ -229,8 +251,28 @@ export default function FitnessMeal() {
         <Row style={{ justifyContent: 'flex-start' }} gap={8}>{(['bassa', 'media', 'alta'] as const).map((x) => <Pill key={x} label={x.charAt(0).toUpperCase() + x.slice(1)} on={body.activity === x} onPress={() => setBody({ ...body, activity: x })} />)}</Row>
         <Body bold style={{ marginTop: 10, marginBottom: 6 }}>Obiettivo</Body>
         <Row style={{ justifyContent: 'flex-start' }} gap={8}>{(['dimagrire', 'mantenere', 'massa'] as const).map((x) => <Pill key={x} label={x === 'massa' ? 'Mettere massa' : x.charAt(0).toUpperCase() + x.slice(1)} on={body.goal === x} onPress={() => setBody({ ...body, goal: x })} />)}</Row>
-        <Body small muted style={{ marginVertical: 8 }}>{tl('Fabbisogno stimato: {0} kcal al giorno', dailyTarget(body))}</Body>
-        <Btn title="Salva" onPress={() => { fit.set({ body }); setBodyOpen(false); }} />
+        {body.age > 0 && body.weightKg > 0 && body.heightCm > 0 ? (() => {
+          const g = dailyTargets(body);
+          const cell = (label: string, v: string) => <View style={{ flexBasis: '47%', flexGrow: 1, backgroundColor: t.item, borderRadius: 14, padding: 10 }}><Body small muted>{label}</Body><Body bold>{v}</Body></View>;
+          return (
+            <View style={{ marginTop: 12 }}>
+              <View style={{ alignItems: 'center', backgroundColor: t.item, borderRadius: 18, padding: 14 }}>
+                <Body small muted>Fabbisogno stimato</Body>
+                <Text style={{ color: FIT, fontSize: 38, fontWeight: '800' }}>{g.kcal}</Text>
+                <Body small muted>kcal al giorno</Body>
+              </View>
+              <Row gap={8} style={{ marginTop: 8, flexWrap: 'wrap', alignItems: 'stretch' }}>
+                {cell('Proteine', `circa ${g.protein} g`)}{cell('Carboidrati', `circa ${g.carbs} g`)}{cell('Grassi', `circa ${g.fat} g`)}{cell('Fibre', `almeno ${g.fibre} g`)}
+                {cell('Zuccheri', `max ${g.sugarMax} g`)}{cell('Grassi saturi', `max ${g.satMax} g`)}{cell('Sale', `max ${g.saltMax} g`)}{cell('Acqua', `circa ${String(g.waterL).replace('.', ',')} litri`)}
+              </Row>
+            </View>
+          );
+        })() : <Body small muted style={{ marginVertical: 8 }}>Inserisci età, peso e altezza per vedere il tuo fabbisogno.</Body>}
+        <View style={{ marginTop: 12, backgroundColor: t.item, borderRadius: 14, padding: 12, borderLeftWidth: 3, borderLeftColor: t.warn }}>
+          <Body small bold>Importante</Body>
+          <Body small muted style={{ marginTop: 2 }}>{NUTRITION_DISCLAIMER}</Body>
+        </View>
+        <Btn style={{ marginTop: 12 }} title="Salva" onPress={() => { fit.set({ body }); setBodyOpen(false); }} />
       </Sheet>
     </Page>
   );

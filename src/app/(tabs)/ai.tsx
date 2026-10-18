@@ -9,6 +9,7 @@ import { Body, Input, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { runAction, sendTheia } from '@/lib/assistant/theiaFlow';
 import { LogoLoader } from '@/components/LogoLoader';
+import { AiNote } from '@/components/AiNote';
 import { Composer, type ComposerSend } from '@/components/theia/Composer';
 import { MessageAttachments } from '@/components/theia/AttachChips';
 import { MessageFooter, MessageImages } from '@/components/theia/MessageExtras';
@@ -182,6 +183,7 @@ export default function LifeChat() {
               );
             }}
           />
+          <AiNote style={{ paddingHorizontal: 4 }} />
           <Composer openAttach={attach} appLang={appLang} busy={busy} placeholder={section === GENERALE ? 'Scrivi a Theia…' : `Scrivi in ${section}…`} onSend={(m) => void deliver(m)} />
         </>
       )}

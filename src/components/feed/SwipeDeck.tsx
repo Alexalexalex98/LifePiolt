@@ -15,6 +15,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { LogoLoader } from '@/components/LogoLoader';
 import { Animated, AppState, Linking, PanResponder, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
@@ -27,7 +28,7 @@ import { t as tl } from '@/i18n/core';
 import { weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { addSignal, type ThemeWeights } from '@/lib/relevance';
-import { SWIPE_SIGNAL, dwellSignal, pickMixed, rankedPool, record, remaining, undoLast, type DeckCard, type SwipeRec } from '@/lib/swipeDeck';
+import { SWIPE_SIGNAL, dedupeCards, dwellSignal, pickMixed, rankedPool, record, remaining, undoLast, type DeckCard, type SwipeRec } from '@/lib/swipeDeck';
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
@@ -58,9 +59,17 @@ type Vid = { rate: (r: number) => void; toggle: () => boolean; seek: (f: number)
 /** Video del post: parte da solo, muto finché non attivi l'audio, in loop. */
 function DeckVideo({ playerKey, source, muted, controls, poster, vfx }: { playerKey: string; vfx?: VideoFx; source: number | { uri: string }; muted: boolean; controls: React.MutableRefObject<Vid | null>; poster?: string }) {
   const [shown, setShown] = useState(false);
+  /* `ready` = il video sta davvero andando (primo fotogramma o tempo che avanza): finché non lo e', si vede il caricamento */
+  const [ready, setReady] = useState(false);
+  const [slow, setSlow] = useState(false);
   /* il lettore può essere già pronto: l'ha caricato in anticipo la carta sotto */
   const p = useMemo(() => acquirePlayer(playerKey, source), [playerKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { try { p.play(); } catch { /* rilasciato */ } const f = setTimeout(() => setShown(true), 1200); return () => clearTimeout(f); }, [p]);
+  useEffect(() => {
+    const poll = setInterval(() => { try { if (p.currentTime > 0.05 || p.status === 'readyToPlay' && p.playing) setReady(true); } catch { /* rilasciato */ } }, 250);
+    const slowT = setTimeout(() => { setSlow(true); try { p.play(); } catch { /* rilasciato */ } }, 6000);
+    return () => { clearInterval(poll); clearTimeout(slowT); };
+  }, [p]);
   useVideoFx(p, vfx);
   if (vfx?.mute) muted = true;
   /* uscendo dalla schermata (o con l'app in secondo piano) il video si ferma e il volume si toglie; al ritorno riparte solo se non l'avevi messo in pausa tu */
@@ -88,7 +97,8 @@ function DeckVideo({ playerKey, source, muted, controls, poster, vfx }: { player
     <View style={{ width: '100%', height: '100%' }}>
       {poster ? <Image source={{ uri: poster }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
       {/* su Android la superficie normale non segue rotazione e spostamento della carta e lascia l'ultimo fotogramma: qui serve la «textureView». Il video resta nascosto finché non c'è il primo fotogramma. */}
-      <VideoView player={p} pointerEvents="none" surfaceType="textureView" style={{ width: '100%', height: '100%', opacity: shown ? 1 : 0 }} nativeControls={false} contentFit="cover" onFirstFrameRender={() => setShown(true)} />
+      <VideoView player={p} pointerEvents="none" surfaceType="textureView" style={{ width: '100%', height: '100%', opacity: shown ? 1 : 0 }} nativeControls={false} contentFit="cover" onFirstFrameRender={() => { setShown(true); setReady(true); }} />
+      {!ready ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, alignItems: 'center', justifyContent: 'center', gap: 8 }}><LogoLoader size={64} />{slow ? <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 4 }}>{tl('Il video sta impiegando più del previsto…')}</Text> : null}</View> : null}
     </View>
   );
 }
@@ -97,8 +107,13 @@ function DeckVideo({ playerKey, source, muted, controls, poster, vfx }: { player
  * Swipe a schermo intero: si vede solo il post, come nel recap. A sinistra «mi interessa», a destra «non mi interessa».
  * Toccando il post compare la spiegazione.
  */
-export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { cards: SwipeCandidate[]; onClose: () => void; /** chiusura tirando giù (come i recap): se manca si usa onClose */ onDismiss?: () => void; /** schermata di partenza, che si vede dietro mentre tiri giù */ backdrop?: string | null; startKey?: string }) {
+export function SwipeDeck({ cards: cardsIn, onClose, onDismiss, backdrop, startKey }: { cards: SwipeCandidate[]; onClose: () => void; /** chiusura tirando giù (come i recap): se manca si usa onClose */ onDismiss?: () => void; /** schermata di partenza, che si vede dietro mentre tiri giù */ backdrop?: string | null; startKey?: string }) {
   const me = useApp((s) => s.account.name);
+  /* niente carte doppie e niente carte la cui foto non si carica (si vedevano nere): spariscono e passa la prossima */
+  const [broken, setBroken] = useState<Set<string>>(() => new Set());
+  const cards = useMemo(() => dedupeCards(cardsIn as SwipeCandidate[]).filter((c) => !broken.has(c.key)), [cardsIn, broken]);
+  const markBroken = (k: string) => setBroken((s) => (s.has(k) ? s : new Set(s).add(k)));
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   /* le scelte si tengono qui, in locale, e si salvano tutte insieme dopo una pausa o all'uscita: salvare a ogni scelta faceva ricalcolare
      l'intera Home sotto lo Swipe e bloccava per un attimo il cambio di immagine */
   const [swipes, setSwipes] = useState(() => useNet.getState().swipes);
@@ -269,7 +284,7 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
           }}
           delayLongPress={260} onLongPress={() => { if (isVideo) { vid.current?.rate(2); setFast(true); } }} onPressOut={() => { if (fast) { vid.current?.rate(1); setFast(false); } }} style={{ flex: 1 }}>
           {card.fx ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, zIndex: 1 }}><StoryFx s={card.fx as never} uri={card.media === 'video' ? undefined : card.uris?.[pic] ?? card.uri} /></View> : null}
-          {isVideo ? <DeckVideo key={card.key} playerKey={card.key} vfx={card.fx?.video} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} poster={posterOf(card as SwipeCandidate)} /> : card.asset ? <Image key={card.key} recyclingKey={card.key} source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image key={card.key} recyclingKey={card.key} source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} /> : (
+          {isVideo ? <DeckVideo key={card.key} playerKey={card.key} vfx={card.fx?.video} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} poster={posterOf(card as SwipeCandidate)} /> : card.asset ? <Image key={card.key} recyclingKey={card.key} source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image key={card.key} recyclingKey={card.key} source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} onLoad={() => setLoadedKey(card.key)} onError={() => markBroken(card.key)} /> : (
             <LinearGradient colors={['#4a3bd1', '#1b1f3a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
               <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900' }}>{card.text}</Text>
             </LinearGradient>
@@ -303,6 +318,7 @@ export function SwipeDeck({ cards, onClose, onDismiss, backdrop, startKey }: { c
             ))}
           </View>
         ) : null}
+        {card && !isVideo && !card.asset && card.uri && loadedKey !== card.key ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, alignItems: 'center', justifyContent: 'center' }}><LogoLoader size={64} /></View> : null}
         {isVideo && paused ? <View pointerEvents="none" style={{ position: 'absolute', top: '42%', alignSelf: 'center', width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={34} color="#fff" /></View> : null}
         {isVideo && fast ? <View pointerEvents="none" style={{ position: 'absolute', top: insets.top + 60, alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.55)' }}><Text style={{ color: '#fff', fontWeight: '900' }}>{tl('Velocità 2×')}</Text></View> : null}
         <Animated.View pointerEvents="none" style={{ position: 'absolute', top: insets.top + 90, end: 20, opacity: yesOp, borderWidth: 4, borderColor: '#2fd58a', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5, transform: [{ rotate: '10deg' }] }}><Text style={{ color: '#2fd58a', fontWeight: '900', fontSize: 26 }}>{tl('MI INTERESSA')}</Text></Animated.View>

@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { routeRequest } from '@/lib/aiRouter';
 import { aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
+import { AiNote } from '@/components/AiNote';
 import { checkPrompt, frameTimes, parseCheck, type CheckResult } from '@/lib/fitness/execCheck';
 import { exById, guideOf } from '@/lib/fitness/exerciseDb';
 import { hasPremiumFeature } from '@/lib/premiumApp';
@@ -112,6 +113,7 @@ export default function FitnessExercise() {
         ) : null}
         {res ? (
           <View style={{ marginTop: 12, borderRadius: 14, padding: 12, backgroundColor: t.chip }}>
+            {res.r ? <AiNote /> : null}
             {res.r ? (
               <>
                 <Body bold color={VERDICT[res.r.verdict].tone === 'positive' ? t.positive : VERDICT[res.r.verdict].tone === 'warn' ? t.warn : t.muted}>{tl(VERDICT[res.r.verdict].label)}</Body>

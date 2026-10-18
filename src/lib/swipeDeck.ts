@@ -21,6 +21,23 @@ export type SwipeDir = 'yes' | 'no';
 export type SwipeRec = { key: string; dir: SwipeDir; ts: number };
 export type DeckCard = { key: string; text: string; author: string };
 
+/** Firma del contenuto di una carta: il primo file multimediale; due carte con la stessa firma si vedono uguali. */
+const mediaSig = (c: { uri?: string; uris?: string[]; poster?: string; asset?: unknown }): string | null =>
+  c.uris?.[0] ?? c.uri ?? c.poster ?? (typeof c.asset === 'number' ? `asset:${c.asset}` : null);
+
+/** Toglie le carte doppie: stessa chiave, oppure stessa immagine/video (e stesso autore) anche se hanno chiavi diverse. */
+export function dedupeCards<T extends DeckCard & { uri?: string; uris?: string[]; poster?: string; asset?: unknown }>(cards: T[]): T[] {
+  const keys = new Set<string>(), sigs = new Set<string>(), out: T[] = [];
+  for (const c of cards) {
+    if (keys.has(c.key)) continue;
+    const s = mediaSig(c);
+    const id = s ? `${c.author}|${s}` : null;
+    if (id && sigs.has(id)) continue;
+    keys.add(c.key); if (id) sigs.add(id); out.push(c);
+  }
+  return out;
+}
+
 /** Sotto questo punteggio un post è «simile a quelli che non ti interessano» e non si propone più. */
 export const HIDE_BELOW = -5;
 export const SWIPE_SIGNAL = 3;

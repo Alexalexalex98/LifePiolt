@@ -1,23 +1,21 @@
-import { Image } from 'expo-image';
 import { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, View } from 'react-native';
-import Svg, { G, Path } from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, G, Path } from 'react-native-svg';
 
 import { useTheme } from '@/hooks/use-theme';
-import { LOGO } from '@/lib/embeddedAssets';
 
-const AP = Animated.createAnimatedComponent(Path);
+const AC = Animated.createAnimatedComponent(Circle);
 const AG = Animated.createAnimatedComponent(G);
 
-/** Linee centrali delle due lettere del simbolo LP (spazio 480 x 480) e la loro lunghezza, un po' abbondante. */
-const L_PATH = 'M 33 8 L 33 298 Q 33 333 68 333 L 178 333';
-const P_PATH = 'M 225 475 L 225 140 L 375 140 C 430 140 450 178 450 226 C 450 280 425 313 370 313 L 278 313';
-const L_LEN = 480, P_LEN = 950;
-const W = 46;
-/** 0 -> 1 si disegna (circa 2 s), poi il simbolo vero compare, resta un attimo e svanisce; poi si ricomincia. */
-const END = 1.2, MS = 2400;
+/** Il simbolo LP come linee con la stessa geometria del logo (spazio 480 x 480): e' il logo finale, non un'altra versione. */
+const L_PATH = 'M 34 8 L 34 296 Q 34 333 71 333 L 178 333';
+const STEM = 'M 222 116 L 222 465';
+const BOWL = 'M 222 135 L 395 135 C 430 135 450 165 450 222 C 450 280 428 310 392 310 L 276 310';
+const CX = 240, CY = 240, R_MAX = 345;
+/** 0 -> 1 il simbolo cresce dal centro (L e P insieme), poi resta, poi svanisce e si ricomincia. */
+const END = 1.5, MS = 2600;
 
-/** Caricamento: il simbolo LP parte da un puntino, si disegna e ricomincia finche' serve. */
+/** Caricamento: il simbolo LP nasce da un puntino al centro e si forma in circa 2 secondi, a ciclo continuo. */
 export function LogoLoader({ size = 56 }: { size?: number }) {
   const th = useTheme();
   const p = useMemo(() => new Animated.Value(0), []);
@@ -35,25 +33,27 @@ export function LogoLoader({ size = 56 }: { size?: number }) {
   }, [p, still]);
 
   const color = th.mode === 'light' ? '#10151d' : '#f4f6fa';
-  const logoTint = th.mode === 'light' ? { tintColor: '#10151d' } : null;
-  const offL = p.interpolate({ inputRange: [0, 0.35, 1.2], outputRange: [L_LEN - 0.1, 0, 0], extrapolate: 'clamp' });
-  const offP = p.interpolate({ inputRange: [0, 0.35, 1.2], outputRange: [P_LEN - 0.1, P_LEN - 0.1, 0], extrapolate: 'clamp' });
-  const showP = p.interpolate({ inputRange: [0, 0.349, 0.35, 1.2], outputRange: [0, 0, 1, 1] });
-  const strokesOpacity = p.interpolate({ inputRange: [0, 0.02, 0.92, 1, 1.12, 1.2], outputRange: [0, 1, 1, 0, 0, 0] });
-  const logoOpacity = p.interpolate({ inputRange: [0, 0.92, 1, 1.12, 1.2], outputRange: [0, 0, 1, 1, 0] });
+  /* raggio: da un punto (3) fino a coprire tutto in ~1,9 s con rallentamento finale; poi resta pieno */
+  const r = p.interpolate({ inputRange: [0, 0.01, 0.2, 0.55, 1, 1.5], outputRange: [0, 3, 60, 210, R_MAX, R_MAX], extrapolate: 'clamp' });
+  const opacity = p.interpolate({ inputRange: [0, 0.01, 1.25, 1.5], outputRange: [0, 1, 1, 0], extrapolate: 'clamp' });
 
-  if (still) return <View accessible accessibilityRole="progressbar" accessibilityLabel="Theia sta rispondendo" style={{ width: size, height: size }}><Image source={LOGO} style={{ width: size, height: size, opacity: 0.6, ...(logoTint ?? {}) }} contentFit="contain" /></View>;
+  const shapes = (
+    <>
+      <Path d={L_PATH} stroke={color} strokeWidth={47} fill="none" strokeLinejoin="round" />
+      <Path d={STEM} stroke={color} strokeWidth={50} fill="none" />
+      <Path d={BOWL} stroke={color} strokeWidth={42} fill="none" />
+    </>
+  );
   return (
     <View accessible accessibilityRole="progressbar" accessibilityLabel="Theia sta rispondendo" accessibilityLiveRegion="polite" style={{ width: size, height: size }}>
-      <Svg width={size} height={size} viewBox="0 0 480 480" style={{ position: 'absolute' }}>
-        <AG opacity={strokesOpacity}>
-          <AP d={L_PATH} stroke={color} strokeWidth={W} strokeLinecap="round" strokeLinejoin="round" fill="none" strokeDasharray={[L_LEN, L_LEN]} strokeDashoffset={offL} />
-          <AP d={P_PATH} stroke={color} strokeWidth={W} strokeLinecap="round" strokeLinejoin="round" fill="none" strokeDasharray={[P_LEN, P_LEN]} strokeDashoffset={offP} opacity={showP} />
-        </AG>
+      <Svg width={size} height={size} viewBox="0 0 480 480">
+        {still ? shapes : (
+          <>
+            <Defs><ClipPath id="lpGrow"><AC cx={CX} cy={CY} r={r} /></ClipPath></Defs>
+            <AG opacity={opacity} clipPath="url(#lpGrow)">{shapes}</AG>
+          </>
+        )}
       </Svg>
-      <Animated.View style={{ position: 'absolute', width: size, height: size, opacity: logoOpacity }}>
-        <Image source={LOGO} style={{ width: size, height: size, ...(logoTint ?? {}) }} contentFit="contain" />
-      </Animated.View>
     </View>
   );
 }

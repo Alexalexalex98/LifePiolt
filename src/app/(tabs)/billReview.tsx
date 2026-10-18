@@ -13,6 +13,7 @@ import { currentCurrency, currentLocale } from '@/i18n/format';
 import { routeRequest } from '@/lib/aiRouter';
 import { aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
 import { askSend, logSend } from '@/lib/aiConsent';
+import { AiNote } from '@/components/AiNote';
 import { addBillToCalendar } from '@/lib/bills/calendar';
 import { diffDays, todayIso } from '@/lib/bills/dates';
 import { fileKind, openBillFile, readLocally, storeBillFile, type PickedBill } from '@/lib/bills/files';
@@ -273,12 +274,12 @@ export default function BillReview() {
                   <Body small muted style={{ marginTop: 2 }}>{noTextWhy}</Body>
                   <Body small style={{ marginTop: 6 }}>Compila i campi qui sotto guardando il documento. Se vuoi, puoi provare a leggerlo con un'AI esterna: prima ti mostro cosa verrebbe inviato e serve il tuo consenso.</Body>
                   <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} icon="sparkle" title="Leggi con un'AI esterna" onPress={() => setAiSheet(true)} />
-                  {aiMsg ? <Note icon="info">{aiMsg}</Note> : null}
+                  {aiMsg ? <><Note icon="info">{aiMsg}</Note><AiNote /></> : null}
                 </View>
               </Row>
             </Card>
           )}
-          {!needsAi && aiMsg ? <Card><Note icon="info">{aiMsg}</Note></Card> : null}
+          {!needsAi && aiMsg ? <Card><Note icon="info">{aiMsg}</Note><AiNote /></Card> : null}
 
           {draft && draft.empty && !needsAi && !isEdit && (text ?? '').length > 0 && (
             <Card><Note icon="alert" tone="warn">{t('Da questo testo non riesco a ricavare una bolletta. Compila i campi a mano oppure incolla un testo più completo.')}</Note></Card>

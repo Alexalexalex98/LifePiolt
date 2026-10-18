@@ -16,6 +16,7 @@ import { Image } from 'expo-image';
 import { routeWithRuntime } from '@/lib/aiRouter/runtime';
 import { aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
 import { askSend, logSend } from '@/lib/aiConsent';
+import { AiNote } from '@/components/AiNote';
 import { SCREENSHOT_PROMPT, extractTicker, looksLikeTicker, searchInstruments } from '@/lib/markets/identify';
 import { go } from '@/lib/nav';
 import { pickNetMedia } from '@/lib/netMedia';
@@ -72,6 +73,7 @@ function AnalyzeCard() {
           <Text style={{ color: t.muted, fontSize: 13, flex: 1, lineHeight: 18 }}>{shot.msg}</Text>
         </View>
       ) : null}
+      {shot ? <AiNote style={{ marginTop: 6 }} /> : null}
     </View>
   );
 }

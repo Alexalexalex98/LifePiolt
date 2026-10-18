@@ -43,3 +43,10 @@ test('il tempo di visione conta nell\'algoritmo', () => {
   assert.equal(dwellSignal(60000, 0.9), 3);
   assert.equal(dwellSignal(3000, 0.5), 0.5);
 });
+
+import { dedupeCards } from '../src/lib/swipeDeck.ts';
+test('dedupeCards: toglie chiavi doppie e stessa immagine dello stesso autore', () => {
+  const a = { key: 'a', text: 'x', author: 'Giulia', uri: 'u1' };
+  const r = dedupeCards([a, { ...a }, { key: 'b', text: 'y', author: 'Giulia', uri: 'u1' }, { key: 'c', text: 'z', author: 'Marco', uri: 'u1' }, { key: 'd', text: 'w', author: 'Giulia', uris: ['u2'] }, { key: 'e', text: 'v', author: 'Ale' }]);
+  assert.deepEqual(r.map((c) => c.key), ['a', 'c', 'd', 'e']);
+});

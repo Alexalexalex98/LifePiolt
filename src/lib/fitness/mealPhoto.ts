@@ -1,9 +1,9 @@
 /** Foto del piatto (modulo PURO): prompt per la lettura esterna, lettura della risposta e abbinamento agli alimenti del database. */
 import { searchFoods, type Food } from './nutrition.ts';
 
-export const MEAL_PROMPT = 'Guarda la foto del piatto e riconosci ogni alimento visibile (anche condimenti, salse, pane, bevande). Conta con attenzione ogni singolo prodotto, anche se è dentro una scatola, aperto, parzialmente coperto o in secondo piano; se ci sono più pezzi uguali (per esempio due panini) scrivi una voce sola con i grammi totali e il numero nel nome, come «Big Mac x2». Stima i grammi di ciascuno nella porzione mostrata e i suoi valori nutrizionali per quella porzione (non per 100 g). Rispondi SOLO con un elenco JSON del tipo [{"nome":"Riso bianco cotto","grammi":150,"kcal":195,"proteine":4,"carboidrati":42,"grassi":0.5}], con nomi comuni in italiano e senza altro testo. Se è un prodotto di una catena, indica la sua porzione standard. Se non vedi cibo rispondi [].';
+export const MEAL_PROMPT = 'Guarda la foto del piatto e riconosci ogni alimento visibile (anche condimenti, salse, pane, bevande). Conta con attenzione ogni singolo prodotto, anche se è dentro una scatola, aperto, parzialmente coperto o in secondo piano; se ci sono più pezzi uguali (per esempio due panini) scrivi una voce sola con i grammi totali e il numero nel nome, come «Big Mac x2». Stima i grammi di ciascuno nella porzione mostrata e i suoi valori nutrizionali per quella porzione (non per 100 g), compresi grassi saturi, zuccheri, fibre e sale in grammi. Rispondi SOLO con un elenco JSON del tipo [{"nome":"Riso bianco cotto","grammi":150,"kcal":195,"proteine":4,"carboidrati":42,"grassi":0.5,"grassi_saturi":0.1,"zuccheri":0.1,"fibre":0.4,"sale":0.01}], con nomi comuni in italiano e senza altro testo. Se è un prodotto di una catena, indica la sua porzione standard. Se non vedi cibo rispondi [].';
 
-export type Est = { kcal: number; p: number; c: number; f: number };
+export type Est = { kcal: number; p: number; c: number; f: number; sat?: number; sug?: number; fib?: number; salt?: number };
 export type Detected = { name: string; grams: number; est?: Est };
 /** `source`: 'db' = valori del nostro database, 'ai' = stima dell'AI per quella porzione */
 export type Resolved = Detected & { food: Food | null; source?: 'db' | 'ai' };
@@ -12,7 +12,10 @@ const num = (v: unknown): number | null => { const n = Number(String(v ?? '').re
 function readEst(x: Record<string, unknown>): Est | undefined {
   const kcal = num(x.kcal ?? x.calorie), p = num(x.proteine ?? x.protein ?? x.p), c = num(x.carboidrati ?? x.carbs ?? x.c), f = num(x.grassi ?? x.fat ?? x.f);
   if (kcal === null || kcal <= 0 || kcal > 4000) return undefined;
-  return { kcal: Math.round(kcal), p: Math.round((p ?? 0) * 10) / 10, c: Math.round((c ?? 0) * 10) / 10, f: Math.round((f ?? 0) * 10) / 10 };
+  const o = (v: number | null) => (v === null ? {} : { v: Math.round(v * 10) / 10 });
+  const opt = (v: unknown) => (v === undefined || v === null || v === '' ? null : num(v));
+  const sat = o(opt(x.grassi_saturi ?? x.saturi)).v, sug = o(opt(x.zuccheri ?? x.sugars)).v, fib = o(opt(x.fibre ?? x.fiber)).v, salt = o(opt(x.sale ?? x.salt)).v;
+  return { kcal: Math.round(kcal), p: Math.round((p ?? 0) * 10) / 10, c: Math.round((c ?? 0) * 10) / 10, f: Math.round((f ?? 0) * 10) / 10, ...(sat !== undefined ? { sat } : {}), ...(sug !== undefined ? { sug } : {}), ...(fib !== undefined ? { fib } : {}), ...(salt !== undefined ? { salt } : {}) };
 }
 
 /** Legge la risposta: JSON (anche dentro un blocco di codice) oppure righe «Nome: 120 g». */
@@ -51,7 +54,7 @@ const solidMatch = (name: string, f: Food) => { const w = words(name); const h =
 export function foodFromEstimate(d: Detected): Food | null {
   if (!d.est || d.grams <= 0) return null;
   const k = 100 / d.grams, r1 = (n: number) => Math.round(n * 10) / 10;
-  return { id: `ai-${slug(d.name)}-${Math.round(d.est.kcal * k)}`, name: d.name, kcal: Math.round(d.est.kcal * k), p: r1(d.est.p * k), c: r1(d.est.c * k), f: r1(d.est.f * k), portion: d.grams };
+  return { id: `ai-${slug(d.name)}-${Math.round(d.est.kcal * k)}`, name: d.name, kcal: Math.round(d.est.kcal * k), p: r1(d.est.p * k), c: r1(d.est.c * k), f: r1(d.est.f * k), portion: d.grams, ...(d.est.sat !== undefined ? { sat: r1(d.est.sat * k) } : {}), ...(d.est.sug !== undefined ? { sug: r1(d.est.sug * k) } : {}), ...(d.est.fib !== undefined ? { fib: r1(d.est.fib * k) } : {}), ...(d.est.salt !== undefined ? { salt: r1(d.est.salt * k) } : {}) };
 }
 
 /** Abbina ogni nome all'alimento del database se coincide; altrimenti usa la stima dell'AI; senza niente `food` e' null e sceglie l'utente. */

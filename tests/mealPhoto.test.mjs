@@ -33,3 +33,8 @@ test('un alimento generico resta sui valori del database', () => {
   const [x] = resolveItems([{ name: 'Salmone', grams: 120, est: { kcal: 999, p: 1, c: 1, f: 1 } }]);
   assert.equal(x.source, 'db'); assert.match(x.food.name, /Salmone/);
 });
+test('grassi saturi, zuccheri, fibre e sale: letti solo se presenti', () => {
+  const [a, b] = parseMealReply('[{"nome":"Cola","grammi":330,"kcal":139,"zuccheri":35,"sale":0},{"nome":"Pane","grammi":50,"kcal":130}]');
+  assert.equal(a.est.sug, 35); assert.equal(a.est.salt, 0); assert.equal(a.est.sat, undefined);
+  assert.equal(b.est.sug, undefined);
+});

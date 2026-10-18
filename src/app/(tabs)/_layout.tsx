@@ -91,7 +91,7 @@ export default function TabsLayout() {
   const pan = useRef(PanResponder.create({
     onMoveShouldSetPanResponderCapture: (e, g) => {
       /* Network ha le sue regole (recap, Per te, Swipe, Seguiti): lì il cambio sezione lo gestisce la pagina */
-      if (busy.current || curRef.current === 'lifenetwork' || curRef.current === 'swipeDeck' || carouselBusy()) return false;
+      if (busy.current || curRef.current === 'lifenetwork' || curRef.current === 'swipeDeck' || curRef.current === 'storyView' || curRef.current === 'storyCreate' || carouselBusy()) return false;
       if (Math.abs(g.dx) < 14 || Math.abs(g.dx) < Math.abs(g.dy) * 1.8) return false;
       const x0 = (e.nativeEvent.pageX ?? g.moveX) - g.dx;
       const fromLeft = x0 <= EDGE && g.dx > 0, fromRight = x0 >= W - EDGE && g.dx < 0;

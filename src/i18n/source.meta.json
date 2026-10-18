@@ -1,5 +1,5 @@
 {
- "count": 11463,
+ "count": 11478,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -29,7 +29,7 @@
   "src/app/(tabs)/fitnessExercise.tsx": 28,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 23,
-  "src/app/(tabs)/fitnessMeal.tsx": 66,
+  "src/app/(tabs)/fitnessMeal.tsx": 80,
   "src/app/(tabs)/fitnessProgram.tsx": 36,
   "src/app/(tabs)/fitnessWorkout.tsx": 25,
   "src/app/(tabs)/focus.tsx": 27,
@@ -101,6 +101,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/withdraw.tsx": 20,
   "src/app/onboarding.tsx": 10,
+  "src/components/AiNote.tsx": 1,
   "src/components/ArrivalAdvice.tsx": 8,
   "src/components/Automations.tsx": 37,
   "src/components/BudgetPlanCard.tsx": 15,
@@ -196,7 +197,7 @@
   "src/components/feed/SearchResults.tsx": 5,
   "src/components/feed/SharePostSheet.tsx": 12,
   "src/components/feed/SpecialCards.tsx": 28,
-  "src/components/feed/SwipeDeck.tsx": 29,
+  "src/components/feed/SwipeDeck.tsx": 30,
   "src/components/feed/TabCards.tsx": 21,
   "src/components/feed/useDeckCards.ts": 2,
   "src/components/fitness/ExerciseFigure.tsx": 3,
@@ -384,7 +385,7 @@
   "src/lib/fitness/exerciseDb.ts": 2,
   "src/lib/fitness/foodDb.ts": 24,
   "src/lib/fitness/gymPay.ts": 11,
-  "src/lib/fitness/nutrition.ts": 67,
+  "src/lib/fitness/nutrition.ts": 68,
   "src/lib/fitness/plan.ts": 15,
   "src/lib/fitness/poses.ts": 353,
   "src/lib/fitness/premium.ts": 3,
@@ -515,5 +516,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1419
+ "withPlaceholders": 1422
 }
