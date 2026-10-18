@@ -7,6 +7,7 @@
  */
 const URL_BASE = (process.env.EXPO_PUBLIC_AI_URL ?? '').replace(/\/+$/, '');
 const TOKEN = process.env.EXPO_PUBLIC_AI_TOKEN ?? '';
+import { humanize } from './aiPersona';
 export const aiServerConfigured = Boolean(URL_BASE && TOKEN);
 
 export class AiServerError extends Error {
@@ -32,8 +33,8 @@ async function call<T>(path: string, body: unknown, timeoutMs = 45000): Promise<
   } finally { clearTimeout(h); }
 }
 
-export const aiChat = async (message: string) => (await call<{ reply: string }>('/chat', { message })).reply;
-export const aiVision = async (image: string, mime: string, prompt: string) => (await call<{ reply: string }>('/vision', { image, mime, prompt })).reply;
+export const aiChat = async (message: string) => humanize((await call<{ reply: string }>('/chat', { message })).reply);
+export const aiVision = async (image: string, mime: string, prompt: string) => humanize((await call<{ reply: string }>('/vision', { image, mime, prompt })).reply);
 export const aiAnalyze = (files: { data: string; mime: string }[], question?: string, context?: string) => call<{ reply: string; result: unknown }>('/analyze', { files, question, context }, 90000);
 export const aiTranslate = async (lang: string, texts: string[]) => {
   const r = await call<{ reply: string }>('/translate', { lang, texts });

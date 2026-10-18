@@ -13,6 +13,8 @@ import { totalUnread, useChat } from '@/store/chat';
 import { useApp, navCatalog } from '@/store/app';
 import { joinReasons, rankTasks } from '@/lib/priority';
 import { t, translateText } from '@/i18n/core';
+import { styleHints } from '@/lib/aiPersona';
+import { useAssistant } from '@/store/assistant';
 import { aiChat, aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
 import { useLife } from '@/store/life';
 
@@ -264,7 +266,8 @@ export async function askTheia(question: string, req: TheiaRequest): Promise<The
   if (aiServerConfigured) {
     const app0 = useApp.getState();
     const ctx = app0.privacy['AI Memory'] ? buildContext(true) : '';
-    const prompt = `Sei ${app0.assistantName || 'Theia'}, l'assistente personale dentro l'app LifePilot. Rispondi in italiano, breve e concreto. Non inventare dati e non dare consigli medici, legali o finanziari: spiega e dai indicazioni generali.${ctx ? `\n\nContesto dell'utente:\n${ctx}` : ''}${req.text ? `\n\nTesto selezionato:\n"${req.text}"` : ''}\n\nRichiesta: ${question}`;
+    const mine = useAssistant.getState().log.filter((m) => m.who === 'me').slice(-6).map((m) => m.text);
+    const prompt = `Sei ${app0.assistantName || 'Theia'}, la persona di fiducia dentro l'app LifePilot per l'utente. Non dai consigli medici, legali o finanziari: spieghi e dai indicazioni generali.\n${styleHints([...mine, question])}${ctx ? `\n\nContesto dell'utente:\n${ctx}` : ''}${req.text ? `\n\nTesto selezionato:\n"${req.text}"` : ''}\n\nRichiesta: ${question}`;
     const img = req.imageUri ? await imageForAi(req.imageUri) : null;
     try {
       const text = img ? await aiVision(img.base64, img.mime, prompt) : await aiChat(prompt);
