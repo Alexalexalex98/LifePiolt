@@ -13,6 +13,7 @@ export type PayOpts = { date: string; amount: number; record: boolean; installme
 
 /** src: 'bank' = viene da un estratto conto (fa fede); 'manual' = inserito a mano o da uno scontrino, in attesa che arrivi l'estratto */
 export type Movement = { date: string; label: string; amount: number; src?: 'bank' | 'manual' };
+export type StatementInfo = { from: string; to: string; count: number; salary: number; sources: { name: string; monthly: number; months: number }[]; fixed: { name: string; amount: number; count: number; lastDate: string; key: string }[]; balanceKnown: boolean; balance?: number; at: number };
 export type FinMonth = { label: string; start: number; locked: boolean; movements: Movement[] };
 export type FinCategory = { n: string; p: number; c: string };
 export type Insight = { id: number; title: string; detail: string; saving: string; dismissed: boolean };
@@ -171,6 +172,11 @@ type FinState = {
   /** Estratto successivo: aggiunge solo le righe mancanti e toglie gli inserimenti a mano che l'estratto ora conferma. */
   mergeStatement: (rows: { date: string; label: string; amount: number }[], opts?: { balance?: number | null }) => { added: number; known: number; confirmedManual: number; previous: FinMonth[] };
   hasBankData: () => boolean;
+  /** Cosa risulta dall'estratto (periodo, stipendio, spese fisse) e se il saldo e' quello vero della banca: serve a spiegare ogni numero. */
+  statementInfo: StatementInfo | null;
+  setStatementInfo: (i: StatementInfo | null) => void;
+  /** Imposta il saldo vero del conto: il saldo mostrato parte da questo. */
+  setBalance: (value: number) => void;
   replaceBills: (list: Omit<Bill, 'id'>[]) => void;
   restoreMonths: (months: FinMonth[]) => void;
   /** quando hai caricato l'ultimo estratto conto (serve al promemoria mensile) */
@@ -337,6 +343,9 @@ export const useFin = create<FinState>()(
       return { added: res.added, known, confirmedManual, previous };
     },
     statementAt: null,
+    statementInfo: null,
+    setStatementInfo: (i) => set({ statementInfo: i }),
+    setBalance: (value) => set((s) => { const ms = s.months.map((m) => ({ ...m })); if (!ms.length) return s; const end = ms[0].start + ms[0].movements.reduce((a, x) => a + x.amount, 0); const d = value - end; ms.forEach((m) => { m.start = Math.round((m.start + d) * 100) / 100; }); return { months: ms, statementInfo: s.statementInfo ? { ...s.statementInfo, balanceKnown: true, balance: value } : s.statementInfo }; }),
     setStatementAt: (ts) => set({ statementAt: ts }),
     replaceWithStatement: (rows, opts) => {
       const names = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
@@ -358,11 +367,12 @@ export const useFin = create<FinState>()(
       let added = 0;
       order.forEach(([lab, list], i) => {
         const mvs: Movement[] = list.slice().sort((a, b) => a.date.localeCompare(b.date)).map((r) => ({ date: `${r.date.slice(8, 10)}/${r.date.slice(5, 7)}`, label: r.label, amount: r.amount, src: 'bank' as const }));
-        const net = mvs.reduce((sum, x) => sum + x.amount, 0);
-        const newerStart = i === 0 ? (previous.find((m) => m.label === lab)?.start ?? 0) + net : months[i - 1].start;
-        months.push({ label: lab, start: newerStart - net, locked: i > 0, movements: mvs });
+        months.push({ label: lab, start: 0, locked: i > 0, movements: mvs });
         added += mvs.length;
       });
+      /* il saldo non si inventa: il mese piu' vecchio parte da 0 e ogni mese riparte dalla fine del precedente (il saldo vero si imposta a parte) */
+      let acc = 0;
+      for (let i = months.length - 1; i >= 0; i--) { months[i].start = Math.round(acc * 100) / 100; acc += months[i].movements.reduce((s, x) => s + x.amount, 0); }
       if (typeof opts?.balance === 'number') { const end = months[0].start + months[0].movements.reduce((s, x) => s + x.amount, 0); const d = opts.balance - end; months.forEach((m) => { m.start = Math.round((m.start + d) * 100) / 100; }); }
       set({ months });
       return { added, removed, months: months.length, future, previous };

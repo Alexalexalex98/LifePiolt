@@ -124,7 +124,7 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
     const all = allRows();
     if (!all.length) { toast('Nessun movimento selezionato'); return; }
     const st = useFin.getState();
-    const prev = { months: st.months, bills: st.bills, budget: st.budget };
+    const prev = { months: st.months, bills: st.bills, budget: st.budget, info: st.statementInfo };
     const bal = Number(balance.replace(/['’\s]/g, '').replace(',', '.'));
     const opts = { balance: balance.trim() && Number.isFinite(bal) ? bal : null };
     let msg: string; let months = 1;
@@ -144,8 +144,9 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       f.setBudget(defaultBudget(ins.salary > 0 ? ins.salary : f.budget.salary, f.budget.saveToEmergency, f.categories, f.months));
     }
     useFin.getState().setStatementAt(Date.now());
+    if (ins) useFin.getState().setStatementInfo({ from: ins.from, to: ins.to, count: ins.count, salary: ins.salary, sources: ins.sources, fixed: ins.fixed.map((b) => ({ name: b.name, amount: b.amount, count: b.count, lastDate: b.lastDate, key: b.key })), balanceKnown: opts.balance !== null || (bankMode && !!prev.info?.balanceKnown), ...(opts.balance !== null ? { balance: opts.balance } : bankMode && prev.info?.balance !== undefined ? { balance: prev.info.balance } : {}), at: Date.now() });
     announceStatement({ added: all.length, months });
-    showUndoToast(msg, () => { const f = useFin.getState(); f.restoreMonths(prev.months); f.replaceBills(prev.bills.map(({ id: _id, ...b }) => b)); f.setBudget(prev.budget); });
+    showUndoToast(msg, () => { const f = useFin.getState(); f.restoreMonths(prev.months); f.replaceBills(prev.bills.map(({ id: _id, ...b }) => b)); f.setBudget(prev.budget); f.setStatementInfo(prev.info); });
     reset(); onClose();
   }
   const total = chosen.reduce((s, r) => s + r.amount, 0);

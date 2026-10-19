@@ -1,5 +1,5 @@
 {
- "count": 11542,
+ "count": 11579,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -105,7 +105,7 @@
   "src/components/AiNote.tsx": 1,
   "src/components/ArrivalAdvice.tsx": 8,
   "src/components/Automations.tsx": 37,
-  "src/components/BudgetPlanCard.tsx": 15,
+  "src/components/BudgetPlanCard.tsx": 34,
   "src/components/CalendarImportSheet.tsx": 18,
   "src/components/CalendarViews.tsx": 47,
   "src/components/ConfirmBadge.tsx": 4,
@@ -114,8 +114,9 @@
   "src/components/Discover.tsx": 21,
   "src/components/ErrorBanner.tsx": 5,
   "src/components/ErrorBoundary.tsx": 10,
+  "src/components/ExplainSheet.tsx": 3,
   "src/components/FinTabs.tsx": 4,
-  "src/components/FinanceOverview.tsx": 57,
+  "src/components/FinanceOverview.tsx": 74,
   "src/components/GoalProgress.tsx": 16,
   "src/components/Inbox.tsx": 4,
   "src/components/InterestsPicker.tsx": 16,
@@ -519,5 +520,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1431
+ "withPlaceholders": 1441
 }

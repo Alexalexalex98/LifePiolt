@@ -5,7 +5,9 @@ import Svg, { Circle, Line, Path, Polygon, Polyline, Rect, Text as SvgText } fro
 
 import { Text } from '@/components/T';
 import { Donut } from '@/components/charts';
-import { Body, Btn, Card, Empty, H, Item, Press, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Card, Empty, H, Input, Item, Press, Row, Sheet } from '@/components/ui';
+import { ExplainSheet } from '@/components/ExplainSheet';
+import { listMovements, sumRows } from '@/lib/explain';
 import { useInk, useTheme } from '@/hooks/use-theme';
 import { currentCurrency, fmtDate, formatMoney } from '@/i18n/format';
 import { t, translateText } from '@/i18n/core';
@@ -207,6 +209,12 @@ function TopSpenders({ a, onPick, ink }: { a: Analysis; onPick: (n: string) => v
 /* ---------------- hero: saldo, variazione, mini-andamento ---------------- */
 function Hero({ a, onMovements }: { a: Analysis; onMovements: () => void }) {
   const th = useTheme();
+  const months = useFin((s) => s.months);
+  const cats = useFin((s) => s.categories);
+  const info = useFin((s) => s.statementInfo);
+  const [ex, setEx] = useState<null | 'saldo' | 'in' | 'out' | 'save'>(null);
+  const [balOpen, setBalOpen] = useState(false);
+  const [balTxt, setBalTxt] = useState('');
   const [W, onLayout] = useBox(300);
   const cur = a.cur;
   if (!cur) return null;
@@ -220,14 +228,14 @@ function Hero({ a, onMovements }: { a: Analysis; onMovements: () => void }) {
   const y = (v: number) => pad + (1 - (v - mn) / span) * (H - 2 * pad);
   const pts = all.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
   const area = `${x(0)},${H} ${pts} ${x(all.length - 1)},${H}`;
-  const chip = (label: string, v: number, up: boolean | null) => (
-    <View key={label} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, paddingVertical: 9, paddingHorizontal: 10 }}>
+  const chip = (label: string, v: number, up: boolean | null, key: 'in' | 'out' | 'save') => (
+    <Press key={label} onPress={() => setEx(key)} accessibilityLabel={translateText(label)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, paddingVertical: 9, paddingHorizontal: 10 }}>
       <Text style={{ color: '#ffffffb8', fontSize: 11.5 }}>{translateText(label)}</Text>
       <Row gap={4} style={{ justifyContent: 'flex-start', marginTop: 2 }}>
         {up != null ? <Icon name={up ? 'arrow-up' : 'arrow-down'} size={13} color={up ? '#6ff0b0' : '#ff9a9a'} stroke={2.6} /> : null}
         <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }} numberOfLines={1}>{compact(v)}</Text>
       </Row>
-    </View>
+    </Press>
   );
   return (
     <LinearGradient colors={['#0f1f4d', '#1b2f6e', '#16466b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 18, marginBottom: 14, overflow: 'hidden' }}>
@@ -237,7 +245,8 @@ function Hero({ a, onMovements }: { a: Analysis; onMovements: () => void }) {
           <Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '700' }}>{translateText('Movimenti')}</Text><Icon name="chevron-right" size={13} color="#fff" stroke={2.4} />
         </Press>
       </Row>
-      <Text style={{ color: '#fff', fontSize: 38, fontWeight: '800', letterSpacing: -1, marginTop: 6 }} numberOfLines={1} adjustsFontSizeToFit>{money(cur.end)}</Text>
+      <Press onPress={() => setEx('saldo')} accessibilityLabel={translateText('Da dove arriva il saldo')}><Text style={{ color: '#fff', fontSize: 38, fontWeight: '800', letterSpacing: -1, marginTop: 6 }} numberOfLines={1} adjustsFontSizeToFit>{money(cur.end)}</Text></Press>
+      {info && !info.balanceKnown ? <Text style={{ color: '#ffd9a0', fontSize: 12, marginTop: 2 }}>{translateText('Calcolato solo dai movimenti dell’estratto: tocca per vedere come e impostare il saldo reale.')}</Text> : null}
       {delta != null ? (
         <Row gap={6} style={{ justifyContent: 'flex-start', marginTop: 2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: delta >= 0 ? 'rgba(80,220,150,0.22)' : 'rgba(255,120,120,0.22)', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 8 }}>
@@ -255,8 +264,27 @@ function Hero({ a, onMovements }: { a: Analysis; onMovements: () => void }) {
         </Svg>
       </View>
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-        {chip('Entrate', cur.income, true)}{chip('Uscite', cur.expense, false)}{chip('Risparmio', cur.saved, cur.saved >= 0)}
+        {chip('Entrate', cur.income, true, 'in')}{chip('Uscite', cur.expense, false, 'out')}{chip('Risparmio', cur.saved, cur.saved >= 0, 'save')}
       </View>
+      <ExplainSheet visible={ex !== null} onClose={() => setEx(null)} {...(() => {
+        const inMonth = (m: { label: string }) => m.label === cur.label;
+        if (ex === 'in') { const rows = listMovements(months, (x, m) => inMonth(m) && x.amount > 0); return { title: `Entrate di ${cur.label}`, formula: 'Tutti gli accrediti dell’estratto in questo mese.', rows, total: sumRows(rows) }; }
+        if (ex === 'out') { const rows = listMovements(months, (x, m) => inMonth(m) && x.amount < 0 && categoryOf(x.label, cats) !== 'Fondo emergenza'); return { title: `Uscite di ${cur.label}`, formula: 'Tutti gli addebiti dell’estratto in questo mese (senza i versamenti nel fondo emergenza).', rows, total: sumRows(rows) }; }
+        if (ex === 'save') { const rows = listMovements(months, (_x, m) => inMonth(m)); return { title: `Risparmio di ${cur.label}`, formula: `Risparmio = entrate (${money(cur.income)}) meno uscite (${money(cur.expense)}) = ${money(cur.saved)}.`, rows, total: sumRows(rows) }; }
+        const rows = listMovements(months, () => true);
+        const first = months.length ? months[months.length - 1].start : 0;
+        const known = !!info?.balanceKnown;
+        return {
+          title: 'Da dove arriva il saldo',
+          formula: known ? `Saldo indicato da te: ${money(info!.balance ?? 0)}. I movimenti dell’estratto lo portano a ${money(cur.end)}: parte da ${money(first)} e somma tutte le entrate e le uscite qui sotto.` : `Calcolato solo dai movimenti dell’estratto: parte da ${money(first)} (l’estratto non indica il saldo) e somma tutte le entrate e le uscite qui sotto. Non è il saldo vero della banca finché non lo imposti.`,
+          rows, total: sumRows(rows), action: { label: known ? 'Cambia il saldo del conto' : 'Imposta il saldo reale del conto', onPress: () => { setEx(null); setBalOpen(true); } },
+        };
+      })()} />
+      <Sheet visible={balOpen} title="Saldo reale del conto" onClose={() => setBalOpen(false)}>
+        <Body small muted>Scrivi il saldo che vedi oggi sul tuo e-banking. L’app lo usa come punto di arrivo e risale all’indietro con i movimenti dell’estratto.</Body>
+        <Input placeholder="Saldo attuale (CHF)" keyboardType="numeric" value={balTxt} onChangeText={setBalTxt} accessibilityLabel="Saldo attuale" />
+        <Btn style={{ marginTop: 10 }} title="Salva" onPress={() => { const n = Number(balTxt.replace(/['’\s]/g, '').replace(',', '.')); if (!Number.isFinite(n)) return; useFin.getState().setBalance(n); setBalOpen(false); setBalTxt(''); }} />
+      </Sheet>
     </LinearGradient>
   );
 }
