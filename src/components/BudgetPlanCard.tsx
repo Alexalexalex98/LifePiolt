@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Text } from '@/components/T';
-import { Body, Btn, Card, H, Row } from '@/components/ui';
+import { Body, Btn, Card, H, Input, Row, Sheet, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { translateText } from '@/i18n/core';
 import { formatMoney } from '@/i18n/format';
@@ -12,7 +12,7 @@ import { toast } from '@/store/toast';
 import { categoryOf, useFin, type StatementInfo } from '@/store/finance';
 import { ExplainSheet } from '@/components/ExplainSheet';
 import { listMovements, sumRows, type ExplainRow } from '@/lib/explain';
-import { normalizeLabel } from '@/lib/recurring';
+import { classify, payeeKey } from '@/lib/statementAnalysis';
 
 const COLORS: Record<string, string> = { Affitto: '#5b8def', 'Cassa malati': '#ff6f91', 'Alimentari/Casa': '#4fd18b', Abbonamenti: '#c9d15c', Abbigliamento: '#b96bff', 'Viaggio estero': '#4fc7e0', 'Fondo emergenza': '#7c5cff', Altro: '#ffb84f' };
 
@@ -82,37 +82,40 @@ function GenericBudgetPlan() {
 }
 
 type Ex = { title: string; formula: string; rows: ExplainRow[]; total?: number } | null;
+const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 
 /** Budget costruito SOLO dall'estratto conto: ogni numero si puo' toccare per vedere i movimenti da cui arriva. */
 function StatementBudget({ info }: { info: StatementInfo }) {
   const th = useTheme();
   const f = useFin();
   const [ex, setEx] = useState<Ex>(null);
+  const [ruleOpen, setRuleOpen] = useState(false);
+  const [from, setFrom] = useState(String(f.salaryRule.from));
+  const [to, setTo] = useState(String(f.salaryRule.to));
+  const [excl, setExcl] = useState<string[]>(f.salaryExcluded);
   const months = f.months;
-  const salary = f.budget.salary || info.salary;
-  const fixedTotal = info.fixed.reduce((s, b) => s + b.amount, 0);
+  const salary = info.salary.monthly;
+  const fixedTotal = info.fixed.reduce((s, b) => s + b.monthly, 0);
   const free = salary - fixedTotal;
-  const incomeKey = (label: string) => normalizeLabel(label.replace(/^(accredito|bonifico|gutschrift|zahlung)\s+/i, ''));
-  const sourceKeys = info.sources.map((s) => normalizeLabel(s.name));
-  const monthCount = Math.max(1, months.filter((m) => m.movements.length).length);
-  const byCat = useMemo(() => {
-    const acc: Record<string, number> = {};
-    months.forEach((m) => m.movements.forEach((x) => { if (x.amount >= 0) return; const c = categoryOf(x.label, f.categories); if (c === 'Fondo emergenza') return; acc[c] = (acc[c] ?? 0) - x.amount; }));
-    return Object.entries(acc).map(([name, total]) => ({ name, total, avg: total / monthCount })).sort((a, b) => b.total - a.total);
-  }, [months, f.categories, monthCount]);
   const pct = (n: number) => (salary ? Math.round((n / salary) * 100) : 0);
-  const day = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
+  const rule = f.salaryRule;
+
   const openSalary = () => {
-    const rows = listMovements(months, (x) => x.amount > 0 && sourceKeys.some((k) => k && incomeKey(x.label).includes(k)));
-    setEx({ title: 'Da dove arriva lo stipendio', formula: `Somma, mese per mese, delle entrate che tornano ogni mese nell’estratto (dal ${day(info.from)} al ${day(info.to)}): ${info.sources.map((s) => `${s.name} circa ${formatMoney(s.monthly)} (${s.months} mesi)`).join(' + ')} = ${formatMoney(info.salary)}. Depositi e entrate una tantum non contano.`, rows, total: sumRows(rows) });
+    const rows: ExplainRow[] = info.salary.months.flatMap((m) => m.parts.map((p) => ({ date: m.label, label: p.name, amount: p.amount, sort: m.ym })));
+    setEx({ title: 'Da dove arriva lo stipendio', formula: `Regola: lo stipendio di un mese è quello che entra dal ${rule.from} del mese al ${rule.to} del mese dopo (es. dal ${rule.from} settembre al ${rule.to} ottobre = settembre). Per ogni mese si sommano le entrate che tornano (${info.salary.sources.map((s) => s.name).join(', ') || 'nessuna'}); lo stipendio è la mediana dei mesi = ${formatMoney(salary)}. Depositi, rimborsi e entrate una tantum non contano.`, rows, total: sumRows(rows) });
   };
   const openFixed = (b: StatementInfo['fixed'][number]) => {
-    const rows = listMovements(months, (x) => x.amount < 0 && normalizeLabel(x.label) === b.key);
-    setEx({ title: b.name, formula: `Spesa fissa riconosciuta: ${b.count} pagamenti simili, ogni mese, di circa ${formatMoney(b.amount)} (importo mediano).`, rows, total: sumRows(rows) });
+    const rows = listMovements(months, (x) => x.amount < 0 && payeeKey(x.label) === b.key);
+    setEx({ title: b.name, formula: `Spesa fissa: ${b.payments} pagamenti in ${b.months} mesi diversi, di circa ${formatMoney(b.monthly)} al mese (mediana dei mesi). Non contano acquisti singoli o piccoli importi.`, rows, total: sumRows(rows) });
   };
-  const openCat = (c: { name: string; total: number; avg: number }) => {
-    const rows = listMovements(months, (x) => x.amount < 0 && categoryOf(x.label, f.categories) === c.name);
-    setEx({ title: c.name, formula: `Media mensile = totale ${formatMoney(c.total)} diviso ${monthCount} mesi dell’estratto = ${formatMoney(c.avg)}.`, rows, total: sumRows(rows) });
+  const fixedKeys = new Set(info.fixed.map((b) => b.key));
+  const openVar = (v: StatementInfo['variable'][number]) => {
+    const rows = listMovements(months, (x) => x.amount < 0 && x.amount > -1000 && !fixedKeys.has(payeeKey(x.label)) && classify(x.label) === v.name);
+    setEx({ title: v.name, formula: `Media mensile = totale ${formatMoney(v.total)} diviso ${info.months} mesi dell’estratto = ${formatMoney(v.monthly)}. Sono ${v.payments} pagamenti non ripetuti ogni mese.`, rows, total: sumRows(rows) });
+  };
+  const saveRule = () => {
+    const a = Math.min(31, Math.max(1, Math.round(Number(from)) || 20)), b = Math.min(28, Math.max(1, Math.round(Number(to)) || 10));
+    f.setSalaryRule({ from: a, to: b }, excl); setRuleOpen(false);
   };
   return (
     <>
@@ -120,7 +123,10 @@ function StatementBudget({ info }: { info: StatementInfo }) {
         <Text style={{ color: '#ffffffb8', fontSize: 13, fontWeight: '700', letterSpacing: 0.6 }}>{translateText('STIPENDIO MENSILE')}</Text>
         <Pressable onPress={openSalary} accessibilityRole="button" accessibilityLabel={translateText('Da dove arriva lo stipendio')}>
           <Text style={{ color: '#fff', fontSize: 36, fontWeight: '800', letterSpacing: -1, marginTop: 4 }}>{formatMoney(salary)}</Text>
-          <Text style={{ color: '#ffffffa8', fontSize: 12.5 }}>{translateText('Riconosciuto dall’estratto: tocca per vedere le entrate')}</Text>
+          <Text style={{ color: '#ffffffa8', fontSize: 12.5 }}>{translateText('Entrate dal {0} al {1} del mese dopo: tocca per vedere i mesi').replace('{0}', String(rule.from)).replace('{1}', String(rule.to))}</Text>
+        </Pressable>
+        <Pressable onPress={() => { setFrom(String(rule.from)); setTo(String(rule.to)); setExcl(f.salaryExcluded); setRuleOpen(true); }} accessibilityRole="button" style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.16)' }}>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12.5 }}>{translateText('Cambia la regola dello stipendio')}</Text>
         </Pressable>
         <Row style={{ marginTop: 14, alignItems: 'flex-end' }}>
           <View>
@@ -133,26 +139,47 @@ function StatementBudget({ info }: { info: StatementInfo }) {
 
       <Card>
         <H>Spese fisse (dall’estratto)</H>
+        <Body small muted style={{ marginBottom: 4 }}>Quelle che tornano mese per mese: affitto, cassa malati e assicurazioni, mutuo, prestiti e leasing, telefono, energia, abbonamenti. Non i biglietti singoli.</Body>
         {info.fixed.length ? info.fixed.map((b, i) => (
           <Pressable key={b.key} onPress={() => openFixed(b)} accessibilityRole="button" style={{ paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: th.item }}>
-            <Row><Body bold style={{ flex: 1 }}>{b.name}</Body><Body bold>{formatMoney(b.amount)}</Body></Row>
-            <Body small muted>{pct(b.amount)}% dello stipendio · {b.count} pagamenti · ultimo {day(b.lastDate)} · tocca per vederli</Body>
+            <Row><Body bold style={{ flex: 1 }}>{b.name}</Body><Body bold>{formatMoney(b.monthly)}</Body></Row>
+            <Body small muted>{pct(b.monthly)}% dello stipendio · {b.payments} pagamenti in {b.months} mesi · ultimo {dmy(b.lastDate)} · tocca per vederli</Body>
           </Pressable>
-        )) : <Body small muted>Nell’estratto non ci sono spese che tornano ogni mese con lo stesso importo.</Body>}
-        {free < 0 ? <Body small color={th.danger} style={{ marginTop: 6 }}>Le spese fisse superano lo stipendio riconosciuto: controlla i movimenti toccando le voci.</Body> : null}
+        )) : <Body small muted>Nell’estratto non ci sono spese che tornano ogni mese.</Body>}
+        {info.fixed.length ? <Row style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: th.item, paddingTop: 8 }}><Body bold style={{ flex: 1 }}>Totale spese fisse</Body><Body bold>{formatMoney(fixedTotal)}</Body></Row> : null}
+        {free < 0 ? <Body small color={th.danger} style={{ marginTop: 6 }}>Le spese fisse superano lo stipendio riconosciuto: controlla toccando le voci o cambia la regola dello stipendio.</Body> : null}
       </Card>
 
       <Card>
-        <Row><H>Come spendi davvero</H><Btn small title="Usa come budget" onPress={() => { const alloc: Record<string, number> = { ...f.budget.alloc }; byCat.forEach((c) => { alloc[c.name] = Math.round(c.avg); }); f.setBudget({ alloc }); toast('Medie dell’estratto impostate come budget'); }} /></Row>
-        <Body small muted style={{ marginBottom: 6 }}>Media mensile per categoria, calcolata sui {monthCount} mesi dell’estratto. Tocca una voce per vedere i movimenti.</Body>
-        {byCat.map((c, i) => (
-          <Pressable key={c.name} onPress={() => openCat(c)} accessibilityRole="button" style={{ paddingVertical: 9, borderTopWidth: i ? 1 : 0, borderTopColor: th.item }}>
-            <Row><Body style={{ flex: 1 }}>{c.name}</Body><Body muted small style={{ marginRight: 10 }}>{pct(c.avg)}%</Body><Body bold>{formatMoney(c.avg)}</Body></Row>
+        <Row><H>Il resto: cibo e spese variabili</H><Btn small title="Usa come budget" onPress={() => { const alloc: Record<string, number> = { ...f.budget.alloc }; info.variable.forEach((c) => { alloc[c.name] = Math.round(c.monthly); }); f.setBudget({ alloc }); toast('Medie dell’estratto impostate come budget'); }} /></Row>
+        <Body small muted style={{ marginBottom: 6 }}>Media mensile sui {info.months} mesi dell’estratto, senza le spese fisse e senza i grandi pagamenti straordinari. Tocca una voce per vedere i movimenti.</Body>
+        {info.variable.map((v, i) => (
+          <Pressable key={v.name} onPress={() => openVar(v)} accessibilityRole="button" style={{ paddingVertical: 9, borderTopWidth: i ? 1 : 0, borderTopColor: th.item }}>
+            <Row><Body style={{ flex: 1 }}>{v.name}</Body><Body muted small style={{ marginRight: 10 }}>{pct(v.monthly)}%</Body><Body bold>{formatMoney(v.monthly)}</Body></Row>
           </Pressable>
         ))}
         <Body small muted style={{ marginTop: 8 }}>Dati calcolati dal tuo estratto conto, non una consulenza finanziaria.</Body>
       </Card>
+
+      {info.extraordinary.length ? (
+        <Card>
+          <H>Pagamenti straordinari (non fanno media)</H>
+          <Body small muted style={{ marginBottom: 4 }}>Grandi pagamenti che non tornano ogni mese, come uffici di esecuzione o bonifici esteri: li tengo a parte perché falserebbero le medie.</Body>
+          {info.extraordinary.map((e, i) => <Row key={i} style={{ paddingVertical: 7, borderTopWidth: i ? 1 : 0, borderTopColor: th.item }}><View style={{ flex: 1 }}><Body small muted>{dmy(e.date)}</Body><Body numberOfLines={2}>{e.label}</Body></View><Body bold>{formatMoney(e.amount)}</Body></Row>)}
+        </Card>
+      ) : null}
+
       <ExplainSheet visible={!!ex} title={ex?.title ?? ''} formula={ex?.formula} rows={ex?.rows ?? []} total={ex?.total} onClose={() => setEx(null)} />
+      <Sheet visible={ruleOpen} title="Regola dello stipendio" onClose={() => setRuleOpen(false)}>
+        <Body small muted>Lo stipendio di un mese è quello che entra dal giorno «dal» di quel mese al giorno «al» del mese dopo. Esempio: dal 20 al 10 → lo stipendio di settembre entra dal 20 settembre al 10 ottobre.</Body>
+        <Row gap={8} style={{ marginTop: 8 }}>
+          <View style={{ flex: 1 }}><Body bold>Dal giorno</Body><Input keyboardType="numeric" value={from} onChangeText={setFrom} accessibilityLabel="Dal giorno" /></View>
+          <View style={{ flex: 1 }}><Body bold>Al giorno (mese dopo)</Body><Input keyboardType="numeric" value={to} onChangeText={setTo} accessibilityLabel="Al giorno" /></View>
+        </Row>
+        {info.salary.sources.length ? <Body bold style={{ marginTop: 8 }}>Entrate che contano come stipendio</Body> : null}
+        {info.salary.sources.map((s) => <Toggle key={s.key} label={`${s.name} · circa ${formatMoney(s.monthly)}`} value={!excl.includes(s.key)} onChange={(on) => setExcl(on ? excl.filter((k) => k !== s.key) : [...excl, s.key])} />)}
+        <Btn style={{ marginTop: 10 }} title="Salva e ricalcola" onPress={saveRule} />
+      </Sheet>
     </>
   );
 }

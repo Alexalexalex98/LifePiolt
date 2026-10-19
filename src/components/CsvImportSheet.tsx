@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { Body, Btn, Input, Item, Row, Select, Sheet, Toggle } from '@/components/ui';
 import { insightsOf } from '@/lib/statementInsights';
+import { analyzeStatement } from '@/lib/statementAnalysis';
 import { defaultBudget } from '@/store/finance';
 import { alertT } from '@/lib/alert';
 import { go } from '@/lib/nav';
@@ -116,6 +117,7 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
   const chosen = (rows ?? []).filter((_, i) => !off[i]);
   /* tutte le righe dell'estratto (anche quelle gia' presenti: l'estratto fa fede) */
   const allRows = () => [...chosen, ...dupRows].map((r) => ({ date: r.date, label: movementLabel(r), amount: r.amount }));
+  const an = useMemo(() => { const st = useFin.getState(); const rs = [...(rows ?? []), ...dupRows].map((r) => ({ date: r.date, label: r.label, amount: r.amount })); return analyzeStatement(rs, st.salaryRule, st.salaryExcluded); }, [rows, dupRows]);
   const ins = useMemo(() => insightsOf([...(rows ?? []), ...dupRows].map((r) => ({ date: r.date, label: r.label, amount: r.amount }))), [rows, dupRows]);
   const bankMode = visible && useFin.getState().hasBankData();
   const day = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
@@ -137,14 +139,9 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       months = r.months;
       msg = `Estratto conto importato: ${r.added} movimenti in ${r.months} ${r.months === 1 ? 'mese' : 'mesi'}${r.removed ? ` · tolti ${r.removed} movimenti precedenti` : ''}`;
     }
-    if (updateFixed && ins) {
-      const f = useFin.getState();
-      if (ins.salary > 0) f.setBudget({ salary: ins.salary });
-      f.replaceBills(ins.fixed.map((b) => ({ name: b.name, amount: b.amount, freq: 'monthly' as const })));
-      f.setBudget(defaultBudget(ins.salary > 0 ? ins.salary : f.budget.salary, f.budget.saveToEmergency, f.categories, f.months));
-    }
     useFin.getState().setStatementAt(Date.now());
-    if (ins) useFin.getState().setStatementInfo({ from: ins.from, to: ins.to, count: ins.count, salary: ins.salary, sources: ins.sources, fixed: ins.fixed.map((b) => ({ name: b.name, amount: b.amount, count: b.count, lastDate: b.lastDate, key: b.key })), balanceKnown: opts.balance !== null || (bankMode && !!prev.info?.balanceKnown), ...(opts.balance !== null ? { balance: opts.balance } : bankMode && prev.info?.balance !== undefined ? { balance: prev.info.balance } : {}), at: Date.now() });
+    useFin.getState().recomputeStatement({ apply: updateFixed, balance: opts.balance });
+    if (updateFixed) { const f = useFin.getState(); f.setBudget(defaultBudget(f.budget.salary, f.budget.saveToEmergency, f.categories, f.months)); }
     announceStatement({ added: all.length, months });
     showUndoToast(msg, () => { const f = useFin.getState(); f.restoreMonths(prev.months); f.replaceBills(prev.bills.map(({ id: _id, ...b }) => b)); f.setBudget(prev.budget); f.setStatementInfo(prev.info); });
     reset(); onClose();
@@ -168,8 +165,8 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
           {aiRead ? <AiNote /> : null}
           {aiRead ? <Body small muted>Letto da un PDF con l’AI: confronta importi e date con il tuo estratto.</Body> : null}
           {info.map((w, i) => <Body key={i} small color={t.warn} style={{ marginTop: 6 }}>{w}</Body>)}
-          {ins && ins.salary > 0 ? <Body small style={{ marginTop: 8 }}>Stipendio / reddito mensile riconosciuto: circa {formatMoney(ins.salary)} ({ins.sources.map((s) => s.name).slice(0, 3).join(', ')}).</Body> : null}
-          {ins && ins.fixed.length ? <Body small style={{ marginTop: 4 }}>Spese fisse riconosciute: {ins.fixed.slice(0, 5).map((b) => `${b.name} ${formatMoney(b.amount)}`).join(', ')}{ins.fixed.length > 5 ? '…' : ''}.</Body> : null}
+          {an && an.salary.monthly > 0 ? <Body small style={{ marginTop: 8 }}>Stipendio riconosciuto: circa {formatMoney(an.salary.monthly)} al mese (entrate dal {useFin.getState().salaryRule.from} al {useFin.getState().salaryRule.to} del mese dopo; {an.salary.sources.map((s) => s.name).slice(0, 3).join(', ')}).</Body> : null}
+          {an && an.fixed.length ? <Body small style={{ marginTop: 4 }}>Spese fisse riconosciute: {an.fixed.slice(0, 5).map((b) => `${b.name} ${formatMoney(b.monthly)}`).join(', ')}{an.fixed.length > 5 ? '…' : ''}.</Body> : null}
           {ins ? (
             <>
               <Toggle label="Aggiorna stipendio, budget e spese fisse" value={updateFixed} onChange={setUpdateFixed} hint="Sostituisce le spese e il budget di prima con quello che risulta dall’estratto." />

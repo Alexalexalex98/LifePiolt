@@ -1,3 +1,5 @@
+import { analyzeStatement, DEFAULT_RULE, type Analysis, type SalaryRule } from '@/lib/statementAnalysis';
+import { listMovements } from '@/lib/explain';
 import { Platform } from 'react-native';
 import { create } from 'zustand';
 
@@ -14,7 +16,7 @@ export type PayOpts = { date: string; amount: number; record: boolean; installme
 /** src: 'bank' = viene da un estratto conto (fa fede); 'manual' = inserito a mano o da uno scontrino, in attesa che arrivi l'estratto */
 export type Movement = { date: string; label: string; amount: number; src?: 'bank' | 'manual' };
 export type FinSnapshot = Pick<FinState, 'insights' | 'savingsPct' | 'months' | 'budget' | 'bills' | 'invoices' | 'billPrefs' | 'tax' | 'statementAt' | 'statementInfo'>;
-export type StatementInfo = { from: string; to: string; count: number; salary: number; sources: { name: string; monthly: number; months: number }[]; fixed: { name: string; amount: number; count: number; lastDate: string; key: string }[]; balanceKnown: boolean; balance?: number; at: number };
+export type StatementInfo = Analysis & { count: number; balanceKnown: boolean; balance?: number; at: number };
 export type FinMonth = { label: string; start: number; locked: boolean; movements: Movement[] };
 export type FinCategory = { n: string; p: number; c: string };
 export type Insight = { id: number; title: string; detail: string; saving: string; dismissed: boolean };
@@ -181,6 +183,11 @@ type FinState = {
   setStatementInfo: (i: StatementInfo | null) => void;
   /** Imposta il saldo vero del conto: il saldo mostrato parte da questo. */
   setBalance: (value: number) => void;
+  /** Regola dello stipendio (es. dal 20 al 10) e fonti escluse: dopo ogni cambio si rifa' l'analisi dell'estratto. */
+  salaryRule: SalaryRule;
+  salaryExcluded: string[];
+  setSalaryRule: (r: SalaryRule, excluded?: string[]) => void;
+  recomputeStatement: (opts?: { apply?: boolean; balance?: number | null }) => void;
   replaceBills: (list: Omit<Bill, 'id'>[]) => void;
   restoreMonths: (months: FinMonth[]) => void;
   /** quando hai caricato l'ultimo estratto conto (serve al promemoria mensile) */
@@ -355,6 +362,20 @@ export const useFin = create<FinState>()(
       return { added: res.added, known, confirmedManual, previous };
     },
     statementAt: null,
+    salaryRule: DEFAULT_RULE,
+    salaryExcluded: [] as string[],
+    setSalaryRule: (r, excluded) => { set((s) => ({ salaryRule: r, salaryExcluded: excluded ?? s.salaryExcluded })); get().recomputeStatement(); },
+    recomputeStatement: (opts) => {
+      const s = get();
+      const rows = listMovements(s.months, () => true).map((r) => ({ date: r.sort, label: r.label, amount: r.amount }));
+      const an = analyzeStatement(rows, s.salaryRule, s.salaryExcluded);
+      if (!an) return;
+      const old = s.statementInfo;
+      const bal = typeof opts?.balance === 'number' ? opts.balance : old?.balance;
+      const info: StatementInfo = { ...an, count: rows.length, balanceKnown: typeof opts?.balance === 'number' || !!old?.balanceKnown, ...(bal !== undefined ? { balance: bal } : {}), at: Date.now() };
+      if (opts?.apply === false) { set({ statementInfo: info }); return; }
+      set({ statementInfo: info, budget: { ...s.budget, salary: an.salary.monthly || s.budget.salary }, bills: an.fixed.map((f) => ({ id: uid(), name: f.name, amount: f.monthly, freq: 'monthly' as const })) });
+    },
     statementInfo: null,
     setStatementInfo: (i) => set({ statementInfo: i }),
     setBalance: (value) => set((s) => { const ms = s.months.map((m) => ({ ...m })); if (!ms.length) return s; const end = ms[0].start + ms[0].movements.reduce((a, x) => a + x.amount, 0); const d = value - end; ms.forEach((m) => { m.start = Math.round((m.start + d) * 100) / 100; }); return { months: ms, statementInfo: s.statementInfo ? { ...s.statementInfo, balanceKnown: true, balance: value } : s.statementInfo }; }),
