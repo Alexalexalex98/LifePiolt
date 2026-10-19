@@ -349,7 +349,7 @@ export const useFin = create<FinState>()(
         if (hit) { hit.used = true; confirmedManual++; return false; }
         return true;
       }) }));
-      set({ months: cleaned });
+      set({ months: cleaned, insights: [], savingsPct: 0 });
       const res = fresh.length ? get().importMovements(fresh, 'bank') : { added: 0 };
       if (typeof opts?.balance === 'number') { const ms = get().months.map((m) => ({ ...m })); const end = ms[0].start + ms[0].movements.reduce((s, x) => s + x.amount, 0); const d = opts.balance - end; ms.forEach((m) => { m.start = Math.round((m.start + d) * 100) / 100; }); set({ months: ms }); }
       return { added: res.added, known, confirmedManual, previous };
@@ -386,7 +386,7 @@ export const useFin = create<FinState>()(
       let acc = 0;
       for (let i = months.length - 1; i >= 0; i--) { months[i].start = Math.round(acc * 100) / 100; acc += months[i].movements.reduce((s, x) => s + x.amount, 0); }
       if (typeof opts?.balance === 'number') { const end = months[0].start + months[0].movements.reduce((s, x) => s + x.amount, 0); const d = opts.balance - end; months.forEach((m) => { m.start = Math.round((m.start + d) * 100) / 100; }); }
-      set({ months });
+      set({ months, insights: [], savingsPct: 0 });
       return { added, removed, months: months.length, future, previous };
     },
     importMovements: (rows, src) => {
