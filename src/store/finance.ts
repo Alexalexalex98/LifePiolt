@@ -11,7 +11,8 @@ export type { BillPrefs, Invoice } from '@/lib/bills/types';
 export type PaidToken = { prev: Invoice; nextId?: string };
 export type PayOpts = { date: string; amount: number; record: boolean; installment?: number };
 
-export type Movement = { date: string; label: string; amount: number };
+/** src: 'bank' = viene da un estratto conto (fa fede); 'manual' = inserito a mano o da uno scontrino, in attesa che arrivi l'estratto */
+export type Movement = { date: string; label: string; amount: number; src?: 'bank' | 'manual' };
 export type FinMonth = { label: string; start: number; locked: boolean; movements: Movement[] };
 export type FinCategory = { n: string; p: number; c: string };
 export type Insight = { id: number; title: string; detail: string; saving: string; dismissed: boolean };
@@ -164,9 +165,13 @@ type FinState = {
   setTaxDoc: (k: string, f: TaxDocFile | null) => void;
   rollMonth: () => void;
   /** Aggiunge movimenti importati (data ISO). Crea i mesi mancanti (chiusi) e tiene coerenti i saldi. */
-  importMovements: (rows: { date: string; label: string; amount: number }[]) => { added: number; newMonths: number; future: number };
+  importMovements: (rows: { date: string; label: string; amount: number }[], src?: 'bank' | 'manual') => { added: number; newMonths: number; future: number };
   /** L'estratto conto ha la precedenza: i movimenti attuali vengono sostituiti da quelli dell'estratto (i mesi senza estratto restano vuoti). */
-  replaceWithStatement: (rows: { date: string; label: string; amount: number }[]) => { added: number; removed: number; months: number; future: number; previous: FinMonth[] };
+  replaceWithStatement: (rows: { date: string; label: string; amount: number }[], opts?: { balance?: number | null }) => { added: number; removed: number; months: number; future: number; previous: FinMonth[] };
+  /** Estratto successivo: aggiunge solo le righe mancanti e toglie gli inserimenti a mano che l'estratto ora conferma. */
+  mergeStatement: (rows: { date: string; label: string; amount: number }[], opts?: { balance?: number | null }) => { added: number; known: number; confirmedManual: number; previous: FinMonth[] };
+  hasBankData: () => boolean;
+  replaceBills: (list: Omit<Bill, 'id'>[]) => void;
   restoreMonths: (months: FinMonth[]) => void;
   /** quando hai caricato l'ultimo estratto conto (serve al promemoria mensile) */
   statementAt: number | null;
@@ -304,9 +309,36 @@ export const useFin = create<FinState>()(
 
 
     restoreMonths: (months) => set({ months }),
+    hasBankData: () => get().months.some((m) => m.movements.some((x) => x.src === 'bank')),
+    replaceBills: (list) => set({ bills: list.map((b) => ({ id: uid(), ...b })) }),
+    mergeStatement: (rows, opts) => {
+      const previous = get().months;
+      const names = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+      const labelOfIso = (iso: string) => `${names[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
+      const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+      const have = new Map<string, number>();
+      previous.forEach((m) => m.movements.forEach((x) => { if (x.src === 'manual') return; const k = `${m.label}|${x.date}|${Math.round(x.amount * 100)}`; have.set(k, (have.get(k) ?? 0) + 1); }));
+      const fresh: typeof rows = []; let known = 0;
+      for (const r of rows) { const k = `${labelOfIso(r.date)}|${ddmm(r.date)}|${Math.round(r.amount * 100)}`; const n = have.get(k) ?? 0; if (n > 0) { have.set(k, n - 1); known++; } else fresh.push(r); }
+      // gli inserimenti a mano (o da scontrino) che l'estratto ora conferma (stesso importo, date vicine) si tolgono: vale l'estratto
+      const day = (label: string, d: string) => { const [n, y] = label.split(' '); return new Date(Number(y), names.indexOf(n), Number(d.slice(0, 2))).getTime(); };
+      const pool = rows.map((r) => ({ t: new Date(r.date + 'T00:00:00').getTime(), cents: Math.round(r.amount * 100), used: false }));
+      let confirmedManual = 0;
+      const cleaned = previous.map((m) => ({ ...m, movements: m.movements.filter((x) => {
+        if (x.src !== 'manual') return true;
+        const tt = day(m.label, x.date); const cents = Math.round(x.amount * 100);
+        const hit = pool.find((p) => !p.used && p.cents === cents && Math.abs(p.t - tt) <= 4 * 86400000);
+        if (hit) { hit.used = true; confirmedManual++; return false; }
+        return true;
+      }) }));
+      set({ months: cleaned });
+      const res = fresh.length ? get().importMovements(fresh, 'bank') : { added: 0 };
+      if (typeof opts?.balance === 'number') { const ms = get().months.map((m) => ({ ...m })); const end = ms[0].start + ms[0].movements.reduce((s, x) => s + x.amount, 0); const d = opts.balance - end; ms.forEach((m) => { m.start = Math.round((m.start + d) * 100) / 100; }); set({ months: ms }); }
+      return { added: res.added, known, confirmedManual, previous };
+    },
     statementAt: null,
     setStatementAt: (ts) => set({ statementAt: ts }),
-    replaceWithStatement: (rows) => {
+    replaceWithStatement: (rows, opts) => {
       const names = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
       const keyOfLabel = (l: string) => { const [n, y] = l.split(' '); const i = names.indexOf(n); return i < 0 || !y ? -1 : Number(y) * 12 + i; };
       const labelOfIso = (iso: string) => `${names[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
@@ -325,16 +357,17 @@ export const useFin = create<FinState>()(
       const months: FinMonth[] = [];
       let added = 0;
       order.forEach(([lab, list], i) => {
-        const mvs: Movement[] = list.slice().sort((a, b) => a.date.localeCompare(b.date)).map((r) => ({ date: `${r.date.slice(8, 10)}/${r.date.slice(5, 7)}`, label: r.label, amount: r.amount }));
+        const mvs: Movement[] = list.slice().sort((a, b) => a.date.localeCompare(b.date)).map((r) => ({ date: `${r.date.slice(8, 10)}/${r.date.slice(5, 7)}`, label: r.label, amount: r.amount, src: 'bank' as const }));
         const net = mvs.reduce((sum, x) => sum + x.amount, 0);
         const newerStart = i === 0 ? (previous.find((m) => m.label === lab)?.start ?? 0) + net : months[i - 1].start;
         months.push({ label: lab, start: newerStart - net, locked: i > 0, movements: mvs });
         added += mvs.length;
       });
+      if (typeof opts?.balance === 'number') { const end = months[0].start + months[0].movements.reduce((s, x) => s + x.amount, 0); const d = opts.balance - end; months.forEach((m) => { m.start = Math.round((m.start + d) * 100) / 100; }); }
       set({ months });
       return { added, removed, months: months.length, future, previous };
     },
-    importMovements: (rows) => {
+    importMovements: (rows, src) => {
       const names = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
       const keyOfLabel = (l: string) => { const [n, y] = l.split(' '); const i = names.indexOf(n); return i < 0 || !y ? -1 : Number(y) * 12 + i; };
       const labelOfIso = (iso: string) => `${names[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
@@ -349,7 +382,7 @@ export const useFin = create<FinState>()(
       });
       let added = 0, newMonths = 0;
       [...groups.entries()].sort((a, b) => keyOfLabel(b[0]) - keyOfLabel(a[0])).forEach(([lab, list]) => {
-        const mvs: Movement[] = list.slice().sort((a, b) => a.date.localeCompare(b.date)).map((r) => ({ date: `${r.date.slice(8, 10)}/${r.date.slice(5, 7)}`, label: r.label, amount: r.amount }));
+        const mvs: Movement[] = list.slice().sort((a, b) => a.date.localeCompare(b.date)).map((r) => ({ date: `${r.date.slice(8, 10)}/${r.date.slice(5, 7)}`, label: r.label, amount: r.amount, ...(src ? { src } : {}) }));
         const net = mvs.reduce((sum, x) => sum + x.amount, 0);
         const idx = months.findIndex((m) => m.label === lab);
         if (idx >= 0) {
