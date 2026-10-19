@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { LineChart } from '@/components/charts';
 import { FinTabs } from '@/components/FinTabs';
+import { StatementForecastCard } from '@/components/StatementForecastCard';
 import { Body, Card, H, Input, Item, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { avgRecentNet, monthEnd, monthNet, useFin } from '@/store/finance';
@@ -46,6 +47,7 @@ export default function LifeForecast() {
   return (
     <Page id="lifeforecast" title="Previsioni future" back>
       <FinTabs current="lifeforecast" />
+      <StatementForecastCard />
       <Card style={{ borderColor: '#3a2a1a' }}>
         <Body small><Body small bold>Non è una consulenza finanziaria.</Body> È un'ipotesi di come potrebbe evolvere la tua situazione nei prossimi 10 anni, calcolata sullo storico reale dei tuoi movimenti in LifeFinance, con assunzioni semplici (nessun imprevisto, stipendio costante, rendimento medio costante). La realtà sarà diversa: usala come spunto, non come piano.</Body>
       </Card>

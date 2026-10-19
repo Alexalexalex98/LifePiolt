@@ -102,8 +102,12 @@ function StatementBudget({ info }: { info: StatementInfo }) {
 
   const openSalary = () => {
     const rows: ExplainRow[] = info.salary.months.flatMap((m) => m.parts.map((p) => ({ date: m.label, label: p.name, amount: p.amount, sort: m.ym })));
-    setEx({ title: 'Da dove arriva lo stipendio', formula: `Regola: lo stipendio di un mese è quello che entra dal ${rule.from} del mese al ${rule.to} del mese dopo (es. dal ${rule.from} settembre al ${rule.to} ottobre = settembre). Per ogni mese si sommano le entrate che tornano (${info.salary.sources.map((s) => s.name).join(', ') || 'nessuna'}); lo stipendio è la mediana dei mesi = ${formatMoney(salary)}. Depositi, rimborsi e entrate una tantum non contano.`, rows, total: sumRows(rows) });
+    setEx({ title: 'Entrate ricorrenti', formula: `Tutte le entrate contano, ma qui vedi quelle che tornano mese dopo mese (${info.salary.sources.map((s) => s.name).join(', ') || 'nessuna'}). Un mese va dal ${rule.from} al ${rule.to} del mese dopo (es. dal ${rule.from} settembre al ${rule.to} ottobre = settembre). Si sommano le entrate ricorrenti di ogni mese e si prende la mediana = ${formatMoney(salary)}. Servono almeno 3 mesi di storico per riconoscere una ricorrenza.`, rows, total: sumRows(rows) });
   };
+  const recKeys = new Set(info.salary.sources.map((s) => s.key));
+  const occRows = listMovements(months, (x) => x.amount > 0 && !recKeys.has(payeeKey(x.label)));
+  const occMonthly = Math.round(sumRows(occRows) / Math.max(1, info.months));
+  const openOcc = () => setEx({ title: 'Entrate occasionali', formula: `Tutte le entrate che non tornano mese dopo mese (depositi, bonifici da persone, rimborsi). Contano nei conti, ma non si possono dare per certe. Media = totale diviso ${info.months} mesi = ${formatMoney(occMonthly)}.`, rows: occRows, total: sumRows(occRows) });
   const openFixed = (b: StatementInfo['fixed'][number]) => {
     const rows = listMovements(months, (x) => x.amount < 0 && payeeKey(x.label) === b.key);
     setEx({ title: b.name, formula: `Spesa fissa: ${b.payments} pagamenti in ${b.months} mesi diversi, di circa ${formatMoney(b.monthly)} al mese (mediana dei mesi). Non contano acquisti singoli o piccoli importi.`, rows, total: sumRows(rows) });
@@ -120,13 +124,16 @@ function StatementBudget({ info }: { info: StatementInfo }) {
   return (
     <>
       <LinearGradient colors={['#12285c', '#1d3a80', '#14506e']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 18, marginBottom: 14 }}>
-        <Text style={{ color: '#ffffffb8', fontSize: 13, fontWeight: '700', letterSpacing: 0.6 }}>{translateText('STIPENDIO MENSILE')}</Text>
+        <Text style={{ color: '#ffffffb8', fontSize: 13, fontWeight: '700', letterSpacing: 0.6 }}>{translateText('ENTRATE RICORRENTI AL MESE')}</Text>
         <Pressable onPress={openSalary} accessibilityRole="button" accessibilityLabel={translateText('Da dove arriva lo stipendio')}>
           <Text style={{ color: '#fff', fontSize: 36, fontWeight: '800', letterSpacing: -1, marginTop: 4 }}>{formatMoney(salary)}</Text>
-          <Text style={{ color: '#ffffffa8', fontSize: 12.5 }}>{translateText('Entrate dal {0} al {1} del mese dopo: tocca per vedere i mesi').replace('{0}', String(rule.from)).replace('{1}', String(rule.to))}</Text>
+          <Text style={{ color: '#ffffffa8', fontSize: 12.5 }}>{translateText('Le fonti che tornano mese dopo mese: tocca per vedere i mesi')}</Text>
         </Pressable>
         <Pressable onPress={() => { setFrom(String(rule.from)); setTo(String(rule.to)); setExcl(f.salaryExcluded); setRuleOpen(true); }} accessibilityRole="button" style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.16)' }}>
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12.5 }}>{translateText('Cambia la regola dello stipendio')}</Text>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12.5 }}>{translateText('Cambia la regola del mese')}</Text>
+        </Pressable>
+        <Pressable onPress={openOcc} accessibilityRole="button" style={{ marginTop: 10 }}>
+          <Text style={{ color: '#ffffffd0', fontSize: 13 }}>{translateText('Più entrate occasionali (depositi, bonifici, una tantum): circa')} {formatMoney(occMonthly)} {translateText('al mese')} · {translateText('tocca per vederle')}</Text>
         </Pressable>
         <Row style={{ marginTop: 14, alignItems: 'flex-end' }}>
           <View>
@@ -170,13 +177,13 @@ function StatementBudget({ info }: { info: StatementInfo }) {
       ) : null}
 
       <ExplainSheet visible={!!ex} title={ex?.title ?? ''} formula={ex?.formula} rows={ex?.rows ?? []} total={ex?.total} onClose={() => setEx(null)} />
-      <Sheet visible={ruleOpen} title="Regola dello stipendio" onClose={() => setRuleOpen(false)}>
-        <Body small muted>Lo stipendio di un mese è quello che entra dal giorno «dal» di quel mese al giorno «al» del mese dopo. Esempio: dal 20 al 10 → lo stipendio di settembre entra dal 20 settembre al 10 ottobre.</Body>
+      <Sheet visible={ruleOpen} title="Regola del mese" onClose={() => setRuleOpen(false)}>
+        <Body small muted>Un mese di entrate ricorrenti va dal giorno «dal» di quel mese al giorno «al» del mese dopo. Esempio: dal 20 al 10 → settembre va dal 20 settembre al 10 ottobre. Tutte le entrate contano comunque nei conti.</Body>
         <Row gap={8} style={{ marginTop: 8 }}>
           <View style={{ flex: 1 }}><Body bold>Dal giorno</Body><Input keyboardType="numeric" value={from} onChangeText={setFrom} accessibilityLabel="Dal giorno" /></View>
           <View style={{ flex: 1 }}><Body bold>Al giorno (mese dopo)</Body><Input keyboardType="numeric" value={to} onChangeText={setTo} accessibilityLabel="Al giorno" /></View>
         </Row>
-        {info.salary.sources.length ? <Body bold style={{ marginTop: 8 }}>Entrate che contano come stipendio</Body> : null}
+        {info.salary.sources.length ? <Body bold style={{ marginTop: 8 }}>Fonti ricorrenti (spegni quelle che non vuoi come ricorrenti)</Body> : null}
         {info.salary.sources.map((s) => <Toggle key={s.key} label={`${s.name} · circa ${formatMoney(s.monthly)}`} value={!excl.includes(s.key)} onChange={(on) => setExcl(on ? excl.filter((k) => k !== s.key) : [...excl, s.key])} />)}
         <Btn style={{ marginTop: 10 }} title="Salva e ricalcola" onPress={saveRule} />
       </Sheet>

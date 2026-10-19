@@ -1,5 +1,5 @@
 {
- "count": 11606,
+ "count": 11637,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -105,7 +105,7 @@
   "src/components/AiNote.tsx": 1,
   "src/components/ArrivalAdvice.tsx": 8,
   "src/components/Automations.tsx": 37,
-  "src/components/BudgetPlanCard.tsx": 46,
+  "src/components/BudgetPlanCard.tsx": 54,
   "src/components/CalendarImportSheet.tsx": 18,
   "src/components/CalendarViews.tsx": 47,
   "src/components/ConfirmBadge.tsx": 4,
@@ -141,6 +141,7 @@
   "src/components/QrScanner.tsx": 4,
   "src/components/ReportsSheet.tsx": 17,
   "src/components/SharingView.tsx": 29,
+  "src/components/StatementForecastCard.tsx": 18,
   "src/components/T.tsx": 1,
   "src/components/TheiaCard.tsx": 11,
   "src/components/TheiaHost.tsx": 42,
@@ -478,6 +479,7 @@
   "src/lib/speech.ts": 4,
   "src/lib/speechCore.ts": 29,
   "src/lib/statementAnalysis.ts": 12,
+  "src/lib/statementForecast.ts": 8,
   "src/lib/statementPdf.ts": 3,
   "src/lib/statementReport.ts": 7,
   "src/lib/stories.ts": 19,
@@ -521,5 +523,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1441
+ "withPlaceholders": 1453
 }
