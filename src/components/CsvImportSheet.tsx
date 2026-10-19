@@ -2,7 +2,9 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { Body, Btn, Item, Row, Select, Sheet, Toggle } from '@/components/ui';
+import { Body, Btn, Input, Item, Row, Select, Sheet, Toggle } from '@/components/ui';
+import { insightsOf } from '@/lib/statementInsights';
+import { defaultBudget } from '@/store/finance';
 import { alertT } from '@/lib/alert';
 import { go } from '@/lib/nav';
 import { AiNote } from '@/components/AiNote';
@@ -32,13 +34,15 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
   const [dups, setDups] = useState(0);
   const [dupRows, setDupRows] = useState<CsvRow[]>([]);
   /* l'estratto conto ha la precedenza: di base sostituisce i movimenti attuali */
-  const [replace, setReplace] = useState(true);
+  const [updateFixed, setUpdateFixed] = useState(true);
+  const [balance, setBalance] = useState('');
+  const [showList, setShowList] = useState(false);
   const [aiRead, setAiRead] = useState(false);
   const [progress, setProgress] = useState('');
   const [explained, setExplained] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const reset = () => { setExplained(false); setRows(null); setOff({}); setInfo([]); setSkipped(0); setDups(0); setDupRows([]); setFileName(''); };
+  const reset = () => { setBalance(''); setShowList(false); setExplained(false); setRows(null); setOff({}); setInfo([]); setSkipped(0); setDups(0); setDupRows([]); setFileName(''); };
 
   /* qualsiasi altro file: non e' un estratto conto, quindi Theia guarda cos'e' e lo racconta in chat (con il consenso) */
   async function explainFile(a: { uri: string; name?: string; mimeType?: string }): Promise<boolean> {
@@ -110,30 +114,38 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
   }
 
   const chosen = (rows ?? []).filter((_, i) => !off[i]);
-  function doReplace() {
-    const all = [...chosen, ...dupRows].map((r) => ({ date: r.date, label: movementLabel(r), amount: r.amount }));
-    const res = useFin.getState().replaceWithStatement(all);
-    if (!res.added) { toast('Nessun movimento utilizzabile nell’estratto'); return; }
-    const prev = res.previous;
-    useFin.getState().setStatementAt(Date.now());
-    announceStatement({ added: res.added, months: res.months });
-    showUndoToast(`Estratto conto applicato: ${res.added} movimenti in ${res.months} ${res.months === 1 ? 'mese' : 'mesi'}${res.removed ? ` · tolti ${res.removed} movimenti precedenti` : ''}`, () => useFin.getState().restoreMonths(prev));
-    reset(); onClose();
-  }
-  function confirm() {
-    if (!chosen.length && !(replace && dupRows.length)) { toast('Nessun movimento selezionato'); return; }
-    if (replace) {
-      const have = useFin.getState().months.reduce((s, m) => s + m.movements.length, 0);
-      alertT('L’estratto conto ha la precedenza', `Sostituisco i ${have} movimenti attuali con quelli dell’estratto conto (${chosen.length + dupRows.length}). Quello che non viene dalla banca sarà tolto. Subito dopo puoi annullare.`, [
-        { text: 'Annulla', style: 'cancel' },
-        { text: 'Sostituisci', style: 'destructive', onPress: doReplace },
-      ]);
-      return;
+  /* tutte le righe dell'estratto (anche quelle gia' presenti: l'estratto fa fede) */
+  const allRows = () => [...chosen, ...dupRows].map((r) => ({ date: r.date, label: movementLabel(r), amount: r.amount }));
+  const ins = useMemo(() => insightsOf([...(rows ?? []), ...dupRows].map((r) => ({ date: r.date, label: r.label, amount: r.amount }))), [rows, dupRows]);
+  const bankMode = visible && useFin.getState().hasBankData();
+  const day = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
+
+  function importAll() {
+    const all = allRows();
+    if (!all.length) { toast('Nessun movimento selezionato'); return; }
+    const st = useFin.getState();
+    const prev = { months: st.months, bills: st.bills, budget: st.budget };
+    const bal = Number(balance.replace(/['’\s]/g, '').replace(',', '.'));
+    const opts = { balance: balance.trim() && Number.isFinite(bal) ? bal : null };
+    let msg: string; let months = 1;
+    if (bankMode) {
+      const r = st.mergeStatement(all, opts);
+      msg = `Aggiunti ${r.added} movimenti mancanti · ${r.known} erano già presenti${r.confirmedManual ? ` · ${r.confirmedManual} inserimenti a mano confermati dall’estratto` : ''}`;
+    } else {
+      const r = st.replaceWithStatement(all, opts);
+      if (!r.added) { toast('Nessun movimento utilizzabile nell’estratto'); return; }
+      months = r.months;
+      msg = `Estratto conto importato: ${r.added} movimenti in ${r.months} ${r.months === 1 ? 'mese' : 'mesi'}${r.removed ? ` · tolti ${r.removed} movimenti precedenti` : ''}`;
     }
-    const res = useFin.getState().importMovements(chosen.map((r) => ({ date: r.date, label: movementLabel(r), amount: r.amount })));
+    if (updateFixed && ins) {
+      const f = useFin.getState();
+      if (ins.salary > 0) f.setBudget({ salary: ins.salary });
+      f.replaceBills(ins.fixed.map((b) => ({ name: b.name, amount: b.amount, freq: 'monthly' as const })));
+      f.setBudget(defaultBudget(ins.salary > 0 ? ins.salary : f.budget.salary, f.budget.saveToEmergency, f.categories, f.months));
+    }
     useFin.getState().setStatementAt(Date.now());
-    announceStatement({ added: res.added, months: Math.max(1, res.newMonths) });
-    toast(`Importati ${res.added} movimenti${res.newMonths ? ` (${res.newMonths} ${res.newMonths === 1 ? 'mese aggiunto' : 'mesi aggiunti'})` : ''}${res.future ? ` · ${res.future} nel futuro ignorati` : ''}`);
+    announceStatement({ added: all.length, months });
+    showUndoToast(msg, () => { const f = useFin.getState(); f.restoreMonths(prev.months); f.replaceBills(prev.bills.map(({ id: _id, ...b }) => b)); f.setBudget(prev.budget); });
     reset(); onClose();
   }
   const total = chosen.reduce((s, r) => s + r.amount, 0);
@@ -149,35 +161,47 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
         </>
       ) : (
         <>
-          <Body bold>{fileName}</Body>
-          <Body small muted style={{ marginTop: 2 }}>{rows.length} {rows.length === 1 ? 'movimento nuovo' : 'movimenti nuovi'}{dups ? ` · ${dups} già presenti, ignorati` : ''}{skipped ? ` · ${skipped} righe non valide` : ''}</Body>
+          <Body bold>Estratto conto</Body>
+          <Body small muted>{fileName}</Body>
+          {ins ? <Body style={{ marginTop: 6 }}>{ins.count} movimenti dal {day(ins.from)} al {day(ins.to)} · entrate {formatMoney(ins.income, { decimals: 2 })} · uscite {formatMoney(ins.expense, { decimals: 2 })}</Body> : <Body small muted style={{ marginTop: 6 }}>Non c’è nulla da importare.</Body>}
           {aiRead ? <AiNote /> : null}
-          {aiRead ? <Body small muted>Letto da un PDF con l’AI: confronta importi e date con il tuo estratto prima di applicarlo.</Body> : null}
+          {aiRead ? <Body small muted>Letto da un PDF con l’AI: confronta importi e date con il tuo estratto.</Body> : null}
           {info.map((w, i) => <Body key={i} small color={t.warn} style={{ marginTop: 6 }}>{w}</Body>)}
-          {rows.length === 0 && <Body small muted style={{ marginTop: 10 }}>Non c’è nulla da importare.</Body>}
-          <View style={{ marginTop: 10 }}>
-            {rows.map((r, i) => (
-              <Item key={i} last={i === rows.length - 1} style={{ opacity: off[i] ? 0.4 : 1 }}>
-                <Row>
-                  <View style={{ flex: 1 }}>
-                    <Body small muted>{toAppDate(r.date)} · {monthLabelOfIso(r.date)}</Body>
-                    <Body numberOfLines={2}>{r.label}</Body>
-                  </View>
-                  <Body bold color={r.amount > 0 ? t.positive : t.danger}>{r.amount > 0 ? '+' : ''}{r.amount.toFixed(2)}</Body>
-                </Row>
-                <Row style={{ marginTop: 6 }}>
-                  {r.category ? <View style={{ flex: 1 }}><Select value={r.category} options={catNames} title="Categoria" onChange={(v) => setRows(rows.map((x, j) => (j === i ? { ...x, category: v } : x)))} /></View> : <Body small muted style={{ flex: 1 }}>Entrata</Body>}
-                  <Btn small ghost title={off[i] ? 'Includi' : 'Escludi'} onPress={() => setOff({ ...off, [i]: !off[i] })} />
-                </Row>
-              </Item>
-            ))}
-          </View>
-          <Body small muted style={{ marginTop: 10 }}>Saldo dei movimenti selezionati: {total >= 0 ? '+' : ''}{formatMoney(total, { decimals: 2 })}. I mesi che non hai ancora in app vengono aggiunti come storico.</Body>
-          <Toggle label="L’estratto conto ha la precedenza" value={replace} onChange={setReplace} hint="Sostituisce i movimenti attuali con quelli della banca e toglie tutto il resto. Puoi annullare subito dopo." />
-          <Row style={{ marginTop: 12 }} gap={8}>
-            <Btn ghost style={{ flex: 1 }} title="Altro file" onPress={reset} />
-            <Btn style={{ flex: 1 }} disabled={!chosen.length && !(replace && dupRows.length)} title={replace ? `Applica l’estratto (${chosen.length + dupRows.length})` : `Importa ${chosen.length}`} onPress={confirm} />
-          </Row>
+          {ins && ins.salary > 0 ? <Body small style={{ marginTop: 8 }}>Stipendio / reddito mensile riconosciuto: circa {formatMoney(ins.salary)} ({ins.sources.map((s) => s.name).slice(0, 3).join(', ')}).</Body> : null}
+          {ins && ins.fixed.length ? <Body small style={{ marginTop: 4 }}>Spese fisse riconosciute: {ins.fixed.slice(0, 5).map((b) => `${b.name} ${formatMoney(b.amount)}`).join(', ')}{ins.fixed.length > 5 ? '…' : ''}.</Body> : null}
+          {ins ? (
+            <>
+              <Toggle label="Aggiorna stipendio, budget e spese fisse" value={updateFixed} onChange={setUpdateFixed} hint="Sostituisce le spese e il budget di prima con quello che risulta dall’estratto." />
+              <Input placeholder="Saldo attuale del conto (facoltativo)" keyboardType="numeric" value={balance} onChangeText={setBalance} accessibilityLabel="Saldo attuale del conto" />
+              <Body small muted>Se lo indichi, il totale dell’app parte da questo e il totale di prima si elimina.</Body>
+              <Body bold style={{ marginTop: 14 }}>Vuoi importare tutti i movimenti dell’estratto?</Body>
+              <Body small muted style={{ marginTop: 2 }}>{bankMode ? `Aggiungo solo quelli che mancano (${dups} già presenti). I movimenti inseriti a mano che l’estratto conferma vengono tolti.` : 'Sostituisco tutto quello che c’è ora (tranne i LifePoints, che restano nostri): quello che non è nell’estratto non ha più valore.'}</Body>
+              <Row style={{ marginTop: 10 }} gap={8}>
+                <Btn ghost style={{ flex: 1 }} title="No" onPress={() => { reset(); onClose(); }} />
+                <Btn style={{ flex: 1 }} title="Sì, importa" onPress={importAll} />
+              </Row>
+              <Btn style={{ marginTop: 8 }} small ghost title={showList ? 'Nascondi i movimenti' : 'Vedi e correggi i movimenti'} onPress={() => setShowList(!showList)} />
+            </>
+          ) : <Btn style={{ marginTop: 10 }} ghost title="Altro file" onPress={reset} />}
+          {showList ? (
+            <View style={{ marginTop: 10 }}>
+              {rows.map((r, i) => (
+                <Item key={i} last={i === rows.length - 1} style={{ opacity: off[i] ? 0.4 : 1 }}>
+                  <Row>
+                    <View style={{ flex: 1 }}>
+                      <Body small muted>{toAppDate(r.date)} · {monthLabelOfIso(r.date)}</Body>
+                      <Body numberOfLines={2}>{r.label}</Body>
+                    </View>
+                    <Body bold color={r.amount > 0 ? t.positive : t.danger}>{r.amount > 0 ? '+' : ''}{r.amount.toFixed(2)}</Body>
+                  </Row>
+                  <Row style={{ marginTop: 6 }}>
+                    {r.category ? <View style={{ flex: 1 }}><Select value={r.category} options={catNames} title="Categoria" onChange={(v) => setRows(rows.map((x, j) => (j === i ? { ...x, category: v } : x)))} /></View> : <Body small muted style={{ flex: 1 }}>Entrata</Body>}
+                    <Btn small ghost title={off[i] ? 'Includi' : 'Escludi'} onPress={() => setOff({ ...off, [i]: !off[i] })} />
+                  </Row>
+                </Item>
+              ))}
+            </View>
+          ) : null}
         </>
       )}
     </Sheet>

@@ -4,6 +4,7 @@ import { Text } from '@/components/T';
 
 import { BudgetPlanCard } from '@/components/BudgetPlanCard';
 import { BillsSection } from '@/components/bills/BillsSection';
+import { AddMovementSheet } from '@/components/AddMovementSheet';
 import { CsvImportSheet } from '@/components/CsvImportSheet';
 import { FinanceOverview } from '@/components/FinanceOverview';
 import { MonthCalcCard } from '@/components/MonthCalcCard';
@@ -39,6 +40,7 @@ export default function LifeFinance() {
   const [guide, setGuide] = useState(false);
   const [billSheet, setBillSheet] = useState(false);
   const [csvSheet, setCsvSheet] = useState(false);
+  const [mvSheet, setMvSheet] = useState(false);
   const [typSheet, setTypSheet] = useState(false);
   const [typ, setTyp] = useState<Record<string, { on: boolean; amt: string }>>({});
   const [budgetKey, setBudgetKey] = useState(0);
@@ -104,6 +106,13 @@ export default function LifeFinance() {
             <Row gap={10}>
               <Icon name="file" size={20} color={t.accent} />
               <View style={{ flex: 1 }}><Body bold>Carica un file</Body><Body small muted>Estratto conto (CSV o PDF): ha la precedenza su tutto il resto. Qualsiasi altro file lo guarda Theia e ti dice cos’è.</Body></View>
+              <Icon name="chevron-right" size={18} color={t.muted} />
+            </Row>
+          </Card>
+          <Card onPress={() => setMvSheet(true)}>
+            <Row gap={10}>
+              <Icon name="plus" size={20} color={t.accent} />
+              <View style={{ flex: 1 }}><Body bold>Aggiungi un movimento</Body><Body small muted>A mano o con la foto dello scontrino, appena paghi. Quando carichi l’estratto, si allinea da solo.</Body></View>
               <Icon name="chevron-right" size={18} color={t.muted} />
             </Row>
           </Card>
@@ -335,6 +344,7 @@ export default function LifeFinance() {
         }} />
       </Sheet>
       <CsvImportSheet visible={csvSheet} onClose={() => setCsvSheet(false)} />
+      <AddMovementSheet visible={mvSheet} onClose={() => setMvSheet(false)} />
       <Tag>{''}</Tag>
     </Page>
   );
