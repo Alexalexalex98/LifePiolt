@@ -1,5 +1,5 @@
 {
- "count": 11579,
+ "count": 11586,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -47,7 +47,7 @@
   "src/app/(tabs)/jobTest.tsx": 47,
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
-  "src/app/(tabs)/lifefinance.tsx": 91,
+  "src/app/(tabs)/lifefinance.tsx": 99,
   "src/app/(tabs)/lifefitness.tsx": 75,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,

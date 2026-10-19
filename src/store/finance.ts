@@ -13,6 +13,7 @@ export type PayOpts = { date: string; amount: number; record: boolean; installme
 
 /** src: 'bank' = viene da un estratto conto (fa fede); 'manual' = inserito a mano o da uno scontrino, in attesa che arrivi l'estratto */
 export type Movement = { date: string; label: string; amount: number; src?: 'bank' | 'manual' };
+export type FinSnapshot = Pick<FinState, 'insights' | 'savingsPct' | 'months' | 'budget' | 'bills' | 'invoices' | 'billPrefs' | 'tax' | 'statementAt' | 'statementInfo'>;
 export type StatementInfo = { from: string; to: string; count: number; salary: number; sources: { name: string; monthly: number; months: number }[]; fixed: { name: string; amount: number; count: number; lastDate: string; key: string }[]; balanceKnown: boolean; balance?: number; at: number };
 export type FinMonth = { label: string; start: number; locked: boolean; movements: Movement[] };
 export type FinCategory = { n: string; p: number; c: string };
@@ -172,6 +173,9 @@ type FinState = {
   /** Estratto successivo: aggiunge solo le righe mancanti e toglie gli inserimenti a mano che l'estratto ora conferma. */
   mergeStatement: (rows: { date: string; label: string; amount: number }[], opts?: { balance?: number | null }) => { added: number; known: number; confirmedManual: number; previous: FinMonth[] };
   hasBankData: () => boolean;
+  /** Cancella i dati personali di finanza (movimenti, budget, spese fisse, bollette, fisco, estratto). Restano LifePoints e investimenti. Restituisce com'era prima per l'annulla. */
+  clearPersonalFinance: () => FinSnapshot;
+  restoreFinance: (s: FinSnapshot) => void;
   /** Cosa risulta dall'estratto (periodo, stipendio, spese fisse) e se il saldo e' quello vero della banca: serve a spiegare ogni numero. */
   statementInfo: StatementInfo | null;
   setStatementInfo: (i: StatementInfo | null) => void;
@@ -316,6 +320,14 @@ export const useFin = create<FinState>()(
 
     restoreMonths: (months) => set({ months }),
     hasBankData: () => get().months.some((m) => m.movements.some((x) => x.src === 'bank')),
+    clearPersonalFinance: () => {
+      const s = get();
+      const snap: FinSnapshot = { insights: s.insights, savingsPct: s.savingsPct, months: s.months, budget: s.budget, bills: s.bills, invoices: s.invoices, billPrefs: s.billPrefs, tax: s.tax, statementAt: s.statementAt, statementInfo: s.statementInfo };
+      const b = blank();
+      set({ insights: b.insights, savingsPct: b.savingsPct, months: b.months, budget: b.budget, bills: b.bills, invoices: b.invoices, billPrefs: b.billPrefs, tax: b.tax, statementAt: null, statementInfo: null });
+      return snap;
+    },
+    restoreFinance: (snap) => set({ ...snap }),
     replaceBills: (list) => set({ bills: list.map((b) => ({ id: uid(), ...b })) }),
     mergeStatement: (rows, opts) => {
       const previous = get().months;
