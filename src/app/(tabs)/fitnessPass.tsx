@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { FIT, FitHero } from '@/components/fitness/kit';
-import { Body, Btn, Card, H, Page, Row } from '@/components/ui';
+import { Body, Btn, Card, H, Page, Row, Switch } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { PARTNER_GYMS, type GymKind } from '@/lib/fitness/data';
@@ -72,7 +72,9 @@ export default function FitnessPass() {
         {active ? (
           <>
             <Body bold>{tl('LifePass attivo: ancora {0} giorni', daysLeft(fit.sub, now))}</Body>
-            <Btn style={{ marginTop: 8 }} title="Torna a LifeFitness" onPress={() => go('lifefitness')} />
+            <Row style={{ marginTop: 10 }}><Body style={{ flex: 1 }}>Rinnovo automatico</Body><Switch value={!!fit.sub?.autoRenew} onValueChange={(v) => fit.setAutoRenew(v)} accessibilityLabel="Rinnovo automatico" /></Row>
+            {fit.visits.length ? <Body small muted style={{ marginTop: 8 }}>{tl('Ingressi con il LifePass: {0}', fit.visits.length)}</Body> : null}
+            <Btn style={{ marginTop: 8 }} title="Mostra il pass d'ingresso" onPress={() => go('lifefitness')} />
           </>
         ) : (
           <>

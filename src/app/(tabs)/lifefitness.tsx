@@ -1,6 +1,6 @@
 import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { FIT, FitHero, Ring, StatTile } from '@/components/fitness/kit';
@@ -110,7 +110,7 @@ export default function LifeFitness() {
 
           {state === 'nessuno' || state === 'scaduto' ? (
             <Card accent={FIT}>
-              <Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass</H><Body small muted>{`${PREMIUM_PRICE_LP} LP ${tl('al mese')}`}</Body></View></Row>
+              <Pressable onPress={() => go('fitnessPass')} accessibilityRole="button" accessibilityLabel="Apri la pagina LifePass"><Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass</H><Body small muted>{`${PREMIUM_PRICE_LP} LP ${tl('al mese')}`}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row></Pressable>
               <Body small muted style={{ marginVertical: 8 }}>Un solo pass per entrare in palestre, piscine e centri sportivi convenzionati.</Body>
               {['Accesso a tutti i centri convenzionati: palestre, piscine, centri sportivi', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 6 }} gap={8}><Icon name="check" size={15} color={FIT} stroke={2.6} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
               {state === 'scaduto' ? <Body small color={t.warn} style={{ marginTop: 2 }}>Il tuo LifePass è scaduto.</Body> : null}
@@ -119,7 +119,7 @@ export default function LifeFitness() {
             </Card>
           ) : (
             <Card accent={FIT}>
-              <Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass attivo</H><Body small muted>{tl('Ancora {0} giorni', daysLeft(fit.sub, now))} · {state === 'attivo' ? 'si rinnova da solo' : 'non si rinnova'}</Body></View></Row>
+              <Pressable onPress={() => go('fitnessPass')} accessibilityRole="button" accessibilityLabel="Apri la pagina LifePass"><Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass attivo</H><Body small muted>{tl('Ancora {0} giorni', daysLeft(fit.sub, now))} · {state === 'attivo' ? 'si rinnova da solo' : 'non si rinnova'}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row></Pressable>
               <Btn style={{ marginTop: 10 }} icon="lifefitness" title="Mostra il pass d'ingresso" onPress={() => setPass(true)} />
               <Row style={{ marginTop: 10 }}><Body style={{ flex: 1 }}>Rinnovo automatico</Body><Switch value={!!fit.sub?.autoRenew} onValueChange={(v) => fit.setAutoRenew(v)} accessibilityLabel="Rinnovo automatico" /></Row>
             </Card>

@@ -1,5 +1,5 @@
 {
- "count": 11990,
+ "count": 11999,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -32,7 +32,7 @@
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 39,
   "src/app/(tabs)/fitnessMeal.tsx": 82,
-  "src/app/(tabs)/fitnessPass.tsx": 25,
+  "src/app/(tabs)/fitnessPass.tsx": 27,
   "src/app/(tabs)/fitnessProgram.tsx": 36,
   "src/app/(tabs)/fitnessWorkout.tsx": 25,
   "src/app/(tabs)/focus.tsx": 27,
@@ -51,7 +51,7 @@
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
   "src/app/(tabs)/lifefinance.tsx": 99,
-  "src/app/(tabs)/lifefitness.tsx": 77,
+  "src/app/(tabs)/lifefitness.tsx": 78,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 113,
   "src/app/(tabs)/lifenetwork.tsx": 41,
@@ -327,13 +327,14 @@
   "src/lib/assistant/dictionary.ts": 51,
   "src/lib/assistant/engine.ts": 224,
   "src/lib/assistant/env.ts": 7,
+  "src/lib/assistant/followup.ts": 4,
   "src/lib/assistant/nlp.ts": 9,
   "src/lib/assistant/phrases.ts": 101,
   "src/lib/assistant/phrasesMore.ts": 128,
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 97,
+  "src/lib/assistant/theiaFlow.ts": 103,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -538,5 +539,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1512
+ "withPlaceholders": 1514
 }
