@@ -1,5 +1,5 @@
 {
- "count": 12002,
+ "count": 12004,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -208,6 +208,7 @@
   "src/components/feed/SwipeDeck.tsx": 30,
   "src/components/feed/TabCards.tsx": 21,
   "src/components/feed/useDeckCards.ts": 2,
+  "src/components/fitness/Exercise3D.tsx": 2,
   "src/components/fitness/ExerciseFigure.tsx": 3,
   "src/components/fitness/ExercisePicker.tsx": 28,
   "src/components/fitness/GymPay.tsx": 20,

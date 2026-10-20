@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
-import { ExerciseFigure } from '@/components/fitness/ExerciseFigure';
+import { Exercise3D } from '@/components/fitness/Exercise3D';
 import { Body, Btn, Card, H, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
@@ -83,9 +83,9 @@ export default function FitnessExercise() {
     <Page id="fitnessExercise" back title={ex.name}>
       <FitHero eyebrow={`${cap(ex.muscle)} · ${cap(ex.equip)}${ex.custom ? ` · ${tl('tuo')}` : ''}`} title={ex.name} sub={ex.timed ? 'A tempo' : 'A ripetizioni'} />
       <Card>
-        <View style={{ alignItems: 'center', marginBottom: 8 }}><ExerciseFigure ex={ex} size={150} /></View>
+        <View style={{ marginBottom: 8 }}><Exercise3D ex={ex} /></View>
         <Body>{ex.how}</Body>
-        <Body small muted style={{ marginTop: 6 }}>Le immagini sono disegni di partenza e arrivo: servono a capire il movimento.</Body>
+        <Body small muted style={{ marginTop: 6 }}>Il modello 3D mostra il movimento dalla partenza all'arrivo: serve a capire come si fa.</Body>
       </Card>
       {guide.cues.length ? (
         <Card>
