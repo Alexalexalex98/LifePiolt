@@ -1,5 +1,5 @@
 {
- "count": 11871,
+ "count": 11879,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -329,7 +329,7 @@
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 96,
+  "src/lib/assistant/theiaFlow.ts": 97,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -503,6 +503,8 @@
   "src/lib/when.ts": 11,
   "src/schemas/change.ts": 3,
   "src/schemas/collections.ts": 3,
+  "src/social/sharedCommands.ts": 4,
+  "src/social/socialCore.ts": 3,
   "src/store/app.ts": 18,
   "src/store/assistant.ts": 16,
   "src/store/chat.ts": 13,
@@ -530,5 +532,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1498
+ "withPlaceholders": 1499
 }

@@ -8,6 +8,7 @@ import { registerDomainHandlers } from '@/domain/handlers';
 import { defineBackgroundTask, onAppStart, onForeground } from '@/lib/background';
 import { startLogStorage } from '@/lib/logStorage';
 import { autoSyncIfConnected } from '@/lib/healthkit';
+import { startSocialSync } from '@/social/socialSync';
 import { resyncCalendars } from '@/lib/calendarImport';
 import { settleIncoming } from '@/lib/lpIncomingActions';
 import { refreshBriefings } from '@/lib/notify';
@@ -101,6 +102,7 @@ export default function RootLayout() {
     } else if (normalizeLang(app.language) !== app.language) app.set({ language: normalizeLang(app.language) });
     SplashScreen.hideAsync();
     void autoSyncIfConnected();
+    startSocialSync(); // post pubblicati: gli stessi su iPhone e Android (solo se il server è collegato)
     startSync(); // sincronizzazione local-first: parte solo se l'utente l'ha abilitata, dopo un ritardo e senza bloccare
     void refreshWeather();
     void refreshBriefings();

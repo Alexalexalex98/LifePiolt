@@ -23,6 +23,8 @@ export type TheiaAction =
   | { kind: 'read-files'; label: string; text: string; files: { uri: string; mime: string; name?: string }[] }
   /** Theia non conosce il comando: l'utente le mostra cosa fare e lei lo impara */
   | { kind: 'teach'; label: string; phrase: string }
+  /** condivide con gli altri utenti un comando imparato (solo se innocuo e solo se l'utente lo sceglie) */
+  | { kind: 'share'; label: string; id: string }
   /** dimentica un comando imparato */
   | { kind: 'forget'; label: string; id: string }
   /** rimanda a Theia questa frase come se l'utente l'avesse scritta */

@@ -32,6 +32,7 @@ import { formatMoney } from '@/i18n/format';
 import { fillTarget, generalize, looksLikeCommand, matchLearned } from './learned';
 import { findFixed, parseFixedEdit } from './financeEdit';
 import { useLearned } from '@/store/learned';
+import { shareLearned, voteSharedCommand } from '@/social/sharedCommands';
 import { useAssistant, type AMsg } from '@/store/assistant';
 import { usePrefs } from '@/store/prefs';
 import { topicOf } from './nlp';
@@ -284,10 +285,11 @@ async function handleLocalEdits(text: string): Promise<boolean> {
       return true;
     }
   }
-  const hit = matchLearned(text, useLearned.getState().items);
-  if (!hit) return false;
   const L = useLearned.getState();
-  L.use(hit.item.id);
+  const sharedItems = (L.shared ?? []).filter((c) => !(L.blocked ?? []).includes(c.id)).map((c) => ({ id: `shared:${c.id}`, pattern: c.pattern, kind: c.kind, target: c.target, uses: 0, ts: 0 }));
+  const hit = matchLearned(text, [...L.items, ...sharedItems]);
+  if (!hit) return false;
+  if (hit.item.id.startsWith('shared:')) void voteSharedCommand(hit.item.id.slice(7), 1); else L.use(hit.item.id);
   const forget: TheiaAction = { kind: 'forget', label: t('Non era questo: dimentica'), id: hit.item.id };
   if (hit.item.kind === 'page') {
     go(hit.item.target);
@@ -315,7 +317,7 @@ async function teachStep(text: string, command?: string): Promise<void> {
   if (isCancel(text)) { L.stopTeach(); pushAi(t('Va bene, lascio stare.')); return; }
   const done = (kind: 'page' | 'cmd', target: string, what: string) => {
     const item = useLearned.getState().learn(phrase, kind, target);
-    pushAi(t('Imparato: quando mi dici «{0}» {1}. Vale anche con altri numeri.', phrase, what), { ext: { actions: [{ kind: 'forget', label: t('Dimentica'), id: item.id }, { kind: 'dismiss', label: t('Perfetto') }] } });
+    pushAi(t('Imparato: quando mi dici «{0}» {1}. Vale anche con altri numeri.', phrase, what), { ext: { actions: [{ kind: 'share', label: t('Condividi con tutti'), id: item.id }, { kind: 'forget', label: t('Dimentica'), id: item.id }, { kind: 'dismiss', label: t('Perfetto') }] } });
   };
   const tryPage = (): boolean => {
     const n = norm(text);
@@ -528,7 +530,13 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
       pushAi(t('Va bene, insegnami. Per «{0}» dimmi dove andare (per esempio «Budget», «Palestre», «Bollette») oppure scrivi un comando che già conosco, come «aggiungi task comprare latte». Lo faccio subito e me lo ricordo.', action.phrase));
       return;
     }
-    case 'forget': useLearned.getState().forget(action.id); pushAi(t('Fatto, l’ho dimenticato.')); return;
+    case 'share': pushAi(t(await shareLearned(action.id))); return;
+    case 'forget': {
+      if (action.id.startsWith('shared:')) { useLearned.getState().block(action.id.slice(7)); void voteSharedCommand(action.id.slice(7), -1); }
+      else useLearned.getState().forget(action.id);
+      pushAi(t('Fatto, l’ho dimenticato.'));
+      return;
+    }
     case 'say': await sendTheia({ text: action.text, lang: useApp.getState().language, appLang: useApp.getState().language, forced: false, source: 'typed' }); return;
     case 'ai-analysis': await deepStatementAnalysis(); return;
     case 'add-invoices': addInvoicesFromChat(action); return;
