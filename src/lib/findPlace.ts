@@ -70,6 +70,7 @@ export type PlaceRequest = { cat: PlaceCategory; /** vuole ORDINARE (consegna a 
  */
 export function detectPlace(raw: string): PlaceRequest | null {
   const text = norm(raw);
+  if (/\b(fare|faccio|fai|rifare|devo fare|dovrei fare)\s+(la\s+)?spesa\b/.test(text)) return null; // «fare la spesa» è un task (lista), non la ricerca di un supermercato
   if (NOT_A_SEARCH.test(text) || /\b(chiam\w*|telefon\w*|scriv\w*|spes[ae]|budget|stipendio|saldo|conto)\b/.test(text.replace('fare la spesa', ''))) return null;
   const w = wantsPlace(raw);
   const cat = PLACE_CATEGORIES.find((c) => c.words.some((x) => hasWord(text, x)));

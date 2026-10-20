@@ -10,10 +10,13 @@ export function useVideoFx(p: VideoPlayer, v?: VideoFx) {
     try { p.playbackRate = speed ?? 1; } catch { /* lettore già rilasciato */ }
     if (start === undefined && end === undefined) return;
     try { p.timeUpdateEventInterval = 0.1; if (start) p.currentTime = start; } catch { /* idem */ }
-    const sub = p.addListener('timeUpdate', ({ currentTime }) => {
-      const to = loopTarget(currentTime, { trimStart: start, trimEnd: end });
-      if (to !== null) { try { p.currentTime = to; } catch { /* idem */ } }
-    });
-    return () => sub.remove();
+    let sub: { remove: () => void } | null = null;
+    try {
+      sub = p.addListener('timeUpdate', ({ currentTime }) => {
+        const to = loopTarget(currentTime, { trimStart: start, trimEnd: end });
+        if (to !== null) { try { p.currentTime = to; } catch { /* idem */ } }
+      });
+    } catch { /* idem */ }
+    return () => { try { sub?.remove(); } catch { /* idem */ } };
   }, [p, speed, start, end]);
 }

@@ -93,20 +93,23 @@ function DeckVideo({ playerKey, source, muted, controls, poster, vfx }: { player
   const focused = useIsFocused();
   const resume = useRef(true);
   useEffect(() => {
-    if (!focused) { resume.current = p.playing; p.pause(); p.muted = true; return; }
-    p.muted = muted;
-    if (resume.current) p.play();
+    try {
+      if (!focused) { resume.current = p.playing; p.pause(); p.muted = true; return; }
+      p.muted = muted;
+      if (resume.current) p.play();
+    } catch { /* rilasciato */ }
   }, [p, muted, focused]);
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (st) => { if (st !== 'active') { resume.current = p.playing; p.pause(); p.muted = true; } else if (focused) { p.muted = muted; if (resume.current) p.play(); } });
+    const sub = AppState.addEventListener('change', (st) => { try { if (st !== 'active') { resume.current = p.playing; p.pause(); p.muted = true; } else if (focused) { p.muted = muted; if (resume.current) p.play(); } } catch { /* rilasciato */ } });
     return () => sub.remove();
   }, [p, muted, focused]);
   useEffect(() => {
     controls.current = {
-      rate: (r) => { p.playbackRate = r; },
-      toggle: () => { if (p.playing) { p.pause(); return false; } p.play(); return true; },
-      seek: (f) => { const d = p.duration || 0; if (d > 0) p.currentTime = Math.max(0, Math.min(d, f * d)); },
-      frac: () => (p.duration > 0 ? p.currentTime / p.duration : 0),
+      /* il lettore può essere già stato liberato (cambio carta veloce): ogni accesso è protetto */
+      rate: (r) => { try { p.playbackRate = r; } catch { /* rilasciato */ } },
+      toggle: () => { try { if (p.playing) { p.pause(); return false; } p.play(); return true; } catch { return true; } },
+      seek: (f) => { try { const d = p.duration || 0; if (d > 0) p.currentTime = Math.max(0, Math.min(d, f * d)); } catch { /* rilasciato */ } },
+      frac: () => { try { return p.duration > 0 ? p.currentTime / p.duration : 0; } catch { return 0; } },
     };
     return () => { controls.current = null; };
   }, [p, controls]);

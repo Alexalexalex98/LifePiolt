@@ -380,8 +380,31 @@ export function Empty({ text }: { text: string }) {
   return <Text style={{ color: t.muted, textAlign: 'center', paddingVertical: 22, fontSize: 14, lineHeight: 20 }}>{text}</Text>;
 }
 
+/** Icona di ogni scheda nota: se ogni voce ne ha una, `Seg` si disegna con le icone (la scelta mostra anche il nome). */
+const LABEL_ICONS: Record<string, string> = {
+  Quadro: 'chart', Budget: 'wallet', Bollette: 'file', Investi: 'trend-up', LP: 'coin', LifePoints: 'coin',
+  Tutti: 'grid', Attivi: 'activity', Completati: 'check',
+  Offerte: 'briefcase', Candidature: 'file', 'Le mie offerte': 'profile',
+  Giorno: 'clock', Settimana: 'calendar', Mese: 'grid', Elenco: 'tasks',
+  Paga: 'send', Versa: 'plus', LifePass: 'lifefitness', Carta: 'wallet', Cripto: 'coin',
+  Free: 'unlock', Premium: 'star', Chat: 'comment', Contenuti: 'file', Prezzi: 'coin', Iscritti: 'users',
+  Ricevi: 'arrow-down', Invia: 'arrow-up', Movimenti: 'repeat',
+  Fronte: 'image', Retro: 'file', Sposta: 'forward', Disegna: 'edit',
+  Acquisti: 'orders', Guadagnati: 'trend-up', 'LifePoint giornaliero': 'coin',
+  File: 'file', Foto: 'image', Minuti: 'clock', Ore: 'timer', Barre: 'chart', Linee: 'activity', Torta: 'circle',
+  Scelta: 'checksquare', Numero: 'poll', Aperta: 'edit',
+  Scelte: 'settings', Limiti: 'timer', Fornitori: 'users', Prova: 'play', Cronologia: 'clock',
+  Media: 'image', Documenti: 'file', Link: 'link',
+};
+const baseLabel = (o: string) => o.replace(/\s·\s.*$/, '');
+
 export function Seg({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
   const t = useTheme();
+  const icons = options.map((o) => LABEL_ICONS[baseLabel(o)]);
+  /* con 2-5 voci che hanno tutte un'icona: scheda a icone, la scelta mostra anche il nome */
+  if (options.length >= 2 && options.length <= 5 && icons.every(Boolean)) {
+    return <IconSeg value={value} onChange={onChange} options={options.map((o, i) => ({ id: o, icon: icons[i], label: o }))} />;
+  }
   return (
     <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: t.input, borderRadius: radius.field, padding: 4, gap: 4, marginBottom: 14 }}>
       {options.map((o) => (

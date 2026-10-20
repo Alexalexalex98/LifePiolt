@@ -4,6 +4,23 @@ import { Platform } from 'react-native';
 import { persistFile } from '@/lib/chatMedia';
 import { libraryPermission } from '@/lib/mediaPerm';
 
+const READ_FAIL = /FailedToRead|representation|heic|PHPhotos|3164|couldn.?t be completed|ph-error|resource/i;
+const READ_MSG = 'Non riesco a leggere questa foto dal telefono. Di solito succede quando la memoria è quasi piena o la foto è su iCloud e non è ancora scaricata: libera un po\' di spazio (Impostazioni > Generali > Spazio iPhone), aspetta che si scarichi e riprova, oppure scegline un\'altra.';
+/** Apre la libreria; se la lettura della foto fallisce (errori di Foto, iCloud, poco spazio) riprova senza conversione e poi con il file originale. */
+async function launchLibrary(opts: ImagePicker.ImagePickerOptions): Promise<ImagePicker.ImagePickerResult> {
+  const modes = [ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current, ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Automatic];
+  let last: unknown;
+  for (let i = 0; i < modes.length; i++) {
+    try {
+      return await ImagePicker.launchImageLibraryAsync({ ...opts, preferredAssetRepresentationMode: modes[i], ...(i > 0 ? { quality: 1 } : {}) });
+    } catch (e) {
+      last = e;
+      if (!READ_FAIL.test(e instanceof Error ? e.message : String(e))) throw e;
+    }
+  }
+  throw new Error(READ_MSG + (last instanceof Error && __DEV__ ? ` (${last.message.slice(0, 80)})` : ''));
+}
+
 export type NetMedia = { media: 'photo' | 'video'; uri: string; name?: string; durationMs?: number };
 
 /** Dimensione massima per tenere un file come data-URL nel salvataggio locale del browser (solo web). */
@@ -32,10 +49,10 @@ export async function pickNetMedia(kind: 'photo' | 'video'): Promise<NetMedia | 
   }
   let r: ImagePicker.ImagePickerResult;
   try {
-  r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: kind === 'photo' ? ['images'] : ['videos'], allowsMultipleSelection: false, quality: 0.8, videoMaxDuration: 120 });
+  r = await launchLibrary({ mediaTypes: kind === 'photo' ? ['images'] : ['videos'], allowsMultipleSelection: false, quality: 0.8, videoMaxDuration: 120 });
   } catch (e) {
     const m = e instanceof Error ? e.message : '';
-    if (/FailedToRead|representation|heic/i.test(m)) throw new Error('Non riesco a leggere questa foto. Se è su iCloud aspetta che si scarichi dal telefono, poi riprova (oppure scegline un\'altra).');
+    if (READ_FAIL.test(m)) throw new Error(READ_MSG);
     throw e;
   }
   if (r.canceled || !r.assets[0]) return null;
@@ -52,7 +69,7 @@ const toNet = async (a: ImagePicker.ImagePickerAsset): Promise<NetMedia> => {
 };
 const readError = (e: unknown): Error => {
   const m = e instanceof Error ? e.message : '';
-  return /FailedToRead|representation|heic/i.test(m) ? new Error('Non riesco a leggere questa foto. Se è su iCloud aspetta che si scarichi dal telefono, poi riprova (oppure scegline un\'altra).') : (e instanceof Error ? e : new Error('Non riesco ad aprire la libreria'));
+  return READ_FAIL.test(m) ? new Error(READ_MSG) : (e instanceof Error ? e : new Error('Non riesco ad aprire la libreria'));
 };
 
 /** Più foto e video insieme dalla libreria (fino a `max`). */
@@ -62,7 +79,7 @@ export async function pickNetMediaMany(max = 6): Promise<NetMedia[]> {
     if (!perm.granted) throw new Error(perm.canAskAgain === false ? 'Permesso alla libreria negato: abilitalo da Impostazioni del telefono.' : 'Senza il permesso alla libreria non posso mostrarti foto e video.');
   }
   try {
-    const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images', 'videos'], allowsMultipleSelection: true, selectionLimit: max, orderedSelection: true, quality: 0.85, videoMaxDuration: 60 });
+    const r = await launchLibrary({ mediaTypes: ['images', 'videos'], allowsMultipleSelection: true, selectionLimit: max, orderedSelection: true, quality: 0.85, videoMaxDuration: 60 });
     if (r.canceled) return [];
     return await Promise.all(r.assets.slice(0, max).map(toNet));
   } catch (e) { throw readError(e); }

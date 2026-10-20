@@ -4,7 +4,7 @@ import { Text } from '@/components/T';
 
 import { FIT, FitHero } from '@/components/fitness/kit';
 import { FormHead, Preview, Segments, Stepper } from '@/components/formKit';
-import { Body, Btn, Card, Input, Page, Pill, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Card, IconSeg, Input, Page, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { PARTNER_GYMS } from '@/lib/fitness/data';
@@ -39,9 +39,7 @@ export default function FitnessGroups() {
         <Btn icon="plus" title="Crea un gruppo" onPress={() => setCreating(true)} />
       </FitHero>
       {pending ? <Card accent={FIT}><Row gap={8}><Icon name="users" size={20} color={FIT} /><Body bold style={{ flex: 1 }}>{tl('{0} richieste da valutare nei tuoi gruppi', pending)}</Body><Btn small ghost title="Vedi" onPress={() => setTab('mine')} /></Row></Card> : null}
-      <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginVertical: 8 }} gap={8}>
-        {([['tutti', 'Tutti'], ['free', 'Gratuiti'], ['paid', 'A pagamento'], ['mine', 'I miei']] as [Tab, string][]).map(([k, l]) => <Pill key={k} label={l} on={tab === k} onPress={() => setTab(k)} />)}
-      </Row>
+      <IconSeg value={tab} onChange={(v) => setTab(v as Tab)} options={[{ id: 'tutti', icon: 'grid', label: 'Tutti' }, { id: 'free', icon: 'unlock', label: 'Gratuiti' }, { id: 'paid', icon: 'coin', label: 'A pagamento' }, { id: 'mine', icon: 'profile', label: 'I miei' }]} />
       {list.length === 0 ? <Card><Body muted>{tab === 'mine' ? 'Non sei ancora in nessun gruppo.' : 'Nessun gruppo qui. Crea il primo: scegli se è gratuito o a pagamento.'}</Body></Card> : null}
       {list.map((g) => {
         const st = groupState(g, me);

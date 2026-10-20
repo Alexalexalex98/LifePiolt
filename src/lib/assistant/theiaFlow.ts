@@ -31,6 +31,7 @@ import { go } from '@/lib/nav';
 import { formatMoney } from '@/i18n/format';
 import { fillTarget, generalize, looksLikeCommand, matchLearned } from './learned';
 import { findFixed, parseFixedEdit } from './financeEdit';
+import { isAddFollowUp, todoSubject } from './followup';
 import { useLearned } from '@/store/learned';
 import { shareLearned, voteSharedCommand } from '@/social/sharedCommands';
 import { useAssistant, type AMsg } from '@/store/assistant';
@@ -62,6 +63,8 @@ export type SendInput = {
   voiceNote?: { uri: string; durationMs: number };
 };
 
+/** Di cosa si sta parlando: serve a capire «mettila nei task» detto subito dopo «devo fare la spesa». */
+let lastSubject: { text: string; ts: number; added: boolean } | null = null;
 const store = () => useAssistant.getState();
 const pushAi = (text: string, extra: { chips?: string[]; ext?: TheiaExt } = {}): AMsg => store().push({ who: 'ai', text, source: 'chat', chips: extra.chips, ext: extra.ext });
 const clean = (s: string) => s.replace(/["“”«»]/g, '').replace(/\s+/g, ' ').trim();
@@ -210,6 +213,24 @@ export async function sendTheia(i: SendInput): Promise<void> {
     const n = norm(text);
     const loneAnswer = (isYes(text) || isNo(text)) && n.split(' ').length > 3;
     if ((SMALLTALK.test(n) && n.split(' ').length <= 8) || loneAnswer) { await aiChatReply([text, payload].filter(Boolean).join('\n\n')); return; }
+  }
+  // «devo fare la spesa»: è una cosa da fare, la metto nei task (con «Annulla»); «mettila nei task» subito dopo si riferisce a quella
+  if (!pending) {
+    const subj = todoSubject(text);
+    if (subj) {
+      lastSubject = { text: subj, ts: Date.now(), added: false };
+      if (await runLocal(`add task "${subj.replace(/"/g, '')}"`)) { if (lastSubject) lastSubject.added = true; return; }
+    }
+    if (isAddFollowUp(text)) {
+      const fresh = lastSubject && Date.now() - lastSubject.ts < 20 * 60000 ? lastSubject : null;
+      if (fresh?.added) {
+        pushAi(t('«{0}» è già nei tuoi task: lo trovi in LifeTask. Se vuoi lo metto anche nel piano di oggi.', fresh.text), { ext: { actions: [{ kind: 'open', label: t('Apri LifeTask'), page: 'lifetask' }, { kind: 'run', label: t('Metti nel piano'), command: `add "${fresh.text.replace(/"/g, '')}" to my plan` }, { kind: 'dismiss', label: t('Va bene così') }] } });
+        return;
+      }
+      if (fresh) { fresh.added = true; if (await runLocal(`add task "${fresh.text.replace(/"/g, '')}"`)) return; }
+      pushAi(t('Cosa vuoi che scriva nel task? Dimmelo e lo aggiungo.'));
+      return;
+    }
   }
   // funzioni dell'app (pubblica un post, crea un LifeClub, invia LifePoints...): le svolge Theia, anche a più domande
   if (handleAppAction(command ?? text, (m, x) => { pushAi(m, x); })) return;

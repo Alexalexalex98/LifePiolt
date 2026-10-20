@@ -41,7 +41,7 @@ import { showUndoToast, toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
 import { REPORT_NOTICE } from '@/components/ReportsSheet';
 import { MediaPickerField } from '@/components/MediaPickerField';
-import { pickNetMedia, type NetMedia } from '@/lib/netMedia';
+import { pickNetMedia, takeNetPhoto, type NetMedia } from '@/lib/netMedia';
 import { REASONS, modKey, type ModKind, type ReasonId } from '@/lib/modRules';
 import { useVisible } from '@/lib/moderation';
 import { useChat } from '@/store/chat';
@@ -830,15 +830,17 @@ function deleteMyPost(ref: string, me: string) {
 
 /** Bozza di una finestra mentre si sceglie la foto: su iPhone il selettore non si apre sopra una finestra, quindi la finestra si chiude e si riapre con la bozza. */
 const drafts: Record<string, Record<string, any>> = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
-async function pickOutsideSheet(kind: 'photo' | 'video', key: string, state: Record<string, any>, reopen: () => void) { // eslint-disable-line @typescript-eslint/no-explicit-any
+async function pickOutsideSheet(kind: 'photo' | 'video' | 'camera', key: string, state: Record<string, any>, reopen: () => void) { // eslint-disable-line @typescript-eslint/no-explicit-any
   drafts[key] = state;
   useNetSheet.getState().close();
   await new Promise((r) => setTimeout(r, 550));
-  try { const m = await pickNetMedia(kind); if (m) drafts[key] = { ...state, media: m }; }
+  try { const m = kind === 'camera' ? await takeNetPhoto() : await pickNetMedia(kind); if (m) { drafts[key] = { ...state, media: m, fx: undefined }; if (key === 'newPost' && m.media === 'photo') autoEditPost = true; } }
   catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la libreria'); }
   reopen();
 }
 const detachOnIos = Platform.OS === 'ios';
+/** appena scelta una foto per un nuovo post si apre da sola l'editor (come fanno i social migliori) */
+let autoEditPost = false;
 
 function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }) {
   const net = useNet();
@@ -852,20 +854,21 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
   const myMenu = useMenus((x) => x.byOwner[me]); const [tag, setTag] = useState(d?.tag ?? topicList[0]); const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
   const t = useTheme();
   // tornando dall'editor: la foto (ritagliata) e i ritocchi scelti
+  /* foto: editor completo (luce, colore, dettagli, ritaglio); video: editor dei recap */
+  const openEditor = (m: NetMedia, f?: PostFx) => {
+    drafts.newPost = { text, tag, media: m, fx: f, capMode, dish };
+    setEditorInput({ items: [m], fx: f });
+    close();
+    setTimeout(() => go(m.media === 'photo' ? 'photoEdit' : 'storyCreate', { for: 'post' }), 450);
+  };
+  const editMedia = () => { if (media) openEditor(media, fx); };
   useEffect(() => {
     if (!resume) return;
     const r = takeEditorResult();
-    if (r?.items[0]) { setMedia(r.items[0]); setFx(cleanFx(r.fx)); }
-  }, [resume]);
-  const editMedia = () => {
-    if (!media) return;
-    const state = { text, tag, media, fx, capMode, dish };
-    drafts.newPost = state;
-    setEditorInput({ items: [media], fx });
-    close();
-    /* foto: editor completo (luce, colore, dettagli, ritaglio); video: editor dei recap */
-    setTimeout(() => go(media.media === 'photo' ? 'photoEdit' : 'storyCreate', { for: 'post' }), 250);
-  };
+    if (r?.items[0]) { setMedia(r.items[0]); setFx(cleanFx(r.fx)); return; }
+    // appena scelta una foto (su iPhone la finestra si richiude e riapre): si apre subito l'editor
+    if (autoEditPost && d?.media?.media === 'photo') { autoEditPost = false; setTimeout(() => openEditor(d.media as NetMedia, undefined), 500); }
+  }, [resume]); // eslint-disable-line react-hooks/exhaustive-deps
   const publish = async () => {
     if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
     /* l'anteprima del video si crea ora: poi compare subito, senza nero */
@@ -877,17 +880,14 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
   const ready = !!text.trim() || !!media;
   return (
     <View style={{ gap: 4 }}>
-      {/* chi sei e dove pubblichi */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-        <UserAvatar name={me} size={44} link={false} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>{me}</Text>
-          <Text style={{ color: t.muted, fontSize: 12.5 }}>{translateText('Pubblichi in')} {tag}</Text>
-        </View>
+      {/* prima la foto o il video: è la cosa più importante di un post */}
+      <MediaPickerField value={media} onChange={(m) => { setMedia(m); setFx(undefined); if (m?.media === 'photo') setTimeout(() => openEditor(m, undefined), 250); }} onEdit={editMedia} fx={fx} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'newPost', { text, tag, media, capMode, dish }, () => openSheet('newPost', { resume: true })) : undefined} />
+      {/* poi la scritta, con la tua foto profilo */}
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        <UserAvatar name={me} size={40} link={false} />
+        <TextInput multiline autoFocus={false} value={text} onChangeText={setText} maxLength={MAX_POST} placeholder={translateText(media ? 'Scrivi una didascalia…' : 'Cosa vuoi condividere?')} placeholderTextColor={t.muted} accessibilityLabel={translateText('Testo del post')}
+          style={{ flex: 1, color: t.text, fontSize: 17, lineHeight: 24, minHeight: media ? 56 : 110, textAlignVertical: 'top', paddingTop: 8, paddingBottom: 8 }} />
       </View>
-      {/* testo senza riquadro: si scrive e basta */}
-      <TextInput multiline autoFocus={false} value={text} onChangeText={setText} maxLength={MAX_POST} placeholder={translateText('Cosa vuoi condividere?')} placeholderTextColor={t.muted} accessibilityLabel={translateText('Testo del post')}
-        style={{ color: t.text, fontSize: 19, lineHeight: 27, minHeight: 120, textAlignVertical: 'top', paddingVertical: 8 }} />
       <MentionSuggest text={text} onPick={setText} />
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={translateText('Tagga una persona')} onPress={() => setText((x) => (x && !/\s$/.test(x) ? x + ' @' : x + '@'))} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 34, borderRadius: 17, backgroundColor: t.chip }}>
@@ -901,7 +901,6 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
         <View style={{ flex: 1 }} />
         <Text style={{ color: t.muted, fontSize: 12 }}>{text.length}/{MAX_POST}</Text>
       </View>
-      <MediaPickerField value={media} onChange={(m) => { setMedia(m); setFx(undefined); }} onEdit={editMedia} fx={fx} detach={detachOnIos ? (k) => void pickOutsideSheet(k, 'newPost', { text, tag, media, capMode, dish }, () => openSheet('newPost', { resume: true })) : undefined} />
       {/* la scritta: sulla foto oppure didascalia fissa sotto, come primo commento */}
       {media && text.trim() ? (
         <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', backgroundColor: t.chip, borderRadius: 14, padding: 4, marginBottom: 10 }}>

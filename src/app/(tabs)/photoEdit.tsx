@@ -26,7 +26,7 @@ export default function PhotoEdit() {
     } catch { setMissing(true); }
   }, []);
 
-  const back = (m: NetMedia, f?: PostFx) => { setEditorResult({ items: [m], ...(f ? { fx: f } : {}) }); goBack(); setTimeout(() => openSheet('newPost', { resume: true }), 350); };
+  const back = (m: NetMedia, f?: PostFx) => { setEditorResult({ items: [m], ...(f ? { fx: f } : {}) }); goBack(); setTimeout(() => openSheet('newPost', { resume: true }), 650); };
 
   if (!media) return <View style={{ flex: 1, backgroundColor: '#0b0c10', alignItems: 'center', justifyContent: 'center' }}><Body>Nessuna foto da modificare.</Body><Btn style={{ marginTop: 12 }} title="Indietro" onPress={() => goBack()} /></View>;
   if (missing) {
