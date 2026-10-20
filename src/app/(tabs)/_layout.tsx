@@ -14,7 +14,7 @@ import { ensureSampleParticipants, ensureSampleRecordings, ensureSampleShops } f
 import { settleIdeas } from '@/lib/ideasActions';
 
 import { DiscoverHost } from '@/components/Discover';
-import { LifePayFab, LifePayHost } from '@/components/LifePay';
+import { LifePayFab, LifePayHost, useWalletTouch } from '@/components/LifePay';
 import { MenuSheet, NavBar, navLabelFor } from '@/components/NavBar';
 import { NetSheetHost } from '@/components/NetSheets';
 import { TheiaFab, TheiaHost, TheiaSelect } from '@/components/TheiaHost';
@@ -88,6 +88,7 @@ export default function TabsLayout() {
   const slideRef = useRef(slide); slideRef.current = slide;
   useEffect(() => { registerSlider((to, d) => slideRef.current(to, d)); return () => registerSlider(null); }, []);
   /* Swipe dal bordo: la sezione attuale segue il dito e sotto compare subito quella di destinazione (icona e nome), poi, al rilascio, il passaggio completa il movimento. */
+  const walletTouch = useWalletTouch(); // tenendo premuto il portafoglio trasparente si accende
   const pan = useRef(PanResponder.create({
     onMoveShouldSetPanResponderCapture: (e, g) => {
       /* Network ha le sue regole (recap, Per te, Swipe, Seguiti): lì il cambio sezione lo gestisce la pagina */
@@ -115,7 +116,7 @@ export default function TabsLayout() {
 
   return (
     <>
-      <View style={{ flex: 1, overflow: 'hidden', backgroundColor: th.bg }} {...pan.panHandlers}>
+      <View style={{ flex: 1, overflow: 'hidden', backgroundColor: th.bg }} {...pan.panHandlers} {...walletTouch}>
         {peek ? (
           <View pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, end: 0, bottom: 64 + insets.bottom, backgroundColor: th.bg, overflow: 'hidden' }}>
             <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ translateX: peekDir === 1 ? peekXr : peekXl }] }}>

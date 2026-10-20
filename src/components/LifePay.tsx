@@ -1,8 +1,11 @@
 import { Camera } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import { create } from 'zustand';
+import { isRtlLayout } from '@/lib/rtl';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname } from 'expo-router';
 
@@ -58,7 +61,46 @@ function PassTab({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Pulsante sempre raggiungibile: apre il portafoglio LifePay da qualsiasi schermata. */
+/**
+ * Il portafoglio è un pulsante «trasparente»: di solito è quasi invisibile e i tocchi passano a quello che c'è dietro.
+ * Per usarlo lo si tiene premuto (mezzo secondo): si accende, diventa pieno e per qualche secondo si può toccare.
+ */
+const useWallet = create<{ armed: boolean; visible: boolean; setArmed: (v: boolean) => void; setVisible: (v: boolean) => void }>((set) => ({ armed: false, visible: false, setArmed: (armed) => set({ armed }), setVisible: (visible) => set({ visible }) }));
+const FAB = { start: 14, size: 44, bottom: 84 };
+
+/** Da mettere sulla vista principale dell'app: osserva i tocchi (senza prenderli) e accende il portafoglio se lo tieni premuto. */
+export function useWalletTouch() {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const off = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const origin = useRef<{ x: number; y: number } | null>(null);
+  const clear = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } origin.current = null; };
+  const inside = (x: number, y: number) => {
+    const left = (isRtlLayout() ? width - FAB.start - FAB.size : FAB.start) - 10, right = left + FAB.size + 20;
+    const bottomY = height - (FAB.bottom + insets.bottom), topY = bottomY - FAB.size;
+    return x >= left && x <= right && y >= topY - 10 && y <= bottomY + 10;
+  };
+  return {
+    onTouchStart: (e: GestureResponderEvent) => {
+      clear();
+      const n = e.nativeEvent; if (n.touches.length !== 1 || !useWallet.getState().visible || useWallet.getState().armed || !inside(n.pageX, n.pageY)) return;
+      origin.current = { x: n.pageX, y: n.pageY };
+      timer.current = setTimeout(() => {
+        timer.current = null;
+        useWallet.getState().setArmed(true);
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+        if (off.current) clearTimeout(off.current);
+        off.current = setTimeout(() => useWallet.getState().setArmed(false), 6000);
+      }, 480);
+    },
+    onTouchMove: (e: GestureResponderEvent) => { const o = origin.current; if (o && Math.hypot(e.nativeEvent.pageX - o.x, e.nativeEvent.pageY - o.y) > 12) clear(); },
+    onTouchEnd: clear,
+    onTouchCancel: clear,
+  };
+}
+
+/** Pulsante sempre raggiungibile: apre il portafoglio LifePay da qualsiasi schermata (tenendolo premuto, vedi sopra). */
 export function LifePayFab() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -66,11 +108,14 @@ export function LifePayFab() {
   const setPay = useUI((s) => s.setPay);
   const kb = useKeyboardInset();
   const pathname = usePathname();
-  if (open || kb.visible || /conversationPage|liveRoom|storyView|storyCreate|swipeDeck/.test(pathname)) return null;
+  const armed = useWallet((s) => s.armed);
+  const hidden = open || kb.visible || /conversationPage|liveRoom|storyView|storyCreate|swipeDeck|photoEdit/.test(pathname);
+  useEffect(() => { useWallet.getState().setVisible(!hidden); if (hidden) useWallet.getState().setArmed(false); }, [hidden]);
+  if (hidden) return null;
   return (
-    <Pressable onPress={() => setPay(true)} accessibilityRole="button" accessibilityLabel={translateText('Apri LifePay')} hitSlop={8}
-      style={{ position: 'absolute', start: 14, bottom: 84 + insets.bottom, width: 44, height: 44, borderRadius: 22, backgroundColor: t.text, alignItems: 'center', justifyContent: 'center', opacity: 0.92, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 }}>
-      <Icon name="wallet" size={22} color={t.onText} />
+    <Pressable pointerEvents={armed ? 'auto' : 'none'} onPress={() => { useWallet.getState().setArmed(false); setPay(true); }} accessibilityRole="button" accessibilityLabel={translateText('Apri LifePay: tieni premuto per attivarlo')} hitSlop={8}
+      style={{ position: 'absolute', start: FAB.start, bottom: FAB.bottom + insets.bottom, width: FAB.size, height: FAB.size, borderRadius: FAB.size / 2, backgroundColor: armed ? t.text : 'transparent', borderWidth: armed ? 0 : 1, borderColor: t.text + '44', alignItems: 'center', justifyContent: 'center', opacity: armed ? 0.96 : 0.35, transform: [{ scale: armed ? 1.12 : 1 }] }}>
+      <Icon name="wallet" size={22} color={armed ? t.onText : t.text} />
     </Pressable>
   );
 }

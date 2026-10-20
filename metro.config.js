@@ -12,7 +12,13 @@ const base = config.resolver.resolveRequest;
  * <Text>/<TextInput> NON passano più di qui: sono in src/components/T.tsx (traduzione + testo più grande).
  */
 const expoAssetShim = path.join(__dirname, 'src', 'lib', 'shims', 'ExpoAsset.js');
+const missingShim = path.join(__dirname, 'src', 'lib', 'shims', 'missing.js');
+/** Pacchetti nativi opzionali: se non sono installati (manca un `npm install`) l'app deve partire comunque. */
+const OPTIONAL = new Set(['@shopify/react-native-skia', 'react-native-health-connect']);
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (OPTIONAL.has(moduleName)) {
+    try { return (base ?? context.resolveRequest)(context, moduleName, platform); } catch { return { type: 'sourceFile', filePath: missingShim }; }
+  }
   // expo-asset carica un modulo nativo che puo' mancare nell'app in esecuzione: lo si rende opzionale (vedi src/lib/shims/ExpoAsset.js)
   if (moduleName === './ExpoAsset' && /[\\/]node_modules[\\/]expo-asset[\\/]/.test(context.originModulePath)) {
     return { type: 'sourceFile', filePath: expoAssetShim };
