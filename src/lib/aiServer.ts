@@ -11,6 +11,8 @@ import { File } from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { humanize } from './aiPersona';
 import { bytesToBase64, readUriBytes } from './readUri';
+/** Versione del collegamento al server AI: compare negli errori, cosi' si vede quale codice sta girando sul telefono. */
+export const AI_BUILD = 'ai-v5';
 export const aiServerConfigured = Boolean(URL_BASE && TOKEN);
 
 export class AiServerError extends Error {
@@ -76,8 +78,8 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
   } catch (e) {
     if (e instanceof AiServerError) throw e;
     const why = e instanceof Error ? e.message : String(e);
-    if (ctl.signal.aborted || /cancel|abort|tempo scaduto/i.test(why)) throw new AiServerError('Il servizio AI ci mette troppo a rispondere (probabilmente è molto richiesto). Riprova tra poco.', 504);
-    throw new AiServerError(`Non riesco a raggiungere il server AI. Controlla la connessione e l’indirizzo. (${why.slice(0, 120)})`);
+    if (ctl.signal.aborted || /cancel|abort|tempo scaduto/i.test(why)) throw new AiServerError(`Il servizio AI ci mette troppo a rispondere (probabilmente è molto richiesto). Riprova tra poco. · ${AI_BUILD}`, 504);
+    throw new AiServerError(`Non riesco a raggiungere il server AI. Controlla la connessione e l’indirizzo. (${why.slice(0, 120)}) · ${AI_BUILD}`);
   } finally { clearTimeout(h); }
 }
 
