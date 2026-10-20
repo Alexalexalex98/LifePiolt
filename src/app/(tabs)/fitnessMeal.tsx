@@ -68,7 +68,7 @@ export default function FitnessMeal() {
       if (aiServerConfigured) {
         if (!(await askSend('food'))) { setReport({ found: [], note: tl('Non invio la foto: senza il permesso non posso analizzare il piatto. Puoi comporlo tu qui sotto.') }); return; }
         logSend('food', 0, ['image/jpeg']);
-        reply = await aiReadFiles(MEAL_PROMPT, [{ uri, mime: 'image/jpeg' }], 30000);
+        reply = await aiReadFiles(MEAL_PROMPT, [{ uri, mime: 'image/jpeg' }], 70000);
       }
       else {
         const gate = await askSendRouted('food');

@@ -76,6 +76,7 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
   } catch (e) {
     if (e instanceof AiServerError) throw e;
     const why = e instanceof Error ? e.message : String(e);
+    if (ctl.signal.aborted || /cancel|abort|tempo scaduto/i.test(why)) throw new AiServerError('Il servizio AI ci mette troppo a rispondere (probabilmente è molto richiesto). Riprova tra poco.', 504);
     throw new AiServerError(`Non riesco a raggiungere il server AI. Controlla la connessione e l’indirizzo. (${why.slice(0, 120)})`);
   } finally { clearTimeout(h); }
 }
