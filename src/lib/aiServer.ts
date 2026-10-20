@@ -15,8 +15,26 @@ export class AiServerError extends Error {
   constructor(message: string, status = 0) { super(message); this.status = status; }
 }
 
+const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+const BUSY = /high demand|overloaded|unavailable|try again later|quota|rate/i;
+
 async function call<T>(path: string, body: unknown, timeoutMs = 45000): Promise<T> {
   if (!aiServerConfigured) throw new AiServerError('Il server AI non è collegato (mancano EXPO_PUBLIC_AI_URL ed EXPO_PUBLIC_AI_TOKEN).');
+  /* il servizio AI è a volte sovraccarico (503/429): si riprova due volte con una pausa, poi si spiega in italiano */
+  for (let attempt = 0; ; attempt++) {
+    try { return await callOnce<T>(path, body, timeoutMs); }
+    catch (e) {
+      const busy = e instanceof AiServerError && (e.status === 503 || e.status === 429 || e.status === 500 || e.status === 502 || BUSY.test(e.message));
+      if (!busy || attempt >= 2) {
+        if (busy) throw new AiServerError('Il servizio AI è molto richiesto in questo momento. Ho riprovato più volte: riprova tra qualche minuto, oppure scegli tu gli alimenti qui sotto.', 503);
+        throw e;
+      }
+      await wait(attempt === 0 ? 2500 : 6000);
+    }
+  }
+}
+
+async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Promise<T> {
   const ctl = new AbortController();
   const h = setTimeout(() => ctl.abort(), timeoutMs);
   try {

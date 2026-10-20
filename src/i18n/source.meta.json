@@ -1,5 +1,5 @@
 {
- "count": 12001,
+ "count": 12002,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -318,7 +318,7 @@
   "src/lib/aiRouter/rewrite.ts": 41,
   "src/lib/aiRouter/runtime.ts": 5,
   "src/lib/aiRouter/select.ts": 18,
-  "src/lib/aiServer.ts": 7,
+  "src/lib/aiServer.ts": 8,
   "src/lib/analytics.ts": 64,
   "src/lib/analyticsData.ts": 30,
   "src/lib/arrival.ts": 8,
