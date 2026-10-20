@@ -59,23 +59,31 @@ export const aiTranslate = async (lang: string, texts: string[]) => {
   try { const a = JSON.parse(r.reply) as unknown; return Array.isArray(a) ? a.map(String) : []; } catch { return []; }
 };
 
-/** Immagine pronta da inviare: ridotta (1280 px, JPEG) così parte e torna in fretta e sta nei limiti del server. */
+/** Perche' l'ultima preparazione di un'immagine e' fallita (serve a capire il problema invece di un messaggio generico). */
+let lastImageError = '';
+/** Immagine pronta da inviare: ridotta (1280 px, JPEG) così parte e torna in fretta e sta nei limiti del server. Prova piu' strade. */
 export async function imageForAi(uri: string): Promise<{ base64: string; mime: 'image/jpeg' } | null> {
+  lastImageError = '';
+  const note = (where: string, e: unknown) => { lastImageError += `${lastImageError ? ' · ' : ''}${where}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 160); };
   let M: typeof import('expo-image-manipulator') | null = null;
-  try { M = await import('expo-image-manipulator'); } catch { M = null; }
+  try { M = await import('expo-image-manipulator'); } catch (e) { note('manipolatore', e); }
   if (M) {
     for (const actions of [[{ resize: { width: 1280 } }], []]) {
       try {
         const r = await M.manipulateAsync(uri, actions, { compress: 0.7, format: M.SaveFormat.JPEG, base64: true });
         if (r.base64) return { base64: r.base64, mime: 'image/jpeg' };
-      } catch { /* si prova il passo dopo */ }
+      } catch (e) { note('manipolatore', e); }
     }
   }
   try {
     const { File } = await import('expo-file-system');
     const b = await new File(uri).base64();
     if (b) return { base64: b, mime: 'image/jpeg' };
-  } catch { /* nessun modo di leggerla */ }
+  } catch (e) { note('file', e); }
+  try {
+    const { readUriBytes, bytesToBase64 } = await import('./readUri');
+    return { base64: bytesToBase64(await readUriBytes(uri)), mime: 'image/jpeg' };
+  } catch (e) { note('copia', e); }
   return null;
 }
 
@@ -93,7 +101,7 @@ async function prepFiles(files: { uri: string; mime: string }[]): Promise<{ data
       } catch { /* file non leggibile: si prosegue con gli altri */ }
     }
   }
-  if (!ready.length) throw new AiServerError('Non riesco a leggere il file: provane un altro.');
+  if (!ready.length) throw new AiServerError(`Non riesco a leggere il file: provane un altro.${lastImageError ? ` (${lastImageError})` : ''}`);
   return ready;
 }
 
