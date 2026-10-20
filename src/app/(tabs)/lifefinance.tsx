@@ -12,7 +12,7 @@ import { confirmDelete } from '@/lib/confirm';
 import { FinTabs } from '@/components/FinTabs';
 import { InvestTab } from '@/components/money/InvestTab';
 import { WalletTab } from '@/components/money/WalletTab';
-import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Pill, Progress, Row, Seg, Select, Sheet, Tag, Toggle, XBtn } from '@/components/ui';
+import { Body, Btn, Card, Empty, H, Input, IconSeg, Item, Link, Metric, Page, Pill, Progress, Row, Seg, Select, Sheet, Tag, Toggle, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCHF, shortDate } from '@/lib/format';
 import { areaColors, Icon } from '@/lib/icons';
@@ -97,7 +97,7 @@ export default function LifeFinance() {
     <Page id="lifefinance" title="LifeFinance" back>
       <FinTabs current="lifefinance" />
 
-      <Seg options={['Quadro', 'Budget', 'Bollette', 'Investi', 'LP']} value={tab} onChange={setTab} />
+      <IconSeg value={tab} onChange={setTab} options={[{ id: 'Quadro', icon: 'chart', label: 'Quadro' }, { id: 'Budget', icon: 'wallet', label: 'Budget' }, { id: 'Bollette', icon: 'file', label: 'Bollette' }, { id: 'Investi', icon: 'trend-up', label: 'Investi' }, { id: 'LP', icon: 'coin', label: 'LifePoints' }]} />
 
       {tab === 'LP' && <WalletTab onInvest={() => setTab('Investi')} />}
       {tab === 'Investi' && <InvestTab />}

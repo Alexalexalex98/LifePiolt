@@ -60,7 +60,9 @@ export function LpTag({ size = 13, dark }: { size?: number; dark?: boolean }) {
   const t = useTheme();
   const light = t.mode === 'light';
   const useDark = dark ?? light;
-  return <Image source={useDark ? LP_ICON_B : LP_ICON_W} style={{ height: size, width: size * 0.8, marginHorizontal: 1 }} resizeMode="contain" />;
+  void useDark;
+  /* una moneta (icona) al posto del logo LP: il logo sottile somigliava a una sterlina (£) e confondeva */
+  return <View accessible accessibilityLabel="LifePoints" style={{ marginStart: 3, alignSelf: 'center' }}><Icon name="coin" size={Math.round(size * 1.05)} color={t.text} stroke={2} /></View>;
 }
 
 export const LpAmount = ({ n, size = 13, bold = true, color }: { n: number; size?: number; bold?: boolean; color?: string }) => (

@@ -393,6 +393,24 @@ export function Seg({ options, value, onChange }: { options: string[]; value: st
   );
 }
 
+/** Schede con sole icone: quella scelta mostra anche il nome. Più pulita e non serve leggere sigle. */
+export function IconSeg({ options, value, onChange }: { options: { id: string; icon: string; label: string }[]; value: string; onChange: (v: string) => void }) {
+  const t = useTheme();
+  return (
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: t.input, borderRadius: radius.field, padding: 4, gap: 4, marginBottom: 14 }}>
+      {options.map((o) => {
+        const on = value === o.id;
+        return (
+          <Press key={o.id} onPress={() => onChange(o.id)} accessibilityLabel={o.label} selected={on} role="tab" style={{ flex: on ? 2.4 : 1, minHeight: 44, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.text : 'transparent', flexDirection: 'row', gap: 6 }}>
+            <Icon name={o.icon} size={19} color={on ? t.bg : t.muted} stroke={on ? 2.2 : 1.9} />
+            {on ? <Text numberOfLines={1} style={{ color: t.bg, fontWeight: '800', fontSize: fs.small }}>{o.label}</Text> : null}
+          </Press>
+        );
+      })}
+    </View>
+  );
+}
+
 export function TabRow({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
   const t = useTheme();
   return (

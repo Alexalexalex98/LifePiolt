@@ -6,6 +6,8 @@ import type { LpMove } from './lpStatement.ts';
 
 export const CATEGORIES = ['Seminari e servizi', 'Idee', 'Acquisti', 'Pagamenti', 'Fitness', 'Investimenti', 'Promozioni', 'Altro'] as const;
 export type Category = (typeof CATEGORIES)[number];
+/** Un movimento sopra questa cifra non è realistico: non entra nelle statistiche e non si può creare. */
+export const MAX_LP_MOVE = 1_000_000;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /** In che categoria cade una spesa, dal collegamento o dalla descrizione. */
@@ -29,7 +31,7 @@ export function spendByCategory(moves: LpMove[], at: number): { rows: CatRow[]; 
   const a = monthStart(at), p = prevMonthStart(at), nextA = new Date(new Date(a).getFullYear(), new Date(a).getMonth() + 1, 1).getTime();
   const now: Record<string, number> = {}, before: Record<string, number> = {};
   for (const m of moves) {
-    if (m.kind !== 'spend') continue;
+    if (m.kind !== 'spend' || !(m.amount > 0) || m.amount > MAX_LP_MOVE) continue; // importi assurdi (prove con cifre enormi) non fanno statistica
     const c = categoryOf(m);
     if (c === 'Investimenti') continue;
     if (m.ts >= a && m.ts < nextA) now[c] = (now[c] ?? 0) + m.amount;

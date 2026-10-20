@@ -208,7 +208,7 @@ export const useNet = create<NetState>()(
     patch: (p) => set(p),
     setPref: (k, v) => set((s) => ({ prefs: { ...s.prefs, [k]: v } })),
     spend: (amount, desc, payee, ref) => {
-      if (get().lifePoints < amount) return false;
+      if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000 || get().lifePoints < amount) return false;
       set((s) => ({
         lifePoints: s.lifePoints - amount,
         ledger: [{ type: 'spend', desc, amount, date: weekdayShortDate(), ...(ref ? { ref } : {}) }, ...s.ledger],
