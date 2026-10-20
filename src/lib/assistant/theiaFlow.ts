@@ -31,7 +31,7 @@ import { go } from '@/lib/nav';
 import { formatMoney } from '@/i18n/format';
 import { fillTarget, generalize, looksLikeCommand, matchLearned } from './learned';
 import { findFixed, parseFixedEdit } from './financeEdit';
-import { isAddFollowUp, todoSubject } from './followup';
+import { friendlyAiError, isAddFollowUp, taskCommand, todoSubject } from './followup';
 import { useLearned } from '@/store/learned';
 import { shareLearned, voteSharedCommand } from '@/social/sharedCommands';
 import { useAssistant, type AMsg } from '@/store/assistant';
@@ -79,7 +79,7 @@ async function aiChatReply(text: string): Promise<void> {
   try {
     pushAi(await askTheiaChat(text) || t('Risposta vuota dal server.'));
   } catch (e) {
-    pushAi(`${e instanceof Error ? e.message : t('Errore del server AI.')}\n\n${t('I comandi sul tuo piano, i task e i report funzionano comunque.')}`);
+    pushAi(`${t(friendlyAiError(e instanceof Error ? e.message : 'Errore del server AI.'))}\n\n${t('I comandi sul tuo piano, i task e i report funzionano comunque.')}`, { ext: { actions: [{ kind: 'say', label: t('Riprova'), text }, { kind: 'dismiss', label: t('Lascia stare') }] } });
   }
 }
 
@@ -216,6 +216,8 @@ export async function sendTheia(i: SendInput): Promise<void> {
   }
   // «devo fare la spesa»: è una cosa da fare, la metto nei task (con «Annulla»); «mettila nei task» subito dopo si riferisce a quella
   if (!pending) {
+    const tc = taskCommand(text);
+    if (tc) { lastSubject = { text: tc, ts: Date.now(), added: false }; if (await runLocal(`add task "${tc.replace(/"/g, '')}"`)) { if (lastSubject) lastSubject.added = true; return; } }
     const subj = todoSubject(text);
     if (subj) {
       lastSubject = { text: subj, ts: Date.now(), added: false };
