@@ -33,11 +33,14 @@ export const salaryMonthLabel = (ym: string, rule: SalaryRule) => {
 
 const NOT_SALARY = /deposito|bancomat|prelievo|giroconto|storno|rimborso|rettifica|einzahlung|bezug|twint|stornierung/i;
 export type SalaryPart = { name: string; key: string; amount: number };
-export type SalaryMonth = { ym: string; label: string; sum: number; parts: SalaryPart[] };
-export type SalaryResult = { monthly: number; months: SalaryMonth[]; sources: { name: string; key: string; monthly: number; months: number }[] };
+export type SalaryMonth = { ym: string; label: string; sum: number; parts: SalaryPart[]; used?: boolean };
+/** Come si calcola la cifra mensile: su quanti mesi (0 = tutti) e con quale media (mediana = non si fa tirare da un mese strano). */
+export type AvgRule = { window: number; method: 'median' | 'mean' };
+export const DEFAULT_AVG: AvgRule = { window: 0, method: 'median' };
+export type SalaryResult = { monthly: number; used: number; method: AvgRule['method']; months: SalaryMonth[]; sources: { name: string; key: string; monthly: number; months: number }[] };
 
 /** Le entrate che tornano (almeno 3 mesi di stipendio diversi), sommate mese per mese nella finestra scelta. */
-export function analyzeSalary(rows: Row[], rule: SalaryRule = DEFAULT_RULE, excluded: string[] = []): SalaryResult {
+export function analyzeSalary(rows: Row[], rule: SalaryRule = DEFAULT_RULE, excluded: string[] = [], avg: AvgRule = DEFAULT_AVG): SalaryResult {
   const credits = rows.filter((r) => r.amount > 0 && !NOT_SALARY.test(r.label));
   const per = new Map<string, Map<string, { name: string; amount: number }>>(); // key -> ym -> {name, amount}
   for (const r of credits) {
@@ -52,8 +55,12 @@ export function analyzeSalary(rows: Row[], rule: SalaryRule = DEFAULT_RULE, excl
     for (const [ym, v] of g) byMonth.set(ym, [...(byMonth.get(ym) ?? []), { name: v.name, key: k, amount: r2(v.amount) }]);
     return { name: [...g.values()][0].name, key: k, monthly: r2(median([...g.values()].map((v) => v.amount))), months: g.size };
   }).sort((a, b) => b.monthly * b.months - a.monthly * a.months);
-  const months = [...byMonth.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([ym, parts]) => ({ ym, label: salaryMonthLabel(ym, rule), sum: r2(parts.reduce((s, p) => s + p.amount, 0)), parts }));
-  return { monthly: Math.round(median(months.map((m) => m.sum)) || 0), months, sources };
+  const all = [...byMonth.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([ym, parts]) => ({ ym, label: salaryMonthLabel(ym, rule), sum: r2(parts.reduce((s, p) => s + p.amount, 0)), parts }));
+  const n = avg.window > 0 ? Math.min(avg.window, all.length) : all.length;
+  const months = all.map((m, i) => ({ ...m, used: i < n }));
+  const sums = all.slice(0, n).map((m) => m.sum);
+  const value = !sums.length ? 0 : avg.method === 'mean' ? sums.reduce((a, b) => a + b, 0) / sums.length : median(sums);
+  return { monthly: Math.round(value || 0), used: n, method: avg.method, months, sources };
 }
 
 /* ------------------------------------------------------------------ classificazione delle uscite */
@@ -114,8 +121,8 @@ export function analyzeSpending(rows: Row[]): { fixed: FixedItem[]; variable: Va
   return { fixed: fixed.sort((a, b) => b.monthly - a.monthly), variable, extraordinary: extraordinary.sort((a, b) => b.date.localeCompare(a.date)), months: monthsAll };
 }
 
-export function analyzeStatement(rows: Row[], rule: SalaryRule = DEFAULT_RULE, excluded: string[] = []): Analysis | null {
+export function analyzeStatement(rows: Row[], rule: SalaryRule = DEFAULT_RULE, excluded: string[] = [], avg: AvgRule = DEFAULT_AVG): Analysis | null {
   if (!rows.length) return null;
   const dates = rows.map((r) => r.date).sort();
-  return { salary: analyzeSalary(rows, rule, excluded), ...analyzeSpending(rows), from: dates[0], to: dates[dates.length - 1] };
+  return { salary: analyzeSalary(rows, rule, excluded, avg), ...analyzeSpending(rows), from: dates[0], to: dates[dates.length - 1] };
 }

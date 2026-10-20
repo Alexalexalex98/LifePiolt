@@ -1,4 +1,4 @@
-import { analyzeStatement, DEFAULT_RULE, type Analysis, type SalaryRule } from '@/lib/statementAnalysis';
+import { analyzeStatement, DEFAULT_AVG, DEFAULT_RULE, type Analysis, type AvgRule, type SalaryRule } from '@/lib/statementAnalysis';
 import { listMovements } from '@/lib/explain';
 import { Platform } from 'react-native';
 import { create } from 'zustand';
@@ -186,7 +186,8 @@ type FinState = {
   /** Regola dello stipendio (es. dal 20 al 10) e fonti escluse: dopo ogni cambio si rifa' l'analisi dell'estratto. */
   salaryRule: SalaryRule;
   salaryExcluded: string[];
-  setSalaryRule: (r: SalaryRule, excluded?: string[]) => void;
+  avgRule: AvgRule;
+  setSalaryRule: (r: SalaryRule, excluded?: string[], avg?: AvgRule) => void;
   recomputeStatement: (opts?: { apply?: boolean; balance?: number | null }) => void;
   replaceBills: (list: Omit<Bill, 'id'>[]) => void;
   restoreMonths: (months: FinMonth[]) => void;
@@ -364,11 +365,12 @@ export const useFin = create<FinState>()(
     statementAt: null,
     salaryRule: DEFAULT_RULE,
     salaryExcluded: [] as string[],
-    setSalaryRule: (r, excluded) => { set((s) => ({ salaryRule: r, salaryExcluded: excluded ?? s.salaryExcluded })); get().recomputeStatement(); },
+    avgRule: DEFAULT_AVG,
+    setSalaryRule: (r, excluded, avg) => { set((s) => ({ salaryRule: r, salaryExcluded: excluded ?? s.salaryExcluded, avgRule: avg ?? s.avgRule })); get().recomputeStatement(); },
     recomputeStatement: (opts) => {
       const s = get();
       const rows = listMovements(s.months, () => true).map((r) => ({ date: r.sort, label: r.label, amount: r.amount }));
-      const an = analyzeStatement(rows, s.salaryRule, s.salaryExcluded);
+      const an = analyzeStatement(rows, s.salaryRule, s.salaryExcluded, s.avgRule);
       if (!an) return;
       const old = s.statementInfo;
       const bal = typeof opts?.balance === 'number' ? opts.balance : old?.balance;

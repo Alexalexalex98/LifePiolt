@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Text } from '@/components/T';
-import { Body, Btn, Card, H, Input, Row, Sheet, Toggle } from '@/components/ui';
+import { Body, Btn, Card, H, Row, Sheet, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { translateText } from '@/i18n/core';
 import { formatMoney } from '@/i18n/format';
@@ -11,6 +11,9 @@ import { RENT_RULE, suggestPlan } from '@/lib/budgetPlan';
 import { toast } from '@/store/toast';
 import { categoryOf, useFin, type StatementInfo } from '@/store/finance';
 import { ExplainSheet } from '@/components/ExplainSheet';
+import { FormHead, Preview, Segments, Stepper } from '@/components/formKit';
+import { Icon } from '@/lib/icons';
+import { analyzeSalary, DEFAULT_AVG, type AvgRule } from '@/lib/statementAnalysis';
 import { listMovements, sumRows, type ExplainRow } from '@/lib/explain';
 import { classify, payeeKey } from '@/lib/statementAnalysis';
 
@@ -82,6 +85,7 @@ function GenericBudgetPlan() {
 }
 
 type Ex = { title: string; formula: string; rows: ExplainRow[]; total?: number } | null;
+const avgName = (m: 'median' | 'mean') => (m === 'mean' ? 'la media aritmetica' : 'la mediana (il valore centrale, non si fa tirare da un mese strano)');
 const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 
 /** Budget costruito SOLO dall'estratto conto: ogni numero si puo' toccare per vedere i movimenti da cui arriva. */
@@ -90,9 +94,10 @@ function StatementBudget({ info }: { info: StatementInfo }) {
   const f = useFin();
   const [ex, setEx] = useState<Ex>(null);
   const [ruleOpen, setRuleOpen] = useState(false);
-  const [from, setFrom] = useState(String(f.salaryRule.from));
-  const [to, setTo] = useState(String(f.salaryRule.to));
+  const [from, setFrom] = useState(f.salaryRule.from);
+  const [to, setTo] = useState(f.salaryRule.to);
   const [excl, setExcl] = useState<string[]>(f.salaryExcluded);
+  const [avg, setAvg] = useState<AvgRule>(f.avgRule);
   const months = f.months;
   const salary = info.salary.monthly;
   const fixedTotal = info.fixed.reduce((s, b) => s + b.monthly, 0);
@@ -102,7 +107,7 @@ function StatementBudget({ info }: { info: StatementInfo }) {
 
   const openSalary = () => {
     const rows: ExplainRow[] = info.salary.months.flatMap((m) => m.parts.map((p) => ({ date: m.label, label: p.name, amount: p.amount, sort: m.ym })));
-    setEx({ title: 'Entrate ricorrenti', formula: `Tutte le entrate contano, ma qui vedi quelle che tornano mese dopo mese (${info.salary.sources.map((s) => s.name).join(', ') || 'nessuna'}). Un mese va dal ${rule.from} al ${rule.to} del mese dopo (es. dal ${rule.from} settembre al ${rule.to} ottobre = settembre). Si sommano le entrate ricorrenti di ogni mese e si prende la mediana = ${formatMoney(salary)}. Servono almeno 3 mesi di storico per riconoscere una ricorrenza.`, rows, total: sumRows(rows) });
+    setEx({ title: 'Entrate ricorrenti', formula: `Tutte le entrate contano, ma qui vedi quelle che tornano mese dopo mese (${info.salary.sources.map((s) => s.name).join(', ') || 'nessuna'}). Un mese va dal ${rule.from} al ${rule.to} del mese dopo (es. dal ${rule.from} settembre al ${rule.to} ottobre = settembre). Si sommano le entrate ricorrenti di ogni mese e si calcola ${avgName(info.salary.method)} sugli ultimi ${info.salary.used} mesi (${info.salary.months.filter((m) => m.used).map((m) => m.ym).reverse().join(', ')}) = ${formatMoney(salary)}. La regola si può cambiare con «Come si calcola». Servono almeno 3 mesi di storico per riconoscere una ricorrenza.`, rows, total: sumRows(rows) });
   };
   const recKeys = new Set(info.salary.sources.map((s) => s.key));
   const occRows = listMovements(months, (x) => x.amount > 0 && !recKeys.has(payeeKey(x.label)));
@@ -118,22 +123,22 @@ function StatementBudget({ info }: { info: StatementInfo }) {
     setEx({ title: v.name, formula: `Media mensile = totale ${formatMoney(v.total)} diviso ${info.months} mesi dell’estratto = ${formatMoney(v.monthly)}. Sono ${v.payments} pagamenti non ripetuti ogni mese.`, rows, total: sumRows(rows) });
   };
   const saveRule = () => {
-    const a = Math.min(31, Math.max(1, Math.round(Number(from)) || 20)), b = Math.min(28, Math.max(1, Math.round(Number(to)) || 10));
-    f.setSalaryRule({ from: a, to: b }, excl); setRuleOpen(false);
+    f.setSalaryRule({ from, to }, excl, avg); setRuleOpen(false);
   };
   return (
     <>
       <LinearGradient colors={['#12285c', '#1d3a80', '#14506e']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 18, marginBottom: 14 }}>
-        <Text style={{ color: '#ffffffb8', fontSize: 13, fontWeight: '700', letterSpacing: 0.6 }}>{translateText('ENTRATE RICORRENTI AL MESE')}</Text>
+        <Text style={{ color: '#ffffffb8', fontSize: 13, fontWeight: '700', letterSpacing: 0.6 }}>{translateText('ENTRATE RICORRENTI · MEDIA AL MESE')}</Text>
         <Pressable onPress={openSalary} accessibilityRole="button" accessibilityLabel={translateText('Da dove arriva lo stipendio')}>
           <Text style={{ color: '#fff', fontSize: 36, fontWeight: '800', letterSpacing: -1, marginTop: 4 }}>{formatMoney(salary)}</Text>
-          <Text style={{ color: '#ffffffa8', fontSize: 12.5 }}>{translateText('Le fonti che tornano mese dopo mese: tocca per vedere i mesi')}</Text>
+          <Text style={{ color: '#ffffffc8', fontSize: 12.5 }}>{translateText(info.salary.method === 'mean' ? 'Media' : 'Mediana')} {translateText('degli ultimi')} {info.salary.used} {translateText(info.salary.used === 1 ? 'mese' : 'mesi')}{info.salary.used < info.salary.months.length ? ` ${translateText('su')} ${info.salary.months.length}` : ''} · {translateText('tocca per vedere i mesi')}</Text>
         </Pressable>
-        <Pressable onPress={() => { setFrom(String(rule.from)); setTo(String(rule.to)); setExcl(f.salaryExcluded); setRuleOpen(true); }} accessibilityRole="button" style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.16)' }}>
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12.5 }}>{translateText('Cambia la regola del mese')}</Text>
+        <Pressable onPress={() => { setFrom(rule.from); setTo(rule.to); setExcl(f.salaryExcluded); setAvg(f.avgRule); setRuleOpen(true); }} accessibilityRole="button" style={{ marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.16)' }}>
+          <Icon name="settings" size={14} color="#fff" stroke={2} />
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12.5 }}>{translateText('Come si calcola')}</Text>
         </Pressable>
         <Pressable onPress={openOcc} accessibilityRole="button" style={{ marginTop: 10 }}>
-          <Text style={{ color: '#ffffffd0', fontSize: 13 }}>{translateText('Più entrate occasionali (depositi, bonifici, una tantum): circa')} {formatMoney(occMonthly)} {translateText('al mese')} · {translateText('tocca per vederle')}</Text>
+          <Text style={{ color: '#ffffffd0', fontSize: 13 }}>{translateText('Più entrate occasionali (depositi, bonifici, una tantum): circa')} {formatMoney(occMonthly)} {translateText('al mese, in media su')} {info.months} {translateText('mesi')} · {translateText('tocca per vederle')}</Text>
         </Pressable>
         <Row style={{ marginTop: 14, alignItems: 'flex-end' }}>
           <View>
@@ -177,15 +182,33 @@ function StatementBudget({ info }: { info: StatementInfo }) {
       ) : null}
 
       <ExplainSheet visible={!!ex} title={ex?.title ?? ''} formula={ex?.formula} rows={ex?.rows ?? []} total={ex?.total} onClose={() => setEx(null)} />
-      <Sheet visible={ruleOpen} title="Regola del mese" onClose={() => setRuleOpen(false)}>
-        <Body small muted>Un mese di entrate ricorrenti va dal giorno «dal» di quel mese al giorno «al» del mese dopo. Esempio: dal 20 al 10 → settembre va dal 20 settembre al 10 ottobre. Tutte le entrate contano comunque nei conti.</Body>
-        <Row gap={8} style={{ marginTop: 8 }}>
-          <View style={{ flex: 1 }}><Body bold>Dal giorno</Body><Input keyboardType="numeric" value={from} onChangeText={setFrom} accessibilityLabel="Dal giorno" /></View>
-          <View style={{ flex: 1 }}><Body bold>Al giorno (mese dopo)</Body><Input keyboardType="numeric" value={to} onChangeText={setTo} accessibilityLabel="Al giorno" /></View>
-        </Row>
-        {info.salary.sources.length ? <Body bold style={{ marginTop: 8 }}>Fonti ricorrenti (spegni quelle che non vuoi come ricorrenti)</Body> : null}
-        {info.salary.sources.map((s) => <Toggle key={s.key} label={`${s.name} · circa ${formatMoney(s.monthly)}`} value={!excl.includes(s.key)} onChange={(on) => setExcl(on ? excl.filter((k) => k !== s.key) : [...excl, s.key])} />)}
-        <Btn style={{ marginTop: 10 }} title="Salva e ricalcola" onPress={saveRule} />
+      <Sheet visible={ruleOpen} title="Come si calcola" onClose={() => setRuleOpen(false)}>
+        {(() => {
+          const prev = analyzeSalary(listMovements(months, () => true).map((r) => ({ date: r.sort, label: r.label, amount: r.amount })), { from, to }, excl, avg);
+          const total = prev.months.length;
+          const srcs = analyzeSalary(listMovements(months, () => true).map((r) => ({ date: r.sort, label: r.label, amount: r.amount })), { from, to }, [], avg).sources;
+          return (
+            <>
+              <FormHead icon="calendar" title="Le entrate di ogni mese" text="Decidi quando comincia un mese di entrate e su quanti mesi fare la media." />
+              <Body bold style={{ marginBottom: 6 }}>Quando va da… a…</Body>
+              <Row gap={8}>
+                <Stepper label="Dal giorno" value={from} onChange={setFrom} min={1} max={31} />
+                <Stepper label="Al giorno del mese dopo" value={to} onChange={setTo} min={1} max={28} />
+              </Row>
+              <Body small muted style={{ marginTop: 6, marginBottom: 12 }}>Esempio: dal {from} al {to} → settembre va dal {from} settembre al {to} ottobre.</Body>
+              <Segments label="Su quanti mesi" value={avg.window} onChange={(w) => setAvg({ ...avg, window: w })} options={[{ v: 0, label: 'Tutti' }, { v: 3, label: 'Ultimi 3' }, { v: 6, label: 'Ultimi 6' }, { v: 12, label: 'Ultimi 12' }]} />
+              <Segments label="Che media" value={avg.method} onChange={(m) => setAvg({ ...avg, method: m })} options={[{ v: 'median', label: 'Mediana' }, { v: 'mean', label: 'Media aritmetica' }]} />
+              <Body small muted style={{ marginBottom: 8 }}>{avg.method === 'median' ? 'La mediana è il valore centrale: un mese con un extra non la sposta.' : 'La media aritmetica somma tutti i mesi e divide: un mese con un extra la alza.'}</Body>
+              {srcs.length ? <Body bold style={{ marginTop: 4 }}>Fonti che contano come ricorrenti</Body> : null}
+              {srcs.map((s) => <Toggle key={s.key} label={`${s.name} · circa ${formatMoney(s.monthly)}`} value={!excl.includes(s.key)} onChange={(on) => setExcl(on ? excl.filter((k) => k !== s.key) : [...excl, s.key])} />)}
+              <Preview label="Con questa regola" value={`${formatMoney(prev.monthly)} ${translateText('al mese')}`}>
+                <Body small muted style={{ marginTop: 2 }}>{avg.method === 'mean' ? 'Media' : 'Mediana'} su {prev.used} {prev.used === 1 ? 'mese' : 'mesi'}{prev.used < total ? ` su ${total}` : ''}. Tutte le entrate contano comunque nei conti.</Body>
+              </Preview>
+              <Btn style={{ marginTop: 10 }} title="Salva e ricalcola" onPress={saveRule} />
+              <Btn ghost style={{ marginTop: 6 }} title="Ripristina la regola standard" onPress={() => { setFrom(20); setTo(10); setAvg(DEFAULT_AVG); setExcl([]); }} />
+            </>
+          );
+        })()}
       </Sheet>
     </>
   );

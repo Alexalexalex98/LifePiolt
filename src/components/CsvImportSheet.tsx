@@ -2,7 +2,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { Body, Btn, Input, Item, Row, Select, Sheet, Toggle } from '@/components/ui';
+import { Body, Btn, Item, Row, Select, Sheet, Toggle } from '@/components/ui';
+import { AmountField } from '@/components/formKit';
 import { insightsOf } from '@/lib/statementInsights';
 import { analyzeStatement } from '@/lib/statementAnalysis';
 import { defaultBudget } from '@/store/finance';
@@ -165,13 +166,12 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
           {aiRead ? <AiNote /> : null}
           {aiRead ? <Body small muted>Letto da un PDF con l’AI: confronta importi e date con il tuo estratto.</Body> : null}
           {info.map((w, i) => <Body key={i} small color={t.warn} style={{ marginTop: 6 }}>{w}</Body>)}
-          {an && an.salary.monthly > 0 ? <Body small style={{ marginTop: 8 }}>Stipendio riconosciuto: circa {formatMoney(an.salary.monthly)} al mese (entrate dal {useFin.getState().salaryRule.from} al {useFin.getState().salaryRule.to} del mese dopo; {an.salary.sources.map((s) => s.name).slice(0, 3).join(', ')}).</Body> : null}
+          {an && an.salary.monthly > 0 ? <Body small style={{ marginTop: 8 }}>Entrate ricorrenti: {an.salary.method === 'mean' ? 'media' : 'mediana'} di circa {formatMoney(an.salary.monthly)} al mese su {an.salary.used} mesi (entrate dal {useFin.getState().salaryRule.from} al {useFin.getState().salaryRule.to} del mese dopo; {an.salary.sources.map((s) => s.name).slice(0, 3).join(', ')}).</Body> : null}
           {an && an.fixed.length ? <Body small style={{ marginTop: 4 }}>Spese fisse riconosciute: {an.fixed.slice(0, 5).map((b) => `${b.name} ${formatMoney(b.monthly)}`).join(', ')}{an.fixed.length > 5 ? '…' : ''}.</Body> : null}
           {ins ? (
             <>
               <Toggle label="Aggiorna stipendio, budget e spese fisse" value={updateFixed} onChange={setUpdateFixed} hint="Sostituisce le spese e il budget di prima con quello che risulta dall’estratto." />
-              <Input placeholder="Saldo attuale del conto (facoltativo)" keyboardType="numeric" value={balance} onChangeText={setBalance} accessibilityLabel="Saldo attuale del conto" />
-              <Body small muted>Se lo indichi, il totale dell’app parte da questo e il totale di prima si elimina.</Body>
+              <AmountField label="Saldo di oggi (facoltativo)" value={balance} onChange={setBalance} hint="Se lo indichi, il totale dell’app parte da questo e il totale di prima si elimina." />
               <Body bold style={{ marginTop: 14 }}>Vuoi importare tutti i movimenti dell’estratto?</Body>
               <Body small muted style={{ marginTop: 2 }}>{bankMode ? `Aggiungo solo quelli che mancano (${dups} già presenti). I movimenti inseriti a mano che l’estratto conferma vengono tolti.` : 'Sostituisco tutto quello che c’è ora (tranne i LifePoints, che restano nostri): quello che non è nell’estratto non ha più valore.'}</Body>
               <Row style={{ marginTop: 10 }} gap={8}>

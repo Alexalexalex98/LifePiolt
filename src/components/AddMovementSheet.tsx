@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { AiNote } from '@/components/AiNote';
-import { Body, Btn, Input, Pill, Row, Sheet } from '@/components/ui';
+import { FormHead, AmountField, Segments } from '@/components/formKit';
+import { Body, Btn, Input, Row, Sheet } from '@/components/ui';
 import { askSend, logSend } from '@/lib/aiConsent';
 import { AiServerError, aiReadFiles, aiServerConfigured } from '@/lib/aiServer';
 import { movementLabel } from '@/lib/csvImport';
@@ -58,19 +59,19 @@ export function AddMovementSheet({ visible, onClose }: { visible: boolean; onClo
 
   return (
     <Sheet visible={visible} title="Aggiungi un movimento" onClose={() => { reset(); onClose(); }}>
-      <Row gap={8} style={{ justifyContent: 'flex-start' }}>
-        <Pill label="Uscita" on={out} onPress={() => setOut(true)} />
-        <Pill label="Entrata" on={!out} onPress={() => setOut(false)} />
-      </Row>
+      <FormHead icon={out ? 'arrow-down' : 'arrow-up'} title={out ? 'Una spesa' : 'Un’entrata'} text="Finisce nei conti subito e si toglie da sola quando l’estratto la conferma." />
+      <Segments value={out ? 'out' : 'in'} onChange={(v) => setOut(v === 'out')} options={[{ v: 'out', label: 'Uscita' }, { v: 'in', label: 'Entrata' }]} />
       <View style={{ marginTop: 8 }}>
         <Row gap={8} style={{ justifyContent: 'flex-start' }}>
           <Btn small ghost icon="camera" title={busy ? 'Leggo…' : 'Foto dello scontrino'} disabled={busy} onPress={() => void scan(true)} />
           <Btn small ghost icon="image" title="Dalla galleria" disabled={busy} onPress={() => void scan(false)} />
         </Row>
         {note ? <Body small muted style={{ marginTop: 6 }}>{note}</Body> : null}
+        <AmountField label="Importo" value={amount} onChange={setAmount} />
+        <Body bold style={{ marginBottom: 4 }}>Cosa è</Body>
         <Input placeholder="Descrizione (es. Coop Lugano)" value={label} onChangeText={setLabel} accessibilityLabel="Descrizione" />
-        <Input placeholder="Importo (CHF)" keyboardType="numeric" value={amount} onChangeText={setAmount} accessibilityLabel="Importo" />
-        <Input placeholder="Data (gg.mm.aaaa)" value={date} onChangeText={setDate} accessibilityLabel="Data" />
+        <Body bold style={{ marginBottom: 4 }}>Quando</Body>
+        <Input placeholder="gg.mm.aaaa" value={date} onChangeText={setDate} accessibilityLabel="Data" />
         <AiNote />
         <Body small muted>Quando carichi l’estratto conto della banca, questo movimento si toglie da solo se l’estratto lo conferma.</Body>
         <Btn style={{ marginTop: 10 }} title="Salva" onPress={save} />

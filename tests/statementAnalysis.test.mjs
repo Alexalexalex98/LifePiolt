@@ -34,3 +34,18 @@ test('spese fisse: affitto, cassa malati, prestito; non i biglietti del bus', ()
   assert.ok(a.variable.some((v) => v.name === 'Cibo'));
 });
 test('classificazione', () => { assert.equal(classify('Pagamento s.immo SA'), 'Affitto'); assert.equal(classify('Acquisto Coop Pronto'), 'Cibo'); assert.equal(classify('Pagamento CONCORDIA'), 'Cassa malati e assicurazioni'); });
+
+test('regola della media: finestra di mesi e mediana/media aritmetica', () => {
+  const rows = [];
+  const pay = [3000, 3000, 3000, 3000, 6000, 3000];
+  pay.forEach((a, i) => rows.push({ date: `2026-0${i + 1}-25`, label: 'Accredito · Azienda SA', amount: a }));
+  const all = analyzeSalary(rows, { from: 20, to: 10 });
+  assert.equal(all.used, 6);
+  assert.equal(all.monthly, 3000);
+  const mean = analyzeSalary(rows, { from: 20, to: 10 }, [], { window: 0, method: 'mean' });
+  assert.equal(mean.monthly, 3500);
+  const last3 = analyzeSalary(rows, { from: 20, to: 10 }, [], { window: 3, method: 'mean' });
+  assert.equal(last3.used, 3);
+  assert.equal(last3.monthly, 4000);
+  assert.equal(last3.months.filter((m) => m.used).length, 3);
+});

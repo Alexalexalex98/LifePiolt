@@ -7,6 +7,7 @@ import { Text } from '@/components/T';
 import { Donut } from '@/components/charts';
 import { Body, Btn, Card, Empty, H, Input, Item, Press, Row, Sheet } from '@/components/ui';
 import { ExplainSheet } from '@/components/ExplainSheet';
+import { AmountField, FormHead, Preview } from '@/components/formKit';
 import { listMovements, sumRows } from '@/lib/explain';
 import { useInk, useTheme } from '@/hooks/use-theme';
 import { currentCurrency, fmtDate, formatMoney } from '@/i18n/format';
@@ -281,9 +282,21 @@ function Hero({ a, onMovements }: { a: Analysis; onMovements: () => void }) {
         };
       })()} />
       <Sheet visible={balOpen} title="Saldo reale del conto" onClose={() => setBalOpen(false)}>
-        <Body small muted>Scrivi il saldo che vedi oggi sul tuo e-banking. L’app lo usa come punto di arrivo e risale all’indietro con i movimenti dell’estratto.</Body>
-        <Input placeholder="Saldo attuale (CHF)" keyboardType="numeric" value={balTxt} onChangeText={setBalTxt} accessibilityLabel="Saldo attuale" />
-        <Btn style={{ marginTop: 10 }} title="Salva" onPress={() => { const n = Number(balTxt.replace(/['’\s]/g, '').replace(',', '.')); if (!Number.isFinite(n)) return; useFin.getState().setBalance(n); setBalOpen(false); setBalTxt(''); }} />
+        {(() => {
+          const n = Number(balTxt.replace(/['’\s]/g, '').replace(',', '.'));
+          const ok = balTxt.trim() !== '' && Number.isFinite(n);
+          const gap = ok ? Math.round((n - cur.end) * 100) / 100 : 0;
+          return (
+            <>
+              <FormHead icon="wallet" title="Il saldo che vedi in banca" text="Serve solo come punto di arrivo: l’app risale all’indietro con i movimenti dell’estratto." />
+              <AmountField label="Saldo di oggi" value={balTxt} onChange={setBalTxt} hint="Lo trovi nell’e-banking, in alto sul conto" />
+              <Preview label="Adesso l’app calcola" value={money(cur.end)}>
+                {ok ? <Body small muted style={{ marginTop: 4 }}>{gap === 0 ? translateText('Coincide con il tuo saldo.') : `${translateText('Differenza da correggere')}: ${gap > 0 ? '+' : '−'}${money(Math.abs(gap))}`}</Body> : null}
+              </Preview>
+              <Btn style={{ marginTop: 12 }} title="Salva il saldo" disabled={!ok} onPress={() => { useFin.getState().setBalance(n); setBalOpen(false); setBalTxt(''); }} />
+            </>
+          );
+        })()}
       </Sheet>
     </LinearGradient>
   );
