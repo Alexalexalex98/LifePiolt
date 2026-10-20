@@ -7,13 +7,14 @@ import { FIT } from '@/components/fitness/kit';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import type { ExerciseX } from '@/lib/fitness/exerciseDb';
+import { exPhotoUrls } from '@/lib/fitness/exPhotos';
 import { FAMILIES, figurePanels } from '@/lib/fitness/poses';
 
 /** Dimostrazione dell'esercizio: due immagini (partenza e arrivo). Con foto scelte dall'utente mostra quelle. */
-export function ExerciseFigure({ ex, size = 120, captions = true, single = false }: { ex: Pick<ExerciseX, 'fam' | 'photos' | 'name'> | undefined; size?: number; captions?: boolean; single?: boolean }) {
+export function ExerciseFigure({ ex, size = 120, captions = true, single = false }: { ex: Pick<ExerciseX, 'fam' | 'photos' | 'name'> & { id?: string } | undefined; size?: number; captions?: boolean; single?: boolean }) {
   const t = useTheme();
   const fam = ex?.fam ? FAMILIES[ex.fam] : undefined;
-  const photos = ex?.photos ?? [];
+  const photos = ex?.photos?.length ? ex.photos : exPhotoUrls(ex?.id) ?? [];
   const caps = [tl('Partenza'), tl('Arrivo')];
   const box = { width: size, height: size, borderRadius: Math.max(8, size / 9), backgroundColor: t.chip, overflow: 'hidden' as const };
   if (photos.length) {

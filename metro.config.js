@@ -14,7 +14,7 @@ const base = config.resolver.resolveRequest;
 const expoAssetShim = path.join(__dirname, 'src', 'lib', 'shims', 'ExpoAsset.js');
 const missingShim = path.join(__dirname, 'src', 'lib', 'shims', 'missing.js');
 /** Pacchetti nativi opzionali: se non sono installati (manca un `npm install`) l'app deve partire comunque. */
-const OPTIONAL = new Set(['@shopify/react-native-skia', 'react-native-health-connect', 'expo-gl', 'three']);
+const OPTIONAL = new Set(['@shopify/react-native-skia', 'react-native-health-connect']);
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (OPTIONAL.has(moduleName)) {
     try { return (base ?? context.resolveRequest)(context, moduleName, platform); } catch { return { type: 'sourceFile', filePath: missingShim }; }

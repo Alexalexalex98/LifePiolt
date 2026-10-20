@@ -92,3 +92,15 @@ test('i bisogni indicati portano in cima la scheda giusta', () => {
   assert.ok(searchPrograms('tennis', null).some((p) => p.id === 'racchetta'));
   assert.ok(searchPrograms('', 'corsa').length >= 4);
 });
+
+test('foto vere: ogni collegamento punta a un esercizio esistente e ha due indirizzi', async () => {
+  const { EX_PHOTO_DIR, exPhotoUrls } = await import('../src/lib/fitness/exPhotos.ts');
+  const { ALL_EXERCISES } = await import('../src/lib/fitness/exerciseDb.ts');
+  const ids = new Set(ALL_EXERCISES.map((e) => e.id));
+  for (const id of Object.keys(EX_PHOTO_DIR)) assert.ok(ids.has(id), id);
+  assert.ok(Object.keys(EX_PHOTO_DIR).length > 100);
+  const u = exPhotoUrls('pushup');
+  assert.equal(u?.length, 2);
+  assert.match(u[0], /^https:\/\/.+\/Pushups\/0\.jpg$/);
+  assert.equal(exPhotoUrls('inesistente'), undefined);
+});
