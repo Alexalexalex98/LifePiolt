@@ -304,9 +304,7 @@ export function SwipeDeck({ cards: cardsIn, onClose, onDismiss, backdrop, startK
           delayLongPress={260} onLongPress={() => { if (isVideo) { vid.current?.rate(2); setFast(true); } }} onPressOut={() => { if (fast) { vid.current?.rate(1); setFast(false); } }} style={{ flex: 1 }}>
           {card.fx ? <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, zIndex: 1 }}><StoryFx s={card.fx as never} uri={card.media === 'video' ? undefined : card.uris?.[pic] ?? card.uri} /></View> : null}
           {isVideo ? <DeckVideo key={card.key} playerKey={card.key} vfx={card.fx?.video} source={card.asset ?? { uri: card.uri as string }} muted={muted} controls={vid} poster={posterOf(card as SwipeCandidate)} /> : card.asset ? <Image key={card.key} recyclingKey={card.key} source={card.asset} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" /> : card.uri ? <Image key={card.key} recyclingKey={card.key} source={{ uri: card.uris?.[pic] ?? card.uri }} pointerEvents="none" style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="memory-disk" priority="high" transition={0} onLoad={() => setLoadedKey(card.key)} onError={() => markBroken(card.key)} /> : (
-            <LinearGradient colors={['#4a3bd1', '#1b1f3a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: 28, justifyContent: 'center' }}>
-              <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900' }}>{card.text}</Text>
-            </LinearGradient>
+            <DeckTextCard card={card as SwipeCandidate} />
           )}
           <LinearGradient colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0)']} pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, end: 0, height: insets.top + 110 }} />
           <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.78)']} pointerEvents="none" style={{ position: 'absolute', bottom: 0, start: 0, end: 0, height: 330 }} />

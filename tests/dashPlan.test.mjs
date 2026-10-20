@@ -16,22 +16,24 @@ test('completato un task, compare il successivo più importante', () => {
   assert.ok(!after.includes('task:b'));
   assert.equal(after.length, 2);
 });
-test('benessere: acqua sempre, passi mancanti, sonno corto, e le voci fatte spariscono', () => {
+test('benessere: solo da dati veri (passi mancanti, sonno corto); niente consigli generici', () => {
   const p = buildPlan({ ...base, hour: 15, steps: 4000, stepsGoal: 8000, sleepHours: 5.5 });
   const texts = p.filter((x) => x.kind === 'benessere').map((x) => x.text).join(' | ');
-  assert.match(texts, /acqua/); assert.match(texts, /Mancano 4\.000 passi/); assert.match(texts, /pausa breve/);
-  const water = p.find((x) => /acqua/.test(x.text));
-  const p2 = buildPlan({ ...base, hour: 15, done: [water.id.replace('well:', '')] });
-  assert.ok(!p2.some((x) => /acqua/.test(x.text)));
+  assert.match(texts, /Mancano 4\.000 passi/); assert.match(texts, /pausa breve/);
+  assert.ok(!/acqua|allungati/i.test(texts));
+  const q = buildPlan({ ...base, hour: 15 });
+  assert.equal(q.filter((x) => x.kind === 'benessere').length, 0);
+});
+test('un task riconosciuto spiega cosa propone', () => {
+  const p = buildPlan({ ...base, hour: 9, tasks: [{ id: 'a', t: 'Prenotare il dentista' }, { id: 'b', t: 'Fare la spesa' }] });
+  assert.match(p.find((x) => x.taskId === 'a').why, /dentista/);
+  assert.match(p.find((x) => x.taskId === 'b').why, /lista della spesa/);
 });
 test('impegni passati non compaiono; bollette in scadenza e messaggi sì', () => {
   const p = buildPlan({ ...base, hour: 15, events: [{ time: '09:00', title: 'Vecchio' }, { time: '16:00', title: 'Dentista' }], bills: [{ name: 'Luce', days: 1 }], unreadMessages: 2 });
   assert.ok(!p.some((x) => /Vecchio/.test(x.text)));
   assert.ok(p.some((x) => /Dentista/.test(x.text)) && p.some((x) => /Luce/.test(x.text)) && p.some((x) => x.kind === 'persone'));
   assert.match(planSummary(p), /1 impegno/);
-});
-test('di notte niente promemoria acqua', () => {
-  assert.ok(!buildPlan({ ...base, hour: 2 }).some((x) => /acqua/.test(x.text)));
 });
 test('Da fare adesso: c\'è sempre almeno un task se ce ne sono', () => {
   const p = buildPlan({ ...base, hour: 9, events: [{ time: '09:30', title: 'Riunione' }], bills: [{ name: 'Luce', days: 0 }, { name: 'Gas', days: 1 }], unreadMessages: 1, tasks: [{ id: 'a', t: 'Leggere' }] });

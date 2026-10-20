@@ -16,6 +16,8 @@ import { useApp } from '@/store/app';
 import { useLife, taskIsDone, type CalEvent, type Task } from '@/store/life';
 import { toast } from '@/store/toast';
 import { go } from '@/lib/nav';
+import { taskIntent } from '@/lib/taskIntent';
+import { TaskActionSheet } from '@/components/TaskActions';
 import { elapsedMs, fmtElapsed, isRunning, pauseTimer, startTimer } from '@/lib/taskTimer';
 import { t as tl, translateText } from '@/i18n/core';
 import { fmtDate } from '@/i18n/format';
@@ -24,6 +26,7 @@ import { fmtDate } from '@/i18n/format';
 export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
   const t = useTheme();
   const { toggleTask, delTask, restoreTask, patchTask } = useLife();
+  const [actOpen, setActOpen] = useState(false);
   const urgentBtn = (
     <Pressable onPress={() => { patchTask(task.id, { urgent: !task.urgent }); toast(!task.urgent ? 'Segnato urgente: lo propongo per primo' : 'Non più urgente'); }} hitSlop={8} accessibilityLabel={translateText(task.urgent ? 'Togli urgenza' : 'Segna come urgente')}>
       <Icon name="alert" size={19} color={task.urgent ? t.danger : t.muted} />
@@ -68,6 +71,7 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
     );
   }
   const running = isRunning(task.timer);
+  const smart = taskIntent(task.t).kind !== 'none';
   const timerBtn = task.done ? null : (
     <Pressable onPress={() => go('focus', { id: task.id })} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText(running ? 'Apri il timer in corso' : 'Concentrati su questo task')}>
       <Icon name={running ? 'pause' : 'play'} size={18} color={running ? t.accent : t.muted} fill={running ? t.accent : 'none'} />
@@ -76,21 +80,27 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
   return (
     <Item>
       <Row>
-        <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }} onPress={() => { const n = toggleTask(task.id, !task.done); if (n) toast(n); }} accessibilityRole="checkbox" accessibilityState={{ checked: !!task.done }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+          <Pressable hitSlop={10} onPress={() => { const n = toggleTask(task.id, !task.done); if (n) toast(n); }} accessibilityRole="checkbox" accessibilityState={{ checked: !!task.done }}>
           <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: task.done ? t.positive : t.muted, backgroundColor: task.done ? t.positive : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
             {task.done && <Icon name="check" size={14} color={t.bg} stroke={3} />}
           </View>
+          </Pressable>
+          <Pressable style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }} onPress={() => { if (smart) { setActOpen(true); return; } const n = toggleTask(task.id, !task.done); if (n) toast(n); }} accessibilityRole="button" accessibilityLabel={smart ? tl('Apri le azioni di {0}', task.t) : task.t}>
           <Body style={{ flex: 1, textDecorationLine: task.done ? 'line-through' : 'none', opacity: task.done ? 0.45 : 1 }}>
             {task.t}
             {dueLabel ? <Text style={{ color: task.due && dueLabel === 'in ritardo' ? t.danger : t.muted, fontSize: 12 }}>{'  · '}{dueLabel}</Text> : null}
             {task.recurring && task.recurring !== 'none' ? <Text style={{ color: t.muted, fontSize: 12 }}>{'  · '}{task.recurring === 'daily' ? 'ogni giorno' : 'ogni settimana'}</Text> : null}
           </Body>
-        </Pressable>
+          {smart ? <Icon name="sparkle" size={14} color={t.accent} /> : null}
+          </Pressable>
+        </View>
         {timerBtn}
         {dueBtn}
         {urgentBtn}
         <Btn small ghost title="" label="Rimuovi" icon="x" onPress={remove} />
       </Row>
+      {smart ? <TaskActionSheet taskId={actOpen ? task.id : null} onClose={() => setActOpen(false)} /> : null}
     </Item>
   );
 }
