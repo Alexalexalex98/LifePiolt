@@ -16,6 +16,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LogoLoader } from '@/components/LogoLoader';
+import { autoBgKey } from '@/lib/autoBg';
+import { seedUri } from '@/lib/seedMedia';
+import { paletteFor, textCardFontSize } from '@/components/feed/feedColors';
 import { Animated, AppState, Easing, Linking, PanResponder, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
@@ -32,6 +35,20 @@ import { SWIPE_SIGNAL, dedupeCards, dwellSignal, pickMixed, rankedPool, record, 
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
 
+/** Post senza foto: stessi colori, stessa scritta e stesso sfondo del post nel feed (la palette dipende da autore e testo). */
+function DeckTextCard({ card }: { card: { author: string; text: string; tag?: string } }) {
+  const p = paletteFor(card.author + card.text, 'dark');
+  const fs = textCardFontSize(card.text.length) + 4;
+  const bgKey = autoBgKey(card.text, card.tag);
+  const bg = bgKey ? seedUri(bgKey) : null;
+  return (
+    <LinearGradient colors={[p.from, p.to]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={{ flex: 1, padding: 28, justifyContent: 'center', overflow: 'hidden' }}>
+      {bg ? <><Image source={{ uri: bg }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" /><View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: 'rgba(0,0,0,0.38)' }} /></> : null}
+      {card.tag ? <Text style={{ color: p.sub, fontSize: 12.5, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14 }} numberOfLines={1}>{card.tag}</Text> : null}
+      <Text style={{ color: bg ? '#fff' : p.text, fontSize: fs, lineHeight: Math.round(fs * 1.28), fontWeight: '800', letterSpacing: -0.3 }}>{card.text}</Text>
+    </LinearGradient>
+  );
+}
 export type SwipeCandidate = DeckCard & { /** per idee e servizi: dove porta il pulsante «apri» */ link?: { page: string; params: Record<string, string> }; /** inserzione di un'attività */ sponsor?: Sponsor; /** piatto del menù legato al contenuto */ menuItem?: string; tag?: string; uri?: string; poster?: string; /** foto del carosello: nello Swipe non si scorrono, si scelgono */ uris?: string[]; /** file incluso nell'app (require) */ asset?: number; media?: 'photo' | 'video' | null; /** filtri e ritocchi dell'editor */ fx?: { filter?: string; adj?: import('@/lib/stories').Adjust; video?: VideoFx } };
 const buzz = () => { if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined); };
 /** Quando compare la scritta piena («MI INTERESSA») la scelta è presa: il gesto si completa da solo. Prima, il post torna al centro. */
@@ -178,8 +195,9 @@ export function SwipeDeck({ cards: cardsIn, onClose, onDismiss, backdrop, startK
   /* i video senza anteprima ne ricevono una subito: così non si vede mai il nero ad aspettare il primo fotogramma */
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const posterOf = (c: SwipeCandidate | null | undefined) => (c ? c.poster ?? thumbs[c.key] ?? (c.uri ? cachedThumb(c.uri) : undefined) : undefined);
-  const curUnder = card ? (card.media === 'video' ? posterOf(card as SwipeCandidate) : card.uris?.[pic] ?? card.uri) : undefined;
-  const upcomingUri = upcoming ? (upcoming.media === 'video' ? posterOf(upcoming) : upcoming.uris?.[0] ?? upcoming.uri) : undefined;
+  const [underCard, setUnderCard] = useState<SwipeCandidate | null>(upcoming);
+  useEffect(() => { if (!card) return; const id = requestAnimationFrame(() => requestAnimationFrame(() => setUnderCard(upcoming))); return () => cancelAnimationFrame(id); }, [card?.key, upcoming?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const underUri = underCard ? (underCard.media === 'video' ? posterOf(underCard) : underCard.uris?.[0] ?? underCard.uri) : undefined;
   useLayoutEffect(() => { x.setValue(0); }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const cardRef = useRef(card); cardRef.current = card;
   const upRef = useRef(upcoming); upRef.current = upcoming;
@@ -272,10 +290,9 @@ export function SwipeDeck({ cards: cardsIn, onClose, onDismiss, backdrop, startK
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       {backdrop ? <Image source={{ uri: backdrop }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" transition={0} /> : null}
       <Animated.View style={{ flex: 1, backgroundColor: '#000', overflow: 'hidden', borderRadius: dragRad, transform: [{ translateY: dragY }] }}>
-      {upcomingUri ? <Image source={{ uri: upcomingUri }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
-      {/* sotto la carta c'è sempre la sua stessa immagine (o l'anteprima del video): finché quella sopra non è pronta non si vede mai un'altra foto */}
-      {curUnder ? <Image key={'under:' + card.key} source={{ uri: curUnder }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : null}
-      <Animated.View {...pan.panHandlers} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, transform: [{ translateX: x }, { rotate: rot }] }}>
+      {/* sotto la carta c'è SEMPRE la prossima (mai quella che stai lasciando): si vede mentre la trascini e, quando arriva, è già pronta. Si aggiorna un attimo dopo il cambio, così non compare mai la foto di prima */}
+      {underCard ? (underCard.media === 'video' || underCard.uri || underCard.uris?.length || underCard.asset ? (underUri ? <Image key={'under:' + underCard.key} source={{ uri: underUri }} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" cachePolicy="memory-disk" transition={0} /> : underCard.asset ? <Image key={'under:' + underCard.key} source={underCard.asset} pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }} contentFit="cover" transition={0} /> : null) : <View pointerEvents="none" style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 }}><DeckTextCard card={underCard} /></View>) : null}
+      <Animated.View {...pan.panHandlers} style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, transform: [{ translateX: x }, { rotate: rot }], ...(card && !isVideo && !card.asset && card.uri && loadedKey !== card.key ? { backgroundColor: '#000' } : null) }}>
         <Pressable accessibilityRole="button" accessibilityLabel={isVideo ? tl('Video di {0}. Tocca per mettere in pausa o riprendere, tieni premuto per accelerare', card.author) : tl('Post di {0}', card.author)}
           onPress={() => {
             const now = Date.now();
