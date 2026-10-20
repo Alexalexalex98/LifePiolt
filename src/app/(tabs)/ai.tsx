@@ -123,10 +123,10 @@ export default function LifeChat() {
             </ScrollView>
             <Pressable onPress={() => { setSearching(true); setQ(''); }} accessibilityRole="button" accessibilityLabel={translateText('Cerca nelle conversazioni')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="search" size={22} color={t.text} /></Pressable>
           </View>
-          {hidden > 0 && (
-            <Row style={{ marginBottom: 6 }}>
-              <Body muted small style={{ flex: 1 }}>Nuova conversazione. Ricordo tutto quello che ci siamo detti ({hidden} messaggi).</Body>
-              <Pill label="Mostra storico" onPress={() => setShowAll(true)} />
+          {hidden > 0 && !kb.visible && (
+            <Row style={{ marginBottom: 4 }}>
+              <Body muted small style={{ flex: 1 }} numberOfLines={1}>Nuova conversazione · {hidden} messaggi in memoria</Body>
+              <Pill label="Storico" onPress={() => setShowAll(true)} />
             </Row>
           )}
           {section !== GENERALE && (
@@ -144,6 +144,7 @@ export default function LifeChat() {
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             removeClippedSubviews={false}
             onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
+            onLayout={() => list.current?.scrollToEnd({ animated: false })}
             contentContainerStyle={shown.length === 0 ? { flexGrow: 1, justifyContent: 'center' } : undefined}
             ListEmptyComponent={
               <View style={{ alignItems: 'center', paddingHorizontal: 4, paddingBottom: 8 }}>
@@ -183,7 +184,7 @@ export default function LifeChat() {
               );
             }}
           />
-          <AiNote style={{ paddingHorizontal: 4 }} />
+          <AiNote compact style={{ paddingHorizontal: 4 }} />
           <Composer openAttach={attach} appLang={appLang} busy={busy} placeholder={section === GENERALE ? 'Scrivi a Theia…' : `Scrivi in ${section}…`} onSend={(m) => void deliver(m)} />
         </>
       )}

@@ -204,11 +204,13 @@ export default function UserProfile() {
 
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
         {isMe ? (
-          <>
-            <Btn style={{ flex: 1 }} icon="edit" title="Modifica profilo" onPress={() => go('editProfile')} />
-            <Btn style={{ flex: 1 }} ghost icon="briefcase" title="Biglietto" onPress={() => go('cardEditor')} />
-            <Btn ghost icon="chart" title="Statistiche" onPress={() => go('creatorStats')} />
-          </>
+          <View style={{ flex: 1, gap: 10 }}>
+            <Btn icon="edit" title="Modifica profilo" onPress={() => go('editProfile')} />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Btn style={{ flex: 1 }} ghost icon="briefcase" title="Biglietto" onPress={() => go('cardEditor')} />
+              <Btn style={{ flex: 1 }} ghost icon="chart" title="Statistiche" onPress={() => go('creatorStats')} />
+            </View>
+          </View>
         ) : (
           <>
             <Btn style={{ flex: 1 }} ghost={fol} title={fol ? 'Già seguito' : fromFollow ? 'Segui anche tu' : 'Segui'} onPress={() => { const f = net.toggleFollow(name); toast(f ? 'Ora segui ' + name : 'Non segui più ' + name); }} />

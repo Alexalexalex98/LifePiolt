@@ -280,7 +280,7 @@ export function Btn({ title, onPress, ghost, small, danger, disabled, style, ton
       ]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         {icon ? <Icon name={icon} size={small ? 14 : 17} color={fg} stroke={2.1} /> : null}
-        {title ? <Text style={{ color: fg, fontWeight: '700', fontSize: small ? 12 : fs.body }}>{title}</Text> : null}
+        {title ? <Text numberOfLines={1} style={{ color: fg, fontWeight: '700', fontSize: small ? 12 : fs.body, flexShrink: 1 }}>{title}</Text> : null}
       </View>
     </Press>
   );
