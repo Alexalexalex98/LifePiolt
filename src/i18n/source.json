@@ -3349,6 +3349,7 @@
  "Di cosa si tratta (facoltativo)",
  "Di cui {0} LP bloccati: si sbloccano alla fine di ogni seminario o sessione.",
  "Di cui {0} LP bloccati: si sbloccano quando l'idea raggiunge l'obiettivo, altrimenti tornano a chi ha contribuito.",
+ "di cui zuccheri {0} g · grassi saturi {1} g · fibre {2} g · sale {3} g",
  "di domani",
  "di lavoro su",
  "Di niente! Se ti serve altro, sono qui.",
@@ -11996,6 +11997,7 @@
  "Zoom +",
  "Zoom al centro",
  "Zuccheri",
+ "zuccheri {0} g · grassi saturi {1} g · fibre {2} g · sale {3} g",
  "Zurich",
  "Zurigo"
 ]

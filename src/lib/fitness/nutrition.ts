@@ -37,10 +37,34 @@ export function searchFoods(q: string, max = 8): Food[] {
 export type Macros = { kcal: number; p: number; c: number; f: number; sat?: number; sug?: number; fib?: number; salt?: number };
 const OPT = ['sat', 'sug', 'fib', 'salt'] as const;
 const r1 = (n: number) => Math.round(n * 10) / 10;
+const has = (name: string, re: RegExp) => re.test(name.toLowerCase());
+/** Stima di zuccheri, grassi saturi, fibre e sale per 100 g quando il database non li ha: regole per tipo di alimento, solo indicative. */
+export function estimateExtras(food: Food): { sat: number; sug: number; fib: number; salt: number } {
+  const n = `${food.name} ${food.tags ?? ''}`;
+  let sugR = 0.06; // quota dei carboidrati che sono zuccheri
+  if (has(n, /(torta|gelato|cioccolat|biscott|brioche|cornetto|dolce|marmellat|miele|succo|cola|bibita|aranciata|tiramis|budino|merend|caramell|nutella|zucchero|sciropp|gassat|energy)/)) sugR = 0.65;
+  else if (has(n, /(mela|banana|arancia|frutt|uva|pera|pesca|fragol|anguria|melone|kiwi|ananas|mango|clementin)/)) sugR = 0.8;
+  else if (has(n, /(latte|yogurt|cappuccino|latt)/)) sugR = 0.95;
+  else if (has(n, /(verdur|insalat|pomodor|carot|zucchin|spinac|legum|lenticch|ceci|fagiol)/)) sugR = 0.3;
+  else if (has(n, /(birra|vino|spritz|cocktail)/)) sugR = 0.4;
+  let satR = 0.33; // quota dei grassi che sono saturi
+  if (has(n, /(olio)/)) satR = 0.15;
+  else if (has(n, /(noci|mandorl|nocciol|pistacch|semi|avocado|arachid)/)) satR = 0.12;
+  else if (has(n, /(salmone|tonno|pesce|merluzzo|orata|branzino|sushi|gamber)/)) satR = 0.22;
+  else if (has(n, /(burro|panna|formaggio|mozzarella|pizza|carbonara|lasagne|gelato|cioccolat|cornetto|torta|salame|pancetta|hamburger|burger|kebab|fritt|patatine|bacon|nutella)/)) satR = 0.45;
+  else if (has(n, /(pollo|tacchino|manzo|maiale|bistecca|prosciutto)/)) satR = 0.35;
+  let salt = 0.3; // g per 100 g
+  if (has(n, /(salame|prosciutto|pancetta|formaggio|olive|acciug|bacon|wurstel|salsiccia|speck|bresaola|hamburger|burger|kebab|pizza|panino|toast|patatine|snack|cracker|salatin)/)) salt = 1.6;
+  else if (has(n, /(pasta|riso|pane|focaccia|carbonara|lasagne|zuppa|minestrone|risotto|sugo|salsa|ketchup|maionese)/)) salt = 0.7;
+  else if (has(n, /(mela|banana|arancia|frutt|uva|caffe|succo|cola|birra|vino|olio|zucchero|latte|yogurt|cioccolat|gelato|torta)/)) salt = 0.05;
+  const fibR = has(n, /(legum|lenticch|ceci|fagiol|integral|avena|porridge|cereali|noci|mandorl)/) ? 7 : has(n, /(verdur|insalat|frutt|mela|pera)/) ? 2.5 : 1.2;
+  return { sat: r1(food.f * satR), sug: r1(Math.min(food.c, food.c * sugR)), fib: r1(fibR), salt: r1(salt) };
+}
 export function macrosFor(food: Food, grams: number): Macros {
   const k = Math.max(0, grams) / 100;
   const m: Macros = { kcal: Math.round(food.kcal * k), p: r1(food.p * k), c: r1(food.c * k), f: r1(food.f * k) };
-  for (const o of OPT) { const v = o === 'fib' ? food.fib : food[o]; if (typeof v === 'number') m[o] = r1(v * k); }
+  const est = estimateExtras(food);
+  for (const o of OPT) { const v = o === 'fib' ? food.fib : food[o]; m[o] = r1((typeof v === 'number' ? v : est[o]) * k); }
   return m;
 }
 export const sumMacros = (list: Macros[]): Macros => {

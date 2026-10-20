@@ -137,6 +137,7 @@ export default function FitnessMeal() {
           </View>
         ))}
         {preview ? <Body bold style={{ marginTop: 8 }}>{preview.kcal} kcal · P {preview.p} g · C {preview.c} g · G {preview.f} g</Body> : null}
+        {preview ? <Body small muted style={{ marginTop: 2 }}>{tl('zuccheri {0} g · grassi saturi {1} g · fibre {2} g · sale {3} g', preview.sug ?? 0, preview.sat ?? 0, preview.fib ?? 0, preview.salt ?? 0)} · {tl('stima')}</Body> : null}
         <Btn style={{ marginTop: 8 }} title={editId ? 'Salva le modifiche' : 'Aggiungi al diario'} onPress={() => add()} />
         {editId ? <Btn style={{ marginTop: 6 }} ghost title="Annulla la modifica" onPress={cancelEdit} /> : null}
       </View>
@@ -200,7 +201,7 @@ export default function FitnessMeal() {
             <Body bold>Resoconto del piatto</Body>
             {report.note ? <Body small muted={report.found.length > 0} style={{ marginTop: 4 }}>{report.note}</Body> : null}
             {report.found.filter((x) => !x.food).map((x, i) => <Body key={i} small>{tl('{0}: non lo trovo nel database, cercalo qui sotto', x.name)}</Body>)}
-            {report.found.some((x) => x.food) ? (() => { const tot = sumMacros(report.found.flatMap((x) => (x.food ? [macrosFor(x.food, x.grams)] : []))); return <Body bold style={{ marginTop: 4 }}>{tl('Totale stimato: {0} kcal · proteine {1} g · carboidrati {2} g · grassi {3} g', tot.kcal, tot.p, tot.c, tot.f)}</Body>; })() : null}
+            {report.found.some((x) => x.food) ? (() => { const tot = sumMacros(report.found.flatMap((x) => (x.food ? [macrosFor(x.food, x.grams)] : []))); return <><Body bold style={{ marginTop: 4 }}>{tl('Totale stimato: {0} kcal · proteine {1} g · carboidrati {2} g · grassi {3} g', tot.kcal, tot.p, tot.c, tot.f)}</Body><Body small style={{ marginTop: 2 }}>{tl('di cui zuccheri {0} g · grassi saturi {1} g · fibre {2} g · sale {3} g', tot.sug ?? 0, tot.sat ?? 0, tot.fib ?? 0, tot.salt ?? 0)}</Body></>; })() : null}
             <AiNote />
             {report.found.some((x) => x.source === 'ai') ? <Body small muted>I valori con la stima dell'AI sono approssimativi: dipendono dalla porzione che vede nella foto.</Body> : null}
             {report.found.length ? <Body small muted style={{ marginTop: 4 }}>Ho riconosciuto questo dalla foto: è una stima. Qui sotto, in «Il tuo piatto», puoi correggere i grammi, duplicare o togliere un alimento, aggiungerne altri e scegliere quanto ne hai mangiato tu.</Body> : null}
