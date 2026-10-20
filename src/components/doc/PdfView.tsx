@@ -4,14 +4,13 @@ import { ActivityIndicator, Platform, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Text } from '@/components/T';
 import { pdfHtml } from '@/lib/presentation';
+import { bytesToBase64, readUriBytes } from '@/lib/readUri';
 
 /** Legge il file come base64 (solo app: sul web si usa direttamente l'indirizzo). */
 async function toBase64(uri: string): Promise<string> {
   try { return await new File(uri).base64(); }
   catch {
-    const buf = new Uint8Array(await (await fetch(uri)).arrayBuffer());
-    let s = ''; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-    return btoa(s);
+    return bytesToBase64(await readUriBytes(uri));
   }
 }
 

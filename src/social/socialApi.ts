@@ -2,6 +2,7 @@ import { getSupabase } from '@/sync/supabaseClient';
 import { loadServerConfig } from '@/sync/secure';
 import { useApp } from '@/store/app';
 import type { RemotePost, SharedCmd } from './socialCore';
+import { readUriBytes } from '@/lib/readUri';
 
 /** Parte di client Supabase che serve qui (PostgREST + storage + auth). */
 type Q = PromiseLike<{ data: any; error: { message?: string; code?: string } | null }> & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -37,10 +38,11 @@ export async function ensurePublicProfile(s: Social): Promise<boolean> {
 /** Carica una foto o un video del telefono (file://) nell'archivio pubblico e restituisce il suo indirizzo. */
 export async function uploadMedia(s: Social, uri: string): Promise<string | null> {
   try {
-    const blob = await (await fetch(uri)).blob();
-    const ext = (/\.(\w{2,4})(?:\?|$)/.exec(uri)?.[1] ?? (blob.type.split('/')[1] || 'jpg')).toLowerCase();
+    const bytes = await readUriBytes(uri);
+    const ext = (/\.(\w{2,4})(?:\?|$)/.exec(uri)?.[1] ?? 'jpg').toLowerCase();
+    const type = ext === 'mp4' || ext === 'mov' ? 'video/mp4' : ext === 'png' ? 'image/png' : 'image/jpeg';
     const path = `${s.userId}/${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.${ext}`;
-    const up = await s.sb.storage.from('social-media').upload(path, blob, { contentType: blob.type || undefined, upsert: false });
+    const up = await s.sb.storage.from('social-media').upload(path, bytes as unknown as Blob, { contentType: type, upsert: false });
     return up.error ? null : s.sb.storage.from('social-media').getPublicUrl(path).data.publicUrl;
   } catch { return null; }
 }

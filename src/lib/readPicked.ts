@@ -2,6 +2,7 @@ import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 import { decodeBytes } from '@/lib/csvImport';
+import { readUriBytes } from '@/lib/readUri';
 
 type Asset = { uri: string; file?: unknown };
 
@@ -15,6 +16,6 @@ export async function readPickedText(a: Asset): Promise<string> {
   try {
     return decodeBytes(await new File(a.uri).arrayBuffer());
   } catch {
-    return decodeBytes(await (await fetch(a.uri)).arrayBuffer());
+    return decodeBytes((await readUriBytes(a.uri)).buffer as ArrayBuffer);
   }
 }

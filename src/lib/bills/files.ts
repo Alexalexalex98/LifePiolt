@@ -14,6 +14,7 @@ import { readPickedText } from '@/lib/readPicked';
 import { useLife } from '@/store/life';
 import { extractPdfText } from './pdfText';
 import { libraryPermission } from '@/lib/mediaPerm';
+import { readUriBytes } from '@/lib/readUri';
 
 export const BILL_FOLDER = 'Bollette e fatture';
 
@@ -55,7 +56,7 @@ export async function readBytes(f: { uri: string; file?: unknown }): Promise<Uin
     const b = f.file as Blob | undefined;
     return new Uint8Array(b && typeof b.arrayBuffer === 'function' ? await b.arrayBuffer() : await (await fetch(f.uri)).arrayBuffer());
   }
-  try { return new Uint8Array(await new File(f.uri).arrayBuffer()); } catch { return new Uint8Array(await (await fetch(f.uri)).arrayBuffer()); }
+  try { return new Uint8Array(await new File(f.uri).arrayBuffer()); } catch { return readUriBytes(f.uri); }
 }
 
 export type LocalRead =
