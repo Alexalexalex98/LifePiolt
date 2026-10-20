@@ -43,11 +43,22 @@ export const aiTranslate = async (lang: string, texts: string[]) => {
 
 /** Immagine pronta da inviare: ridotta (1280 px, JPEG) così parte e torna in fretta e sta nei limiti del server. */
 export async function imageForAi(uri: string): Promise<{ base64: string; mime: 'image/jpeg' } | null> {
+  let M: typeof import('expo-image-manipulator') | null = null;
+  try { M = await import('expo-image-manipulator'); } catch { M = null; }
+  if (M) {
+    for (const actions of [[{ resize: { width: 1280 } }], []]) {
+      try {
+        const r = await M.manipulateAsync(uri, actions, { compress: 0.7, format: M.SaveFormat.JPEG, base64: true });
+        if (r.base64) return { base64: r.base64, mime: 'image/jpeg' };
+      } catch { /* si prova il passo dopo */ }
+    }
+  }
   try {
-    const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
-    const r = await manipulateAsync(uri, [{ resize: { width: 1280 } }], { compress: 0.7, format: SaveFormat.JPEG, base64: true });
-    return r.base64 ? { base64: r.base64, mime: 'image/jpeg' } : null;
-  } catch { return null; }
+    const { File } = await import('expo-file-system');
+    const b = await new File(uri).base64();
+    if (b) return { base64: b, mime: 'image/jpeg' };
+  } catch { /* nessun modo di leggerla */ }
+  return null;
 }
 
 /** File pronti per il server: immagini ridotte, altri file (PDF) in base64. */
