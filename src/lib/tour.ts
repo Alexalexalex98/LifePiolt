@@ -39,7 +39,7 @@ export const LEVELS: LevelDef[] = [
     how: 'Scrivi un task, segnalo urgente se serve: ti dirò quale fare per primo. Le note raccolgono appunti veloci.',
   },
   {
-    level: 3, id: 'salute', title: 'Salute e Mente', short: 'Sonno, movimento, stress e umore nel tempo', pages: ['lifehealth', 'lifefitness', 'fitnessProgram', 'fitnessWorkout', 'fitnessExercise', 'fitnessMeal', 'fitnessGyms', 'fitnessGymRegister'], prevUsed: ['tasks', 'notes'], days: 2, openPage: 'lifehealth',
+    level: 3, id: 'salute', title: 'Salute e Mente', short: 'Sonno, movimento, stress e umore nel tempo', pages: ['lifehealth', 'lifefitness', 'fitnessProgram', 'fitnessWorkout', 'fitnessExercise', 'fitnessMeal', 'fitnessGyms', 'fitnessPass', 'fitnessGymRegister'], prevUsed: ['tasks', 'notes'], days: 2, openPage: 'lifehealth',
     intro: 'Sonno, passi, battito e stress: li registri a mano o li colleghi ad Apple Health. Restano sempre sul tuo telefono.',
     how: 'Comincia con un solo dato, per esempio le ore di sonno di stanotte. Più giorni registri, più i grafici diventano utili.',
   },

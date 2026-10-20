@@ -42,7 +42,7 @@ export default function FitnessGyms() {
       <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginVertical: 10 }} gap={8}>
         {(['tutti', 'palestra', 'piscina', 'centro'] as const).map((k) => <Pill key={k} label={k === 'tutti' ? 'Tutti' : KIND[k]} on={kind === k} onPress={() => setKind(k)} />)}
       </Row>
-      {!access ? <Card accent={FIT}><Body small>Per entrare serve il LifePass (30 LP al mese) oppure un ingresso pagato in LifePoints con il QR.</Body><Btn small style={{ marginTop: 8 }} title="Vedi il LifePass" onPress={() => go('lifefitness')} /></Card> : null}
+      {!access ? <Card accent={FIT}><Body small>Per entrare serve il LifePass (30 LP al mese) oppure un ingresso pagato in LifePoints con il QR.</Body><Btn small style={{ marginTop: 8 }} title="Vedi il LifePass" onPress={() => go('fitnessPass')} /></Card> : null}
       {list.map((g) => (
         <Card key={g.id} accent={FIT} onPress={() => setOpen(g)}>
           <Row><View style={{ flex: 1 }}><Body bold>{g.name}</Body><Body small muted>{KIND[g.kind]} · {g.city}</Body></View>{g.rating ? <Row gap={3}><Icon name="star" size={14} color={FIT} /><Body small>{g.rating.toFixed(1).replace('.', ',')}</Body></Row> : null}</Row>
@@ -60,7 +60,7 @@ export default function FitnessGyms() {
             <Body bold style={{ marginTop: 12 }}>Listino · si paga in LifePoints</Body>
             {priceList(open).map((i) => <Row key={i.id} style={{ paddingVertical: 6 }}><Body style={{ flex: 1 }}>{i.label}</Body><Body bold>{i.lp} LP</Body><Btn small ghost style={{ marginStart: 8 }} title="Paga" onPress={() => { const l = buildGymLink(open.id, i); setOpen(null); setPayLink(l); }} /></Row>)}
             {credits(open) > 0 ? <Body small color={t.positive} style={{ marginTop: 4 }}>{tl('Hai {0} ingressi pagati in questo centro', credits(open))}</Body> : null}
-            <Btn style={{ marginTop: 10 }} title={access ? 'Entra adesso con il LifePass' : credits(open) > 0 ? 'Entra con un ingresso pagato' : 'Serve il LifePass o un ingresso pagato'} onPress={() => (access || credits(open) > 0 ? enter(open) : go('lifefitness'))} />
+            <Btn style={{ marginTop: 10 }} title={access ? 'Entra adesso con il LifePass' : credits(open) > 0 ? 'Entra con un ingresso pagato' : 'Serve il LifePass o un ingresso pagato'} onPress={() => (access || credits(open) > 0 ? enter(open) : go('fitnessPass'))} />
             <Btn style={{ marginTop: 6 }} ghost icon="coin" title={showQr ? 'Nascondi il QR della cassa' : 'Mostra il QR della cassa (per il centro)'} onPress={() => setShowQr((v) => !v)} />
             {showQr ? <View style={{ alignItems: 'center', marginTop: 8, gap: 6 }}><PayQr text={buildGymLink(open.id, priceList(open)[0])} size={190} /><Body small muted style={{ textAlign: 'center' }}>Il centro mostra questo QR alla cassa: chi lo inquadra paga «{priceList(open)[0].label}» in LifePoints.</Body></View> : null}
             <Text style={{ color: t.muted, fontSize: 12, marginTop: 8 }}>{tl('Un ingresso al giorno per centro, fino a 2 centri al giorno.')}</Text>

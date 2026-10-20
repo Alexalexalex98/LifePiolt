@@ -11,7 +11,7 @@ import { infoOf, type LangCode } from '@/i18n/languages';
 export type Language = LangCode;
 
 export const navCatalog: Record<string, string> = {
-  home: 'Home', ai: 'AI', lifenetwork: 'Network', lifefinance: 'Finance', profile: 'Profilo', lifehealth: 'LifeHealth', lifefitness: 'LifeFitness', fitnessProgram: 'Programma', fitnessWorkout: 'Allenamento', fitnessExercise: 'Esercizio', fitnessMeal: 'Pasti e calorie', fitnessGyms: 'Centri convenzionati', fitnessGymRegister: 'Registra il tuo centro',
+  home: 'Home', ai: 'AI', lifenetwork: 'Network', lifefinance: 'Finance', profile: 'Profilo', lifehealth: 'LifeHealth', lifefitness: 'LifeFitness', fitnessProgram: 'Programma', fitnessWorkout: 'Allenamento', fitnessExercise: 'Esercizio', fitnessMeal: 'Pasti e calorie', fitnessGyms: 'Centri convenzionati', fitnessPass: 'LifePass', fitnessGymRegister: 'Registra il tuo centro',
   lifenotes: 'LifeNotes', lifetravel: 'LifeTravel', lifedrive: 'LifeDrive', lifetask: 'LifeTask', lifepointsPage: 'LifePoints',
   plan: 'Plan', settings: 'Settings',
 };

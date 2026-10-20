@@ -42,7 +42,7 @@ function PassTab({ onClose }: { onClose: () => void }) {
         <Icon name="lifefitness" size={34} color={t.accent} />
         <Text style={{ color: t.text, fontWeight: '800', fontSize: 17 }}>{translateText(state === 'scaduto' ? 'Il tuo LifePass è scaduto' : 'Non hai il LifePass')}</Text>
         <Body small muted style={{ textAlign: 'center' }}>Un solo pass per entrare in palestre, piscine e centri sportivi convenzionati.</Body>
-        <Btn style={{ alignSelf: 'stretch', marginTop: 6 }} title={`${translateText('Attiva il LifePass')} · ${PREMIUM_PRICE_LP} LP`} onPress={() => { onClose(); go('lifefitness'); }} />
+        <Btn style={{ alignSelf: 'stretch', marginTop: 6 }} title={`${translateText('Scopri il LifePass')} · ${PREMIUM_PRICE_LP} LP`} onPress={() => { onClose(); go('fitnessPass'); }} />
       </View>
     );
   }

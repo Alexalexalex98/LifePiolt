@@ -154,7 +154,7 @@ export function Icon({ name, size = 20, color = '#fff', fill = 'none', stroke = 
 /** Colori d'area del prototipo */
 export const areaColors: Record<string, string> = {
   lifefinance: '#7be0b0', stocks: '#7be0b0', portfolio: '#7be0b0', lifeforecast: '#7be0b0', taxdecl: '#7be0b0',
-  lifehealth: '#6ec9dd', lifefitness: '#ff9d6e', fitnessProgram: '#ff9d6e', fitnessWorkout: '#ff9d6e', fitnessExercise: '#ff9d6e', fitnessMeal: '#ff9d6e', fitnessGyms: '#ff9d6e', fitnessGymRegister: '#ff9d6e', lifetravel: '#e0c97b',
+  lifehealth: '#6ec9dd', lifefitness: '#ff9d6e', fitnessProgram: '#ff9d6e', fitnessWorkout: '#ff9d6e', fitnessExercise: '#ff9d6e', fitnessMeal: '#ff9d6e', fitnessGyms: '#ff9d6e', fitnessPass: '#ff9d6e', fitnessGymRegister: '#ff9d6e', lifetravel: '#e0c97b',
   lifenetwork: '#c9b6ff', userProfile: '#c9b6ff', businessCard: '#c9b6ff', ideaProfile: '#c9b6ff', lifepointsPage: '#c9b6ff',
   lifenotes: '#8fb3ff', lifedrive: '#a8b2c0',
 };

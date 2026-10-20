@@ -1,3 +1,4 @@
+import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/T';
@@ -40,6 +41,9 @@ export default function LifeFitness() {
   const [buyMsg, setBuyMsg] = useState('');
   const [lib, setLib] = useState(false);
   const [draft, setDraft] = useState<FitProfile>(fit.profile ?? { goal: 'tonificare', level: 'principiante', place: 'casa', days: 3, minutes: 30 });
+  /* arrivi da «LifePass» dopo aver letto come funziona: solo ora si apre la conferma */
+  const { buy: buyParam } = useLocalSearchParams<{ buy?: string }>();
+  useEffect(() => { if (buyParam) { router.setParams({ buy: '' }); setBuy('ask'); } }, [buyParam]);
   useEffect(() => { fit.settle(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const now = Date.now();
   const state = premiumState(fit.sub, now);
@@ -110,7 +114,7 @@ export default function LifeFitness() {
               <Body small muted style={{ marginVertical: 8 }}>Un solo pass per entrare in palestre, piscine e centri sportivi convenzionati.</Body>
               {['Accesso a tutti i centri convenzionati: palestre, piscine, centri sportivi', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 6 }} gap={8}><Icon name="check" size={15} color={FIT} stroke={2.6} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
               {state === 'scaduto' ? <Body small color={t.warn} style={{ marginTop: 2 }}>Il tuo LifePass è scaduto.</Body> : null}
-              <Btn style={{ marginTop: 8 }} title={tl('Attiva il LifePass · {0} LP', PREMIUM_PRICE_LP)} onPress={() => setBuy('ask')} />
+              <Btn style={{ marginTop: 8 }} title={tl('Attiva il LifePass · {0} LP', PREMIUM_PRICE_LP)} onPress={() => go('fitnessPass')} />
               <Body small muted style={{ marginTop: 6 }}>{tl('Hai {0} LP. Si rinnova da solo ogni 30 giorni, se hai i LifePoints.', net.lifePoints)}</Body>
             </Card>
           ) : (
