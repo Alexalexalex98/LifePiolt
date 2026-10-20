@@ -7,7 +7,10 @@
  */
 const URL_BASE = (process.env.EXPO_PUBLIC_AI_URL ?? '').replace(/\/+$/, '');
 const TOKEN = process.env.EXPO_PUBLIC_AI_TOKEN ?? '';
+import { File } from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { humanize } from './aiPersona';
+import { bytesToBase64, readUriBytes } from './readUri';
 export const aiServerConfigured = Boolean(URL_BASE && TOKEN);
 
 export class AiServerError extends Error {
@@ -65,9 +68,8 @@ let lastImageError = '';
 export async function imageForAi(uri: string): Promise<{ base64: string; mime: 'image/jpeg' } | null> {
   lastImageError = '';
   const note = (where: string, e: unknown) => { lastImageError += `${lastImageError ? ' · ' : ''}${where}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 160); };
-  let M: typeof import('expo-image-manipulator') | null = null;
-  try { M = await import('expo-image-manipulator'); } catch (e) { note('manipolatore', e); }
-  if (M) {
+  const M = ImageManipulator;
+  if (M?.manipulateAsync) {
     for (const actions of [[{ resize: { width: 1280 } }], []]) {
       try {
         const r = await M.manipulateAsync(uri, actions, { compress: 0.7, format: M.SaveFormat.JPEG, base64: true });
@@ -76,12 +78,10 @@ export async function imageForAi(uri: string): Promise<{ base64: string; mime: '
     }
   }
   try {
-    const { File } = await import('expo-file-system');
     const b = await new File(uri).base64();
     if (b) return { base64: b, mime: 'image/jpeg' };
   } catch (e) { note('file', e); }
   try {
-    const { readUriBytes, bytesToBase64 } = await import('./readUri');
     return { base64: bytesToBase64(await readUriBytes(uri)), mime: 'image/jpeg' };
   } catch (e) { note('copia', e); }
   return null;
@@ -96,7 +96,6 @@ async function prepFiles(files: { uri: string; mime: string }[]): Promise<{ data
       if (img) ready.push({ data: img.base64, mime: img.mime });
     } else {
       try {
-        const { File } = await import('expo-file-system');
         ready.push({ data: await new File(f.uri).base64(), mime: f.mime });
       } catch { /* file non leggibile: si prosegue con gli altri */ }
     }
