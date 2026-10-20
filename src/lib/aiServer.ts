@@ -37,12 +37,37 @@ async function call<T>(path: string, body: unknown, timeoutMs = 45000): Promise<
   }
 }
 
+type Reply = { ok: boolean; status: number; json: unknown };
+/** Invio con XMLHttpRequest: non passa dal fetch di Expo (che in Expo Go puo' mancare di «ExpoFetchModule»). */
+function postXhr(url: string, headers: Record<string, string>, body: string, signal: AbortSignal): Promise<Reply> {
+  return new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open('POST', url);
+    for (const [k, v] of Object.entries(headers)) x.setRequestHeader(k, v);
+    x.onload = () => { let json: unknown = {}; try { json = JSON.parse(x.responseText); } catch { /* risposta non JSON */ } resolve({ ok: x.status >= 200 && x.status < 300, status: x.status, json }); };
+    x.onerror = () => reject(new Error('rete non raggiungibile'));
+    x.ontimeout = () => reject(new Error('tempo scaduto'));
+    signal.addEventListener('abort', () => { x.abort(); reject(new Error('tempo scaduto')); });
+    x.send(body);
+  });
+}
+async function post(url: string, body: string, signal: AbortSignal): Promise<{ r: Reply; via: string }> {
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` };
+  try {
+    const r = await fetch(url, { method: 'POST', headers, body, signal });
+    return { r: { ok: r.ok, status: r.status, json: await r.json().catch(() => ({})) }, via: 'fetch' };
+  } catch (e) {
+    if (signal.aborted) throw e;
+    return { r: await postXhr(url, headers, body, signal), via: 'xhr' };
+  }
+}
+
 async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Promise<T> {
   const ctl = new AbortController();
   const h = setTimeout(() => ctl.abort(), timeoutMs);
   try {
-    const r = await fetch(`${URL_BASE}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` }, body: JSON.stringify(body), signal: ctl.signal });
-    const j = (await r.json().catch(() => ({}))) as { error?: string; details?: { error?: { message?: string } } };
+    const { r } = await post(`${URL_BASE}${path}`, JSON.stringify(body), ctl.signal);
+    const j = r.json as { error?: string; details?: { error?: { message?: string } } };
     if (!r.ok) {
       const why = j.details?.error?.message ?? j.error ?? `errore ${r.status}`;
       throw new AiServerError(r.status === 401 ? 'Il token dell’app non è quello del server (non autorizzato).' : `Il server AI ha risposto: ${why}`, r.status);
@@ -50,7 +75,8 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
     return j as T;
   } catch (e) {
     if (e instanceof AiServerError) throw e;
-    throw new AiServerError('Non riesco a raggiungere il server AI. Controlla la connessione e l’indirizzo.');
+    const why = e instanceof Error ? e.message : String(e);
+    throw new AiServerError(`Non riesco a raggiungere il server AI. Controlla la connessione e l’indirizzo. (${why.slice(0, 120)})`);
   } finally { clearTimeout(h); }
 }
 
