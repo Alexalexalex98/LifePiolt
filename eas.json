@@ -13,7 +13,8 @@
       },
       "android": {
         "buildType": "apk"
-      }
+      },
+      "environment": "development"
     },
     "development-simulator": {
       "extends": "development",
@@ -27,14 +28,16 @@
       "android": {
         "buildType": "apk"
       },
-      "autoIncrement": true
+      "autoIncrement": true,
+      "environment": "preview"
     },
     "production": {
       "channel": "production",
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "environment": "production"
     }
   },
   "submit": {
