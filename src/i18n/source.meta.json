@@ -1,5 +1,5 @@
 {
- "count": 11879,
+ "count": 11991,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -70,6 +70,7 @@
   "src/app/(tabs)/notificationsPage.tsx": 27,
   "src/app/(tabs)/orders.tsx": 12,
   "src/app/(tabs)/payments.tsx": 35,
+  "src/app/(tabs)/photoEdit.tsx": 5,
   "src/app/(tabs)/plan.tsx": 52,
   "src/app/(tabs)/portfolio.tsx": 33,
   "src/app/(tabs)/posDemo.tsx": 8,
@@ -146,6 +147,7 @@
   "src/components/SharingView.tsx": 29,
   "src/components/StatementForecastCard.tsx": 18,
   "src/components/T.tsx": 1,
+  "src/components/TaskActions.tsx": 47,
   "src/components/TheiaCard.tsx": 11,
   "src/components/TheiaHost.tsx": 42,
   "src/components/TripCards.tsx": 20,
@@ -231,7 +233,9 @@
   "src/components/money/InvestTab.tsx": 57,
   "src/components/money/WalletTab.tsx": 84,
   "src/components/network.tsx": 42,
-  "src/components/plan.tsx": 104,
+  "src/components/photo/EditSlider.tsx": 1,
+  "src/components/photo/PhotoEditor.tsx": 36,
+  "src/components/plan.tsx": 105,
   "src/components/profile/CardFace.tsx": 11,
   "src/components/profile/ProfileParts.tsx": 60,
   "src/components/profile/QaVote.tsx": 11,
@@ -373,7 +377,7 @@
   "src/lib/csvImport.ts": 45,
   "src/lib/dashBrief.ts": 33,
   "src/lib/dashCandidates.ts": 22,
-  "src/lib/dashPlan.ts": 31,
+  "src/lib/dashPlan.ts": 28,
   "src/lib/dashSections.ts": 46,
   "src/lib/dataCatalog.ts": 214,
   "src/lib/dataTable.ts": 6,
@@ -450,6 +454,7 @@
   "src/lib/paymentActions.ts": 8,
   "src/lib/payments.ts": 6,
   "src/lib/photoEdit.ts": 20,
+  "src/lib/photoShader.ts": 58,
   "src/lib/places.ts": 2,
   "src/lib/planBooking.tsx": 23,
   "src/lib/planner.ts": 5,
@@ -490,6 +495,7 @@
   "src/lib/statementReport.ts": 7,
   "src/lib/stories.ts": 19,
   "src/lib/taskDecompose.ts": 40,
+  "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
   "src/lib/theia.ts": 97,
   "src/lib/theiaQuotes.ts": 40,
@@ -532,5 +538,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1499
+ "withPlaceholders": 1512
 }

@@ -863,7 +863,8 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
     drafts.newPost = state;
     setEditorInput({ items: [media], fx });
     close();
-    setTimeout(() => go('storyCreate', { for: 'post' }), 250);
+    /* foto: editor completo (luce, colore, dettagli, ritaglio); video: editor dei recap */
+    setTimeout(() => go(media.media === 'photo' ? 'photoEdit' : 'storyCreate', { for: 'post' }), 250);
   };
   const publish = async () => {
     if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
