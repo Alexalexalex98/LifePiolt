@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LogoLoader } from '@/components/LogoLoader';
-import { Animated, AppState, Linking, PanResponder, Platform, Pressable, View, useWindowDimensions } from 'react-native';
+import { Animated, AppState, Easing, Linking, PanResponder, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/T';
 
@@ -150,7 +150,8 @@ export function SwipeDeck({ cards: cardsIn, onClose, onDismiss, backdrop, startK
   const [sharing, setSharing] = useState(false);
   const [startDone, setStartDone] = useState(false);
   const dragY = useRef(new Animated.Value(0)).current;
-  const dragRad = dragY.interpolate({ inputRange: [0, 200], outputRange: [0, 24], extrapolate: 'clamp' });
+  const radV = useRef(new Animated.Value(0)).current; // angoli: unico valore che non può usare il driver nativo
+  const dragRad = radV.interpolate({ inputRange: [0, 200], outputRange: [0, 24], extrapolate: 'clamp' });
   const donated = useNet((s) => s.dailyPoint.lastGiven === weekdayShortDate());
   /* se arrivi toccando un contenuto, si parte proprio da quello (finché non lo scegli) */
   const [forced, setForced] = useState<SwipeCandidate | null>(null);
@@ -231,20 +232,21 @@ export function SwipeDeck({ cards: cardsIn, onClose, onDismiss, backdrop, startK
     later();
     /* x resta a fine corsa: la carta scelta non ricompare per un attimo; si azzera quando arriva la nuova */
   };
-  const fling = (dir: 'yes' | 'no') => Animated.timing(x, { toValue: dir === 'yes' ? -width * 1.2 : width * 1.2, duration: 180, useNativeDriver: false }).start(() => decide(dir));
+  const fling = (dir: 'yes' | 'no') => Animated.timing(x, { toValue: dir === 'yes' ? -width * 1.2 : width * 1.2, duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true }).start(() => decide(dir));
   const leaveRef = useRef(leave); leaveRef.current = leave;
   /* tirare giù con il dito equivale a premere la X */
   const pullDown = (g: { dx: number; dy: number }) => g.dy > 10 && g.dy > Math.abs(g.dx) * 1.5;
   const pan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponderCapture: (_e, g) => (Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g),
-    onMoveShouldSetPanResponder: (_e, g) => (Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g),
-    onPanResponderMove: (e, g) => { if (g.dy > Math.abs(g.dx) * 1.5) { x.setValue(0); dragY.setValue(Math.max(0, g.dy)); } else { dragY.setValue(0); x.setValue(g.dx); } },
+    onMoveShouldSetPanResponderCapture: (_e, g) => (Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g),
+    onMoveShouldSetPanResponder: (_e, g) => (Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g),
+    onPanResponderGrant: () => { x.stopAnimation(); dragY.stopAnimation(); },
+    onPanResponderMove: (e, g) => { if (g.dy > Math.abs(g.dx) * 1.5) { x.setValue(0); dragY.setValue(Math.max(0, g.dy)); radV.setValue(Math.max(0, g.dy)); } else { dragY.setValue(0); radV.setValue(0); x.setValue(g.dx); } },
     onPanResponderRelease: (_e, g) => {
-      if (g.dy > 110 && g.dy > Math.abs(g.dx) * 1.5) { Animated.timing(dragY, { toValue: 900, duration: 170, useNativeDriver: false }).start(() => { const c = cardRef.current; if (c) { const d = dwellSignal(Date.now() - shownAt.current, c.media === 'video' ? maxFrac.current : undefined); if (d > 0) { wRef.current = addSignal(wRef.current, `${c.text} ${c.tag ?? ''}`, d); dirty.current = true; } } flushRef.current(); (onDismiss ?? onClose)(); setTimeout(() => dragY.setValue(0), 400); }); return; }
-      if (g.dy > 0 && Math.abs(g.dx) < 24) { Animated.spring(dragY, { toValue: 0, useNativeDriver: false, friction: 8 }).start(); }
-      if (g.dx <= -THRESHOLD || g.vx < -0.9) fling('yes');
-      else if (g.dx >= THRESHOLD || g.vx > 0.9) fling('no');
-      else Animated.spring(x, { toValue: 0, useNativeDriver: false, friction: 7 }).start();
+      if (g.dy > 110 && g.dy > Math.abs(g.dx) * 1.5) { Animated.timing(dragY, { toValue: 900, duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true }).start(() => { const c = cardRef.current; if (c) { const d = dwellSignal(Date.now() - shownAt.current, c.media === 'video' ? maxFrac.current : undefined); if (d > 0) { wRef.current = addSignal(wRef.current, `${c.text} ${c.tag ?? ''}`, d); dirty.current = true; } } flushRef.current(); (onDismiss ?? onClose)(); setTimeout(() => { dragY.setValue(0); radV.setValue(0); }, 400); }); return; }
+      if (g.dy > 0 && Math.abs(g.dx) < 24) { Animated.spring(dragY, { toValue: 0, useNativeDriver: true, friction: 9, tension: 120 }).start(); radV.setValue(0); }
+      if (g.dx <= -THRESHOLD || g.vx < -0.5) fling('yes');
+      else if (g.dx >= THRESHOLD || g.vx > 0.5) fling('no');
+      else Animated.spring(x, { toValue: 0, useNativeDriver: true, friction: 8, tension: 140, velocity: g.vx }).start();
     },
   })).current;
   const rot = x.interpolate({ inputRange: [-width, 0, width], outputRange: ['-9deg', '0deg', '9deg'] });
