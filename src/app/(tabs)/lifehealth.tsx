@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AppState, Pressable, View } from 'react-native';
+import { AppState, Platform, Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { WeeklyReportButton } from '@/components/WeeklyReportButton';
@@ -10,7 +10,7 @@ import { avg } from '@/lib/format';
 import { areaColors, Icon } from '@/lib/icons';
 import { sectionColor } from '@/lib/liveTheme';
 import { computeScores } from '@/lib/scores';
-import { healthMeta, last, moodOptions, streakOf, useHealth, type Metric as M } from '@/store/health';
+import { extraMeta, healthMeta, last, moodOptions, streakOf, useHealth, type ExtraKey, type Metric as M } from '@/store/health';
 import { toast } from '@/store/toast';
 import { confirmDelete } from '@/lib/confirm';
 import { autoSyncIfConnected, connectAppleHealth, hkUnsupportedMessage, syncAppleHealth, useHkStatus } from '@/lib/healthkit';
@@ -46,6 +46,8 @@ export default function LifeHealth() {
   const [hkMsg, setHkMsg] = useState('');
   const [hkOk, setHkOk] = useState(false);
   const hk = useHkStatus();
+  const droid = Platform.OS === 'android';
+  const hub = droid ? 'Health Connect' : 'Apple Health';
   // sincronizza all'apertura della pagina e ogni volta che l'app torna attiva (in primo piano; niente sync ad app chiusa)
   useEffect(() => {
     void autoSyncIfConnected();
@@ -83,11 +85,11 @@ export default function LifeHealth() {
   return (
     <Page id="lifehealth" title="LifeHealth" back>
       <Card>
-        <H>Apple Health e Apple Watch</H>
-        {h.wearable.connected && h.wearable.device === 'Apple Health' ? (
+        <H>{droid ? 'Health Connect e Galaxy Watch' : 'Apple Health e Apple Watch'}</H>
+        {h.wearable.connected && h.wearable.device === hub ? (
           <>
-            <Row><Body>Collegato a <Text style={{ fontWeight: '700' }}>Apple Health</Text></Body><Link onPress={() => { h.connect(null); toast('Apple Health scollegato'); }}>Disconnetti</Link></Row>
-            <Body small muted style={{ marginTop: 6 }}>{h.lastSync ? tl('Ultimo aggiornamento: {0} ({1})', ago(h.lastSync), fmtDateTime(h.lastSync)) : 'Non ancora sincronizzato.'} I dati dell'Apple Watch arrivano qui tramite l'app Salute. Si aggiorna da solo quando apri l'app e quando ci torni.</Body>
+            <Row><Body>Collegato a <Text style={{ fontWeight: '700' }}>{hub}</Text></Body><Link onPress={() => { h.connect(null); toast(`${hub} scollegato`); }}>Disconnetti</Link></Row>
+            <Body small muted style={{ marginTop: 6 }}>{h.lastSync ? tl('Ultimo aggiornamento: {0} ({1})', ago(h.lastSync), fmtDateTime(h.lastSync)) : 'Non ancora sincronizzato.'} {droid ? 'I dati del Galaxy Watch arrivano da Samsung Health tramite Health Connect (attiva la sincronizzazione in Samsung Health). ' : 'I dati dell\'Apple Watch arrivano qui tramite l\'app Salute. '}Si aggiorna da solo quando apri l'app e quando ci torni.</Body>
             <Body small color={hk.phase === 'syncing' ? t.muted : hk.phase === 'ok' ? t.positive : hk.phase === 'idle' ? t.muted : t.warn} style={{ marginTop: 6 }}>
               Stato: {hk.phase === 'syncing' ? 'sincronizzazione in corso…' : hk.phase === 'ok' ? 'aggiornato' : hk.phase === 'error' ? 'errore nell’ultima sincronizzazione' : hk.phase === 'unsupported' ? 'non disponibile su questo dispositivo' : h.syncError ? 'errore nell’ultima sincronizzazione' : 'in attesa'}
             </Body>
@@ -97,14 +99,26 @@ export default function LifeHealth() {
           </>
         ) : (
           <>
-            <Body small muted style={{ marginBottom: 10 }}>Collega Apple Health per portare qui passi, sonno, battito a riposo, HRV, peso, allenamenti e altro, anche quelli registrati dall'Apple Watch. I dati restano sul tuo iPhone.</Body>
-            <Btn title={busy ? 'Collego…' : 'Collega Apple Health'} disabled={busy} onPress={() => runSync(true)} />
+            <Body small muted style={{ marginBottom: 10 }}>{droid ? 'Collega Health Connect per portare qui passi, sonno, battito, HRV, peso, allenamenti, distanza, piani, ossigeno e altro dal Galaxy Watch e dalle altre app di salute. I dati restano sul tuo telefono.' : 'Collega Apple Health per portare qui passi, sonno, battito a riposo, HRV, peso, allenamenti, distanza, piani, respirazione, ossigeno e altro, anche quelli registrati dall\'Apple Watch. I dati restano sul tuo iPhone.'}</Body>
+            <Btn title={busy ? 'Collego…' : `Collega ${hub}`} disabled={busy} onPress={() => runSync(true)} />
             {hkMsg ? <Body small color={hkOk ? t.positive : t.warn} style={{ marginTop: 8 }}>{hkMsg}</Body> : null}
           </>
         )}
         <WeeklyReportButton small style={{ marginTop: 10 }} />
         <Btn small ghost style={{ marginTop: 10 }} title="Registra i dati di oggi a mano" onPress={() => { setToday({}); setSheet('today'); }} />
       </Card>
+
+      {(Object.keys(extraMeta) as ExtraKey[]).some((k) => (h.extra?.[k]?.length ?? 0) > 0) ? (
+        <Card>
+          <H>Altri dati dall’orologio</H>
+          <Body small muted style={{ marginBottom: 4 }}>Ultimo valore e media degli ultimi 7 giorni, come arrivano da {hub}.</Body>
+          {(Object.keys(extraMeta) as ExtraKey[]).filter((k) => (h.extra?.[k]?.length ?? 0) > 0).map((k, i) => {
+            const pts = h.extra[k]!, m = extraMeta[k], last = pts[pts.length - 1], w = pts.slice(-7), avg = w.reduce((a, b) => a + b.v, 0) / w.length;
+            const f = (v: number) => `${v.toFixed(m.dec).replace('.', ',')}${m.unit ? ' ' + m.unit : ''}`;
+            return <Row key={k} style={{ paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderTopColor: t.item }}><View style={{ flex: 1 }}><Body>{m.label}</Body><Body small muted>{tl('Media 7 giorni: {0}', f(avg))}</Body></View><Body bold>{f(last.v)}</Body></Row>;
+          })}
+        </Card>
+      ) : null}
 
       <Card accent={color}>
         <Row><H>Stato di salute</H><Metric>{sc.health ?? '—'}</Metric></Row>

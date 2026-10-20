@@ -75,7 +75,7 @@ export default function Dashboard() {
   const domainPage: Record<string, string> = { salute: 'lifehealth', mente: 'mood', finanza: 'lifefinance', crescita: 'lifetask', contesto: 'mood' };
   const openInsight = (i: { metricId?: string; domain: string }) => { if (i.metricId && dash.byId[i.metricId]) openMetric(i.metricId); else go(domainPage[i.domain] ?? 'lifehealth'); };
 
-  const srcNames: Record<string, string> = { apple: 'Apple Health', manuale: 'Manuale', demo: 'Demo', stimato: 'Stimato' };
+  const srcNames: Record<string, string> = { apple: 'Apple Health', hc: 'Health Connect', manuale: 'Manuale', demo: 'Demo', stimato: 'Stimato' };
 
 
   const insightsList = (
@@ -158,7 +158,7 @@ export default function Dashboard() {
           <H>La Dashboard analizza i tuoi dati</H>
           <Body muted>Appena arrivano dati, qui compaiono punteggi, trend, previsioni, anomalie e correlazioni. Per iniziare:</Body>
           <View style={{ gap: 8, marginTop: 12 }}>
-            <Btn title="Collega Apple Health e Apple Watch" onPress={() => go('lifehealth')} />
+            <Btn title="Collega Salute e smartwatch" onPress={() => go('lifehealth')} />
             <Btn ghost title="Registra i dati a mano" onPress={() => go('lifehealth')} />
             <Btn ghost title="Esplora con dati demo" onPress={() => { applyDemo(account.name, account.email); useApp.getState().set({ demo: true }); toast('Dati demo caricati'); }} />
           </View>
@@ -253,7 +253,7 @@ export default function Dashboard() {
                   <Body small style={{ marginTop: 6 }}><Body small bold>Freccia e percentuale</Body>: come cambia la media degli ultimi 7 giorni rispetto ai 7 prima. Per alcuni dati salire è buono (passi), per altri è un segnale da guardare (battito a riposo, stress).</Body>
                   <Body small style={{ marginTop: 6 }}><Body small bold>Tratteggio e fascia</Body>: previsione dei prossimi giorni e intervallo probabile all’80%, stima dalla tendenza recente.</Body>
                   <Body small muted style={{ marginTop: 8 }}>Indicatori analizzati: {list.length} · fonti: {Object.entries(dash.sources).map(([k, n]) => `${srcNames[k] ?? k} ${n}`).join(', ')}.{dash.dataDays < 14 ? ' Con meno di 14 giorni le previsioni sono molto incerte.' : ''} Non sono consigli medici o finanziari.</Body>
-                  {!(wearable.connected && wearable.device === 'Apple Health') && <Btn small ghost style={{ marginTop: 10 }} icon="lifehealth" title="Collega Apple Health per dati automatici" onPress={() => go('lifehealth')} />}
+                  {!(wearable.connected && (wearable.device === 'Apple Health' || wearable.device === 'Health Connect')) && <Btn small ghost style={{ marginTop: 10 }} icon="lifehealth" title="Collega la salute per dati automatici" onPress={() => go('lifehealth')} />}
                 </View>
               )}
             </Card>

@@ -5,7 +5,7 @@ import { replaceTodayMood } from '@/lib/moodLog';
 import { persisted } from './persist';
 
 export type Metric = 'sleep' | 'hr' | 'steps' | 'weight' | 'stress' | 'hrv' | 'mindful' | 'energy' | 'exercise' | 'vo2' | 'spo2';
-export type Source = 'manuale' | 'apple' | 'demo' | 'stimato';
+export type Source = 'manuale' | 'apple' | 'hc' | 'demo' | 'stimato';
 export type Workout = { id: string; type: string; date: string; duration: number; calories: number; source?: Source };
 export type MindSession = { id: string; type: string; date: string; duration: number };
 export type MoodEntry = { date: string; mood: string; day?: string };
@@ -26,6 +26,18 @@ export const healthMeta: Record<Metric, { label: string; unit: string; color: st
 };
 export const allMetrics = Object.keys(healthMeta) as Metric[];
 
+/** Altri dati dell'orologio (non hanno una scheda tutta loro): una serie al giorno, tenuta a parte così i dati già salvati non cambiano forma. */
+export type ExtraKey = 'distance' | 'flights' | 'resp' | 'fat' | 'stand' | 'hravg' | 'basal';
+export const extraMeta: Record<ExtraKey, { label: string; unit: string; dec: number; /** somma nel giorno (true) o media */ sum: boolean }> = {
+  distance: { label: 'Distanza a piedi e di corsa', unit: 'km', dec: 1, sum: true },
+  flights: { label: 'Piani saliti', unit: '', dec: 0, sum: true },
+  resp: { label: 'Respiri al minuto', unit: '/min', dec: 1, sum: false },
+  fat: { label: 'Massa grassa', unit: '%', dec: 1, sum: false },
+  stand: { label: 'Tempo in piedi', unit: 'min', dec: 0, sum: true },
+  hravg: { label: 'Battito medio', unit: 'bpm', dec: 0, sum: false },
+  basal: { label: 'Energia a riposo', unit: 'kcal', dec: 0, sum: true },
+};
+
 export const moodOptions: [string, string][] = [['Felice', '#7be0b0'], ['Calmo', '#7bb8e0'], ['Neutro', '#8e98a8'], ['Stressato', '#e0c97b'], ['Triste', '#7c93c9'], ['Arrabbiato', '#ff9d9d']];
 
 type Series = Record<Metric, number[]>;
@@ -43,6 +55,8 @@ type HealthState = {
   wearable: { connected: boolean; device: string | null };
   lastSync: number | null;
   syncError: string | null;
+  extra: Partial<Record<ExtraKey, Pt[]>>;
+  setExtra: (k: ExtraKey, pts: Pt[]) => void;
 
   logMetric: (m: Metric, v: number) => void;
   setPoints: (m: Metric, pts: Pt[], source: Source) => void;
@@ -75,6 +89,8 @@ export const useHealth = create<HealthState>()(
     wearable: { connected: false, device: null },
     lastSync: null,
     syncError: null,
+    extra: {},
+    setExtra: (k, pts) => set((s) => { const map = new Map((s.extra?.[k] ?? []).map((p) => [p.d, p.v])); pts.forEach((p) => { if (Number.isFinite(p.v)) map.set(p.d, p.v); }); return { extra: { ...(s.extra ?? {}), [k]: [...map.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-120).map(([d, v]) => ({ d, v })) } }; }),
 
     logMetric: (m, v) =>
       set((s) => {
@@ -85,7 +101,7 @@ export const useHealth = create<HealthState>()(
         const ds = ensureDates(arr, dates[m], s.lastLog[m]);
         if (ds.length && ds[ds.length - 1] === today) arr[arr.length - 1] = v;
         else { arr.push(v); ds.push(today); }
-        return { series: { ...series, [m]: arr.slice(-120) }, dates: { ...dates, [m]: ds.slice(-120) }, sources: { ...s.sources, [m]: s.sources[m] === 'apple' ? 'apple' : 'manuale' }, lastLog: { ...s.lastLog, [m]: today } };
+        return { series: { ...series, [m]: arr.slice(-120) }, dates: { ...dates, [m]: ds.slice(-120) }, sources: { ...s.sources, [m]: s.sources[m] === 'apple' || s.sources[m] === 'hc' ? s.sources[m] : 'manuale' }, lastLog: { ...s.lastLog, [m]: today } };
       }),
 
     /** Unisce punti datati (es. da Apple Health): lo stesso giorno viene sovrascritto. */
@@ -114,7 +130,7 @@ export const useHealth = create<HealthState>()(
     setTodayMood: (mood) => set((s) => ({ moods: replaceTodayMood(s.moods, mood, dayKey(), weekdayShortDate()) })),
     connect: (device) => set({ wearable: { connected: !!device, device } }),
     setSync: (lastSync, syncError) => set({ lastSync, syncError }),
-    reset: () => set({ series: emptySeries(), dates: emptyDates(), sources: {}, lastLog: {}, workouts: [], mindSessions: [], moods: [], wearable: { connected: false, device: null }, lastSync: null, syncError: null }),
+    reset: () => set({ series: emptySeries(), dates: emptyDates(), sources: {}, lastLog: {}, workouts: [], mindSessions: [], moods: [], wearable: { connected: false, device: null }, lastSync: null, syncError: null, extra: {} }),
   })),
 );
 

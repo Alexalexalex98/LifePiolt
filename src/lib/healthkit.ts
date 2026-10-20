@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { create } from 'zustand';
 
 import { dayKey } from '@/lib/format';
+import { HEALTH_CONNECT, connectHealthConnect, syncHealthConnect } from '@/lib/healthconnect';
 import { useHealth, type Pt, type Workout } from '@/store/health';
 
 /**
@@ -32,6 +33,13 @@ const QTY = {
   exercise: 'HKQuantityTypeIdentifierAppleExerciseTime',
   vo2: 'HKQuantityTypeIdentifierVO2Max',
   spo2: 'HKQuantityTypeIdentifierOxygenSaturation',
+  distance: 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+  flights: 'HKQuantityTypeIdentifierFlightsClimbed',
+  resp: 'HKQuantityTypeIdentifierRespiratoryRate',
+  fat: 'HKQuantityTypeIdentifierBodyFatPercentage',
+  stand: 'HKQuantityTypeIdentifierAppleStandTime',
+  hravg: 'HKQuantityTypeIdentifierHeartRate',
+  basal: 'HKQuantityTypeIdentifierBasalEnergyBurned',
 } as const;
 const SLEEP = 'HKCategoryTypeIdentifierSleepAnalysis' as const;
 const MINDFUL = 'HKCategoryTypeIdentifierMindfulSession' as const;
@@ -40,7 +48,8 @@ export const HK_UNAVAILABLE_MSG = 'Apple Health richiede la versione installata 
 
 /** Messaggio chiaro sul perché Apple Health non c'è (Expo Go, Android, web, iPhone senza modulo nativo). */
 export function hkUnsupportedMessage(): string {
-  if (Platform.OS !== 'ios') return 'Apple Health esiste solo su iPhone. Qui puoi registrare i dati a mano.';
+  if (Platform.OS === 'android') return 'Health Connect richiede la versione installata (non Expo Go) e l’app Health Connect di Android. Puoi registrare i dati a mano.';
+  if (Platform.OS !== 'ios') return 'Questa funzione è disponibile su iPhone e Android. Qui puoi registrare i dati a mano.';
   let expoGo = false;
   try { expoGo = Constants.executionEnvironment === 'storeClient' || (Constants as unknown as { appOwnership?: string }).appOwnership === 'expo'; } catch { /* ignora */ }
   return expoGo
@@ -187,6 +196,7 @@ export type SyncResult = { ok: boolean; message: string; counts?: Record<string,
 /** Scarica gli ultimi `days` giorni da Salute e li salva nello stato dell'app. */
 let inFlight: Promise<SyncResult> | null = null;
 export function syncAppleHealth(days = 60): Promise<SyncResult> {
+  if (Platform.OS === 'android') return syncHealthConnect(days);
   // una sola sincronizzazione alla volta: chi chiama mentre ce n'è una in corso riceve lo stesso risultato
   if (inFlight) return inFlight;
   const status = useHkStatus.getState();
@@ -204,7 +214,7 @@ async function syncInner(days: number): Promise<SyncResult> {
   if (st === 'unavailable') return { ok: false, message: 'Questo dispositivo non supporta Apple Health.' };
   const store = useHealth.getState();
   try {
-    const [steps, hr, hrv, weight, energy, exercise, vo2, spo2, sleep, mindful, w] = await Promise.all([
+    const [steps, hr, hrv, weight, energy, exercise, vo2, spo2, sleep, mindful, w, xDist, xFlights, xResp, xFat, xStand, xHrAvg, xBasal] = await Promise.all([
       daily('steps', 'cumulativeSum', 'count', days),
       daily('hr', 'discreteAverage', 'count/min', days),
       daily('hrv', 'discreteAverage', 'ms', days),
@@ -216,6 +226,13 @@ async function syncInner(days: number): Promise<SyncResult> {
       sleepNights(days),
       mindfulDaily(days),
       workouts(days),
+      daily('distance', 'cumulativeSum', 'km', days).catch(() => []),
+      daily('flights', 'cumulativeSum', 'count', days).catch(() => []),
+      daily('resp', 'discreteAverage', 'count/min', days).catch(() => []),
+      daily('fat', 'discreteAverage', '%', days).catch(() => []),
+      daily('stand', 'cumulativeSum', 'min', days).catch(() => []),
+      daily('hravg', 'discreteAverage', 'count/min', days).catch(() => []),
+      daily('basal', 'cumulativeSum', 'kcal', days).catch(() => []),
     ]);
     // la giornata di oggi è parziale per i totali: la teniamo (serve vedere i passi di oggi), ma l'analisi la tratta a parte
     const put = (m: Parameters<typeof store.setPoints>[0], pts: Pt[]) => { if (pts.length) store.setPoints(m, pts, 'apple'); };
@@ -227,6 +244,9 @@ async function syncInner(days: number): Promise<SyncResult> {
     const stress = estimateStress(hrv, hr);
     if (stress.length) store.setPoints('stress', stress, 'stimato');
     if (w.length) store.mergeWorkouts(w);
+    const x = (k: Parameters<typeof store.setExtra>[0], pts: Pt[]) => { if (pts.length) store.setExtra(k, pts); };
+    x('distance', xDist.filter((p) => p.v > 0)); x('flights', xFlights.filter((p) => p.v > 0)); x('resp', xResp); x('stand', xStand.filter((p) => p.v > 0)); x('hravg', xHrAvg); x('basal', xBasal.filter((p) => p.v > 0));
+    x('fat', xFat.map((p) => ({ d: p.d, v: p.v <= 1 ? p.v * 100 : p.v })));
     store.connect('Apple Health');
     store.setSync(Date.now(), null);
     const counts = { passi: steps.length, battito: hr.length, hrv: hrv.length, sonno: sleep.length, peso: weight.length, allenamenti: w.length };
@@ -245,6 +265,7 @@ async function syncInner(days: number): Promise<SyncResult> {
 }
 
 export async function connectAppleHealth(): Promise<SyncResult> {
+  if (Platform.OS === 'android') return connectHealthConnect();
   const st = await hkState();
   if (st !== 'ready') return syncAppleHealth(); // restituisce il messaggio giusto (Expo Go, Android…)
   let granted = false;
@@ -264,7 +285,7 @@ export async function autoSyncIfConnected() {
 }
 async function autoSyncInner() {
   const { wearable } = useHealth.getState();
-  if (!wearable.connected || wearable.device !== 'Apple Health') return;
+  if (!wearable.connected || (wearable.device !== 'Apple Health' && wearable.device !== HEALTH_CONNECT)) return;
   if (Date.now() - lastAuto < (lastAutoFailed ? 2 : 10) * 60 * 1000) return;
   lastAuto = Date.now();
   const r = await syncAppleHealth(21);

@@ -24,7 +24,7 @@ export function deltaStatus(a: Analysis): Status {
 }
 
 const conf = { alta: 'affidabilità alta', media: 'affidabilità media', bassa: 'affidabilità bassa' } as const;
-const srcLabel: Record<string, string> = { apple: 'Apple Health', manuale: 'Inserito a mano', demo: 'Dati demo', stimato: 'Stimato da HRV e battito' };
+const srcLabel: Record<string, string> = { apple: 'Apple Health', hc: 'Health Connect (Galaxy Watch e altri)', manuale: 'Inserito a mano', demo: 'Dati demo', stimato: 'Stimato da HRV e battito' };
 
 export function DeltaChip({ a }: { a: Analysis }) {
   const t = useTheme();

@@ -1,5 +1,5 @@
 {
- "count": 11819,
+ "count": 11848,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -41,7 +41,7 @@
   "src/app/(tabs)/ideaProfile.tsx": 24,
   "src/app/(tabs)/identityVerify.tsx": 38,
   "src/app/(tabs)/importSocial.tsx": 31,
-  "src/app/(tabs)/index.tsx": 61,
+  "src/app/(tabs)/index.tsx": 62,
   "src/app/(tabs)/interviewInvite.tsx": 28,
   "src/app/(tabs)/interviewView.tsx": 83,
   "src/app/(tabs)/invoice.tsx": 13,
@@ -53,7 +53,7 @@
   "src/app/(tabs)/lifefinance.tsx": 99,
   "src/app/(tabs)/lifefitness.tsx": 77,
   "src/app/(tabs)/lifeforecast.tsx": 23,
-  "src/app/(tabs)/lifehealth.tsx": 105,
+  "src/app/(tabs)/lifehealth.tsx": 113,
   "src/app/(tabs)/lifenetwork.tsx": 41,
   "src/app/(tabs)/lifenotes.tsx": 3,
   "src/app/(tabs)/lifepointsPage.tsx": 36,
@@ -192,7 +192,7 @@
   "src/components/club/format.ts": 1,
   "src/components/club/parts.tsx": 3,
   "src/components/club/pickFile.ts": 2,
-  "src/components/dashboard.tsx": 43,
+  "src/components/dashboard.tsx": 44,
   "src/components/diagnostics/LogCard.tsx": 14,
   "src/components/diagnostics/OutflowCard.tsx": 15,
   "src/components/diagnostics/SystemCards.tsx": 44,
@@ -407,7 +407,8 @@
   "src/lib/habits/predict.ts": 4,
   "src/lib/habits/routine.ts": 13,
   "src/lib/habits/time.ts": 5,
-  "src/lib/healthkit.ts": 30,
+  "src/lib/healthconnect.ts": 29,
+  "src/lib/healthkit.ts": 31,
   "src/lib/helpFaq.ts": 373,
   "src/lib/helpKb.ts": 165,
   "src/lib/hiring.ts": 26,
@@ -510,7 +511,7 @@
   "src/store/finance.ts": 45,
   "src/store/fitGroups.ts": 29,
   "src/store/fitness.ts": 13,
-  "src/store/health.ts": 16,
+  "src/store/health.ts": 23,
   "src/store/identity.ts": 1,
   "src/store/interests.ts": 12,
   "src/store/jobs.ts": 2,
@@ -529,5 +530,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1484
+ "withPlaceholders": 1488
 }
