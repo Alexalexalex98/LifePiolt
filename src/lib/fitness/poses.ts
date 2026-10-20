@@ -81,6 +81,8 @@ export const FAMILIES: Record<string, Family> = Object.fromEntries([
   F('rowerg', 'Vogatore', P(30, 70, 80, 125, 40), P(-20, -10, 70, 92, 88), ['Spingi prima con le gambe', 'Poi inclina il busto e tira con le braccia', 'Il ritorno è l\'inverso: braccia, busto, gambe'], ['Tirare solo con le braccia', 'Schiena curva']),
   F('pressfwd', 'Spinta in avanti', P(0, 20, 110, 0, 0, { prop: 'band' }), P(0, 88, 88, 0, 0, { prop: 'band' }), ['Gomiti all\'altezza del petto', 'Spingi in avanti distendendo le braccia', 'Busto fermo, addominali contratti'], ['Spalle verso le orecchie', 'Busto che si inclina indietro']),
   F('russian', 'Rotazioni russe', P(-35, 75, 80, 105, 75), undefined, ['Busto inclinato, schiena dritta', 'Ruota con le spalle, non con le braccia', 'Piedi a terra o sollevati'], ['Schiena arrotondata', 'Movimenti veloci']),
+  F('pistol', 'Squat a una gamba', STAND, P(30, 85, 88, 82, -28, { th2: 90, sh2: 90 }), ['Una gamba tesa davanti, il tallone dell\'altra resta a terra', 'Busto che si inclina in avanti per bilanciare', 'Ginocchio in linea con la punta del piede', 'Scendi piano, risali senza slancio'], ['Tallone che si stacca', 'Ginocchio verso l\'interno', 'Cadere in basso senza controllo']),
+  F('lsit', 'L-sit', P(0, 0, 0, 90, 90, { lift: 8 }), undefined, ['Spingi le mani nel pavimento e allontana le spalle dalle orecchie', 'Gambe tese e unite, punte tese', 'Addominali contratti, bacino alto', 'Respira, non trattenere'], ['Spalle che salgono', 'Ginocchia piegate', 'Schiena arrotondata']),
 ].map((f) => [f.id, f]));
 export const FAMILY_IDS = Object.keys(FAMILIES);
 
@@ -140,8 +142,10 @@ export function skeleton(p: Pose, prop?: Prop): Skeleton {
   return sk;
 }
 
-export type Panel = { lines: { a: Pt; b: Pt; w: number; o: number; c: 'body' | 'prop' | 'floor' }[]; circles: { c: Pt; r: number; fill: boolean; col: 'body' | 'prop' }[] };
-/** Disegno delle due pose, già adattato a un riquadro 100×100 (stessa scala per entrambe). */
+export type LineCls = 'body' | 'prop' | 'floor' | 'shirt' | 'skin' | 'shoe';
+export type CircleCls = 'body' | 'prop' | 'skin' | 'hair';
+export type Panel = { lines: { a: Pt; b: Pt; w: number; o: number; c: LineCls }[]; circles: { c: Pt; r: number; fill: boolean; col: CircleCls }[] };
+/** Disegno delle due pose, già adattato a un riquadro 100×100 (stessa scala per entrambe). L'omino ha maglia, pelle, capelli, mani e scarpe. */
 export function figurePanels(fam: Family): Panel[] {
   const poses = [fam.a, ...(fam.b ? [fam.b] : [])];
   const sks = poses.map((p) => skeleton(p, p.prop ?? fam.prop));
@@ -152,17 +156,23 @@ export function figurePanels(fam: Family): Panel[] {
   const k = Math.min(100 / (maxX - minX), 100 / (maxY - minY));
   const ox = (100 - (maxX - minX) * k) / 2, oy = (100 - (maxY - minY) * k) / 2;
   const T = (q: Pt): Pt => [(q[0] - minX) * k + ox, (q[1] - minY) * k + oy];
+  const sc = Math.max(0.7, k * 0.9);
   return sks.map((s) => {
     const lines: Panel['lines'] = []; const circles: Panel['circles'] = [];
-    const seg = (a: Pt, b: Pt, w = 3.4, o = 1, c: 'body' | 'prop' | 'floor' = 'body') => lines.push({ a: T(a), b: T(b), w: w * Math.max(0.7, k * 0.9), o, c });
+    const seg = (a: Pt, b: Pt, w = 3.4, o = 1, c: LineCls = 'body') => lines.push({ a: T(a), b: T(b), w: w * sc, o, c });
+    const dot = (c: Pt, r: number, col: CircleCls, fill = true) => circles.push({ c: T(c), r: r * sc, fill, col });
     seg([minX, 0], [maxX, 0], 1.2, 0.5, 'floor');
-    // arti lontani (più chiari), poi busto e arti vicini
-    seg(s.hip, s.far.knee, 4, 0.45); seg(s.far.knee, s.far.ankle, 4, 0.45); seg(s.far.ankle, s.far.toe, 4, 0.45);
-    seg(s.neck, s.far.elbow, 4, 0.45); seg(s.far.elbow, s.far.wrist, 4, 0.45);
+    /* arti lontani (più chiari): gamba con scarpa, braccio con manica e mano */
+    seg(s.hip, s.far.knee, 5.2, 0.5); seg(s.far.knee, s.far.ankle, 4.6, 0.5); seg(s.far.ankle, s.far.toe, 4.2, 0.55, 'shoe');
+    seg(s.neck, s.far.elbow, 4.6, 0.55, 'shirt'); seg(s.far.elbow, s.far.wrist, 3.8, 0.55, 'skin'); dot(s.far.wrist, 2.1, 'skin');
     for (const pr of s.props) { if (pr.k === 'line') seg(pr.a, pr.b, pr.w, 1, 'prop'); }
-    seg(s.hip, s.neck, 6); seg(s.hip, s.near.knee, 4.6); seg(s.near.knee, s.near.ankle, 4.6); seg(s.near.ankle, s.near.toe, 4.6);
-    seg(s.neck, s.near.elbow, 4.4); seg(s.near.elbow, s.near.wrist, 4.4);
-    circles.push({ c: T(s.head), r: 6 * Math.max(0.8, k * 0.9), fill: false, col: 'body' });
+    /* busto con la maglia, poi gamba vicina (pantaloni), piede (scarpa), braccio vicino */
+    seg(s.hip, s.neck, 8.6, 1, 'shirt');
+    seg(s.hip, s.near.knee, 5.8); seg(s.near.knee, s.near.ankle, 4.8); seg(s.near.ankle, s.near.toe, 4.4, 1, 'shoe');
+    seg(s.neck, s.near.elbow, 5, 1, 'shirt'); seg(s.near.elbow, s.near.wrist, 4, 1, 'skin'); dot(s.near.wrist, 2.3, 'skin');
+    /* testa: collo, capelli dietro, viso davanti (guarda verso destra) */
+    seg(s.neck, s.head, 3, 1, 'skin');
+    dot([s.head[0] - 0.8, s.head[1] - 0.6], 6.4, 'hair'); dot([s.head[0] + 0.9, s.head[1] + 0.5], 5.6, 'skin');
     for (const pr of s.props) { if (pr.k === 'circle') circles.push({ c: T(pr.c), r: pr.r * k, fill: !!pr.fill, col: 'prop' }); }
     return { lines, circles };
   });

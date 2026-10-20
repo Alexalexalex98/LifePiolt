@@ -230,6 +230,74 @@ Passi in avanti con affondo corto|gambe|nessuno|lunge|Affondo breve in avanti co
 Spinte con manubri alternate|spalle|manubri|press|Spingi un manubrio alla volta sopra la testa alternando, con addominali contratti.
 Rematore in appoggio sulla sedia|schiena|manubri|rowbent|Una mano sulla sedia, tira il manubrio verso l'anca con la schiena piatta.
 Ponte con un ginocchio al petto|glutei|nessuno|bridge|Dal ponte, porta un ginocchio al petto alternando senza abbassare il bacino.
+Pistol squat|gambe|nessuno|pistol|Una gamba tesa davanti, scendi sull'altra con il busto in avanti e risali senza slancio. Per esperti.
+Squat a una gamba sulla sedia|gambe|nessuno|pistol|Scendi su una gamba sola fino a sfiorare la sedia e risali. Più facile del pistol squat.
+Cossack squat|gambe|nessuno|lunge|Piedi molto larghi: siediti su una gamba tenendo l'altra distesa di lato, poi cambia lato.
+Skater squat|gambe|nessuno|squat|Su una gamba, gamba libera dietro, scendi piano finché il ginocchio sfiora il pavimento.
+Squat con salto a rana|gambe|nessuno|jumpsquat|Squat molto largo con mani a terra, poi salta in avanti e atterra morbido.
+Squat con salto e rotazione|gambe|nessuno|jumpsquat|Scendi in squat, salta ruotando di un quarto di giro e atterra in squat.
+Squat isometrico|gambe|nessuno|wallsit|Resta fermo in squat a metà discesa, schiena dritta, peso sui talloni.|t
+Tuck jump|gambe|nessuno|jumpsquat|Salta in alto portando le ginocchia al petto e atterra ammortizzando.
+Step-up con ginocchio alto|gambe|nessuno|stepup|Sali sul gradino e porta in alto il ginocchio dell'altra gamba, poi scendi controllato.
+Calf raise a una gamba|gambe|nessuno|calf|Su una gamba, tieniti a un appoggio, sali sulle punte e scendi piano.
+Alzata dalla sedia a una gamba|gambe|nessuno|squat|Dalla sedia, alzati spingendo su una gamba sola, senza aiutarti con le mani.
+Fire hydrant|glutei|nessuno|kickback|A quattro zampe, solleva il ginocchio di lato mantenendo il bacino fermo.
+Ponte con piedi sulla sedia|glutei|nessuno|bridge|Talloni su una sedia, solleva il bacino spingendo con i talloni.
+Ponte a marcia|glutei|nessuno|bridge|In ponte, solleva un piede alla volta senza far cadere il bacino.
+Hip thrust a una gamba|glutei|nessuno|hipthrust|Spalle su una panca, una gamba tesa in aria, spingi con l'altro tallone.
+Frog pump|glutei|nessuno|bridge|Sdraiato con piante dei piedi unite e ginocchia aperte, solleva il bacino stringendo i glutei.
+Donkey kick a corpo libero|glutei|nessuno|kickback|A quattro zampe, calcia verso il soffitto con il ginocchio piegato, senza inarcare la schiena.
+Stacco a una gamba a corpo libero|glutei|nessuno|hinge|Su una gamba, busto in avanti e gamba libera dietro, poi risali con il gluteo.
+Flessioni con rotazione|petto|nessuno|pushup|Dopo ogni flessione ruota il busto e solleva un braccio verso il soffitto. Alterna.
+Flessioni spiderman|petto|nessuno|pushup|Scendendo, porta un ginocchio verso il gomito dello stesso lato. Alterna.
+Flessioni lente|petto|nessuno|pushup|Scendi in 4 secondi e risali in 2: più tensione, meno slancio.
+Flessioni con pausa|petto|nessuno|pushup|Resta fermo 2 secondi con il petto a un dito da terra, poi spingi.
+Flessioni pseudo planche|petto|nessuno|pushup|Mani vicino ai fianchi con dita verso i piedi, corpo inclinato in avanti: scendi e spingi.
+Flessioni a una mano assistite|petto|nessuno|pushup|Una mano su un rialzo e l'altra a terra, scendi controllando. Per esperti.
+Rematore con asciugamano alla porta|schiena|nessuno|rowband|Asciugamano intorno alla maniglia di una porta chiusa, inclinati indietro e tira il petto verso la porta.
+Swimmer a terra|schiena|nessuno|superman|A pancia in giù, braccia e gambe sollevate, alterna piccole battute come nel nuoto.|t
+Y-T-W a terra|schiena|nessuno|superman|A pancia in giù, solleva le braccia disegnando Y, T e W con le scapole.
+Superman con pausa|schiena|nessuno|superman|Solleva braccia e gambe e resta fermo 3 secondi stringendo la schiena.
+Trazioni negative|schiena|palestra|pullup|Parti con il mento sopra la sbarra e scendi in 4-5 secondi controllando.
+Trazioni a presa neutra|schiena|palestra|pullup|Palmi uno verso l'altro, tira fino a portare il petto verso la sbarra.
+Rematore con zaino|schiena|nessuno|rowbent|Zaino con libri, busto inclinato e schiena piatta, tira lo zaino verso l'addome.
+Pike push-up con piedi rialzati|spalle|nessuno|downdog|Piedi su una sedia, anche alte: scendi con la testa tra le mani e spingi.
+Handstand al muro|spalle|nessuno|downdog|Cammina con i piedi sul muro fino alla verticale e resta fermo, corpo teso. Solo per esperti.|t
+Alzate laterali con bottiglie|spalle|nessuno|raise|Una bottiglia piena per mano, solleva le braccia di lato fino alle spalle.
+Alzate frontali con zaino|spalle|nessuno|raise|Tieni lo zaino con due mani e sollevalo davanti a te fino alle spalle.
+Curl con zaino|braccia|nessuno|curl|Tieni lo zaino con due mani, gomiti fermi, fletti e scendi piano.
+Curl con bottiglie|braccia|nessuno|curl|Una bottiglia per mano, gomiti fermi ai fianchi, fletti e scendi.
+Curl isometrico con asciugamano|braccia|nessuno|curl|Tira un asciugamano teso con le due mani mentre opponi resistenza con l'altro braccio.|t
+Dip su sedia a gambe piegate|braccia|nessuno|dips|Mani sul bordo della sedia e ginocchia piegate: scendi con i gomiti all'indietro e risali.
+Estensione tricipiti con zaino|braccia|nessuno|tricepext|Zaino dietro la testa con due mani, gomiti vicini, estendi le braccia in alto.
+Plank con sollevamento della gamba|core|nessuno|plank|In plank, solleva una gamba tesa senza ruotare il bacino. Alterna.|t
+Plank con salto dei piedi|core|nessuno|plank|Dal plank alto salta con i piedi aperti e chiusi, tenendo il bacino stabile.|t
+Plank sulle ginocchia|core|nessuno|plank|Come il plank ma con le ginocchia a terra: più facile, corpo in linea.|t
+Plank inverso|core|nessuno|bridge|Seduto con le mani dietro, solleva il bacino fino a linea dritta spalle-talloni.|t
+V-up|core|nessuno|situp|Sdraiato, porta insieme busto e gambe tese verso l'alto toccando i piedi.
+Flutter kick|core|nessuno|legraise|Sdraiato con le gambe sollevate, batti piccole alternate come nel nuoto.|t
+Scissor kick|core|nessuno|legraise|Sdraiato, gambe tese che si incrociano alternando sopra e sotto.|t
+L-sit|core|nessuno|lsit|Seduto con le mani a terra ai fianchi, solleva il bacino e le gambe tese.|t
+Dragon flag assistito|core|nessuno|legraise|Sdraiato su una panca, aggrappato dietro la testa, scendi con il corpo teso e le ginocchia piegate.
+Hollow rock|core|nessuno|legraise|In posizione hollow, dondola avanti e indietro mantenendo il corpo rigido.|t
+Tocca-tallone|core|nessuno|crunch|Sdraiato con ginocchia piegate, inclinati di lato a toccare con la mano il tallone, alternando.
+Windshield wipers|core|nessuno|legraise|Sdraiato con le gambe verso l'alto, scendile da un lato all'altro senza toccare terra.
+Sit-up con rotazione|core|nessuno|situp|A ogni salita ruota il busto portando il gomito verso il ginocchio opposto.
+Bear crawl|corpo intero|nessuno|birddog|A quattro zampe con ginocchia sollevate, avanza mano e piede opposti insieme.|t
+Sprawl|corpo intero|nessuno|burpee|Da in piedi scendi con i piedi indietro in plank e torna su, senza flessione.
+Squat thrust|corpo intero|nessuno|burpee|Mani a terra, porta i piedi indietro e riportali dentro, poi torna in piedi.
+Camminata del granchio|corpo intero|nessuno|bridge|Seduto con bacino alto e mani dietro, cammina di lato o indietro come un granchio.|t
+Calci ai glutei|cardio|nessuno|run|Corri sul posto portando i talloni verso i glutei.|t
+Mountain climber veloce|cardio|nessuno|mountain|In flessione, porta le ginocchia al petto alternando velocemente.|t
+Salti da un lato all'altro|cardio|nessuno|jumpsquat|Salta di lato oltre una linea immaginaria con i piedi uniti.|t
+World's greatest stretch|mobilità|nessuno|lungestretch|In affondo, mano a terra, ruota il busto e porta il braccio verso il soffitto.|t
+Figura 4|mobilità|nessuno|hip9090|Seduto, caviglia sul ginocchio opposto, piega il busto in avanti con la schiena lunga.|t
+Stretching dei glutei|mobilità|nessuno|hip9090|Sdraiato, caviglia sul ginocchio opposto e tira la coscia verso il petto.|t
+Stretching dei dorsali|mobilità|nessuno|child|In ginocchio, allunga le braccia avanti su un lato e lascia scendere il bacino verso i talloni.|t
+Stretching dei pettorali alla porta|mobilità|nessuno|raise|Avambraccio sullo stipite, fai un piccolo passo avanti finché senti l'allungamento al petto.|t
+Stretching dei tricipiti|mobilità|nessuno|raise|Mano dietro la schiena, con l'altra premi delicatamente il gomito verso la testa.|t
+Stretching degli adduttori|mobilità|nessuno|hip9090|Seduto con le piante dei piedi unite, lascia scendere le ginocchia senza forzare.|t
+Squat della rana (mobilità)|mobilità|nessuno|squat|Scendi in squat profondo con i gomiti dentro le ginocchia e respira.|t
 `;
 const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();

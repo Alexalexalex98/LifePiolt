@@ -11,6 +11,7 @@ import { persisted } from './persist';
 
 export type MealItem = { foodId: string; name: string; grams: number };
 export type Meal = { id: string; ts: number; name: string; foodId?: string; grams: number; macros: Macros; photo?: string; /** ingredienti scelti uno per uno */ items?: MealItem[] };
+import type { Invite } from '@/lib/fitness/gymSearch';
 export type GymRequest = { id: string; ts: number; name: string; kind: Gym['kind']; city: string; address: string; email: string; services: string; status: 'in verifica' | 'approvata' };
 
 type State = {
@@ -23,6 +24,8 @@ type State = {
   visits: Visit[];
   requests: GymRequest[];
   approved: Gym[];
+  /** centri non convenzionati che hai proposto di invitare, e come è andata */
+  invites: Invite[];
   /** esercizi creati da te */
   customEx: ExerciseX[];
   /** alimenti stimati dall'AI dalle foto dei piatti (servono per rileggere i pasti salvati) */
@@ -49,13 +52,15 @@ type State = {
   enter: (gymId: string) => { ok: boolean; message: string };
   requestGym: (r: Omit<GymRequest, 'id' | 'ts' | 'status'>) => void;
   approveGym: (id: string) => void;
+  inviteGym: (name: string) => void;
+  setInviteStatus: (id: string, status: Invite['status']) => void;
 };
 const uid = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 /** Dati di LifeFitness: restano sul telefono (sono dati di salute). */
 export const useFitness = create<State>()(
   persisted<State>('fitness', (set, get) => ({
-    profile: null, body: null, activeProgram: null, history: [], meals: [], sub: null, visits: [], requests: [], approved: [], customEx: [], aiFoods: [], purchases: [], edits: {},
+    profile: null, body: null, activeProgram: null, history: [], meals: [], sub: null, visits: [], requests: [], approved: [], invites: [], customEx: [], aiFoods: [], purchases: [], edits: {},
     set: (p) => set(p),
     logWorkout: (w) => set((s) => ({ history: [...s.history, { ...w, id: uid() }].slice(-1000) })),
     addMeal: (m) => set((s) => ({ meals: [{ ...m, id: uid() }, ...s.meals].slice(0, 2000) })),
@@ -104,6 +109,8 @@ export const useFitness = create<State>()(
       }
       return { ok: false, message: c.reason ?? 'Ingresso non possibile.' };
     },
+    inviteGym: (name) => set((s) => (s.invites.some((i) => i.name.toLowerCase() === name.trim().toLowerCase()) ? {} : { invites: [{ id: uid(), name: name.trim().slice(0, 60), ts: Date.now(), status: 'invitato' as const }, ...s.invites] })),
+    setInviteStatus: (id, status) => set((s) => ({ invites: s.invites.map((i) => (i.id === id ? { ...i, status } : i)) })),
     requestGym: (r) => set((s) => ({ requests: [{ ...r, id: uid(), ts: Date.now(), status: 'in verifica' as const }, ...s.requests] })),
     approveGym: (id) => set((s) => {
       const r = s.requests.find((x) => x.id === id);

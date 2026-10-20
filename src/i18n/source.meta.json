@@ -1,5 +1,5 @@
 {
- "count": 11686,
+ "count": 11716,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -28,7 +28,7 @@
   "src/app/(tabs)/extraCheck.tsx": 18,
   "src/app/(tabs)/fitnessExercise.tsx": 30,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
-  "src/app/(tabs)/fitnessGyms.tsx": 23,
+  "src/app/(tabs)/fitnessGyms.tsx": 39,
   "src/app/(tabs)/fitnessMeal.tsx": 82,
   "src/app/(tabs)/fitnessPass.tsx": 25,
   "src/app/(tabs)/fitnessProgram.tsx": 36,
@@ -392,7 +392,7 @@
   "src/lib/fitness/gymPay.ts": 11,
   "src/lib/fitness/nutrition.ts": 68,
   "src/lib/fitness/plan.ts": 15,
-  "src/lib/fitness/poses.ts": 353,
+  "src/lib/fitness/poses.ts": 368,
   "src/lib/fitness/premium.ts": 3,
   "src/lib/fitness/programsExtra.ts": 31,
   "src/lib/focusPlan.ts": 4,
@@ -525,5 +525,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1460
+ "withPlaceholders": 1464
 }

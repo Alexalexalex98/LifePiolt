@@ -22,7 +22,8 @@ export function ExerciseFigure({ ex, size = 120, captions = true, single = false
   if (!fam) return <View style={[box, { alignItems: 'center', justifyContent: 'center' }]}><Text style={{ color: t.muted, fontSize: 11, textAlign: 'center', padding: 6 }}>{tl('Nessuna immagine')}</Text></View>;
   const panels = figurePanels(fam);
   const shown = single ? panels.slice(0, 1) : panels;
-  const col = { body: t.text, prop: FIT, floor: t.muted };
+  const light = t.mode === 'light';
+  const col = { body: light ? '#2b3a55' : '#aebbd6', prop: light ? '#8a94a8' : '#8591a8', floor: t.muted, shirt: FIT, skin: '#e9b595', shoe: light ? '#1b1f2a' : '#f2f4f8', hair: light ? '#4a3426' : '#7a5a44' };
   return (
     <View style={{ flexDirection: 'row', gap: 6 }} accessible accessibilityLabel={`${ex?.name ?? fam.name}: ${caps.slice(0, panels.length).join(', ')}`}>
       {shown.map((pan, i) => (
@@ -30,7 +31,7 @@ export function ExerciseFigure({ ex, size = 120, captions = true, single = false
           <View style={box}>
             <Svg width={size} height={size} viewBox="0 0 100 100">
               {pan.lines.map((l, k) => <Line key={k} x1={l.a[0]} y1={l.a[1]} x2={l.b[0]} y2={l.b[1]} stroke={col[l.c]} strokeWidth={l.w} strokeLinecap="round" opacity={l.o} />)}
-              {pan.circles.map((c, k) => <Circle key={k} cx={c.c[0]} cy={c.c[1]} r={c.r} fill={c.fill ? col[c.col] : 'none'} stroke={col[c.col]} strokeWidth={2} />)}
+              {pan.circles.map((c, k) => <Circle key={k} cx={c.c[0]} cy={c.c[1]} r={c.r} fill={c.fill ? col[c.col] : 'none'} stroke={c.col === 'skin' || c.col === 'hair' ? 'none' : col[c.col]} strokeWidth={2} />)}
             </Svg>
           </View>
           {captions && !single && panels.length > 1 ? <Text style={{ color: t.muted, fontSize: 11, marginTop: 3, textAlign: 'center' }}>{caps[i]}</Text> : null}
