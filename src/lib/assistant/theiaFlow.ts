@@ -211,7 +211,10 @@ export async function sendTheia(i: SendInput): Promise<void> {
   // con l'AI collegata, saluti e frasi senza una domanda in sospeso le gestisce l'AI come una persona
   if (aiOn() && !pending && !eng.pending) {
     const n = norm(text);
-    const loneAnswer = (isYes(text) || isNo(text)) && n.split(' ').length > 3;
+    /* un «sì»/«no» dopo una domanda che ho fatto io con l'AI («Vuoi che ti aiuti a inserirli?») è la risposta a quella domanda: passa all'AI, che ha la conversazione */
+    const lastAi = [...store().log].reverse().find((m) => m.who === 'ai');
+    const answersMyQuestion = !!lastAi && /\?\s*$/.test(lastAi.text.trim());
+    const loneAnswer = (isYes(text) || isNo(text)) && (n.split(' ').length > 3 || answersMyQuestion);
     if ((SMALLTALK.test(n) && n.split(' ').length <= 8) || loneAnswer) { await aiChatReply([text, payload].filter(Boolean).join('\n\n')); return; }
   }
   // «devo fare la spesa»: è una cosa da fare, la metto nei task (con «Annulla»); «mettila nei task» subito dopo si riferisce a quella
