@@ -36,6 +36,7 @@ import { useVisible } from '@/lib/moderation';
 import { SearchResults } from '@/components/feed/SearchResults';
 import { t as tl } from '@/i18n/core';
 import { useApp } from '@/store/app';
+import { useFitGroups } from '@/store/fitGroups';
 import { topicList, useNet, type Idea, type Provider, type Seminar } from '@/store/network';
 import { toast } from '@/store/toast';
 
@@ -203,6 +204,8 @@ export default function LifeNetwork() {
   const toggleJoin = (id: number) => {
     const c = net.communities.find((x) => x.id === id);
     if (!c) return;
+    const grp = useFitGroups.getState().groups.find((x) => x.communityId === c.id);
+    if (grp) { go('fitnessGroup', { id: grp.id }); return; } // community di un gruppo di allenamento: si entra dal gruppo
     const joined = c.members.includes(me);
     net.patch({ communities: net.communities.map((x) => (x.id === c.id ? { ...x, members: joined ? x.members.filter((m) => m !== me) : [...x.members, me] } : x)) });
     toast(joined ? tl('Hai lasciato {0}', c.name) : tl('Iscritto a {0}', c.name));

@@ -16,6 +16,7 @@ import { fmtDate } from '@/lib/when';
 import { useApp } from '@/store/app';
 import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
+import { useFitGroups } from '@/store/fitGroups';
 import { toast } from '@/store/toast';
 
 export default function CommunityProfile() {
@@ -25,6 +26,8 @@ export default function CommunityProfile() {
   const net = useNet();
   const c = net.communities.find((x) => String(x.id) === id);
   const visible = useVisible();
+  /* la community di un gruppo di allenamento si entra solo dal gruppo (richiesta o pagamento), non con «Iscriviti» */
+  const fitGroup = useFitGroups((s) => s.groups.find((x) => String(x.communityId) === id));
   if (c && !visible('community', c.id, c.owner === 'system' ? undefined : c.owner)) return <Page id="communityProfile" title="Community" back><Card><Empty text="Hai nascosto o segnalato questa community, oppure il proprietario è bloccato." /><Btn small ghost style={{ marginTop: 10 }} title="Segnalazioni inviate" onPress={() => go('reports')} /></Card></Page>;
   if (!c) return <Page id="communityProfile" title="Community" back><Card><Empty text="Community non trovata." /></Card></Page>;
   const joined = c.members.includes(me);
@@ -53,7 +56,7 @@ export default function CommunityProfile() {
         <Text style={{ color: t.muted, fontSize: 14, flex: 1 }}>{c.members.length} {c.members.length === 1 ? 'membro' : 'membri'}</Text>
       </View>
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
-        <Btn style={{ flex: 1 }} ghost={joined} title={joined ? 'Iscritto · esci dalla community' : 'Iscriviti'} onPress={toggle} />
+        {fitGroup ? <Btn style={{ flex: 1 }} ghost={joined} title={joined ? 'Vedi il gruppo di allenamento' : fitGroup.kind === 'paid' ? 'Per entrare vai al gruppo' : 'Per entrare chiedi al gruppo'} onPress={() => go('fitnessGroup', { id: fitGroup.id })} /> : <Btn style={{ flex: 1 }} ghost={joined} title={joined ? 'Iscritto · esci dalla community' : 'Iscriviti'} onPress={toggle} />}
       </View>
       {joined && <Btn ghost style={{ marginTop: 10 }} icon="plus" title="Pubblica qui" onPress={() => { if (!canPost) { toast('Solo il proprietario può pubblicare qui'); return; } openSheet('postToCommunity', { id: c.id }); }} />}
 

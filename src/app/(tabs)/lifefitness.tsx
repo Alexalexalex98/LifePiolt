@@ -150,6 +150,9 @@ export default function LifeFitness() {
           <Btn ghost title={tl('Tutte le schede ({0})', ALL_PROGRAMS.length)} onPress={() => go('fitnessProgram', { id: '' })} />
           <Btn ghost icon="lifefitness" title="Libreria degli esercizi" onPress={() => setLib(true)} />
 
+          <Card accent={FIT} onPress={() => go('fitnessGroups')}>
+            <Row><View style={{ flex: 1 }}><H>Allenati in gruppo</H><Body small muted>Gruppi gratuiti e a pagamento, ognuno con la sua community. Puoi anche crearne uno.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+          </Card>
           <Card accent={FIT} onPress={() => go('fitnessGyms')}>
             <Row><View style={{ flex: 1 }}><H>Centri convenzionati</H><Body small muted>{tl('{0} centri: palestre, piscine, centri sportivi', PARTNER_GYMS.length + fit.approved.length)}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
           </Card>

@@ -1,5 +1,5 @@
 {
- "count": 11716,
+ "count": 11819,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -19,7 +19,7 @@
   "src/app/(tabs)/clubContent.tsx": 27,
   "src/app/(tabs)/clubPage.tsx": 66,
   "src/app/(tabs)/clubStudio.tsx": 128,
-  "src/app/(tabs)/communityProfile.tsx": 21,
+  "src/app/(tabs)/communityProfile.tsx": 24,
   "src/app/(tabs)/conversationPage.tsx": 62,
   "src/app/(tabs)/creatorStats.tsx": 48,
   "src/app/(tabs)/diagnostics.tsx": 13,
@@ -27,6 +27,8 @@
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
   "src/app/(tabs)/fitnessExercise.tsx": 30,
+  "src/app/(tabs)/fitnessGroup.tsx": 39,
+  "src/app/(tabs)/fitnessGroups.tsx": 53,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 39,
   "src/app/(tabs)/fitnessMeal.tsx": 82,
@@ -49,7 +51,7 @@
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
   "src/app/(tabs)/lifefinance.tsx": 99,
-  "src/app/(tabs)/lifefitness.tsx": 75,
+  "src/app/(tabs)/lifefitness.tsx": 77,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 105,
   "src/app/(tabs)/lifenetwork.tsx": 41,
@@ -389,6 +391,7 @@
   "src/lib/fitness/execCheck.ts": 10,
   "src/lib/fitness/exerciseDb.ts": 2,
   "src/lib/fitness/foodDb.ts": 24,
+  "src/lib/fitness/groups.ts": 16,
   "src/lib/fitness/gymPay.ts": 11,
   "src/lib/fitness/nutrition.ts": 68,
   "src/lib/fitness/plan.ts": 15,
@@ -499,12 +502,13 @@
   "src/lib/when.ts": 11,
   "src/schemas/change.ts": 3,
   "src/schemas/collections.ts": 3,
-  "src/store/app.ts": 16,
+  "src/store/app.ts": 18,
   "src/store/assistant.ts": 16,
   "src/store/chat.ts": 13,
   "src/store/club.ts": 4,
   "src/store/clubFlow.ts": 24,
   "src/store/finance.ts": 45,
+  "src/store/fitGroups.ts": 29,
   "src/store/fitness.ts": 13,
   "src/store/health.ts": 16,
   "src/store/identity.ts": 1,
@@ -525,5 +529,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1464
+ "withPlaceholders": 1484
 }
