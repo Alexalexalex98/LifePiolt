@@ -21,6 +21,12 @@ export type TheiaAction =
   | { kind: 'add-invoices'; label: string; invoices: { issuer: string; amount: number; currency: string; number?: string; dueDate?: string }[]; fileUri?: string; fileName?: string; fileMime?: string }
   /** manda a Theia i file (dopo il consenso) per leggerli */
   | { kind: 'read-files'; label: string; text: string; files: { uri: string; mime: string; name?: string }[] }
+  /** Theia non conosce il comando: l'utente le mostra cosa fare e lei lo impara */
+  | { kind: 'teach'; label: string; phrase: string }
+  /** dimentica un comando imparato */
+  | { kind: 'forget'; label: string; id: string }
+  /** rimanda a Theia questa frase come se l'utente l'avesse scritta */
+  | { kind: 'say'; label: string; text: string }
   | { kind: 'dismiss'; label: string };
 
 export type TheiaExt = {

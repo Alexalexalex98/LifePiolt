@@ -24,10 +24,14 @@ import { useLife } from '@/store/life';
 import { useAiRouter } from '@/store/aiRouter';
 import { weekdayShortDate } from '@/lib/format';
 import { fmtBytes, needsAnalysis, textPayload, type Att } from '@/lib/attachments';
-import { isNo, isYes } from './appActionCore';
+import { isCancel, isNo, isYes } from './appActionCore';
 import { t } from '@/i18n/core';
 import { understand } from '@/lib/langLexicon';
 import { go } from '@/lib/nav';
+import { formatMoney } from '@/i18n/format';
+import { fillTarget, generalize, looksLikeCommand, matchLearned } from './learned';
+import { findFixed, parseFixedEdit } from './financeEdit';
+import { useLearned } from '@/store/learned';
 import { useAssistant, type AMsg } from '@/store/assistant';
 import { usePrefs } from '@/store/prefs';
 import { topicOf } from './nlp';
@@ -197,6 +201,9 @@ export async function sendTheia(i: SendInput): Promise<void> {
   const topic = i.topic ?? (command ? topicOf(command) ?? undefined : undefined);
   store().push({ who: 'me', text, source: 'chat', topic, ext: { ...withAtts, lang: u.lang, voice: i.source === 'voice' } });
 
+  // sto imparando un comando: questa frase è la dimostrazione (una pagina o un comando che già so)
+  if (useLearned.getState().teaching) { await teachStep(text, command); return; }
+
   // con l'AI collegata, saluti e frasi senza una domanda in sospeso le gestisce l'AI come una persona
   if (aiOn() && !pending && !eng.pending) {
     const n = norm(text);
@@ -205,6 +212,8 @@ export async function sendTheia(i: SendInput): Promise<void> {
   }
   // funzioni dell'app (pubblica un post, crea un LifeClub, invia LifePoints...): le svolge Theia, anche a più domande
   if (handleAppAction(command ?? text, (m, x) => { pushAi(m, x); })) return;
+  // ritocchi alle finanze («imposta l'affitto a 1430») e comandi che l'utente mi ha insegnato: tutto in locale, senza AI esterna
+  if (!pending && (await handleLocalEdits(text))) return;
 
   if (u.status === 'confirm') {
     pushAi(t('Non sono sicura di aver capito. Vuoi dire: «{0}»?', u.text), {
@@ -245,8 +254,93 @@ export async function sendTheia(i: SendInput): Promise<void> {
       return;
     }
   }
+  // un ordine che non conosco: non lo mando a un'AI, mi faccio insegnare
+  if (!pending && looksLikeCommand(text) && text.trim().split(/\s+/).length <= 9) { offerTeach(text, u.lang, i.source); return; }
   if (aiOn() && !pending) { await aiChatReply([text, payload].filter(Boolean).join('\n\n')); return; }
   clarify(text, u.lang, i.source, [text, payload].filter(Boolean).join('\n\n'));
+}
+
+/** Modifiche alle finanze e comandi imparati. true = gestita. */
+async function handleLocalEdits(text: string): Promise<boolean> {
+  const ed = parseFixedEdit(text);
+  if (ed) {
+    const fin = useFin.getState();
+    const hit = findFixed(ed.word, fin.statementInfo?.fixed ?? []);
+    if (hit) {
+      if (ed.undo) {
+        fin.setFixedOverride(hit.key, null);
+        pushAi(t('Fatto: «{0}» torna al calcolo dall’estratto.', hit.name));
+        return true;
+      }
+      const before = hit.overridden?.calculated ?? hit.monthly;
+      fin.setFixedOverride(hit.key, ed.amount);
+      pushAi(t('Fatto: {0} ora è {1} al mese (dall’estratto risultava {2}). Lo trovi in Finanze > Budget, segnato come impostato da te.', hit.name, formatMoney(ed.amount), formatMoney(before)), {
+        ext: { actions: [{ kind: 'open', label: t('Apri il Budget'), page: 'lifefinance' }, { kind: 'say', label: t('Ripristina il calcolo'), text: `ripristina ${ed.word}` }, { kind: 'dismiss', label: t('Va bene') }] },
+      });
+      return true;
+    }
+    if (/\b(affitto|cassa malati|mutuo|assicurazion|leasing|telefono|abbonament)/i.test(ed.word)) {
+      pushAi(t('Non trovo «{0}» tra le tue spese fisse: compaiono quando carichi l’estratto conto della banca (Finanze > Carica un file).', ed.word), { ext: { actions: [{ kind: 'open', label: t('Apri Finanze'), page: 'lifefinance' }, { kind: 'dismiss', label: t('Va bene') }] } });
+      return true;
+    }
+  }
+  const hit = matchLearned(text, useLearned.getState().items);
+  if (!hit) return false;
+  const L = useLearned.getState();
+  L.use(hit.item.id);
+  const forget: TheiaAction = { kind: 'forget', label: t('Non era questo: dimentica'), id: hit.item.id };
+  if (hit.item.kind === 'page') {
+    go(hit.item.target);
+    pushAi(t('Fatto, come mi avevi insegnato.'), { ext: { actions: [forget, { kind: 'dismiss', label: t('Va bene') }] } });
+    return true;
+  }
+  const done = await runLocal(fillTarget(hit.item.target, hit.nums));
+  if (done) pushAi(t('Lo so fare perché me l’hai insegnato.'), { ext: { actions: [forget, { kind: 'dismiss', label: t('Va bene') }] } });
+  return done;
+}
+
+/** Comando sconosciuto: propongo di insegnarmelo (nessun invio fuori dal telefono). */
+function offerTeach(text: string, lang: string, source: 'typed' | 'voice') {
+  const actions: TheiaAction[] = [{ kind: 'teach', label: t('Insegnami'), phrase: text }];
+  if (aiOn()) actions.push({ kind: 'ask-ai', label: t('Chiedi a un\'AI esterna'), text, lang, source });
+  actions.push({ kind: 'dismiss', label: t('Lascia stare') });
+  pushAi(t('Questo comando non lo conosco ancora. Posso impararlo: mi mostri una volta cosa fare e dalla prossima volta lo faccio da sola, senza AI esterne.'), { ext: { lang, actions } });
+}
+
+/** Il passo dell'insegnamento: l'utente indica una pagina o scrive un comando che già conosco. */
+async function teachStep(text: string, command?: string): Promise<void> {
+  const L = useLearned.getState();
+  const phrase = L.teaching;
+  if (!phrase) return;
+  if (isCancel(text)) { L.stopTeach(); pushAi(t('Va bene, lascio stare.')); return; }
+  const done = (kind: 'page' | 'cmd', target: string, what: string) => {
+    const item = useLearned.getState().learn(phrase, kind, target);
+    pushAi(t('Imparato: quando mi dici «{0}» {1}. Vale anche con altri numeri.', phrase, what), { ext: { actions: [{ kind: 'forget', label: t('Dimentica'), id: item.id }, { kind: 'dismiss', label: t('Perfetto') }] } });
+  };
+  const tryPage = (): boolean => {
+    const n = norm(text);
+    const page = PAGES.find((p) => p.words.some((w) => n.includes(w)));
+    const target = page?.page ?? matchFaq(text)?.faq.page;
+    if (!target) return false;
+    const label = page?.label ?? PAGES.find((p) => p.page === target)?.label ?? t('quella pagina');
+    go(target);
+    done('page', target, t('ti porto a {0}', label));
+    return true;
+  };
+  const tryCommand = async (): Promise<boolean> => {
+    try {
+      const cmd = command ?? text;
+      const r = await getAssistant().handle(cmd);
+      if (!r.handled) return false;
+      pushAi(styleText(r.text, usePrefs.getState().answerStyle), { chips: r.chips });
+      if (r.navigate) go(r.navigate);
+      done('cmd', generalize(phrase, cmd), t('faccio «{0}»', cmd));
+      return true;
+    } catch { return false; }
+  };
+  if (looksLikeCommand(text)) { if (await tryCommand()) return; if (tryPage()) return; }
+  else { if (tryPage()) return; if (await tryCommand()) return; }
+  pushAi(t('Non lo riconosco nemmeno così. Dimmi il nome di una pagina (per esempio «Budget» o «Palestre») oppure scrivi un comando che già so, come «aggiungi task comprare latte». Oppure scrivi «annulla».'));
 }
 
 /** Azioni che l'assistente locale sa già eseguire dal testo dell'utente (impegni, task, note, salute, spese). */
@@ -428,6 +522,14 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
       if (!(await runLocal(action.command))) pushAi(t('Non l\'ho capito neanche così. Prova a scrivermelo in un altro modo.'));
       return;
     }
+    case 'teach': {
+      store().push({ who: 'me', text: action.label, source: 'chat' });
+      useLearned.getState().startTeach(action.phrase);
+      pushAi(t('Va bene, insegnami. Per «{0}» dimmi dove andare (per esempio «Budget», «Palestre», «Bollette») oppure scrivi un comando che già conosco, come «aggiungi task comprare latte». Lo faccio subito e me lo ricordo.', action.phrase));
+      return;
+    }
+    case 'forget': useLearned.getState().forget(action.id); pushAi(t('Fatto, l’ho dimenticato.')); return;
+    case 'say': await sendTheia({ text: action.text, lang: useApp.getState().language, appLang: useApp.getState().language, forced: false, source: 'typed' }); return;
     case 'ai-analysis': await deepStatementAnalysis(); return;
     case 'add-invoices': addInvoicesFromChat(action); return;
     case 'bill': openBillReview({ uri: action.uri, mime: action.mime, name: action.name }); return;

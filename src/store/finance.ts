@@ -187,6 +187,9 @@ type FinState = {
   salaryRule: SalaryRule;
   salaryExcluded: string[];
   avgRule: AvgRule;
+  /** importi delle spese fisse impostati a mano (chiave = voce), che valgono al posto di quelli calcolati dall'estratto */
+  fixedOverrides: Record<string, number>;
+  setFixedOverride: (key: string, amount: number | null) => void;
   setSalaryRule: (r: SalaryRule, excluded?: string[], avg?: AvgRule) => void;
   recomputeStatement: (opts?: { apply?: boolean; balance?: number | null }) => void;
   replaceBills: (list: Omit<Bill, 'id'>[]) => void;
@@ -332,7 +335,7 @@ export const useFin = create<FinState>()(
       const s = get();
       const snap: FinSnapshot = { insights: s.insights, savingsPct: s.savingsPct, months: s.months, budget: s.budget, bills: s.bills, invoices: s.invoices, billPrefs: s.billPrefs, tax: s.tax, statementAt: s.statementAt, statementInfo: s.statementInfo };
       const b = blank();
-      set({ insights: b.insights, savingsPct: b.savingsPct, months: b.months, budget: b.budget, bills: b.bills, invoices: b.invoices, billPrefs: b.billPrefs, tax: b.tax, statementAt: null, statementInfo: null });
+      set({ insights: b.insights, savingsPct: b.savingsPct, months: b.months, budget: b.budget, bills: b.bills, invoices: b.invoices, billPrefs: b.billPrefs, tax: b.tax, statementAt: null, statementInfo: null, fixedOverrides: {} });
       return snap;
     },
     restoreFinance: (snap) => set({ ...snap }),
@@ -366,12 +369,16 @@ export const useFin = create<FinState>()(
     salaryRule: DEFAULT_RULE,
     salaryExcluded: [] as string[],
     avgRule: DEFAULT_AVG,
+    fixedOverrides: {} as Record<string, number>,
+    setFixedOverride: (key, amount) => { set((s) => { const o = { ...(s.fixedOverrides ?? {}) }; if (amount == null) delete o[key]; else o[key] = amount; return { fixedOverrides: o }; }); get().recomputeStatement(); },
     setSalaryRule: (r, excluded, avg) => { set((s) => ({ salaryRule: r, salaryExcluded: excluded ?? s.salaryExcluded, avgRule: avg ?? s.avgRule })); get().recomputeStatement(); },
     recomputeStatement: (opts) => {
       const s = get();
       const rows = listMovements(s.months, () => true).map((r) => ({ date: r.sort, label: r.label, amount: r.amount }));
-      const an = analyzeStatement(rows, s.salaryRule, s.salaryExcluded, s.avgRule);
-      if (!an) return;
+      const an0 = analyzeStatement(rows, s.salaryRule, s.salaryExcluded, s.avgRule);
+      if (!an0) return;
+      const ov = s.fixedOverrides ?? {};
+      const an = { ...an0, fixed: an0.fixed.map((f) => (ov[f.key] != null ? { ...f, monthly: ov[f.key], overridden: { by: 'utente' as const, calculated: f.monthly } } : f)) };
       const old = s.statementInfo;
       const bal = typeof opts?.balance === 'number' ? opts.balance : old?.balance;
       const info: StatementInfo = { ...an, count: rows.length, balanceKnown: typeof opts?.balance === 'number' || !!old?.balanceKnown, ...(bal !== undefined ? { balance: bal } : {}), at: Date.now() };

@@ -115,7 +115,7 @@ function StatementBudget({ info }: { info: StatementInfo }) {
   const openOcc = () => setEx({ title: 'Entrate occasionali', formula: `Tutte le entrate che non tornano mese dopo mese (depositi, bonifici da persone, rimborsi). Contano nei conti, ma non si possono dare per certe. Media = totale diviso ${info.months} mesi = ${formatMoney(occMonthly)}.`, rows: occRows, total: sumRows(occRows) });
   const openFixed = (b: StatementInfo['fixed'][number]) => {
     const rows = listMovements(months, (x) => x.amount < 0 && payeeKey(x.label) === b.key);
-    setEx({ title: b.name, formula: `Spesa fissa: ${b.payments} pagamenti in ${b.months} mesi diversi, di circa ${formatMoney(b.monthly)} al mese (mediana dei mesi). Non contano acquisti singoli o piccoli importi.`, rows, total: sumRows(rows) });
+    setEx({ title: b.name, formula: b.overridden ? `Importo impostato da te: ${formatMoney(b.monthly)} al mese. Dall’estratto risultava ${formatMoney(b.overridden.calculated)} (${b.payments} pagamenti in ${b.months} mesi): qui sotto vedi i movimenti.` : `Spesa fissa: ${b.payments} pagamenti in ${b.months} mesi diversi, di circa ${formatMoney(b.monthly)} al mese (mediana dei mesi). Non contano acquisti singoli o piccoli importi.`, rows, total: sumRows(rows) });
   };
   const fixedKeys = new Set(info.fixed.map((b) => b.key));
   const openVar = (v: StatementInfo['variable'][number]) => {
@@ -156,6 +156,7 @@ function StatementBudget({ info }: { info: StatementInfo }) {
           <Pressable key={b.key} onPress={() => openFixed(b)} accessibilityRole="button" style={{ paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: th.item }}>
             <Row><Body bold style={{ flex: 1 }}>{b.name}</Body><Body bold>{formatMoney(b.monthly)}</Body></Row>
             <Body small muted>{pct(b.monthly)}% dello stipendio · {b.payments} pagamenti in {b.months} mesi · ultimo {dmy(b.lastDate)} · tocca per vederli</Body>
+            {b.overridden ? <Body small color={th.warn}>{`Importo impostato da te (dall’estratto risultava ${formatMoney(b.overridden.calculated)}). Dì a Theia «ripristina ${b.name.split(':')[0].toLowerCase()}» per tornare al calcolo.`}</Body> : null}
           </Pressable>
         )) : <Body small muted>Nell’estratto non ci sono spese che tornano ogni mese.</Body>}
         {info.fixed.length ? <Row style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: th.item, paddingTop: 8 }}><Body bold style={{ flex: 1 }}>Totale spese fisse</Body><Body bold>{formatMoney(fixedTotal)}</Body></Row> : null}

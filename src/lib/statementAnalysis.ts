@@ -82,7 +82,7 @@ export const classify = (label: string): Cls => { const l = strip(label).toLower
 
 /* ------------------------------------------------------------------ spese fisse e variabili */
 const FIXED_CLS: Cls[] = ['Affitto', 'Cassa malati e assicurazioni', 'Mutuo', 'Prestiti e leasing', 'Telefono e internet', 'Energia e acqua', 'Abbonamenti', 'Tasse e imposte'];
-export type FixedItem = { name: string; cls: Cls; key: string; monthly: number; months: number; payments: number; lastDate: string };
+export type FixedItem = { name: string; cls: Cls; key: string; monthly: number; months: number; payments: number; lastDate: string; /** importo impostato dall'utente al posto di quello calcolato */ overridden?: { by: 'utente'; calculated: number } };
 export type VarItem = { name: string; total: number; monthly: number; payments: number };
 export type Extra = { date: string; label: string; amount: number };
 export type Analysis = { salary: SalaryResult; fixed: FixedItem[]; variable: VarItem[]; extraordinary: Extra[]; months: number; from: string; to: string };
