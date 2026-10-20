@@ -198,7 +198,7 @@ export function SwipeDeck({ cards: cardsIn, onClose, onDismiss, backdrop, startK
   const [underCard, setUnderCard] = useState<SwipeCandidate | null>(upcoming);
   useEffect(() => { if (!card) return; const id = requestAnimationFrame(() => requestAnimationFrame(() => setUnderCard(upcoming))); return () => cancelAnimationFrame(id); }, [card?.key, upcoming?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const underUri = underCard ? (underCard.media === 'video' ? posterOf(underCard) : underCard.uris?.[0] ?? underCard.uri) : undefined;
-  useLayoutEffect(() => { x.setValue(0); }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => { x.setValue(0); locked.current = false; }, [card?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const cardRef = useRef(card); cardRef.current = card;
   const upRef = useRef(upcoming); upRef.current = upcoming;
   const isVideo = !!card && card.media === 'video' && (!!card.asset || !!card.uri);
@@ -250,14 +250,20 @@ export function SwipeDeck({ cards: cardsIn, onClose, onDismiss, backdrop, startK
     later();
     /* x resta a fine corsa: la carta scelta non ricompare per un attimo; si azzera quando arriva la nuova */
   };
-  const fling = (dir: 'yes' | 'no') => Animated.timing(x, { toValue: dir === 'yes' ? -width * 1.2 : width * 1.2, duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true }).start(() => decide(dir));
+  /* finché la carta sta volando via (e fino a quando arriva la prossima) i tocchi si ignorano: un dito appoggiato a metà volo la faceva tornare indietro per un istante */
+  const locked = useRef(false);
+  const fling = (dir: 'yes' | 'no') => {
+    locked.current = true;
+    setTimeout(() => { locked.current = false; }, 900);
+    Animated.timing(x, { toValue: dir === 'yes' ? -width * 1.2 : width * 1.2, duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true }).start(({ finished }) => { if (finished) decide(dir); else locked.current = false; });
+  };
   const leaveRef = useRef(leave); leaveRef.current = leave;
   /* tirare giù con il dito equivale a premere la X */
   const pullDown = (g: { dx: number; dy: number }) => g.dy > 10 && g.dy > Math.abs(g.dx) * 1.5;
   const pan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponderCapture: (_e, g) => (Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g),
-    onMoveShouldSetPanResponder: (_e, g) => (Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g),
-    onPanResponderGrant: () => { x.stopAnimation(); dragY.stopAnimation(); },
+    onMoveShouldSetPanResponderCapture: (_e, g) => !locked.current && ((Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g)),
+    onMoveShouldSetPanResponder: (_e, g) => !locked.current && ((Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) || pullDown(g)),
+    onPanResponderGrant: () => { if (locked.current) return; x.stopAnimation(); dragY.stopAnimation(); },
     onPanResponderMove: (e, g) => { if (g.dy > Math.abs(g.dx) * 1.5) { x.setValue(0); dragY.setValue(Math.max(0, g.dy)); radV.setValue(Math.max(0, g.dy)); } else { dragY.setValue(0); radV.setValue(0); x.setValue(g.dx); } },
     onPanResponderRelease: (_e, g) => {
       if (g.dy > 110 && g.dy > Math.abs(g.dx) * 1.5) { Animated.timing(dragY, { toValue: 900, duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true }).start(() => { const c = cardRef.current; if (c) { const d = dwellSignal(Date.now() - shownAt.current, c.media === 'video' ? maxFrac.current : undefined); if (d > 0) { wRef.current = addSignal(wRef.current, `${c.text} ${c.tag ?? ''}`, d); dirty.current = true; } } flushRef.current(); (onDismiss ?? onClose)(); setTimeout(() => { dragY.setValue(0); radV.setValue(0); }, 400); }); return; }
