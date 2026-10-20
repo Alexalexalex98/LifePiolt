@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 
 import { persistFile } from '@/lib/chatMedia';
 import { PICK_TYPES, checkSize, type LessonKind } from '@/lib/club';
+import { libraryPermission } from '@/lib/mediaPerm';
 
 export type PickedFile = { uri: string; fileName: string; size?: number; mime?: string; durationSec?: number };
 
@@ -15,7 +16,7 @@ export type PickedFile = { uri: string; fileName: string; size?: number; mime?: 
 export async function pickClubFile(kind: LessonKind | 'image'): Promise<PickedFile | null> {
   if (kind === 'video' || kind === 'image') {
     if (Platform.OS !== 'web') {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const perm = await libraryPermission();
       if (!perm.granted) throw new Error(perm.canAskAgain === false ? 'Permesso alla libreria negato: abilitalo da Impostazioni del telefono.' : 'Senza il permesso alla libreria non posso mostrarti i file. Riprova e consenti l\'accesso.');
     }
     const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: kind === 'video' ? ['videos'] : ['images'], allowsMultipleSelection: false, quality: 0.85 });

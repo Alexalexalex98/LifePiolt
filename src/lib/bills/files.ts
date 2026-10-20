@@ -13,6 +13,7 @@ import { uid, weekdayShortDate } from '@/lib/format';
 import { readPickedText } from '@/lib/readPicked';
 import { useLife } from '@/store/life';
 import { extractPdfText } from './pdfText';
+import { libraryPermission } from '@/lib/mediaPerm';
 
 export const BILL_FOLDER = 'Bollette e fatture';
 
@@ -39,7 +40,7 @@ export async function pickFile(): Promise<PickResult> {
 
 export async function pickPhoto(camera: boolean): Promise<PickResult> {
   try {
-    const perm = camera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const perm = camera ? await ImagePicker.requestCameraPermissionsAsync() : await libraryPermission();
     if (!perm.granted) return { ok: false, message: camera ? t('Serve il permesso della fotocamera') : t('Serve il permesso di accedere alle foto') };
     const opts: ImagePicker.ImagePickerOptions = { preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images'], quality: 0.9 };
     const r = camera ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);

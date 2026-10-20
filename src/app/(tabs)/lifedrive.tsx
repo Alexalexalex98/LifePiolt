@@ -16,6 +16,7 @@ import { toast } from '@/store/toast';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { Icon } from '@/lib/icons';
+import { libraryPermission } from '@/lib/mediaPerm';
 
 const fileFolders = ['Documenti', 'Ricevute', 'Bollette e fatture', 'Salute', 'Lavoro', 'Altro'];
 const gradients: [string, string][] = [['#3a2a5c', '#171224'], ['#1f3b2c', '#131c17'], ['#3a2a1a', '#221a10'], ['#2a1f45', '#181128'], ['#1a2f3a', '#111c22'], ['#3a1f2c', '#22131a']];
@@ -68,7 +69,7 @@ export default function LifeDrive() {
   }
   async function pickPhoto() {
     try {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const perm = await libraryPermission();
       if (!perm.granted) { toast('Serve il permesso di accedere alle foto'); return; }
       const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images'], quality: 0.8 });
       if (!r.canceled && r.assets[0]) {

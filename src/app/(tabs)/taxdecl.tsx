@@ -19,6 +19,7 @@ import { taxDocOf, useFin, type TaxDocFile } from '@/store/finance';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
 import { translateText } from '@/i18n/core';
+import { libraryPermission } from '@/lib/mediaPerm';
 
 type ReqItem = { key: string; label: string; group: string };
 type Picked = { name: string; uri: string; size?: number; mime?: string };
@@ -85,7 +86,7 @@ export default function TaxDecl() {
   async function pickPhoto(camera: boolean) {
     if (!active) return;
     try {
-      const perm = camera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const perm = camera ? await ImagePicker.requestCameraPermissionsAsync() : await libraryPermission();
       if (!perm.granted) { toast(camera ? 'Serve il permesso della fotocamera' : 'Serve il permesso di accedere alle foto'); return; }
       const opts: ImagePicker.ImagePickerOptions = { preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images'], quality: 0.85 };
       const r = camera ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);

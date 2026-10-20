@@ -89,8 +89,9 @@ function NavEditor({ visible, onClose }: { visible: boolean; onClose: () => void
   };
   const api = useRef({ hit, drop }); api.current = { hit, drop };
   const pan = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
+    /* il pannello cattura solo i tocchi sulle icone: «Fatto» e lo sfondo restano pulsanti normali (su Android un piccolo movimento del dito li annullava) */
+    onStartShouldSetPanResponder: (e) => !!api.current.hit(e.nativeEvent.pageX - origin.current.x, e.nativeEvent.pageY - origin.current.y),
+    onMoveShouldSetPanResponder: (_e, g) => !!api.current.hit(g.x0 - origin.current.x, g.y0 - origin.current.y),
     onPanResponderGrant: (e, g) => {
       const x = g.x0 - origin.current.x, y = g.y0 - origin.current.y;
       const h = api.current.hit(x, y);

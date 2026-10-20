@@ -27,6 +27,7 @@ import { useApp } from '@/store/app';
 import { useFitness } from '@/store/fitness';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
+import { libraryPermission } from '@/lib/mediaPerm';
 
 /** Scheda LifePass del portafoglio: il QR d'ingresso ai centri (diverso da quello dei pagamenti), che cambia ogni minuto. */
 function PassTab({ onClose }: { onClose: () => void }) {
@@ -109,7 +110,7 @@ export function LifePayHost() {
   };
   const fromPhoto = async () => {
     try {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const perm = await libraryPermission();
       if (!perm.granted && perm.accessPrivileges !== 'limited') { toast('Permesso foto negato: abilitalo dalle impostazioni del telefono.'); return; }
       const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
       if (r.canceled || !r.assets[0]) return;

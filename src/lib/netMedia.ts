@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 
 import { persistFile } from '@/lib/chatMedia';
+import { libraryPermission } from '@/lib/mediaPerm';
 
 export type NetMedia = { media: 'photo' | 'video'; uri: string; name?: string; durationMs?: number };
 
@@ -22,7 +23,7 @@ async function webInline(uri: string): Promise<string> {
  */
 export async function pickNetMedia(kind: 'photo' | 'video'): Promise<NetMedia | null> {
   if (Platform.OS !== 'web') {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const perm = await libraryPermission();
     if (!perm.granted) {
       throw new Error(perm.canAskAgain === false
         ? 'Permesso alla libreria negato: abilitalo da Impostazioni del telefono per scegliere foto e video.'
@@ -57,7 +58,7 @@ const readError = (e: unknown): Error => {
 /** Più foto e video insieme dalla libreria (fino a `max`). */
 export async function pickNetMediaMany(max = 6): Promise<NetMedia[]> {
   if (Platform.OS !== 'web') {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const perm = await libraryPermission();
     if (!perm.granted) throw new Error(perm.canAskAgain === false ? 'Permesso alla libreria negato: abilitalo da Impostazioni del telefono.' : 'Senza il permesso alla libreria non posso mostrarti foto e video.');
   }
   try {

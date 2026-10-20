@@ -48,6 +48,7 @@ import { useChat } from '@/store/chat';
 import { useMod } from '@/store/moderation';
 import { endAlign } from '@/lib/rtl';
 import { t as tl, translateText } from '@/i18n/core';
+import { libraryPermission } from '@/lib/mediaPerm';
 
 /** Un'unica Sheet che mostra la vista richiesta dal social (evita modali annidate). */
 export function NetSheetHost() {
@@ -557,7 +558,7 @@ function ServiceEditor({ resume }: { resume?: boolean }) {
   const [cover, setCover] = useState<string | undefined>(cur?.cover);
   const pickCover = async () => {
     try {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const perm = await libraryPermission();
       if (!perm.granted && perm.accessPrivileges !== 'limited') { toast('Permesso foto negato: abilitalo dalle impostazioni del telefono.'); return; }
       const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [16, 9], quality: 0.8 });
       if (!r.canceled && r.assets[0]) setCover(r.assets[0].uri);

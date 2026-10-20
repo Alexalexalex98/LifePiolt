@@ -6,6 +6,7 @@ import { uid } from '@/lib/format';
 import { t } from '@/i18n/core';
 import { fitSize, JPEG_QUALITY, MAX_IMAGES } from '@/lib/assistant/imageCore';
 import type { ExtImage } from '@/lib/assistant/theiaExt';
+import { libraryPermission } from '@/lib/mediaPerm';
 
 export { MAX_IMAGES } from '@/lib/assistant/imageCore';
 
@@ -30,7 +31,7 @@ export const DENIED_PHOTOS = 'Permesso foto negato: abilitalo dalle impostazioni
 
 export async function pickFromGallery(room: number): Promise<Attachment[]> {
   if (room <= 0) throw new Error(t('Puoi allegare al massimo {0} immagini.', MAX_IMAGES));
-  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const perm = await libraryPermission();
   if (!perm.granted && perm.accessPrivileges !== 'limited') throw new Error(t(DENIED_PHOTOS));
   const r = await ImagePicker.launchImageLibraryAsync({ preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, mediaTypes: ['images'], allowsMultipleSelection: room > 1, selectionLimit: room, quality: 1, exif: false });
   if (r.canceled) return [];
