@@ -6,6 +6,7 @@ import { Body, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { limitState, sumTotals, waterGoal, type LimitState } from '@/lib/fitness/mealInsights';
+import { NUTRITION_LEGAL, microRows, type Micro } from '@/lib/fitness/micro';
 import { dailyTargets, type Body as BodyT } from '@/lib/fitness/nutrition';
 import type { Meal } from '@/store/fitness';
 
@@ -30,7 +31,7 @@ function Dose({ label, eaten, goal, unit = 'g', state, hint }: { label: string; 
  * Resoconto di un giorno (o di una media): anello delle calorie, grammi di proteine, carboidrati e grassi mangiati rispetto a quelli che
  * dovresti mangiare, altri valori con il limite (arancione se superato di poco, rosso se superato di più) e l'acqua.
  */
-export function DaySummary({ meals, waterMl, body, avg }: { meals: Meal[] | Pick<Meal, 'macros'>[]; waterMl?: number | null; body: BodyT | null; /** valori già medi (al posto della somma dei pasti) */ avg?: ReturnType<typeof sumTotals> }) {
+export function DaySummary({ meals, waterMl, body, avg, micro }: { /** vitamine e minerali stimati */ micro?: Micro; meals: Meal[] | Pick<Meal, 'macros'>[]; waterMl?: number | null; body: BodyT | null; /** valori già medi (al posto della somma dei pasti) */ avg?: ReturnType<typeof sumTotals> }) {
   const t = useTheme();
   const sum = avg ?? sumTotals(meals.map((m) => m.macros));
   const tg = body ? dailyTargets(body) : null;
@@ -58,7 +59,19 @@ export function DaySummary({ meals, waterMl, body, avg }: { meals: Meal[] | Pick
         <Dose label={tl('Sale')} eaten={g(sum.salt)} goal={tg?.saltMax} state={limitState(sum.salt ?? 0, tg?.saltMax)} hint={tg ? tl('massimo {0} g', tg.saltMax) : undefined} />
         <Dose label={tl('Acqua')} eaten={Math.round(((waterMl ?? 0) / 1000) * 10) / 10} goal={Math.round((wGoal / 1000) * 10) / 10} unit="L" state={wState} hint={(waterMl ?? 0) < wGoal * 0.7 ? tl('ne servirebbero circa {0}', L(wGoal)) : undefined} />
       </View>
-      <Body small muted style={{ marginTop: 8 }}>Il totale conta solo gli alimenti di cui conosco questi dati (quelli stimati dalla foto o con valori completi): può essere inferiore al reale. Valori indicativi, non un consiglio medico né nutrizionale.</Body>
+      {micro ? (
+        <View style={{ marginTop: 12 }}>
+          <Body bold>Vitamine e minerali (stima)</Body>
+          <Body small muted>Rispetto al riferimento giornaliero: da 70% in su va bene.</Body>
+          {microRows(micro).map((r) => { const col = r.level === 'ok' ? GREEN : r.level === 'basso' ? AMBER : t.danger; return (
+            <View key={r.key} style={{ marginTop: 6 }}>
+              <Row><Text style={{ color: t.muted, fontSize: 13, fontWeight: '600' }}>{tl(r.label)}</Text><Text style={{ color: r.level === 'ok' ? t.text : col, fontSize: 13, fontWeight: '800' }}>{`${r.value} / ${r.ref} ${r.unit} · ${r.pct}%`}</Text></Row>
+              <View style={{ height: 6, borderRadius: 3, backgroundColor: t.chip, overflow: 'hidden', marginTop: 2 }}><View style={{ width: `${Math.max(2, Math.min(100, r.pct))}%`, height: 6, backgroundColor: col }} /></View>
+            </View>
+          ); })}
+        </View>
+      ) : null}
+      <Body small muted style={{ marginTop: 8 }}>Il totale dei grassi saturi, zuccheri, fibre e sale conta solo gli alimenti di cui conosco questi dati: può essere inferiore al reale. {NUTRITION_LEGAL}</Body>
     </View>
   );
 }

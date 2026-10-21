@@ -1,5 +1,7 @@
 import { DaySummary } from '@/components/fitness/DaySummary';
 import { dayOf } from '@/lib/fitness/mealInsights';
+import { microOfMeal } from '@/lib/fitness/mealMicro';
+import { sumMicro } from '@/lib/fitness/micro';
 import { FIT } from '@/components/fitness/kit';
 import { Image } from 'expo-image';
 import { LogoLoader } from '@/components/LogoLoader';
@@ -167,7 +169,7 @@ export default function FitnessMeal() {
     <Page id="fitnessMeal" back title="Pasti e calorie">
       <Card accent={FIT}>
         <Row><H>Oggi</H><Btn small ghost title={target ? 'Obiettivo' : 'Imposta l\'obiettivo'} onPress={() => setBodyOpen(true)} /></Row>
-        <DaySummary meals={today} waterMl={(fit.water ?? {})[dayOf(Date.now())]} body={fit.body} />
+        <DaySummary meals={today} micro={sumMicro(today.map((m) => microOfMeal(m)))} waterMl={(fit.water ?? {})[dayOf(Date.now())]} body={fit.body} />
         <Btn style={{ marginTop: 10 }} ghost small title="Resoconto di oggi con l'analisi" onPress={() => go('fitnessDay', { day: dayOf(Date.now()) })} />
       </Card>
 

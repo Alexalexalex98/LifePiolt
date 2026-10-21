@@ -30,7 +30,7 @@ test('trova carenze e punti da tenere d\'occhio, i più urgenti per primi', () =
   assert.equal(f[0].level, 'carenza');
   const text = analysisText(s, f, 'Alex');
   assert.match(text, /Dove sei carente/);
-  assert.match(text, /vitamine e minerali/);
+  assert.match(text, /non dati medici/);
 });
 
 test('senza pasti non inventa giudizi', () => {
@@ -84,4 +84,26 @@ test('qualità complessiva: alta con valori in linea, bassa con eccessi', () => 
   assert.equal(cattiva.level, 'carenza');
   assert.equal(quality(dayStats(undefined, 0), tg), null);
   assert.equal(quality(dayStats({ key: 'k', ts: 0, meals: [], total: { kcal: 1900, p: 80, c: 230, f: 60 } }, 2000), tg).parts.length, 7);
+});
+
+import { MICRO_KEYS, microCategory, microFor, microRows, sumMicro, scaleMicro, zeroMicro, NUTRITION_LEGAL } from '../src/lib/fitness/micro.ts';
+
+test('vitamine e minerali stimati per categoria', () => {
+  assert.equal(microCategory('Spinaci al vapore'), 'leafy');
+  assert.equal(microCategory('Salmone alla piastra'), 'fattyfish');
+  assert.equal(microCategory('Lenticchie cotte'), 'legumes');
+  assert.equal(microCategory('Patatine fritte'), 'junk');
+  assert.equal(microCategory('Qualcosa di sconosciuto'), 'default');
+  const salmone = microFor({ name: 'Salmone' }, 150);
+  assert.ok(salmone.vitD > 10 && salmone.omega3 > 2000);
+  const arancia = microFor({ name: 'Arancia' }, 200);
+  assert.ok(arancia.vitC > 100);
+  assert.equal(MICRO_KEYS.length, 17);
+  const tot = sumMicro([salmone, arancia, undefined]);
+  assert.ok(tot.vitC >= arancia.vitC && tot.vitD >= salmone.vitD);
+  assert.equal(scaleMicro(tot, 0.5).vitC, Math.round(tot.vitC * 50) / 100);
+  const rows = microRows(zeroMicro());
+  assert.ok(rows.every((r) => r.level === 'molto-basso' && r.pct === 0));
+  assert.equal(microRows(microFor({ name: 'Arancia' }, 300)).find((r) => r.key === 'vitC').level, 'ok');
+  assert.match(NUTRITION_LEGAL, /non dati medici/);
 });

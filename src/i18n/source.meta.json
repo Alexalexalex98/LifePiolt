@@ -1,5 +1,5 @@
 {
- "count": 12301,
+ "count": 12345,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -27,14 +27,14 @@
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
   "src/app/(tabs)/fitnessDay.tsx": 18,
-  "src/app/(tabs)/fitnessDiary.tsx": 35,
+  "src/app/(tabs)/fitnessDiary.tsx": 34,
   "src/app/(tabs)/fitnessExercise.tsx": 30,
   "src/app/(tabs)/fitnessGroup.tsx": 39,
   "src/app/(tabs)/fitnessGroups.tsx": 53,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 39,
   "src/app/(tabs)/fitnessMeal.tsx": 84,
-  "src/app/(tabs)/fitnessMealCard.tsx": 26,
+  "src/app/(tabs)/fitnessMealCard.tsx": 29,
   "src/app/(tabs)/fitnessPass.tsx": 27,
   "src/app/(tabs)/fitnessProgram.tsx": 36,
   "src/app/(tabs)/fitnessWorkout.tsx": 25,
@@ -211,7 +211,7 @@
   "src/components/feed/SwipeDeck.tsx": 30,
   "src/components/feed/TabCards.tsx": 21,
   "src/components/feed/useDeckCards.ts": 2,
-  "src/components/fitness/DaySummary.tsx": 17,
+  "src/components/fitness/DaySummary.tsx": 19,
   "src/components/fitness/ExerciseFigure.tsx": 3,
   "src/components/fitness/ExercisePhotos.tsx": 3,
   "src/components/fitness/ExercisePicker.tsx": 28,
@@ -333,7 +333,7 @@
   "src/lib/assistant/engine.ts": 224,
   "src/lib/assistant/env.ts": 7,
   "src/lib/assistant/followup.ts": 4,
-  "src/lib/assistant/foodTheia.ts": 38,
+  "src/lib/assistant/foodTheia.ts": 39,
   "src/lib/assistant/nlp.ts": 9,
   "src/lib/assistant/phrases.ts": 101,
   "src/lib/assistant/phrasesMore.ts": 128,
@@ -405,7 +405,8 @@
   "src/lib/fitness/foodDb.ts": 24,
   "src/lib/fitness/groups.ts": 16,
   "src/lib/fitness/gymPay.ts": 11,
-  "src/lib/fitness/mealInsights.ts": 73,
+  "src/lib/fitness/mealInsights.ts": 81,
+  "src/lib/fitness/micro.ts": 35,
   "src/lib/fitness/nutrition.ts": 68,
   "src/lib/fitness/plan.ts": 15,
   "src/lib/fitness/poses.ts": 368,
@@ -508,7 +509,7 @@
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
-  "src/lib/theia.ts": 97,
+  "src/lib/theia.ts": 96,
   "src/lib/theiaQuotes.ts": 40,
   "src/lib/themeCustom.ts": 17,
   "src/lib/tour.ts": 47,
@@ -549,5 +550,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1575
+ "withPlaceholders": 1579
 }

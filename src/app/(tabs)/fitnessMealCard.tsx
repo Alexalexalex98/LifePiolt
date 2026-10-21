@@ -15,6 +15,8 @@ import { Body, Btn, Card, H, Item, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { mealAiPrompt, mealOpinion, slotOf } from '@/lib/fitness/mealInsights';
+import { microOfMeal } from '@/lib/fitness/mealMicro';
+import { NUTRITION_LEGAL, microRows } from '@/lib/fitness/micro';
 import { FOOD, dailyTarget, macrosFor } from '@/lib/fitness/nutrition';
 import { router } from 'expo-router';
 import { go } from '@/lib/nav';
@@ -48,8 +50,19 @@ export default function FitnessMealCard() {
       <Card accent={FIT}>
         <Row><H style={{ flex: 1 }}>Il parere di Theia</H><Pill label={op.verdict === 'ok' ? 'Va bene' : 'Da migliorare'} on={op.verdict === 'ok'} off={op.verdict !== 'ok'} /></Row>
         <Body style={{ marginTop: 6 }}>{op.text}</Body>
-        <Body small muted style={{ marginTop: 8 }}>È calcolato sui valori di questo pasto, non su una visita: non è un consiglio medico né nutrizionale.</Body>
+        <Body small muted style={{ marginTop: 8 }}>È calcolato sui valori di questo pasto, non su una visita. {NUTRITION_LEGAL}</Body>
       </Card>
+      {(() => {
+        const top = microRows(microOfMeal(m)).filter((r) => r.pct >= 15).sort((a, b) => b.pct - a.pct).slice(0, 6);
+        return top.length ? (
+          <Card>
+            <H>Vitamine e minerali (stima)</H>
+            <Body small muted>Quello che questo pasto porta, rispetto al riferimento di un giorno:</Body>
+            {top.map((r) => <Row key={r.key} style={{ marginTop: 4 }}><Body small muted>{tl(r.label)}</Body><Body small>{`${r.value} ${r.unit} · ${r.pct}%`}</Body></Row>)}
+            <Body small muted style={{ marginTop: 8 }}>Stime per categoria di alimento, non un dato medico.</Body>
+          </Card>
+        ) : null;
+      })()}
       <Card>
         <H>Parere più dettagliato dell'AI</H>
         <Body small muted style={{ marginTop: 2 }}>Mando all'AI solo il testo del pasto (ingredienti e valori), senza la foto, e ti rispondo con un parere più ragionato.</Body>

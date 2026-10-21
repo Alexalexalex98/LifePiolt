@@ -7,6 +7,8 @@ import { FIT } from '@/components/fitness/kit';
 import { Body, Btn, Card, H, Item, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
+import { withMicro } from '@/lib/fitness/mealMicro';
+import { NUTRITION_LEGAL } from '@/lib/fitness/micro';
 import { dayOf, dayStats, groupByDay, quality, slotOf, waterGoal } from '@/lib/fitness/mealInsights';
 import { dailyTargets } from '@/lib/fitness/nutrition';
 import { Icon } from '@/lib/icons';
@@ -22,7 +24,7 @@ export default function FitnessDay() {
   const fit = useFitness();
   const { day } = useLocalSearchParams<{ day?: string }>();
   const key = day && /^\d{4}-\d{2}-\d{2}$/.test(String(day)) ? String(day) : dayOf(Date.now());
-  const g = groupByDay(fit.meals).find((x) => x.key === key);
+  const g = groupByDay(withMicro(fit.meals)).find((x) => x.key === key);
   const water = (fit.water ?? {})[key] ?? 0;
   const tg = fit.body ? dailyTargets(fit.body) : null;
   const q = tg ? quality(dayStats(g, water), tg) : null;
@@ -34,7 +36,7 @@ export default function FitnessDay() {
     <Page id="fitnessDay" back title="Resoconto del giorno">
       <Card accent={FIT}>
         <H style={{ textTransform: 'capitalize' }}>{title}</H>
-        <DaySummary meals={g?.meals ?? []} waterMl={water} body={fit.body} />
+        <DaySummary meals={g?.meals ?? []} micro={g?.micro} waterMl={water} body={fit.body} />
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={8}>
           {[200, 500, 1000].map((ml) => <Pill key={ml} label={ml === 1000 ? '+ 1 L acqua' : `+ ${ml} ml acqua`} off onPress={() => { fit.addWater(ml, key); }} />)}
           {water > 0 ? <Pill label="Annulla ultimo" off onPress={() => { fit.addWater(-200, key); }} /> : null}
@@ -47,10 +49,11 @@ export default function FitnessDay() {
           <Row><H style={{ flex: 1 }}>Qualità della giornata</H><Body bold style={{ color: qCol, fontSize: 22 }}>{`${q.score}/100`}</Body></Row>
           <Body bold style={{ color: qCol }}>{tl(q.label)}</Body>
           {q.parts.map((p) => <Row key={p.id} style={{ marginTop: 4 }}><Body small muted>{tl(p.label)}</Body><Body small>{`${Math.round(p.score)}/${p.max} · ${p.note}`}</Body></Row>)}
-          <Body small muted style={{ marginTop: 8 }}>Si basa su calorie, proteine, fibre, zuccheri, grassi saturi, sale e acqua che registri: vitamine e minerali non li vedo. Non è un consiglio medico né nutrizionale.</Body>
+          <Body small muted style={{ marginTop: 8 }}>Si basa su calorie, macronutrienti, zuccheri, grassi saturi, fibre, sale, acqua e su una stima di vitamine e minerali. Non è un dato medico.</Body>
         </Card>
       ) : !fit.body ? <Card><Body muted>Per vedere cosa dovresti mangiare e la qualità del giorno imposta i tuoi dati (sesso, età, peso, altezza).</Body><Btn style={{ marginTop: 8 }} title="Imposta l'obiettivo" onPress={() => go('fitnessMeal')} /></Card> : null}
 
+      <Body small muted>{NUTRITION_LEGAL}</Body>
       <Card>
         <H>I pasti del giorno</H>
         {!g ? <Body muted>Nessun pasto registrato.</Body> : g.meals.map((x, i) => (

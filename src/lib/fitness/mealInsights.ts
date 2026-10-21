@@ -4,10 +4,11 @@
  * fibre, sale e acqua: vitamine e minerali non vengono registrati, quindi non vengono giudicati.
  * Non è un consiglio medico o nutrizionale.
  */
+import { MICRO_INFO, NUTRITION_LEGAL, microRows, scaleMicro, sumMicro, type Micro } from './micro.ts';
 import type { Macros } from './nutrition.ts';
 
-export type DayMeal = { id: string; ts: number; name: string; grams: number; macros: Macros; photo?: string };
-export type DayGroup = { key: string; ts: number; meals: DayMeal[]; total: Macros };
+export type DayMeal = { id: string; ts: number; name: string; grams: number; macros: Macros; photo?: string; /** vitamine e minerali stimati */ micro?: Micro };
+export type DayGroup = { key: string; ts: number; meals: DayMeal[]; total: Macros; micro: Micro };
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -27,7 +28,7 @@ export function groupByDay(meals: DayMeal[]): DayGroup[] {
   const by = new Map<string, DayMeal[]>();
   for (const m of meals) { const k = dayOf(m.ts); by.set(k, [...(by.get(k) ?? []), m]); }
   return [...by.entries()]
-    .map(([key, list]) => { const sorted = [...list].sort((a, b) => a.ts - b.ts); return { key, ts: sorted[0].ts, meals: sorted, total: sumTotals(sorted.map((m) => m.macros)) }; })
+    .map(([key, list]) => { const sorted = [...list].sort((a, b) => a.ts - b.ts); return { key, ts: sorted[0].ts, meals: sorted, total: sumTotals(sorted.map((m) => m.macros)), micro: sumMicro(sorted.map((m) => m.micro)) }; })
     .sort((a, b) => (a.key < b.key ? 1 : -1));
 }
 
@@ -39,7 +40,7 @@ export function slotOf(ts: number): 'colazione' | 'pranzo' | 'merenda' | 'cena' 
 
 export type Level = 'ok' | 'attenzione' | 'carenza';
 export type Finding = { id: string; level: Level; title: string; detail: string; tip: string };
-export type Stats = { days: number; asked: number; avg: Macros; mealsPerDay: number; waterMl: number | null; waterDays: number };
+export type Stats = { days: number; asked: number; avg: Macros; mealsPerDay: number; waterMl: number | null; waterDays: number; /** media al giorno di vitamine e minerali (stima) */ micro?: Micro };
 export type Ctx = { targetKcal?: number; weightKg?: number; goal?: 'dimagrire' | 'mantenere' | 'massa' };
 
 /**
@@ -64,6 +65,7 @@ export function periodStats(meals: DayMeal[], water: Record<string, number>, now
     mealsPerDay: n ? r1(used.reduce((s, g) => s + g.meals.length, 0) / n) : 0,
     waterMl: wDays.length ? Math.round(wDays.reduce((s, [, v]) => s + v, 0) / wDays.length) : null,
     waterDays: wDays.length,
+    micro: n ? scaleMicro(sumMicro(used.map((g) => g.micro)), 1 / n) : undefined,
   };
 }
 
@@ -101,6 +103,18 @@ export function findings(s: Stats, ctx: Ctx = {}): Finding[] {
     if (s.waterMl < wg * 0.7) out.push({ id: 'acqua', level: 'carenza', title: 'Poca acqua', detail: `In media ${(s.waterMl / 1000).toFixed(1).replace('.', ',')} litri al giorno, ne servirebbero circa ${(wg / 1000).toFixed(1).replace('.', ',')}.`, tip: 'Tieni una bottiglia a portata di mano e bevi un bicchiere a ogni pasto e a metà mattina e pomeriggio.' });
     else out.push({ id: 'acqua-ok', level: 'ok', title: 'Acqua nella norma', detail: `In media ${(s.waterMl / 1000).toFixed(1).replace('.', ',')} litri al giorno.`, tip: '' });
   }
+  if (s.micro) {
+    const rows = microRows(s.micro);
+    const low = rows.filter((r) => r.pct < 60).sort((x, y) => x.pct - y.pct);
+    if (low.length) {
+      const worst = low.slice(0, 4);
+      out.push({
+        id: 'micro', level: worst[0].pct < 40 ? 'carenza' : 'attenzione', title: 'Vitamine e minerali che potrebbero mancare (stima)',
+        detail: worst.map((r) => `${r.label} ${r.pct}% del riferimento`).join(', ') + '.',
+        tip: `Per questi punti: ${worst.slice(0, 3).map((r) => `${r.label.toLowerCase()} (${r.sources})`).join('; ')}. Sono stime per categoria di alimento: non sono un dato medico.`,
+      });
+    } else out.push({ id: 'micro-ok', level: 'ok', title: 'Vitamine e minerali nella norma (stima)', detail: 'Le stime sono in linea con i riferimenti giornalieri.', tip: '' });
+  }
   const order = { carenza: 0, attenzione: 1, ok: 2 } as const;
   return out.sort((x, y) => order[x.level] - order[y.level]);
 }
@@ -120,7 +134,7 @@ export function analysisText(s: Stats, list: Finding[], name?: string): string {
   if (good.length) parts.push(`Va bene: ${good.map((f) => f.title.toLowerCase()).join(', ')}.`);
   if (bad.length) parts.push(`Cosa migliorare, in ordine:\n${bad.slice(0, 4).map((f, i) => `${i + 1}. ${f.tip}`).join('\n')}`);
   else parts.push('Non vedo punti critici: continua così.');
-  parts.push('Vedo solo calorie, macronutrienti, zuccheri, grassi saturi, fibre, sale e acqua che registri: vitamine e minerali non li posso valutare. È un\'indicazione generale, non un consiglio medico o nutrizionale.');
+  parts.push(`Ricorda: ${NUTRITION_LEGAL}`);
   return parts.join('\n\n');
 }
 
@@ -188,7 +202,7 @@ export type Targets = { kcal: number; protein: number; carbs: number; fat: numbe
 
 /** Statistiche di un solo giorno (stesso formato delle medie), per il resoconto giornaliero e il suo punteggio. */
 export function dayStats(g: DayGroup | undefined, waterMl: number | undefined): Stats {
-  return { days: g ? 1 : 0, asked: 1, avg: g?.total ?? sumTotals([]), mealsPerDay: g?.meals.length ?? 0, waterMl: waterMl && waterMl > 0 ? waterMl : null, waterDays: waterMl && waterMl > 0 ? 1 : 0 };
+  return { days: g ? 1 : 0, asked: 1, avg: g?.total ?? sumTotals([]), mealsPerDay: g?.meals.length ?? 0, waterMl: waterMl && waterMl > 0 ? waterMl : null, waterDays: waterMl && waterMl > 0 ? 1 : 0, micro: g?.micro };
 }
 
 export type QualityPart = { id: string; label: string; score: number; max: number; note: string };
@@ -214,13 +228,14 @@ export function quality(s: Stats, tg: Targets): Quality | null {
     { id: 'sale', label: 'Sale', max: 10, score: highSide(a.salt ?? 0, tg.saltMax) * 10, note: `${a.salt ?? 0} g, massimo ${tg.saltMax}` },
   ];
   if (s.waterMl !== null) parts.push({ id: 'acqua', label: 'Acqua', max: 5, score: lowSide(s.waterMl, 2000) * 5, note: `${(s.waterMl / 1000).toFixed(1).replace('.', ',')} L` });
+  if (s.micro) { const rows = microRows(s.micro); const mean = rows.reduce((x, r) => x + Math.min(1, r.pct / 100), 0) / rows.length; parts.push({ id: 'micro', label: 'Vitamine e minerali (stima)', max: 20, score: mean * 20, note: `${Math.round(mean * 100)}% dei riferimenti` }); }
   const max = parts.reduce((x, p) => x + p.max, 0);
   const score = Math.round((parts.reduce((x, p) => x + p.score, 0) / max) * 100);
   const label = score >= 80 ? 'Ottima' : score >= 65 ? 'Buona' : score >= 50 ? 'Discreta' : 'Da migliorare';
   return { score, label, level: score >= 65 ? 'ok' : score >= 50 ? 'attenzione' : 'carenza', parts: parts.map((p) => ({ ...p, score: Math.round(p.score * 10) / 10 })) };
 }
 
-const GUIDE = 'Rispondi in italiano, con tono da persona che conosce bene l\'utente, senza consigli medici: sono indicazioni generali. Formato: una frase iniziale con il giudizio; poi un elenco con «• » di al massimo 4 punti (cosa va bene, cosa manca o è troppo, un\'idea concreta per migliorare); usa il **grassetto** solo per 1-3 parole chiave. Niente titoli, niente emoji. Al massimo 120 parole. Se i dati sono pochi o stimati, dillo in una frase.';
+const GUIDE = 'Rispondi in italiano, con tono da persona che conosce bene l\'utente, senza consigli medici: sono indicazioni generali. Formato: una frase iniziale con il giudizio; poi un elenco con «• » di al massimo 4 punti (cosa va bene, cosa manca o è troppo, un\'idea concreta per migliorare); usa il **grassetto** solo per 1-3 parole chiave. Niente titoli, niente emoji. Al massimo 130 parole. Chiudi sempre con una frase breve: sono stime, non un parere medico, e per dubbi o sintomi ci si rivolge al medico o a un dietista. Non parlare di diagnosi, terapie o integratori e non promettere risultati. Se i dati sono pochi o stimati, dillo.';
 
 /** Testo da mandare all'AI per un parere dettagliato su un pasto (nessuna foto, nessun dato personale oltre a obiettivo e fabbisogno). */
 export function mealAiPrompt(m: { ts: number; name: string; macros: Macros }, items: { name: string; grams: number }[], ctx: Ctx = {}): string {
@@ -232,5 +247,5 @@ export function mealAiPrompt(m: { ts: number; name: string; macros: Macros }, it
 /** Testo per un parere più dettagliato sulle medie dell'alimentazione (solo numeri). */
 export function analysisAiPrompt(s: Stats, list: Finding[], ctx: Ctx = {}, q?: { score: number; label: string } | null): string {
   const a = s.avg;
-  return `Dai un parere dettagliato sull'alimentazione di una persona, dalle medie degli ultimi ${s.asked} giorni (${s.days} con pasti registrati).\nMedie al giorno: ${a.kcal} kcal, proteine ${a.p} g, carboidrati ${a.c} g, grassi ${a.f} g, grassi saturi ${a.sat ?? '?'} g, zuccheri ${a.sug ?? '?'} g, fibre ${a.fib ?? '?'} g, sale ${a.salt ?? '?'} g, acqua ${s.waterMl === null ? 'non registrata' : `${s.waterMl} ml`}, pasti al giorno ${s.mealsPerDay}.\n${ctx.targetKcal ? `Fabbisogno stimato: ${ctx.targetKcal} kcal. ` : ''}${q ? `Punteggio calcolato dall'app: ${q.score}/100 (${q.label}). ` : ''}\nPunti già rilevati dall'app: ${list.filter((f) => f.level !== 'ok').map((f) => f.title).join('; ') || 'nessuno'}.\nVitamine e minerali non sono registrati: non giudicarli.\n${GUIDE}`;
+  return `Dai un parere dettagliato sull'alimentazione di una persona, dalle medie degli ultimi ${s.asked} giorni (${s.days} con pasti registrati).\nMedie al giorno: ${a.kcal} kcal, proteine ${a.p} g, carboidrati ${a.c} g, grassi ${a.f} g, grassi saturi ${a.sat ?? '?'} g, zuccheri ${a.sug ?? '?'} g, fibre ${a.fib ?? '?'} g, sale ${a.salt ?? '?'} g, acqua ${s.waterMl === null ? 'non registrata' : `${s.waterMl} ml`}, pasti al giorno ${s.mealsPerDay}.\n${ctx.targetKcal ? `Fabbisogno stimato: ${ctx.targetKcal} kcal. ` : ''}${q ? `Punteggio calcolato dall'app: ${q.score}/100 (${q.label}). ` : ''}\nPunti già rilevati dall'app: ${list.filter((f) => f.level !== 'ok').map((f) => f.title).join('; ') || 'nessuno'}.\n${s.micro ? `Vitamine e minerali (stime per categoria di alimento, % del riferimento giornaliero): ${microRows(s.micro).map((r) => `${r.label} ${r.pct}%`).join(', ')}.` : ''}\n${GUIDE}`;
 }

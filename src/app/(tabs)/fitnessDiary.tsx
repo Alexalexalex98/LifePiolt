@@ -7,6 +7,8 @@ import { Body, Btn, Card, H, Item, Page, Pill, Row, Switch } from '@/components/
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { DaySummary } from '@/components/fitness/DaySummary';
+import { withMicro } from '@/lib/fitness/mealMicro';
+import { NUTRITION_LEGAL } from '@/lib/fitness/micro';
 import { dayOf, groupByDay, periodStats, quality, slotOf, waterGoal } from '@/lib/fitness/mealInsights';
 import { dailyTarget, dailyTargets } from '@/lib/fitness/nutrition';
 import { refreshFoodReminders } from '@/lib/foodNotify';
@@ -35,9 +37,9 @@ export default function FitnessDiary() {
   const fit = useFitness();
   const [shown, setShown] = useState(10);
   const [period, setPeriod] = useState<7 | 30>(7);
-  const groups = groupByDay(fit.meals);
+  const groups = groupByDay(withMicro(fit.meals));
   const target = fit.body ? dailyTarget(fit.body) : null;
-  const st = periodStats(fit.meals, fit.water ?? {}, Date.now(), period);
+  const st = periodStats(withMicro(fit.meals), fit.water ?? {}, Date.now(), period);
   const tg = fit.body ? dailyTargets(fit.body) : null;
   const q = tg ? quality(st, tg) : null;
   const qCol = q ? (q.level === 'ok' ? '#5fd39a' : q.level === 'attenzione' ? '#ffb020' : t.danger) : FIT;
@@ -69,7 +71,7 @@ export default function FitnessDiary() {
           <View>
             <Row style={{ marginTop: 6 }}><Body bold style={{ color: qCol, fontSize: 30 }}>{`${q.score}/100`}</Body><Body bold style={{ color: qCol }}>{tl(q.label)}</Body></Row>
             {q.parts.map((p) => <Row key={p.id} style={{ marginTop: 3 }}><Body small muted>{tl(p.label)}</Body><Body small>{`${Math.round(p.score)}/${p.max} · ${p.note}`}</Body></Row>)}
-            <Body small muted style={{ marginTop: 8 }}>{tl('Calcolata su {0} giorni con pasti registrati. Vedo solo calorie, proteine, fibre, zuccheri, grassi saturi, sale e acqua: vitamine e minerali no. Non è un consiglio medico né nutrizionale.', st.days)}</Body>
+            <Body small muted style={{ marginTop: 8 }}>{tl('Calcolata su {0} giorni con pasti registrati. Sono stime, non un dato medico: vitamine e minerali sono calcolati per categoria di alimento.', st.days)}</Body>
           </View>
         ) : <Body small muted style={{ marginTop: 6 }}>{fit.body ? 'Registra qualche pasto per vedere la qualità della tua alimentazione.' : 'Imposta i tuoi dati in «Pasti e calorie» (sesso, età, peso, altezza) per vedere qualità e valori consigliati.'}</Body>}
       </Card>
@@ -78,7 +80,7 @@ export default function FitnessDiary() {
         <Card>
           <H>Valori medi al giorno</H>
           <Body small muted>{tl('Media degli ultimi {0} giorni (quelli con pasti registrati) rispetto a quanto dovresti mangiare.', period)}</Body>
-          <DaySummary meals={[]} avg={st.avg} waterMl={st.waterMl} body={fit.body} />
+          <DaySummary meals={[]} avg={st.avg} micro={st.micro} waterMl={st.waterMl} body={fit.body} />
         </Card>
       ) : null}
 
@@ -119,7 +121,7 @@ export default function FitnessDiary() {
         </Card>
       ))}
       {groups.length > shown ? <Btn ghost title={tl('Mostra altri giorni ({0})', groups.length - shown)} onPress={() => setShown(shown + 10)} /> : null}
-      <Body small muted style={{ marginTop: 8 }}>I valori sono medie indicative e stime: non sono un consiglio medico né nutrizionale.</Body>
+      <Body small muted style={{ marginTop: 8 }}>{NUTRITION_LEGAL}</Body>
     </Page>
   );
 }

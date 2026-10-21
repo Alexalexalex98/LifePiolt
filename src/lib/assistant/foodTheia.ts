@@ -3,6 +3,7 @@ import { askSend, logSend } from '@/lib/aiConsent';
 import { tidy } from '@/lib/aiPersona';
 import { AiServerError, aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { analysisAiPrompt, analysisText, dayOf, findings, groupByDay, mealOpinion, parseWater, periodStats, quality, waterGoal } from '@/lib/fitness/mealInsights';
+import { withMicro } from '@/lib/fitness/mealMicro';
 import { dailyTarget, dailyTargets } from '@/lib/fitness/nutrition';
 import { refreshFoodReminders } from '@/lib/foodNotify';
 import { useApp } from '@/store/app';
@@ -26,7 +27,7 @@ const litri = (ml: number) => `${(ml / 1000).toFixed(1).replace('.', ',')} ${t('
 /** Analisi di come mangi (ultimi 7 giorni) mostrata in chat: dove sei carente e cosa migliorare. */
 export function eatingAnalysis(push: Push) {
   const fit = useFitness.getState();
-  const s = periodStats(fit.meals, fit.water ?? {}, Date.now(), 7);
+  const s = periodStats(withMicro(fit.meals), fit.water ?? {}, Date.now(), 7);
   const list = findings(s, ctx());
   const text = analysisText(s, list, useApp.getState().account.name?.split(' ')[0]);
   push(t(text), [
@@ -39,7 +40,7 @@ export function eatingAnalysis(push: Push) {
 /** La domanda serale: com'è andata con il cibo oggi e quanta acqua hai bevuto (si risponde scrivendo subito sotto o con i pulsanti). */
 export function eveningReview(push: Push) {
   const fit = useFitness.getState();
-  const today = groupByDay(fit.meals).find((g) => g.key === dayOf(Date.now()));
+  const today = groupByDay(withMicro(fit.meals)).find((g) => g.key === dayOf(Date.now()));
   const parts: string[] = [];
   if (today) {
     const x = today.total;
@@ -47,6 +48,7 @@ export function eveningReview(push: Push) {
     const last = today.meals[today.meals.length - 1];
     if (last) parts.push(t('Sull\'ultimo pasto («{0}»): {1}', last.name, mealOpinion(last, ctx()).text));
   } else parts.push(t('Oggi non hai registrato nessun pasto: se vuoi aggiungerli, apri il diario.'));
+  parts.push(t('Sono stime, non un parere medico.'));
   askWaterInto(parts);
   push(parts.join('\n\n'), waterChoices(!today));
 }
@@ -80,9 +82,9 @@ function logWater(push: Push, ml: number) {
 export async function deepAnalysis(push: Push) {
   if (!aiServerConfigured) { push(t('L\'AI non è collegata in questa app: ti ho dato l\'analisi che posso fare sul telefono.')); return; }
   const fit = useFitness.getState();
-  const s = periodStats(fit.meals, fit.water ?? {}, Date.now(), 7);
+  const s = periodStats(withMicro(fit.meals), fit.water ?? {}, Date.now(), 7);
   if (!s.days) { push(t('Non ho ancora abbastanza pasti per chiedere un parere: registra qualche pasto e riprova.')); return; }
-  if (!(await askSend('summary', t('Medie degli ultimi 7 giorni: calorie, macronutrienti, zuccheri, saturi, fibre, sale e acqua.')))) { push(t('Va bene, non invio niente. Resta l\'analisi fatta sul telefono.')); return; }
+  if (!(await askSend('summary', t('Medie degli ultimi 7 giorni: calorie, macronutrienti, zuccheri, saturi, fibre, sale, acqua e vitamine e minerali stimati.')))) { push(t('Va bene, non invio niente. Resta l\'analisi fatta sul telefono.')); return; }
   const c = ctx();
   const tg = fit.body ? dailyTargets(fit.body) : null;
   const q = tg ? quality(s, tg) : null;
