@@ -70,6 +70,10 @@ export default function FitnessMeal() {
     setBusy(true); setReport(null); if (!editId) setPlate([]);
     try {
       let reply = '';
+      if (!aiServerConfigured && !process.env.EXPO_PUBLIC_AI_BASE_URL) {
+        setReport({ found: [], note: tl('Il server AI non è collegato in questa versione dell’app (mancano indirizzo e token nella build). Puoi comporre il piatto qui sotto; per collegarlo guarda Impostazioni > Intelligenza di Theia.') });
+        return;
+      }
       if (aiServerConfigured) {
         if (!(await askSend('food'))) { setReport({ found: [], note: tl('Non invio la foto: senza il permesso non posso analizzare il piatto. Puoi comporlo tu qui sotto.') }); return; }
         logSend('food', 0, ['image/jpeg']);

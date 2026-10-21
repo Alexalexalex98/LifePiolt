@@ -1,4 +1,7 @@
-import { Body, Card, H, Pill, Row } from '@/components/ui';
+import { useState } from 'react';
+
+import { Body, Btn, Card, H, Pill, Row } from '@/components/ui';
+import { aiServerConfigured, aiServerHost, pingAiServer } from '@/lib/aiServer';
 import { useAiRouter } from '@/store/aiRouter';
 
 /** Consenso a mandare foto e file al servizio AI: si cambia o si toglie quando si vuole. */
@@ -27,6 +30,20 @@ export function FileConsentCard() {
         <Pill label="Consenti sempre" on={c.summary === 'always'} onPress={() => set({ summary: 'always' })} />
         <Pill label="Non consentire" on={c.summary === 'never'} onPress={() => set({ summary: 'never' })} />
       </Row>
+    </Card>
+  );
+}
+
+/** Stato del collegamento al server AI di questa versione dell'app: serve a capire subito se in una build mancano indirizzo e token. */
+export function AiServerStatus() {
+  const [res, setRes] = useState<{ ok: boolean; ms: number; message: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Card>
+      <H>Server AI di questa app</H>
+      <Body small style={{ marginTop: 4 }}>{aiServerConfigured ? `Collegato a ${aiServerHost}` : 'Non collegato: in questa versione mancano l\'indirizzo e il token del server AI, quindi l\'analisi dei piatti e le risposte dell\'AI non funzionano.'}</Body>
+      {res ? <Body small bold style={{ marginTop: 6 }}>{`${res.ok ? 'OK' : 'Problema'} · ${res.message}${res.ms ? ` (${(res.ms / 1000).toFixed(1)} s)` : ''}`}</Body> : null}
+      <Btn style={{ marginTop: 8 }} ghost title={busy ? 'Provo…' : 'Prova il collegamento'} disabled={busy} onPress={async () => { setBusy(true); setRes(await pingAiServer()); setBusy(false); }} />
     </Card>
   );
 }

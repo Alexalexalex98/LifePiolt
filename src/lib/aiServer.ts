@@ -13,6 +13,8 @@ import { humanize } from './aiPersona';
 import { bytesToBase64, readUriBytes } from './readUri';
 /** Versione del collegamento al server AI: compare negli errori, cosi' si vede quale codice sta girando sul telefono. */
 export const AI_BUILD = 'ai-v5';
+/** Indirizzo del server AI senza il token (per mostrarlo nelle impostazioni). */
+export const aiServerHost = URL_BASE.replace(/^https?:\/\//, '');
 export const aiServerConfigured = Boolean(URL_BASE && TOKEN);
 
 export class AiServerError extends Error {
@@ -151,4 +153,18 @@ export const aiReadFiles = async (prompt: string, files: { uri: string; mime: st
 export async function aiReadPdfFree(prompt: string, uri: string, timeoutMs = 90000): Promise<string> {
   const [f] = await prepFiles([{ uri, mime: 'application/pdf' }]);
   return (await call<{ reply: string }>('/vision', { image: f.data, mime: f.mime, prompt }, timeoutMs)).reply;
+}
+
+/** Prova il collegamento col server AI (nessun dato inviato): tempo di risposta o motivo dell'errore. */
+export async function pingAiServer(): Promise<{ ok: boolean; ms: number; message: string }> {
+  const t0 = Date.now();
+  if (!aiServerConfigured) return { ok: false, ms: 0, message: 'Non collegato: in questa versione dell\'app mancano l\'indirizzo e il token del server AI (EXPO_PUBLIC_AI_URL ed EXPO_PUBLIC_AI_TOKEN).' };
+  const ctl = new AbortController();
+  const h = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(`${URL_BASE}/`, { signal: ctl.signal });
+    const j = (await r.json().catch(() => ({}))) as { ok?: boolean };
+    return { ok: r.ok && j.ok !== false, ms: Date.now() - t0, message: r.ok ? 'Il server risponde.' : `Il server ha risposto con errore ${r.status}.` };
+  } catch (e) { return { ok: false, ms: Date.now() - t0, message: `Non raggiungo il server (${e instanceof Error ? e.message.slice(0, 100) : 'errore di rete'}).` }; }
+  finally { clearTimeout(h); }
 }
