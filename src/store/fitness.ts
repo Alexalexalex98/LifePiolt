@@ -43,6 +43,11 @@ type State = {
   edits: Record<string, Step[]>;
   /** giorno scelto da te (un'altra sessione, oppure riposo), per data */
   plans: Record<string, Override>;
+  /** banner «hai bevuto?» all'apertura dell'app: acceso/spento e dopo quanti minuti senza acqua segnata */
+  waterBanner: { on: boolean; afterMin: number; snoozeUntil: number };
+  /** ultima volta che hai segnato acqua o una bevanda */
+  lastDrink: number;
+  setWaterBanner: (p: Partial<State['waterBanner']>) => void;
   /** esercizi spuntati per data: `key` è la sessione a cui si riferiscono */
   exDone: Record<string, { key: string; idx: number[] }>;
   setDayPlan: (date: string, o: Override | null) => void;
@@ -77,7 +82,8 @@ const uid = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice
 /** Dati di LifeFitness: restano sul telefono (sono dati di salute). */
 export const useFitness = create<State>()(
   persisted<State>('fitness', (set, get) => ({
-    profile: null, body: null, activeProgram: null, history: [], meals: [], water: {}, waterRemind: { on: false, everyMin: 120, from: '09:00', to: '21:00' }, eveningCheck: { on: true, at: '20:45' }, sub: null, visits: [], requests: [], approved: [], invites: [], customEx: [], aiFoods: [], purchases: [], edits: {}, plans: {}, exDone: {},
+    profile: null, body: null, activeProgram: null, history: [], meals: [], water: {}, waterRemind: { on: false, everyMin: 120, from: '09:00', to: '21:00' }, eveningCheck: { on: true, at: '20:45' }, sub: null, visits: [], requests: [], approved: [], invites: [], customEx: [], aiFoods: [], purchases: [], edits: {}, plans: {}, exDone: {}, waterBanner: { on: true, afterMin: 120, snoozeUntil: 0 }, lastDrink: 0,
+    setWaterBanner: (p) => set((s) => ({ waterBanner: { ...(s.waterBanner ?? { on: true, afterMin: 120, snoozeUntil: 0 }), ...p } })),
     setDayPlan: (date, o) => set((s) => { const plans = { ...(s.plans ?? {}) }; if (o) plans[date] = o; else delete plans[date]; const exDone = { ...(s.exDone ?? {}) }; delete exDone[date]; return { plans, exDone }; }),
     toggleEx: (date, key, k, total, w) => set((s) => {
       const cur = (s.exDone ?? {})[date];
@@ -98,7 +104,7 @@ export const useFitness = create<State>()(
     addWater: (ml, day) => {
       const k = day ?? dayOf(Date.now());
       const total = Math.max(0, Math.round(((get().water ?? {})[k] ?? 0) + ml));
-      set((s) => ({ water: { ...(s.water ?? {}), [k]: total } }));
+      set((s) => ({ water: { ...(s.water ?? {}), [k]: total }, ...(ml > 0 && k === dayOf(Date.now()) ? { lastDrink: Date.now() } : null) }));
       return total;
     },
     setWaterRemind: (p) => set((s) => ({ waterRemind: { ...s.waterRemind, ...p } })),

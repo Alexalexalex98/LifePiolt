@@ -119,6 +119,12 @@ export default function FitnessDiary() {
             {[1, 2, 3, 4].map((h) => <Pill key={h} label={`${h} h`} on={Math.round(w.everyMin / 60) === h} onPress={() => void setRemind({ everyMin: h * 60 })} />)}
           </Row>
         ) : null}
+        <Row style={{ marginTop: 12 }}><View style={{ flex: 1 }}><Body>Banner «hai bevuto?» all'apertura</Body><Body small muted>{`${tl('Se non segni acqua da')} ${Math.round((fit.waterBanner?.afterMin ?? 120) / 60)} ${tl('ore')}`}</Body></View><Switch value={fit.waterBanner?.on ?? true} onValueChange={(v) => fit.setWaterBanner({ on: v })} accessibilityLabel="Banner hai bevuto" /></Row>
+        {(fit.waterBanner?.on ?? true) ? (
+          <Row style={{ justifyContent: 'flex-start', marginTop: 6 }} gap={8}>
+            {[1, 2, 3, 4].map((h) => <Pill key={h} label={`${h} h`} on={Math.round((fit.waterBanner?.afterMin ?? 120) / 60) === h} onPress={() => fit.setWaterBanner({ afterMin: h * 60 })} />)}
+          </Row>
+        ) : null}
         <Row style={{ marginTop: 12 }}><View style={{ flex: 1 }}><Body>Domanda serale su cibo e acqua</Body><Body small muted>{`${tl('Una notifica verso le')} ${ev.at}`}</Body></View><Switch value={ev.on} onValueChange={async (v) => { if (v) { const r = await requestPermission(); if (!r.ok) { toast(r.message || 'Per la notifica serve il permesso alle notifiche'); return; } } fit.setEveningCheck({ on: v }); await refreshFoodReminders(); }} accessibilityLabel="Domanda serale" /></Row>
       </Card>
 

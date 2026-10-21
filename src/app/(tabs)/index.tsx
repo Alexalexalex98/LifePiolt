@@ -7,6 +7,7 @@ import { WeeklyReportButton } from '@/components/WeeklyReportButton';
 import { DiscoverCard } from '@/components/Discover';
 import { TheiaDashboard } from '@/components/home/TheiaDashboard';
 import { JourneyCard, MoreSection, NewAreaBanner, TodayHeader, useNeeds } from '@/components/home/HomeBlocks';
+import { WaterBanner } from '@/components/fitness/WaterBanner';
 import { TourTarget } from '@/components/tour/TourTarget';
 import { CorrelationSheet, DomainSheet, MoodCheckIn } from '@/components/homeParts';
 import { InsightCard, KpiCard, MetricSheet, deltaStatus, scoreStatus, statusColor } from '@/components/dashboard';
@@ -151,6 +152,7 @@ export default function Dashboard() {
         <TheiaDashboard dash={dash} needs={needs} name={account.name} onPlan={() => setPlan(true)} onMetric={openMetric} />
       </View></TourTarget>
 
+      <WaterBanner />
       <NewAreaBanner />
 
       {!hasData && (
