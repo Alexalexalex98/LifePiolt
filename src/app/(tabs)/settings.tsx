@@ -346,6 +346,13 @@ export default function Settings() {
       </Card>
       ) : null}
 
+      {cat === 'work' ? (
+        <Card>
+          <H>Turni di lavoro</H>
+          <Row><Body small muted style={{ flex: 1 }}>Orari che si ripetono o date scelte: il prossimo turno compare nella Dashboard.</Body><Btn small icon="briefcase" title="Gestisci" onPress={() => go('shifts')} /></Row>
+        </Card>
+      ) : null}
+
       {cat === 'ai' ? (
       <Card>
         <H>Intelligenza di Theia</H>

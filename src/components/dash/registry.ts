@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 
-import { AgendaW, KcalW, LifeScoreW, MissingW, MoodW, TasksW, TrainW, WaterW, WeekW, metricW, type WProps } from '@/components/dash/widgetsA';
+import { AgendaW, ShiftW, UpcomingW, KcalW, LifeScoreW, MissingW, MoodW, TasksW, TrainW, WaterW, WeekW, metricW, type WProps } from '@/components/dash/widgetsA';
 import { BalanceW, BillsW, LpW, MessagesW, NewsW, NotifsW, PortfolioW, SavingW, SpendW, StockW, TipW, TripW, WatchW, shortcutW } from '@/components/dash/widgetsB';
 
 export type CatId = 'oggi' | 'benessere' | 'finanza' | 'mercati' | 'notizie' | 'network' | 'plan' | 'viaggi' | 'theia' | 'scorciatoie';
@@ -64,6 +64,8 @@ export const WIDGETS: WidgetDef[] = [
   { type: 'messages', cat: 'network', title: 'Messaggi', desc: 'Quanti messaggi hai da leggere', icon: 'send', color: '#c9b6ff', sizes: ['1x1', '2x1', '1x2'], def: '1x1', Comp: MessagesW },
   { type: 'notifs', cat: 'network', title: 'Notifiche', desc: 'Le novità per te', icon: 'bell', color: '#c9b6ff', sizes: ['1x1', '2x1', '1x2'], def: '1x1', Comp: NotifsW },
 
+  { type: 'shift', cat: 'plan', title: 'Prossimo turno', desc: 'Nome, giorno e ora del tuo prossimo turno di lavoro', icon: 'briefcase', color: PLAN, sizes: ['2x1', '4x1', '2x2', '4x2', '2x4'], def: '4x1', Comp: ShiftW },
+  { type: 'upcoming', cat: 'plan', title: 'Prossimi impegni', desc: 'Gli impegni dei prossimi giorni, con giorno e ora', icon: 'calendar', color: PLAN, sizes: ['2x1', '4x1', '2x2', '4x2', '2x4', '4x3'], def: '2x2', Comp: UpcomingW },
   { type: 'agenda', cat: 'plan', title: 'Agenda di oggi', desc: 'Il prossimo impegno e la lista di oggi', icon: 'calendar', color: PLAN, sizes: ['2x1', '4x1', '2x2', '4x2', '2x4', '4x3'], def: '4x1', Comp: AgendaW },
   { type: 'tasks', cat: 'plan', title: 'Task', desc: 'Quanti ne hai aperti e quali scadono', icon: 'tasks', color: PLAN, sizes: ['1x1', '2x1', '2x2', '4x2', '2x4'], def: '2x2', Comp: TasksW },
 

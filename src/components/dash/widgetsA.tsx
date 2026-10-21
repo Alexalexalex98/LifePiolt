@@ -15,7 +15,9 @@ import { dayKey } from '@/lib/format';
 import { go } from '@/lib/nav';
 import { moodOptions, useHealth } from '@/store/health';
 import { useFitness } from '@/store/fitness';
+import { countdown, upcoming, whenText } from '@/lib/shifts';
 import { useLife } from '@/store/life';
+import { useShifts } from '@/store/shifts';
 import { toast } from '@/store/toast';
 
 export type WProps = { w: number; h: number; pw: number; ph: number; cfg?: Record<string, string> };
@@ -160,3 +162,33 @@ export const metricW = (o: MetricOpts) => function MetricWidget(p: WProps) {
   return <Tile {...base(p)} icon={o.icon} label={tl(o.label)} color={o.color ?? a?.def.color ?? C.oggi} value={a ? fmtVal(a.latest.v, a.def).replace(/\s.*$/, '') : undefined} unit={a && p.w * p.h > 1 ? (fmtVal(a.latest.v, a.def).split(' ').slice(1).join(' ') || undefined) : undefined}
     delta={d == null ? undefined : { text: `${d > 0 ? '+' : ''}${Math.round(d)}%`, good: a?.def.better === 'none' || Math.abs(d) < 1 ? null : (a?.def.better === 'down' ? d < 0 : d > 0) }} series={a?.pts.map((x) => x.v)} sub={a ? `${tl('Media 7 giorni')}: ${fmtVal(a.avg7, a.def)}` : undefined} empty={tl('Nessun dato ancora')} onPress={() => { if (!openMetric(o.id)) go(o.page); }} />;
 };
+
+/* ---------------- Turni di lavoro e prossimi impegni ---------------- */
+export function ShiftW(p: WProps) {
+  const shifts = useShifts((s) => s.shifts);
+  const now = Date.now();
+  const list = upcoming(shifts, now, 60);
+  const n = list[0];
+  const short = (t: string) => (p.pw < 250 ? t.replace(/ \d{1,2} [a-z]{3} /, ' ') : t);
+  const rows: TileRow[] = list.slice(1, 9).map((o) => ({ label: o.shift.name, value: short(whenText(o, now)), color: o.shift.color, onPress: () => go('shifts') }));
+  const startTxt = n ? `${String(new Date(n.startTs).getHours()).padStart(2, '0')}:${String(new Date(n.startTs).getMinutes()).padStart(2, '0')}` : undefined;
+  return <Tile {...base(p)} icon="briefcase" label={tl('Prossimo turno')} color={C.plan} value={n ? (n.startTs <= now ? tl('In corso') : startTxt) : undefined} sub={n ? (p.w * p.h >= 4 ? `${n.shift.name} · ${whenText(n, now)}${n.startTs > now ? ` · ${countdown(n.startTs, now)}` : ''}` : `${n.shift.name} · ${whenText(n, now).replace(/ \d\d:\d\d$/, '')}`) : tl('Aggiungi i tuoi turni')} rows={rows} empty={tl('Aggiungi i tuoi turni')} onPress={() => go('shifts')} />;
+}
+
+export function UpcomingW(p: WProps) {
+  const events = useLife((s) => s.events);
+  const now = new Date();
+  const hhmm = now.toTimeString().slice(0, 5);
+  const today = dayKey(now);
+  const list: { day: string; i: number; e: { time: string; title: string } }[] = [];
+  for (let k = 0; k < 14; k++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + k);
+    const key = dayKey(d);
+    (events[key] ?? []).forEach((e, i) => { if (k > 0 || e.time >= hhmm) list.push({ day: key, i, e }); });
+  }
+  list.sort((a, b) => (a.day + a.e.time).localeCompare(b.day + b.e.time));
+  const label = (day: string, time: string) => (day === today ? time : `${new Date(day + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })} ${time}`);
+  const first = list[0];
+  const rows: TileRow[] = list.slice(1, 11).map((x) => ({ label: x.e.title, value: label(x.day, x.e.time), onPress: () => go('plan', { day: x.day, idx: String(x.i), at: String(Date.now()) }) }));
+  return <Tile {...base(p)} icon="calendar" label={tl('Prossimi impegni')} color={C.plan} value={first ? label(first.day, first.e.time) : undefined} sub={first ? first.e.title : tl('Nessun impegno nei prossimi giorni')} rows={rows} empty={tl('Nessun impegno nei prossimi giorni')} onPress={first ? () => go('plan', { day: first.day, idx: String(first.i), at: String(Date.now()) }) : () => go('plan')} />;
+}
