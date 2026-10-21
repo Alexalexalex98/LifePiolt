@@ -16,6 +16,10 @@ const missingShim = path.join(__dirname, 'src', 'lib', 'shims', 'missing.js');
 /** Pacchetti nativi opzionali: se non sono installati (manca un `npm install`) l'app deve partire comunque. */
 const OPTIONAL = new Set(['@shopify/react-native-skia', 'react-native-health-connect']);
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // avvio rapido (LP_FAST=1): le traduzioni (circa 10 MB) non entrano nel pacchetto; l'app resta in italiano, che è la lingua originale
+  if (process.env.LP_FAST === '1' && /(^|[\\/])locales[\\/][a-z]{2}\.json$/.test(moduleName) && /[\\/]i18n[\\/]/.test(context.originModulePath)) {
+    return { type: 'sourceFile', filePath: path.join(__dirname, 'src', 'lib', 'shims', 'emptyCatalog.json') };
+  }
   if (OPTIONAL.has(moduleName)) {
     try { return (base ?? context.resolveRequest)(context, moduleName, platform); } catch { return { type: 'sourceFile', filePath: missingShim }; }
   }
