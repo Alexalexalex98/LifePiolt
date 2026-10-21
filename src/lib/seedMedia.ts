@@ -242,6 +242,10 @@ export function useSeedMedia() {
         const withPoster = made && poster ? { ...made, poster } : made;
         return withPoster ? [prev ? { ...withPoster, views: prev.views } : withPoster] : [];
       });
+      // se i contenuti di esempio sono già a posto (stessi file) non si riscrive nulla: prima a ogni avvio si riscrivevano circa 170 post e storie, e si salvavano su disco
+      const oldStories = new Map((st.stories ?? []).map((x) => [x.id, x]));
+      const upToDate = fresh.every((x) => have.get(x.id)?.uri === x.uri && have.get(x.id)?.poster === x.poster) && stories.every((x) => { const o = oldStories.get(x.id); return !!o && o.uri === x.uri; });
+      if (upToDate) return;
       st.patch({ posts: [...fresh, ...keepPosts], stories: [...(st.stories ?? []).filter((s) => !s.id.startsWith('seed-st-')), ...stories] });
     }).catch(() => { done.current = false; });
   }, [demo]);

@@ -6,6 +6,8 @@ import { applyToFeed } from '@/lib/swipeDeck';
 import { StoriesBar } from '@/components/stories/StoriesBar';
 import { StoryPeekHost } from '@/components/stories/StoryPeekHost';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { useFeedVisible } from '@/store/feedVisible';
 import { Animated, Easing, FlatList, PanResponder, Pressable, View, useWindowDimensions } from 'react-native';
 import { SwipeDeck } from '@/components/feed/SwipeDeck';
 import { useDeckCards } from '@/components/feed/useDeckCards';
@@ -71,7 +73,8 @@ export default function LifeNetwork() {
   const t = useTheme();
   const win = useWindowDimensions().width;
   const me = useApp((s) => s.account.name);
-  const net = useNet();
+  // solo i dati che questa pagina usa: prima ogni cambio di qualsiasi parte dello store la ridisegnava tutta
+  const net = useNet(useShallow((s) => ({ prefs: s.prefs, setPref: s.setPref, communities: s.communities, posts: s.posts, ideas: s.ideas, seminars: s.seminars, providers: s.providers, products: s.products, hideIdeas: s.hideIdeas, mutedIdeaAuthors: s.mutedIdeaAuthors, following: s.following, reach: s.reach, swipes: s.swipes, themeWeights: s.themeWeights, quoteLikes: s.quoteLikes, savedPosts: s.savedPosts, likedPosts: s.likedPosts, comments: s.comments, identity: s.identity, lifePoints: s.lifePoints, patch: s.patch })));
   const { prefs, setPref } = net;
   const [people, setPeople] = useState('');
   const [commQ, setCommQ] = useState(''); const [commTopic, setCommTopic] = useState('Tutti');
@@ -95,6 +98,13 @@ export default function LifeNetwork() {
   /* i gesti orizzontali sulle storie restano delle storie: non cambiano scheda */
   const storiesPan = useRef(PanResponder.create({ onMoveShouldSetPanResponder: (_e, g) => !useStoryPeek.getState().author && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) })).current;
   const listRef = useRef<FlatList<Item>>(null);
+  /* i video partono solo quando sono a vista (almeno un terzo del post) */
+  const viewCfg = useRef({ itemVisiblePercentThreshold: 35, minimumViewTime: 120 }).current;
+  const onViewable = useRef(({ viewableItems }: { viewableItems: { item: Item }[] }) => {
+    const u = new Set<string>();
+    for (const v of viewableItems) { const it = v.item; if (it.k === 'post') { if (it.post.uri) u.add(it.post.uri); it.post.uris?.forEach((x) => u.add(x)); } }
+    useFeedVisible.getState().set(u);
+  }).current;
   const offsetRef = useRef(0);
   useEffect(() => onPageRefresh('lifenetwork', () => { listRef.current?.scrollToOffset({ offset: 0, animated: true }); offsetRef.current = 0; }), []);
   /* da «Per te» a «Seguiti» (e viceversa) resti allo stesso punto della pagina, non torni in cima */
@@ -402,9 +412,12 @@ export default function LifeNetwork() {
         ListHeaderComponent={header}
         extraData={[curTab, net.likedPosts, net.comments, net.savedPosts, me, net.swipes]}
         removeClippedSubviews={false}
-        initialNumToRender={3}
-        maxToRenderPerBatch={4}
-        windowSize={7}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        updateCellsBatchingPeriod={80}
+        windowSize={5}
+        viewabilityConfig={viewCfg}
+        onViewableItemsChanged={onViewable}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
