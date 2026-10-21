@@ -1,35 +1,36 @@
 import { registerCatalog } from './core';
-import ar from './locales/ar.json';
-import arOv from './overrides/ar.json';
-import de from './locales/de.json';
-import deOv from './overrides/de.json';
-import en from './locales/en.json';
-import enOv from './overrides/en.json';
-import es from './locales/es.json';
-import esOv from './overrides/es.json';
-import fr from './locales/fr.json';
-import frOv from './overrides/fr.json';
-import hi from './locales/hi.json';
-import hiOv from './overrides/hi.json';
-import id from './locales/id.json';
-import idOv from './overrides/id.json';
-import ja from './locales/ja.json';
-import jaOv from './overrides/ja.json';
-import pt from './locales/pt.json';
-import ptOv from './overrides/pt.json';
-import ru from './locales/ru.json';
-import ruOv from './overrides/ru.json';
-import zh from './locales/zh.json';
-import zhOv from './overrides/zh.json';
+import type { LangCode } from './languages';
 
-/** Registra tutti i cataloghi (una sola volta). */
-let done = false;
+/** Un catalogo per volta: i 11 file valgono circa 10 MB e costruire gli indici di tutti all'avvio rallentava ogni apertura dell'app. `require` dentro la funzione: il file si legge solo se serve. */
+const loaded = new Set<string>();
+function readCatalog(lang: string): { base: Record<string, string>; ov: Record<string, string> } | null {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  switch (lang) {
+    case 'ar': return { base: require('./locales/ar.json'), ov: require('./overrides/ar.json') };
+    case 'de': return { base: require('./locales/de.json'), ov: require('./overrides/de.json') };
+    case 'en': return { base: require('./locales/en.json'), ov: require('./overrides/en.json') };
+    case 'es': return { base: require('./locales/es.json'), ov: require('./overrides/es.json') };
+    case 'fr': return { base: require('./locales/fr.json'), ov: require('./overrides/fr.json') };
+    case 'hi': return { base: require('./locales/hi.json'), ov: require('./overrides/hi.json') };
+    case 'id': return { base: require('./locales/id.json'), ov: require('./overrides/id.json') };
+    case 'ja': return { base: require('./locales/ja.json'), ov: require('./overrides/ja.json') };
+    case 'pt': return { base: require('./locales/pt.json'), ov: require('./overrides/pt.json') };
+    case 'ru': return { base: require('./locales/ru.json'), ov: require('./overrides/ru.json') };
+    case 'zh': return { base: require('./locales/zh.json'), ov: require('./overrides/zh.json') };
+    default: return null;
+  }
+}
+
+/** Carica il catalogo di una lingua (l'italiano è il testo originale e non ne ha). Le correzioni manuali (overrides) hanno la precedenza sulle traduzioni automatiche. */
+export function loadCatalog(lang: LangCode) {
+  if (loaded.has(lang)) return;
+  const c = readCatalog(lang);
+  if (!c) return;
+  loaded.add(lang);
+  registerCatalog(lang, { ...(c.base as Record<string, string>), ...(c.ov as Record<string, string>) });
+}
+
+/** Tutti i cataloghi (serve solo a strumenti e prove). */
 export function loadCatalogs() {
-  if (done) return;
-  done = true;
-  const all = { ar, de, en, es, fr, hi, id, ja, pt, ru, zh } as const;
-  // Correzioni manuali (src/i18n/overrides/<lang>.json): hanno la precedenza sulle traduzioni automatiche e il runner non le sovrascrive.
-  const overrides = { ar: arOv, de: deOv, en: enOv, es: esOv, fr: frOv, hi: hiOv, id: idOv, ja: jaOv, pt: ptOv, ru: ruOv, zh: zhOv } as const;
-  (Object.keys(all) as (keyof typeof all)[]).forEach((k) =>
-    registerCatalog(k, { ...(all[k] as Record<string, string>), ...(overrides[k] as Record<string, string>) }));
+  for (const l of ['ar', 'de', 'en', 'es', 'fr', 'hi', 'id', 'ja', 'pt', 'ru', 'zh'] as const) loadCatalog(l);
 }

@@ -35,4 +35,16 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return (base ?? context.resolveRequest)(context, moduleName, platform);
 };
 
+/**
+ * Avvio più rapido (facoltativo): con LP_INLINE_REQUIRES=1 i moduli si leggono solo quando servono, non tutti all'apertura dell'app.
+ * Non è attivo di base perché cambia quando partono i moduli: prova prima così e, se l'app si comporta bene, diventa la norma.
+ */
+if (process.env.LP_INLINE_REQUIRES === '1') {
+  const prev = config.transformer.getTransformOptions;
+  config.transformer.getTransformOptions = async (...args) => {
+    const o = prev ? await prev(...args) : { transform: {} };
+    return { ...o, transform: { ...(o.transform ?? {}), inlineRequires: true } };
+  };
+}
+
 module.exports = config;

@@ -1,12 +1,12 @@
 import { DevSettings, I18nManager, Platform } from 'react-native';
 
-import { loadCatalogs } from './catalogs';
+import { loadCatalog } from './catalogs';
 import { setActive } from './core';
 import { infoOf, type LangCode } from './languages';
 
 /** Attiva la lingua: cataloghi, direzione di scrittura (arabo da destra a sinistra), lingua del documento sul web. Ritorna true se serve riaprire l'app. */
 export function applyLanguage(code: LangCode): boolean {
-  loadCatalogs();
+  loadCatalog(code);
   setActive(code);
   const info = infoOf(code);
   if (Platform.OS === 'web') {
