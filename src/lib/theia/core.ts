@@ -63,6 +63,15 @@ export function unverifiedNumbers(text: string, facts: Fact[], extraAllowed: (nu
 export const verified = (a: Answer, extra: (number | string)[] = []) => unverifiedNumbers(a.text, a.facts, extra).length === 0;
 
 export const dayKeyOf = (ms: number) => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+/** «oggi», «ieri» o «20 ott» (per i testi che citano un giorno). */
+export function humanDay(key: string, todayKey: string): string {
+  if (key === todayKey) return 'oggi';
+  const [y, m, d] = key.split('-').map(Number);
+  const diff = Math.round((new Date(y, m - 1, d).getTime() - new Date(todayKey.slice(0, 4) as unknown as number, Number(todayKey.slice(5, 7)) - 1, Number(todayKey.slice(8))).getTime()) / 86400000);
+  if (diff === -1) return 'ieri';
+  const MON = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+  return `${d} ${MON[m - 1]}`;
+}
 export const addDay = (key: string, n: number) => { const [y, m, d] = key.split('-').map(Number); return dayKeyOf(new Date(y, m - 1, d + n).getTime()); };
 export const toMin = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + (m || 0); };
 export const hhmm = (min: number) => { const m = ((min % 1440) + 1440) % 1440; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };

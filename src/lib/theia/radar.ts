@@ -41,7 +41,9 @@ function budget(s: Snap, today: string): Proposal[] {
 
 function categories(s: Snap, today: string): Proposal[] {
   const f = s.finance; if (!f) return [];
-  return f.over.filter((o) => o.level === 'over').slice(0, 2).map((o) => ({
+  // le spese fisse (affitto, abbonamenti, cassa malati…) sono quasi sempre sopra il previsto e non c'è nulla da cambiare: non fanno avviso
+  const FIXED = /affitto|abbonament|cassa malati|assicuraz|bollett|imposte|tasse|fondo emergenza|mutuo|rata/i;
+  return f.over.filter((o) => o.level === 'over' && o.pct >= 120 && !FIXED.test(o.category)).slice(0, 2).map((o) => ({
     id: `categoria:${today.slice(0, 7)}:${o.category}`, kind: 'categoria' as const, severity: 'warn' as const,
     title: `Hai superato il budget di «${o.category}»`,
     why: `In «${o.category}» sei al ${fmtNum(Math.round(o.pct))}% di quanto avevi previsto per il mese.`,

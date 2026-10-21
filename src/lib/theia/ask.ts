@@ -4,7 +4,7 @@
  * Se il dato manca, Theia lo dice: non indovina.
  */
 import { upcoming, whenText } from '../shifts.ts';
-import { addDay, dayKeyOf, fmtMoney, fmtNum, verified, type Answer, type Fact, type Snap } from './core.ts';
+import { addDay, dayKeyOf, fmtMoney, fmtNum, humanDay, verified, type Answer, type Fact, type Snap } from './core.ts';
 import { radar } from './radar.ts';
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9\s']/g, ' ').replace(/\s+/g, ' ').trim();
@@ -67,14 +67,15 @@ function sleep(s: Snap): Answer {
   const week = s.sleep.slice(-7);
   const avg = week.reduce((a, x) => a + x.hours, 0) / week.length;
   const l = Math.round(last.hours * 10) / 10, a = Math.round(avg * 10) / 10;
-  return mk(`L'ultima notte registrata (${last.day}) hai dormito ${fmtNum(l, 1)} ore; la media delle ultime ${fmtNum(week.length)} notti è ${fmtNum(a, 1)} ore.`, [{ label: 'notte', value: last.day, source: 'sonno' }, { label: 'ore dormite', value: l, unit: 'h', source: 'sonno' }, { label: 'media', value: a, unit: 'h', source: 'sonno' }, { label: 'notti', value: week.length, source: 'sonno' }], ['sonno']);
+  const when = humanDay(last.day, dayKeyOf(s.now));
+  return mk(`La notte più recente che ho (${when}) hai dormito ${fmtNum(l, 1)} ore; la media delle ultime ${fmtNum(week.length)} notti è ${fmtNum(a, 1)} ore.`, [{ label: 'notte', value: when, source: 'sonno' }, { label: 'ore dormite', value: l, unit: 'h', source: 'sonno' }, { label: 'media', value: a, unit: 'h', source: 'sonno' }, { label: 'notti', value: week.length, source: 'sonno' }], ['sonno']);
 }
 
 function steps(s: Snap): Answer {
   if (!s.steps.length) return noData('dati sui tuoi passi', 'Collega Apple Health o segnali i passi a mano in LifeHealth.');
   const last = s.steps[s.steps.length - 1];
   const today = dayKeyOf(s.now);
-  if (last.day !== today) return mk(`Per oggi non ho ancora il dato dei passi. L'ultimo che ho è del ${last.day}: ${fmtNum(Math.round(last.v))} passi.`, [{ label: 'giorno', value: last.day, source: 'passi' }, { label: 'passi', value: Math.round(last.v), source: 'passi' }], ['passi']);
+  if (last.day !== today) return mk(`Per oggi non ho ancora il dato dei passi. L'ultimo che ho è di ${humanDay(last.day, today)}: ${fmtNum(Math.round(last.v))} passi.`, [{ label: 'giorno', value: humanDay(last.day, today), source: 'passi' }, { label: 'passi', value: Math.round(last.v), source: 'passi' }], ['passi']);
   return mk(`Oggi hai fatto ${fmtNum(Math.round(last.v))} passi.`, [{ label: 'passi', value: Math.round(last.v), source: 'passi' }], ['passi']);
 }
 

@@ -39,7 +39,7 @@ test('turni, impegni e task', () => {
 test('salute: sonno, passi, acqua, calorie', () => {
   const sleep = [{ day: '2026-10-19', hours: 7 }, { day: '2026-10-20', hours: 5.5 }];
   const a = askLocal('quanto ho dormito', { ...base, sleep });
-  assert.match(a.text, /5,5 ore/); assert.match(a.text, /6,3 ore/);
+  assert.match(a.text, /5,5 ore/); assert.match(a.text, /6,3 ore/); assert.match(a.text, /\(ieri\)/);
   assert.match(askLocal('quanti passi ho fatto', { ...base, steps: [{ day: '2026-10-20', v: 8000 }] }).text, /Per oggi non ho ancora il dato.*8\.000 passi/);
   assert.match(askLocal('quanta acqua ho bevuto', { ...base, water: { todayMl: 750, goalMl: 2000 } }).text, /0,8 litri.*2,0/);
   assert.match(askLocal('quante calorie ho mangiato oggi', { ...base, kcal: { today: 1200, target: 2100 } }).text, /1\.200 kcal.*2\.100/);
