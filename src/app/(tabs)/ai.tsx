@@ -1,3 +1,6 @@
+import { ChatBackdrop } from '@/components/chat/ChatBackdrop';
+import { ChatBgSheet } from '@/components/chat/ChatBgSheet';
+import { useChatBg } from '@/store/chatBg';
 import { RichText } from '@/components/RichText';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,6 +37,8 @@ export default function LifeChat() {
   const [section, setSection] = useState(GENERALE);
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [bgOpen, setBgOpen] = useState(false);
+  const aiBg = useChatBg((s) => s.ai);
   const [q, setQ] = useState('');
   const list = useRef<FlatList<AMsg>>(null);
 
@@ -95,7 +100,7 @@ export default function LifeChat() {
   }
 
   return (
-    <Page id="ai" title="LifeChat" scroll={false}>
+    <Page id="ai" title="LifeChat" scroll={false} background={<ChatBackdrop wall={aiBg} />}>
       {searching ? (
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -122,6 +127,7 @@ export default function LifeChat() {
               <Pill label="Generale" on={section === GENERALE} onPress={() => setSection(GENERALE)} />
               {folders.map((f) => <Pill key={f.topic} label={`${f.topic} · ${f.count}`} on={section === f.topic} onPress={() => setSection(f.topic)} />)}
             </ScrollView>
+            <Pressable onPress={() => setBgOpen(true)} accessibilityRole="button" accessibilityLabel={translateText('Sfondo della chat')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="image" size={20} color={t.text} /></Pressable>
             <Pressable onPress={() => { setSearching(true); setQ(''); }} accessibilityRole="button" accessibilityLabel={translateText('Cerca nelle conversazioni')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="search" size={22} color={t.text} /></Pressable>
           </View>
           {hidden > 0 && !kb.visible && (
@@ -189,6 +195,7 @@ export default function LifeChat() {
           <Composer openAttach={attach} appLang={appLang} busy={busy} placeholder={section === GENERALE ? 'Scrivi a Theia…' : `Scrivi in ${section}…`} onSend={(m) => void deliver(m)} />
         </>
       )}
+          <ChatBgSheet visible={bgOpen} value={aiBg} title="Sfondo della chat con Theia" onPick={(k) => useChatBg.getState().setAi(k)} onClose={() => setBgOpen(false)} onReopen={() => setBgOpen(true)} />
     </Page>
   );
 }

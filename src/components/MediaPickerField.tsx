@@ -30,16 +30,17 @@ export function MediaPickerField({ value, onChange, detach, onEdit, fx }: { valu
   if (value) {
     return (
       <View style={{ marginBottom: 12 }}>
-        <View style={{ height: 380, borderRadius: 22, overflow: 'hidden', backgroundColor: t.item, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={translateText(value.media === 'video' ? 'Anteprima del video scelto' : 'Anteprima della foto scelta')}>
+        <View style={{ height: 280, borderRadius: 20, overflow: 'hidden', backgroundColor: t.item, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={translateText(value.media === 'video' ? 'Anteprima del video scelto' : 'Anteprima della foto scelta')}>
           {value.media === 'photo'
-            ? <Image source={{ uri: value.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+            ? <Image source={{ uri: value.uri }} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} contentFit="cover" />
             : <View style={{ alignItems: 'center', gap: 6 }}><Icon name="play" size={44} color={t.text} fill={t.text} /><Text style={{ color: t.muted, fontSize: 13 }}>Video scelto{value.durationMs ? ` · ${Math.round(value.durationMs / 1000)} s` : ''}</Text></View>}
           <StoryFx s={{ filter: fx?.filter, adj: fx?.adj }} uri={value.media === 'photo' ? value.uri : undefined} />
-          <Pressable onPress={() => onChange(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Rimuovi')} style={{ position: 'absolute', top: 12, end: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: '#000a', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={18} color="#fff" stroke={2.4} /></Pressable>
-          <View style={{ position: 'absolute', bottom: 12, start: 12, end: 12, flexDirection: 'row', gap: 10 }}>
-            {onEdit ? <Pressable onPress={onEdit} accessibilityRole="button" accessibilityLabel={translateText(value.media === 'photo' ? 'Ritocca la foto' : 'Modifica')} style={{ flex: 1.4, height: 46, borderRadius: 23, backgroundColor: t.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Icon name="sun" size={19} color={t.onText} stroke={2.1} /><Text style={{ color: t.onText, fontWeight: '900', fontSize: 15 }}>{translateText(value.media === 'photo' ? 'Ritocca' : 'Modifica')}</Text></Pressable> : null}
-            <Pressable onPress={() => void pick(value.media === 'video' ? 'video' : 'photo')} accessibilityRole="button" accessibilityLabel={translateText('Cambia')} style={{ flex: 1, height: 46, borderRadius: 23, backgroundColor: '#000b', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Icon name="image" size={18} color="#fff" stroke={2} /><Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>{translateText('Cambia')}</Text></Pressable>
-          </View>
+        </View>
+        {/* i pulsanti stanno sotto la foto, così non la coprono */}
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+          {onEdit ? <Pressable onPress={onEdit} accessibilityRole="button" accessibilityLabel={translateText(value.media === 'photo' ? 'Ritocca la foto' : 'Modifica')} style={{ flex: 1.3, height: 40, borderRadius: 20, backgroundColor: t.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Icon name="sun" size={16} color={t.onText} stroke={2.1} /><Text style={{ color: t.onText, fontWeight: '800', fontSize: 14 }}>{translateText(value.media === 'photo' ? 'Ritocca' : 'Modifica')}</Text></Pressable> : null}
+          <Pressable onPress={() => void pick(value.media === 'video' ? 'video' : 'photo')} accessibilityRole="button" accessibilityLabel={translateText('Cambia')} style={{ flex: 1, height: 40, borderRadius: 20, backgroundColor: t.chip, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Icon name="image" size={16} color={t.text} stroke={2} /><Text style={{ color: t.text, fontWeight: '800', fontSize: 14 }}>{translateText('Cambia')}</Text></Pressable>
+          <Pressable onPress={() => onChange(null)} accessibilityRole="button" accessibilityLabel={translateText('Rimuovi')} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name="trash" size={17} color={t.text} stroke={2} /></Pressable>
         </View>
       </View>
     );

@@ -1,3 +1,4 @@
+import { ChatBackdrop } from '@/components/chat/ChatBackdrop';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
@@ -284,9 +285,11 @@ export default function Conversation() {
           <Icon name="pin" size={14} color={t.muted} /><Text numberOfLines={1} style={{ flex: 1, color: t.text, fontSize: 13 }}>{pinnedMsg.text}</Text>
         </Pressable>
       )}
+      <View style={{ flex: 1 }}>
+        <ChatBackdrop wall={chat.wallpaper ?? settings.wallpaper} />
       <FlatList
         ref={list}
-        style={{ flex: 1, backgroundColor: wallColor(chat.wallpaper ?? settings.wallpaper, c) }}
+        style={{ flex: 1 }}
         contentContainerStyle={{ paddingVertical: 8 }}
         data={rows}
         keyExtractor={(r) => r.key}
@@ -303,6 +306,7 @@ export default function Conversation() {
         windowSize={21}
         onLayout={() => { if (stick.current && !search) list.current?.scrollToEnd({ animated: false }); }}
       />
+      </View>
 
       <View style={{ paddingBottom: 0 }}>
         {chat.type === 'club' && !clubReason && club && club.owner !== me && (

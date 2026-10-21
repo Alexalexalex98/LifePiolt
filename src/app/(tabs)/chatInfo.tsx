@@ -1,3 +1,5 @@
+import { ChatBgSheet } from '@/components/chat/ChatBgSheet';
+import { wallLabel } from '@/lib/chatBg';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -29,6 +31,7 @@ export default function ChatInfo() {
   const { id = '' } = useLocalSearchParams<{ id?: string }>();
   const me = useApp((s) => s.account.name);
   const chat = useChat((s) => s.chats[id]);
+  const settings = useChat((s) => s.settings);
   const messages = useChat((s) => s.messages[id]);
   const blocked = useChat((s) => s.blocked);
   const st = useChat.getState;
@@ -98,7 +101,7 @@ export default function ChatInfo() {
         <Item onPress={() => go('starredPage', { id })}><Row><IL icon="star">Messaggi importanti</IL><Body muted>{starred.length}</Body></Row></Item>
         <Item onPress={() => setSheet('mute')}><Row><IL icon="bell-off">Silenzia notifiche</IL><Body muted>{muted ? 'Sì' : 'No'}</Body></Row></Item>
         <Item onPress={() => setSheet('disappear')}><Row><IL icon="timer">Messaggi a tempo</IL><Body muted>{dis}</Body></Row></Item>
-        <Item onPress={() => setSheet('wall')}><Row><IL icon="image">Sfondo chat</IL><Body muted>{wallpapers[chat.wallpaper ?? 'default']?.label}</Body></Row></Item>
+        <Item onPress={() => setSheet('wall')}><Row><IL icon="image">Sfondo chat</IL><Body muted>{wallLabel(chat.wallpaper ?? settings.wallpaper, (k) => wallpapers[k]?.label)}</Body></Row></Item>
         <Item onPress={() => st().patchChat(id, { pinned: !chat.pinned })}><Row><IL icon="pin">Fissa in alto</IL><Body muted>{chat.pinned ? 'Sì' : 'No'}</Body></Row></Item>
         <Item last onPress={() => { st().patchChat(id, { archived: !chat.archived }); toast(chat.archived ? 'Chat ripristinata' : 'Chat archiviata'); }}><Row><IL icon="archive">Archivia chat</IL><Body muted>{chat.archived ? 'Sì' : 'No'}</Body></Row></Item>
       </Card>
@@ -156,9 +159,7 @@ export default function ChatInfo() {
         <Body small muted style={{ marginBottom: 8 }}>I nuovi messaggi di questa chat vengono eliminati dopo il tempo scelto. Non riguarda i messaggi già inviati.</Body>
         {DISAPPEAR.map(([l, s]) => <Item key={l} onPress={() => { st().setDisappearing(id, s, me); setSheet(null); }}><Row><Body>{l}</Body>{(chat.disappearingSec ?? 0) === s ? <Icon name="check" size={17} color={t.accent} stroke={2.5} /> : null}</Row></Item>)}
       </Sheet>
-      <Sheet visible={sheet === 'wall'} title="Sfondo chat" onClose={() => setSheet(null)}>
-        {Object.entries(wallpapers).map(([k, w]) => <Item key={k} onPress={() => { st().patchChat(id, { wallpaper: k }); setSheet(null); }}><Row><Row style={{ justifyContent: 'flex-start' }} gap={10}><View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: w.dark, borderWidth: 1, borderColor: t.border }} /><Body>{w.label}</Body></Row>{(chat.wallpaper ?? 'default') === k ? <Icon name="check" size={17} color={t.accent} stroke={2.5} /> : null}</Row></Item>)}
-      </Sheet>
+      <ChatBgSheet visible={sheet === 'wall'} value={chat.wallpaper ?? settings.wallpaper} onPick={(k) => { st().patchChat(id, { wallpaper: k }); }} onClose={() => setSheet(null)} onReopen={() => setSheet('wall')} />
       <Sheet visible={sheet === 'clear'} title="Svuotare la chat?" onClose={() => setSheet(null)}>
         <Item onPress={() => { setSheet(null); confirmDelete('tutti i messaggi di questa chat', () => { st().clearChat(id, false); toast('Chat svuotata'); }); }}><Body color={t.danger}>Svuota tutto</Body></Item>
         <Item last onPress={() => { st().clearChat(id, true); setSheet(null); toast('Chat svuotata (preferiti mantenuti)'); }}><Body>Svuota e tieni i messaggi preferiti</Body></Item>

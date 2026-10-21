@@ -127,7 +127,7 @@ export function OptionsSheet({ id, onClose }: { id: string | null; onClose: () =
 }
 
 /** Sfondo: una sola foto (mai ripetuta) oppure un modello di colore pronto. */
-export function BackgroundSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function BackgroundSheet({ visible, onClose, onReopen }: { visible: boolean; onClose: () => void; onReopen?: () => void }) {
   const t = useTheme();
   const bg = useDash((s) => s.bg);
   const legacy = useDash((s) => s.photos?.[0]);
@@ -136,10 +136,14 @@ export function BackgroundSheet({ visible, onClose }: { visible: boolean; onClos
   const setDim = useDash((s) => s.setDim);
   const photo = bg.kind === 'photo' && bg.photo ? bg.photo : bg.kind === 'none' && legacy ? legacy : null;
   const pick = async () => {
+    // su iPhone il selettore foto non si apre sopra una finestra: si chiude, si sceglie e si riapre
+    onClose();
+    await new Promise((r) => setTimeout(r, 550));
     try {
       const m = await pickNetMedia('photo');
       if (m) setBg({ kind: 'photo', photo: m.uri });
     } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la libreria'); }
+    onReopen?.();
   };
   const sel = (on: boolean) => ({ borderWidth: on ? 3 : 1, borderColor: on ? t.accent : t.border });
   return (

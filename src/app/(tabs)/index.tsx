@@ -71,7 +71,7 @@ export default function Dashboard() {
 
         <AddWidgetSheet visible={adding} onClose={() => setAdding(false)} onAdded={(id) => { setEdit(true); const it = useDash.getState().items.find((x) => x.id === id); if (it) setTimeout(() => pageScroll.scrollTo(Math.max(0, 300 + it.y * 92 - 220)), 250); }} />
         <OptionsSheet id={sel} onClose={() => setSel(null)} />
-        <BackgroundSheet visible={bg} onClose={() => setBg(false)} />
+        <BackgroundSheet visible={bg} onClose={() => setBg(false)} onReopen={() => setBg(true)} />
       </DashData>
     </Page>
   );

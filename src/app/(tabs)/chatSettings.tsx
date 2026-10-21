@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/T';
 
+import { ChatBgSheet } from '@/components/chat/ChatBgSheet';
 import { wallpapers } from '@/components/chat/parts';
-import { Body, Card, Item, Page, Pill, Row, Seg, Toggle, IL } from '@/components/ui';
+import { wallLabel } from '@/lib/chatBg';
+import { Body, Btn, Card, Item, Page, Pill, Row, Seg, Toggle, IL } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { go } from '@/lib/nav';
 import { useChat } from '@/store/chat';
@@ -15,6 +18,7 @@ export default function ChatSettings() {
   const s = useChat((x) => x.settings);
   const blocked = useChat((x) => x.blocked);
   const set = useChat((x) => x.setSettings);
+  const [bgOpen, setBgOpen] = useState(false);
   const unblock = (n: string) => { useChat.getState().block(n, false); toast(`${n} sbloccato`); };
   return (
     <Page id="chatSettings" back title="Impostazioni chat">
@@ -30,11 +34,8 @@ export default function ChatSettings() {
         <Body small muted style={{ marginTop: 8, marginBottom: 6 }}>Dimensione del testo</Body>
         <Seg options={['S', 'M', 'L']} value={s.fontSize} onChange={(v) => set({ fontSize: v as 'S' | 'M' | 'L' })} />
         <Body small muted style={{ marginTop: 12, marginBottom: 6 }}>Sfondo predefinito</Body>
-        <Row style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }} gap={8}>
-          {Object.entries(wallpapers).map(([k, w]) => (
-            <Pill key={k} label={w.label} on={s.wallpaper === k} onPress={() => set({ wallpaper: k })} />
-          ))}
-        </Row>
+        <Row gap={10}><Body style={{ flex: 1 }}>{wallLabel(s.wallpaper, (k) => wallpapers[k]?.label)}</Body><Btn small ghost icon="image" title="Cambia sfondo" onPress={() => setBgOpen(true)} /></Row>
+        <ChatBgSheet visible={bgOpen} value={s.wallpaper} title="Sfondo predefinito delle chat" onPick={(k) => set({ wallpaper: k })} onClose={() => setBgOpen(false)} onReopen={() => setBgOpen(true)} />
       </Card>
       <Card>
         <Body bold>Archivio</Body>
