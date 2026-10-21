@@ -12,7 +12,7 @@ import { t as tl } from '@/i18n/core';
 import { DaySummary } from '@/components/fitness/DaySummary';
 import { withMicro } from '@/lib/fitness/mealMicro';
 import { NUTRITION_LEGAL } from '@/lib/fitness/micro';
-import { dayOf, groupByDay, periodStats, quality, slotOf, waterGoal } from '@/lib/fitness/mealInsights';
+import { dayOf, displayName, groupByDay, periodStats, quality, slotOf, waterGoal } from '@/lib/fitness/mealInsights';
 import { dailyTarget, dailyTargets } from '@/lib/fitness/nutrition';
 import { refreshFoodReminders } from '@/lib/foodNotify';
 import { Icon } from '@/lib/icons';
@@ -134,7 +134,7 @@ export default function FitnessDiary() {
               <Pressable accessibilityRole="button" accessibilityLabel={m.name} onPress={() => go('fitnessMealCard', { id: m.id })}>
                 <Row gap={10}>
                   {m.photo ? <Image source={{ uri: m.photo }} style={{ width: 52, height: 52, borderRadius: 12 }} contentFit="cover" /> : <View style={{ width: 52, height: 52, borderRadius: 12, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name="lifefitness" size={22} color={t.muted} /></View>}
-                  <View style={{ flex: 1 }}><Body bold numberOfLines={1}>{m.name}</Body><Body small muted>{`${tl(SLOT[slotOf(m.ts)])} · ${hhmm(m.ts)} · ${m.macros.kcal} kcal`}</Body></View>
+                  <View style={{ flex: 1 }}><Body bold numberOfLines={1}>{displayName(m)}</Body><Body small muted>{`${tl(SLOT[slotOf(m.ts)])} · ${hhmm(m.ts)} · ${m.macros.kcal} kcal`}</Body></View>
                   <Icon name="chevron" size={18} color={t.muted} />
                 </Row>
               </Pressable>

@@ -254,3 +254,27 @@ export function analysisAiPrompt(s: Stats, list: Finding[], ctx: Ctx = {}, q?: {
   const a = s.avg;
   return `Dai un parere dettagliato sull'alimentazione di una persona, dalle medie degli ultimi ${s.asked} giorni (${s.days} con pasti registrati).\nMedie al giorno: ${a.kcal} kcal, proteine ${a.p} g, carboidrati ${a.c} g, grassi ${a.f} g, grassi saturi ${a.sat ?? '?'} g, zuccheri ${a.sug ?? '?'} g, fibre ${a.fib ?? '?'} g, sale ${a.salt ?? '?'} g, acqua ${s.waterMl === null ? 'non registrata' : `${s.waterMl} ml`}, pasti al giorno ${s.mealsPerDay}.\n${ctx.targetKcal ? `Fabbisogno stimato: ${ctx.targetKcal} kcal. ` : ''}${q ? `Punteggio calcolato dall'app: ${q.score}/100 (${q.label}). ` : ''}\nPunti già rilevati dall'app: ${list.filter((f) => f.level !== 'ok').map((f) => f.title).join('; ') || 'nessuno'}.\n${s.micro ? `Vitamine e minerali (stime per categoria di alimento, % del riferimento giornaliero): ${microRows(s.micro).map((r) => `${r.label} ${r.pct}%`).join(', ')}.` : ''}\n${GUIDE}`;
 }
+
+/* ---------- titoli dei pasti ---------- */
+const CUT = /\s(?:con|condit\w*|impanat\w*|ripien\w*|fresc\w*|intera|interi|cott\w*|lesse?|lessi|grigliat\w*|alla piastra|al forno|fritt\w*|di cottura|e|o)(?:\s|$)|[,(;:]|\s-\s/i;
+const capFirst = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+/** Il nome «di base» di un alimento: «Cotoletta di maiale alla viennese impanata e fitta» diventa «Cotoletta di maiale alla viennese». */
+export function coreName(name: string): string {
+  let c = String(name ?? '').split(CUT)[0].trim();
+  c = c.replace(/\s+(impanat\w*|fresc\w*|intera|interi)$/i, '');
+  return capFirst(c.split(/\s+/).slice(0, 6).join(' '));
+}
+/** Titolo corto e chiaro di un pasto dai suoi ingredienti: «Cotoletta di maiale e patate lesse, +1». Al massimo `max` caratteri. */
+export function mealTitle(names: string[], max = 52): string {
+  const cores = [...new Set(names.map(coreName).filter(Boolean))];
+  if (!cores.length) return 'Pasto';
+  let t = cores.length === 1 ? cores[0] : `${cores[0]} e ${cores[1].charAt(0).toLowerCase()}${cores[1].slice(1)}`;
+  const more = cores.length - 2;
+  if (more > 0) t += ` +${more}`;
+  if (t.length > max) t = `${t.slice(0, max - 1).trimEnd()}…`;
+  return t;
+}
+/** Il titolo da mostrare per un pasto salvato: dagli ingredienti se ci sono, altrimenti dal nome (anche vecchio e lungo). */
+export function displayName(m: { name: string; items?: { name: string }[] }): string {
+  return m.items?.length ? mealTitle(m.items.map((i) => i.name)) : mealTitle([m.name]);
+}

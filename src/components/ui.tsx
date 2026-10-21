@@ -81,12 +81,12 @@ export const useUI = create<{ menuOpen: boolean; setMenu: (v: boolean) => void; 
 }));
 
 /* ---------- pagina con barra superiore ---------- */
-function TopBar({ page }: { page: string }) {
+function TopBar({ page, fallback }: { page: string; /** nome da mostrare accanto al logo se la sezione non ne ha uno suo */ fallback?: string }) {
   const t = useTheme();
   const names = useSectionNames();
   const badges = useUI((s) => s.badges);
   const setMenu = useUI((s) => s.setMenu);
-  const tag = names[page === 'index' ? 'home' : page] || '';
+  const tag = names[page === 'index' ? 'home' : page] || fallback || '';
   const Badge = ({ n, bg }: { n: number; bg: string }) =>
     n > 0 ? (
       <View style={{ position: 'absolute', top: 4, end: 2, minWidth: 15, height: 15, borderRadius: 8, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 }} pointerEvents="none">
@@ -97,7 +97,7 @@ function TopBar({ page }: { page: string }) {
     <View style={s.top}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1 }}>
         <Image source={LOGO} style={{ height: 30, width: 30, ...(t.mode === 'light' ? { tintColor: '#10151d' } : null) }} resizeMode="contain" accessibilityLabel="LifePilot" />
-        <Text accessibilityRole="header" style={{ color: t.mode === 'light' ? t.text : sectionColor(areaColors[page], t.text), fontSize: 16, fontWeight: '700' }}>{tag}</Text>
+        <Text accessibilityRole="header" numberOfLines={1} style={{ color: t.mode === 'light' ? t.text : sectionColor(areaColors[page], t.text), fontSize: 16, fontWeight: '700', flexShrink: 1 }}>{tag}</Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Press style={s.menuBtn} onPress={() => go('messagesPage')} accessibilityLabel={badges.msg > 0 ? `Messaggi, ${badges.msg} da leggere` : 'Messaggi'}>
@@ -132,7 +132,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
   const showBack = !MAIN_TABS.includes(id) && (back ?? !noTop);
   // il nome della sezione sta già accanto al logo: non lo ripeto come titolo grande
   const names = useSectionNames();
-  const tag = names[id === 'index' ? 'home' : id] || '';
+  const tag = names[id === 'index' ? 'home' : id] || (title ? translateText(title) : '');
   const sameAsTag = !!title && !!tag && translateText(title).trim().toLowerCase() === tag.trim().toLowerCase();
   const params = useLocalSearchParams();
   const memKey = id + JSON.stringify(params);
@@ -149,7 +149,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
   }, [memKey, keep]));
   const body = (
     <>
-      {!noTop && <TopBar page={id} />}
+      {!noTop && <TopBar page={id} fallback={title ? translateText(title) : undefined} />}
       {(showBack || (sameAsTag && right)) && (
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, marginBottom: sameAsTag ? 10 : 0, gap: 10 }}>
           {showBack ? (
@@ -428,6 +428,7 @@ const LABEL_ICONS: Record<string, string> = {
   Acquisti: 'orders', Guadagnati: 'trend-up', 'LifePoint giornaliero': 'coin',
   File: 'file', Foto: 'image', Minuti: 'clock', Ore: 'timer', Barre: 'chart', Linee: 'activity', Torta: 'circle',
   Scelta: 'checksquare', Numero: 'poll', Aperta: 'edit',
+  Oggi: 'sun', Allenarsi: 'lifefitness', Cibo: 'meal', 'LifePass e centri': 'award',
   Scelte: 'settings', Limiti: 'timer', Fornitori: 'users', Prova: 'play', Cronologia: 'clock',
   Media: 'image', Documenti: 'file', Link: 'link',
 };
@@ -471,6 +472,11 @@ export function IconSeg({ options, value, onChange }: { options: { id: string; i
 
 export function TabRow({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
   const t = useTheme();
+  const icons = options.map((o) => LABEL_ICONS[baseLabel(o)]);
+  /* con 2-5 voci che hanno tutte un'icona: stessa scheda a icone di tutta l'app (la scelta mostra anche il nome) */
+  if (options.length >= 2 && options.length <= 5 && icons.every(Boolean)) {
+    return <IconSeg value={value} onChange={onChange} options={options.map((o, i) => ({ id: o, icon: icons[i], label: o }))} />;
+  }
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ borderBottomWidth: 1, borderBottomColor: t.border, marginBottom: 14, flexGrow: 0 }} contentContainerStyle={{ gap: 18 }}>
       {options.map((o) => (

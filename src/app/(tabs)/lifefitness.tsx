@@ -1,5 +1,6 @@
 import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { dayOf, displayName } from '@/lib/fitness/mealInsights';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
@@ -39,6 +40,7 @@ export default function LifeFitness() {
     const [setup, setSetup] = useState(false);
   const [pass, setPass] = useState(false);
   const [tab, setTab] = useState('Oggi');
+  const [quick, setQuick] = useState(false);
   /* acquisto del LifePass come un abbonamento: riepilogo, conferma, elaborazione, esito */
   const [buy, setBuy] = useState<'off' | 'ask' | 'busy' | 'done' | 'fail'>('off');
   const [buyMsg, setBuyMsg] = useState('');
@@ -141,6 +143,7 @@ export default function LifeFitness() {
           {tab === 'Cibo' ? (
             <>
           <Card>
+            <Pressable accessibilityRole="button" accessibilityLabel={tl('Apri la giornata di oggi')} onPress={() => go('fitnessDay', { day: dayOf(Date.now()) })}>
             <Row gap={14}>
               <Ring value={target ? kcal / target : 0} big={String(kcal)} small={target ? `/ ${target}` : 'kcal'} />
               <View style={{ flex: 1 }}>
@@ -148,15 +151,23 @@ export default function LifeFitness() {
                 <Body small muted>{target ? tl('Obiettivo {0} kcal', target) : tl('Imposta il tuo obiettivo')}</Body>
                 <Body small muted style={{ marginTop: 4 }}>Oltre 2000 alimenti; con il Premium di LifePilot basta una foto.</Body>
               </View>
+              <Icon name="chevron" size={18} color={t.muted} />
             </Row>
-            <Btn style={{ marginTop: 12 }} icon="camera" title="Aggiungi un pasto" onPress={() => go('fitnessMeal')} />
-            {todayMeals.slice(0, 3).map((m) => <Body key={m.id} small muted style={{ marginTop: 4 }}>{m.name} · {m.macros.kcal} kcal</Body>)}
+            </Pressable>
+            <Btn style={{ marginTop: 12 }} icon="camera" title="Aggiungi un pasto" onPress={() => setQuick(true)} />
+            {todayMeals.slice(0, 3).map((m) => <Body key={m.id} small muted style={{ marginTop: 4 }}>{displayName(m)} · {m.macros.kcal} kcal</Body>)}
           </Card>
 
           <Card accent={FIT} onPress={() => go('fitnessDiary')}>
-            <Row><View style={{ flex: 1 }}><H>Storico dei pasti</H><Body small muted>Giorno per giorno, con foto e acqua. Theia ti dice dove sei carente e cosa migliorare.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+            <Row><View style={{ flex: 1 }}><H>Storico: pasti, acqua e analisi</H><Body small muted>Giorno per giorno, con foto e acqua. Theia ti dice dove sei carente e cosa migliorare.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
           </Card>
 
+            <Sheet visible={quick} title="Aggiungi un pasto" onClose={() => setQuick(false)}>
+              <Body small muted>Fai o scegli la foto del piatto: la guardi, e se vuoi la faccio analizzare a Theia.</Body>
+              <Btn style={{ marginTop: 12 }} icon="camera" title="Scatta una foto" onPress={() => { setQuick(false); go('fitnessMeal', { start: 'camera' }); }} />
+              <Btn style={{ marginTop: 8 }} ghost icon="image" title="Scegli dalla galleria" onPress={() => { setQuick(false); go('fitnessMeal', { start: 'gallery' }); }} />
+              <Btn style={{ marginTop: 8 }} ghost title="Compongo il piatto a mano" onPress={() => { setQuick(false); go('fitnessMeal'); }} />
+            </Sheet>
             </>
           ) : null}
 

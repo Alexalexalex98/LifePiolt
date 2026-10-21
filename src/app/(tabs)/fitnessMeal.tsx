@@ -1,9 +1,10 @@
 import { DaySummary } from '@/components/fitness/DaySummary';
-import { dayOf } from '@/lib/fitness/mealInsights';
 import { microOfMeal } from '@/lib/fitness/mealMicro';
 import { sumMicro } from '@/lib/fitness/micro';
 import { FIT } from '@/components/fitness/kit';
 import { Image } from 'expo-image';
+import { PhotoViewer } from '@/components/PhotoViewer';
+import { dayOf, displayName, mealTitle } from '@/lib/fitness/mealInsights';
 import { LogoLoader } from '@/components/LogoLoader';
 import { Text } from '@/components/T';
 import { useLocalSearchParams } from 'expo-router';
@@ -34,6 +35,7 @@ export default function FitnessMeal() {
   const t = useTheme();
   const fit = useFitness();
   const [photo, setPhoto] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [manualOpen, setManualOpen] = useState(false);
   const [plate, setPlate] = useState<{ food: Food; grams: string; share?: number }[]>([]);
@@ -77,7 +79,7 @@ export default function FitnessMeal() {
       if (aiServerConfigured) {
         if (!(await askSend('food'))) { setReport({ found: [], note: tl('Non invio la foto: senza il permesso non posso analizzare il piatto. Puoi comporlo tu qui sotto.') }); return; }
         logSend('food', 0, ['image/jpeg']);
-        reply = await aiReadFiles(MEAL_PROMPT, [{ uri, mime: 'image/jpeg' }], 70000);
+        reply = await aiReadFiles(MEAL_PROMPT, [{ uri, mime: 'image/jpeg' }], 70000, 1024);
       }
       else {
         const gate = await askSendRouted('food');
@@ -107,7 +109,7 @@ export default function FitnessMeal() {
     const aiUsed = rows.filter((r) => r.food.id.startsWith('ai-')).map((r) => r.food);
     if (aiUsed.length) fit.set({ aiFoods: [...aiUsed, ...fit.aiFoods.filter((f) => !aiUsed.some((u) => u.id === f.id))].slice(0, 300) });
     if (editId) fit.delMeal(editId);
-    fit.addMeal({ ts: editId ? editTs : Date.now(), name: name ?? (one ? rows[0].food.name : rows.map((r) => r.food.name).slice(0, 3).join(', ')), foodId: one ? rows[0].food.id : undefined, grams: Math.round(total), macros: preview, photo: photo ?? undefined, items: rows.map((r) => ({ foodId: r.food.id, name: r.food.name, grams: r.g })) });
+    fit.addMeal({ ts: editId ? editTs : Date.now(), name: name ?? mealTitle(rows.map((r) => r.food.name)), foodId: one ? rows[0].food.id : undefined, grams: Math.round(total), macros: preview, photo: photo ?? undefined, items: rows.map((r) => ({ foodId: r.food.id, name: r.food.name, grams: r.g })) });
     toast(editId ? tl('Pasto aggiornato: {0} kcal', preview.kcal) : tl('Aggiunto: {0} kcal', preview.kcal)); setPlate([]); setPhoto(null); setQ(''); setEditId(null); setReport(null); setManualOpen(false);
   };
   const editMeal = (m: (typeof fit.meals)[number]) => {
@@ -125,7 +127,11 @@ export default function FitnessMeal() {
   };
   const num = (k: 'age' | 'weightKg' | 'heightCm', v: string) => setBody({ ...body, [k]: Number(v.replace(',', '.')) || 0 });
 
-  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const { edit, start } = useLocalSearchParams<{ edit?: string; start?: string }>();
+  useEffect(() => {
+    if (start === 'camera' || start === 'gallery') void snap(start === 'camera');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start]);
   useEffect(() => {
     if (!edit) return;
     const m = fit.meals.find((x) => x.id === String(edit));
@@ -183,7 +189,7 @@ export default function FitnessMeal() {
           <Btn small ghost icon="camera" title="Scatta" onPress={() => void snap(true)} />
           <Btn small ghost icon="image" title="Galleria" onPress={() => void snap(false)} />
         </Row>
-        {photo ? <Image source={{ uri: photo }} style={{ width: '100%', height: 190, borderRadius: 14, marginTop: 10 }} contentFit="cover" /> : null}
+        {photo ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Apri la foto')} onPress={() => setViewer(photo)}><Image source={{ uri: photo }} style={{ width: '100%', height: 190, borderRadius: 14, marginTop: 10 }} contentFit="cover" /></Pressable> : null}
         {photo ? (premium
           ? <Btn style={{ marginTop: 10 }} icon="sparkle" title={busy ? 'Analizzo il piatto…' : 'Analizza il piatto'} disabled={busy} onPress={() => void analyze()} />
           : <View style={{ marginTop: 10 }}><Body small muted>L'analisi del piatto dalla foto è una funzione Premium di LifePilot.</Body></View>) : <Body small muted style={{ marginTop: 8 }}>Scatta o scegli la foto del piatto: con il Premium di LifePilot lo analizzo e ti faccio il resoconto. In ogni caso puoi comporlo tu qui sotto.</Body>}
@@ -209,8 +215,8 @@ export default function FitnessMeal() {
           {today.map((m, i) => (
             <Item key={m.id} last={i === today.length - 1}>
               <Row gap={10}>
-                {m.photo ? <Image source={{ uri: m.photo }} style={{ width: 44, height: 44, borderRadius: 10 }} contentFit="cover" /> : null}
-                <View style={{ flex: 1 }}><Body bold>{m.name}</Body><Body small muted>{m.grams} g · {m.macros.kcal} kcal</Body></View>
+                {m.photo ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Apri la foto')} onPress={() => setViewer(m.photo ?? null)}><Image source={{ uri: m.photo }} style={{ width: 44, height: 44, borderRadius: 10 }} contentFit="cover" /></Pressable> : null}
+                <View style={{ flex: 1 }}><Body bold>{displayName(m)}</Body><Body small muted>{m.grams} g · {m.macros.kcal} kcal</Body></View>
                 <Pressable accessibilityRole="button" accessibilityLabel={tl('Modifica')} onPress={() => editMeal(m)} hitSlop={10}><Icon name="edit" size={18} color={t.muted} /></Pressable>
                 <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina')} onPress={() => fit.delMeal(m.id)} hitSlop={10}><Icon name="trash" size={18} color={t.muted} /></Pressable>
               </Row>
@@ -218,8 +224,9 @@ export default function FitnessMeal() {
           ))}
         </Card>
       ) : null}
+      <PhotoViewer uri={viewer} onClose={() => setViewer(null)} />
       <Card accent={FIT} onPress={() => go('fitnessDiary')}>
-        <Row><View style={{ flex: 1 }}><H>Storico dei pasti</H><Body small muted>Giorno per giorno, con le foto, l'acqua e l'analisi di Theia su come mangi.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+        <Row><View style={{ flex: 1 }}><H>Storico: pasti, acqua e analisi</H><Body small muted>Giorno per giorno, con le foto, l'acqua e l'analisi di Theia su come mangi.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
       </Card>
       <Body small muted>I valori sono medie indicative e il fabbisogno è una stima: non è un consiglio medico né nutrizionale.</Body>
 

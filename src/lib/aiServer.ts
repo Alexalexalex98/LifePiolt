@@ -111,14 +111,14 @@ export const aiTranslate = async (lang: string, texts: string[]) => {
 /** Perche' l'ultima preparazione di un'immagine e' fallita (serve a capire il problema invece di un messaggio generico). */
 let lastImageError = '';
 /** Immagine pronta da inviare: ridotta (1280 px, JPEG) così parte e torna in fretta e sta nei limiti del server. Prova piu' strade. */
-export async function imageForAi(uri: string): Promise<{ base64: string; mime: 'image/jpeg' } | null> {
+export async function imageForAi(uri: string, maxW = 1280, quality = 0.7): Promise<{ base64: string; mime: 'image/jpeg' } | null> {
   lastImageError = '';
   const note = (where: string, e: unknown) => { lastImageError += `${lastImageError ? ' · ' : ''}${where}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 160); };
   const M = ImageManipulator;
   if (M?.manipulateAsync) {
-    for (const actions of [[{ resize: { width: 1280 } }], []]) {
+    for (const actions of [[{ resize: { width: maxW } }], []]) {
       try {
-        const r = await M.manipulateAsync(uri, actions, { compress: 0.7, format: M.SaveFormat.JPEG, base64: true });
+        const r = await M.manipulateAsync(uri, actions, { compress: quality, format: M.SaveFormat.JPEG, base64: true });
         if (r.base64) return { base64: r.base64, mime: 'image/jpeg' };
       } catch (e) { note('manipolatore', e); }
     }
@@ -134,11 +134,11 @@ export async function imageForAi(uri: string): Promise<{ base64: string; mime: '
 }
 
 /** File pronti per il server: immagini ridotte, altri file (PDF) in base64. */
-async function prepFiles(files: { uri: string; mime: string }[]): Promise<{ data: string; mime: string }[]> {
+async function prepFiles(files: { uri: string; mime: string }[], maxW = 1280): Promise<{ data: string; mime: string }[]> {
   const ready: { data: string; mime: string }[] = [];
   for (const f of files) {
     if (f.mime.startsWith('image/')) {
-      const img = await imageForAi(f.uri);
+      const img = await imageForAi(f.uri, maxW, maxW < 1280 ? 0.6 : 0.7);
       if (img) ready.push({ data: img.base64, mime: img.mime });
     } else {
       try {
@@ -154,13 +154,13 @@ async function prepFiles(files: { uri: string; mime: string }[]): Promise<{ data
  * Legge immagini (anche piu' d'una) o un PDF con il server AI. Una sola immagine va su /vision (testo libero),
  * il resto su /analyze (risposta strutturata in `result`, con `reply` in JSON). Il testo e' grezzo (senza humanize).
  */
-export async function aiReadFilesFull(prompt: string, files: { uri: string; mime: string }[], timeoutMs = 45000): Promise<{ reply: string; result?: unknown }> {
-  const ready = await prepFiles(files);
+export async function aiReadFilesFull(prompt: string, files: { uri: string; mime: string }[], timeoutMs = 45000, maxW = 1280): Promise<{ reply: string; result?: unknown }> {
+  const ready = await prepFiles(files, maxW);
   if (ready.length === 1 && ready[0].mime.startsWith('image/')) return { reply: (await call<{ reply: string }>('/vision', { image: ready[0].data, mime: ready[0].mime, prompt }, timeoutMs)).reply };
   return aiAnalyze(ready, prompt);
 }
 
-export const aiReadFiles = async (prompt: string, files: { uri: string; mime: string }[], timeoutMs?: number): Promise<string> => (await aiReadFilesFull(prompt, files, timeoutMs)).reply;
+export const aiReadFiles = async (prompt: string, files: { uri: string; mime: string }[], timeoutMs?: number, maxW?: number): Promise<string> => (await aiReadFilesFull(prompt, files, timeoutMs, maxW)).reply;
 
 /** Un PDF letto in testo libero (niente schema fisso): serve quando la risposta e' un elenco o un JSON deciso da noi. */
 export async function aiReadPdfFree(prompt: string, uri: string, timeoutMs = 90000): Promise<string> {

@@ -164,3 +164,20 @@ test('schede dei nutrienti: ogni vitamina e minerale ha 5 alimenti, valori sensa
   assert.equal(portionAmount('protein', NUTRIENTS.protein.sources[0]).pct, null);
   assert.match(NUTRIENT_DISCLAIMER, /non un consiglio medico/);
 });
+
+import { coreName, mealTitle, displayName } from '../src/lib/fitness/mealInsights.ts';
+
+test('titoli dei pasti: corti ma chiari', () => {
+  assert.equal(coreName('Cotoletta di maiale alla viennese impanata e fitta'), 'Cotoletta di maiale alla viennese');
+  assert.equal(coreName('Patate lesse condite con prezzemolo e burro'), 'Patate');
+  assert.equal(coreName('Mela fresca intera con buccia rossa e gialla'), 'Mela');
+  assert.equal(coreName('Salsa o marmellata di mirtilli rossi'), 'Salsa');
+  const t = mealTitle(['Cotoletta di maiale alla viennese impanata e fitta', 'Patate lesse condite con prezzemolo e burro', 'Salsa o marmellata di mirtilli rossi']);
+  assert.equal(t, 'Cotoletta di maiale alla viennese e patate +1');
+  assert.ok(mealTitle(['Pizza margherita', 'Cola']).length <= 52);
+  assert.equal(mealTitle(['Mela']), 'Mela');
+  assert.equal(mealTitle([]), 'Pasto');
+  assert.equal(displayName({ name: 'Toast dolce con crema di nocciole, fette di banana fresca, granella, Spremuta' }), 'Toast dolce');
+  assert.equal(displayName({ name: 'x', items: [{ name: 'Riso bianco cotto' }, { name: 'Pollo alla piastra' }] }), 'Riso bianco e pollo');
+  assert.ok(mealTitle(['Una descrizione molto molto lunga di un alimento che continua a lungo senza motivo', 'Altro alimento lungo davvero']).length <= 52);
+});

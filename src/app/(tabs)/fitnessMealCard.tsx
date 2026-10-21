@@ -1,7 +1,10 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
+
+import { PhotoViewer } from '@/components/PhotoViewer';
+import { displayName } from '@/lib/fitness/mealInsights';
 
 import { AiNote } from '@/components/AiNote';
 import { RichText } from '@/components/RichText';
@@ -30,6 +33,7 @@ export default function FitnessMealCard() {
   const fit = useFitness();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const m = fit.meals.find((x) => x.id === String(id));
+  const [viewer, setViewer] = useState(false);
   const [ai, setAi] = useState<{ busy: boolean; text?: string; error?: string }>({ busy: false });
   if (!m) return <Page id="fitnessMealCard" back title="Pasto"><Card><Body muted>Questo pasto non c'è più.</Body></Card></Page>;
   const x = m.macros;
@@ -37,10 +41,11 @@ export default function FitnessMealCard() {
   const when = new Date(m.ts).toLocaleString(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
   const items = m.items?.length ? m.items : [{ foodId: m.foodId ?? '', name: m.name, grams: m.grams }];
   return (
-    <Page id="fitnessMealCard" back title={m.name}>
-      {m.photo ? <Image source={{ uri: m.photo }} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 18 }} contentFit="cover" cachePolicy="disk" /> : null}
+    <Page id="fitnessMealCard" back title={displayName(m)}>
+      {m.photo ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Apri la foto')} onPress={() => setViewer(true)}><Image source={{ uri: m.photo }} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 18 }} contentFit="cover" cachePolicy="disk" /></Pressable> : null}
+      <PhotoViewer uri={viewer ? m.photo ?? null : null} onClose={() => setViewer(false)} />
       <Card>
-        <H>{m.name}</H>
+        <H>{displayName(m)}</H>
         <Body small muted style={{ textTransform: 'capitalize' }}>{`${tl(SLOT[slotOf(m.ts)])} · ${when}`}</Body>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={8}>
           <Pill label={`${x.kcal} kcal`} off /><Pill label={`P ${x.p} g`} off /><Pill label={`C ${x.c} g`} off /><Pill label={`G ${x.f} g`} off />
