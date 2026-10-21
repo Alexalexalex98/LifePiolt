@@ -118,7 +118,7 @@ export async function requestPermission(): Promise<NotifyResult> {
 const valid = (h: number, m: number) => Number.isInteger(h) && Number.isInteger(m) && h >= 0 && h < 24 && m >= 0 && m < 60;
 
 /** Programma una notifica ripetuta ogni giorno. Sostituisce quella con lo stesso id. */
-export async function scheduleDaily(id: string, hour: number, minute: number, title: string, body: string): Promise<NotifyResult> {
+export async function scheduleDaily(id: string, hour: number, minute: number, title: string, body: string, data?: Record<string, unknown>): Promise<NotifyResult> {
   if (!valid(hour, minute)) return { ok: false, reason: 'error', message: 'Orario non valido.' };
   const perm = await requestPermission();
   if (!perm.ok) return perm;
@@ -126,7 +126,7 @@ export async function scheduleDaily(id: string, hour: number, minute: number, ti
     await Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined);
     await Notifications.scheduleNotificationAsync({
       identifier: id,
-      content: { title, body },
+      content: { title, body, ...(data ? { data } : {}) },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute, ...(Platform.OS === 'android' ? { channelId: CHANNEL } : {}) },
     });
     return { ok: true, message: 'Notifica programmata' };
@@ -247,6 +247,8 @@ export async function refreshBriefings(): Promise<void> {
       const c = content(kind);
       await scheduleDaily(id, h, m, c.title, c.body);
     }
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    try { void require('@/lib/foodNotify').refreshFoodReminders(); } catch { /* promemoria del cibo non disponibili */ }
   } catch (e) { log.warn('notify', 'Riprogrammazione briefing fallita', errToString(e)); /* mai bloccare l'app per una notifica */ }
 }
 

@@ -7,6 +7,7 @@ import type { FitProfile, Workout } from '@/lib/fitness/plan';
 import { creditsLeft, makePurchase, payBlock, priceList, consumeCredit, type Purchase } from '@/lib/fitness/gymPay';
 import { checkIn, renewIfDue, startSub, PREMIUM_PRICE_LP, type Sub, type Visit } from '@/lib/fitness/premium';
 import { useNet } from '@/store/network';
+import { dayOf } from '@/lib/fitness/mealInsights';
 import { persisted } from './persist';
 
 export type MealItem = { foodId: string; name: string; grams: number };
@@ -20,6 +21,11 @@ type State = {
   activeProgram: string | null;
   history: Workout[];
   meals: Meal[];
+  /** acqua bevuta, in ml, per giorno (AAAA-MM-GG) */
+  water: Record<string, number>;
+  /** promemoria per bere ogni tot, e domanda serale su cibo e acqua (disattivabili) */
+  waterRemind: { on: boolean; everyMin: number; from: string; to: string };
+  eveningCheck: { on: boolean; at: string };
   sub: Sub | null;
   visits: Visit[];
   requests: GymRequest[];
@@ -38,6 +44,9 @@ type State = {
   logWorkout: (w: Omit<Workout, 'id'>) => void;
   addMeal: (m: Omit<Meal, 'id'>) => void;
   delMeal: (id: string) => void;
+  addWater: (ml: number, day?: string) => number;
+  setWaterRemind: (p: Partial<State['waterRemind']>) => void;
+  setEveningCheck: (p: Partial<State['eveningCheck']>) => void;
   /** Paga una voce del listino di un centro (in LifePoints) e ottieni gli ingressi. */
   payGym: (gym: Gym, itemId: string) => { ok: boolean; message: string };
   addCustomEx: (e: ExerciseX) => void;
@@ -60,11 +69,19 @@ const uid = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice
 /** Dati di LifeFitness: restano sul telefono (sono dati di salute). */
 export const useFitness = create<State>()(
   persisted<State>('fitness', (set, get) => ({
-    profile: null, body: null, activeProgram: null, history: [], meals: [], sub: null, visits: [], requests: [], approved: [], invites: [], customEx: [], aiFoods: [], purchases: [], edits: {},
+    profile: null, body: null, activeProgram: null, history: [], meals: [], water: {}, waterRemind: { on: false, everyMin: 120, from: '09:00', to: '21:00' }, eveningCheck: { on: true, at: '20:45' }, sub: null, visits: [], requests: [], approved: [], invites: [], customEx: [], aiFoods: [], purchases: [], edits: {},
     set: (p) => set(p),
     logWorkout: (w) => set((s) => ({ history: [...s.history, { ...w, id: uid() }].slice(-1000) })),
     addMeal: (m) => set((s) => ({ meals: [{ ...m, id: uid() }, ...s.meals].slice(0, 2000) })),
     delMeal: (id) => set((s) => ({ meals: s.meals.filter((m) => m.id !== id) })),
+    addWater: (ml, day) => {
+      const k = day ?? dayOf(Date.now());
+      const total = Math.max(0, Math.round(((get().water ?? {})[k] ?? 0) + ml));
+      set((s) => ({ water: { ...(s.water ?? {}), [k]: total } }));
+      return total;
+    },
+    setWaterRemind: (p) => set((s) => ({ waterRemind: { ...s.waterRemind, ...p } })),
+    setEveningCheck: (p) => set((s) => ({ eveningCheck: { ...s.eveningCheck, ...p } })),
     payGym: (gym, itemId) => {
       const item = priceList(gym).find((x) => x.id === itemId);
       if (!item) return { ok: false, message: 'Voce non trovata nel listino del centro.' };

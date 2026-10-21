@@ -34,6 +34,7 @@ import { findFixed, parseFixedEdit } from './financeEdit';
 import { friendlyAiError, isAddFollowUp, taskCommand, todoSubject } from './followup';
 import { useLearned } from '@/store/learned';
 import { shareLearned, voteSharedCommand } from '@/social/sharedCommands';
+import { handleFood } from '@/lib/assistant/foodTheia';
 import { useAssistant, type AMsg } from '@/store/assistant';
 import { usePrefs } from '@/store/prefs';
 import { topicOf } from './nlp';
@@ -258,6 +259,8 @@ export async function sendTheia(i: SendInput): Promise<void> {
     });
     return;
   }
+  // cibo e acqua: storico, analisi di come mangi, acqua bevuta e promemoria (tutto sul telefono)
+  if (!pending && (await handleFood(text, (m, actions) => { pushAi(m, actions ? { ext: { actions } } : {}); }, (page, params) => go(page, params ?? {})))) return;
   if (!pending && (await handlePhrase(command ?? text))) return;
   // dove si trova / come si fa: risposta precisa dalla guida, con il pulsante per aprire la pagina
   if (!pending && looksLikeHelp(text)) {

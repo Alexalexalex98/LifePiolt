@@ -138,6 +138,10 @@ export default function LifeFitness() {
             {todayMeals.slice(0, 3).map((m) => <Body key={m.id} small muted style={{ marginTop: 4 }}>{m.name} · {m.macros.kcal} kcal</Body>)}
           </Card>
 
+          <Card accent={FIT} onPress={() => go('fitnessDiary')}>
+            <Row><View style={{ flex: 1 }}><H>Storico dei pasti</H><Body small muted>Giorno per giorno, con foto e acqua. Theia ti dice dove sei carente e cosa migliorare.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+          </Card>
+
           <H style={{ marginTop: 8 }}>{fit.profile ? 'Programmi per te' : 'Programmi'}</H>
           {(fit.profile ? recs : ALL_PROGRAMS.slice(0, 4)).map((p) => (
             <Card key={p.id} onPress={() => go('fitnessProgram', { id: p.id })}>

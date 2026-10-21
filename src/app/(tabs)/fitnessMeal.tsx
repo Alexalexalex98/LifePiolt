@@ -1,8 +1,11 @@
-import { FIT, MacroBar, Ring } from '@/components/fitness/kit';
+import { DaySummary } from '@/components/fitness/DaySummary';
+import { dayOf } from '@/lib/fitness/mealInsights';
+import { FIT } from '@/components/fitness/kit';
 import { Image } from 'expo-image';
 import { LogoLoader } from '@/components/LogoLoader';
 import { Text } from '@/components/T';
-import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Body, Btn, Card, H, Input, Item, Page, Pill, Row, Sheet } from '@/components/ui';
@@ -116,6 +119,13 @@ export default function FitnessMeal() {
   };
   const num = (k: 'age' | 'weightKg' | 'heightCm', v: string) => setBody({ ...body, [k]: Number(v.replace(',', '.')) || 0 });
 
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  useEffect(() => {
+    if (!edit) return;
+    const m = fit.meals.find((x) => x.id === String(edit));
+    if (m) editMeal(m);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [edit]);
   const cancelEdit = () => { setEditId(null); setPlate([]); setPhoto(null); setQ(''); };
   const editor = rows.length ? (
 
@@ -157,32 +167,8 @@ export default function FitnessMeal() {
     <Page id="fitnessMeal" back title="Pasti e calorie">
       <Card accent={FIT}>
         <Row><H>Oggi</H><Btn small ghost title={target ? 'Obiettivo' : 'Imposta l\'obiettivo'} onPress={() => setBodyOpen(true)} /></Row>
-        <Row gap={16} style={{ marginTop: 4 }}>
-          <Ring size={112} stroke={12} value={target ? sum.kcal / target : 0} big={String(sum.kcal)} small={target ? `/ ${target} kcal` : 'kcal'} color={target && sum.kcal > target ? t.danger : FIT} />
-          <View style={{ flex: 1, gap: 8 }}>
-            {(() => { const tot = Math.max(1, sum.p + sum.c + sum.f); return [['Proteine', sum.p, '#6ec9dd'], ['Carboidrati', sum.c, FIT], ['Grassi', sum.f, '#e0c97b']].map(([l, v, c]) => <MacroBar key={String(l)} label={tl(String(l))} grams={Number(v)} color={String(c)} pct={(Number(v) / tot) * 100} />); })()}
-          </View>
-        </Row>
-        {today.length ? (() => {
-          const tg = fit.body ? dailyTargets(fit.body) : null;
-          const rowsX: { label: string; v: number | undefined; max?: number; min?: number; unit: string }[] = [
-            { label: 'Grassi saturi', v: sum.sat, max: tg?.satMax, unit: 'g' }, { label: 'Zuccheri', v: sum.sug, max: tg?.sugarMax, unit: 'g' },
-            { label: 'Fibre', v: sum.fib, min: tg?.fibre, unit: 'g' }, { label: 'Sale', v: sum.salt, max: tg?.saltMax, unit: 'g' },
-          ];
-          if (rowsX.every((r) => r.v === undefined)) return null;
-          return (
-            <View style={{ marginTop: 10, gap: 4 }}>
-              <Body bold>Altri valori di oggi</Body>
-              {rowsX.map((r) => {
-                const over = r.v !== undefined && r.max !== undefined && r.v > r.max;
-                const low = r.v !== undefined && r.min !== undefined && r.v < r.min;
-                return <Row key={r.label}><Body small muted>{r.label}</Body><Body small bold style={over ? { color: t.danger } : undefined}>{r.v === undefined ? '—' : `${r.v} ${r.unit}`}{r.max !== undefined ? ` / max ${r.max}` : r.min !== undefined ? ` / almeno ${r.min}` : ''}{over ? ` · ${tl('superato')}` : low ? '' : ''}</Body></Row>;
-              })}
-              <Body small muted>Il totale conta solo gli alimenti di cui conosco questi dati (quelli stimati dalla foto o con valori completi): può essere inferiore al reale.</Body>
-            </View>
-          );
-        })() : null}
-        {target && sum.kcal > target ? <Body bold style={{ marginTop: 8, color: t.danger }}>{tl('Hai superato il fabbisogno di oggi di {0} kcal', sum.kcal - target)}</Body> : null}
+        <DaySummary meals={today} waterMl={(fit.water ?? {})[dayOf(Date.now())]} body={fit.body} />
+        <Btn style={{ marginTop: 10 }} ghost small title="Resoconto di oggi con l'analisi" onPress={() => go('fitnessDay', { day: dayOf(Date.now()) })} />
       </Card>
 
       <Card>
@@ -226,6 +212,9 @@ export default function FitnessMeal() {
           ))}
         </Card>
       ) : null}
+      <Card accent={FIT} onPress={() => go('fitnessDiary')}>
+        <Row><View style={{ flex: 1 }}><H>Storico dei pasti</H><Body small muted>Giorno per giorno, con le foto, l'acqua e l'analisi di Theia su come mangi.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+      </Card>
       <Body small muted>I valori sono medie indicative e il fabbisogno è una stima: non è un consiglio medico né nutrizionale.</Body>
 
       <Sheet visible={cookOpen} title="Ho preparato…" onClose={() => { setCookOpen(false); setCookSel(null); }}>
