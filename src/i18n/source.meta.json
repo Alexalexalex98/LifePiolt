@@ -1,5 +1,5 @@
 {
- "count": 12884,
+ "count": 13008,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -22,6 +22,7 @@
   "src/app/(tabs)/communityProfile.tsx": 24,
   "src/app/(tabs)/conversationPage.tsx": 62,
   "src/app/(tabs)/creatorStats.tsx": 48,
+  "src/app/(tabs)/dashboardClassic.tsx": 63,
   "src/app/(tabs)/diagnostics.tsx": 13,
   "src/app/(tabs)/docView.tsx": 2,
   "src/app/(tabs)/editProfile.tsx": 38,
@@ -45,7 +46,7 @@
   "src/app/(tabs)/ideaProfile.tsx": 24,
   "src/app/(tabs)/identityVerify.tsx": 38,
   "src/app/(tabs)/importSocial.tsx": 31,
-  "src/app/(tabs)/index.tsx": 62,
+  "src/app/(tabs)/index.tsx": 14,
   "src/app/(tabs)/interviewInvite.tsx": 28,
   "src/app/(tabs)/interviewView.tsx": 83,
   "src/app/(tabs)/invoice.tsx": 13,
@@ -200,6 +201,12 @@
   "src/components/club/format.ts": 1,
   "src/components/club/parts.tsx": 3,
   "src/components/club/pickFile.ts": 2,
+  "src/components/dash/DashGrid.tsx": 3,
+  "src/components/dash/Sheets.tsx": 22,
+  "src/components/dash/data.tsx": 1,
+  "src/components/dash/registry.ts": 89,
+  "src/components/dash/widgetsA.tsx": 46,
+  "src/components/dash/widgetsB.tsx": 37,
   "src/components/dashboard.tsx": 44,
   "src/components/diagnostics/LogCard.tsx": 14,
   "src/components/diagnostics/OutflowCard.tsx": 15,
@@ -463,6 +470,8 @@
   "src/lib/netMedia.ts": 7,
   "src/lib/netSearch.ts": 8,
   "src/lib/network.ts": 17,
+  "src/lib/news/feeds.ts": 4,
+  "src/lib/news/rss.ts": 3,
   "src/lib/notes.ts": 1,
   "src/lib/notify.ts": 25,
   "src/lib/notifyKinds.ts": 45,
@@ -547,6 +556,7 @@
   "src/store/lpMoney.ts": 1,
   "src/store/markets.ts": 4,
   "src/store/network.ts": 18,
+  "src/store/news.ts": 1,
   "src/store/prefs.ts": 6,
   "src/store/sharing.ts": 1,
   "src/sync/bindings.ts": 2,
@@ -558,5 +568,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1594
+ "withPlaceholders": 1599
 }
