@@ -198,6 +198,7 @@ export default function FitnessMeal() {
           <View style={{ marginTop: 10 }}>
             <Body bold>Resoconto del piatto</Body>
             {report.note ? <Body small muted={report.found.length > 0} style={{ marginTop: 4 }}>{report.note}</Body> : null}
+            {!aiServerConfigured && !report.found.length ? <Btn small style={{ marginTop: 8 }} icon="settings" title="Collega il server AI" onPress={() => go('aiSettings')} /> : null}
             {report.found.filter((x) => !x.food).map((x, i) => <Body key={i} small>{tl('{0}: non lo trovo nel database, cercalo qui sotto', x.name)}</Body>)}
             {report.found.some((x) => x.food) ? (() => { const tot = sumMacros(report.found.flatMap((x) => (x.food ? [macrosFor(x.food, x.grams)] : []))); return <><Body bold style={{ marginTop: 4 }}>{tl('Totale stimato: {0} kcal · proteine {1} g · carboidrati {2} g · grassi {3} g', tot.kcal, tot.p, tot.c, tot.f)}</Body><Body small style={{ marginTop: 2 }}>{tl('di cui zuccheri {0} g · grassi saturi {1} g · fibre {2} g · sale {3} g', tot.sug ?? 0, tot.sat ?? 0, tot.fib ?? 0, tot.salt ?? 0)}</Body></>; })() : null}
             <AiNote />
