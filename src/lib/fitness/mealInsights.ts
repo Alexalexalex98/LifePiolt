@@ -219,3 +219,18 @@ export function quality(s: Stats, tg: Targets): Quality | null {
   const label = score >= 80 ? 'Ottima' : score >= 65 ? 'Buona' : score >= 50 ? 'Discreta' : 'Da migliorare';
   return { score, label, level: score >= 65 ? 'ok' : score >= 50 ? 'attenzione' : 'carenza', parts: parts.map((p) => ({ ...p, score: Math.round(p.score * 10) / 10 })) };
 }
+
+const GUIDE = 'Rispondi in italiano, con tono da persona che conosce bene l\'utente, senza consigli medici: sono indicazioni generali. Formato: una frase iniziale con il giudizio; poi un elenco con «• » di al massimo 4 punti (cosa va bene, cosa manca o è troppo, un\'idea concreta per migliorare); usa il **grassetto** solo per 1-3 parole chiave. Niente titoli, niente emoji. Al massimo 120 parole. Se i dati sono pochi o stimati, dillo in una frase.';
+
+/** Testo da mandare all'AI per un parere dettagliato su un pasto (nessuna foto, nessun dato personale oltre a obiettivo e fabbisogno). */
+export function mealAiPrompt(m: { ts: number; name: string; macros: Macros }, items: { name: string; grams: number }[], ctx: Ctx = {}): string {
+  const x = m.macros;
+  const d = new Date(m.ts);
+  return `Dai un parere dettagliato su questo pasto (${slotOf(m.ts)}, ore ${pad(d.getHours())}:${pad(d.getMinutes())}).\nPiatto: ${m.name}\nIngredienti: ${items.map((i) => `${i.name} ${i.grams} g`).join('; ') || 'non indicati'}\nValori stimati: ${x.kcal} kcal, proteine ${x.p} g, carboidrati ${x.c} g, grassi ${x.f} g, grassi saturi ${x.sat ?? '?'} g, zuccheri ${x.sug ?? '?'} g, fibre ${x.fib ?? '?'} g, sale ${x.salt ?? '?'} g.\n${ctx.targetKcal ? `Fabbisogno giornaliero stimato: ${ctx.targetKcal} kcal. ` : ''}${ctx.goal ? `Obiettivo: ${ctx.goal}. ` : ''}\n${GUIDE}`;
+}
+
+/** Testo per un parere più dettagliato sulle medie dell'alimentazione (solo numeri). */
+export function analysisAiPrompt(s: Stats, list: Finding[], ctx: Ctx = {}, q?: { score: number; label: string } | null): string {
+  const a = s.avg;
+  return `Dai un parere dettagliato sull'alimentazione di una persona, dalle medie degli ultimi ${s.asked} giorni (${s.days} con pasti registrati).\nMedie al giorno: ${a.kcal} kcal, proteine ${a.p} g, carboidrati ${a.c} g, grassi ${a.f} g, grassi saturi ${a.sat ?? '?'} g, zuccheri ${a.sug ?? '?'} g, fibre ${a.fib ?? '?'} g, sale ${a.salt ?? '?'} g, acqua ${s.waterMl === null ? 'non registrata' : `${s.waterMl} ml`}, pasti al giorno ${s.mealsPerDay}.\n${ctx.targetKcal ? `Fabbisogno stimato: ${ctx.targetKcal} kcal. ` : ''}${q ? `Punteggio calcolato dall'app: ${q.score}/100 (${q.label}). ` : ''}\nPunti già rilevati dall'app: ${list.filter((f) => f.level !== 'ok').map((f) => f.title).join('; ') || 'nessuno'}.\nVitamine e minerali non sono registrati: non giudicarli.\n${GUIDE}`;
+}

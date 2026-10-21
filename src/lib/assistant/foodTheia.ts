@@ -1,6 +1,9 @@
 import { t } from '@/i18n/core';
-import { analysisText, dayOf, findings, groupByDay, mealOpinion, parseWater, periodStats, waterGoal } from '@/lib/fitness/mealInsights';
-import { dailyTarget } from '@/lib/fitness/nutrition';
+import { askSend, logSend } from '@/lib/aiConsent';
+import { tidy } from '@/lib/aiPersona';
+import { AiServerError, aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
+import { analysisAiPrompt, analysisText, dayOf, findings, groupByDay, mealOpinion, parseWater, periodStats, quality, waterGoal } from '@/lib/fitness/mealInsights';
+import { dailyTarget, dailyTargets } from '@/lib/fitness/nutrition';
 import { refreshFoodReminders } from '@/lib/foodNotify';
 import { useApp } from '@/store/app';
 import { useFitness } from '@/store/fitness';
@@ -27,6 +30,7 @@ export function eatingAnalysis(push: Push) {
   const list = findings(s, ctx());
   const text = analysisText(s, list, useApp.getState().account.name?.split(' ')[0]);
   push(t(text), [
+    ...(s.days ? [say(t('Chiedi all\'AI di approfondire'), 'approfondisci con l\'AI come mangio')] : []),
     { kind: 'open', label: t('Apri lo storico dei pasti'), page: 'fitnessDiary' },
     ...(s.waterMl === null || list.some((f) => f.id === 'acqua') ? [say(t('Segna l\'acqua di oggi'), 'Quanta acqua ho bevuto oggi?')] : []),
   ]);
@@ -72,6 +76,24 @@ function logWater(push: Push, ml: number) {
   }
 }
 
+/** Parere dettagliato dell'AI sulle medie (solo numeri), dopo il consenso. */
+export async function deepAnalysis(push: Push) {
+  if (!aiServerConfigured) { push(t('L\'AI non è collegata in questa app: ti ho dato l\'analisi che posso fare sul telefono.')); return; }
+  const fit = useFitness.getState();
+  const s = periodStats(fit.meals, fit.water ?? {}, Date.now(), 7);
+  if (!s.days) { push(t('Non ho ancora abbastanza pasti per chiedere un parere: registra qualche pasto e riprova.')); return; }
+  if (!(await askSend('summary', t('Medie degli ultimi 7 giorni: calorie, macronutrienti, zuccheri, saturi, fibre, sale e acqua.')))) { push(t('Va bene, non invio niente. Resta l\'analisi fatta sul telefono.')); return; }
+  const c = ctx();
+  const tg = fit.body ? dailyTargets(fit.body) : null;
+  const q = tg ? quality(s, tg) : null;
+  const prompt = analysisAiPrompt(s, findings(s, c), c, q);
+  try {
+    logSend('summary', prompt.length, ['testo']);
+    push(`${tidy(await aiChatRaw(prompt))}\n\n${t('Parere dell\'AI: può sbagliare, controlla su una fonte affidabile. Non è un consiglio medico.')}`);
+  } catch (e) { push(e instanceof AiServerError ? e.message : t('Non sono riuscito a contattare il servizio AI.')); }
+}
+
+const AI_DEEP = /\b(approfondisc\w*|pi[uù] dettagli\w*|parere)\b.*\b(ai|intelligenza|mang\w*|alimentazion\w*)\b/;
 const EAT = /\b(analizz\w*|analisi|valut\w*|giudic\w*|controll\w*)\b.*\b(mang\w*|alimentazion\w*|dieta|cibo|pasti|nutrizion\w*)\b|\bcome (sto )?mang\w+|\bcome mi alimento\b|\bsono carente\b|\bcarenz\w+\b.*\b(alimentazion\w*|dieta)|\bcosa (devo|dovrei) migliorare\b.*\b(mang\w*|alimentazion\w*|dieta)\b/;
 const EVENING = /com e andata oggi con il cibo/;
 const HISTORY = /\b(storico|diario|cronologia)\b.*\b(pasti|cibo|alimentazione|mangiato)\b|\bi miei pasti\b|\bcosa ho mangiato\b/;
@@ -110,6 +132,7 @@ export async function handleFood(text: string, push: Push, open: (page: string, 
     const ml = parseWater(text);
     if (ml !== null && ml > 0 && ml <= 5000) { logWater(push, ml); return true; }
   }
+  if (AI_DEEP.test(n) && /\b(mang\w*|alimentazion\w*)\b/.test(n)) { await deepAnalysis(push); return true; }
   if (EAT.test(n)) { eatingAnalysis(push); return true; }
   return false;
 }

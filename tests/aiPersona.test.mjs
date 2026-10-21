@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readStyle, styleHints, humanize } from '../src/lib/aiPersona.ts';
+import { readStyle, styleHints, humanize, tidy, toBlocks, inlineBold } from '../src/lib/aiPersona.ts';
 
 test('stile di chi scrive: lei/tu, lunghezza, tono', () => {
   assert.equal(readStyle(['Buongiorno, potrebbe aiutarmi con una scadenza?']).formal, true);
@@ -24,4 +24,21 @@ test('si tolgono i segni da chat-bot', () => {
   assert.match(out, /Energia Ticino SA: scade oggi \(Soldi\)/);
   assert.ok(!out.includes('\n\n\n'));
   assert.equal(humanize('2 * 3 = 6'), '2 * 3 = 6');
+});
+
+test('tidy: tiene il grassetto e rende leggibili gli elenchi', () => {
+  const out = tidy('## Dove sei carente\n* **Proteine:** poche\n- Fibre basse\n\n\n\nFine');
+  assert.match(out, /^\*\*Dove sei carente\*\*/);
+  assert.match(out, /• \*\*Proteine:\*\* poche/);
+  assert.match(out, /• Fibre basse/);
+  assert.ok(!out.includes('\n\n\n'));
+});
+
+test('blocchi di visualizzazione: titoli, elenchi, numerati, paragrafi', () => {
+  const b = toBlocks('Dove sei carente:\n• Proteine: poche\n  • dettaglio\n1. Prima cosa\n\nUna frase normale.');
+  assert.deepEqual(b.map((x) => x.kind), ['h', 'li', 'li', 'li', 'p', 'p']);
+  assert.equal(b[0].text, 'Dove sei carente');
+  assert.equal(b[2].indent, 1);
+  assert.equal(b[3].n, '1');
+  assert.deepEqual(inlineBold('ho **500 ml** di acqua'), [{ t: 'ho ', b: false }, { t: '500 ml', b: true }, { t: ' di acqua', b: false }]);
 });

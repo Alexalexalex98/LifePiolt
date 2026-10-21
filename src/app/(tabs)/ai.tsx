@@ -1,3 +1,4 @@
+import { RichText } from '@/components/RichText';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -173,7 +174,7 @@ export default function LifeChat() {
                     {item.image ? <Image source={{ uri: item.image }} style={{ width: 160, height: 100, borderRadius: 10, marginBottom: 6 }} contentFit="cover" /> : null}
                     {item.ext?.images?.length ? <MessageImages uris={item.ext.images} me={me} /> : null}
                     {item.ext?.attachments?.length ? <MessageAttachments items={item.ext.attachments} me={me} /> : null}
-                    {item.text ? <Text selectable style={{ color: me ? '#111' : t.text, fontSize: 15, lineHeight: 21 }}>{item.text}</Text> : null}
+                    {item.text ? (me ? <Text selectable style={{ color: '#111', fontSize: 15, lineHeight: 21 }}>{item.text}</Text> : <RichText text={item.text} color={t.text} accent={t.text} />) : null}
                     <MessageFooter ext={item.id === lastAi?.id ? item.ext : item.ext} me={me} onAction={(a) => void act(item.id, a)} />
                     {item.source === 'theia' && <Text style={{ color: me ? '#556' : t.muted, fontSize: 10, marginTop: 4 }}>da {name} sulla schermata</Text>}
                   </View>

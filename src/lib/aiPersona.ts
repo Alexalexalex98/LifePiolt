@@ -25,7 +25,8 @@ export function readStyle(userTexts: string[]): Style {
 export function styleHints(userTexts: string[]): string {
   const s = readStyle(userTexts);
   const lines = [
-    'Scrivi come una persona che conosce bene l\'utente, non come un assistente AI: niente «Certamente!», niente «Come intelligenza artificiale», niente titoli, niente elenchi puntati a meno che servano davvero, niente grassetto né simboli di markdown, niente emoji.',
+    'Scrivi come una persona che conosce bene l\'utente, non come un assistente AI: niente «Certamente!», niente «Come intelligenza artificiale», niente emoji.',
+    'Leggibilità: metti la sostanza in una frase iniziale; poi, se serve, paragrafi brevi (al massimo 3 righe) separati da una riga vuota. Se elenchi 3 o più cose usa un elenco con «• » (al massimo 5 voci, una riga ciascuna). Usa il **grassetto** solo per 1-3 parole chiave o numeri importanti, mai per frasi intere. Niente titoli con #, niente tabelle, niente blocchi di codice. Chiudi con una sola proposta o domanda breve solo se serve davvero.',
     'Frasi naturali, dirette e calde; vai al punto prima e spiega dopo solo se serve.',
     s.formal ? 'L\'utente scrive in modo formale: dagli del «lei» e resta educato e sobrio.' : 'Dagli del «tu» e usa un tono amichevole, come tra conoscenti.',
     s.length === 'brevissima' ? 'L\'utente scrive messaggi brevissimi: rispondi in una o due frasi, al massimo.' : s.length === 'breve' ? 'L\'utente scrive messaggi brevi: rispondi breve (2-4 frasi).' : s.length === 'media' ? 'Rispondi in modo completo ma compatto (un paio di brevi paragrafi).' : 'L\'utente scrive messaggi articolati: puoi rispondere in modo più completo e ragionato, sempre ordinato.',
@@ -50,4 +51,47 @@ export function humanize(text: string): string {
     .replace(/^(\s*)–\s+–\s+/gm, '$1– ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+/**
+ * Come `humanize`, ma tiene il **grassetto** e rende leggibili gli elenchi: gli asterischi e i trattini diventano «• », i titoli con # diventano una riga in grassetto.
+ * Il testo si mostra con il componente RichText (grassetto, elenchi con rientro, paragrafi staccati).
+ */
+export function tidy(text: string): string {
+  return String(text ?? '')
+    .replace(/\r/g, '')
+    .replace(/```[a-z]*\n?|```/gi, '')
+    .replace(/^\s{0,3}#{1,6}\s+(.+)$/gm, '**$1**')
+    .replace(/__(.+?)__/gs, '**$1**')
+    .replace(/(^|[^*\w])\*(?!\s|\*)([^*\n]+?)\*(?!\w)/g, '$1$2')
+    .replace(/^(\s*)[*•–-]\s+/gm, '$1• ')
+    .replace(/^(\s*)•\s+•\s+/gm, '$1• ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/** Spezza il testo in blocchi per la visualizzazione: paragrafi, elenchi (anche numerati) e righe-titolo che finiscono con «:». */
+export type Block = { kind: 'p' | 'li' | 'h'; text: string; n?: string; indent?: number };
+export function toBlocks(text: string): Block[] {
+  const out: Block[] = [];
+  for (const raw of String(text ?? '').split('\n')) {
+    const line = raw.replace(/\s+$/, '');
+    if (!line.trim()) { out.push({ kind: 'p', text: '' }); continue; }
+    const indent = (line.match(/^\s*/)?.[0].length ?? 0) >= 2 ? 1 : 0;
+    const li = line.trim().match(/^•\s+(.*)$/);
+    const num = line.trim().match(/^(\d{1,2})[.)]\s+(.*)$/);
+    if (li) out.push({ kind: 'li', text: li[1], indent });
+    else if (num) out.push({ kind: 'li', text: num[2], n: num[1], indent });
+    else if (/^[^.!?]{2,46}:$/.test(line.trim())) out.push({ kind: 'h', text: line.trim().replace(/:$/, '') });
+    else out.push({ kind: 'p', text: line.trim() });
+  }
+  // le righe vuote consecutive e quelle in testa/coda non servono
+  return out.filter((b, i, a) => !(b.kind === 'p' && !b.text && (i === 0 || i === a.length - 1 || (a[i - 1].kind === 'p' && !a[i - 1].text))));
+}
+
+/** Pezzi di una riga con il **grassetto**. */
+export function inlineBold(text: string): { t: string; b: boolean }[] {
+  const parts: { t: string; b: boolean }[] = [];
+  text.split(/(\*\*[^*]+\*\*)/g).forEach((x) => { if (!x) return; const m = x.match(/^\*\*([^*]+)\*\*$/); parts.push(m ? { t: m[1], b: true } : { t: x, b: false }); });
+  return parts;
 }

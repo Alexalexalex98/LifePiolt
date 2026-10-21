@@ -13,9 +13,9 @@ import { totalUnread, useChat } from '@/store/chat';
 import { useApp, navCatalog } from '@/store/app';
 import { joinReasons, rankTasks } from '@/lib/priority';
 import { t, translateText } from '@/i18n/core';
-import { humanize, styleHints } from '@/lib/aiPersona';
+import { humanize, styleHints, tidy } from '@/lib/aiPersona';
 import { useAssistant } from '@/store/assistant';
-import { aiChat, aiReadFilesFull, aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
+import { aiChat, aiChatRaw, aiReadFilesFull, aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
 import { useLife } from '@/store/life';
 
 /**
@@ -277,7 +277,7 @@ function theiaPrompt(question: string, selection?: string): string {
 
 /** Domanda libera in chat: risponde il server AI come una persona (con la conversazione recente). */
 export async function askTheiaChat(question: string): Promise<string> {
-  return humanize(await aiChat(theiaPrompt(question)));
+  return tidy(await aiChatRaw(theiaPrompt(question)));
 }
 
 /** Domanda su file o foto inviati (consenso gia' dato): risponde il server AI leggendo i file. `result` e' la lettura strutturata dei documenti. */

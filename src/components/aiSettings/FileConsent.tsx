@@ -21,6 +21,12 @@ export function FileConsentCard() {
         <Pill label="Consenti sempre" on={c.files === 'always'} onPress={() => set({ files: 'always' })} />
         <Pill label="Non consentire" on={c.files === 'never'} onPress={() => set({ files: 'never' })} />
       </Row>
+      <Body bold style={{ marginTop: 12 }}>Pareri dell'AI su pasti e alimentazione (solo testo e valori)</Body>
+      <Row gap={8} style={{ marginTop: 6 }}>
+        <Pill label="Chiedi ogni volta" on={(c.summary ?? 'ask') === 'ask'} onPress={() => set({ summary: 'ask' })} />
+        <Pill label="Consenti sempre" on={c.summary === 'always'} onPress={() => set({ summary: 'always' })} />
+        <Pill label="Non consentire" on={c.summary === 'never'} onPress={() => set({ summary: 'never' })} />
+      </Row>
     </Card>
   );
 }

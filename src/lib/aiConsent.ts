@@ -1,13 +1,13 @@
 /**
  * Consenso prima di mandare foto o file al servizio AI (Google Gemini, dal nostro server).
- *  - 'food': la foto di un piatto; 'files': foto e documenti in chat (bollette, PDF...).
+ *  - 'food': la foto di un piatto; 'files': foto e documenti in chat (bollette, PDF...); 'summary': solo il testo di un pasto o i valori medi dell'alimentazione.
  *  Per entrambi: consenti una volta / consenti sempre / non consentire (si cambia nelle impostazioni).
  * Senza consenso il file resta sul telefono e Theia non lo legge. Il contenuto non viene mai registrato: nel registro finiscono solo tipo e dimensione.
  */
 import { alertT } from '@/lib/alert';
 import { useAiRouter } from '@/store/aiRouter';
 
-export type SendKind = 'food' | 'files';
+export type SendKind = 'food' | 'files' | 'summary';
 
 const WARN = 'Se non consenti, Theia non potrà capire file, foto e documenti: li terrò solo sul telefono.';
 
@@ -21,8 +21,10 @@ export function askSend(kind: SendKind, what?: string): Promise<boolean> {
   if (mode === 'always') return Promise.resolve(true);
   if (mode === 'never') return Promise.resolve(false);
   return new Promise((resolve) => {
-    const head = kind === 'food' ? 'Inviare la foto del piatto al servizio AI?' : 'Inviare questo file al servizio AI?';
-    const body = `${what ? `${what}\n\n` : ''}${kind === 'food'
+    const head = kind === 'food' ? 'Inviare la foto del piatto al servizio AI?' : kind === 'summary' ? 'Inviare questi valori al servizio AI?' : 'Inviare questo file al servizio AI?';
+    const body = `${what ? `${what}\n\n` : ''}${kind === 'summary'
+      ? 'Per darti un parere più dettagliato devo mandare al servizio AI (Google Gemini), tramite il server di LifePilot, solo il testo con i valori del pasto o le medie dei nutrienti. Niente foto, nome, salute in generale, finanze o contatti.'
+      : kind === 'food'
       ? 'Per riconoscere gli alimenti devo mandare la foto al servizio AI (Google Gemini), tramite il server di LifePilot. Non invio altro: né salute, né finanze, né contatti.'
       : 'Per leggerlo devo mandarlo al servizio AI (Google Gemini), tramite il server di LifePilot. Non invio altro: né salute, né finanze, né contatti.'}\n\n${WARN}`;
     alertT(head, body, [

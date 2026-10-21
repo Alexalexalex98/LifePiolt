@@ -1,5 +1,5 @@
 {
- "count": 12274,
+ "count": 12301,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -34,7 +34,7 @@
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 39,
   "src/app/(tabs)/fitnessMeal.tsx": 84,
-  "src/app/(tabs)/fitnessMealCard.tsx": 17,
+  "src/app/(tabs)/fitnessMealCard.tsx": 26,
   "src/app/(tabs)/fitnessPass.tsx": 27,
   "src/app/(tabs)/fitnessProgram.tsx": 36,
   "src/app/(tabs)/fitnessWorkout.tsx": 25,
@@ -155,7 +155,7 @@
   "src/components/TheiaHost.tsx": 42,
   "src/components/TripCards.tsx": 20,
   "src/components/WeeklyReportButton.tsx": 2,
-  "src/components/aiSettings/FileConsent.tsx": 7,
+  "src/components/aiSettings/FileConsent.tsx": 8,
   "src/components/aiSettings/LocalCapabilities.tsx": 4,
   "src/components/aiSettings/ProvidersSection.tsx": 21,
   "src/components/aiSettings/SendLog.tsx": 9,
@@ -307,7 +307,7 @@
   "src/domain/operations.ts": 10,
   "src/lib/a11y.ts": 1,
   "src/lib/ai.ts": 26,
-  "src/lib/aiConsent.ts": 9,
+  "src/lib/aiConsent.ts": 11,
   "src/lib/aiPersona.ts": 11,
   "src/lib/aiRouter/adapters/index.ts": 1,
   "src/lib/aiRouter/adapters/mock.ts": 1,
@@ -333,7 +333,7 @@
   "src/lib/assistant/engine.ts": 224,
   "src/lib/assistant/env.ts": 7,
   "src/lib/assistant/followup.ts": 4,
-  "src/lib/assistant/foodTheia.ts": 30,
+  "src/lib/assistant/foodTheia.ts": 38,
   "src/lib/assistant/nlp.ts": 9,
   "src/lib/assistant/phrases.ts": 101,
   "src/lib/assistant/phrasesMore.ts": 128,
@@ -405,7 +405,7 @@
   "src/lib/fitness/foodDb.ts": 24,
   "src/lib/fitness/groups.ts": 16,
   "src/lib/fitness/gymPay.ts": 11,
-  "src/lib/fitness/mealInsights.ts": 64,
+  "src/lib/fitness/mealInsights.ts": 73,
   "src/lib/fitness/nutrition.ts": 68,
   "src/lib/fitness/plan.ts": 15,
   "src/lib/fitness/poses.ts": 368,
@@ -549,5 +549,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1567
+ "withPlaceholders": 1575
 }
