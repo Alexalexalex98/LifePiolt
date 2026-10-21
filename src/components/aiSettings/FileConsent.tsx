@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { View } from 'react-native';
 
-import { Body, Btn, Card, H, Pill, Row } from '@/components/ui';
+import { Body, Btn, Card, H, Input, Pill, Row } from '@/components/ui';
+import { useAiServerCfg } from '@/store/aiServerCfg';
+import { toast } from '@/store/toast';
 import { aiServerConfigured, aiServerHost, pingAiServer } from '@/lib/aiServer';
 import { useAiRouter } from '@/store/aiRouter';
 
@@ -34,16 +37,39 @@ export function FileConsentCard() {
   );
 }
 
-/** Stato del collegamento al server AI di questa versione dell'app: serve a capire subito se in una build mancano indirizzo e token. */
+/** Collegamento al server AI di questa app: si può inserire qui indirizzo e token (valgono anche in una build senza variabili) e provare che risponda. */
 export function AiServerStatus() {
+  const cfg = useAiServerCfg();
   const [res, setRes] = useState<{ ok: boolean; ms: number; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [url, setUrl] = useState(cfg.url);
+  const [token, setToken] = useState(cfg.token);
+  const [edit, setEdit] = useState(!aiServerConfigured);
+  const save = () => {
+    const u = url.trim();
+    if (u && !/^https:\/\/\S+$/.test(u)) { toast('L\'indirizzo deve iniziare con https://'); return; }
+    cfg.set({ url: u, token: token.trim() });
+    toast('Salvato');
+    setEdit(false);
+    setRes(null);
+  };
+  const test = async () => { setBusy(true); setRes(await pingAiServer()); setBusy(false); };
   return (
     <Card>
       <H>Server AI di questa app</H>
-      <Body small style={{ marginTop: 4 }}>{aiServerConfigured ? `Collegato a ${aiServerHost}` : 'Non collegato: in questa versione mancano l\'indirizzo e il token del server AI, quindi l\'analisi dei piatti e le risposte dell\'AI non funzionano.'}</Body>
+      <Body small style={{ marginTop: 4 }}>{aiServerConfigured ? `Collegato a ${aiServerHost}${cfg.url ? ' (inserito nell\'app)' : ' (dalla build)'}` : 'Non collegato: mancano l\'indirizzo e la parola d\'ordine del server AI. Inseriscili qui sotto: restano solo su questo telefono.'}</Body>
+      {edit ? (
+        <View style={{ marginTop: 8, gap: 8 }}>
+          <Input placeholder="Indirizzo, es. https://nome.account.workers.dev" value={url} onChangeText={setUrl} autoCapitalize="none" autoCorrect={false} keyboardType="url" />
+          <Input placeholder="Parola d'ordine (token)" value={token} onChangeText={setToken} autoCapitalize="none" autoCorrect={false} secureTextEntry />
+          <Btn title="Salva" onPress={save} />
+        </View>
+      ) : null}
       {res ? <Body small bold style={{ marginTop: 6 }}>{`${res.ok ? 'OK' : 'Problema'} · ${res.message}${res.ms ? ` (${(res.ms / 1000).toFixed(1)} s)` : ''}`}</Body> : null}
-      <Btn style={{ marginTop: 8 }} ghost title={busy ? 'Provo…' : 'Prova il collegamento'} disabled={busy} onPress={async () => { setBusy(true); setRes(await pingAiServer()); setBusy(false); }} />
+      <Row style={{ marginTop: 8, justifyContent: 'flex-start' }} gap={8}>
+        <Btn small ghost title={busy ? 'Provo…' : 'Prova il collegamento'} disabled={busy} onPress={() => void test()} />
+        {!edit ? <Btn small ghost title="Cambia indirizzo e token" onPress={() => { setUrl(cfg.url); setToken(cfg.token); setEdit(true); }} /> : null}
+      </Row>
     </Card>
   );
 }

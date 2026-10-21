@@ -5,17 +5,30 @@
  * Endpoint: POST /chat {message}, /vision {image, mime, prompt}, /analyze {files, question, context}, /translate {lang, texts}.
  * ATTENZIONE: tutto ciò che è EXPO_PUBLIC_ finisce dentro l'app. Il token va bene per le prove tue; per il pubblico serve un accesso per utente.
  */
-const URL_BASE = (process.env.EXPO_PUBLIC_AI_URL ?? '').replace(/\/+$/, '');
-const TOKEN = process.env.EXPO_PUBLIC_AI_TOKEN ?? '';
 import { File } from 'expo-file-system';
+import { useAiServerCfg } from '@/store/aiServerCfg';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { humanize } from './aiPersona';
 import { bytesToBase64, readUriBytes } from './readUri';
 /** Versione del collegamento al server AI: compare negli errori, cosi' si vede quale codice sta girando sul telefono. */
 export const AI_BUILD = 'ai-v5';
+/* Indirizzo e token: prima quelli inseriti nell'app (Impostazioni > Intelligenza di Theia), altrimenti quelli della build. I valori cambiano da soli quando li modifichi. */
+const ENV_URL = process.env.EXPO_PUBLIC_AI_URL ?? '';
+const ENV_TOKEN = process.env.EXPO_PUBLIC_AI_TOKEN ?? '';
+let URL_BASE = '';
+let TOKEN = '';
 /** Indirizzo del server AI senza il token (per mostrarlo nelle impostazioni). */
-export const aiServerHost = URL_BASE.replace(/^https?:\/\//, '');
-export const aiServerConfigured = Boolean(URL_BASE && TOKEN);
+export let aiServerHost = '';
+export let aiServerConfigured = false;
+function applyCfg() {
+  const c = useAiServerCfg.getState();
+  URL_BASE = (c.url || ENV_URL).trim().replace(/\/+$/, '');
+  TOKEN = (c.token || ENV_TOKEN).trim();
+  aiServerHost = URL_BASE.replace(/^https?:\/\//, '');
+  aiServerConfigured = Boolean(URL_BASE && TOKEN);
+}
+applyCfg();
+useAiServerCfg.subscribe(applyCfg);
 
 export class AiServerError extends Error {
   status: number;
