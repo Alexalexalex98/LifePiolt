@@ -5,7 +5,7 @@ import { Text } from '@/components/T';
 
 import { FIT, FitHero, Ring, StatTile } from '@/components/fitness/kit';
 import { QrView } from '@/components/profile/CardFace';
-import { Body, Btn, Card, H, Item, Page, Pill, Row, Sheet, Switch } from '@/components/ui';
+import { Body, Btn, Card, H, Item, Page, Pill, Row, Sheet, Switch, TabRow } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { PARTNER_GYMS, type Goal, type Level, type Place } from '@/lib/fitness/data';
@@ -26,6 +26,8 @@ const GOALS: Goal[] = ['dimagrire', 'tonificare', 'massa', 'forza', 'resistenza'
 const LEVELS: Level[] = ['principiante', 'intermedio', 'avanzato'];
 const PLACES: Place[] = ['casa', 'palestra', 'piscina'];
 const DAYS = ['L', 'M', 'M', 'G', 'V', 'S', 'D'];
+/** La pagina è divisa in quattro parti: oggi, allenamenti, cibo e abbonamento/centri. */
+const TABS = ['Oggi', 'Allenarsi', 'Cibo', 'LifePass e centri'];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** LifeFitness: il personal trainer sempre con te e il LifePass per i centri convenzionati e l'analisi dei pasti. */
@@ -36,6 +38,7 @@ export default function LifeFitness() {
   const net = useNet();
     const [setup, setSetup] = useState(false);
   const [pass, setPass] = useState(false);
+  const [tab, setTab] = useState('Oggi');
   /* acquisto del LifePass come un abbonamento: riepilogo, conferma, elaborazione, esito */
   const [buy, setBuy] = useState<'off' | 'ask' | 'busy' | 'done' | 'fail'>('off');
   const [buyMsg, setBuyMsg] = useState('');
@@ -43,7 +46,7 @@ export default function LifeFitness() {
   const [draft, setDraft] = useState<FitProfile>(fit.profile ?? { goal: 'tonificare', level: 'principiante', place: 'casa', days: 3, minutes: 30 });
   /* arrivi da «LifePass» dopo aver letto come funziona: solo ora si apre la conferma */
   const { buy: buyParam } = useLocalSearchParams<{ buy?: string }>();
-  useEffect(() => { if (buyParam) { router.setParams({ buy: '' }); setBuy('ask'); } }, [buyParam]);
+  useEffect(() => { if (buyParam) { router.setParams({ buy: '' }); setTab('LifePass e centri'); setBuy('ask'); } }, [buyParam]);
   useEffect(() => { fit.settle(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const now = Date.now();
   const state = premiumState(fit.sub, now);
@@ -70,6 +73,10 @@ export default function LifeFitness() {
 
   return (
     <Page id="lifefitness" title="LifeFitness">
+          <TabRow options={TABS} value={tab} onChange={setTab} />
+
+          {tab === 'Oggi' ? (
+            <>
           {!fit.profile ? (
             <FitHero eyebrow="Personal trainer" title="Allenati meglio" sub="Obiettivo, livello e luogo: preparo il programma e ti guido sessione dopo sessione, anche senza internet.">
               <Btn title="Crea il tuo piano" onPress={() => setSetup(true)} />
@@ -108,23 +115,31 @@ export default function LifeFitness() {
             </Row>
           ) : null}
 
-          {state === 'nessuno' || state === 'scaduto' ? (
-            <Card accent={FIT}>
-              <Pressable onPress={() => go('fitnessPass')} accessibilityRole="button" accessibilityLabel="Apri la pagina LifePass"><Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass</H><Body small muted>{`${PREMIUM_PRICE_LP} LP ${tl('al mese')}`}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row></Pressable>
-              <Body small muted style={{ marginVertical: 8 }}>Un solo pass per entrare in palestre, piscine e centri sportivi convenzionati.</Body>
-              {['Accesso a tutti i centri convenzionati: palestre, piscine, centri sportivi', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 6 }} gap={8}><Icon name="check" size={15} color={FIT} stroke={2.6} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
-              {state === 'scaduto' ? <Body small color={t.warn} style={{ marginTop: 2 }}>Il tuo LifePass è scaduto.</Body> : null}
-              <Btn style={{ marginTop: 8 }} title={tl('Attiva il LifePass · {0} LP', PREMIUM_PRICE_LP)} onPress={() => go('fitnessPass')} />
-              <Body small muted style={{ marginTop: 6 }}>{tl('Hai {0} LP. Si rinnova da solo ogni 30 giorni, se hai i LifePoints.', net.lifePoints)}</Body>
-            </Card>
-          ) : (
-            <Card accent={FIT}>
-              <Pressable onPress={() => go('fitnessPass')} accessibilityRole="button" accessibilityLabel="Apri la pagina LifePass"><Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass attivo</H><Body small muted>{tl('Ancora {0} giorni', daysLeft(fit.sub, now))} · {state === 'attivo' ? 'si rinnova da solo' : 'non si rinnova'}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row></Pressable>
-              <Btn style={{ marginTop: 10 }} icon="lifefitness" title="Mostra il pass d'ingresso" onPress={() => setPass(true)} />
-              <Row style={{ marginTop: 10 }}><Body style={{ flex: 1 }}>Rinnovo automatico</Body><Switch value={!!fit.sub?.autoRenew} onValueChange={(v) => fit.setAutoRenew(v)} accessibilityLabel="Rinnovo automatico" /></Row>
-            </Card>
-          )}
+            </>
+          ) : null}
 
+          {tab === 'Allenarsi' ? (
+            <>
+          <H style={{ marginTop: 8 }}>{fit.profile ? 'Programmi per te' : 'Programmi'}</H>
+          {(fit.profile ? recs : ALL_PROGRAMS.slice(0, 4)).map((p) => (
+            <Card key={p.id} onPress={() => go('fitnessProgram', { id: p.id })}>
+              <Row><View style={{ flex: 1 }}><Body bold>{p.name}</Body><Body small muted>{p.tagline}</Body>{fit.profile ? <Body small color={FIT} style={{ marginTop: 3 }}>{whyThis(p, fit.profile)[0]}</Body> : null}</View><Icon name="chevron" size={18} color={t.muted} /></Row>
+              <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={6}>
+                <Pill label={cap(p.level)} off /><Pill label={cap(p.place)} off /><Pill label={`${p.days} gg/sett.`} off />{p.specialty ? <Pill label={p.specialty} off /> : null}
+              </Row>
+            </Card>
+          ))}
+          <Btn ghost title={tl('Tutte le schede ({0})', ALL_PROGRAMS.length)} onPress={() => go('fitnessProgram', { id: '' })} />
+          <Btn ghost icon="lifefitness" title="Libreria degli esercizi" onPress={() => setLib(true)} />
+
+          <Card accent={FIT} onPress={() => go('fitnessGroups')}>
+            <Row><View style={{ flex: 1 }}><H>Allenati in gruppo</H><Body small muted>Gruppi gratuiti e a pagamento, ognuno con la sua community. Puoi anche crearne uno.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+          </Card>
+            </>
+          ) : null}
+
+          {tab === 'Cibo' ? (
+            <>
           <Card>
             <Row gap={14}>
               <Ring value={target ? kcal / target : 0} big={String(kcal)} small={target ? `/ ${target}` : 'kcal'} />
@@ -142,21 +157,28 @@ export default function LifeFitness() {
             <Row><View style={{ flex: 1 }}><H>Storico dei pasti</H><Body small muted>Giorno per giorno, con foto e acqua. Theia ti dice dove sei carente e cosa migliorare.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
           </Card>
 
-          <H style={{ marginTop: 8 }}>{fit.profile ? 'Programmi per te' : 'Programmi'}</H>
-          {(fit.profile ? recs : ALL_PROGRAMS.slice(0, 4)).map((p) => (
-            <Card key={p.id} onPress={() => go('fitnessProgram', { id: p.id })}>
-              <Row><View style={{ flex: 1 }}><Body bold>{p.name}</Body><Body small muted>{p.tagline}</Body>{fit.profile ? <Body small color={FIT} style={{ marginTop: 3 }}>{whyThis(p, fit.profile)[0]}</Body> : null}</View><Icon name="chevron" size={18} color={t.muted} /></Row>
-              <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={6}>
-                <Pill label={cap(p.level)} off /><Pill label={cap(p.place)} off /><Pill label={`${p.days} gg/sett.`} off />{p.specialty ? <Pill label={p.specialty} off /> : null}
-              </Row>
-            </Card>
-          ))}
-          <Btn ghost title={tl('Tutte le schede ({0})', ALL_PROGRAMS.length)} onPress={() => go('fitnessProgram', { id: '' })} />
-          <Btn ghost icon="lifefitness" title="Libreria degli esercizi" onPress={() => setLib(true)} />
+            </>
+          ) : null}
 
-          <Card accent={FIT} onPress={() => go('fitnessGroups')}>
-            <Row><View style={{ flex: 1 }}><H>Allenati in gruppo</H><Body small muted>Gruppi gratuiti e a pagamento, ognuno con la sua community. Puoi anche crearne uno.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
-          </Card>
+          {tab === 'LifePass e centri' ? (
+            <>
+          {state === 'nessuno' || state === 'scaduto' ? (
+            <Card accent={FIT}>
+              <Pressable onPress={() => go('fitnessPass')} accessibilityRole="button" accessibilityLabel="Apri la pagina LifePass"><Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass</H><Body small muted>{`${PREMIUM_PRICE_LP} LP ${tl('al mese')}`}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row></Pressable>
+              <Body small muted style={{ marginVertical: 8 }}>Un solo pass per entrare in palestre, piscine e centri sportivi convenzionati.</Body>
+              {['Accesso a tutti i centri convenzionati: palestre, piscine, centri sportivi', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 6 }} gap={8}><Icon name="check" size={15} color={FIT} stroke={2.6} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
+              {state === 'scaduto' ? <Body small color={t.warn} style={{ marginTop: 2 }}>Il tuo LifePass è scaduto.</Body> : null}
+              <Btn style={{ marginTop: 8 }} title={tl('Attiva il LifePass · {0} LP', PREMIUM_PRICE_LP)} onPress={() => go('fitnessPass')} />
+              <Body small muted style={{ marginTop: 6 }}>{tl('Hai {0} LP. Si rinnova da solo ogni 30 giorni, se hai i LifePoints.', net.lifePoints)}</Body>
+            </Card>
+          ) : (
+            <Card accent={FIT}>
+              <Pressable onPress={() => go('fitnessPass')} accessibilityRole="button" accessibilityLabel="Apri la pagina LifePass"><Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass attivo</H><Body small muted>{tl('Ancora {0} giorni', daysLeft(fit.sub, now))} · {state === 'attivo' ? 'si rinnova da solo' : 'non si rinnova'}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row></Pressable>
+              <Btn style={{ marginTop: 10 }} icon="lifefitness" title="Mostra il pass d'ingresso" onPress={() => setPass(true)} />
+              <Row style={{ marginTop: 10 }}><Body style={{ flex: 1 }}>Rinnovo automatico</Body><Switch value={!!fit.sub?.autoRenew} onValueChange={(v) => fit.setAutoRenew(v)} accessibilityLabel="Rinnovo automatico" /></Row>
+            </Card>
+          )}
+
           <Card accent={FIT} onPress={() => go('fitnessGyms')}>
             <Row><View style={{ flex: 1 }}><H>Centri convenzionati</H><Body small muted>{tl('{0} centri: palestre, piscine, centri sportivi', PARTNER_GYMS.length + fit.approved.length)}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
           </Card>
@@ -169,6 +191,8 @@ export default function LifeFitness() {
           <Card onPress={() => go('fitnessGymRegister')}>
             <Row><View style={{ flex: 1 }}><H>Sei una palestra o un centro sportivo?</H><Body small muted>Registrati gratis e chiedi di entrare nel programma: offri un servizio e ricevi una parte dei ricavi.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
           </Card>
+            </>
+          ) : null}
       <Body small muted style={{ marginTop: 12 }}>I programmi e le calorie sono indicazioni generali, non sostituiscono il parere di un medico o di un allenatore. Se hai problemi di salute, parlane prima con il tuo medico.</Body>
 
       <ExercisePicker visible={lib} title="Libreria degli esercizi" onClose={() => setLib(false)} onPick={(e) => { setLib(false); go('fitnessExercise', { id: e.id }); }} />

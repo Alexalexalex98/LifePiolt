@@ -142,3 +142,25 @@ test('serie per il Life Score: allenamenti e qualità del cibo', () => {
   assert.ok(sera[0].v < 45, String(sera[0].v));
   assert.equal(dietSeries([{ ...junkMeal, ts: at(2026, 10, 21, 9) }], {}, null, '2026-10-21', 10).length, 0);
 });
+
+import { NUTRIENTS, portionAmount, NUTRIENT_DISCLAIMER } from '../src/lib/fitness/nutrientInfo.ts';
+import { MICRO_KEYS as MK, MICRO_INFO } from '../src/lib/fitness/micro.ts';
+
+test('schede dei nutrienti: ogni vitamina e minerale ha 5 alimenti, valori sensati e porzioni', () => {
+  for (const k of MK) {
+    const n = NUTRIENTS[k];
+    assert.ok(n, k);
+    assert.equal(n.unit, MICRO_INFO[k].unit, `${k} unità`);
+    assert.equal(n.sources.length, 5, `${k} alimenti`);
+    assert.ok(n.what.length > 20 && n.why.length >= 1 && n.tip.length > 10, k);
+    for (const f of n.sources) assert.ok(f.per100 > 0 && f.portion > 0 && f.name && f.note, `${k} ${f.name}`);
+    const sorted = [...n.sources].map((f) => f.per100);
+    assert.deepEqual(sorted, [...sorted].sort((a, b) => b - a), `${k} dal più ricco`);
+  }
+  for (const id of ['protein', 'carbs', 'fat', 'sat', 'sugar', 'fibre', 'salt', 'water']) assert.equal(NUTRIENTS[id].sources.length, 5, id);
+  const kiwi = NUTRIENTS.vitC.sources.find((f) => f.name === 'Kiwi');
+  const p = portionAmount('vitC', kiwi);
+  assert.ok(p.amount > 60 && p.pct > 80);
+  assert.equal(portionAmount('protein', NUTRIENTS.protein.sources[0]).pct, null);
+  assert.match(NUTRIENT_DISCLAIMER, /non un consiglio medico/);
+});

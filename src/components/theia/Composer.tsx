@@ -72,6 +72,8 @@ export function Composer({ appLang, busy, placeholder, onSend, openAttach }: {
   const [langOpen, setLangOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [focused, setFocused] = useState(false);
+  /** altezza della casella: cresce con le righe scritte (fino a circa 6) */
+  const [inputH, setInputH] = useState(40);
   const [whyOpen, setWhyOpen] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const transport = useRef<SpeechTransport | null>(null);
@@ -244,7 +246,8 @@ export function Composer({ appLang, busy, placeholder, onSend, openAttach }: {
           returnKeyType={Platform.OS === 'web' ? 'send' : 'default'}
           multiline={Platform.OS !== 'web'}
           editable={!active}
-          style={{ marginBottom: 0, minWidth: 0, minHeight: 40, maxHeight: 120, backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 4, paddingTop: 9, paddingBottom: 9, fontSize: 16.5, textAlignVertical: 'center' }}
+          onContentSizeChange={(e) => setInputH(Math.max(40, Math.min(150, Math.ceil(e.nativeEvent.contentSize.height) + 18)))}
+          style={{ marginBottom: 0, minWidth: 0, minHeight: 40, maxHeight: 150, height: text ? inputH : 40, backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 4, paddingTop: 9, paddingBottom: 9, fontSize: 16.5, textAlignVertical: 'center' }}
         />
         {text.trim().length > 0 || atts.length > 0 ? (
           <Pressable onPress={doSend} disabled={!canSend} accessibilityRole="button" accessibilityLabel={translateText('Invia')} accessibilityState={{ disabled: !canSend }} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: canSend ? 1 : 0.4 }}>
