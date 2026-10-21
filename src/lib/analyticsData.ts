@@ -10,6 +10,9 @@ import { categoryOf, useFin, monthEnd, type FinMonth } from '@/store/finance';
 import { healthMeta, pointsOf, useHealth, type Metric } from '@/store/health';
 import { useContext } from '@/store/context';
 import { useLife } from '@/store/life';
+import { useFitness } from '@/store/fitness';
+import { dailyTargets } from '@/lib/fitness/nutrition';
+import { dietSeries, trainingSeries } from '@/lib/fitness/scoreInputs';
 import { t } from '@/i18n/core';
 
 /* ---------- definizioni delle metriche ---------- */
@@ -36,6 +39,8 @@ export const defs: Record<string, MetricDef> = {
   sun: { id: 'sun', label: 'Ore di sole', unit: 'h', domain: 'contesto', better: 'none', dec: 1, color: '#e0c97b', period: 'day' },
   temp: { id: 'temp', label: 'Temperatura massima', unit: '°C', domain: 'contesto', better: 'none', dec: 0, color: '#ff9d9d', period: 'day' },
   events: { id: 'events', label: 'Impegni in calendario', unit: '/giorno', domain: 'contesto', better: 'none', dec: 0, color: '#8fb3ff', period: 'day' },
+  training: { id: 'training', label: 'Allenamento', unit: 'sessioni/giorno', domain: 'salute', better: 'up', target: 3 / 7, dec: 2, color: '#ff9d6e', period: 'day' },
+  diet: { id: 'diet', label: 'Qualità del cibo', unit: '/100', domain: 'salute', better: 'up', target: 85, dec: 0, color: '#5fd39a', period: 'day' },
   tasks: { id: 'tasks', label: 'Task completati', unit: '/giorno', domain: 'crescita', better: 'up', target: 2, dec: 1, color: '#8fb3ff', period: 'day' },
 };
 
@@ -123,6 +128,12 @@ export function collect(today = todayStr()): Series[] {
     for (let n = dayDiff(first, today), i = 0; i <= n; i++) { const d = addDays(first, i); pts.push({ d, v: done.get(d) ?? 0 }); }
     out.push({ def: defs.tasks, pts: pts.slice(-60), source: 'manuale' });
   }
+  /* allenamento e alimentazione contano nell'area Salute: se non ti alleni o mangi male il Life Score scende */
+  const fit = useFitness.getState();
+  const tr = trainingSeries(fit.history ?? [], fit.profile?.days, today);
+  if (tr) out.push({ def: { ...defs.training, target: tr.target }, pts: tr.pts, source: 'LifeFitness' });
+  const diet = dietSeries(fit.meals ?? [], fit.water ?? {}, fit.body ? dailyTargets(fit.body) : null, today, new Date().getHours());
+  if (diet.length) out.push({ def: defs.diet, pts: diet, source: 'LifeFitness' });
   life.goals.forEach((g) => {
     if ((g.hist?.length ?? 0) >= 2) out.push({ def: { id: `goal:${g.id}`, label: g.t, unit: '%', domain: 'crescita', better: 'up', dec: 0, color: '#8fa4ff', period: 'day' }, pts: g.hist!.map((x) => ({ d: x.d, v: x.p })), source: 'manuale' });
   });

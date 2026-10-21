@@ -83,7 +83,7 @@ test('qualità complessiva: alta con valori in linea, bassa con eccessi', () => 
   assert.ok(cattiva.score < 40, String(cattiva.score));
   assert.equal(cattiva.level, 'carenza');
   assert.equal(quality(dayStats(undefined, 0), tg), null);
-  assert.equal(quality(dayStats({ key: 'k', ts: 0, meals: [], total: { kcal: 1900, p: 80, c: 230, f: 60 } }, 2000), tg).parts.length, 7);
+  assert.equal(quality(dayStats({ key: 'k', ts: 0, meals: [], total: { kcal: 1900, p: 80, c: 230, f: 60 } }, 2000), tg).parts.length, 8);
 });
 
 import { MICRO_KEYS, microCategory, microFor, microRows, sumMicro, scaleMicro, zeroMicro, NUTRITION_LEGAL } from '../src/lib/fitness/micro.ts';
@@ -106,4 +106,39 @@ test('vitamine e minerali stimati per categoria', () => {
   assert.ok(rows.every((r) => r.level === 'molto-basso' && r.pct === 0));
   assert.equal(microRows(microFor({ name: 'Arancia' }, 300)).find((r) => r.key === 'vitC').level, 'ok');
   assert.match(NUTRITION_LEGAL, /non dati medici/);
+});
+
+import { trainingSeries, dietSeries } from '../src/lib/fitness/scoreInputs.ts';
+import { junkKcalOfMeal } from '../src/lib/fitness/mealMicro.ts';
+
+test('il cibo spazzatura mette un tetto alla qualità', () => {
+  const tg = { kcal: 2000, protein: 80, carbs: 250, fat: 67, fibre: 28, sugarMax: 50, satMax: 22, saltMax: 5 };
+  const base = { days: 5, asked: 7, avg: { kcal: 1950, p: 85, c: 240, f: 65, sat: 15, sug: 40, fib: 28, salt: 4 }, mealsPerDay: 3, waterMl: 2000, waterDays: 5 };
+  const pulito = quality({ ...base, junkShare: 0.05 }, tg);
+  const sporco = quality({ ...base, junkShare: 0.8 }, tg);
+  assert.ok(pulito.score >= 85, String(pulito.score));
+  assert.ok(sporco.score <= 35, String(sporco.score));
+  assert.equal(quality({ ...base, junkShare: 0.55 }, tg).score <= 50, true);
+  assert.ok(pulito.parts.some((p) => p.id === 'junk'));
+});
+
+test('cibo spazzatura riconosciuto dagli ingredienti', () => {
+  const junk = junkKcalOfMeal({ name: 'Pasto', macros: { kcal: 900, p: 20, c: 90, f: 50 }, items: [{ foodId: 'patatine', name: 'Patatine fritte', grams: 130 }] });
+  assert.ok(junk > 300);
+  assert.equal(junkKcalOfMeal({ name: 'Insalata di pollo', macros: { kcal: 400, p: 40, c: 10, f: 10 } }), 0);
+  assert.equal(junkKcalOfMeal({ name: 'Gelato', macros: { kcal: 250, p: 4, c: 30, f: 12 } }), 250);
+});
+
+test('serie per il Life Score: allenamenti e qualità del cibo', () => {
+  assert.equal(trainingSeries([], undefined, '2026-10-21'), null);
+  const t = trainingSeries([{ date: '2026-10-20' }, { date: '2026-10-18' }], 4, '2026-10-21');
+  assert.equal(t.pts.length, 28);
+  assert.equal(t.pts[t.pts.length - 2].v, 1);
+  assert.equal(t.pts[t.pts.length - 1].v, 0);
+  assert.equal(Math.round(t.target * 7), 4);
+  const junkMeal = { id: 'a', ts: at(2026, 10, 19, 20), name: 'Pizza e patatine e cola', grams: 500, macros: { kcal: 1400, p: 40, c: 160, f: 60, sat: 20, sug: 30, fib: 4, salt: 5 } };
+  const sera = dietSeries([junkMeal], {}, null, '2026-10-21', 10);
+  assert.equal(sera.length, 1);
+  assert.ok(sera[0].v < 45, String(sera[0].v));
+  assert.equal(dietSeries([{ ...junkMeal, ts: at(2026, 10, 21, 9) }], {}, null, '2026-10-21', 10).length, 0);
 });

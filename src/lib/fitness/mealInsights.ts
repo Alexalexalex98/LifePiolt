@@ -7,8 +7,8 @@
 import { MICRO_INFO, NUTRITION_LEGAL, microRows, scaleMicro, sumMicro, type Micro } from './micro.ts';
 import type { Macros } from './nutrition.ts';
 
-export type DayMeal = { id: string; ts: number; name: string; grams: number; macros: Macros; photo?: string; /** vitamine e minerali stimati */ micro?: Micro };
-export type DayGroup = { key: string; ts: number; meals: DayMeal[]; total: Macros; micro: Micro };
+export type DayMeal = { id: string; ts: number; name: string; grams: number; macros: Macros; photo?: string; /** vitamine e minerali stimati */ micro?: Micro; /** calorie che vengono da cibo spazzatura (fritti, dolci, bibite, fast food) */ junkKcal?: number };
+export type DayGroup = { key: string; ts: number; meals: DayMeal[]; total: Macros; micro: Micro; junkKcal: number };
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -28,7 +28,7 @@ export function groupByDay(meals: DayMeal[]): DayGroup[] {
   const by = new Map<string, DayMeal[]>();
   for (const m of meals) { const k = dayOf(m.ts); by.set(k, [...(by.get(k) ?? []), m]); }
   return [...by.entries()]
-    .map(([key, list]) => { const sorted = [...list].sort((a, b) => a.ts - b.ts); return { key, ts: sorted[0].ts, meals: sorted, total: sumTotals(sorted.map((m) => m.macros)), micro: sumMicro(sorted.map((m) => m.micro)) }; })
+    .map(([key, list]) => { const sorted = [...list].sort((a, b) => a.ts - b.ts); return { key, ts: sorted[0].ts, meals: sorted, total: sumTotals(sorted.map((m) => m.macros)), micro: sumMicro(sorted.map((m) => m.micro)), junkKcal: sorted.reduce((x, m) => x + (m.junkKcal ?? 0), 0) }; })
     .sort((a, b) => (a.key < b.key ? 1 : -1));
 }
 
@@ -40,7 +40,7 @@ export function slotOf(ts: number): 'colazione' | 'pranzo' | 'merenda' | 'cena' 
 
 export type Level = 'ok' | 'attenzione' | 'carenza';
 export type Finding = { id: string; level: Level; title: string; detail: string; tip: string };
-export type Stats = { days: number; asked: number; avg: Macros; mealsPerDay: number; waterMl: number | null; waterDays: number; /** media al giorno di vitamine e minerali (stima) */ micro?: Micro };
+export type Stats = { days: number; asked: number; avg: Macros; mealsPerDay: number; waterMl: number | null; waterDays: number; /** media al giorno di vitamine e minerali (stima) */ micro?: Micro; /** quota media di calorie da cibo spazzatura (0-1) */ junkShare?: number };
 export type Ctx = { targetKcal?: number; weightKg?: number; goal?: 'dimagrire' | 'mantenere' | 'massa' };
 
 /**
@@ -66,6 +66,7 @@ export function periodStats(meals: DayMeal[], water: Record<string, number>, now
     waterMl: wDays.length ? Math.round(wDays.reduce((s, [, v]) => s + v, 0) / wDays.length) : null,
     waterDays: wDays.length,
     micro: n ? scaleMicro(sumMicro(used.map((g) => g.micro)), 1 / n) : undefined,
+    junkShare: n ? Math.min(1, used.reduce((x, g) => x + g.junkKcal, 0) / Math.max(1, used.reduce((x, g) => x + g.total.kcal, 0))) : undefined,
   };
 }
 
@@ -202,7 +203,7 @@ export type Targets = { kcal: number; protein: number; carbs: number; fat: numbe
 
 /** Statistiche di un solo giorno (stesso formato delle medie), per il resoconto giornaliero e il suo punteggio. */
 export function dayStats(g: DayGroup | undefined, waterMl: number | undefined): Stats {
-  return { days: g ? 1 : 0, asked: 1, avg: g?.total ?? sumTotals([]), mealsPerDay: g?.meals.length ?? 0, waterMl: waterMl && waterMl > 0 ? waterMl : null, waterDays: waterMl && waterMl > 0 ? 1 : 0, micro: g?.micro };
+  return { days: g ? 1 : 0, asked: 1, avg: g?.total ?? sumTotals([]), mealsPerDay: g?.meals.length ?? 0, waterMl: waterMl && waterMl > 0 ? waterMl : null, waterDays: waterMl && waterMl > 0 ? 1 : 0, micro: g?.micro, junkShare: g ? Math.min(1, g.junkKcal / Math.max(1, g.total.kcal)) : undefined };
 }
 
 export type QualityPart = { id: string; label: string; score: number; max: number; note: string };
@@ -229,8 +230,12 @@ export function quality(s: Stats, tg: Targets): Quality | null {
   ];
   if (s.waterMl !== null) parts.push({ id: 'acqua', label: 'Acqua', max: 5, score: lowSide(s.waterMl, 2000) * 5, note: `${(s.waterMl / 1000).toFixed(1).replace('.', ',')} L` });
   if (s.micro) { const rows = microRows(s.micro); const mean = rows.reduce((x, r) => x + Math.min(1, r.pct / 100), 0) / rows.length; parts.push({ id: 'micro', label: 'Vitamine e minerali (stima)', max: 20, score: mean * 20, note: `${Math.round(mean * 100)}% dei riferimenti` }); }
+  if (s.junkShare !== undefined) parts.push({ id: 'junk', label: 'Cibo spazzatura', max: 15, score: clamp(1 - s.junkShare / 0.4) * 15, note: `${Math.round(s.junkShare * 100)}% delle calorie` });
   const max = parts.reduce((x, p) => x + p.max, 0);
-  const score = Math.round((parts.reduce((x, p) => x + p.score, 0) / max) * 100);
+  let score = Math.round((parts.reduce((x, p) => x + p.score, 0) / max) * 100);
+  /* il cibo spazzatura mette un tetto: con metà delle calorie da fritti, dolci e fast food non si può avere un punteggio alto */
+  const js = s.junkShare ?? 0;
+  if (js >= 0.7) score = Math.min(score, 35); else if (js >= 0.5) score = Math.min(score, 50); else if (js >= 0.35) score = Math.min(score, 65);
   const label = score >= 80 ? 'Ottima' : score >= 65 ? 'Buona' : score >= 50 ? 'Discreta' : 'Da migliorare';
   return { score, label, level: score >= 65 ? 'ok' : score >= 50 ? 'attenzione' : 'carenza', parts: parts.map((p) => ({ ...p, score: Math.round(p.score * 10) / 10 })) };
 }
