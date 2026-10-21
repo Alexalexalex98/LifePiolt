@@ -1,4 +1,7 @@
+import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
+import { InfoTip } from '@/components/InfoTip';
+import { decodeLinkCode, encodeLinkCode } from '@/lib/aiLinkCode';
 import { View } from 'react-native';
 
 import { Body, Btn, Card, H, Input, Pill, Row } from '@/components/ui';
@@ -56,7 +59,7 @@ export function AiServerStatus() {
   const test = async () => { setBusy(true); setRes(await pingAiServer()); setBusy(false); };
   return (
     <Card>
-      <H>Server AI di questa app</H>
+      <Row><H>Server AI di questa app</H><InfoTip title="Un solo collegamento per tutti i dispositivi" body={['Indirizzo e token restano su ogni dispositivo. Per non scriverli due volte: su quello già collegato tocca «Copia il codice», poi sull’altro «Incolla il codice» (puoi mandarti il codice con un messaggio a te stesso).', 'Il codice contiene la parola d’ordine: non condividerlo con altri.']} /></Row>
       <Body small style={{ marginTop: 4 }}>{aiServerConfigured ? `Collegato a ${aiServerHost}${cfg.url ? ' (inserito nell\'app)' : ' (dalla build)'}` : 'Non collegato: mancano l\'indirizzo e la parola d\'ordine del server AI. Inseriscili qui sotto: restano solo su questo telefono.'}</Body>
       {edit ? (
         <View style={{ marginTop: 8, gap: 8 }}>
@@ -68,6 +71,8 @@ export function AiServerStatus() {
       {res ? <Body small bold style={{ marginTop: 6 }}>{`${res.ok ? 'OK' : 'Problema'} · ${res.message}${res.ms ? ` (${(res.ms / 1000).toFixed(1)} s)` : ''}`}</Body> : null}
       <Row style={{ marginTop: 8, justifyContent: 'flex-start' }} gap={8}>
         <Btn small ghost title={busy ? 'Provo…' : 'Prova il collegamento'} disabled={busy} onPress={() => void test()} />
+        {aiServerConfigured && cfg.url && cfg.token ? <Btn small ghost title="Copia il codice" onPress={() => { void Clipboard.setStringAsync(encodeLinkCode(cfg.url, cfg.token)).then(() => toast('Codice copiato: incollalo sull\'altro dispositivo. Non condividerlo con altri')); }} /> : null}
+        <Btn small ghost title="Incolla il codice" onPress={() => { void Clipboard.getStringAsync().then((x) => { const d = decodeLinkCode(x); if (!d) { toast('Negli appunti non c\'è un codice di collegamento valido'); return; } cfg.set({ url: d.url, token: d.token }); setUrl(d.url); setToken(d.token); setEdit(false); setRes(null); toast('Collegato: provo il collegamento'); void pingAiServer().then(setRes); }); }} />
         {!edit ? <Btn small ghost title="Cambia indirizzo e token" onPress={() => { setUrl(cfg.url); setToken(cfg.token); setEdit(true); }} /> : null}
       </Row>
     </Card>

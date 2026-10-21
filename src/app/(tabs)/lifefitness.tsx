@@ -54,7 +54,7 @@ export default function LifeFitness() {
   const state = premiumState(fit.sub, now);
   const active = fit.activeProgram ? programById(fit.activeProgram) ?? null : null;
   const week = active && fit.profile ? weekView(active, fit.profile, fit.history, new Date()) : [];
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
   const today = week.find((d) => d.date === new Date(now - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)) ?? week.find((d) => d.date === todayIso);
   const st = stats(fit.history, new Date());
   const recs = fit.profile ? recommend(fit.profile) : [];
@@ -97,15 +97,19 @@ export default function LifeFitness() {
               <Row><H>La tua settimana</H><Btn small ghost title="Cambia" onPress={() => setSetup(true)} /></Row>
               <Row style={{ marginTop: 6, justifyContent: 'space-between' }} gap={4}>
                 {week.map((d) => (
-                  <View key={d.date} style={{ flex: 1, alignItems: 'center', gap: 5 }}>
+                  <Pressable key={d.date} accessibilityRole="button" accessibilityLabel={tl('Apri la giornata del {0}', d.date)} onPress={() => go('fitnessPlanDay', { date: d.date })} style={{ flex: 1, alignItems: 'center', gap: 5 }}>
                     <Text style={{ color: d.date === todayIso ? FIT : t.muted, fontSize: 11, fontWeight: '800' }}>{DAYS[d.weekday]}</Text>
                     <View style={{ width: 34, height: 46, borderRadius: 12, backgroundColor: d.done ? FIT : d.planned ? FIT + '2e' : t.chip, alignItems: 'center', justifyContent: 'center', borderWidth: d.date === todayIso ? 2 : 0, borderColor: FIT }}>
                       {d.done ? <Icon name="check" size={17} color="#1c0b04" stroke={3} /> : d.planned ? <Icon name="lifefitness" size={16} color={FIT} /> : null}
+                      {!d.done && (fit.exDone ?? {})[d.date]?.idx.length ? <View style={{ position: 'absolute', bottom: 4, width: 6, height: 6, borderRadius: 3, backgroundColor: FIT }} /> : null}
                     </View>
-                  </View>
+                  </Pressable>
                 ))}
               </Row>
-              <Btn small ghost style={{ marginTop: 12 }} title="Vedi il programma" onPress={() => go('fitnessProgram', { id: active.id })} />
+              <Row style={{ marginTop: 12 }} gap={8}>
+                <Btn small ghost style={{ flex: 1 }} icon="calendar" title="Giorni e allenamenti" onPress={() => go('fitnessPlanDay', { date: todayIso })} />
+                <Btn small ghost style={{ flex: 1 }} title="Vedi il programma" onPress={() => go('fitnessProgram', { id: active.id })} />
+              </Row>
             </Card>
           ) : null}
 

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { palettes, type Palette } from '@/constants/theme';
@@ -8,7 +8,18 @@ import { setLiveTheme } from '@/lib/liveTheme';
 import { useApp } from '@/store/app';
 
 /** Palette attiva: scuro / chiaro / sistema, con la variante ad alto contrasto vera (non solo due colori ritoccati). */
+/** Colore della sezione che si sta guardando: lo mette la Page, e pulsanti, schede e interruttori lo riprendono dal tema. */
+export const SectionAccent = createContext<string | null>(null);
+
 export function useTheme(): Palette {
+  const base = useBaseTheme();
+  const ac = useContext(SectionAccent);
+  const custom = useApp((s) => s.custom);
+  const highContrast = useApp((s) => s.accessibility.highContrast);
+  return useMemo(() => (ac && custom?.sections !== 'accent' ? (customize(base as Palette & { mode: string }, { ...custom, accent: ac }, highContrast) as Palette) : base), [base, ac, custom, highContrast]);
+}
+
+function useBaseTheme(): Palette {
   const appearance = useApp((s) => s.appearance);
   const highContrast = useApp((s) => s.accessibility.highContrast);
   const custom = useApp((s) => s.custom);

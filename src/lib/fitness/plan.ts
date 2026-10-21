@@ -4,7 +4,7 @@ import { exById } from './exerciseDb.ts';
 import { ALL_PROGRAMS } from './programsExtra.ts';
 
 export type FitProfile = { goal: Goal; level: Level; place: Place; days: number; minutes: number; /** bisogni scelti (es. «schiena», «over60», «corsa») */ needs?: string[] };
-export type Workout = { id: string; date: string; programId: string; session: number; minutes: number; sets: number };
+export type Workout = { id: string; date: string; programId: string; session: number; minutes: number; sets: number; /** messo da solo perché hai spuntato tutti gli esercizi */ auto?: boolean };
 
 const LV: Record<Level, number> = { principiante: 0, intermedio: 1, avanzato: 2 };
 const GOAL_NEAR: Record<Goal, Goal[]> = { dimagrire: ['tonificare', 'resistenza'], tonificare: ['dimagrire', 'massa'], massa: ['forza', 'tonificare'], forza: ['massa'], resistenza: ['dimagrire', 'salute'], mobilità: ['salute'], salute: ['mobilità', 'tonificare'] };

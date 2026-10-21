@@ -12,7 +12,7 @@ import { KeyboardDock } from '@/components/KeyboardDock';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { growHeight, restingBottom, sheetMaxHeight } from '@/lib/keyboardInset';
-import { useTheme } from '@/hooks/use-theme';
+import { SectionAccent, useTheme } from '@/hooks/use-theme';
 import { useSectionNames } from '@/lib/i18n';
 import { readable } from '@/lib/a11y';
 import { log } from '@/lib/log';
@@ -170,6 +170,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
     </>
   );
   return (
+    <SectionAccent.Provider value={areaColors[id] ?? null}>
     <KeyboardDock style={{ backgroundColor: t.bg }}>
       {scroll ? (
         <ScrollView ref={scrollRef} onScroll={keep ? undefined : (e) => scrollMemory.set(memKey, e.nativeEvent.contentOffset.y)} scrollEventThrottle={100} contentContainerStyle={{ padding: space.lg, paddingTop: insets.top + 10, paddingBottom: BOTTOM_CLEARANCE }} keyboardShouldPersistTaps="handled">{body}</ScrollView>
@@ -177,6 +178,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
         <View style={{ flex: 1, padding: space.lg, paddingTop: insets.top + 10 }}>{body}</View>
       )}
     </KeyboardDock>
+    </SectionAccent.Provider>
   );
 }
 

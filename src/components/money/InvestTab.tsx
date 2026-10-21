@@ -1,3 +1,4 @@
+import { InfoTip } from '@/components/InfoTip';
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
@@ -65,9 +66,8 @@ function AnalyzeCard() {
   };
   return (
     <View style={{ marginTop: 14, marginBottom: 4, backgroundColor: t.card, borderRadius: 24, borderWidth: 1, borderColor: t.border, padding: 16 }}>
-      <Row><Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{tl('Analizza un titolo')}</Text><Icon name="sparkle" size={18} color={t.accent} /></Row>
-      <Text style={{ color: t.muted, fontSize: 13, marginTop: 4, lineHeight: 18 }}>{tl('Cerca un titolo o carica uno screenshot: Theia ti mostra le informazioni principali e gli strumenti per analizzarlo.')}</Text>
-      <Input placeholder="Nome o simbolo (es. Apple, NVDA)" value={q} onChangeText={setQ} autoCapitalize="none" style={{ marginTop: 10, marginBottom: 6 }} />
+      <Row><Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{tl('Analizza un titolo')}</Text><InfoTip title="Analizza un titolo" body={tl('Cerca un titolo o carica uno screenshot: Theia ti mostra le informazioni principali e gli strumenti per analizzarlo.')} /></Row>
+            <Input placeholder="Nome o simbolo (es. Apple, NVDA)" value={q} onChangeText={setQ} autoCapitalize="none" style={{ marginTop: 10, marginBottom: 6 }} />
       {hits.map((i) => <Press key={i.sym} onPress={() => open(i.sym)} accessibilityLabel={i.name} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 }}><Logo sym={i.sym} /><View style={{ flex: 1 }}><Text style={{ color: t.text, fontWeight: '800' }}>{i.name}</Text><Text style={{ color: t.muted, fontSize: 12.5 }}>{i.sym} · {tl(i.sector)}</Text></View><Icon name="chevron-right" size={18} color={t.muted} /></Press>)}
       {q.trim() && hits.length === 0 && looksLikeTicker(q) ? <Btn small ghost title={`${tl('Prova con')} ${q.trim().toUpperCase()}`} onPress={() => open(q.trim())} /> : null}
       <Btn style={{ marginTop: 8 }} ghost icon="image" title={busy ? tl('Un attimo…') : tl('Carica uno screenshot')} onPress={() => void fromShot()} disabled={busy} />
@@ -129,15 +129,9 @@ export function InvestTab() {
   return (
     <View>
       <View style={{ paddingTop: 6 }}>
-        <Text style={{ color: t.muted, fontSize: 14, fontWeight: '600' }}>{tl('I tuoi investimenti')}</Text>
+        <Row><Text style={{ color: t.muted, fontSize: 14, fontWeight: '600' }}>{tl('I tuoi investimenti')}</Text><InfoTip title="Come funzionano gli investimenti" body={[tl('Sono investimenti reali: il valore sale e scende e puoi perdere parte di quanto investi. Il valore in LP è quello che riceveresti vendendo adesso.'), mk.live ? `${tl('Prezzi aggiornati alle')} ${upd} · ${tl('ritardo di circa 15 minuti')}` : tl('Prezzi dimostrativi: servono per provare l’app, non sono quotazioni reali.')]} /></Row>
         <Amount n={pf.value} size={42} />
         {pf.cost > 0 ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}><Chg pct={pf.pct} /><Text style={{ color: pf.gain >= 0 ? t.positive : t.danger, fontWeight: '800', fontSize: 14 }}>{pf.gain >= 0 ? '+' : ''}{fmt(pf.gain)} LP</Text></View> : <Text style={{ color: t.muted, marginTop: 4 }}>{tl('Scegli un titolo e investi da 1 LP.')}</Text>}
-      </View>
-      <View style={{ marginTop: 14 }}>
-        <Panel pad={14}>
-          <Text style={{ color: t.muted, fontSize: 12.5, lineHeight: 18 }}>{tl('Sono investimenti reali: il valore sale e scende e puoi perdere parte di quanto investi. Il valore in LP è quello che riceveresti vendendo adesso.')}</Text>
-          <Text style={{ color: t.muted, fontSize: 12, marginTop: 8 }}>{mk.live ? `${tl('Prezzi aggiornati alle')} ${upd} · ${tl('ritardo di circa 15 minuti')}` : tl('Prezzi dimostrativi: servono per provare l’app, non sono quotazioni reali.')}</Text>
-        </Panel>
       </View>
 
       <View style={{ flexDirection: 'row', backgroundColor: t.input, borderRadius: 16, padding: 4, gap: 4, marginTop: 18 }}>

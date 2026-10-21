@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { InfoTip } from '@/components/InfoTip';
+import { animateLayout } from '@/components/home/DayPlan';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
@@ -36,6 +38,9 @@ export default function LifeFinance() {
   const color = sectionColor(areaColors.lifefinance);
   const [hist, setHist] = useState<number | null>(null);
   const [tab, setTab] = useState('Quadro');
+  const hasStatement = useFin((x) => !!x.statementAt);
+  const wasStatement = useRef(hasStatement);
+  if (wasStatement.current !== hasStatement) { wasStatement.current = hasStatement; animateLayout(); }
   const [alertSheet, setAlertSheet] = useState(false);
   const [tips, setTips] = useState(false);
   const [ef, setEf] = useState(false);
@@ -104,6 +109,14 @@ export default function LifeFinance() {
 
       {tab === 'Quadro' && (
         <>
+          {hasStatement ? (
+            <Row gap={8}>
+              <Btn small ghost icon="file" title="Carica un file" onPress={() => setCsvSheet(true)} style={{ flex: 1 }} />
+              <Btn small ghost icon="plus" title="Aggiungi un movimento" onPress={() => setMvSheet(true)} style={{ flex: 1 }} />
+              <InfoTip title="Carica un file e aggiungi un movimento" body={['Estratto conto (CSV o PDF): ha la precedenza su tutto il resto. Qualsiasi altro file lo guarda Theia e ti dice cos’è.', 'Un movimento si aggiunge a mano o con la foto dello scontrino, appena paghi. Quando carichi l’estratto, si allinea da solo.']} />
+            </Row>
+          ) : (
+            <>
           <Card onPress={() => setCsvSheet(true)}>
             <Row gap={10}>
               <Icon name="file" size={20} color={t.accent} />
@@ -118,6 +131,8 @@ export default function LifeFinance() {
               <Icon name="chevron-right" size={18} color={t.muted} />
             </Row>
           </Card>
+            </>
+          )}
           <FinanceOverview h={{ onAlerts: () => setAlertSheet(true), onBills: () => setTab('Bollette'), onEmergency: () => setTab('Budget'), onImport: () => setCsvSheet(true), onMovements: (i) => setHist(i) }} />
       <MonthCalcCard />
       {alerts.length > 0 && (

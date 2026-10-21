@@ -72,6 +72,7 @@ export default function FitnessWorkout() {
     const minutes = Math.max(1, Math.round((Date.now() - start.current) / 60000));
     const d = new Date(); const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     fit.logWorkout({ date, programId: p.id, session: sIdx, minutes: Math.max(minutes, 1), sets: setsDone.current });
+    fit.finishDay(date, `${p.id}:${sIdx}`, steps.length);
     buzz(); toast('Allenamento salvato'); goBack();
   }
 

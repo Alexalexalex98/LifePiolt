@@ -39,12 +39,31 @@ const dataLabels: Record<string, string> = {
 /** Orari a passi di 15 minuti tra due ore (incluse). */
 const timeOptions = (from: number, to: number) => Array.from({ length: (to - from + 1) * 4 }, (_, i) => `${String(from + Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}`);
 
+type Cat = { id: string; title: string; sub: string; icon: string; color: string };
+const CATS: { title: string; rows: Cat[] }[] = [
+  { title: 'Io', rows: [
+    { id: 'account', title: 'Account e dispositivi', sub: 'Nome, email, sessioni attive', icon: 'profile', color: '#5b8def' },
+    { id: 'notif', title: 'Notifiche', sub: 'Quali avvisi ricevere e quando', icon: 'bell', color: '#e4584f' },
+    { id: 'privacy', title: 'Privacy e sicurezza', sub: 'Blocco, verifica in due passaggi, permessi', icon: 'lock', color: '#4a4f58' },
+  ] },
+  { title: 'App', rows: [
+    { id: 'look', title: 'Aspetto e lingua', sub: 'Tema, colori, lingua, valuta, accessibilità, barra', icon: 'palette', color: '#a76ae0' },
+    { id: 'work', title: 'Orari e integrazioni', sub: 'Orari di lavoro, calendari collegati', icon: 'calendar', color: '#2fa36b' },
+    { id: 'ai', title: 'Intelligenza di Theia', sub: 'Quando e cosa può usare l’AI', icon: 'sparkle', color: '#7a6cf0' },
+  ] },
+  { title: 'Dati e assistenza', rows: [
+    { id: 'data', title: 'Dati, backup e sincronizzazione', sub: 'Backup, ripristino, spazio usato', icon: 'archive', color: '#3d9bb8' },
+    { id: 'help', title: 'Assistenza e informazioni', sub: 'Aiuto, problemi riscontrati, versione', icon: 'help', color: '#d98a2b' },
+  ] },
+];
+
 export default function Settings() {
   const t = useTheme();
   const tr = useT();
   const names = useSectionNames();
   const app = useApp();
   const { set } = app;
+  const [cat, setCat] = useState<string | null>(null);
   const [edit, setEdit] = useState<null | 'name' | 'email' | 'assistant'>(null);
   const [editVal, setEditVal] = useState('');
   const [hexDraft, setHexDraft] = useState('');
@@ -145,9 +164,32 @@ export default function Settings() {
 
   return (
     <Page id="settings" title={names.settings} back>
-      <TutorialSettings />
-      <JourneyCard />
+      {cat === null ? <TutorialSettings /> : null}
+      {cat === null ? <JourneyCard /> : null}
+      {cat === null ? (
+        <>
+          {CATS.map((g) => (
+            <Card key={g.title}>
+              {g.rows.map((c, i) => (
+                <Item key={c.id} last={i === g.rows.length - 1} onPress={() => setCat(c.id)}>
+                  <Row gap={12}>
+                    <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: c.color, alignItems: 'center', justifyContent: 'center' }}><Icon name={c.icon} size={18} color="#fff" stroke={2} /></View>
+                    <Body style={{ flex: 1 }}>{c.title}</Body>
+                    <Chev />
+                  </Row>
+                </Item>
+              ))}
+            </Card>
+          ))}
+        </>
+      ) : (
+        <Pressable accessibilityRole="button" accessibilityLabel={tl('Torna alle impostazioni')} onPress={() => setCat(null)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <Icon name="arrow-left" size={18} color={t.accent} stroke={2.2} />
+          <Body bold color={t.accent}>{CATS.flatMap((g) => g.rows).find((c) => c.id === cat)?.title ?? ''}</Body>
+        </Pressable>
+      )}
 
+      {cat === 'look' ? (
       <Card>
         <H>{tr('stNavCustomizeTitle')}</H>
         <Body small muted style={{ marginBottom: 10 }}>{tr('stNavCustomizeDesc')}</Body>
@@ -167,7 +209,9 @@ export default function Settings() {
           );
         })}
       </Card>
+      ) : null}
 
+      {cat === 'account' ? (
       <Card>
         <H>{tr('stAccount')}</H>
         <Item><Row><Body muted>{tr('stNameLabel')}</Body><Pressable onPress={() => { setEditVal(app.account.name); setEdit('name'); }}><Body bold>{app.account.name || '—'}</Body></Pressable></Row></Item>
@@ -175,7 +219,9 @@ export default function Settings() {
         <Item><Row><Body muted>Nome dell'assistente AI</Body><Pressable onPress={() => { setEditVal(app.assistantName); setEdit('assistant'); }}><Body bold>{app.assistantName}</Body></Pressable></Row></Item>
         <Item last><Row><Body muted>{tr('stPasswordLabel')}</Body><Link onPress={() => toast("Il cambio password sarà disponibile con l'account online")}>{tr('stChangePasswordBtn')}</Link></Row></Item>
       </Card>
+      ) : null}
 
+      {cat === 'account' ? (
       <Card>
         <H>{tr('stDevices')}</H>
         {app.devices.map((d, i) => (
@@ -184,7 +230,9 @@ export default function Settings() {
           </Item>
         ))}
       </Card>
+      ) : null}
 
+      {cat === 'notif' ? (
       <Card>
         <H>{tr('stNotif')}</H>
         <NotifStatus />
@@ -207,19 +255,25 @@ export default function Settings() {
         <Body bold style={{ marginTop: 14 }}>Verifica</Body>
         <NotifTools />
       </Card>
+      ) : null}
 
+      {cat === 'privacy' ? (
       <Card>
         <H>{tr('stPrivacy')}</H>
         <Toggle label={tr('stSec2fa')} value={app.security.twofa} onChange={(v) => { set({ security: { ...app.security, twofa: v } }); toast('Preferenza di sicurezza aggiornata'); }} />
         <Toggle label={tr('stSecLock')} value={app.security.lock} onChange={(v) => { set({ security: { ...app.security, lock: v } }); toast('Preferenza di sicurezza aggiornata'); }} />
         <Btn small ghost style={{ marginTop: 10 }} title={tr('stEndSessionsBtn')} onPress={() => { set({ devices: app.devices.filter((d) => d.current) }); toast('Tutte le altre sessioni sono state terminate'); }} />
       </Card>
+      ) : null}
 
+      {cat === 'look' ? (
       <Card>
         <H>{tr('stAppearance')}</H>
         <Select value={app.appearance} options={['Scuro', 'Chiaro', 'Sistema']} onChange={(v) => { set({ appearance: v as Appearance }); toast(tl('Aspetto: {0}', translateText(v))); }} />
       </Card>
+      ) : null}
 
+      {cat === 'look' ? (
       <Card>
         <H>Colori</H>
         <Body small muted style={{ marginBottom: 10 }}>Scegli il colore dell'app e il tono dello sfondo. Il testo resta sempre leggibile.</Body>
@@ -247,13 +301,17 @@ export default function Settings() {
         </Row>
         {app.custom?.accent || app.custom?.tone || app.custom?.sections || app.custom?.textScale ? <Btn small ghost style={{ marginTop: 12 }} title="Ripristina i colori originali" onPress={() => { set({ custom: {} }); setHexDraft(''); toast('Colori originali ripristinati'); }} /> : null}
       </Card>
+      ) : null}
 
+      {cat === 'look' ? (
       <Card>
         <H>{tr('stLanguage')}</H>
         <LanguageList />
         <Body small muted style={{ marginTop: 10 }}>Per le lingue scritte da destra a sinistra (arabo) su telefono può servire riaprire l'app.</Body>
       </Card>
+      ) : null}
 
+      {cat === 'look' ? (
       <Card>
         <H>Formato e valuta</H>
         <CurrencyPicker />
@@ -262,37 +320,49 @@ export default function Settings() {
           <Pill label={app.timeFormat} onPress={() => { const n = app.timeFormat === '24h' ? '12h' : '24h'; set({ timeFormat: n }); toast(n === '24h' ? tl('Formato ora: 24h') : tl('Formato ora: 12h')); }} />
         </Row>
       </Card>
+      ) : null}
 
+      {cat === 'look' ? (
       <Card>
         <H>{tr('stAccessibility')}</H>
         <Toggle label={tr('stAccTextLg')} value={app.accessibility.textLg} onChange={(v) => { set({ accessibility: { ...app.accessibility, textLg: v } }); toast('Impostazione applicata'); }} />
         <Toggle label={tr('stAccReduceMotion')} value={app.accessibility.reduceMotion} onChange={(v) => { set({ accessibility: { ...app.accessibility, reduceMotion: v } }); toast('Impostazione applicata'); }} />
         <Toggle label={tr('stAccHighContrast')} value={app.accessibility.highContrast} onChange={(v) => { set({ accessibility: { ...app.accessibility, highContrast: v } }); toast('Impostazione applicata'); }} />
       </Card>
+      ) : null}
 
+      {cat === 'work' ? (
       <Card>
         <H>{tr('stWorkHoursTitle')}</H>
         <Row><Body small>{app.workHours.start} – {app.workHours.end}</Body><Btn small ghost title={tr('stWorkHoursModifyBtn')} onPress={() => setWh(true)} /></Row>
         <Body small muted style={{ marginTop: 6 }}>{tr('stWorkHoursDesc')}</Body>
       </Card>
+      ) : null}
 
+      {cat === 'work' ? (
       <Card>
         <H>{tr('stIntegrationsTitle')}</H>
         {Object.keys(app.integrations).map((k) => <Toggle key={k} label={tr({ Calendario: 'stIntCalendar', Health: 'stIntHealth', Email: 'stIntEmail', Wearable: 'stIntWearable', 'Smart Home': 'stIntSmartHome' }[k] ?? k)} value={app.integrations[k]} onChange={(v) => { set({ integrations: { ...app.integrations, [k]: v } }); toast(`${k} ${v ? 'collegato' : 'disconnesso'}`); }} />)}
       </Card>
+      ) : null}
 
+      {cat === 'ai' ? (
       <Card>
         <H>Intelligenza di Theia</H>
         <Body small muted style={{ marginBottom: 10 }}>Cosa fa Theia da sola e quando delega a un'altra AI: scelte, limiti, privacy e cronologia degli invii.</Body>
         <Btn small ghost icon="sparkle" title="Apri Intelligenza di Theia" onPress={() => go('aiSettings')} />
       </Card>
+      ) : null}
 
+      {cat === 'data' ? (
       <Card>
         <H>Sincronizzazione</H>
         <Body small muted style={{ marginBottom: 10 }}>Tieni allineati i tuoi dispositivi: scegli tu cosa sincronizzare. Di predefinito tutto resta solo sul telefono.</Body>
         <Btn small ghost icon="repeat" title="Apri Sincronizzazione" onPress={() => go('syncSettings')} />
       </Card>
+      ) : null}
 
+      {cat === 'privacy' ? (
       <Card>
         <H>{tr('stPrivacyCenterTitle')}</H>
         {Object.keys(app.privacy).map((k) => <Toggle key={k} label={tr({ 'AI Memory': 'stPrivAiMemory', 'Dati salute': 'stPrivHealth', 'Dati finanziari': 'stPrivFinance', Posizione: 'stPrivLocation' }[k] ?? k)} value={app.privacy[k]} onChange={(v) => { set({ privacy: { ...app.privacy, [k]: v } }); toast(`${k} ${v ? 'collegato' : 'disconnesso'}`); }} />)}
@@ -306,7 +376,9 @@ export default function Settings() {
           <Btn small ghost danger title="Elimina tutti i miei dati" onPress={() => setDel(1)} />
         </View>
       </Card>
+      ) : null}
 
+      {cat === 'data' ? (
       <Card>
         <H>Backup e ripristino</H>
         <Body small muted style={{ marginBottom: 10 }}>Salva tutti i tuoi dati in un unico file da conservare o da portare su un altro telefono. Gli allegati multimediali delle chat (foto, video, audio) non sono inclusi.</Body>
@@ -315,18 +387,24 @@ export default function Settings() {
           <Btn small ghost disabled={busy} title="Ripristina da file" onPress={() => void doPickBackup()} />
         </View>
       </Card>
+      ) : null}
 
+      {cat === 'help' ? (
       <Card>
         <H>Diagnostica</H>
         <Body small muted style={{ marginBottom: 8 }}>Stato del telefono, permessi, notifiche programmate, log e registro di ciò che è uscito dal telefono.</Body>
         <Btn small ghost icon="gear" title="Apri la diagnostica" onPress={() => go('diagnostics')} />
       </Card>
+      ) : null}
 
+      {cat === 'help' ? (
       <Card>
         <H>Problemi riscontrati</H>
         <Row><Body small muted style={{ flex: 1 }}>{errors.length ? `${errors.length} registrati su questo dispositivo` : 'Nessun problema registrato'}</Body><Btn small ghost title="Apri" onPress={() => setErrSheet(true)} /></Row>
       </Card>
+      ) : null}
 
+      {cat === 'data' ? (
       <Card>
         <H>{tr('stStorageTitle')}</H>
         <Row><Body muted style={{ flex: 1 }}>{tr('stStorageLabel')}</Body><Body bold>{totalKB} KB</Body></Row>
@@ -335,15 +413,20 @@ export default function Settings() {
           <Toggle key={k} label={dataLabels[k]} hint={`${(sizes[k] / 1024).toFixed(1)} KB`} value={app.dataLocal[k] !== false} onChange={(v) => { set({ dataLocal: { ...app.dataLocal, [k]: v } }); toast(v ? 'Categoria impostata su solo locale' : 'Preferenza salvata per quando ci sarà un account online'); }} />
         ))}
       </Card>
+      ) : null}
 
+      {cat === 'help' ? (
       <Card>
         <H>{tr('stHelpTitle')}</H>
         {([['help', tr('stHelpCenter')], ['contact', tr('stContactUs')], ['terms', tr('stTerms')], ['privacy', 'Privacy e permessi']] as const).map(([k, label], i, a) => (
           <Item key={k} last={i === a.length - 1} onPress={() => (k === 'privacy' ? go('privacy') : setInfo(k))}><Row><Body>{label}</Body><Chev /></Row></Item>
         ))}
       </Card>
+      ) : null}
 
+      {cat === 'help' ? (
       <Card><H>Informazioni sull'app</H><Row><Body muted>Versione</Body><Body>LifePilot {Constants.expoConfig?.version}</Body></Row></Card>
+      ) : null}
 
       <Sheet visible={!!edit} title={edit === 'name' ? 'Modifica nome' : edit === 'assistant' ? 'Nome dell’assistente' : 'Modifica email'} onClose={() => setEdit(null)}>
         <Input value={editVal} onChangeText={setEditVal} autoCapitalize={edit === 'email' ? 'none' : 'words'} keyboardType={edit === 'email' ? 'email-address' : 'default'} />

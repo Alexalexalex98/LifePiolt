@@ -1,5 +1,5 @@
 {
- "count": 12816,
+ "count": 12868,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -36,6 +36,7 @@
   "src/app/(tabs)/fitnessMeal.tsx": 86,
   "src/app/(tabs)/fitnessMealCard.tsx": 30,
   "src/app/(tabs)/fitnessPass.tsx": 27,
+  "src/app/(tabs)/fitnessPlanDay.tsx": 30,
   "src/app/(tabs)/fitnessProgram.tsx": 36,
   "src/app/(tabs)/fitnessWorkout.tsx": 25,
   "src/app/(tabs)/focus.tsx": 27,
@@ -53,8 +54,8 @@
   "src/app/(tabs)/jobTest.tsx": 47,
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
-  "src/app/(tabs)/lifefinance.tsx": 99,
-  "src/app/(tabs)/lifefitness.tsx": 88,
+  "src/app/(tabs)/lifefinance.tsx": 101,
+  "src/app/(tabs)/lifefitness.tsx": 90,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 113,
   "src/app/(tabs)/lifenetwork.tsx": 41,
@@ -91,7 +92,7 @@
   "src/app/(tabs)/security.tsx": 5,
   "src/app/(tabs)/seminarPage.tsx": 44,
   "src/app/(tabs)/servicePage.tsx": 31,
-  "src/app/(tabs)/settings.tsx": 119,
+  "src/app/(tabs)/settings.tsx": 137,
   "src/app/(tabs)/sharing.tsx": 2,
   "src/app/(tabs)/shopPage.tsx": 42,
   "src/app/(tabs)/skillProfile.tsx": 26,
@@ -126,6 +127,7 @@
   "src/components/FinanceOverview.tsx": 78,
   "src/components/GoalProgress.tsx": 17,
   "src/components/Inbox.tsx": 4,
+  "src/components/InfoTip.tsx": 1,
   "src/components/InterestsPicker.tsx": 16,
   "src/components/ItemReviews.tsx": 18,
   "src/components/JobsHub.tsx": 20,
@@ -156,7 +158,7 @@
   "src/components/TheiaHost.tsx": 42,
   "src/components/TripCards.tsx": 20,
   "src/components/WeeklyReportButton.tsx": 2,
-  "src/components/aiSettings/FileConsent.tsx": 22,
+  "src/components/aiSettings/FileConsent.tsx": 30,
   "src/components/aiSettings/LocalCapabilities.tsx": 4,
   "src/components/aiSettings/ProvidersSection.tsx": 21,
   "src/components/aiSettings/SendLog.tsx": 9,
@@ -237,7 +239,7 @@
   "src/components/live/VideoSurface.tsx": 11,
   "src/components/market.tsx": 54,
   "src/components/money/Fundamentals.tsx": 45,
-  "src/components/money/InvestTab.tsx": 57,
+  "src/components/money/InvestTab.tsx": 58,
   "src/components/money/WalletTab.tsx": 84,
   "src/components/network.tsx": 42,
   "src/components/photo/EditSlider.tsx": 1,
@@ -310,6 +312,7 @@
   "src/lib/a11y.ts": 1,
   "src/lib/ai.ts": 26,
   "src/lib/aiConsent.ts": 11,
+  "src/lib/aiLinkCode.ts": 1,
   "src/lib/aiPersona.ts": 16,
   "src/lib/aiRouter/adapters/index.ts": 1,
   "src/lib/aiRouter/adapters/mock.ts": 1,
@@ -553,5 +556,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1587
+ "withPlaceholders": 1589
 }

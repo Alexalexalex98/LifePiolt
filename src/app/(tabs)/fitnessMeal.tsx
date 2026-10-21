@@ -189,7 +189,7 @@ export default function FitnessMeal() {
           <Btn small ghost icon="camera" title="Scatta" onPress={() => void snap(true)} />
           <Btn small ghost icon="image" title="Galleria" onPress={() => void snap(false)} />
         </Row>
-        {photo ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Apri la foto')} onPress={() => setViewer(photo)}><Image source={{ uri: photo }} style={{ width: '100%', height: 190, borderRadius: 14, marginTop: 10 }} contentFit="cover" /></Pressable> : null}
+        {photo ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Apri la foto')} onPress={() => setViewer(photo)} style={{ marginTop: 10, height: 190, borderRadius: 14, overflow: 'hidden', alignSelf: 'stretch' }}><Image source={{ uri: photo }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" /></Pressable> : null}
         {photo ? (premium
           ? <Btn style={{ marginTop: 10 }} icon="sparkle" title={busy ? 'Analizzo il piatto…' : 'Analizza il piatto'} disabled={busy} onPress={() => void analyze()} />
           : <View style={{ marginTop: 10 }}><Body small muted>L'analisi del piatto dalla foto è una funzione Premium di LifePilot.</Body></View>) : <Body small muted style={{ marginTop: 8 }}>Scatta o scegli la foto del piatto: con il Premium di LifePilot lo analizzo e ti faccio il resoconto. In ogni caso puoi comporlo tu qui sotto.</Body>}

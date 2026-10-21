@@ -8,6 +8,7 @@ import { creditsLeft, makePurchase, payBlock, priceList, consumeCredit, type Pur
 import { checkIn, renewIfDue, startSub, PREMIUM_PRICE_LP, type Sub, type Visit } from '@/lib/fitness/premium';
 import { useNet } from '@/store/network';
 import { dayOf } from '@/lib/fitness/mealInsights';
+import type { Override } from '@/lib/fitness/dayPlan';
 import { persisted } from './persist';
 
 export type MealItem = { foodId: string; name: string; grams: number };
@@ -40,6 +41,13 @@ type State = {
   purchases: Purchase[];
   /** le tue modifiche alle sessioni dei programmi (chiave «programma:sessione») */
   edits: Record<string, Step[]>;
+  /** giorno scelto da te (un'altra sessione, oppure riposo), per data */
+  plans: Record<string, Override>;
+  /** esercizi spuntati per data: `key` è la sessione a cui si riferiscono */
+  exDone: Record<string, { key: string; idx: number[] }>;
+  setDayPlan: (date: string, o: Override | null) => void;
+  toggleEx: (date: string, key: string, k: number, total: number, w: { programId: string; session: number; minutes: number; sets: number }) => void;
+  finishDay: (date: string, key: string, total: number) => void;
   set: (p: Partial<Omit<State, 'set'>>) => void;
   logWorkout: (w: Omit<Workout, 'id'>) => void;
   addMeal: (m: Omit<Meal, 'id'>) => void;
@@ -69,7 +77,20 @@ const uid = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice
 /** Dati di LifeFitness: restano sul telefono (sono dati di salute). */
 export const useFitness = create<State>()(
   persisted<State>('fitness', (set, get) => ({
-    profile: null, body: null, activeProgram: null, history: [], meals: [], water: {}, waterRemind: { on: false, everyMin: 120, from: '09:00', to: '21:00' }, eveningCheck: { on: true, at: '20:45' }, sub: null, visits: [], requests: [], approved: [], invites: [], customEx: [], aiFoods: [], purchases: [], edits: {},
+    profile: null, body: null, activeProgram: null, history: [], meals: [], water: {}, waterRemind: { on: false, everyMin: 120, from: '09:00', to: '21:00' }, eveningCheck: { on: true, at: '20:45' }, sub: null, visits: [], requests: [], approved: [], invites: [], customEx: [], aiFoods: [], purchases: [], edits: {}, plans: {}, exDone: {},
+    setDayPlan: (date, o) => set((s) => { const plans = { ...(s.plans ?? {}) }; if (o) plans[date] = o; else delete plans[date]; const exDone = { ...(s.exDone ?? {}) }; delete exDone[date]; return { plans, exDone }; }),
+    toggleEx: (date, key, k, total, w) => set((s) => {
+      const cur = (s.exDone ?? {})[date];
+      const idx = new Set(cur && cur.key === key ? cur.idx : []);
+      if (idx.has(k)) idx.delete(k); else idx.add(k);
+      const done = idx.size >= total;
+      let history = s.history;
+      const mine = history.find((h) => h.date === date);
+      if (done && !mine) history = [...history, { id: uid(), date, ...w, auto: true }].slice(-1000);
+      if (!done && mine?.auto) history = history.filter((h) => h !== mine);
+      return { exDone: { ...(s.exDone ?? {}), [date]: { key, idx: [...idx].sort((a, b) => a - b) } }, history };
+    }),
+    finishDay: (date, key, total) => set((s) => ({ exDone: { ...(s.exDone ?? {}), [date]: { key, idx: Array.from({ length: total }, (_, i) => i) } } })),
     set: (p) => set(p),
     logWorkout: (w) => set((s) => ({ history: [...s.history, { ...w, id: uid() }].slice(-1000) })),
     addMeal: (m) => set((s) => ({ meals: [{ ...m, id: uid() }, ...s.meals].slice(0, 2000) })),
