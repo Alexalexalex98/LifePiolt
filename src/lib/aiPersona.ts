@@ -95,3 +95,22 @@ export function inlineBold(text: string): { t: string; b: boolean }[] {
   text.split(/(\*\*[^*]+\*\*)/g).forEach((x) => { if (!x) return; const m = x.match(/^\*\*([^*]+)\*\*$/); parts.push(m ? { t: m[1], b: true } : { t: x, b: false }); });
   return parts;
 }
+
+/**
+ * Regole di onestà per il modello (Theia non deve mai inventare): le tre regole che valgono in ogni risposta.
+ */
+export const HONESTY = [
+  'ONESTÀ (regola assoluta, vale più di tutto il resto): non inventare mai. Se non sai una cosa, non hai il dato o non puoi farla, dillo subito e chiaramente («Non lo so», «Non ho questo dato», «Non posso farlo da qui»), senza giri di parole e senza dare una risposta di ripiego che sembri vera.',
+  'Non conosci la posizione, l\'indirizzo di casa, i percorsi, il traffico, gli orari dei locali o il meteo in tempo reale dell\'utente, a meno che compaiano nel contesto che ti viene dato qui sotto. Non descrivere mai strade, incroci, distanze o tempi di viaggio: invece dì che non hai quel dato e suggerisci di usare un\'app di mappe.',
+  'Qui puoi solo scrivere una risposta. Non puoi inviare notifiche o messaggi, chiamare, prenotare, salvare, pagare o modificare nulla, e non sai se lo ha fatto l\'app. Non dire mai di aver fatto un\'azione e non proporre azioni che non puoi fare (come «ti mando le indicazioni sul telefono»): se serve un\'azione, spiega cosa può fare l\'utente nell\'app.',
+  'Quando dai un\'informazione di cui non sei sicuro, dì quanto sei sicuro. Non indovinare nomi, numeri, date o luoghi.',
+].join('\n');
+
+/** Frasi in cui la risposta afferma di aver FATTO un'azione (inviato, prenotato, salvato...): da una chat di sola scrittura non è mai vero. */
+const CLAIM = /\b(ti ho (?:mandat|inviat|spedit|salvat|prenotat|creat|aggiunt|impostat|attivat|chiamat|scritt)\w*|ho (?:mandat|inviat|spedit|salvat|prenotat|creat|aggiunt|impostat|attivat|chiamat)\w*|(?:l\'ho|li ho|le ho|lo ho) (?:mandat|inviat|salvat|prenotat|creat|aggiunt|impostat|attivat)\w*|ti sto (?:mandando|inviando)|ti (?:mando|invio) (?:subito|ora))\b/i;
+
+/** Se la risposta dice di aver fatto qualcosa, aggiunge una correzione onesta. Ritorna anche se è scattata, per i test. */
+export function guardClaims(text: string): { text: string; flagged: boolean } {
+  if (!CLAIM.test(text)) return { text, flagged: false };
+  return { text: `${text}\n\n**Attenzione:** in questa chat posso solo scriverti, non ho inviato né eseguito nessuna azione: quello che ho appena detto di aver fatto non è successo. Se ti serve, fallo tu dall'app.`, flagged: true };
+}

@@ -13,7 +13,7 @@ import { totalUnread, useChat } from '@/store/chat';
 import { useApp, navCatalog } from '@/store/app';
 import { joinReasons, rankTasks } from '@/lib/priority';
 import { t, translateText } from '@/i18n/core';
-import { humanize, styleHints, tidy } from '@/lib/aiPersona';
+import { HONESTY, guardClaims, humanize, styleHints, tidy } from '@/lib/aiPersona';
 import { useAssistant } from '@/store/assistant';
 import { aiChat, aiChatRaw, aiReadFilesFull, aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
 import { useLife } from '@/store/life';
@@ -272,12 +272,12 @@ function theiaPrompt(question: string, selection?: string): string {
   const log = useAssistant.getState().log;
   const mine = log.filter((m) => m.who === 'me').slice(-6).map((m) => m.text);
   const recent = log.slice(-9, -1).filter((m) => m.text.trim()).map((m) => `${m.who === 'me' ? 'Utente' : (app0.assistantName || 'Theia')}: ${m.text.replace(/\s+/g, ' ').slice(0, 300)}`).join('\n');
-  return `Sei ${app0.assistantName || 'Theia'}, la persona di fiducia dentro l'app LifePilot per l'utente. Rispondi come una persona che conosce bene l'utente, in modo diretto e utile, anche a domande libere (testi, idee, spiegazioni, consigli generali). Non dai consigli medici, legali o finanziari: spieghi e dai indicazioni generali. Se parli di alimentazione, salute, sonno, allenamento o integratori: di' che sono stime e indicazioni generali, non un parere medico; non diagnosticare, non prescrivere terapie, dosi di integratori o diete speciali, e invita a sentire un medico o un dietista in caso di sintomi, malattie, gravidanza o dubbi.\n${styleHints([...mine, question])}${ctx ? `\n\nContesto dell'utente:\n${ctx}` : ''}${recent ? `\n\nConversazione recente:\n${recent}` : ''}${selection ? `\n\nTesto selezionato:\n"${selection}"` : ''}\n\nRichiesta: ${question}`;
+  return `Sei ${app0.assistantName || 'Theia'}, la persona di fiducia dentro l'app LifePilot per l'utente. Rispondi come una persona che conosce bene l'utente, in modo diretto e utile, anche a domande libere (testi, idee, spiegazioni, consigli generali). Non dai consigli medici, legali o finanziari: spieghi e dai indicazioni generali.\n${HONESTY} Se parli di alimentazione, salute, sonno, allenamento o integratori: di' che sono stime e indicazioni generali, non un parere medico; non diagnosticare, non prescrivere terapie, dosi di integratori o diete speciali, e invita a sentire un medico o un dietista in caso di sintomi, malattie, gravidanza o dubbi.\n${styleHints([...mine, question])}${ctx ? `\n\nContesto dell'utente:\n${ctx}` : ''}${recent ? `\n\nConversazione recente:\n${recent}` : ''}${selection ? `\n\nTesto selezionato:\n"${selection}"` : ''}\n\nRichiesta: ${question}`;
 }
 
 /** Domanda libera in chat: risponde il server AI come una persona (con la conversazione recente). */
 export async function askTheiaChat(question: string): Promise<string> {
-  return tidy(await aiChatRaw(theiaPrompt(question)));
+  return guardClaims(tidy(await aiChatRaw(theiaPrompt(question)))).text;
 }
 
 /** Domanda su file o foto inviati (consenso gia' dato): risponde il server AI leggendo i file. `result` e' la lettura strutturata dei documenti. */

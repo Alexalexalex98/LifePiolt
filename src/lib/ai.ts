@@ -1,5 +1,5 @@
 import type { ChatMsg } from '@/store/life';
-import { styleHints } from '@/lib/aiPersona';
+import { HONESTY, styleHints } from '@/lib/aiPersona';
 import { aiChat, aiServerConfigured } from '@/lib/aiServer';
 
 /**
@@ -60,7 +60,7 @@ export async function askAssistant(topic: string, history: ChatMsg[]): Promise<s
   if (aiServerConfigured) {
     const recent = history.slice(-12).map((m) => `${m.who === 'me' ? 'Utente' : 'Assistente'}: ${m.text}`).join('\n');
     const mine = history.filter((m) => m.who === 'me').map((m) => m.text);
-    return aiChat(`Sei la persona di fiducia dell'utente dentro l'app LifePilot, area «${topic}». Niente consigli medici, legali o finanziari: spieghi e dai indicazioni generali.\n${styleHints(mine)}\nConversazione finora:\n${recent}\nAssistente:`);
+    return aiChat(`Sei la persona di fiducia dell'utente dentro l'app LifePilot, area «${topic}». Niente consigli medici, legali o finanziari: spieghi e dai indicazioni generali.\n${HONESTY}\n${styleHints(mine)}\nConversazione finora:\n${recent}\nAssistente:`);
   }
   if (!API_URL) return `LifePilot · ${topic}\n${catReplies[topic] ?? catReplies.General}\n\nL'assistente AI completo si attiva collegando l'app a un server (EXPO_PUBLIC_API_URL).`;
   const res = await fetch(`${API_URL}/chat`, {

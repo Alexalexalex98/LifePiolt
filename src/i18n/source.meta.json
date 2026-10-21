@@ -1,5 +1,5 @@
 {
- "count": 12362,
+ "count": 12370,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -308,7 +308,7 @@
   "src/lib/a11y.ts": 1,
   "src/lib/ai.ts": 26,
   "src/lib/aiConsent.ts": 11,
-  "src/lib/aiPersona.ts": 11,
+  "src/lib/aiPersona.ts": 16,
   "src/lib/aiRouter/adapters/index.ts": 1,
   "src/lib/aiRouter/adapters/mock.ts": 1,
   "src/lib/aiRouter/adapters/serverProxy.ts": 4,
@@ -340,7 +340,7 @@
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 103,
+  "src/lib/assistant/theiaFlow.ts": 106,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -550,5 +550,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1582
+ "withPlaceholders": 1583
 }

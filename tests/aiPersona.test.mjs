@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readStyle, styleHints, humanize, tidy, toBlocks, inlineBold } from '../src/lib/aiPersona.ts';
+import { readStyle, styleHints, humanize, tidy, toBlocks, inlineBold, HONESTY, guardClaims } from '../src/lib/aiPersona.ts';
 
 test('stile di chi scrive: lei/tu, lunghezza, tono', () => {
   assert.equal(readStyle(['Buongiorno, potrebbe aiutarmi con una scadenza?']).formal, true);
@@ -41,4 +41,14 @@ test('blocchi di visualizzazione: titoli, elenchi, numerati, paragrafi', () => {
   assert.equal(b[2].indent, 1);
   assert.equal(b[3].n, '1');
   assert.deepEqual(inlineBold('ho **500 ml** di acqua'), [{ t: 'ho ', b: false }, { t: '500 ml', b: true }, { t: ' di acqua', b: false }]);
+});
+
+test('onestà: le regole ci sono e le finte azioni vengono smentite', () => {
+  assert.match(HONESTY, /non inventare mai/i);
+  assert.match(HONESTY, /posizione/i);
+  const g = guardClaims('Ti ho mandato il percorso esatto sul telefono, lo trovi nelle notifiche.');
+  assert.equal(g.flagged, true);
+  assert.match(g.text, /non ho inviato né eseguito nessuna azione/);
+  assert.equal(guardClaims('Non ho questo dato: usa un\'app di mappe.').flagged, false);
+  assert.equal(guardClaims('Ho mandato un messaggio a Marco').flagged, true);
 });

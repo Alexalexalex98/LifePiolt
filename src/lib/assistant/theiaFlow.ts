@@ -94,6 +94,8 @@ function saveToDrive(atts: Att[]) {
 }
 
 /** «aggiungi / carica / inserisci una bolletta o fattura» */
+/** «dove abito», «da casa mia», «il percorso da casa», «quanto ci vuole a piedi da qui»: dati che Theia non ha. */
+const HOME_OR_ROUTE = /\b(dove abito|dove vivo|casa mia|il mio indirizzo|dov e casa)\b|\b(percorso|indicazioni|strada|quanto ci vuole|come ci arrivo|come arrivo)\b.*\b(da casa|da qui|a piedi|in bici|in auto|in macchina)\b|\b(da casa|da qui)\b.*\b(percorso|indicazioni|a piedi|in bici|quanto ci vuole)\b/;
 const BILL_ADD = /\b(aggiung|carica|caricare|inserisc|registr|nuov|metti|mettere|salva|salvare)\w*\b.*\b(bolletta|bollette|fattura|fatture)\b/;
 
 const TIPO = /^\s*TIPO:\s*(\w+)\s*$/im;
@@ -261,6 +263,13 @@ export async function sendTheia(i: SendInput): Promise<void> {
   }
   // cibo e acqua: storico, analisi di come mangi, acqua bevuta e promemoria (tutto sul telefono)
   if (!pending && (await handleFood(text, (m, actions) => { pushAi(m, actions ? { ext: { actions } } : {}); }, (page, params) => go(page, params ?? {})))) return;
+  // domande sul dove abiti o su percorsi da casa: Theia NON lo sa e lo dice, senza inventare strade
+  if (!pending && HOME_OR_ROUTE.test(norm(text))) {
+    pushAi(t('Non so dove abiti: non conosco il tuo indirizzo né la tua posizione, e non calcolo percorsi né tempi di viaggio. Se te li inventassi ti manderei nel posto sbagliato. Apri le mappe, cerca il posto e usa «Indicazioni»: lì partono dalla tua posizione vera.'), {
+      ext: { actions: [{ kind: 'open', label: t('Apri le mappe'), url: 'https://www.google.com/maps' }, { kind: 'dismiss', label: t('Ok, grazie') }] },
+    });
+    return;
+  }
   if (!pending && (await handlePhrase(command ?? text))) return;
   // dove si trova / come si fa: risposta precisa dalla guida, con il pulsante per aprire la pagina
   if (!pending && looksLikeHelp(text)) {
