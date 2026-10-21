@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 
 import { Spark } from '@/components/charts';
 import { StockFlow, type Flow } from '@/components/stocks';
-import { Body, Btn, Card, Empty, Input, Item, Link, Page, Pill, Row, Sheet, Tag } from '@/components/ui';
+import { Body, Btn, Card, ChipBtn, Empty, Input, Item, Link, Page, Pill, Row, Sheet, Tag } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { holdings, useFin } from '@/store/finance';
 import { toast } from '@/store/toast';
@@ -73,7 +73,7 @@ export default function Portfolio() {
               <Row>
                 <View style={{ flex: 1 }}><Body bold>{o.symbol}</Body><Body small muted>{o.type === 'buy' ? 'Acquisto' : 'Vendita'} condizionato @ {o.limitPrice.toFixed(2)}{o.sl ? ` · SL ${o.sl}` : ''}{o.tp ? ` · TP ${o.tp}` : ''} · {formatMoney(o.amount)}</Body></View>
                 <Btn small ghost title="Esegui" onPress={() => { const m = f.executeOrder(o.id); if (m) toast(m); }} />
-                <Link danger onPress={() => confirmDelete(`l'ordine su ${o.symbol}`, () => f.cancelOrder(o.id), () => f.restoreOrder(o), { title: 'Annullare l\'ordine?', okLabel: 'Annulla ordine', undoMessage: 'Ordine annullato' })}>annulla</Link>
+                <ChipBtn tone="danger" icon="x" title="Annulla" onPress={() => confirmDelete(`l'ordine su ${o.symbol}`, () => f.cancelOrder(o.id), () => f.restoreOrder(o), { title: 'Annullare l\'ordine?', okLabel: 'Annulla ordine', undoMessage: 'Ordine annullato' })} />
               </Row>
             </Item>
           ))}

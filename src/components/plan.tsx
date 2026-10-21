@@ -6,7 +6,7 @@ import { ColorPicker, bandsOnDay, useBands, useCalColors } from '@/components/Ca
 import { confirmDelete } from '@/lib/confirm';
 import { alertT } from '@/lib/alert';
 import { vacationOn } from '@/lib/planBooking';
-import { Body, Btn, Card, Empty, H, Input, Item, Link, Pill, Row, Select, Sheet, Toggle, XBtn } from '@/components/ui';
+import { Body, Btn, Card, ChipBtn, Empty, H, IconBtn, Input, Item, Link, Pill, Row, RowCard, Select, Sheet, Switch, Toggle, XBtn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { dayKey, minutesToTime, pad2, timeToMinutes } from '@/lib/format';
 import { Icon } from '@/lib/icons';
@@ -304,63 +304,83 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
   const vacs = bandsOnDay(bands, day);
   return (
     <Sheet visible title={titleStr} onClose={() => { setColorFor(null); onClose(); }}>
+      <Body small muted style={{ marginBottom: 12, textTransform: 'capitalize' }}>{`${fmtDate(d, { weekday: 'long' })} · ${sorted.length === 0 ? tl('libero') : sorted.length === 1 ? tl('1 impegno') : tl('{0} impegni', sorted.length)}`}</Body>
       {vacs.map((b) => (
-        <Item key={b.id}>
-          <Row>
-            <View style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, backgroundColor: c.vac }} />
-            <Body style={{ flex: 1 }}><Text style={{ fontWeight: '700' }}>{b.name}</Text> · {tl('vacanza dal {0} al {1}', fmtDate(new Date(b.start + 'T00:00:00'), { day: 'numeric', month: 'short' }), fmtDate(new Date(b.end + 'T00:00:00'), { day: 'numeric', month: 'short' }))}</Body>
-            {onVacation && <Btn small ghost title="Modifica" onPress={() => { onClose(); onVacation(b.id); }} />}
+        <RowCard key={b.id} color={c.vac}>
+          <Row gap={10}>
+            <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: c.vac + '33', alignItems: 'center', justifyContent: 'center' }}><Icon name="lifetravel" size={18} color={c.vac} stroke={2} /></View>
+            <View style={{ flex: 1 }}>
+              <Body bold>{b.name}</Body>
+              <Body small muted>{tl('Vacanza dal {0} al {1}', fmtDate(new Date(b.start + 'T00:00:00'), { day: 'numeric', month: 'short' }), fmtDate(new Date(b.end + 'T00:00:00'), { day: 'numeric', month: 'short' }))}</Body>
+            </View>
+            {onVacation ? <IconBtn icon="edit" label="Modifica la vacanza" onPress={() => { onClose(); onVacation(b.id); }} /> : null}
           </Row>
-        </Item>
+        </RowCard>
       ))}
-      {sorted.length === 0 && vacs.length === 0 && <Empty text="Nessun impegno pianificato." />}
+      {sorted.length === 0 && vacs.length === 0 ? (
+        <View style={{ alignItems: 'center', paddingVertical: 22, gap: 8 }}>
+          <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name="calendar" size={24} color={t.muted} stroke={1.8} /></View>
+          <Body muted>Nessun impegno pianificato: giornata libera.</Body>
+        </View>
+      ) : null}
       {sorted.map(({ e, idx }) => {
         const col = c.of(e);
         return (
-          <Item key={idx}>
-            <Row>
-              <Pressable onPress={() => setColorFor(colorFor === idx ? null : idx)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`${translateText('Cambia colore')}: ${e.title}`} style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: col, borderWidth: 2, borderColor: t.border }} />
-              <Body style={{ flex: 1 }}><Text style={{ fontWeight: '700' }}>{e.time}</Text> · {e.title}{e.place ? ` · ${e.place}` : ''}</Body>
-              <Row gap={12}>
-                <Pressable onPress={() => { patchEvent(day, idx, { important: !e.important }); toast(!e.important ? 'Impegno importante: i task collegati avranno la precedenza' : 'Non più importante'); }} accessibilityLabel={translateText(e.important ? 'Togli importanza' : 'Segna come importante')}>
-                  <Icon name="star" size={18} color={e.important ? '#ffb84f' : t.text} fill={e.important ? '#ffb84f' : 'none'} />
-                </Pressable>
-                <Pressable onPress={() => { const on = toggleReminder(day, idx); toast(on ? 'Promemoria impostato' : 'Promemoria rimosso'); }} accessibilityLabel={translateText("Promemoria")}>
-                  <Icon name="bell" size={18} color={e.reminder ? '#ffb84f' : t.text} fill={e.reminder ? '#ffb84f' : 'none'} />
-                </Pressable>
-                <Link danger onPress={() => {
-                  let rem: CalEvent | null = null;
-                  confirmDelete(tl('l\'impegno «{0}»', e.title), () => { rem = delEvent(day, idx); setColorFor(null); }, () => { const r = rem as CalEvent | null; if (r) restoreEvent(day, idx, r); }, { undoMessage: 'Impegno rimosso' });
-                }}>rimuovi</Link>
-              </Row>
+          <RowCard key={idx} color={col}>
+            <Row gap={10} style={{ alignItems: 'flex-start' }}>
+              <View style={{ backgroundColor: col + '2e', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}>
+                <Text style={{ color: col, fontSize: 14, fontWeight: '800', letterSpacing: 0.2 }}>{e.time}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Body bold>{e.title}</Body>
+                {e.place ? <Row gap={5} style={{ justifyContent: 'flex-start', marginTop: 2 }}><Icon name="pin" size={13} color={t.muted} stroke={2} /><Body small muted style={{ flex: 1 }}>{e.place}</Body></Row> : null}
+              </View>
+              {e.important ? <Icon name="star" size={16} color="#ffb84f" fill="#ffb84f" /> : null}
             </Row>
             {e.place && /^\d{1,2}:\d{2}$/.test(e.time) ? <ArrivalAdvice place={e.place} time={e.time} today={day === dayKey()} /> : null}
+            <Row gap={8} style={{ justifyContent: 'flex-start', marginTop: 10 }}>
+              <IconBtn icon="star" active={!!e.important} label={e.important ? 'Non più importante' : 'Segna come importante'} onPress={() => { patchEvent(day, idx, { important: !e.important }); toast(!e.important ? 'Impegno importante: i task collegati avranno la precedenza' : 'Non più importante'); }} />
+              <IconBtn icon="bell" active={!!e.reminder} label="Promemoria" onPress={() => { const on = toggleReminder(day, idx); toast(on ? 'Promemoria impostato' : 'Promemoria rimosso'); }} />
+              <IconBtn icon="palette" label="Cambia colore" onPress={() => setColorFor(colorFor === idx ? null : idx)} />
+              <View style={{ flex: 1 }} />
+              <IconBtn icon="trash" tone="danger" label="Rimuovi l'impegno" onPress={() => {
+                let rem: CalEvent | null = null;
+                confirmDelete(tl('l\'impegno «{0}»', e.title), () => { rem = delEvent(day, idx); setColorFor(null); }, () => { const r = rem as CalEvent | null; if (r) restoreEvent(day, idx, r); }, { undoMessage: 'Impegno rimosso' });
+              }} />
+            </Row>
             {colorFor === idx && (
               <ColorPicker ev={e} onChange={(id) => { patchEvent(day, idx, { color: id }); toast(id ? 'Colore cambiato' : 'Colore automatico'); }} />
             )}
-          </Item>
+          </RowCard>
         );
       })}
-      <Row style={{ marginTop: 14 }}>
-        <Input placeholder="09:00" style={{ width: 84 }} value={time} onChangeText={setTime} />
-        <Input flex={1} placeholder="Nuovo impegno…" value={title} onChangeText={setTitle} />
-      </Row>
-      <Input placeholder="Luogo (facoltativo): città o indirizzo" value={place} onChangeText={setPlace} />
-      <Toggle label="Ogni settimana (per questo mese)" value={weekly} onChange={setWeekly} />
-      <Btn title="Aggiungi al calendario" onPress={() => {
-        const ti = title.trim(); if (!ti) return;
-        const vac = vacationOn(day);
-        const have = (useLife.getState().events[day] ?? []).length;
-        const go = () => {
-        const n = addEvent(day, { time: time.trim() || '--:--', title: ti, reminder: false, ...(place.trim() ? { place: place.trim() } : {}) }, weekly ? endOfMonth : undefined);
-        setTitle(''); setPlace('');
-        toast(n > 1 ? `Impegno aggiunto a ${n} date (ogni settimana)` : 'Impegno aggiunto');
-        };
-        // avviso: vacanza (tutta la giornata occupata) o impegni già presenti
-        if (vac) alertT('Sei in vacanza', `In questo giorno hai «${vac.name}»: la vacanza occupa tutta la giornata. Aggiungo comunque?`, [{ text: 'Annulla', style: 'cancel' }, { text: 'Aggiungi comunque', onPress: go }]);
-        else if (have > 0) alertT('Hai già impegni', `In questo giorno hai già ${have} ${have === 1 ? 'impegno' : 'impegni'}. Aggiungo comunque?`, [{ text: 'Annulla', style: 'cancel' }, { text: 'Aggiungi', onPress: go }]);
-        else go();
-      }} />
+
+      <View style={{ marginTop: 6, borderRadius: 20, backgroundColor: t.chip, padding: 14 }}>
+        <Row gap={8} style={{ justifyContent: 'flex-start', marginBottom: 10 }}><Icon name="plus" size={16} color={t.text} stroke={2.4} /><Body bold>Nuovo impegno</Body></Row>
+        <Row gap={8} style={{ alignItems: 'stretch' }}>
+          <Input placeholder="09:00" style={{ width: 92, textAlign: 'center', fontWeight: '800', marginBottom: 0 }} value={time} onChangeText={setTime} />
+          <Input flex={1} placeholder="Cosa devi fare?" style={{ marginBottom: 0 }} value={title} onChangeText={setTitle} />
+        </Row>
+        <Input placeholder="Luogo (facoltativo): città o indirizzo" style={{ marginTop: 8, marginBottom: 0 }} value={place} onChangeText={setPlace} />
+        <Row style={{ marginTop: 12 }}>
+          <Row gap={8} style={{ flex: 1, justifyContent: 'flex-start' }}><Icon name="repeat" size={16} color={t.muted} stroke={2} /><Body small style={{ flex: 1 }}>Ogni settimana, fino a fine mese</Body></Row>
+          <Switch value={weekly} onValueChange={setWeekly} accessibilityLabel="Ogni settimana" />
+        </Row>
+        <Btn style={{ marginTop: 12 }} icon="plus" title="Aggiungi al calendario" onPress={() => {
+          const ti = title.trim(); if (!ti) return;
+          const vac = vacationOn(day);
+          const have = (useLife.getState().events[day] ?? []).length;
+          const go = () => {
+            const n = addEvent(day, { time: time.trim() || '--:--', title: ti, reminder: false, ...(place.trim() ? { place: place.trim() } : {}) }, weekly ? endOfMonth : undefined);
+            setTitle(''); setPlace('');
+            toast(n > 1 ? `Impegno aggiunto a ${n} date (ogni settimana)` : 'Impegno aggiunto');
+          };
+          // avviso: vacanza (tutta la giornata occupata) o impegni già presenti
+          if (vac) alertT('Sei in vacanza', `In questo giorno hai «${vac.name}»: la vacanza occupa tutta la giornata. Aggiungo comunque?`, [{ text: 'Annulla', style: 'cancel' }, { text: 'Aggiungi comunque', onPress: go }]);
+          else if (have > 0) alertT('Hai già impegni', `In questo giorno hai già ${have} ${have === 1 ? 'impegno' : 'impegni'}. Aggiungo comunque?`, [{ text: 'Annulla', style: 'cancel' }, { text: 'Aggiungi', onPress: go }]);
+          else go();
+        }} />
+      </View>
     </Sheet>
   );
 }

@@ -8,7 +8,7 @@ import { CalendarPanel, VacationSheet } from '@/components/CalendarViews';
 import { NotifBanner } from '@/components/NotifPrompt';
 import { GoalProgress } from '@/components/GoalProgress';
 import { DaySheet, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet } from '@/components/plan';
-import { Body, Btn, Card, Empty, H, Input, Item, Link, Page, Pill, Progress, Row, Sheet } from '@/components/ui';
+import { ChipBtn, Body, Btn, Card, Empty, H, Input, Item, Link, Page, Pill, Progress, Row, Sheet } from '@/components/ui';
 import { sendToAssistant } from '@/lib/assistant/run';
 import { isKey, parseKey, vacationBands } from '@/lib/calendarLayout';
 import { confirmDelete } from '@/lib/confirm';
@@ -103,9 +103,9 @@ export default function Plan() {
               </View>
             </Row>
             <Row style={{ marginTop: 6, justifyContent: 'flex-start' }} gap={14}>
-              <Link onPress={() => setVacId(v.id)}>modifica</Link>
-              {isKey(v.start) && isKey(v.end) ? <Link onPress={() => go('lifetravel', { start: v.start!, end: v.end! })}>pianifica il viaggio</Link> : null}
-              <Link danger onPress={() => removeVacation(v)}>elimina</Link>
+              <ChipBtn icon="edit" title="Modifica" onPress={() => setVacId(v.id)} />
+              {isKey(v.start) && isKey(v.end) ? <ChipBtn icon="lifetravel" title="Pianifica il viaggio" onPress={() => go('lifetravel', { start: v.start!, end: v.end! })} /> : null}
+              <ChipBtn icon="trash" tone="danger" title="Elimina" onPress={() => removeVacation(v)} />
             </Row>
           </Item>
         ))}
@@ -128,8 +128,8 @@ export default function Plan() {
             <Progress value={g.p} />
             <GoalProgress goal={g} />
             <Row style={{ marginTop: 8 }}>
-              <Link onPress={() => { const p = bumpGoal(g.id); if (p === 100) toast('Obiettivo completato'); }}>+5% progresso</Link>
-              <Link danger onPress={() => removeGoal(g)}>rimuovi</Link>
+              <ChipBtn icon="plus" title="+5% progresso" onPress={() => { const p = bumpGoal(g.id); if (p === 100) toast('Obiettivo completato'); }} />
+              <ChipBtn icon="trash" tone="danger" title="Rimuovi" onPress={() => removeGoal(g)} />
             </Row>
           </Item>
         ))}
@@ -159,7 +159,7 @@ export default function Plan() {
               </Row>
               <Row style={{ marginTop: 6, justifyContent: 'flex-start' }} gap={14}>
                 <Btn small title="Ripristina" icon="repeat" onPress={() => { if (restoreFromTrash(it.tid)) toast(it.kind === 'goal' ? 'Obiettivo ripristinato' : 'Task ripristinato'); }} />
-                <Link danger onPress={() => confirmDelete(tl('definitivamente «{0}»', name ?? ''), () => purgeTrash(it.tid), undefined, { title: 'Eliminare per sempre?', okLabel: 'Elimina per sempre' })}>elimina per sempre</Link>
+                <ChipBtn icon="trash" tone="danger" title="Elimina per sempre" onPress={() => confirmDelete(tl('definitivamente «{0}»', name ?? ''), () => purgeTrash(it.tid), undefined, { title: 'Eliminare per sempre?', okLabel: 'Elimina per sempre' })} />
               </Row>
             </Item>
           );

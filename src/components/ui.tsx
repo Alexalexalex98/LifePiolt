@@ -230,6 +230,41 @@ export function XBtn({ onPress, label = 'Rimuovi', color }: { onPress: () => voi
   return <Press onPress={onPress} hitSlop={hit(17)} accessibilityLabel={label}><Icon name="x" size={17} color={color ?? t.danger} stroke={2.1} /></Press>;
 }
 
+type Tone = 'default' | 'danger' | 'warn' | 'accent';
+const toneColor = (t: ReturnType<typeof useTheme>, tone: Tone | undefined, active?: boolean) => (tone === 'danger' ? t.danger : tone === 'warn' || active ? '#ffb84f' : tone === 'accent' ? t.accent : t.text);
+
+/** Pulsante tondo con icona (stella, campanella, cestino...): al posto dei link di testo nelle righe. */
+export function IconBtn({ icon, onPress, label, tone, active, size = 38, fill }: { icon: string; onPress: () => void; label: string; tone?: Tone; active?: boolean; size?: number; fill?: boolean }) {
+  const t = useTheme();
+  const col = toneColor(t, tone, active);
+  const bg = tone === 'danger' ? t.danger + '1f' : active ? col + '26' : t.chip;
+  return (
+    <Press onPress={onPress} accessibilityLabel={translateText(label)} hitSlop={hit(size)} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+      <Icon name={icon} size={Math.round(size * 0.47)} color={col} fill={fill || active ? col : 'none'} stroke={2} />
+    </Press>
+  );
+}
+
+/** Pillola con icona e testo breve («Modifica», «Elimina»), al posto dei link di testo. */
+export function ChipBtn({ icon, title, onPress, tone }: { icon?: string; title: string; onPress: () => void; tone?: Tone }) {
+  const t = useTheme();
+  const col = toneColor(t, tone);
+  return (
+    <Press onPress={onPress} accessibilityLabel={translateText(title)} hitSlop={hit(34)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 34, borderRadius: 17, backgroundColor: tone === 'danger' ? t.danger + '1f' : t.chip }}>
+      {icon ? <Icon name={icon} size={15} color={col} stroke={2} /> : null}
+      <Text style={{ color: col, fontSize: 13, fontWeight: '700' }}>{title}</Text>
+    </Press>
+  );
+}
+
+/** Riga-scheda arrotondata con una barra colorata a sinistra: per impegni, vacanze e simili. */
+export function RowCard({ color, children, style, onPress }: { color?: string; children: ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void }) {
+  const t = useTheme();
+  const st: StyleProp<ViewStyle> = [{ flexDirection: 'row', borderRadius: 18, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, overflow: 'hidden', marginBottom: 10 }, style];
+  const body = (<><View style={{ width: 5, backgroundColor: color ?? t.accent }} /><View style={{ flex: 1, padding: 12 }}>{children}</View></>);
+  return onPress ? <Press onPress={onPress} style={st} feedback={0.6}>{body}</Press> : <View style={st}>{body}</View>;
+}
+
 export function Tag({ children }: { children: ReactNode }) {
   const t = useTheme();
   return <Text style={{ color: t.muted, fontSize: 11, letterSpacing: 0.8, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 }}>{children}</Text>;
