@@ -12,7 +12,9 @@ export type Snap = {
   shifts: Shift[];
   tasks: Task[];
   /** null = non ci sono dati finanziari */
-  finance: null | { partial: boolean; day: number; daysInMonth: number; income: number; expense: number; saved: number; end: number; projectionEnd: number | null; over: { category: string; pct: number; level: string }[]; topCats: { n: string; v: number }[] };
+  finance: null | { partial: boolean; day: number; daysInMonth: number; income: number; expense: number; saved: number; end: number; projectionEnd: number | null; over: { category: string; pct: number; level: string }[]; topCats: { n: string; v: number }[];
+    /** mese precedente (se c'è) e come sono cambiate le categorie rispetto a quel mese */
+    prev?: { label: string; income: number; expense: number } | null; deltas?: { n: string; v: number; prev: number }[]; label?: string };
   /** notti più recenti, in ore */
   sleep: { day: string; hours: number }[];
   steps: { day: string; v: number }[];

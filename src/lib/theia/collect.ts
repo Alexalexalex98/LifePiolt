@@ -30,6 +30,8 @@ function finance(now: number): Snap['finance'] {
       income: a.cur.income, expense: a.cur.expense, saved: a.cur.saved, end: a.cur.end,
       projectionEnd: a.projection ? a.projection.end : null,
       over: alerts, topCats: a.donut.map((c) => ({ n: c.n, v: c.v })),
+      label: a.cur.label, prev: a.prev ? { label: a.prev.label, income: a.prev.income, expense: a.prev.expense } : null,
+      deltas: a.top.map((x) => ({ n: x.n, v: x.v, prev: x.prev })),
     };
   } catch { return null; }
 }

@@ -1,4 +1,5 @@
 import { askLocal } from '@/lib/theia/ask';
+import { askFree, askFreeOffline, looksLikeDataQuestion, type FreeResult } from '@/lib/theia/free';
 import { collectSnap } from '@/lib/theia/collect';
 import { Linking } from 'react-native';
 import { handleAppAction } from './appActions';
@@ -13,7 +14,7 @@ import { domainsIn } from './dictionary';
 import { useNet } from '@/store/network';
 import { helpAnswer, looksLikeHelp, searchHelp } from '@/lib/helpKb';
 import { routeRequest, type RouteResult } from '@/lib/aiRouter';
-import { aiServerConfigured } from '@/lib/aiServer';
+import { aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
 import { describeAnalysis, isBillType } from '@/lib/docAnalysis';
@@ -215,6 +216,23 @@ export async function sendTheia(i: SendInput): Promise<void> {
     try {
       const g = askLocal(u.text, collectSnap());
       if (g) { pushAi(`${g.text}${g.sources.length ? `\n\n${t('Fonte')}: ${g.sources.join(', ')}.` : ''}`); return; }
+    } catch { /* si prosegue con la via normale */ }
+  }
+
+  // domande libere sui tuoi dati: l'AI sceglie i calcolatori, il telefono calcola, ogni numero della risposta viene verificato. Senza AI o senza consenso: i fatti, così come sono
+  if (!pending && !useLearned.getState().teaching && (u.status === 'passthrough' || u.status === 'translated') && looksLikeDataQuestion(u.text)) {
+    try {
+      const snap = collectSnap();
+      let r: FreeResult = { kind: 'outside' };
+      if (aiOn() && (await askSend('summary', t('La tua domanda e i numeri che servono a rispondere, calcolati sul telefono. Niente file, foto o contatti.')))) {
+        logSend('summary', 0, ['domanda', 'numeri calcolati']);
+        try { r = await askFree(u.text, snap, (p) => aiChatRaw(p)); } catch { r = askFreeOffline(u.text, snap); }
+      } else r = askFreeOffline(u.text, snap);
+      if (r.kind === 'clarify') { pushAi(r.text); return; }
+      if (r.kind === 'answer' || r.kind === 'fallback') {
+        pushAi(`${r.text}${r.sources.length ? `\n\n${t('Fonte')}: ${r.sources.join(', ')}. ${t('I numeri sono calcolati sul telefono.')}` : ''}`);
+        return;
+      }
     } catch { /* si prosegue con la via normale */ }
   }
 

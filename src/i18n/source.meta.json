@@ -1,5 +1,5 @@
 {
- "count": 13150,
+ "count": 13234,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -355,7 +355,7 @@
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 107,
+  "src/lib/assistant/theiaFlow.ts": 110,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -534,6 +534,7 @@
   "src/lib/taxDeadlines.ts": 14,
   "src/lib/theia.ts": 96,
   "src/lib/theia/ask.ts": 58,
+  "src/lib/theia/free.ts": 93,
   "src/lib/theia/radar.ts": 46,
   "src/lib/theiaQuotes.ts": 40,
   "src/lib/themeCustom.ts": 17,
@@ -576,5 +577,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1631
+ "withPlaceholders": 1644
 }
