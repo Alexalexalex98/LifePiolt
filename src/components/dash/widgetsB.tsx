@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
+import { useProposals } from '@/lib/theia/useRadar';
+import { useRadar as useRadarStore } from '@/store/radar';
 import { Image } from 'expo-image';
 
 import { Chrome, Tile, type TileRow } from '@/components/dash/Tile';
@@ -182,3 +184,37 @@ export const shortcutW = (s: Short) => function Shortcut(p: WProps) {
     </Chrome>
   );
 };
+
+/* ---------------- Radar di Theia ---------------- */
+export function RadarW(p: WProps) {
+  const t = useTheme();
+  const list = useProposals();
+  const dismiss = useRadarStore((s) => s.dismiss);
+  const cells = p.w * p.h;
+  const n = p.h === 1 ? 1 : Math.max(1, Math.floor((p.ph - 56) / (cells >= 8 ? 92 : 84)));
+  const tone = (sev: string) => (sev === 'bad' ? t.danger : sev === 'warn' ? t.warn : C.theia);
+  return (
+    <Chrome pw={p.pw} ph={p.ph} color={list[0] ? tone(list[0].severity) : C.theia} label="Theia ha notato" onPress={p.h === 1 && list[0]?.action ? () => go(list[0].action!.page, list[0].action!.params) : undefined}>
+      <View style={{ flex: 1, gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Icon name="sparkle" size={15} color={C.theia} stroke={2} />
+          <Text style={{ color: t.muted, fontSize: 12, fontWeight: '700', flex: 1 }}>{tl('Theia ha notato')}</Text>
+          {list.length > 1 ? <Text style={{ color: t.muted, fontSize: 11 }}>{`${list.length} ${tl('avvisi')}`}</Text> : null}
+        </View>
+        {!list.length ? <Text style={{ color: t.muted, fontSize: 12.5 }}>{tl('Per ora è tutto in ordine: controllo soldi, agenda, turni, sonno e task.')}</Text> : null}
+        {list.slice(0, n).map((x) => (
+          <View key={x.id} style={{ gap: 3 }}>
+            <Text numberOfLines={p.h === 1 ? 1 : 2} style={{ color: t.text, fontSize: 13.5, fontWeight: '800' }}>{x.title}</Text>
+            {p.h > 1 ? <Text numberOfLines={cells >= 8 ? 4 : 3} style={{ color: t.muted, fontSize: 12 }}>{x.why}</Text> : null}
+            {p.h > 1 ? (
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
+                {x.action ? <Pressable accessibilityRole="button" onPress={() => go(x.action!.page, x.action!.params)} style={{ paddingHorizontal: 10, height: 28, borderRadius: 14, backgroundColor: C.theia + '30', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.text, fontSize: 12, fontWeight: '800' }}>{tl(x.action.label)}</Text></Pressable> : null}
+                <Pressable accessibilityRole="button" accessibilityLabel={tl('Non mostrare più questo avviso')} onPress={() => dismiss(x.id)} style={{ paddingHorizontal: 10, height: 28, borderRadius: 14, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.muted, fontSize: 12, fontWeight: '700' }}>{tl('Chiudi')}</Text></Pressable>
+              </View>
+            ) : null}
+          </View>
+        ))}
+      </View>
+    </Chrome>
+  );
+}

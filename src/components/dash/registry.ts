@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 
 import { AgendaW, ShiftW, UpcomingW, KcalW, LifeScoreW, MissingW, MoodW, TasksW, TrainW, WaterW, WeekW, metricW, type WProps } from '@/components/dash/widgetsA';
-import { BalanceW, BillsW, LpW, MessagesW, NewsW, NotifsW, PortfolioW, SavingW, SpendW, StockW, TipW, TripW, WatchW, shortcutW } from '@/components/dash/widgetsB';
+import { RadarW, BalanceW, BillsW, LpW, MessagesW, NewsW, NotifsW, PortfolioW, SavingW, SpendW, StockW, TipW, TripW, WatchW, shortcutW } from '@/components/dash/widgetsB';
 
 export type CatId = 'oggi' | 'benessere' | 'finanza' | 'mercati' | 'notizie' | 'network' | 'plan' | 'viaggi' | 'theia' | 'scorciatoie';
 export const CATS: { id: CatId; label: string; icon: string; color: string }[] = [
@@ -71,6 +71,7 @@ export const WIDGETS: WidgetDef[] = [
 
   { type: 'trip', cat: 'viaggi', title: 'Prossimo viaggio', desc: 'Quanti giorni mancano', icon: 'lifetravel', color: '#e0c97b', sizes: ['2x1', '2x2', '4x1'], def: '2x1', Comp: TripW },
 
+  { type: 'radar', cat: 'theia', title: 'Theia ha notato', desc: 'Cosa sta per succedere e cosa conviene fare: budget, impegni, turni, sonno, task', icon: 'sparkle', color: '#8fa4ff', sizes: ['4x1', '2x2', '4x2', '2x4', '4x3'], def: '4x2', Comp: RadarW },
   { type: 'tip', cat: 'theia', title: 'Da guardare oggi', desc: 'Il segnale più importante che trova Theia', icon: 'sparkle', color: '#8fa4ff', sizes: ['4x1', '2x2', '4x2'], def: '4x1', Comp: TipW },
   { type: 'ask', cat: 'theia', title: 'Chiedi a Theia', desc: 'Apri la chat', icon: 'ai', color: '#8fa4ff', sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'ai', label: 'Chiedi a Theia', page: 'ai', color: '#8fa4ff' }) },
 

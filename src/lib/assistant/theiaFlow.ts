@@ -1,3 +1,5 @@
+import { askLocal } from '@/lib/theia/ask';
+import { collectSnap } from '@/lib/theia/collect';
 import { Linking } from 'react-native';
 import { handleAppAction } from './appActions';
 import { GOOD_ENOUGH, PLACE_CATEGORIES, detectPlace, planPlaceSearch, type PlaceRequest } from '@/lib/findPlace';
@@ -207,6 +209,14 @@ export async function sendTheia(i: SendInput): Promise<void> {
   const command = u.status === 'passthrough' || u.status === 'translated' ? u.text : undefined;
   const topic = i.topic ?? (command ? topicOf(command) ?? undefined : undefined);
   store().push({ who: 'me', text, source: 'chat', topic, ext: { ...withAtts, lang: u.lang, voice: i.source === 'voice' } });
+
+  // domande sui tuoi dati (soldi, agenda, turni, task, sonno, passi, acqua, calorie): risposta calcolata dal codice, con le fonti; se il dato manca lo dico
+  if (!pending && !useLearned.getState().teaching && (u.status === 'passthrough' || u.status === 'translated')) {
+    try {
+      const g = askLocal(u.text, collectSnap());
+      if (g) { pushAi(`${g.text}${g.sources.length ? `\n\n${t('Fonte')}: ${g.sources.join(', ')}.` : ''}`); return; }
+    } catch { /* si prosegue con la via normale */ }
+  }
 
   // sto imparando un comando: questa frase è la dimostrazione (una pagina o un comando che già so)
   if (useLearned.getState().teaching) { await teachStep(text, command); return; }
