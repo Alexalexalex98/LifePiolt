@@ -12,6 +12,7 @@ import { KeyboardDock } from '@/components/KeyboardDock';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { growHeight, restingBottom, sheetMaxHeight } from '@/lib/keyboardInset';
+import { pageScroll, useScrollLock } from '@/lib/pageScroll';
 import { SectionAccent, useTheme } from '@/hooks/use-theme';
 import { useSectionNames } from '@/lib/i18n';
 import { readable } from '@/lib/a11y';
@@ -137,6 +138,8 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
   const params = useLocalSearchParams();
   const memKey = id + JSON.stringify(params);
   const scrollRef = useRef<ScrollView>(null);
+  const scrollLocked = useScrollLock((s) => s.locked);
+  useEffect(() => { pageScroll.scrollTo = (y) => scrollRef.current?.scrollTo({ y: Math.max(0, y), animated: false }); }, []);
   const [refreshTick, setRefreshTick] = useState(0);
   /* doppio tocco sull'icona della barra: in cima e pagina ricaricata */
   useEffect(() => onPageRefresh(id, () => { scrollRef.current?.scrollTo({ y: 0, animated: true }); scrollMemory.set(memKey, 0); setRefreshTick((n) => n + 1); }), [id, memKey]);
@@ -173,7 +176,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
     <SectionAccent.Provider value={areaColors[id] ?? null}>
     <KeyboardDock style={{ backgroundColor: t.bg }}>
       {scroll ? (
-        <ScrollView ref={scrollRef} onScroll={keep ? undefined : (e) => scrollMemory.set(memKey, e.nativeEvent.contentOffset.y)} scrollEventThrottle={100} contentContainerStyle={{ padding: space.lg, paddingTop: insets.top + 10, paddingBottom: BOTTOM_CLEARANCE }} keyboardShouldPersistTaps="handled">{body}</ScrollView>
+        <ScrollView ref={scrollRef} scrollEnabled={!scrollLocked} onScroll={(e) => { pageScroll.y = e.nativeEvent.contentOffset.y; if (!keep) scrollMemory.set(memKey, e.nativeEvent.contentOffset.y); }} scrollEventThrottle={32} contentContainerStyle={{ padding: space.lg, paddingTop: insets.top + 10, paddingBottom: BOTTOM_CLEARANCE }} keyboardShouldPersistTaps="handled">{body}</ScrollView>
       ) : (
         <View style={{ flex: 1, padding: space.lg, paddingTop: insets.top + 10 }}>{body}</View>
       )}

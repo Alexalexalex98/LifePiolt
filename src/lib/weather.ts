@@ -1,3 +1,4 @@
+import { httpGetText } from '@/lib/http';
 import { getActive } from '@/i18n/core';
 import { Platform } from 'react-native';
 
@@ -30,9 +31,7 @@ export function demoWeather(today = dayKey(), days = 70): Record<string, Weather
 }
 
 async function geocode(city: string) {
-  const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=${getActive()}`);
-  if (!r.ok) throw new Error('geo');
-  const j = (await r.json()) as { results?: { latitude: number; longitude: number; name: string }[] };
+  const j = JSON.parse(await httpGetText(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=${getActive()}`)) as { results?: { latitude: number; longitude: number; name: string }[] };
   const hit = j.results?.[0];
   if (!hit) throw new Error('Città non trovata');
   return hit;
@@ -95,9 +94,7 @@ export async function refreshWeather(force = false, located = false): Promise<vo
   try {
     let { lat, lon } = ctx2;
     if (lat == null || lon == null || ctx2.city !== city) { const g = await geocode(city); lat = g.latitude; lon = g.longitude; }
-    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=precipitation_sum,temperature_2m_max,sunshine_duration&past_days=60&forecast_days=3&timezone=auto`);
-    if (!r.ok) throw new Error('meteo');
-    const j = (await r.json()) as { daily: { time: string[]; precipitation_sum: (number | null)[]; temperature_2m_max: (number | null)[]; sunshine_duration: (number | null)[] } };
+    const j = JSON.parse(await httpGetText(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=precipitation_sum,temperature_2m_max,sunshine_duration&past_days=60&forecast_days=3&timezone=auto`)) as { daily: { time: string[]; precipitation_sum: (number | null)[]; temperature_2m_max: (number | null)[]; sunshine_duration: (number | null)[] } };
     const days: Record<string, WeatherDay> = {};
     j.daily.time.forEach((d, i) => { days[d] = { rain: j.daily.precipitation_sum[i] ?? 0, tmax: j.daily.temperature_2m_max[i] ?? 0, sun: Math.round(((j.daily.sunshine_duration[i] ?? 0) / 3600) * 10) / 10 }; });
     ctx2.set({ city, lat, lon, days: { ...ctx2.days, ...days }, source: 'open-meteo', fetchedAt: Date.now(), error: null });

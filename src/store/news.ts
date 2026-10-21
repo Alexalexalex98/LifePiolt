@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { httpGetText } from '@/lib/http';
 import { FEEDS } from '@/lib/news/feeds';
 import { mergeNews, parseFeed, type NewsItem } from '@/lib/news/rss';
 import { persisted } from './persist';
@@ -17,11 +18,7 @@ type State = {
 const STALE_MS = 3 * 60_000;
 let inflight: Promise<void> | null = null;
 
-async function getText(url: string): Promise<string> {
-  const ctl = new AbortController();
-  const h = setTimeout(() => ctl.abort(), 8000);
-  try { const r = await fetch(url, { signal: ctl.signal, headers: { Accept: 'application/rss+xml, application/xml, text/xml, */*' } }); if (!r.ok) throw new Error(String(r.status)); return await r.text(); } finally { clearTimeout(h); }
-}
+const getText = (url: string): Promise<string> => httpGetText(url, 8000, { Accept: 'application/rss+xml, application/xml, text/xml, */*' });
 
 /** Le notizie dei feed gratuiti: si aggiornano quando apri l'app, ogni pochi minuti mentre guardi la pagina, e a richiesta. Le ultime restano salvate per quando manca la rete. */
 export const useNews = create<State>()(

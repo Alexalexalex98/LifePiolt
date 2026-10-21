@@ -5,6 +5,7 @@ import type { Facts } from '@/lib/markets/fundamentals';
 import { buy as doBuy, sell as doSell, type Order, type Position } from '@/lib/markets/invest';
 import { FALLBACK_USDCHF, chunk, feedCode, parseHistoryCsv, parseQuotesCsv, simulatedHistory, simulatedPrice, usdToLp, type Quote } from '@/lib/markets/quotes';
 import { useNet } from './network';
+import { httpGetText } from '@/lib/http';
 import { persisted } from './persist';
 
 const BASE = 'https://stooq.com';
@@ -34,11 +35,7 @@ type MarketsState = {
   reset: () => void;
 };
 
-async function get(url: string): Promise<string> {
-  const ctl = new AbortController();
-  const h = setTimeout(() => ctl.abort(), 9000);
-  try { const r = await fetch(url, { signal: ctl.signal }); if (!r.ok) throw new Error(String(r.status)); return await r.text(); } finally { clearTimeout(h); }
-}
+const get = (url: string): Promise<string> => httpGetText(url, 9000);
 
 export const useMarkets = create<MarketsState>()(persisted<MarketsState>('markets', (set, get_) => ({
   quotes: {}, closes: {}, usdChf: FALLBACK_USDCHF, updatedAt: 0, live: false, positions: {}, orders: [], watch: ['AAPL', 'NVDA', 'GLD', 'SPY'], facts: {}, setFact: (sym, f) => set((s) => ({ facts: { ...s.facts, [sym]: { ...s.facts[sym], ...f } } })),
