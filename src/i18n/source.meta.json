@@ -1,5 +1,5 @@
 {
- "count": 13009,
+ "count": 13019,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -202,11 +202,11 @@
   "src/components/club/parts.tsx": 3,
   "src/components/club/pickFile.ts": 2,
   "src/components/dash/DashGrid.tsx": 4,
-  "src/components/dash/Sheets.tsx": 22,
+  "src/components/dash/Sheets.tsx": 28,
   "src/components/dash/data.tsx": 1,
   "src/components/dash/registry.ts": 89,
   "src/components/dash/widgetsA.tsx": 46,
-  "src/components/dash/widgetsB.tsx": 37,
+  "src/components/dash/widgetsB.tsx": 38,
   "src/components/dashboard.tsx": 44,
   "src/components/diagnostics/LogCard.tsx": 14,
   "src/components/diagnostics/OutflowCard.tsx": 15,
@@ -395,6 +395,7 @@
   "src/lib/confirm.ts": 7,
   "src/lib/creatorStats.ts": 60,
   "src/lib/csvImport.ts": 45,
+  "src/lib/dash/backgrounds.ts": 16,
   "src/lib/dashBrief.ts": 33,
   "src/lib/dashCandidates.ts": 22,
   "src/lib/dashPlan.ts": 28,

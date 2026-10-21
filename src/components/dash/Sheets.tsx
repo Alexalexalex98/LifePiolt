@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { GAP } from '@/components/dash/DashGrid';
 import { CATS, WIDGETS, WBY, type CatId } from '@/components/dash/registry';
@@ -10,7 +11,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { SHAPES, parseShape, shapeKey } from '@/lib/dash/grid';
 import { Icon } from '@/lib/icons';
-import { pickNetMediaMany } from '@/lib/netMedia';
+import { PRESETS } from '@/lib/dash/backgrounds';
+import { pickNetMedia } from '@/lib/netMedia';
 import { BY_SYM } from '@/lib/markets/catalog';
 import { useDash } from '@/store/dash';
 import { useMarkets } from '@/store/markets';
@@ -19,7 +21,7 @@ import { toast } from '@/store/toast';
 const shapeLabel = (k: string) => k.replace('x', '×');
 
 /** Aggiungi un widget: prima la categoria, poi la lista con l'anteprima e le forme possibili. Tocchi una forma e il widget entra nel primo posto libero. */
-export function AddWidgetSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function AddWidgetSheet({ visible, onClose, onAdded }: { visible: boolean; onClose: () => void; onAdded?: (id: string) => void }) {
   const t = useTheme();
   const add = useDash((s) => s.add);
   const items = useDash((s) => s.items);
@@ -29,12 +31,14 @@ export function AddWidgetSheet({ visible, onClose }: { visible: boolean; onClose
   const c = CATS.find((x) => x.id === cat);
   const list = WIDGETS.filter((w) => w.cat === cat);
   const subs = [...new Set(list.map((w) => w.sub ?? ''))];
-  const put = (type: string, shape: string) => {
+  /** Si aggiunge tenendo premuto: entra con la forma consigliata nel primo posto libero, pronto da spostare. Le altre forme si scelgono dal pulsante in basso a destra del widget. */
+  const put = (type: string) => {
     const w = WBY[type];
     const watch = useMarkets.getState().watch;
-    add(type, parseShape(shape), w.pick === 'stock' ? { sym: watch[0] ?? 'AAPL' } : undefined);
-    toast(tl('Aggiunto: {0}', tl(w.title)));
+    const id = add(type, parseShape(w.def), w.pick === 'stock' ? { sym: watch[0] ?? 'AAPL' } : undefined);
+    toast(tl('Aggiunto: {0}. Tienilo premuto per spostarlo.', tl(w.title)));
     close();
+    onAdded?.(id);
   };
   return (
     <Sheet visible={visible} title={c ? tl(c.label) : 'Aggiungi un widget'} onClose={close}>
@@ -54,6 +58,7 @@ export function AddWidgetSheet({ visible, onClose }: { visible: boolean; onClose
       ) : (
         <View>
           <Btn small ghost icon="arrow-left" title="Categorie" onPress={() => setCat(null)} />
+          <Body small muted style={{ marginTop: 8 }}>Tieni premuto il widget che vuoi: entra nella Dashboard con la forma consigliata, poi lo sposti dove vuoi. Le altre forme le scegli dal pulsante in basso a destra del widget.</Body>
           {subs.map((sub) => (
             <View key={sub}>
               {sub ? <Body bold style={{ marginTop: 14 }}>{tl(sub)}</Body> : null}
@@ -65,13 +70,10 @@ export function AddWidgetSheet({ visible, onClose }: { visible: boolean; onClose
                   <View key={w.type} style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: t.border, paddingTop: 12 }}>
                     <Row gap={8}><Body bold style={{ flex: 1 }}>{w.title}</Body>{items.some((i) => i.type === w.type) ? <Pill label="Già aggiunto" off /> : null}</Row>
                     <Body small muted>{w.desc}</Body>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+                    <Pressable accessibilityRole="button" accessibilityLabel={`${tl('Aggiungi')} ${tl(w.title)}`} accessibilityHint={tl('Tieni premuto per aggiungerlo alla Dashboard')} delayLongPress={350} onLongPress={() => put(w.type)} style={{ marginTop: 8, alignSelf: 'flex-start' }}>
                       <View pointerEvents="none" style={{ width: pw, height: ph }}><Comp w={prev.w} h={prev.h} pw={pw} ph={ph} /></View>
-                    </ScrollView>
-                    <Body small muted style={{ marginTop: 8 }}>Tocca la forma che vuoi (quadratini):</Body>
-                    <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 4 }} gap={6}>
-                      {w.sizes.map((k) => <Pill key={k} label={shapeLabel(k)} onPress={() => put(w.type, k)} />)}
-                    </Row>
+                    </Pressable>
+                    <Body small muted style={{ marginTop: 6 }}>Tieni premuto per aggiungerlo.</Body>
                   </View>
                 );
               })}
@@ -124,39 +126,51 @@ export function OptionsSheet({ id, onClose }: { id: string | null; onClose: () =
   );
 }
 
-/** Sfondo: più foto per un mosaico lungo la pagina, e quanto scurirle. */
+/** Sfondo: una sola foto (mai ripetuta) oppure un modello di colore pronto. */
 export function BackgroundSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const t = useTheme();
-  const photos = useDash((s) => s.photos);
+  const bg = useDash((s) => s.bg);
+  const legacy = useDash((s) => s.photos?.[0]);
   const dim = useDash((s) => s.dim);
-  const addPhotos = useDash((s) => s.addPhotos);
-  const delPhoto = useDash((s) => s.delPhoto);
+  const setBg = useDash((s) => s.setBg);
   const setDim = useDash((s) => s.setDim);
+  const photo = bg.kind === 'photo' && bg.photo ? bg.photo : bg.kind === 'none' && legacy ? legacy : null;
   const pick = async () => {
     try {
-      const l = await pickNetMediaMany(Math.max(1, 12 - photos.length));
-      const uris = l.filter((m) => m.media === 'photo').map((m) => m.uri);
-      if (uris.length) addPhotos(uris);
+      const m = await pickNetMedia('photo');
+      if (m) setBg({ kind: 'photo', photo: m.uri });
     } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la libreria'); }
   };
+  const sel = (on: boolean) => ({ borderWidth: on ? 3 : 1, borderColor: on ? t.accent : t.border });
   return (
     <Sheet visible={visible} title="Sfondo della Dashboard" onClose={onClose}>
-      <Body small muted>Scegli una o più foto: restano sul telefono. Se la pagina è lunga le foto si susseguono a mosaico, ognuna adattata al suo riquadro.</Body>
-      <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={8}>
-        {photos.map((u, i) => (
-          <View key={`${u}${i}`} style={{ width: 84, height: 84 }}>
-            <Image source={{ uri: u }} style={{ width: 84, height: 84, borderRadius: 14 }} contentFit="cover" />
-            <Pressable accessibilityRole="button" accessibilityLabel={tl('Togli la foto')} hitSlop={6} onPress={() => delPhoto(i)} style={{ position: 'absolute', right: -4, top: -4, width: 22, height: 22, borderRadius: 11, backgroundColor: t.danger, alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={12} color="#fff" stroke={3} /></Pressable>
-          </View>
+      <Body small muted>Una sola foto, adattata allo schermo, oppure un modello di colore. Resta ferma dietro ai widget mentre scorri.</Body>
+      <Body bold style={{ marginTop: 14 }}>La tua foto</Body>
+      <Row style={{ justifyContent: 'flex-start', marginTop: 8 }} gap={10}>
+        {photo ? <Image source={{ uri: photo }} style={{ width: 72, height: 96, borderRadius: 14, ...sel(bg.kind === 'photo' || bg.kind === 'none') }} contentFit="cover" /> : null}
+        <View style={{ gap: 8 }}>
+          <Btn small icon="image" title={photo ? 'Cambia foto' : 'Scegli una foto'} onPress={() => void pick()} />
+          {photo ? <Btn small ghost danger icon="trash" title="Togli la foto" onPress={() => setBg({ kind: 'none' })} /> : null}
+        </View>
+      </Row>
+      {photo ? (
+        <View>
+          <Body small muted style={{ marginTop: 10 }}>Quanto scurirla, per tenere leggibili i widget:</Body>
+          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 6 }} gap={6}>
+            {[0, 0.25, 0.45, 0.65, 0.8].map((d) => <Pill key={d} label={d === 0 ? 'Niente' : `${Math.round(d * 100)}%`} on={Math.abs(dim - d) < 0.01} onPress={() => setDim(d)} />)}
+          </Row>
+        </View>
+      ) : null}
+      <Body bold style={{ marginTop: 18 }}>Modelli</Body>
+      <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={10}>
+        <Pressable accessibilityRole="button" accessibilityLabel={tl('Nessuno sfondo')} onPress={() => setBg({ kind: 'none' })} style={{ width: 72, height: 72, borderRadius: 16, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center', ...sel(bg.kind === 'none' && !photo) }}><Icon name="x" size={18} color={t.muted} /></Pressable>
+        {PRESETS.map((p) => (
+          <Pressable key={p.id} accessibilityRole="button" accessibilityLabel={p.name} onPress={() => setBg({ kind: 'preset', preset: p.id })} style={{ alignItems: 'center', gap: 4 }}>
+            <LinearGradient colors={p.colors as [string, string, ...string[]]} start={{ x: p.from[0], y: p.from[1] }} end={{ x: p.to[0], y: p.to[1] }} style={{ width: 72, height: 72, borderRadius: 16, ...sel(bg.kind === 'preset' && bg.preset === p.id) }} />
+            <Text style={{ color: t.muted, fontSize: 10.5 }}>{p.name}</Text>
+          </Pressable>
         ))}
-        {photos.length < 12 ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi foto')} onPress={() => void pick()} style={{ width: 84, height: 84, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: t.border, alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={22} color={t.muted} /></Pressable> : null}
       </Row>
-      <Body bold style={{ marginTop: 16 }}>Quanto scurire le foto</Body>
-      <Body small muted>Più scure = widget più leggibili.</Body>
-      <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 6 }} gap={6}>
-        {[0, 0.25, 0.45, 0.65, 0.8].map((d) => <Pill key={d} label={d === 0 ? 'Niente' : `${Math.round(d * 100)}%`} on={Math.abs(dim - d) < 0.01} onPress={() => setDim(d)} />)}
-      </Row>
-      <Text style={{ height: 1 }}>{''}</Text>
     </Sheet>
   );
 }

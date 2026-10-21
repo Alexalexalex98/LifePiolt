@@ -10,7 +10,7 @@ import { Icon } from '@/lib/icons';
 /** Corpo del numero che sta nella larghezza data: non si affida al ridimensionamento automatico, che non c'è su tutti i dispositivi. */
 export const fitFont = (text: string, width: number, max: number, min = 12) => Math.max(min, Math.min(max, Math.floor(width / (Math.max(1, text.length) * 0.66))));
 
-export type TileRow = { label: string; value?: string; color?: string; done?: boolean };
+export type TileRow = { label: string; value?: string; color?: string; done?: boolean; /** se c'è, la riga si tocca e porta a quel dato */ onPress?: () => void };
 export type TileProps = {
   /** forma in quadratini e dimensione in punti */
   w: number; h: number; pw: number; ph: number;
@@ -42,11 +42,11 @@ export function Tile(p: TileProps) {
     </View>
   );
   const rowsView = (n: number) => (p.rows ?? []).slice(0, n).map((r, i) => (
-    <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
+    <Pressable key={i} disabled={!r.onPress} accessibilityRole={r.onPress ? 'button' : undefined} accessibilityLabel={r.label} onPress={r.onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
       {r.done != null ? <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: r.done ? p.color : t.border, backgroundColor: r.done ? p.color : 'transparent', alignItems: 'center', justifyContent: 'center' }}>{r.done ? <Icon name="check" size={10} color="#10151d" stroke={3.4} /> : null}</View> : r.color ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color }} /> : null}
       <Text numberOfLines={1} style={{ color: t.text, fontSize: 13, flex: 1 }}>{r.label}</Text>
       {r.value ? <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12.5, fontWeight: '700' }}>{r.value}</Text> : null}
-    </View>
+    </Pressable>
   ));
 
   let body: ReactNode;

@@ -34,26 +34,26 @@ export function BalanceW(p: WProps) {
   const bal = fin?.balance ?? [];
   const prev = bal.length > 1 ? bal[bal.length - 2] : null;
   const d = cur && prev != null ? cur.end - prev : null;
-  return <Tile {...base(p)} icon="wallet" label={tl('Saldo')} color={C.soldi} value={cur ? money(cur.end) : undefined} delta={d == null ? undefined : { text: `${d > 0 ? '+' : ''}${money(d)}`, good: d === 0 ? null : d > 0 }} sub={d == null ? undefined : tl('rispetto al mese scorso')} series={bal} empty={tl('Carica un estratto conto')} onPress={() => go('lifefinance')}
-    rows={cur ? [{ label: tl('Entrate'), value: money(cur.income), color: C.soldi }, { label: tl('Uscite'), value: money(cur.expense), color: '#ff9d9d' }, { label: tl('Risparmio'), value: money(cur.saved), color: '#8fa4ff' }] : undefined} />;
+  return <Tile {...base(p)} icon="wallet" label={tl('Saldo')} color={C.soldi} value={cur ? money(cur.end) : undefined} delta={d == null ? undefined : { text: `${d > 0 ? '+' : ''}${money(d)}`, good: d === 0 ? null : d > 0 }} sub={d == null ? undefined : tl('rispetto al mese scorso')} series={bal} empty={tl('Carica un estratto conto')} onPress={() => go('lifefinance', { ex: 'saldo' })}
+    rows={cur ? [{ label: tl('Entrate'), value: money(cur.income), color: C.soldi, onPress: () => go('lifefinance', { ex: 'in' }) }, { label: tl('Uscite'), value: money(cur.expense), color: '#ff9d9d', onPress: () => go('lifefinance', { ex: 'out' }) }, { label: tl('Risparmio'), value: money(cur.saved), color: '#8fa4ff', onPress: () => go('lifefinance', { ex: 'save' }) }] : undefined} />;
 }
 
 export function SpendW(p: WProps) {
   const { fin } = useDashData();
   const cur = fin?.cur;
-  return <Tile {...base(p)} icon="trend-down" label={tl('Spese del mese')} color="#ff9d9d" value={cur ? money(cur.expense) : undefined} series={fin?.series.map((s) => s.expense)} sub={cur ? `${tl('Entrate')}: ${money(cur.income)}` : undefined} empty={tl('Carica un estratto conto')} onPress={() => go('lifefinance')} />;
+  return <Tile {...base(p)} icon="trend-down" label={tl('Spese del mese')} color="#ff9d9d" value={cur ? money(cur.expense) : undefined} series={fin?.series.map((s) => s.expense)} sub={cur ? `${tl('Entrate')}: ${money(cur.income)}` : undefined} empty={tl('Carica un estratto conto')} onPress={() => go('lifefinance', { ex: 'out' })} />;
 }
 
 export function SavingW(p: WProps) {
-  const { dash } = useDashData();
+  const { dash, openMetric } = useDashData();
   const a = dash.byId.savings;
-  return <Tile {...base(p)} icon="coin" label={tl('Risparmio')} color={C.soldi} value={a ? `${Math.round(a.latest.v)}%` : undefined} sub={a ? tl('del reddito messo da parte') : undefined} progress={a ? a.latest.v / 100 : undefined} series={a?.pts.map((x) => x.v)} empty={tl('Nessun dato ancora')} onPress={() => go('lifefinance')} />;
+  return <Tile {...base(p)} icon="coin" label={tl('Risparmio')} color={C.soldi} value={a ? `${Math.round(a.latest.v)}%` : undefined} sub={a ? tl('del reddito messo da parte') : undefined} progress={a ? a.latest.v / 100 : undefined} series={a?.pts.map((x) => x.v)} empty={tl('Nessun dato ancora')} onPress={() => { if (!openMetric('savings')) go('lifefinance', { ex: 'save' }); }} />;
 }
 
 export function BillsW(p: WProps) {
   const bills = useFin((s) => s.bills);
   const monthly = bills.reduce((s, b) => s + (b.freq === 'monthly' ? b.amount : b.amount / 12), 0);
-  return <Tile {...base(p)} icon="file" label={tl('Bollette e abbonamenti')} color="#e0c97b" value={bills.length ? money(monthly) : undefined} sub={bills.length ? `${bills.length} ${tl('voci al mese')}` : tl('Nessuna bolletta')} rows={bills.slice(0, 8).map((b) => ({ label: b.name, value: money(b.amount) }))} empty={tl('Nessuna bolletta')} onPress={() => go('lifefinance')} />;
+  return <Tile {...base(p)} icon="file" label={tl('Bollette e abbonamenti')} color="#e0c97b" value={bills.length ? money(monthly) : undefined} sub={bills.length ? `${bills.length} ${tl('voci al mese')}` : tl('Nessuna bolletta')} rows={bills.slice(0, 8).map((b) => ({ label: b.name, value: money(b.amount), onPress: () => go('lifefinance', { tab: 'Bollette' }) }))} empty={tl('Nessuna bolletta')} onPress={() => go('lifefinance', { tab: 'Bollette' })} />;
 }
 
 export function LpW(p: WProps) {
@@ -83,14 +83,14 @@ export function WatchW(p: WProps) {
   useRefreshMarkets();
   const watch = useWatch();
   const mk = useMarkets();
-  const rows: TileRow[] = watch.map((s) => { const c = dayChangePct(mk, s); return { label: p.pw < 250 ? s : `${s} · ${BY_SYM[s]?.name ?? ''}`, value: `${priceLp(mk, s).toFixed(2)}  ${pct(c)}`, color: c >= 0 ? C.soldi : '#ff9d9d' }; });
+  const rows: TileRow[] = watch.map((s) => { const c = dayChangePct(mk, s); return { label: p.pw < 250 ? s : `${s} · ${BY_SYM[s]?.name ?? ''}`, value: `${priceLp(mk, s).toFixed(2)}  ${pct(c)}`, color: c >= 0 ? C.soldi : '#ff9d9d', onPress: () => go('stockAnalysis', { sym: s }) }; });
   return <Tile {...base(p)} icon="chart" label={tl('Titoli seguiti')} color={C.mercati} sub={mk.live ? tl('Prezzi con circa 15 minuti di ritardo') : tl('Prezzi dimostrativi')} rows={rows} onPress={() => go('stocks')} />;
 }
 
 export function PortfolioW(p: WProps) {
   const mk = useMarkets();
   const pf = portfolio(Object.values(mk.positions), (s) => priceLp(mk, s));
-  return <Tile {...base(p)} icon="briefcase" label={tl('Portafoglio')} color={C.mercati} value={pf.cost > 0 ? `${pf.value.toFixed(0)}` : undefined} unit="LP" delta={pf.cost > 0 ? { text: `${pf.gain >= 0 ? '+' : ''}${pf.gain.toFixed(0)} LP · ${pct(pf.pct)}`, good: pf.gain === 0 ? null : pf.gain > 0 } : undefined} rows={pf.rows.slice(0, 6).map((r) => ({ label: r.sym, value: `${r.value.toFixed(0)} LP` }))} sub={pf.cost > 0 ? undefined : tl('Nessun investimento')} empty={tl('Scegli un titolo e investi da 1 LP')} onPress={() => go('portfolio')} />;
+  return <Tile {...base(p)} icon="briefcase" label={tl('Portafoglio')} color={C.mercati} value={pf.cost > 0 ? `${pf.value.toFixed(0)}` : undefined} unit="LP" delta={pf.cost > 0 ? { text: `${pf.gain >= 0 ? '+' : ''}${pf.gain.toFixed(0)} LP · ${pct(pf.pct)}`, good: pf.gain === 0 ? null : pf.gain > 0 } : undefined} rows={pf.rows.slice(0, 6).map((r) => ({ label: r.sym, value: `${r.value.toFixed(0)} LP`, onPress: () => go('stockAnalysis', { sym: r.sym }) }))} sub={pf.cost > 0 ? undefined : tl('Nessun investimento')} empty={tl('Scegli un titolo e investi da 1 LP')} onPress={() => go('portfolio')} />;
 }
 
 /* ---------------- Notizie ---------------- */
@@ -112,7 +112,7 @@ export function NewsW(p: WProps) {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Icon name="note" size={15} color={C.news} stroke={2} />
           <Text style={{ color: t.muted, fontSize: 12, fontWeight: '700', flex: 1 }}>{tl('Notizie')}</Text>
-          <Text numberOfLines={1} style={{ color: t.muted, fontSize: 10.5 }}>{loading ? tl('Aggiorno…') : at ? `${tl('Aggiornate')} ${agoText(at)}` : ''}</Text>
+          {p.pw >= 250 ? <Text numberOfLines={1} style={{ color: t.muted, fontSize: 10.5 }}>{loading ? tl('Aggiorno…') : at ? `${tl('Aggiornate')} ${agoText(at)}` : ''}</Text> : null}
         </View>
         {!shown.length ? <Text style={{ color: t.muted, fontSize: 12.5 }}>{loading ? tl('Carico le notizie…') : tl('Non riesco a caricare le notizie. Controlla la connessione.')}</Text> : null}
         {shown.map((n) => (
@@ -150,10 +150,15 @@ export function TripW(p: WProps) {
 
 export function TipW(p: WProps) {
   const t = useTheme();
-  const { dash } = useDashData();
+  const { dash, openMetric } = useDashData();
   const i = dash.insights[0];
+  const open = () => {
+    if (!i) { go('ai'); return; }
+    if (i.metricId && openMetric(i.metricId)) return;
+    go(({ salute: 'lifehealth', mente: 'mood', finanza: 'lifefinance', crescita: 'plan', contesto: 'mood' } as Record<string, string>)[i.domain] ?? 'lifehealth');
+  };
   return (
-    <Chrome pw={p.pw} ph={p.ph} color={C.theia} label="Theia" onPress={() => go('ai')}>
+    <Chrome pw={p.pw} ph={p.ph} color={C.theia} label="Theia" onPress={open}>
       <View style={{ flex: 1, gap: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><Icon name="sparkle" size={15} color={C.theia} stroke={2} /><Text style={{ color: t.muted, fontSize: 12, fontWeight: '700' }}>{tl('Da guardare oggi')}</Text></View>
         <Text numberOfLines={p.h === 1 ? 1 : 3} style={{ color: t.text, fontSize: 14, fontWeight: '800' }}>{i ? i.title : tl('Per ora nessun segnale da evidenziare')}</Text>

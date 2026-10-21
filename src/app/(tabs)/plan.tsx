@@ -27,11 +27,13 @@ export default function Plan() {
   const wh = useApp((s) => s.workHours);
   const [day, setDay] = useState<string | null>(null);
   // da una notifica ('event:<giorno>:<indice>') si apre direttamente il giorno dell'impegno
-  const { day: dayParam, at: openedAt } = useLocalSearchParams<{ day?: string; idx?: string; at?: string }>();
+  const { day: dayParam, at: openedAt, task: taskParam } = useLocalSearchParams<{ day?: string; idx?: string; at?: string; task?: string }>();
   useEffect(() => { if (dayParam && isKey(dayParam)) setDay(dayParam); }, [dayParam, openedAt]);
   const [selectMode, setSelectMode] = useState(false);
   const [taskSheet, setTaskSheet] = useState(false);
   const [openTask, setOpenTask] = useState<string | null>(null);
+  // dalla Dashboard: si apre direttamente il task toccato
+  useEffect(() => { if (taskParam) setOpenTask(String(taskParam)); }, [taskParam, openedAt]);
   const [whSheet, setWhSheet] = useState(false);
   const [goalSheet, setGoalSheet] = useState(false);
   const [goalText, setGoalText] = useState('');

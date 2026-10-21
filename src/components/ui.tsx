@@ -122,8 +122,8 @@ const KEEP_SCROLL = ['ai', 'conversationPage'];
 
 const MAIN_TABS = ['index', 'home', 'ai', 'lifenetwork', 'lifefinance', 'profile'];
 
-export function Page({ id, title, back, children, right, scroll = true, noTop }: {
-  id: string; title?: string; back?: boolean; children: ReactNode; right?: ReactNode; scroll?: boolean; noTop?: boolean;
+export function Page({ id, title, back, children, right, scroll = true, noTop, background }: {
+  id: string; title?: string; back?: boolean; children: ReactNode; right?: ReactNode; scroll?: boolean; noTop?: boolean; /** sfondo fermo dietro a tutta la pagina (la pagina scorre sopra) */ background?: ReactNode;
 }) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -175,6 +175,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop }:
   return (
     <SectionAccent.Provider value={areaColors[id] ?? null}>
     <KeyboardDock style={{ backgroundColor: t.bg }}>
+      {background}
       {scroll ? (
         <ScrollView ref={scrollRef} scrollEnabled={!scrollLocked} onScroll={(e) => { pageScroll.y = e.nativeEvent.contentOffset.y; if (!keep) scrollMemory.set(memKey, e.nativeEvent.contentOffset.y); }} scrollEventThrottle={32} contentContainerStyle={{ padding: space.lg, paddingTop: insets.top + 10, paddingBottom: BOTTOM_CLEARANCE }} keyboardShouldPersistTaps="handled">{body}</ScrollView>
       ) : (

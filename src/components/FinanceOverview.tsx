@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode, useEffect } from 'react';
 import { Platform, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Line, Path, Polygon, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 
@@ -20,6 +20,8 @@ import { categoryOf, emergencyByMonth, useFin } from '@/store/finance';
 
 export type OverviewHandlers = {
   onAlerts: () => void; onBills: () => void; onEmergency: () => void; onImport: () => void; onMovements: (monthIdx: number) => void;
+  /** si apre già la spiegazione di questo dato (dalla Dashboard) */
+  initialEx?: 'saldo' | 'in' | 'out' | 'save';
 };
 
 const FF = Platform.OS === 'web' ? 'system-ui, -apple-system, Segoe UI, sans-serif' : undefined;
@@ -208,12 +210,13 @@ function TopSpenders({ a, onPick, ink }: { a: Analysis; onPick: (n: string) => v
 
 
 /* ---------------- hero: saldo, variazione, mini-andamento ---------------- */
-function Hero({ a, onMovements }: { a: Analysis; onMovements: () => void }) {
+function Hero({ a, onMovements, initialEx }: { a: Analysis; onMovements: () => void; initialEx?: 'saldo' | 'in' | 'out' | 'save' }) {
   const th = useTheme();
   const months = useFin((s) => s.months);
   const cats = useFin((s) => s.categories);
   const info = useFin((s) => s.statementInfo);
-  const [ex, setEx] = useState<null | 'saldo' | 'in' | 'out' | 'save'>(null);
+  const [ex, setEx] = useState<null | 'saldo' | 'in' | 'out' | 'save'>(initialEx ?? null);
+  useEffect(() => { if (initialEx) setEx(initialEx); }, [initialEx]);
   const [balOpen, setBalOpen] = useState(false);
   const [balTxt, setBalTxt] = useState('');
   const [W, onLayout] = useBox(300);
@@ -348,7 +351,7 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
 
   return (
     <>
-      <Hero a={a} onMovements={() => h.onMovements(0)} />
+      <Hero a={a} onMovements={() => h.onMovements(0)} initialEx={h.initialEx} />
       <UpcomingBillsCard onOpen={h.onBills} />
       {/* Recap a parole */}
       <Card accent={th.accent} style={{ padding: 18 }}>

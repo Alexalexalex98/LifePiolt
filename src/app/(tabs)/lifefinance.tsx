@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { InfoTip } from '@/components/InfoTip';
 import { animateLayout } from '@/components/home/DayPlan';
 import { Pressable, View } from 'react-native';
@@ -37,7 +38,9 @@ export default function LifeFinance() {
   const f = useFin();
   const color = sectionColor(areaColors.lifefinance);
   const [hist, setHist] = useState<number | null>(null);
-  const [tab, setTab] = useState('Quadro');
+  const { tab: tabParam, ex: exParam } = useLocalSearchParams<{ tab?: string; ex?: string }>();
+  const [tab, setTab] = useState(['Quadro', 'Budget', 'Bollette', 'Investi', 'LP'].includes(String(tabParam)) ? String(tabParam) : 'Quadro');
+  useEffect(() => { if (tabParam && ['Quadro', 'Budget', 'Bollette', 'Investi', 'LP'].includes(String(tabParam))) setTab(String(tabParam)); }, [tabParam]);
   const hasStatement = useFin((x) => !!x.statementAt);
   const wasStatement = useRef(hasStatement);
   if (wasStatement.current !== hasStatement) { wasStatement.current = hasStatement; animateLayout(); }
@@ -133,7 +136,7 @@ export default function LifeFinance() {
           </Card>
             </>
           )}
-          <FinanceOverview h={{ onAlerts: () => setAlertSheet(true), onBills: () => setTab('Bollette'), onEmergency: () => setTab('Budget'), onImport: () => setCsvSheet(true), onMovements: (i) => setHist(i) }} />
+          <FinanceOverview h={{ onAlerts: () => setAlertSheet(true), onBills: () => setTab('Bollette'), onEmergency: () => setTab('Budget'), onImport: () => setCsvSheet(true), onMovements: (i) => setHist(i), initialEx: (['saldo', 'in', 'out', 'save'] as const).find((x) => x === exParam) }} />
       <MonthCalcCard />
       {alerts.length > 0 && (
         <Card accent={alerts.some((a) => a.level === 'over') ? t.danger : t.warn} onPress={() => setAlertSheet(true)}>

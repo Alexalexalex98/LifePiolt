@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { DashBackground } from '@/components/dash/DashBackground';
 import { DashGrid } from '@/components/dash/DashGrid';
 import { DashData } from '@/components/dash/data';
 import { WBY } from '@/components/dash/registry';
 import { AddWidgetSheet, BackgroundSheet, OptionsSheet } from '@/components/dash/Sheets';
 import { Body, Btn, Card, H, Page, Pill, Row } from '@/components/ui';
-import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { parseShape } from '@/lib/dash/grid';
 import { go } from '@/lib/nav';
+import { pageScroll } from '@/lib/pageScroll';
 import { useApp } from '@/store/app';
 import { useDash } from '@/store/dash';
 
@@ -17,7 +18,6 @@ const SUGGEST = ['mood', 'agenda', 'water', 'tip'];
 
 /** La Dashboard: una pagina di widget scelti da te, in una griglia a 4 colonne, con le foto che vuoi come sfondo. */
 export default function Dashboard() {
-  const t = useTheme();
   const account = useApp((s) => s.account);
   const items = useDash((s) => s.items);
   const add = useDash((s) => s.add);
@@ -31,7 +31,7 @@ export default function Dashboard() {
   const date = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <Page id="index">
+    <Page id="index" background={<DashBackground />}>
       <DashData>
         <View style={{ marginTop: 6 }}>
           <Row>
@@ -43,7 +43,7 @@ export default function Dashboard() {
           </Row>
           {edit ? (
             <View style={{ marginTop: 10, gap: 8 }}>
-              <Body small muted>Trascina un widget dalla maniglia, tocca per cambiare forma o posizione, tocca la X per toglierlo. I puntini sono i quadratini.</Body>
+              <Body small muted>Tieni premuto un widget e trascinalo dove vuoi. Il pulsante in basso a destra cambia la forma, la X lo toglie. I puntini sono i quadratini.</Body>
               <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
                 <Btn small icon="plus" title="Aggiungi" onPress={() => setAdding(true)} />
                 <Btn small ghost icon="image" title="Sfondo" onPress={() => setBg(true)} />
@@ -69,11 +69,10 @@ export default function Dashboard() {
         </View>
         {items.length > 0 && !edit ? <Btn style={{ marginTop: 16 }} ghost icon="plus" title="Aggiungi un widget" onPress={() => setAdding(true)} /> : null}
 
-        <AddWidgetSheet visible={adding} onClose={() => setAdding(false)} />
+        <AddWidgetSheet visible={adding} onClose={() => setAdding(false)} onAdded={(id) => { setEdit(true); const it = useDash.getState().items.find((x) => x.id === id); if (it) setTimeout(() => pageScroll.scrollTo(Math.max(0, 300 + it.y * 92 - 220)), 250); }} />
         <OptionsSheet id={sel} onClose={() => setSel(null)} />
         <BackgroundSheet visible={bg} onClose={() => setBg(false)} />
       </DashData>
-      <View style={{ height: 1, backgroundColor: t.bg }} />
     </Page>
   );
 }

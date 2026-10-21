@@ -39,12 +39,12 @@ export function MoodW(p: WProps) {
 }
 
 export function LifeScoreW(p: WProps) {
-  const { dash } = useDashData();
+  const { dash, openScore } = useDashData();
   const total = dash.scores.total;
   const d = dash.lifeDelta;
   return <Tile {...base(p)} icon="activity" label="Life Score" color={C.oggi} value={total == null ? undefined : String(Math.round(total))} unit={p.w * p.h > 1 ? '/100' : undefined} delta={d == null ? undefined : { text: `${d > 0 ? '+' : ''}${Math.round(d)} ${tl('in una settimana')}`, good: d === 0 ? null : d > 0 }} series={dash.lifeSeries.map((x) => x.v)} progress={total == null ? undefined : total / 100}
     rows={[{ label: tl('Salute'), value: dash.scores.salute == null ? '–' : String(Math.round(dash.scores.salute)), color: C.salute }, { label: tl('Mente'), value: dash.scores.mente == null ? '–' : String(Math.round(dash.scores.mente)), color: C.mente }, { label: tl('Finanza'), value: dash.scores.finanza == null ? '–' : String(Math.round(dash.scores.finanza)), color: C.soldi }, { label: tl('Crescita'), value: dash.scores.crescita == null ? '–' : String(Math.round(dash.scores.crescita)), color: C.plan }]}
-    empty={tl('Servono alcuni dati.')} onPress={() => go('dashboardClassic')} />;
+    empty={tl('Servono alcuni dati.')} onPress={openScore} />;
 }
 
 export function MissingW(p: WProps) {
@@ -57,15 +57,17 @@ export function MissingW(p: WProps) {
   const active = fit.activeProgram ? programById(fit.activeProgram) ?? null : null;
   const info = dayInfo(today, { program: active, profile: fit.profile, history: fit.history, plans: fit.plans ?? {}, now: new Date() });
   const openToday = tasks.filter((x) => !x.done && (x.due === today || x.urgent)).length;
-  const rows: (TileRow & { go: string })[] = [
+  type R = TileRow & { go: string; params?: Record<string, string> };
+  const raw: R[] = [
     { label: tl('Umore'), done: moods.some((m) => m.day === todayStr()), go: 'mood' },
-    { label: tl('Acqua'), value: `${(waterMl / 1000).toFixed(1).replace('.', ',')} L`, done: waterMl >= waterGoal(fit.body?.weightKg) * 0.8, go: 'fitnessDiary' },
-    { label: tl('Pasti segnati'), done: fit.meals.some((m) => dayOf(m.ts) === dayOf(now)), go: 'fitnessMeal' },
-    ...(info.planned ? [{ label: tl('Allenamento'), done: info.done, go: 'fitnessPlanDay' }] : []),
-    { label: tl('Task di oggi'), value: openToday ? String(openToday) : undefined, done: openToday === 0, go: 'lifetask' },
+    { label: tl('Acqua'), value: `${(waterMl / 1000).toFixed(1).replace('.', ',')} L`, done: waterMl >= waterGoal(fit.body?.weightKg) * 0.8, go: 'fitnessDay', params: { day: dayOf(now) } },
+    { label: tl('Pasti segnati'), done: fit.meals.some((m) => dayOf(m.ts) === dayOf(now)), go: 'fitnessDay', params: { day: dayOf(now) } },
+    ...(info.planned ? [{ label: tl('Allenamento'), done: info.done, go: 'fitnessPlanDay', params: { date: today } }] : []),
+    { label: tl('Task di oggi'), value: openToday ? String(openToday) : undefined, done: openToday === 0, go: 'plan' },
   ];
+  const rows: TileRow[] = raw.map((r) => ({ ...r, onPress: () => go(r.go, r.params) }));
   const left = rows.filter((r) => !r.done).length;
-  return <Tile {...base(p)} icon="checksquare" label={tl('Cosa ti manca oggi')} color={C.oggi} value={left === 0 ? tl('Tutto fatto') : `${left} ${tl('da fare')}`} progress={(rows.length - left) / rows.length} rows={rows} onPress={() => go(rows.find((r) => !r.done)?.go ?? 'lifefitness')} />;
+  return <Tile {...base(p)} icon="checksquare" label={tl('Cosa ti manca oggi')} color={C.oggi} value={left === 0 ? tl('Tutto fatto') : `${left} ${tl('da fare')}`} progress={(rows.length - left) / rows.length} rows={rows} onPress={rows.find((r) => !r.done)?.onPress} />;
 }
 
 /* ---------------- Plan ---------------- */
@@ -75,8 +77,8 @@ export function AgendaW(p: WProps) {
   const list = [...(events[day] ?? [])].sort((a, b) => a.time.localeCompare(b.time));
   const hhmm = new Date().toTimeString().slice(0, 5);
   const next = list.find((e) => e.time >= hhmm) ?? null;
-  const rows = list.map((e) => ({ label: e.title, value: e.time }));
-  return <Tile {...base(p)} icon="calendar" label={tl('Agenda di oggi')} color={C.plan} value={next ? next.time : list.length ? tl('Finito') : undefined} sub={next ? next.title : list.length ? tl('Per oggi hai finito') : tl('Nessun impegno oggi')} rows={rows} unit={undefined} empty={tl('Nessun impegno oggi')} onPress={() => go('plan')} />;
+  const rows = list.map((e) => ({ label: e.title, value: e.time, onPress: () => go('plan', { day, idx: String((events[day] ?? []).indexOf(e)), at: String(Date.now()) }) }));
+  return <Tile {...base(p)} icon="calendar" label={tl('Agenda di oggi')} color={C.plan} value={next ? next.time : list.length ? tl('Finito') : undefined} sub={next ? next.title : list.length ? tl('Per oggi hai finito') : tl('Nessun impegno oggi')} rows={rows} unit={undefined} empty={tl('Nessun impegno oggi')} onPress={() => go('plan', { day, ...(next ? { idx: String((events[day] ?? []).indexOf(next)), at: String(Date.now()) } : {}) })} />;
 }
 
 export function TasksW(p: WProps) {
@@ -84,8 +86,8 @@ export function TasksW(p: WProps) {
   const today = dayKey();
   const open = tasks.filter((x) => !x.done);
   const due = open.filter((x) => x.urgent || (x.due && x.due <= today));
-  const rows = (due.length ? due : open).slice(0, 8).map((x) => ({ label: x.t, done: false, value: x.due && x.due <= today ? tl('oggi') : undefined }));
-  return <Tile {...base(p)} icon="tasks" label="Task" color={C.plan} value={String(open.length)} sub={due.length ? `${due.length} ${tl('in scadenza o urgenti')}` : tl('Nessuna scadenza')} rows={rows} progress={tasks.length ? 1 - open.length / tasks.length : undefined} onPress={() => go('lifetask')} />;
+  const rows = (due.length ? due : open).slice(0, 8).map((x) => ({ label: x.t, done: false, value: x.due && x.due <= today ? tl('oggi') : undefined, onPress: () => go('plan', { task: x.id, at: String(Date.now()) }) }));
+  return <Tile {...base(p)} icon="tasks" label="Task" color={C.plan} value={String(open.length)} sub={due.length ? `${due.length} ${tl('in scadenza o urgenti')}` : tl('Nessuna scadenza')} rows={rows} progress={tasks.length ? 1 - open.length / tasks.length : undefined} onPress={() => { const first = (due.length ? due : open)[0]; go('plan', first ? { task: first.id, at: String(Date.now()) } : undefined); }} />;
 }
 
 /* ---------------- Benessere: cibo e acqua ---------------- */
@@ -100,7 +102,7 @@ export function WaterW(p: WProps) {
     </Pressable>
   );
   void t;
-  return <Tile {...base(p)} icon="drop" label={tl('Acqua')} color={C.salute} value={`${(ml / 1000).toFixed(1).replace('.', ',')} L`} sub={p.w >= 3 || p.h >= 2 ? `${tl('su')} ${(goal / 1000).toFixed(1).replace('.', ',')} L` : undefined} progress={ml / goal} extra={p.w * p.h > 1 ? add : undefined} onPress={() => go('fitnessDiary')} />;
+  return <Tile {...base(p)} icon="drop" label={tl('Acqua')} color={C.salute} value={`${(ml / 1000).toFixed(1).replace('.', ',')} L`} sub={p.w >= 3 || p.h >= 2 ? `${tl('su')} ${(goal / 1000).toFixed(1).replace('.', ',')} L` : undefined} progress={ml / goal} extra={p.w * p.h > 1 ? add : undefined} onPress={() => go('fitnessDay', { day: dayOf(Date.now()) })} />;
 }
 
 export function KcalW(p: WProps) {
@@ -152,9 +154,9 @@ export function WeekW(p: WProps) {
 /* ---------------- metriche calcolate (salute, mente, soldi) ---------------- */
 type MetricOpts = { id: string; label: string; icon: string; color?: string; page: string };
 export const metricW = (o: MetricOpts) => function MetricWidget(p: WProps) {
-  const { dash } = useDashData();
+  const { dash, openMetric } = useDashData();
   const a = dash.byId[o.id];
   const d = a?.deltaPct ?? null;
   return <Tile {...base(p)} icon={o.icon} label={tl(o.label)} color={o.color ?? a?.def.color ?? C.oggi} value={a ? fmtVal(a.latest.v, a.def).replace(/\s.*$/, '') : undefined} unit={a && p.w * p.h > 1 ? (fmtVal(a.latest.v, a.def).split(' ').slice(1).join(' ') || undefined) : undefined}
-    delta={d == null ? undefined : { text: `${d > 0 ? '+' : ''}${Math.round(d)}%`, good: a?.def.better === 'none' || Math.abs(d) < 1 ? null : (a?.def.better === 'down' ? d < 0 : d > 0) }} series={a?.pts.map((x) => x.v)} sub={a ? `${tl('Media 7 giorni')}: ${fmtVal(a.avg7, a.def)}` : undefined} empty={tl('Nessun dato ancora')} onPress={() => go(o.page)} />;
+    delta={d == null ? undefined : { text: `${d > 0 ? '+' : ''}${Math.round(d)}%`, good: a?.def.better === 'none' || Math.abs(d) < 1 ? null : (a?.def.better === 'down' ? d < 0 : d > 0) }} series={a?.pts.map((x) => x.v)} sub={a ? `${tl('Media 7 giorni')}: ${fmtVal(a.avg7, a.def)}` : undefined} empty={tl('Nessun dato ancora')} onPress={() => { if (!openMetric(o.id)) go(o.page); }} />;
 };

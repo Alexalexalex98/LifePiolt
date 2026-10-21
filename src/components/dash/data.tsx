@@ -1,4 +1,7 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+
+import { MetricSheet } from '@/components/dashboard';
+import { LifeScoreSheet } from '@/components/scoreSheet';
 
 import { analyze, type Analysis as FinAnalysis } from '@/lib/financeRecap';
 import { alertsFor } from '@/lib/budgetState';
@@ -6,7 +9,7 @@ import { useDashboard } from '@/lib/analyticsData';
 import { categoryOf, emergencyByMonth, useFin } from '@/store/finance';
 
 type Dash = ReturnType<typeof useDashboard>;
-type Ctx = { dash: Dash; fin: FinAnalysis | null };
+type Ctx = { dash: Dash; fin: FinAnalysis | null; openMetric: (id: string) => boolean; openScore: () => void };
 const DashCtx = createContext<Ctx | null>(null);
 
 /** I dati condivisi da tutti i widget: si calcolano una volta sola per tutta la pagina, non uno per widget. */
@@ -27,8 +30,16 @@ export function DashData({ children }: { children: ReactNode }) {
       });
     } catch { return null; }
   }, [f.months, f.categories, f.bills, f.budget, f.guidelines]);
-  const v = useMemo(() => ({ dash, fin }), [dash, fin]);
-  return <DashCtx.Provider value={v}>{children}</DashCtx.Provider>;
+  const [metric, setMetric] = useState<string | null>(null);
+  const [score, setScore] = useState(false);
+  const v = useMemo(() => ({ dash, fin, openMetric: (id: string) => { if (!dash.byId[id]) return false; setMetric(id); return true; }, openScore: () => setScore(true) }), [dash, fin]);
+  return (
+    <DashCtx.Provider value={v}>
+      {children}
+      <MetricSheet a={metric ? dash.byId[metric] ?? null : null} onClose={() => setMetric(null)} />
+      <LifeScoreSheet visible={score} onClose={() => setScore(false)} />
+    </DashCtx.Provider>
+  );
 }
 
 export function useDashData(): Ctx {

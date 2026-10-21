@@ -1,6 +1,6 @@
+import * as Haptics from 'expo-haptics';
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Animated, PanResponder, Pressable, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
-import { Image } from 'expo-image';
+import { Animated, Platform, Pressable, View, useWindowDimensions, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 
 import { EditCtx } from '@/components/dash/editCtx';
 import { WBY } from '@/components/dash/registry';
@@ -21,8 +21,6 @@ type Ghost = { x: number; y: number; w: number; h: number; ok: boolean } | null;
 export function DashGrid({ edit, onEnterEdit, onSelect }: { edit: boolean; onEnterEdit: () => void; onSelect: (id: string) => void }) {
   const t = useTheme();
   const items = useDash((s) => s.items);
-  const photos = useDash((s) => s.photos);
-  const dim = useDash((s) => s.dim);
   const move = useDash((s) => s.move);
   const remove = useDash((s) => s.remove);
   const [W, setW] = useState(0);
@@ -37,8 +35,7 @@ export function DashGrid({ edit, onEnterEdit, onSelect }: { edit: boolean; onEnt
   return (
     <View onLayout={onLayout} style={{ width: '100%' }}>
       {W > 0 ? (
-        <View style={{ height: H + (photos.length ? 16 : 0), paddingVertical: photos.length ? 8 : 0 }}>
-          {photos.length ? <Mosaic photos={photos} dim={dim} width={W} height={H + 16} cell={cell} /> : null}
+        <View style={{ height: H }}>
           <View style={{ height: H }}>
             {edit ? Array.from({ length: rows * COLS }, (_, k) => (
               <View key={k} pointerEvents="none" style={{ position: 'absolute', left: (k % COLS) * step + cell / 2 - 2, top: Math.floor(k / COLS) * step + cell / 2 - 2, width: 4, height: 4, borderRadius: 2, backgroundColor: t.muted, opacity: 0.55 }} />
@@ -65,8 +62,8 @@ function Cell({ it, items, step, cell, edit, onGhost, onDrop, onSelect, onRemove
   const winHRef = useRef(winH);
   winHRef.current = winH;
   const live = useRef({ it, items, step });
-  const drv = useRef({ startY: 0, dx: 0, dy: 0, moveY: 0, timer: null as ReturnType<typeof setInterval> | null });
   live.current = { it, items, step };
+  const st = useRef({ sx: 0, sy: 0, dx: 0, dy: 0, moveY: 0, startScroll: 0, dragging: false, timer: null as ReturnType<typeof setTimeout> | null, auto: null as ReturnType<typeof setInterval> | null });
   const pw = it.w * cell + (it.w - 1) * GAP, ph = it.h * cell + (it.h - 1) * GAP;
   /** Il punto dove atterra: lo spostamento del dito più quanto è scorsa la pagina nel frattempo. */
   const target = (dx: number, dy: number) => {
@@ -75,41 +72,52 @@ function Cell({ it, items, step, cell, edit, onGhost, onDrop, onSelect, onRemove
     const y = Math.max(0, Math.round((i.y * s + dy) / s));
     return { x, y };
   };
-  const stop = () => { if (drv.current.timer) { clearInterval(drv.current.timer); drv.current.timer = null; } useScrollLock.getState().set(false); };
+  const clearTimers = () => { const d = st.current; if (d.timer) { clearTimeout(d.timer); d.timer = null; } if (d.auto) { clearInterval(d.auto); d.auto = null; } };
+  const finish = () => { clearTimers(); st.current.dragging = false; useScrollLock.getState().set(false); };
   const refresh = () => {
-    const d = drv.current;
-    const dy = d.dy + (pageScroll.y - d.startY);
+    const d = st.current;
+    const dy = d.dy + (pageScroll.y - d.startScroll);
     pos.setValue({ x: d.dx, y: dy });
     const { it: i, items: all } = live.current;
     const p = target(d.dx, dy);
     onGhost({ ...p, w: i.w, h: i.h, ok: fits(all, { ...p, w: i.w, h: i.h }, i.id) });
   };
-  useEffect(() => stop, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const pan = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderTerminationRequest: () => false,
-    onPanResponderGrant: (e) => {
-      const d = drv.current;
-      d.startY = pageScroll.y; d.dx = 0; d.dy = 0; d.moveY = e.nativeEvent.pageY;
-      useScrollLock.getState().set(true);
-      setDrag(true);
-      // vicino al bordo dello schermo la pagina scorre da sola, così si può portare un widget lontano
-      d.timer = setInterval(() => {
-        const edge = 120;
-        const y = d.moveY;
-        const top = 150, bottom = winHRef.current - 110;
-        let v = 0;
-        if (y > bottom - edge + 40) v = Math.min(22, (y - (bottom - edge + 40)) / 3);
-        else if (y < top + edge - 40) v = -Math.min(22, ((top + edge - 40) - y) / 3);
-        if (v) { pageScroll.scrollTo(pageScroll.y + v); pageScroll.y = Math.max(0, pageScroll.y + v); refresh(); }
-      }, 16);
+  const begin = () => {
+    const d = st.current;
+    d.dragging = true; d.startScroll = pageScroll.y;
+    useScrollLock.getState().set(true);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+    setDrag(true);
+    // vicino al bordo dello schermo la pagina scorre da sola, così si può portare un widget lontano
+    d.auto = setInterval(() => {
+      const top = 170, bottom = winHRef.current - 120;
+      let v = 0;
+      if (d.moveY > bottom) v = Math.min(22, (d.moveY - bottom) / 3);
+      else if (d.moveY < top) v = -Math.min(22, (top - d.moveY) / 3);
+      if (v) { const y = Math.max(0, pageScroll.y + v); pageScroll.scrollTo(y); pageScroll.y = y; refresh(); }
+    }, 16);
+    refresh();
+  };
+  useEffect(() => finish, []); // eslint-disable-line react-hooks/exhaustive-deps
+  /* Tenendo premuto in un punto qualsiasi del widget (circa un quarto di secondo) lo si prende e si trascina. Prima di allora il dito può ancora far scorrere la pagina. */
+  const responder = {
+    onStartShouldSetResponder: () => true,
+    onResponderTerminationRequest: () => !st.current.dragging,
+    onResponderGrant: (e: GestureResponderEvent) => { const d = st.current; d.sx = e.nativeEvent.pageX; d.sy = e.nativeEvent.pageY; d.dx = 0; d.dy = 0; d.moveY = e.nativeEvent.pageY; d.timer = setTimeout(begin, 260); },
+    onResponderMove: (e: GestureResponderEvent) => {
+      const d = st.current;
+      const dx = e.nativeEvent.pageX - d.sx, dy = e.nativeEvent.pageY - d.sy;
+      if (!d.dragging) { if (d.timer && Math.hypot(dx, dy) > 10) { clearTimeout(d.timer); d.timer = null; } return; }
+      d.dx = dx; d.dy = dy; d.moveY = e.nativeEvent.pageY; refresh();
     },
-    onPanResponderMove: (_e, g) => { const d = drv.current; d.dx = g.dx; d.dy = g.dy; d.moveY = g.moveY; refresh(); },
-    onPanResponderRelease: () => { const d = drv.current; const p = target(d.dx, d.dy + (pageScroll.y - d.startY)); stop(); pos.setValue({ x: 0, y: 0 }); setDrag(false); onDrop(p.x, p.y); },
-    onPanResponderTerminate: () => { stop(); pos.setValue({ x: 0, y: 0 }); setDrag(false); onGhost(null); },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), []);
+    onResponderRelease: () => {
+      const d = st.current;
+      if (!d.dragging) { clearTimers(); return; }
+      const p = target(d.dx, d.dy + (pageScroll.y - d.startScroll));
+      finish(); pos.setValue({ x: 0, y: 0 }); setDrag(false); onDrop(p.x, p.y);
+    },
+    onResponderTerminate: () => { const was = st.current.dragging; finish(); if (was) { pos.setValue({ x: 0, y: 0 }); setDrag(false); onGhost(null); } },
+  };
   if (!def) return null;
   const Comp = def.Comp;
   return (
@@ -117,40 +125,17 @@ function Cell({ it, items, step, cell, edit, onGhost, onDrop, onSelect, onRemove
       <View pointerEvents={edit ? 'none' : 'auto'} style={{ width: pw, height: ph }}><WidgetBoundary type={it.type} pw={pw} ph={ph}><Comp w={it.w} h={it.h} pw={pw} ph={ph} cfg={it.cfg} /></WidgetBoundary></View>
       {edit ? (
         <>
-          <Pressable accessibilityRole="button" accessibilityLabel={tl('Opzioni del widget')} onPress={onSelect} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: 18, borderWidth: 2, borderColor: t.accent + '99', backgroundColor: 'rgba(0,0,0,0.18)' }} />
+          <View {...responder} accessibilityLabel={tl('Tieni premuto per spostare il widget')} accessible style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: 18, borderWidth: 2, borderColor: drag ? t.accent : t.accent + '99', backgroundColor: 'rgba(0,0,0,0.18)' }} />
           <Pressable accessibilityRole="button" accessibilityLabel={tl('Togli il widget')} hitSlop={8} onPress={onRemove} style={{ position: 'absolute', right: -6, top: -6, width: 24, height: 24, borderRadius: 12, backgroundColor: t.danger, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="x" size={14} color="#fff" stroke={3} />
           </Pressable>
-          <View {...pan.panHandlers} accessibilityLabel={tl('Trascina il widget')} accessible style={{ position: 'absolute', right: 4, bottom: 4, width: 30, height: 30, borderRadius: 15, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="grid" size={16} color={t.onAccent} stroke={2.2} />
-          </View>
-          {it.w * it.h >= 2 ? <View pointerEvents="none" style={{ position: 'absolute', left: 8, bottom: 6 }}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>{`${it.w}×${it.h}`}</Text></View> : null}
+          <Pressable accessibilityRole="button" accessibilityLabel={tl('Cambia la forma del widget')} hitSlop={6} onPress={onSelect} style={{ position: 'absolute', right: 4, bottom: 4, minWidth: 30, height: 30, paddingHorizontal: it.w * it.h >= 2 ? 8 : 0, borderRadius: 15, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4 }}>
+            <Icon name="grid" size={15} color={t.onAccent} stroke={2.2} />
+            {it.w * it.h >= 2 ? <Text style={{ color: t.onAccent, fontSize: 11, fontWeight: '800' }}>{`${it.w}×${it.h}`}</Text> : null}
+          </Pressable>
         </>
       ) : null}
     </Animated.View>
-  );
-}
-
-/** Lo sfondo a mosaico: più foto messe una dopo l'altra lungo la pagina, ognuna adattata al suo riquadro, scurite per tenere leggibili i widget. */
-function Mosaic({ photos, dim, width, height, cell }: { photos: string[]; dim: number; width: number; height: number; cell: number }) {
-  const bh = Math.max(120, cell * 3 + GAP * 2);
-  const n = Math.max(1, Math.ceil(height / bh));
-  let k = 0;
-  const next = () => photos[k++ % photos.length];
-  const blocks = Array.from({ length: n }, (_, i) => {
-    const pat = i % 4;
-    if (pat === 0 || pat === 2) return [{ uri: next(), flex: 1 }];
-    return pat === 1 ? [{ uri: next(), flex: 3 }, { uri: next(), flex: 2 }] : [{ uri: next(), flex: 2 }, { uri: next(), flex: 3 }];
-  });
-  return (
-    <View pointerEvents="none" style={{ position: 'absolute', left: -4, right: -4, top: 0, bottom: 0, borderRadius: 22, overflow: 'hidden' }}>
-      {blocks.map((b, i) => (
-        <View key={i} style={{ height: bh, width: width + 8, flexDirection: 'row' }}>
-          {b.map((p, j) => <Image key={j} source={{ uri: p.uri }} style={{ flex: p.flex, height: bh }} contentFit="cover" />)}
-        </View>
-      ))}
-      <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: `rgba(7,9,13,${dim})` }} />
-    </View>
   );
 }
 
