@@ -39,8 +39,10 @@ export function Ring({ value, size = 96, stroke = 10, color = FIT, big, small }:
         <Circle cx={size / 2} cy={size / 2} r={r} stroke={t.chip} strokeWidth={stroke} fill="none" />
         {v > 0 ? <Circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={`${c * v} ${c}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} /> : null}
       </Svg>
-      <Text style={{ color: t.text, fontSize: size * 0.26, fontWeight: '900' }}>{big}</Text>
-      {small ? <Text style={{ color: t.muted, fontSize: Math.max(10, size * 0.115), fontWeight: '600' }}>{small}</Text> : null}
+      <View style={{ width: size - stroke * 2 - 10, alignItems: 'center' }}>
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} style={{ color: t.text, fontSize: size * (big.length > 3 ? 0.24 : 0.28), fontWeight: '900', letterSpacing: -0.5 }}>{big}</Text>
+        {small ? <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ color: t.muted, fontSize: Math.max(10, size * 0.1), fontWeight: '600' }}>{small}</Text> : null}
+      </View>
     </View>
   );
 }

@@ -11,6 +11,8 @@ import { dailyTargets, type Body as BodyT } from '@/lib/fitness/nutrition';
 import type { Meal } from '@/store/fitness';
 
 const GREEN = '#5fd39a', AMBER = '#ffb020';
+/** Numeri leggibili: dai 100 in su senza decimali, sotto con la virgola e senza «,0». */
+const nf = (n: number) => (Math.abs(n) >= 100 ? String(Math.round(n)) : (Math.round(n * 10) / 10).toFixed(1).replace(/\.0$/, '').replace('.', ','));
 const L = (n: number) => `${(n / 1000).toFixed(1).replace('.', ',')} L`;
 
 /** Barra con «mangiato / dovresti» in grammi: verde nei limiti, arancione poco oltre, rossa oltre. */
@@ -20,7 +22,7 @@ function Dose({ label, eaten, goal, unit = 'g', state, hint }: { label: string; 
   const pct = goal ? Math.min(100, (eaten / goal) * 100) : 0;
   return (
     <View style={{ marginTop: 8 }}>
-      <Row><Text style={{ color: t.muted, fontSize: 13, fontWeight: '600' }}>{label}</Text><Text style={{ color: state === 'ok' ? t.text : col, fontSize: 14, fontWeight: '800' }}>{`${eaten} ${goal ? `/ ${goal} ` : ''}${unit}`}</Text></Row>
+      <Row><Text style={{ color: t.muted, fontSize: 13, fontWeight: '600' }}>{label}</Text><Text style={{ color: state === 'ok' ? t.text : col, fontSize: 14, fontWeight: '800' }}>{`${unit === 'L' ? String(eaten).replace('.', ',') : nf(eaten)}${goal ? ` / ${unit === 'L' ? String(goal).replace('.', ',') : nf(goal)}` : ''} ${unit}`}</Text></Row>
       <View style={{ height: 7, borderRadius: 4, backgroundColor: t.chip, overflow: 'hidden', marginTop: 3 }}><View style={{ width: `${Math.max(goal ? 3 : 0, pct)}%`, height: 7, backgroundColor: col }} /></View>
       {hint ? <Text style={{ color: state === 'ok' ? t.muted : col, fontSize: 11.5, marginTop: 2 }}>{hint}</Text> : null}
     </View>
@@ -42,14 +44,15 @@ export function DaySummary({ meals, waterMl, body, avg, micro }: { /** vitamine 
   const wState: LimitState = 'ok';
   return (
     <View>
-      <Row gap={16} style={{ marginTop: 4 }}>
-        <Ring size={112} stroke={12} value={tg ? sum.kcal / tg.kcal : 0} big={String(sum.kcal)} small={tg ? `/ ${tg.kcal} kcal` : 'kcal'} color={tg ? kCol : FIT} />
-        <View style={{ flex: 1 }}>
-          <Dose label={tl('Proteine')} eaten={g(sum.p)} goal={tg?.protein} state={limitState(sum.p, tg ? tg.protein * 1.6 : undefined)} hint={tg && sum.p < tg.protein * 0.8 ? tl('ne mancano circa {0} g', Math.round(tg.protein - sum.p)) : undefined} />
-          <Dose label={tl('Carboidrati')} eaten={g(sum.c)} goal={tg?.carbs} state={limitState(sum.c, tg?.carbs)} hint={tg && sum.c > tg.carbs ? tl('oltre di {0} g', Math.round(sum.c - tg.carbs)) : undefined} />
-          <Dose label={tl('Grassi')} eaten={g(sum.f)} goal={tg?.fat} state={limitState(sum.f, tg?.fat)} hint={tg && sum.f > tg.fat ? tl('oltre di {0} g', Math.round(sum.f - tg.fat)) : undefined} />
-        </View>
-      </Row>
+      <View style={{ alignItems: 'center', marginTop: 8 }}>
+        <Ring size={156} stroke={15} value={tg ? sum.kcal / tg.kcal : 0} big={String(sum.kcal)} small={tg ? `su ${tg.kcal} kcal` : 'kcal'} color={tg ? kCol : FIT} />
+      </View>
+      <View style={{ marginTop: 6 }}>
+        <Body bold>Macronutrienti</Body>
+        <Dose label={tl('Proteine')} eaten={g(sum.p)} goal={tg?.protein} state={limitState(sum.p, tg ? tg.protein * 1.6 : undefined)} hint={tg && sum.p < tg.protein * 0.8 ? tl('ne mancano circa {0} g', Math.round(tg.protein - sum.p)) : undefined} />
+        <Dose label={tl('Carboidrati')} eaten={g(sum.c)} goal={tg?.carbs} state={limitState(sum.c, tg?.carbs)} hint={tg && sum.c > tg.carbs ? tl('oltre di {0} g', Math.round(sum.c - tg.carbs)) : undefined} />
+        <Dose label={tl('Grassi')} eaten={g(sum.f)} goal={tg?.fat} state={limitState(sum.f, tg?.fat)} hint={tg && sum.f > tg.fat ? tl('oltre di {0} g', Math.round(sum.f - tg.fat)) : undefined} />
+      </View>
       {tg && kState !== 'ok' ? <Body bold style={{ marginTop: 8, color: kCol }}>{tl('Hai superato il fabbisogno di {0} kcal', Math.round(sum.kcal - tg.kcal))}</Body> : null}
       <View style={{ marginTop: 12 }}>
         <Body bold>Altri valori</Body>

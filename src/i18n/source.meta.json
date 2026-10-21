@@ -1,5 +1,5 @@
 {
- "count": 12382,
+ "count": 12384,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -211,7 +211,7 @@
   "src/components/feed/SwipeDeck.tsx": 30,
   "src/components/feed/TabCards.tsx": 21,
   "src/components/feed/useDeckCards.ts": 2,
-  "src/components/fitness/DaySummary.tsx": 19,
+  "src/components/fitness/DaySummary.tsx": 21,
   "src/components/fitness/ExerciseFigure.tsx": 3,
   "src/components/fitness/ExercisePhotos.tsx": 3,
   "src/components/fitness/ExercisePicker.tsx": 28,
@@ -550,5 +550,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1584
+ "withPlaceholders": 1585
 }
