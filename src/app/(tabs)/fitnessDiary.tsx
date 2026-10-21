@@ -2,8 +2,11 @@ import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { FIT } from '@/components/fitness/kit';
-import { Body, Btn, Card, H, Item, Page, Pill, Row, Switch } from '@/components/ui';
+import { FIT, Ring } from '@/components/fitness/kit';
+import { AiNote } from '@/components/AiNote';
+import { RichText } from '@/components/RichText';
+import { Body, Btn, Card, H, Item, Page, Pill, Row, Sheet, Switch } from '@/components/ui';
+import { deepAnalysisText, recapText } from '@/lib/assistant/foodTheia';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { DaySummary } from '@/components/fitness/DaySummary';
@@ -37,6 +40,8 @@ export default function FitnessDiary() {
   const fit = useFitness();
   const [shown, setShown] = useState(10);
   const [period, setPeriod] = useState<7 | 30>(7);
+  const [recap, setRecap] = useState(false);
+  const [deep, setDeep] = useState<{ busy: boolean; text?: string; ok?: boolean }>({ busy: false });
   const groups = groupByDay(withMicro(fit.meals));
   const target = fit.body ? dailyTarget(fit.body) : null;
   const st = periodStats(withMicro(fit.meals), fit.water ?? {}, Date.now(), period);
@@ -59,21 +64,38 @@ export default function FitnessDiary() {
     <Page id="fitnessDiary" back title="Storico dei pasti">
       <Card accent={FIT}>
         <H>Come mangi</H>
-        <Body small muted style={{ marginTop: 2 }}>Theia guarda gli ultimi 7 giorni e ti dice in chat dove sei carente e cosa migliorare. L'analisi si fa sul telefono, senza AI esterna.</Body>
-        <Btn style={{ marginTop: 10 }} icon="sparkle" title="Fai analizzare a Theia" onPress={() => go('ai', { ask: 'Analizza come mangio' })} />
+        <Body small muted style={{ marginTop: 2 }}>Theia guarda gli ultimi 7 giorni e ti dice dove sei carente e cosa migliorare, in una scheda qui. L'analisi si fa sul telefono, senza AI esterna.</Body>
+        <Btn style={{ marginTop: 10 }} icon="sparkle" title="Fai analizzare a Theia" onPress={() => { setDeep({ busy: false }); setRecap(true); }} />
       </Card>
 
       <Card>
-        <Row><H style={{ flex: 1 }}>Qualità della tua alimentazione</H>
-          <Row gap={6}>{([7, 30] as const).map((d) => <Pill key={d} label={`${d} ${tl('giorni')}`} on={period === d} onPress={() => setPeriod(d)} />)}</Row>
-        </Row>
+        <H>Qualità della tua alimentazione</H>
+        <Row style={{ justifyContent: 'flex-start', marginTop: 6 }} gap={8}>{([7, 30] as const).map((d) => <Pill key={d} label={`${d} ${tl('giorni')}`} on={period === d} onPress={() => setPeriod(d)} />)}</Row>
         {q ? (
           <View>
-            <Row style={{ marginTop: 6 }}><Body bold style={{ color: qCol, fontSize: 30 }}>{`${q.score}/100`}</Body><Body bold style={{ color: qCol }}>{tl(q.label)}</Body></Row>
-            {q.parts.map((p) => <Row key={p.id} style={{ marginTop: 3 }}><Body small muted>{tl(p.label)}</Body><Body small>{`${Math.round(p.score)}/${p.max} · ${p.note}`}</Body></Row>)}
-            <Body small muted style={{ marginTop: 8 }}>{tl('Calcolata su {0} giorni con pasti registrati. Sono stime, non un dato medico: vitamine e minerali sono calcolati per categoria di alimento.', st.days)}</Body>
+            <Row gap={16} style={{ marginTop: 12 }}>
+              <Ring size={104} stroke={11} value={q.score / 100} big={String(q.score)} small="/ 100" color={qCol} />
+              <View style={{ flex: 1 }}>
+                <Body bold style={{ color: qCol, fontSize: 20 }}>{tl(q.label)}</Body>
+                <Body small muted style={{ marginTop: 2 }}>{tl('Calcolata su {0} giorni con pasti registrati.', st.days)}</Body>
+              </View>
+            </Row>
+            <View style={{ marginTop: 12 }}>
+              {q.parts.map((p) => {
+                const r = p.score / p.max;
+                const col = r >= 0.75 ? '#5fd39a' : r >= 0.45 ? '#ffb020' : t.danger;
+                return (
+                  <View key={p.id} style={{ marginTop: 8 }}>
+                    <Row><Body small bold>{tl(p.label)}</Body><Body small style={{ color: col, fontWeight: '800' }}>{`${Math.round(p.score)}/${p.max}`}</Body></Row>
+                    <View style={{ height: 6, borderRadius: 3, backgroundColor: t.chip, overflow: 'hidden', marginTop: 3 }}><View style={{ width: `${Math.max(3, Math.round(r * 100))}%`, height: 6, backgroundColor: col }} /></View>
+                    <Body small muted style={{ marginTop: 2 }}>{p.note}</Body>
+                  </View>
+                );
+              })}
+            </View>
+            <Body small muted style={{ marginTop: 10 }}>Sono stime, non un dato medico: vitamine e minerali sono calcolati per categoria di alimento.</Body>
           </View>
-        ) : <Body small muted style={{ marginTop: 6 }}>{fit.body ? 'Registra qualche pasto per vedere la qualità della tua alimentazione.' : 'Imposta i tuoi dati in «Pasti e calorie» (sesso, età, peso, altezza) per vedere qualità e valori consigliati.'}</Body>}
+        ) : <Body small muted style={{ marginTop: 8 }}>{fit.body ? 'Registra qualche pasto per vedere la qualità della tua alimentazione.' : 'Imposta i tuoi dati in «Pasti e calorie» (sesso, età, peso, altezza) per vedere qualità e valori consigliati.'}</Body>}
       </Card>
 
       {st.days ? (
@@ -122,6 +144,18 @@ export default function FitnessDiary() {
       ))}
       {groups.length > shown ? <Btn ghost title={tl('Mostra altri giorni ({0})', groups.length - shown)} onPress={() => setShown(shown + 10)} /> : null}
       <Body small muted style={{ marginTop: 8 }}>{NUTRITION_LEGAL}</Body>
+      <Sheet visible={recap} title="Come mangi, secondo Theia" onClose={() => setRecap(false)}>
+        <RichText text={recapText()} color={t.text} accent={t.text} />
+        {deep.text ? (
+          <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.border }}>
+            <Body bold>{deep.ok ? 'Il parere dell\'AI' : 'Parere dell\'AI'}</Body>
+            <View style={{ marginTop: 6 }}><RichText text={deep.text} color={t.text} accent={t.text} /></View>
+            {deep.ok ? <AiNote /> : null}
+          </View>
+        ) : null}
+        <Btn style={{ marginTop: 14 }} icon="sparkle" ghost={!!deep.text} disabled={deep.busy} title={deep.busy ? 'Chiedo all\'AI…' : deep.text ? 'Chiedi di nuovo all\'AI' : 'Chiedi all\'AI di approfondire'} onPress={async () => { setDeep({ busy: true }); const r = await deepAnalysisText(); setDeep({ busy: false, text: r.text, ok: r.ok }); }} />
+        <Btn style={{ marginTop: 8 }} ghost title="Continua in chat con Theia" onPress={() => { setRecap(false); go('ai', { ask: 'Analizza come mangio' }); }} />
+      </Sheet>
     </Page>
   );
 }

@@ -1,5 +1,5 @@
 {
- "count": 12376,
+ "count": 12382,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -27,7 +27,7 @@
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
   "src/app/(tabs)/fitnessDay.tsx": 18,
-  "src/app/(tabs)/fitnessDiary.tsx": 34,
+  "src/app/(tabs)/fitnessDiary.tsx": 42,
   "src/app/(tabs)/fitnessExercise.tsx": 30,
   "src/app/(tabs)/fitnessGroup.tsx": 39,
   "src/app/(tabs)/fitnessGroups.tsx": 53,

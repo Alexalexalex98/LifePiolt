@@ -78,22 +78,32 @@ function logWater(push: Push, ml: number) {
   }
 }
 
-/** Parere dettagliato dell'AI sulle medie (solo numeri), dopo il consenso. */
-export async function deepAnalysis(push: Push) {
-  if (!aiServerConfigured) { push(t('L\'AI non è collegata in questa app: ti ho dato l\'analisi che posso fare sul telefono.')); return; }
+/** Il recap di come mangi (7 giorni), calcolato sul telefono: serve alla scheda dello storico e alla chat. */
+export function recapText(): string {
   const fit = useFitness.getState();
   const s = periodStats(withMicro(fit.meals), fit.water ?? {}, Date.now(), 7);
-  if (!s.days) { push(t('Non ho ancora abbastanza pasti per chiedere un parere: registra qualche pasto e riprova.')); return; }
-  if (!(await askSend('summary', t('Medie degli ultimi 7 giorni: calorie, macronutrienti, zuccheri, saturi, fibre, sale, acqua e vitamine e minerali stimati.')))) { push(t('Va bene, non invio niente. Resta l\'analisi fatta sul telefono.')); return; }
+  return analysisText(s, findings(s, ctx()), useApp.getState().account.name?.split(' ')[0]);
+}
+
+/** Parere dettagliato dell'AI sulle medie (solo numeri), dopo il consenso. `ok` = è arrivato davvero il parere dell'AI. */
+export async function deepAnalysisText(): Promise<{ ok: boolean; text: string }> {
+  if (!aiServerConfigured) return { ok: false, text: t('L\'AI non è collegata in questa app: resta l\'analisi fatta sul telefono.') };
+  const fit = useFitness.getState();
+  const s = periodStats(withMicro(fit.meals), fit.water ?? {}, Date.now(), 7);
+  if (!s.days) return { ok: false, text: t('Non ho ancora abbastanza pasti per chiedere un parere: registra qualche pasto e riprova.') };
+  if (!(await askSend('summary', t('Medie degli ultimi 7 giorni: calorie, macronutrienti, zuccheri, saturi, fibre, sale, acqua e vitamine e minerali stimati.')))) return { ok: false, text: t('Va bene, non invio niente. Resta l\'analisi fatta sul telefono.') };
   const c = ctx();
   const tg = fit.body ? dailyTargets(fit.body) : null;
   const q = tg ? quality(s, tg) : null;
   const prompt = analysisAiPrompt(s, findings(s, c), c, q);
   try {
     logSend('summary', prompt.length, ['testo']);
-    push(`${tidy(await aiChatRaw(prompt))}\n\n${t('Parere dell\'AI: può sbagliare, controlla su una fonte affidabile. Non è un consiglio medico.')}`);
-  } catch (e) { push(e instanceof AiServerError ? e.message : t('Non sono riuscito a contattare il servizio AI.')); }
+    return { ok: true, text: `${tidy(await aiChatRaw(prompt))}\n\n${t('Parere dell\'AI: può sbagliare, controlla su una fonte affidabile. Non è un consiglio medico.')}` };
+  } catch (e) { return { ok: false, text: e instanceof AiServerError ? e.message : t('Non sono riuscito a contattare il servizio AI.') }; }
 }
+
+/** Come sopra, ma il risultato va in chat. */
+export async function deepAnalysis(push: Push) { push((await deepAnalysisText()).text); }
 
 const AI_DEEP = /\b(approfondisc\w*|pi[uù] dettagli\w*|parere)\b.*\b(ai|intelligenza|mang\w*|alimentazion\w*)\b/;
 const EAT = /\b(analizz\w*|analisi|valut\w*|giudic\w*|controll\w*)\b.*\b(mang\w*|alimentazion\w*|dieta|cibo|pasti|nutrizion\w*)\b|\bcome (sto )?mang\w+|\bcome mi alimento\b|\bsono carente\b|\bcarenz\w+\b.*\b(alimentazion\w*|dieta)|\bcosa (devo|dovrei) migliorare\b.*\b(mang\w*|alimentazion\w*|dieta)\b/;
