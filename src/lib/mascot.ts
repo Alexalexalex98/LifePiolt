@@ -1,13 +1,19 @@
 /** La mascotte di Theia (modulo PURO): colori derivati dal colore dell'app ed elenco delle espressioni. */
 export type Expression = 'neutral' | 'happy' | 'thinking' | 'understood' | 'doubtful' | 'celebrating' | 'sleepy' | 'surprised' | 'sad' | 'working'
-  | 'love' | 'laughing' | 'wink' | 'angry' | 'crying' | 'blushing' | 'cool' | 'sleeping' | 'confused' | 'idea' | 'proud' | 'shy' | 'excited' | 'nervous' | 'thanks' | 'goodbye';
+  | 'love' | 'laughing' | 'wink' | 'angry' | 'crying' | 'blushing' | 'cool' | 'sleeping' | 'confused' | 'idea' | 'proud' | 'shy' | 'excited' | 'nervous' | 'thanks' | 'goodbye'
+  | 'ok' | 'no' | 'bored' | 'suspicious' | 'curious' | 'shock' | 'embarrassed' | 'grimace' | 'sorry' | 'wait' | 'worried' | 'relaxed' | 'hungry' | 'cold' | 'morning' | 'night' | 'coffee' | 'alarm' | 'late' | 'workout' | 'water' | 'eating' | 'money' | 'saved' | 'travel' | 'reading' | 'music' | 'calendar' | 'goal' | 'birthday' | 'vacation';
 export const EXPRESSIONS: { id: Expression; label: string }[] = [
   { id: 'neutral', label: 'Neutra' }, { id: 'happy', label: 'Felice' }, { id: 'thinking', label: 'Pensa' }, { id: 'understood', label: 'Ha capito' }, { id: 'doubtful', label: 'Ha un dubbio' },
   { id: 'celebrating', label: 'Festeggia' }, { id: 'sleepy', label: 'Assonnata' }, { id: 'surprised', label: 'Sorpresa' }, { id: 'sad', label: 'Triste' }, { id: 'working', label: 'Al lavoro' },
   { id: 'love', label: 'Innamorata' }, { id: 'laughing', label: 'Ride' }, { id: 'wink', label: 'Occhiolino' }, { id: 'angry', label: 'Arrabbiata' }, { id: 'crying', label: 'Piange' }, { id: 'blushing', label: 'Arrossisce' },
   { id: 'cool', label: 'Cool' }, { id: 'sleeping', label: 'Dorme' }, { id: 'confused', label: 'Confusa' }, { id: 'idea', label: 'Ha un\'idea' }, { id: 'proud', label: 'Orgogliosa' }, { id: 'shy', label: 'Timida' },
   { id: 'excited', label: 'Emozionata' }, { id: 'nervous', label: 'Nervosa' }, { id: 'thanks', label: 'Grazie' }, { id: 'goodbye', label: 'Ciao' },
+  { id: 'ok', label: 'OK' }, { id: 'no', label: 'No' }, { id: 'bored', label: 'Annoiata' }, { id: 'suspicious', label: 'Sospettosa' }, { id: 'curious', label: 'Curiosa' }, { id: 'shock', label: 'Shock' }, { id: 'embarrassed', label: 'Imbarazzata' }, { id: 'grimace', label: 'Smorfia' }, { id: 'sorry', label: 'Scusa' }, { id: 'wait', label: 'Aspetta' }, { id: 'worried', label: 'Preoccupata' }, { id: 'relaxed', label: 'Rilassata' }, { id: 'hungry', label: 'Affamata' }, { id: 'cold', label: 'Ha freddo' }, { id: 'morning', label: 'Buongiorno' }, { id: 'night', label: 'Buonanotte' }, { id: 'coffee', label: 'Caffè' }, { id: 'alarm', label: 'Sveglia' }, { id: 'late', label: 'In ritardo' }, { id: 'workout', label: 'Allenamento' }, { id: 'water', label: 'Acqua' }, { id: 'eating', label: 'Mangia' }, { id: 'money', label: 'Fa i conti' }, { id: 'saved', label: 'Ha risparmiato' }, { id: 'travel', label: 'In viaggio' }, { id: 'reading', label: 'Legge' }, { id: 'music', label: 'Musica' }, { id: 'calendar', label: 'Agenda' }, { id: 'goal', label: 'Obiettivo' }, { id: 'birthday', label: 'Compleanno' }, { id: 'vacation', label: 'Vacanza' },
 ];
+
+
+/** Le espressioni «con un oggetto» usano gli occhi di un'espressione di base e disegnano un piccolo oggetto accanto. */
+export const EYES_OF: Partial<Record<Expression, Expression>> = { ok: 'happy', no: 'working', bored: 'sleepy', suspicious: 'working', curious: 'blushing', shock: 'surprised', embarrassed: 'shy', grimace: 'laughing', sorry: 'sad', wait: 'thinking', worried: 'nervous', relaxed: 'happy', hungry: 'understood', cold: 'laughing', morning: 'sleepy', night: 'sleeping', coffee: 'happy', alarm: 'surprised', late: 'nervous', workout: 'working', water: 'happy', eating: 'happy', money: 'working', saved: 'understood', travel: 'understood', reading: 'shy', music: 'happy', calendar: 'understood', goal: 'celebrating', birthday: 'laughing', vacation: 'cool' };
 
 type RGB = [number, number, number];
 const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));

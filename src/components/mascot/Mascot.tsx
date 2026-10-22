@@ -3,9 +3,9 @@ import { Animated, Easing, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, Path, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
-import { bodyTones, mix, type Expression } from '@/lib/mascot';
+import { EYES_OF, bodyTones, mix, type Expression } from '@/lib/mascot';
 
-const LX = 75, RX = 125, EY = 122;
+const LX = 76, RX = 124, EY = 128;
 const star = (x: number, y: number, r: number) => `M${x} ${y - r} Q${x + r * 0.18} ${y - r * 0.18} ${x + r} ${y} Q${x + r * 0.18} ${y + r * 0.18} ${x} ${y + r} Q${x - r * 0.18} ${y + r * 0.18} ${x - r} ${y} Q${x - r * 0.18} ${y - r * 0.18} ${x} ${y - r} Z`;
 
 const heart = (x: number, y: number, k = 1) => `M${x} ${y + 8 * k} C${x - 17 * k} ${y - 4 * k} ${x - 9 * k} ${y - 16 * k} ${x} ${y - 7 * k} C${x + 9 * k} ${y - 16 * k} ${x + 17 * k} ${y - 4 * k} ${x} ${y + 8 * k} Z`;
@@ -29,7 +29,7 @@ function Eyes({ e, ink, blink, glint }: { e: Expression; ink: string; blink: boo
     case 'doubtful': return <G>{oval(LX, EY + 6, 5, 6, 0)}{oval(RX, EY, 7, 12, 0, true)}</G>;
     case 'surprised': return <G>{oval(LX, EY, 9.5, 17, 0, true)}{oval(RX, EY, 9.5, 17, 0, true)}</G>;
     case 'sad': return <G>{oval(LX, EY + 4, 7.5, 9, -18, true)}{oval(RX, EY + 4, 7.5, 9, 18, true)}</G>;
-    case 'working': return <G>{oval(LX, EY + 2, 7, 8)}{oval(RX, EY + 2, 7, 8)}<Path d={`M${LX - 10} ${EY - 11} L${LX + 8} ${EY - 5}`} stroke={ink} strokeWidth={4} strokeLinecap="round" /><Path d={`M${RX + 10} ${EY - 11} L${RX - 8} ${EY - 5}`} stroke={ink} strokeWidth={4} strokeLinecap="round" /></G>;
+    case 'working': return <G>{oval(LX, EY + 2, 7, 8)}{oval(RX, EY + 2, 7, 8)}<Path d={`M${LX - 9} ${EY - 17} L${LX + 8} ${EY - 18}`} stroke={ink} strokeWidth={3.5} strokeLinecap="round" /><Path d={`M${RX + 9} ${EY - 17} L${RX - 8} ${EY - 18}`} stroke={ink} strokeWidth={3.5} strokeLinecap="round" /></G>;
     case 'love': return <G><Path d={heart(LX, EY, 1)} fill={ink} /><Path d={heart(RX, EY, 1)} fill={ink} /></G>;
     case 'laughing': return <G>{arc(LX, true, 6)}{arc(RX, true, 6)}</G>;
     case 'wink': return <G>{arc(LX, true)}{oval(RX, EY, 7, 12, 0, true)}</G>;
@@ -52,6 +52,37 @@ function Eyes({ e, ink, blink, glint }: { e: Expression; ink: string; blink: boo
 
 function Extras({ e, tone, ink }: { e: Expression; tone: string; ink: string }) {
   switch (e) {
+    case 'ok': return <Path d="M146 38 l10 11 l22 -26" stroke={tone} strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" fill="none" />;
+    case 'no': return <Path d="M148 22 l26 26 M174 22 l-26 26" stroke={tone} strokeWidth={8} strokeLinecap="round" fill="none" />;
+    case 'bored': return <G fill={tone}><Circle cx={150} cy={40} r={4} /><Circle cx={164} cy={40} r={4} /><Circle cx={178} cy={40} r={4} /></G>;
+    case 'suspicious': return <Path d="M62 88 L92 94 M138 94 L108 88" stroke={ink} strokeWidth={5} strokeLinecap="round" />;
+    case 'curious': return <SvgText x={150} y={56} fontSize={38} fontWeight="900" fill={tone}>?</SvgText>;
+    case 'shock': return <G stroke={tone} strokeWidth={5} strokeLinecap="round"><Path d="M24 56 l12 8 M18 82 l14 0 M176 56 l-12 8 M182 82 l-14 0 M100 20 l0 14" /></G>;
+    case 'embarrassed': return <G><Path d="M156 58 q-9 16 0 22 q9 -6 0 -22 Z" fill={tone} /><Ellipse cx={54} cy={140} rx={12} ry={8} fill={tone} opacity={0.35} /><Ellipse cx={146} cy={140} rx={12} ry={8} fill={tone} opacity={0.35} /></G>;
+    case 'grimace': return <Path d="M140 34 q8 -10 16 0 t16 0" stroke={tone} strokeWidth={5} strokeLinecap="round" fill="none" />;
+    case 'sorry': return <G fill={tone}><Path d="M158 52 q-8 14 0 19 q8 -5 0 -19 Z" /><Path d="M60 40 q8 -10 16 0 q-8 6 -16 0 Z" /></G>;
+    case 'wait': return <G stroke={tone} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" fill="none"><Path d="M150 18 h24 M150 54 h24 M154 18 q0 18 10 18 q10 0 10 -18 M154 54 q0 -18 10 -18 q10 0 10 18" /></G>;
+    case 'worried': return <G stroke={tone} strokeWidth={4} strokeLinecap="round"><Path d="M60 72 l8 -6 M140 66 l8 6 M156 40 l0 12" /></G>;
+    case 'relaxed': return <Path d="M150 52 q4 -28 28 -30 q0 26 -28 30 Z" fill={tone} />;
+    case 'hungry': return <G><Circle cx={162} cy={40} r={14} fill={tone} /><G fill={ink} opacity={0.7}><Circle cx={157} cy={36} r={2.4} /><Circle cx={166} cy={42} r={2.4} /><Circle cx={158} cy={46} r={2} /></G></G>;
+    case 'cold': return <G stroke={tone} strokeWidth={4} strokeLinecap="round"><Path d="M162 20 v28 M148 28 l28 12 M176 28 l-28 12" /><Path d="M34 90 l-8 6 l8 6 M166 90 l8 6 l-8 6" /></G>;
+    case 'morning': return <G><Circle cx={160} cy={36} r={13} fill={tone} /><G stroke={tone} strokeWidth={4} strokeLinecap="round"><Path d="M160 10 v6 M138 36 h6 M182 36 h-6 M144 20 l4 4 M176 20 l-4 4" /></G></G>;
+    case 'night': return <G fill={tone}><Path d="M150 20 a18 18 0 1 0 22 26 a14 14 0 1 1 -22 -26 Z" /><Path d={star(30, 38, 6)} /><Path d={star(176, 70, 5)} /></G>;
+    case 'coffee': return <G><Path d="M142 26 h30 v22 a12 12 0 0 1 -12 12 h-6 a12 12 0 0 1 -12 -12 Z" fill={tone} /><Path d="M172 32 h6 a7 7 0 0 1 0 16 h-6" stroke={tone} strokeWidth={4} fill="none" /><Path d="M150 10 q-5 6 0 12 M162 8 q-5 6 0 12" stroke={tone} strokeWidth={3} strokeLinecap="round" fill="none" /></G>;
+    case 'alarm': return <G><Circle cx={160} cy={40} r={16} fill={tone} /><Path d="M160 30 v10 l8 4" stroke={ink} strokeWidth={3} strokeLinecap="round" fill="none" /><Circle cx={146} cy={22} r={6} fill={tone} /><Circle cx={174} cy={22} r={6} fill={tone} /></G>;
+    case 'late': return <G stroke={tone} strokeWidth={5} strokeLinecap="round"><Path d="M14 80 h22 M10 100 h26 M14 120 h22" /></G>;
+    case 'workout': return <G fill={tone}><Rect x={140} y={26} width={8} height={22} rx={3} /><Rect x={178} y={26} width={8} height={22} rx={3} /><Rect x={150} y={34} width={26} height={6} rx={2} /></G>;
+    case 'water': return <G><Path d="M148 20 h26 l-4 34 h-18 Z" fill={tone} opacity={0.85} /><Path d="M151 34 h20" stroke="#fff" strokeWidth={3} opacity={0.7} /></G>;
+    case 'eating': return <G stroke={tone} strokeWidth={4} strokeLinecap="round" fill="none"><Path d="M146 18 v36 M140 18 v14 q6 6 12 0 v-14" /><Path d="M172 18 q10 8 0 26 v10" /></G>;
+    case 'money': return <G><Circle cx={160} cy={38} r={15} fill={tone} /><Circle cx={160} cy={38} r={9} stroke={ink} strokeWidth={2.5} fill="none" opacity={0.6} /><Path d="M154 38 l4 5 l9 -11" stroke={ink} strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.8} /></G>;
+    case 'saved': return <G fill={tone}><Circle cx={160} cy={36} r={13} /><Circle cx={184} cy={56} r={8} /><Path d={star(138, 24, 7)} /></G>;
+    case 'travel': return <Path d="M140 44 l36 -22 l8 4 l-26 22 l4 14 l-6 2 l-8 -12 l-10 6 z" fill={tone} />;
+    case 'reading': return <G fill={tone}><Path d="M140 28 q14 -6 24 2 v26 q-10 -8 -24 -2 Z" /><Path d="M188 28 q-14 -6 -24 2 v26 q10 -8 24 -2 Z" opacity={0.8} /></G>;
+    case 'music': return <G fill={tone}><Ellipse cx={146} cy={50} rx={7} ry={5} /><Rect x={150} y={20} width={3.5} height={30} /><Ellipse cx={174} cy={44} rx={7} ry={5} /><Rect x={178} y={14} width={3.5} height={30} /><Path d="M150 20 l31 -6 v8 l-31 6 Z" /></G>;
+    case 'calendar': return <G><Rect x={142} y={20} width={34} height={34} rx={6} fill={tone} /><Rect x={142} y={20} width={34} height={10} rx={4} fill={ink} opacity={0.55} /><Path d="M150 38 h6 M162 38 h6 M150 46 h6 M162 46 h6" stroke="#fff" strokeWidth={3} strokeLinecap="round" /></G>;
+    case 'goal': return <G fill={tone}><Path d="M144 18 h32 v16 a16 16 0 0 1 -32 0 Z" /><Rect x={156} y={50} width={8} height={8} /><Rect x={148} y={58} width={24} height={6} rx={2} /><Path d="M144 24 h-8 q0 14 10 16 M176 24 h8 q0 14 -10 16" stroke={tone} strokeWidth={3} fill="none" /></G>;
+    case 'birthday': return <G><Rect x={142} y={36} width={36} height={20} rx={5} fill={tone} /><Rect x={158} y={22} width={4} height={14} fill={ink} opacity={0.6} /><Path d="M160 10 q-5 8 0 12 q5 -4 0 -12 Z" fill={tone} /></G>;
+    case 'vacation': return <G fill={tone}><Path d="M150 52 q-4 -26 26 -34 q2 24 -26 34 Z" /><Path d="M150 52 q-24 -6 -20 -30 q22 4 20 30 Z" opacity={0.8} /></G>;
     case 'love': return <Path d={heart(160, 44, 0.9)} fill={tone} />;
     case 'laughing': return <G fill={tone}><Path d="M52 136 q-7 12 0 16 q7 -4 0 -16 Z" /><Path d="M148 136 q-7 12 0 16 q7 -4 0 -16 Z" /></G>;
     case 'wink': return <Path d={star(162, 42, 11)} fill={tone} />;
@@ -76,7 +107,7 @@ function Extras({ e, tone, ink }: { e: Expression; tone: string; ink: string }) 
  * Theia, la mascotte: una piccola sfera luminosa disegnata in vettoriale. Prende il colore dell'app, respira, sbatte gli occhi e cambia espressione.
  * Quando il colore cambia fa la sua piccola scena (si schiaccia, salta, gira su sé stessa, si illumina e festeggia) e poi torna all'espressione richiesta.
  */
-export function Mascot({ size = 140, color, expression = 'neutral', animated = true, ritual = true, style }: { size?: number; color: string; expression?: Expression; animated?: boolean; ritual?: boolean; style?: StyleProp<ViewStyle> }) {
+export function Mascot({ size = 140, color, expression = 'neutral', animated = true, ritual = true, shake = false, style }: { size?: number; color: string; expression?: Expression; animated?: boolean; ritual?: boolean; /** il solletico: ride e trema */ shake?: boolean; style?: StyleProp<ViewStyle> }) {
   const reduce = useReduceMotion();
   const live = animated && !reduce;
   const [shown, setShown] = useState(color);
@@ -89,9 +120,20 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
   const squash = useRef(new Animated.Value(0)).current; // 0 normale, 1 schiacciata
   const spin = useRef(new Animated.Value(0)).current;
   const burst = useRef(new Animated.Value(0)).current;
+  const wiggle = useRef(new Animated.Value(0)).current;
   const expRef = useRef(expression); expRef.current = expression;
 
-  useEffect(() => { setExpr(expression); }, [expression]);
+  useEffect(() => { setExpr(shake ? 'laughing' : expression); }, [expression, shake]);
+  useEffect(() => {
+    if (!shake) { wiggle.setValue(0); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(wiggle, { toValue: 1, duration: 90, useNativeDriver: true }),
+      Animated.timing(wiggle, { toValue: -1, duration: 180, useNativeDriver: true }),
+      Animated.timing(wiggle, { toValue: 0, duration: 90, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [shake, wiggle]);
   // rotazione su sé stessa: l'angolo (in radianti) guida occhi, riflesso e luce, così gira come una sfera e non come uno specchio
   useEffect(() => { const id = spin.addListener(({ value }) => setYaw(value * Math.PI * 2)); return () => spin.removeListener(id); }, [spin]);
 
@@ -148,7 +190,7 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
   const ty = hop.interpolate({ inputRange: [0, 1], outputRange: [0, -size * 0.22] });
 
   return (
-    <Animated.View accessibilityRole="image" accessibilityLabel="Theia" style={[{ width: size, height: size }, style, { transform: [{ translateY: ty }, { scaleX: sx }, { scaleY: sy }] }]}>
+    <Animated.View accessibilityRole="image" accessibilityLabel="Theia" style={[{ width: size, height: size }, style, { transform: [{ translateY: ty }, { rotate: wiggle.interpolate({ inputRange: [-1, 1], outputRange: ['-9deg', '9deg'] }) }, { scaleX: sx }, { scaleY: sy }] }]}>
       <Svg width={size} height={size} viewBox="0 0 200 200">
         <Defs>
           <RadialGradient id="body" cx={`${38 - sin * 26}%`} cy="28%" rx="85%" ry="85%" fx={`${38 - sin * 26}%`} fy="28%">
@@ -161,7 +203,7 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
         <Circle cx={100} cy={112} r={98} fill="url(#glow)" opacity={0.55} />
         <Ellipse cx={100} cy={184} rx={54} ry={7} fill="#000" opacity={0.2} />
         <G transform={`translate(100 0) scale(${1 - 0.05 * Math.abs(sin)} 1) translate(-100 0)`}>
-          <Path d="M93.0 52.0 C94.8 52.0 96.5 52.0 98.3 52.1 C100.0 52.2 101.8 52.4 103.5 52.6 C105.2 52.8 107.0 52.9 108.8 53.2 C110.5 53.5 112.3 53.8 114.0 54.2 C115.7 54.6 117.5 55.0 119.2 55.4 C120.9 55.8 122.6 56.3 124.3 56.9 C126.0 57.5 127.7 58.1 129.4 58.7 C131.1 59.3 132.7 60.0 134.3 60.7 C135.9 61.4 137.4 62.2 139.0 63.0 C140.6 63.8 142.1 64.6 143.6 65.4 C145.1 66.2 146.6 67.2 148.1 68.1 C149.6 69.0 151.0 70.0 152.3 71.0 C153.7 72.0 154.9 73.0 156.2 74.1 C157.5 75.2 158.8 76.3 160.0 77.4 C161.2 78.5 162.3 79.7 163.4 80.9 C164.5 82.1 165.6 83.3 166.6 84.5 C167.6 85.7 168.6 87.0 169.5 88.3 C170.4 89.6 171.3 90.8 172.1 92.1 C172.9 93.4 173.6 94.8 174.3 96.1 C175.0 97.4 175.6 98.8 176.2 100.2 C176.8 101.6 177.4 102.9 177.8 104.3 C178.2 105.7 178.6 107.1 178.9 108.5 C179.2 109.9 179.5 111.3 179.7 112.7 C179.9 114.1 180.0 114.5 180.0 117.0 C180.0 119.5 180.0 124.8 179.9 127.6 C179.8 130.4 179.7 131.8 179.5 133.7 C179.3 135.6 179.2 137.3 179.0 138.9 C178.8 140.5 178.5 142.0 178.2 143.4 C177.9 144.8 177.5 146.2 177.1 147.5 C176.7 148.8 176.3 150.1 175.9 151.3 C175.5 152.5 174.9 153.6 174.4 154.7 C173.9 155.8 173.3 156.9 172.7 157.9 C172.1 158.9 171.4 159.9 170.7 160.9 C170.0 161.9 169.4 162.8 168.6 163.7 C167.8 164.6 166.9 165.4 166.1 166.2 C165.2 167.0 164.4 167.8 163.5 168.6 C162.6 169.3 161.6 170.0 160.6 170.7 C159.6 171.4 158.6 172.1 157.5 172.7 C156.4 173.3 155.3 173.9 154.1 174.5 C152.9 175.1 151.7 175.6 150.4 176.1 C149.1 176.6 147.8 177.1 146.4 177.5 C145.0 177.9 143.7 178.3 142.2 178.7 C140.7 179.1 139.1 179.4 137.5 179.7 C135.9 180.0 134.3 180.2 132.5 180.5 C130.7 180.8 128.9 181.0 126.9 181.2 C124.9 181.4 122.9 181.5 120.6 181.6 C118.3 181.7 116.4 181.8 113.0 181.9 C109.6 182.0 104.3 182.0 100.0 182.0 C95.7 182.0 90.4 182.0 87.0 181.9 C83.6 181.8 81.7 181.7 79.4 181.6 C77.1 181.5 75.1 181.4 73.1 181.2 C71.1 181.0 69.3 180.8 67.5 180.5 C65.7 180.2 64.1 180.0 62.5 179.7 C60.9 179.4 59.3 179.1 57.8 178.7 C56.3 178.3 55.0 177.9 53.6 177.5 C52.2 177.1 50.9 176.6 49.6 176.1 C48.3 175.6 47.1 175.1 45.9 174.5 C44.7 173.9 43.6 173.3 42.5 172.7 C41.4 172.1 40.4 171.4 39.4 170.7 C38.4 170.0 37.4 169.3 36.5 168.6 C35.6 167.8 34.8 167.0 33.9 166.2 C33.0 165.4 32.2 164.6 31.4 163.7 C30.6 162.8 30.0 161.9 29.3 160.9 C28.6 159.9 27.9 158.9 27.3 157.9 C26.7 156.9 26.1 155.8 25.6 154.7 C25.1 153.6 24.6 152.5 24.1 151.3 C23.7 150.1 23.3 148.8 22.9 147.5 C22.5 146.2 22.1 144.8 21.8 143.4 C21.5 142.0 21.2 140.5 21.0 138.9 C20.8 137.3 20.6 135.6 20.5 133.7 C20.4 131.8 20.2 130.4 20.1 127.6 C20.0 124.8 20.0 119.5 20.0 117.0 C20.0 114.5 19.9 114.1 20.0 112.7 C20.1 111.3 20.2 109.9 20.3 108.5 C20.4 107.1 20.6 105.7 20.8 104.3 C21.0 102.9 21.4 101.6 21.7 100.2 C22.0 98.8 22.4 97.4 22.8 96.1 C23.2 94.8 23.8 93.4 24.3 92.1 C24.8 90.8 25.4 89.6 26.0 88.3 C26.6 87.0 27.4 85.7 28.1 84.5 C28.8 83.3 29.6 82.1 30.4 80.9 C31.2 79.7 32.1 78.5 33.0 77.4 C33.9 76.3 34.9 75.2 35.9 74.1 C36.9 73.0 38.0 72.0 39.1 71.0 C40.2 70.0 41.4 69.0 42.6 68.1 C43.8 67.2 45.0 66.2 46.2 65.4 C47.5 64.6 48.8 63.8 50.1 63.0 C51.5 62.2 52.9 61.4 54.3 60.7 C55.7 60.0 57.1 59.3 58.6 58.7 C60.1 58.1 61.6 57.5 63.1 56.9 C64.6 56.3 66.2 55.8 67.8 55.4 C69.4 55.0 71.0 54.6 72.6 54.2 C74.2 53.8 75.9 53.5 77.6 53.2 C79.3 52.9 80.9 52.8 82.6 52.6 C84.3 52.4 86.1 52.2 87.8 52.1 C89.5 52.0 91.2 52.0 93.0 52.0 Z" fill="url(#body)" />
+          <Path d="M89.0 34.0 C89.6 34.0 90.1 34.1 90.9 34.2 C91.7 34.4 92.9 34.6 94.0 34.9 C95.1 35.2 96.4 35.6 97.7 36.0 C99.0 36.4 100.5 36.9 102.0 37.5 C103.5 38.1 105.0 38.7 106.6 39.4 C108.2 40.1 109.9 40.9 111.6 41.7 C113.3 42.5 115.0 43.4 116.7 44.3 C118.4 45.2 120.2 46.2 122.0 47.3 C123.8 48.3 125.6 49.5 127.4 50.6 C129.2 51.8 130.9 53.0 132.7 54.2 C134.5 55.5 136.3 56.8 138.1 58.1 C139.9 59.4 141.6 60.7 143.3 62.1 C145.0 63.5 146.7 64.9 148.3 66.3 C150.0 67.7 151.6 69.2 153.2 70.7 C154.8 72.2 156.2 73.6 157.7 75.1 C159.2 76.6 160.6 78.1 162.0 79.6 C163.4 81.1 164.7 82.5 165.9 84.0 C167.1 85.5 168.3 86.9 169.4 88.3 C170.5 89.7 171.5 91.1 172.4 92.5 C173.3 93.9 174.2 95.2 175.0 96.5 C175.8 97.8 176.5 99.0 177.1 100.2 C177.7 101.4 178.2 102.5 178.6 103.5 C179.0 104.5 179.4 105.5 179.6 106.3 C179.8 107.0 179.9 106.1 180.0 108.0 C180.1 109.9 180.0 115.1 179.9 117.8 C179.8 120.5 179.7 122.4 179.5 124.4 C179.3 126.5 179.2 128.3 178.9 130.1 C178.7 131.9 178.3 133.6 178.0 135.2 C177.7 136.8 177.2 138.4 176.8 139.9 C176.4 141.4 175.9 142.9 175.4 144.3 C174.9 145.7 174.4 147.1 173.8 148.4 C173.2 149.7 172.6 151.1 171.9 152.3 C171.2 153.6 170.6 154.8 169.8 155.9 C169.1 157.1 168.2 158.1 167.4 159.2 C166.6 160.3 165.7 161.4 164.8 162.4 C163.9 163.4 162.9 164.3 161.9 165.2 C160.9 166.1 159.9 167.1 158.8 167.9 C157.7 168.8 156.6 169.5 155.4 170.3 C154.2 171.1 153.1 171.8 151.8 172.5 C150.6 173.2 149.2 173.9 147.9 174.5 C146.6 175.1 145.1 175.8 143.7 176.3 C142.3 176.9 140.8 177.3 139.3 177.8 C137.8 178.3 136.2 178.7 134.5 179.1 C132.8 179.5 131.2 179.8 129.4 180.1 C127.6 180.4 125.8 180.7 123.8 180.9 C121.8 181.1 119.9 181.3 117.7 181.5 C115.5 181.7 113.5 181.8 110.6 181.9 C107.6 182.0 103.5 182.0 100.0 182.0 C96.5 182.0 92.4 182.0 89.4 181.9 C86.5 181.8 84.5 181.7 82.3 181.5 C80.1 181.3 78.2 181.1 76.2 180.9 C74.2 180.7 72.4 180.4 70.6 180.1 C68.8 179.8 67.2 179.5 65.5 179.1 C63.9 178.7 62.2 178.3 60.7 177.8 C59.2 177.3 57.7 176.9 56.3 176.3 C54.9 175.8 53.5 175.1 52.1 174.5 C50.8 173.9 49.5 173.2 48.2 172.5 C47.0 171.8 45.8 171.1 44.6 170.3 C43.4 169.5 42.3 168.8 41.2 167.9 C40.1 167.1 39.1 166.1 38.1 165.2 C37.1 164.3 36.1 163.4 35.2 162.4 C34.3 161.4 33.4 160.3 32.6 159.2 C31.8 158.1 30.9 157.1 30.2 155.9 C29.4 154.8 28.8 153.6 28.1 152.3 C27.4 151.1 26.8 149.7 26.2 148.4 C25.6 147.1 25.1 145.7 24.6 144.3 C24.1 142.9 23.6 141.4 23.2 139.9 C22.8 138.4 22.4 136.8 22.0 135.2 C21.6 133.6 21.4 131.9 21.1 130.1 C20.9 128.3 20.7 126.5 20.5 124.4 C20.3 122.4 20.2 120.5 20.1 117.8 C20.0 115.1 20.0 109.9 20.0 108.0 C20.0 106.1 20.0 107.0 20.1 106.3 C20.2 105.5 20.3 104.5 20.5 103.5 C20.7 102.5 21.0 101.4 21.3 100.2 C21.6 99.0 22.1 97.8 22.5 96.5 C22.9 95.2 23.4 93.9 24.0 92.5 C24.6 91.1 25.2 89.7 25.9 88.3 C26.6 86.9 27.4 85.5 28.2 84.0 C29.0 82.5 29.9 81.1 30.8 79.6 C31.7 78.1 32.7 76.6 33.7 75.1 C34.7 73.6 35.8 72.2 36.9 70.7 C38.0 69.2 39.2 67.7 40.4 66.3 C41.6 64.9 42.8 63.5 44.1 62.1 C45.4 60.7 46.7 59.4 48.0 58.1 C49.3 56.8 50.7 55.5 52.1 54.2 C53.5 53.0 54.8 51.8 56.2 50.6 C57.6 49.5 59.1 48.3 60.5 47.3 C61.9 46.2 63.4 45.2 64.8 44.3 C66.2 43.4 67.6 42.5 69.0 41.7 C70.4 40.9 71.8 40.1 73.2 39.4 C74.6 38.7 75.9 38.1 77.2 37.5 C78.5 36.9 79.7 36.4 80.9 36.0 C82.1 35.6 83.2 35.2 84.3 34.9 C85.3 34.6 86.4 34.4 87.2 34.2 C88.0 34.1 88.4 34.0 89.0 34.0 Z" fill="url(#body)" />
         </G>
         {front ? (
           <G transform={`translate(${-sin * 20} 0)`} opacity={Math.min(1, cos * 2)}>
@@ -172,7 +214,7 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
         <Ellipse cx={132} cy={150} rx={30} ry={11} fill="#fff" opacity={0.12} />
         {front ? (
           <G transform={`translate(${100 + sin * 62} 0) scale(${Math.max(0.12, cos)} 1) translate(-100 0)`} opacity={Math.min(1, cos * 3)}>
-            <Eyes e={expr} ink={tones.eye} blink={blink} glint="#fff" />
+            <Eyes e={EYES_OF[expr] ?? expr} ink={tones.eye} blink={blink} glint="#fff" />
           </G>
         ) : null}
         {Math.abs(sin) < 0.35 ? <Extras e={expr} tone={tones.glow} ink={tones.eye} /> : null}

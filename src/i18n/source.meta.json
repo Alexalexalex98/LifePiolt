@@ -1,5 +1,5 @@
 {
- "count": 13419,
+ "count": 13440,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -257,6 +257,7 @@
   "src/components/live/VideoSurface.tsx": 11,
   "src/components/market.tsx": 54,
   "src/components/mascot/Mascot.tsx": 4,
+  "src/components/mascot/TypingDots.tsx": 1,
   "src/components/money/Fundamentals.tsx": 45,
   "src/components/money/InvestTab.tsx": 58,
   "src/components/money/WalletTab.tsx": 84,
@@ -480,7 +481,7 @@
   "src/lib/markets/fundamentals.ts": 62,
   "src/lib/markets/identify.ts": 1,
   "src/lib/markets/invest.ts": 6,
-  "src/lib/mascot.ts": 26,
+  "src/lib/mascot.ts": 55,
   "src/lib/menu.ts": 11,
   "src/lib/modRules.ts": 17,
   "src/lib/moodAnalysis.ts": 57,

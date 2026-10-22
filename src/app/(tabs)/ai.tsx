@@ -2,6 +2,7 @@ import { ChatBackdrop } from '@/components/chat/ChatBackdrop';
 import { ChatBgSheet } from '@/components/chat/ChatBgSheet';
 import { useChatBg } from '@/store/chatBg';
 import { RichText } from '@/components/RichText';
+import { TypingDots } from '@/components/mascot/TypingDots';
 import { Mascot } from '@/components/mascot/Mascot';
 import { moodOf } from '@/lib/mascot';
 import { Image } from 'expo-image';
@@ -171,7 +172,7 @@ export default function LifeChat() {
                 <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 12, textAlign: 'center' }}>Scrivi un comando o una domanda: ti suggerisco io cosa so fare.</Text>
               </View>
             }
-            ListFooterComponent={busy ? <View style={{ alignSelf: 'flex-start', marginVertical: 6, marginLeft: 4 }}><Mascot size={56} color={t.accent} expression="working" ritual={false} /></View> : null}
+            ListFooterComponent={busy ? <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginVertical: 6 }}><Mascot size={34} color={t.accent} expression="doubtful" ritual={false} /><View style={{ backgroundColor: t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 13 }}><TypingDots /></View></View> : null}
             renderItem={({ item }) => {
               const me = item.who === 'me';
               return (

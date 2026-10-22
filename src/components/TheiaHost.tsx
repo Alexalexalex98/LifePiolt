@@ -109,13 +109,14 @@ export function TheiaFab() {
   const name = useApp((s) => s.assistantName);
   const [hidden, setHidden] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [tickled, setTickled] = useState(false);
   // il pulsante si può trascinare dove non copre il contenuto
   const pos = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const pan = useRef(PanResponder.create({
     onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) + Math.abs(g.dy) > 8,
-    onPanResponderGrant: () => { pos.extractOffset(); },
+    onPanResponderGrant: () => { pos.extractOffset(); setTickled(true); },
     onPanResponderMove: Animated.event([null, { dx: pos.x, dy: pos.y }], { useNativeDriver: false }),
-    onPanResponderRelease: () => { pos.flattenOffset(); },
+    onPanResponderRelease: () => { pos.flattenOffset(); setTimeout(() => setTickled(false), 500); },
   })).current;
   const selecting = useSelect((x) => !!x.uri);
   const kb = useKeyboardInset();
@@ -149,7 +150,7 @@ export function TheiaFab() {
         onPress={() => setMenu(true)} onLongPress={clip} delayLongPress={350}
         accessibilityLabel={translateText(`Chiedi a ${name}: tocca per scrivere, mandare foto o documenti o chiedere sulla schermata. Tieni premuto per il testo copiato. Trascinalo per spostarlo`)}
         style={{ width: 56, height: 56, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 }}>
-        <Mascot size={56} color={t.accent} expression="happy" />
+        <Mascot size={56} color={t.accent} expression="happy" shake={tickled} />
       </Pressable>
     </Animated.View>
     <Sheet visible={menu} title={`Chiedi a ${name}`} onClose={() => setMenu(false)}>
