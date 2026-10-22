@@ -27,6 +27,7 @@ import { useChat } from '@/store/chat';
 import { useIdentity } from '@/store/identity';
 import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
+import { repostsOf } from '@/lib/threads';
 import { toast } from '@/store/toast';
 
 export default function UserProfile() {
@@ -70,19 +71,22 @@ export default function UserProfile() {
   const look = isMe ? storedLook ?? DEFAULT_LOOK : DEFAULT_LOOK;
   const accent = look.accent ?? t.accent;
   const hc = useApp((s) => s.accessibility.highContrast);
-  const visibleTabs = ['Post', 'Foto', 'Video', 'Idee'].filter((k) => !look.hiddenTabs.includes(k));
-  const tab = visibleTabs.includes(net.prefs.upTab) ? net.prefs.upTab : visibleTabs[0] ?? 'Post';
+  const visibleTabs = ['Post', 'Repost', 'Foto', 'Video', 'Idee'].filter((k) => !look.hiddenTabs.includes(k));
+  const tab0 = visibleTabs.includes(net.prefs.upTab) ? net.prefs.upTab : visibleTabs[0] ?? 'Post';
   const authorPosts = [
     ...net.posts.filter((p) => p.author === name).map((p) => ({ key: 'standalone:' + p.id, id: 's' + p.id, author: p.author, text: p.text, media: p.media, uri: p.uri })),
     ...net.communities.flatMap((c) => c.posts.map((p, pi) => ({ key: `community:${c.id}:${pi}`, id: `c${c.id}:${pi}`, author: p.author, text: p.text, media: p.media ?? null, uri: p.uri })).filter((p) => p.author === name)),
   ];
+  const reps = repostsOf(net.reposts ?? [], name, net.posts, net.communities);
+  /* chi non ha pubblicato niente ma ha ripubblicato: si vedono subito i repost */
+  const tab = tab0 === 'Post' && authorPosts.length === 0 && reps.length > 0 && visibleTabs.includes('Repost') ? 'Repost' : tab0;
   const filtered = tab === 'Foto' ? authorPosts.filter((p) => p.media === 'photo') : tab === 'Video' ? authorPosts.filter((p) => p.media === 'video') : authorPosts;
   const cell = Math.floor((win - 2) / 3);
-  const tabs: { key: string; label: string; icon: string }[] = [{ key: 'Post', label: 'Post', icon: 'grid' }, { key: 'Foto', label: 'Foto', icon: 'image' }, { key: 'Video', label: 'Video', icon: 'video' }, { key: 'Idee', label: 'Idee', icon: 'sparkle' }].filter((x) => !look.hiddenTabs.includes(x.key));
-  const thumb = (p: (typeof authorPosts)[number]) => {
+  const tabs: { key: string; label: string; icon: string }[] = [{ key: 'Post', label: 'Post', icon: 'grid' }, { key: 'Repost', label: 'Repost', icon: 'repeat' }, { key: 'Foto', label: 'Foto', icon: 'image' }, { key: 'Video', label: 'Video', icon: 'video' }, { key: 'Idee', label: 'Idee', icon: 'sparkle' }].filter((x) => !look.hiddenTabs.includes(x.key));
+  const thumb = (p: (typeof authorPosts)[number], onOpen?: () => void, reposted?: boolean) => {
     const pal = paletteFor(p.author + p.text, t.mode === 'light' ? 'light' : 'dark', hc);
     return (
-      <Pressable key={p.id} onPress={() => go('postPage', { key: p.key })} accessibilityRole="button" accessibilityLabel={p.text} style={{ width: cell, height: cell, overflow: 'hidden' }}>
+      <Pressable key={p.id} onPress={onOpen ?? (() => go('postPage', { key: p.key }))} accessibilityRole="button" accessibilityLabel={p.text} style={{ width: cell, height: cell, overflow: 'hidden' }}>
         {p.media && p.uri ? <Image source={{ uri: p.uri }} style={{ width: cell, height: cell }} contentFit="cover" />
           : p.media ? <ArtPlaceholder seed={p.author + p.text} width={cell} height={cell} video={p.media === 'video'} />
           : (
@@ -92,6 +96,7 @@ export default function UserProfile() {
             </LinearGradient>
           )}
         {p.media === 'video' && p.uri ? <View style={{ position: 'absolute', top: 6, end: 6 }}><Icon name="video" size={16} color="#fff" /></View> : null}
+        {reposted ? <View style={{ position: 'absolute', bottom: 6, start: 6, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 7, paddingVertical: 3 }}><Icon name="repeat" size={12} color="#fff" /><Text numberOfLines={1} style={{ color: '#fff', fontSize: 11, fontWeight: '700', maxWidth: cell - 40 }}>{p.author}</Text></View> : null}
       </Pressable>
     );
   };
@@ -149,9 +154,17 @@ export default function UserProfile() {
           <View style={{ paddingTop: 16 }}>
             {(() => { const l = net.ideas.filter((i) => i.author === name); return l.length ? l.map((i) => <IdeaHero key={i.id} idea={i} inset={false} />) : <Empty text="Ancora nessuna idea pubblicata." />; })()}
           </View>
+        ) : tab === 'Repost' ? (
+          reps.length ? (
+            <View style={{ marginHorizontal: -16, marginTop: 2, gap: 1 }}>
+              {chunk(reps.map((x, i) => ({ i, p: { key: x.r.key, id: `r${i}${x.r.key}`, author: x.post.author, text: x.r.note ?? x.post.text, media: x.post.media ?? null, uri: x.post.uri ?? x.post.uris?.[0] } })), 3).map((row, ri) => (
+                <View key={ri} style={{ flexDirection: 'row', gap: 1 }}>{row.map((c) => thumb(c.p, () => go('repostFeed', { name, start: String(c.i) }), true))}</View>
+              ))}
+            </View>
+          ) : <Empty text={isMe ? 'Non hai ancora ripubblicato niente. Tocca l\'icona di ripubblica sotto un post.' : 'Ancora nessun repost.'} />
         ) : filtered.length ? (
           <View style={{ marginHorizontal: -16, marginTop: 2, gap: 1 }}>
-            {chunk(filtered, 3).map((row, ri) => <View key={ri} style={{ flexDirection: 'row', gap: 1 }}>{row.map(thumb)}</View>)}
+            {chunk(filtered, 3).map((row, ri) => <View key={ri} style={{ flexDirection: 'row', gap: 1 }}>{row.map((p) => thumb(p))}</View>)}
           </View>
         ) : <Empty text="Ancora nessun contenuto qui." />}
       </View>

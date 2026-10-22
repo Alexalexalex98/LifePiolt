@@ -1,5 +1,5 @@
 {
- "count": 13353,
+ "count": 13373,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -59,7 +59,7 @@
   "src/app/(tabs)/lifefitness.tsx": 93,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 113,
-  "src/app/(tabs)/lifenetwork.tsx": 41,
+  "src/app/(tabs)/lifenetwork.tsx": 42,
   "src/app/(tabs)/lifenotes.tsx": 3,
   "src/app/(tabs)/lifepointsPage.tsx": 36,
   "src/app/(tabs)/lifetask.tsx": 5,
@@ -87,6 +87,7 @@
   "src/app/(tabs)/purchaseConfirm.tsx": 9,
   "src/app/(tabs)/recordingPlayer.tsx": 8,
   "src/app/(tabs)/reports.tsx": 1,
+  "src/app/(tabs)/repostFeed.tsx": 11,
   "src/app/(tabs)/requestDetail.tsx": 11,
   "src/app/(tabs)/savedPosts.tsx": 3,
   "src/app/(tabs)/searchPage.tsx": 13,
@@ -107,7 +108,7 @@
   "src/app/(tabs)/swipeDeck.tsx": 4,
   "src/app/(tabs)/syncSettings.tsx": 2,
   "src/app/(tabs)/taxdecl.tsx": 76,
-  "src/app/(tabs)/userProfile.tsx": 48,
+  "src/app/(tabs)/userProfile.tsx": 51,
   "src/app/(tabs)/vacationPlan.tsx": 32,
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
@@ -224,6 +225,7 @@
   "src/components/feed/SpecialCards.tsx": 28,
   "src/components/feed/SwipeDeck.tsx": 30,
   "src/components/feed/TabCards.tsx": 21,
+  "src/components/feed/ThreadPost.tsx": 20,
   "src/components/feed/useDeckCards.ts": 2,
   "src/components/fitness/DaySummary.tsx": 22,
   "src/components/fitness/ExerciseBrowser.tsx": 13,
@@ -587,5 +589,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1666
+ "withPlaceholders": 1668
 }

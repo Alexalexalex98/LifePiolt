@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { hasReposted, toggleRepostList } from '@/lib/threads';
 
 import { uid, weekdayShortDate } from '@/lib/format';
 import type { Participant } from '@/lib/booking';
@@ -91,6 +92,9 @@ type NetState = {
   posts: Post[];
   communities: Community[];
   likedPosts: string[];
+  /** repost e citazioni (stile Threads/X): chi ha ripubblicato quale post */
+  reposts?: import('@/lib/threads').Repost[];
+  toggleRepost: (key: string, by: string, note?: string) => boolean;
   /** Post salvati (segnalibro): opzionale per i dati di versioni precedenti. */
   savedPosts?: string[];
   /** storie (24 ore) di tutti e quelle che ho già visto */
@@ -176,6 +180,7 @@ const blank = () => ({
   posts: [] as Post[],
   communities: [] as Community[],
   likedPosts: [] as string[],
+  reposts: [] as import('@/lib/threads').Repost[],
   comments: {} as Record<string, { author: string; text: string }[]>,
   providers: [] as Provider[],
   bookings: [] as Booking[],
@@ -259,6 +264,7 @@ export const useNet = create<NetState>()(
         set({ likedPosts, communities: s.communities.map((c) => (c.id === Number(cid) ? { ...c, posts: c.posts.map((p, i) => (i === Number(pi) ? { ...p, likes: p.likes + d } : p)) } : c)) });
       }
     },
+    toggleRepost: (key, by, note) => { const before = get().reposts ?? []; const next = toggleRepostList(before, key, by, Date.now(), note); set((s) => ({ reposts: next, reach: next.length > before.length ? { ...(s.reach ?? {}), [key]: (s.reach?.[key] ?? 0) + REACH_BOOST.like } : s.reach })); return hasReposted(next, key, by) || !!note; },
     toggleSavePost: (key) => { set((s) => ({ savedPosts: toggle(s.savedPosts ?? [], key) })); return (get().savedPosts ?? []).includes(key); },
     signal: (text, strength) => set((s) => ({ themeWeights: addSignal(s.themeWeights, text, strength) })),
     bumpReach: (key, kind) => set((s) => ({ reach: { ...(s.reach ?? {}), [key]: (s.reach?.[key] ?? 0) + REACH_BOOST[kind] } })),

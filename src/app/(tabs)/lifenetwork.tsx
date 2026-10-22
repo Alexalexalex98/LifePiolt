@@ -19,6 +19,8 @@ import { Text } from '@/components/T';
 
 import { EmptyFeed, FeedSkeleton, FilterToggle, Composer, NetHeader, NetTabs } from '@/components/feed/Header';
 import { FeedPost, type FeedPostData } from '@/components/feed/FeedPost';
+import { ThreadPost } from '@/components/feed/ThreadPost';
+import { resolvePost, threadFlags } from '@/lib/threads';
 import { byReach } from '@/lib/reach';
 import { CommunityCard, JobFeedCard, ProductFeedCard, ServiceFeedCard } from '@/components/feed/TabCards';
 import { SIGNAL, addSignal, rankMixed, type ThemeWeights } from '@/lib/relevance';
@@ -44,6 +46,7 @@ import { toast } from '@/store/toast';
 
 type Item =
   | { k: 'post'; id: string; post: FeedPostData; likeKey: string }
+  | { k: 'repost'; id: string; post: FeedPostData; likeKey: string; by: string; note?: string }
   | { k: 'idea'; id: string; idea: Idea }
   | { k: 'seminar'; id: string; s: Seminar }
   | { k: 'service'; id: string; p: Provider }
@@ -74,9 +77,10 @@ export default function LifeNetwork() {
   const win = useWindowDimensions().width;
   const me = useApp((s) => s.account.name);
   // solo i dati che questa pagina usa: prima ogni cambio di qualsiasi parte dello store la ridisegnava tutta
-  const net = useNet(useShallow((s) => ({ prefs: s.prefs, setPref: s.setPref, communities: s.communities, posts: s.posts, ideas: s.ideas, seminars: s.seminars, providers: s.providers, products: s.products, hideIdeas: s.hideIdeas, mutedIdeaAuthors: s.mutedIdeaAuthors, following: s.following, reach: s.reach, swipes: s.swipes, themeWeights: s.themeWeights, quoteLikes: s.quoteLikes, savedPosts: s.savedPosts, likedPosts: s.likedPosts, comments: s.comments, identity: s.identity, lifePoints: s.lifePoints, patch: s.patch })));
+  const net = useNet(useShallow((s) => ({ reposts: s.reposts, prefs: s.prefs, setPref: s.setPref, communities: s.communities, posts: s.posts, ideas: s.ideas, seminars: s.seminars, providers: s.providers, products: s.products, hideIdeas: s.hideIdeas, mutedIdeaAuthors: s.mutedIdeaAuthors, following: s.following, reach: s.reach, swipes: s.swipes, themeWeights: s.themeWeights, quoteLikes: s.quoteLikes, savedPosts: s.savedPosts, likedPosts: s.likedPosts, comments: s.comments, identity: s.identity, lifePoints: s.lifePoints, patch: s.patch })));
   const { prefs, setPref } = net;
   const [people, setPeople] = useState('');
+  const [postFilter, setPostFilter] = useState<'Per te' | 'Seguiti'>('Per te');
   const [commQ, setCommQ] = useState(''); const [commTopic, setCommTopic] = useState('Tutti');
   const [ideaQ, setIdeaQ] = useState('');
   const visible = useVisible();
@@ -181,8 +185,24 @@ export default function LifeNetwork() {
     if (searching) return [];
     if (curTab === 'Home') return feedItems.length ? feedItems : [{ k: 'empty', id: 'empty', text: '' }];
     if (curTab === 'Post') {
-      const only = feedItems.filter((it) => it.k === 'post');
-      return only.length ? only : [{ k: 'empty', id: 'empty', text: 'Ancora nessun post.' }];
+      /* stile Threads/X: solo post e repost. «Seguiti» = in ordine di tempo, solo chi segui; «Per te» = l'ordine scelto dall'algoritmo con i repost in mezzo */
+      const only = feedItems.filter((it): it is Extract<Item, { k: 'post' }> => it.k === 'post' && !it.post.sponsor);
+      const rep: (Extract<Item, { k: 'repost' }> & { ts: number })[] = [];
+      for (const r of net.reposts ?? []) {
+        const p = resolvePost(r.key, posts, communities);
+        if (!p || !visible('post', r.key, p.author)) continue;
+        rep.push({ k: 'repost', id: `r:${r.by}:${r.key}:${r.ts}`, likeKey: r.key, by: r.by, ...(r.note ? { note: r.note } : {}), post: keep(`r${r.key}`, p as FeedPostData), ts: r.ts });
+      }
+      let list: Item[];
+      if (postFilter === 'Seguiti') {
+        const ok = (a: string) => followingList.includes(a);
+        const stamp = (it: Item) => (it.k === 'repost' ? (rep.find((x) => x.id === it.id)?.ts ?? 0) : it.k === 'post' ? it.post.ts ?? 0 : 0);
+        list = [...only.filter((it) => ok(it.post.author)), ...rep.filter((x) => ok(x.by))].sort((a, b) => stamp(b) - stamp(a));
+      } else {
+        list = [...only];
+        rep.forEach((x, i) => list.splice(Math.min(list.length, 2 + i * 4), 0, x));
+      }
+      return list.length ? list : [{ k: 'empty', id: 'empty', text: postFilter === 'Seguiti' ? 'Non segui ancora nessuno: qui compaiono i loro post.' : 'Ancora nessun post.' }];
     }
     if (curTab === 'Lavoro') return [{ k: 'jobs', id: 'jobs' }];
     if (curTab === 'Community') {
@@ -207,7 +227,7 @@ export default function LifeNetwork() {
     else if (f === 'Prodotti') body = prodItems.length ? strip(rankMixed(prodItems, weights)) : [{ k: 'empty', id: 'empty', text: 'Ancora nessun prodotto: li pubblicano le attività con uno store.' }];
     else { const all = [...semItems, ...svcItems, ...prodItems]; body = all.length ? strip(rankMixed(all, weights)) : [{ k: 'empty', id: 'empty', text: 'Ancora nessuna proposta.' }]; }
     return [{ k: 'tools', id: 'tools' }, ...body];
-  }, [curTab, feedItems, communities, commTopic, commQ, ideas, ideaQ, seminars, providers, products, weights, prefs.marketFilter, visible, searching]);
+  }, [curTab, postFilter, net.reposts, posts, followingList, feedItems, communities, commTopic, commQ, ideas, ideaQ, seminars, providers, products, weights, prefs.marketFilter, visible, searching]);
 
   const compose = () => openSheet('newPost');
 
@@ -244,7 +264,8 @@ export default function LifeNetwork() {
       {!searching && curTab === 'Post' && (
         <View style={{ marginTop: 6 }}>
           <Composer me={me} onPress={compose} onPhoto={() => openSheet('create')} />
-          <View style={{ height: 8 }} />
+          <FilterToggle options={[{ key: 'Per te', label: tr('lnFilterForYou') }, { key: 'Seguiti', label: tr('lnFilterFollowing') }]} value={postFilter} onChange={(k) => setPostFilter(k as 'Per te' | 'Seguiti')} />
+          <View style={{ height: 4 }} />
         </View>
       )}
       {!searching && curTab === 'Home' && <View {...storiesPan.panHandlers}><Safe name="recap"><StoriesBar mode={following ? 'Seguiti' : 'Per te'} /></Safe></View>}
@@ -261,9 +282,11 @@ export default function LifeNetwork() {
     </View>
   );
 
-  const renderItem = ({ item }: { item: Item }) => {
+  const flags = useMemo(() => (curTab === 'Post' ? threadFlags(data.map((i) => ({ author: i.k === 'post' ? i.post.author : '', kind: i.k }))) : []), [data, curTab]);
+  const renderItem = ({ item, index }: { item: Item; index: number }) => {
     switch (item.k) {
-      case 'post': return <FeedPost post={item.post} likeKey={item.likeKey} />;
+      case 'repost': return <ThreadPost post={item.post} likeKey={item.likeKey} by={item.by} note={item.note} />;
+      case 'post': return curTab === 'Post' ? <ThreadPost post={item.post} likeKey={item.likeKey} up={flags[index]?.up} down={flags[index]?.down} /> : <FeedPost post={item.post} likeKey={item.likeKey} />;
       case 'idea': return <IdeaHero idea={item.idea} />;
       case 'seminar': return <SeminarFeedCard s={item.s} />;
       case 'service': return <ServiceFeedCard p={item.p} />;
