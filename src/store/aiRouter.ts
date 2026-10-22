@@ -5,6 +5,8 @@ import { record, type PlanId, type UsageEntry } from '@/lib/aiRouter/quota';
 import { DEFAULT_PREFS, type AiPrefs } from '@/lib/aiRouter/select';
 import type { TaskGroup } from '@/lib/aiRouter/types';
 
+import { pushConsent, type ConsentEntry, type Mode } from '@/lib/privacyCenter';
+
 import { persisted } from './persist';
 
 /** Intelligenza di Theia: preferenze, piano, consensi per fornitore, contatori d'uso e cronologia "Cosa è stato inviato". Tutto sul telefono. */
@@ -18,6 +20,11 @@ type State = {
   sendLog: SendLogEntry[];
   /** consenso a mandare foto e file al servizio AI: il cibo si chiede una volta sola, i file della chat ogni volta o per sempre */
   fileConsent: FileConsent;
+  /** consenso per categoria di dati mandati all'AI esterna (Centro Privacy) e registro delle scelte */
+  dataConsent: Record<string, Mode>;
+  consentLog: ConsentEntry[];
+  setDataConsent: (cats: string[], mode: Mode, note?: string) => void;
+  revokeAllConsents: () => void;
   setFileConsent: (p: Partial<FileConsent>) => void;
   setPrefs: (p: Partial<AiPrefs>) => void;
   setTaskPref: (g: TaskGroup, v: string) => void;
@@ -44,6 +51,10 @@ export const useAiRouter = create<State>()(
     usage: [],
     sendLog: [],
     fileConsent: { food: 'ask', files: 'ask' },
+    dataConsent: {},
+    consentLog: [],
+    setDataConsent: (cats, mode, note) => set((s) => ({ dataConsent: { ...s.dataConsent, ...Object.fromEntries(cats.map((c) => [c, mode])) }, consentLog: cats.reduce((l, c) => pushConsent(l, { ts: Date.now(), cat: c, mode, note }), s.consentLog ?? []) })),
+    revokeAllConsents: () => set((s) => ({ dataConsent: {}, consents: {}, fileConsent: { food: 'ask', files: 'ask' }, consentLog: pushConsent(s.consentLog, { ts: Date.now(), cat: 'tutto', mode: 'ask', note: 'Tutti i consensi revocati' }) })),
     setFileConsent: (p) => set((s) => ({ fileConsent: { ...s.fileConsent, ...p } })),
     setPrefs: (p) => set((s) => ({ prefs: { ...s.prefs, ...p } })),
     setTaskPref: (g, v) => set((s) => ({ prefs: { ...s.prefs, taskPref: { ...s.prefs.taskPref, [g]: v } } })),
@@ -58,6 +69,6 @@ export const useAiRouter = create<State>()(
     clearLog: () => set({ sendLog: [] }),
     restoreAllLog: (sendLog) => set({ sendLog }),
     resetUsageDev: () => { if (typeof __DEV__ !== 'undefined' && __DEV__) set({ usage: [] }); },
-    reset: () => set({ prefs: DEFAULT_PREFS, planId: 'free', consents: {}, usage: [], sendLog: [], fileConsent: { food: 'ask', files: 'ask' } }),
+    reset: () => set({ prefs: DEFAULT_PREFS, planId: 'free', consents: {}, usage: [], sendLog: [], fileConsent: { food: 'ask', files: 'ask' }, dataConsent: {}, consentLog: [] }),
   })),
 );

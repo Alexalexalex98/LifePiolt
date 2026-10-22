@@ -409,9 +409,10 @@ export default function Settings() {
       {cat === 'privacy' ? (
       <Card>
         <H>{tr('stPrivacyCenterTitle')}</H>
-        {Object.keys(app.privacy).map((k) => <Toggle key={k} label={tr({ 'AI Memory': 'stPrivAiMemory', 'Dati salute': 'stPrivHealth', 'Dati finanziari': 'stPrivFinance', Posizione: 'stPrivLocation' }[k] ?? k)} value={app.privacy[k]} onChange={(v) => { set({ privacy: { ...app.privacy, [k]: v } }); toast(`${k} ${v ? 'collegato' : 'disconnesso'}`); }} />)}
+        {Object.keys(app.privacy).filter((k) => k !== 'Dati salute' && k !== 'Dati finanziari').map((k) => <Toggle key={k} label={tr({ 'AI Memory': 'stPrivAiMemory', 'Dati salute': 'stPrivHealth', 'Dati finanziari': 'stPrivFinance', Posizione: 'stPrivLocation' }[k] ?? k)} value={app.privacy[k]} onChange={(v) => { set({ privacy: { ...app.privacy, [k]: v } }); toast(`${k} ${v ? 'collegato' : 'disconnesso'}`); }} />)}
         <View style={{ gap: 8, marginTop: 10 }}>
           <Btn small ghost icon="shield" title="Cosa condivido" onPress={() => go('sharing')} />
+          <Btn small icon="shield" title="Centro Privacy (scegli tu)" onPress={() => go('privacyCenter')} />
           <Btn small ghost title="Privacy e permessi" onPress={() => go('privacy')} />
           <Btn small ghost icon="lock" title="Sicurezza e archivio" onPress={() => go('security')} />
           <Btn small ghost title="Segnalazioni e utenti bloccati" onPress={() => go('reports')} />

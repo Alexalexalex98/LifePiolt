@@ -1,5 +1,5 @@
 {
- "count": 13624,
+ "count": 13671,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -85,6 +85,7 @@
   "src/app/(tabs)/posDemo.tsx": 8,
   "src/app/(tabs)/postPage.tsx": 33,
   "src/app/(tabs)/privacy.tsx": 2,
+  "src/app/(tabs)/privacyCenter.tsx": 40,
   "src/app/(tabs)/profile.tsx": 52,
   "src/app/(tabs)/profileContent.tsx": 14,
   "src/app/(tabs)/profileMore.tsx": 8,
@@ -98,7 +99,7 @@
   "src/app/(tabs)/security.tsx": 5,
   "src/app/(tabs)/seminarPage.tsx": 44,
   "src/app/(tabs)/servicePage.tsx": 31,
-  "src/app/(tabs)/settings.tsx": 155,
+  "src/app/(tabs)/settings.tsx": 156,
   "src/app/(tabs)/sharing.tsx": 2,
   "src/app/(tabs)/shifts.tsx": 30,
   "src/app/(tabs)/shopPage.tsx": 42,
@@ -167,7 +168,7 @@
   "src/components/TheiaHost.tsx": 42,
   "src/components/TripCards.tsx": 20,
   "src/components/WeeklyReportButton.tsx": 2,
-  "src/components/aiSettings/FileConsent.tsx": 32,
+  "src/components/aiSettings/FileConsent.tsx": 31,
   "src/components/aiSettings/LocalCapabilities.tsx": 4,
   "src/components/aiSettings/ProvidersSection.tsx": 21,
   "src/components/aiSettings/SendLog.tsx": 9,
@@ -335,7 +336,7 @@
   "src/domain/operations.ts": 10,
   "src/lib/a11y.ts": 1,
   "src/lib/ai.ts": 26,
-  "src/lib/aiConsent.ts": 14,
+  "src/lib/aiConsent.ts": 22,
   "src/lib/aiLinkCode.ts": 1,
   "src/lib/aiPersona.ts": 16,
   "src/lib/aiRouter/adapters/index.ts": 1,
@@ -517,6 +518,7 @@
   "src/lib/premiumApp.ts": 2,
   "src/lib/presentation.ts": 1,
   "src/lib/priority.ts": 15,
+  "src/lib/privacyCenter.ts": 12,
   "src/lib/privacyGate.ts": 24,
   "src/lib/privacyLog.ts": 9,
   "src/lib/profile/actions.ts": 21,
@@ -552,7 +554,7 @@
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
-  "src/lib/theia.ts": 104,
+  "src/lib/theia.ts": 102,
   "src/lib/theia/appContext.ts": 7,
   "src/lib/theia/ask.ts": 58,
   "src/lib/theia/free.ts": 115,
@@ -573,6 +575,7 @@
   "src/schemas/collections.ts": 3,
   "src/social/sharedCommands.ts": 4,
   "src/social/socialCore.ts": 3,
+  "src/store/aiRouter.ts": 1,
   "src/store/app.ts": 21,
   "src/store/assistant.ts": 16,
   "src/store/chat.ts": 14,
@@ -602,5 +605,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1700
+ "withPlaceholders": 1702
 }

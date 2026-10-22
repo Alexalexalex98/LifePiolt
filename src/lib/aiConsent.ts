@@ -5,6 +5,8 @@
  * Senza consenso il file resta sul telefono e Theia non lo legge. Il contenuto non viene mai registrato: nel registro finiscono solo tipo e dimensione.
  */
 import { alertT } from '@/lib/alert';
+import { translateText } from '@/i18n/core';
+import { CATS, gate, labelOf, pushConsent } from '@/lib/privacyCenter';
 import { useAiRouter } from '@/store/aiRouter';
 
 export type SendKind = 'food' | 'files' | 'summary' | 'data';
@@ -55,4 +57,32 @@ export async function askSendRouted(kind: SendKind, what?: string): Promise<{ ok
   if (was) st.setPrefs({ phoneOnly: false });
   const always = modeOf(useAiRouter.getState().fileConsent[kind]) === 'always';
   return { ok: true, restore: () => { if (was && !always) useAiRouter.getState().setPrefs({ phoneOnly: true }); } };
+}
+
+/**
+ * Consenso per categoria prima di mandare dati dell'app all'AI esterna (GDPR/nLPD: specifico, informato, revocabile, registrato).
+ * Ritorna le categorie che si possono mandare: quelle su «sempre» + quelle su «chiedi» se l'utente consente adesso. Quelle su «mai» restano fuori.
+ */
+export async function askData(cats: string[]): Promise<string[]> {
+  const st = useAiRouter.getState();
+  const g = gate(cats, st.dataConsent);
+  if (!g.ask.length) return g.send;
+  const names = g.ask.map(labelOf);
+  const special = g.ask.some((c) => CATS.find((x) => x.id === c)?.special);
+  const answer = await new Promise<'once' | 'always' | 'no'>((resolve) => {
+    alertT('Mandare questi tuoi dati al servizio AI?', [
+      names.map((n) => translateText(n)).join(', '),
+      translateText('Theia vede tutto sul telefono. Per rispondere devo però mandare queste parti al servizio AI (Google Gemini), tramite il server di LifePilot. Non mando nient\'altro.'),
+      special ? translateText('Sono dati particolarmente sensibili (finanze, salute): li mando solo con il tuo consenso esplicito.') : '',
+      translateText('I dati possono essere trattati fuori da UE e Svizzera. Il consenso è facoltativo e lo cambi quando vuoi in Centro Privacy. Nel registro resta solo il tipo di dati, mai il contenuto. L\'AI può sbagliare: verifica le cifre.'),
+      translateText('Se non consenti, rispondo senza guardare questi dati.'),
+    ].filter(Boolean).join('\n\n'), [
+      { text: 'Non adesso', style: 'cancel', onPress: () => resolve('no') },
+      { text: 'Consenti sempre', onPress: () => resolve('always') },
+      { text: 'Consenti una volta', onPress: () => resolve('once') },
+    ]);
+  });
+  if (answer === 'always') st.setDataConsent(g.ask, 'always', 'Dal dialogo di Theia');
+  else useAiRouter.setState((s) => ({ consentLog: g.ask.reduce((l, c) => pushConsent(l, { ts: Date.now(), cat: c, mode: answer === 'once' ? 'ask' : 'never', note: answer === 'once' ? 'Consentito una volta' : 'Non consentito' }), s.consentLog ?? []) }));
+  return answer === 'no' ? g.send : [...g.send, ...g.ask];
 }

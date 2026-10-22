@@ -17,9 +17,8 @@ import { HONESTY, guardClaims, humanize, styleHints, tidy } from '@/lib/aiPerson
 import { useAssistant } from '@/store/assistant';
 import { aiChat, aiChatRaw, aiReadFilesFull, aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
 import { useLife } from '@/store/life';
-import { appContext } from '@/lib/theia/appContext';
-import { askSend, logSend } from '@/lib/aiConsent';
-const tl0 = (s: string) => t(s);
+import { appContextParts, partsText } from '@/lib/theia/appContext';
+import { askData, logSend } from '@/lib/aiConsent';
 
 /**
  * Theia: l'assistente di LifePilot.
@@ -284,11 +283,12 @@ async function theiaPrompt(question: string, selection?: string): Promise<string
   const app0 = useApp.getState();
   let ctx = '';
   if (app0.privacy['AI Memory']) {
-    const ad = appContext(question);
-    const label = `${tl0('Parti incluse')}: ${ad.topics.map((x) => x.split(':')[0]).join(', ') || tl0('agenda e task')}`;
-    if (await askSend('data', label)) {
-      ctx = `${buildContext(true)}\n\nDati dell'app (veri, calcolati dall'app):\n${ad.text}`;
-      logSend('data', ctx.length, ad.topics.length ? ad.topics : ['contesto']);
+    const parts = appContextParts(question);
+    const ok = await askData([...new Set(parts.map((p) => p.cat))]);
+    const use = parts.filter((p) => ok.includes(p.cat));
+    if (use.length) {
+      ctx = `${buildContext(true)}\n\nDati dell'app (veri, calcolati dall'app):\n${partsText(use)}`;
+      logSend('summary', ctx.length, use.map((p) => p.label));
     }
   }
   const log = useAssistant.getState().log;
