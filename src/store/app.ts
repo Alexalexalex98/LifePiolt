@@ -46,6 +46,8 @@ type AppState = {
   /** quante volte, per ogni pagina, l'hai aperta in ciascuna ora del giorno (serve a Theia per capire le tue abitudini) */
   visitHours: Record<string, number[]>;
   assistantName: string;
+  /** dove compare la mascotte di Theia: ovunque, solo dove serve, o da nessuna parte */
+  mascot: 'everywhere' | 'useful' | 'off';
   dismissedNav: string[];
   workHours: { start: string; end: string };
   devices: Device[];
@@ -78,6 +80,7 @@ const initial = {
   pageVisits: {} as Record<string, number>,
   visitHours: {} as Record<string, number[]>,
   assistantName: 'Theia',
+  mascot: 'everywhere' as const,
   dismissedNav: [] as string[],
   workHours: { start: '09:00', end: '18:00' },
   devices: [{ name: 'Questo dispositivo', detail: 'Sessione attuale', current: true }] as Device[],

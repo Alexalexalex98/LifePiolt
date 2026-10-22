@@ -1,3 +1,5 @@
+import { TypingDots } from '@/components/mascot/TypingDots';
+import { useMascot } from '@/hooks/use-mascot';
 import { Mascot } from '@/components/mascot/Mascot';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
@@ -37,6 +39,7 @@ export function TheiaHost() {
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [since, setSince] = useState(0);
+  const showM = useMascot('core');
   const scroll = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -89,7 +92,7 @@ export function TheiaHost() {
             )}
           </View>
         ))}
-        {busy && <ActivityIndicator style={{ alignSelf: 'flex-start', margin: 8 }} />}
+        {busy && (showM ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, margin: 8 }}><Mascot size={40} color={t.accent} expression="doubtful" ritual={false} /><TypingDots /></View> : <ActivityIndicator style={{ alignSelf: 'flex-start', margin: 8 }} />)}
       </ScrollView>
       <Row style={{ alignItems: 'flex-start', marginTop: 4 }}>
         <Input flex={1} placeholder="Scrivi una domanda o un comando…" value={q} onChangeText={setQ} onSubmitEditing={() => ask(q)} returnKeyType="send" style={{ marginBottom: 0 }} />
@@ -110,6 +113,8 @@ export function TheiaFab() {
   const [hidden, setHidden] = useState(false);
   const [menu, setMenu] = useState(false);
   const [tickled, setTickled] = useState(false);
+  const showMascot = useMascot('core');
+  const asking = useTheia((s) => s.open);
   // il pulsante si può trascinare dove non copre il contenuto
   const pos = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const pan = useRef(PanResponder.create({
@@ -150,7 +155,7 @@ export function TheiaFab() {
         onPress={() => setMenu(true)} onLongPress={clip} delayLongPress={350}
         accessibilityLabel={translateText(`Chiedi a ${name}: tocca per scrivere, mandare foto o documenti o chiedere sulla schermata. Tieni premuto per il testo copiato. Trascinalo per spostarlo`)}
         style={{ width: 56, height: 56, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 }}>
-        <Mascot size={56} color={t.accent} expression="happy" shake={tickled} />
+        {showMascot ? <Mascot size={56} color={t.accent} expression={asking ? 'doubtful' : 'happy'} shake={tickled} /> : <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: 0.92 }}><Icon name="sparkle" size={22} color={t.onText} /></View>}
       </Pressable>
     </Animated.View>
     <Sheet visible={menu} title={`Chiedi a ${name}`} onClose={() => setMenu(false)}>

@@ -12,6 +12,7 @@ import { uid } from '@/lib/format';
 import { fmtDur, previewOf, type ChatMessage, type Poll } from '@/store/chat';
 import { toast } from '@/store/toast';
 import { senderColor, useChatColors } from './parts';
+import { useMascot } from '@/hooks/use-mascot';
 import { StickerSheet } from './StickerSheet';
 import { AgendaSheet, CallSheet, type CallPlan, DriveSheet, EventSheet, OfferSheet, DocReqSheet, NoteSheet, SlotsSheet, TasksSheet, type SharePayload } from './ShareSheets';
 import { Icon } from '@/lib/icons';
@@ -55,6 +56,7 @@ export function Composer(p: Props) {
   const c = useChatColors();
   const [attach, setAttach] = useState(false);
   const [stickers, setStickers] = useState(false);
+  const mascotOn = useMascot('core');
   const [share, setShare] = useState<null | 'agenda' | 'tasks' | 'note' | 'slots' | 'drive' | 'event' | 'offer' | 'docreq' | 'call'>(null);
   const [poll, setPoll] = useState(false);
   const [preview, setPreview] = useState<Picked[] | null>(null);
@@ -200,7 +202,7 @@ export function Composer(p: Props) {
         <Body small muted style={{ marginBottom: 4 }}>Dal telefono</Body>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
           {([
-            ['sparkle', 'Adesivi di Theia', () => { setAttach(false); setStickers(true); }],
+            ...(mascotOn ? [['sparkle', 'Adesivi di Theia', () => { setAttach(false); setStickers(true); }] as [string, string, () => void]] : []),
             ['file', 'Documento', () => run(pickDocument)],
             ['camera', 'Fotocamera', () => run(takePhoto)],
             ['image', 'Foto e video', () => run(pickFromGallery)],

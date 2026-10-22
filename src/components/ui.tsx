@@ -24,6 +24,7 @@ import { useApp } from '@/store/app';
 import { installTextScale } from '@/lib/textScale';
 import { translateText } from '@/i18n/core';
 import { Mascot } from '@/components/mascot/Mascot';
+import { useMascot } from '@/hooks/use-mascot';
 import { toast, useToast } from '@/store/toast';
 
 // "Testo più grande" vale per tutti i <Text> dell'app (vedi lib/textScale.ts)
@@ -419,9 +420,10 @@ export function Progress({ value, color }: { value: number; color?: string }) {
 
 export function Empty({ text, mood = 'sleepy' }: { text: string; mood?: import('@/lib/mascot').Expression }) {
   const t = useTheme();
+  const extra = useMascot('extra');
   return (
     <View style={{ alignItems: 'center', paddingVertical: 18 }}>
-      <Mascot size={64} color={t.accent} expression={mood} ritual={false} />
+      {extra ? <Mascot size={64} color={t.accent} expression={mood} ritual={false} /> : null}
       <Text style={{ color: t.muted, textAlign: 'center', paddingTop: 8, fontSize: 14, lineHeight: 20 }}>{text}</Text>
     </View>
   );

@@ -6,6 +6,9 @@ import { DashGrid } from '@/components/dash/DashGrid';
 import { DashData } from '@/components/dash/data';
 import { WBY } from '@/components/dash/registry';
 import { AddWidgetSheet, BackgroundSheet, OptionsSheet } from '@/components/dash/Sheets';
+import { Mascot } from '@/components/mascot/Mascot';
+import { useMascot } from '@/hooks/use-mascot';
+import { useTheme } from '@/hooks/use-theme';
 import { LunchBanner } from '@/components/fitness/LunchBanner';
 import { WaterBanner } from '@/components/fitness/WaterBanner';
 import { Body, Btn, Card, H, Page, Pill, Row } from '@/components/ui';
@@ -21,6 +24,8 @@ const SUGGEST = ['mood', 'agenda', 'water', 'tip'];
 /** La Dashboard: una pagina di widget scelti da te, in una griglia a 4 colonne, con le foto che vuoi come sfondo. */
 export default function Dashboard() {
   const account = useApp((s) => s.account);
+  const extraMascot = useMascot('extra');
+  const t = useTheme();
   const items = useDash((s) => s.items);
   const add = useDash((s) => s.add);
   const reset = useDash((s) => s.reset);
@@ -37,6 +42,7 @@ export default function Dashboard() {
       <DashData>
         <View style={{ marginTop: 6 }}>
           <Row>
+            {extraMascot ? <Mascot size={50} color={t.accent} expression="happy" ritual={false} style={{ marginEnd: 8 }} /> : null}
             <View style={{ flex: 1 }}>
               <H style={{ marginBottom: 0 }}>{`${tl(greet)}${account.name ? `, ${account.name.split(' ')[0]}` : ''}`}</H>
               <Body small muted style={{ textTransform: 'capitalize' }}>{date}</Body>

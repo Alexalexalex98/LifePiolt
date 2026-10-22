@@ -198,5 +198,20 @@
   "Agenda": "Calendar",
   "Obiettivo": "Goal reached",
   "Compleanno": "Birthday",
-  "Vacanza": "Vacation"
+  "Vacanza": "Vacation",
+  "Dove vuoi Theia?": "Where do you want Theia?",
+  "Theia è ovunque": "Theia is everywhere",
+  "Solo dove serve": "Only where it helps",
+  "Nessuna mascotte": "No mascot",
+  "Ti accompagna in tutta l'app: chat, pulsante, Dashboard, pagine vuote, attese e adesivi.": "She follows you across the app: chat, button, Dashboard, empty pages, waits and stickers.",
+  "Compare dove aiuta: nella chat, quando pensa, sul pulsante e negli adesivi. Il resto resta pulito.": "She shows up where it helps: in the chat, when thinking, on the button and in stickers. The rest stays clean.",
+  "Niente personaggio da nessuna parte: Theia resta la stessa assistente, con la sua icona a scintilla.": "No character anywhere: Theia is still the same assistant, with her sparkle icon.",
+  "Il colore di Theia è il colore dell'app.": "Theia's color is the app color.",
+  "Adesivi": "Stickers",
+  "Nelle chat tocca il pulsante di allegati e scegli «Adesivi di Theia»: puoi mandarli o crearne di tuoi descrivendoli.": "In chats tap the attach button and choose \"Theia stickers\": send them or create your own by describing them.",
+  "Adesivi tuoi: {0}": "Your stickers: {0}",
+  "Theia, la mascotte": "Theia, the mascot",
+  "Spenta: non compare da nessuna parte. Toccami per riaccenderla.": "Off: she doesn't appear anywhere. Tap me to turn her back on.",
+  "Compare solo dove serve. Colore, espressioni e adesivi.": "Shows up only where it helps. Color, expressions and stickers.",
+  "È ovunque con te. Colore, espressioni e adesivi.": "She's everywhere with you. Color, expressions and stickers."
 }

@@ -19,6 +19,8 @@ import { JourneyCard } from '@/components/home/HomeBlocks';
 import { formatErrors, logError, useErrorLog } from '@/lib/errorLog';
 import { useSectionNames, useT } from '@/lib/i18n';
 import { go } from '@/lib/nav';
+import { Mascot } from '@/components/mascot/Mascot';
+import { MascotSettings } from '@/components/mascot/MascotSettings';
 import { cancelAll, refreshBriefings, requestPermission } from '@/lib/notify';
 import { KIND_ORDER, KINDS, kindEnabled } from '@/lib/notifyKinds';
 import { TutorialSettings } from '@/components/tour/TutorialSettings';
@@ -169,6 +171,18 @@ export default function Settings() {
 
   return (
     <Page id="settings" title={names.settings} back>
+      {cat === null ? (
+        <Card accent={t.accent} onPress={() => setCat('mascot')}>
+          <Row gap={14}>
+            <Mascot size={72} color={t.accent} expression={app.mascot === 'off' ? 'sleepy' : 'happy'} ritual={false} animated={app.mascot !== 'off'} />
+            <View style={{ flex: 1 }}>
+              <H style={{ marginBottom: 2 }}>Theia, la mascotte</H>
+              <Body small muted>{app.mascot === 'off' ? 'Spenta: non compare da nessuna parte. Toccami per riaccenderla.' : app.mascot === 'useful' ? 'Compare solo dove serve. Colore, espressioni e adesivi.' : 'È ovunque con te. Colore, espressioni e adesivi.'}</Body>
+            </View>
+            <Chev />
+          </Row>
+        </Card>
+      ) : null}
       {cat === null ? <TutorialSettings /> : null}
       {cat === null ? <JourneyCard /> : null}
       {cat === null ? (
@@ -190,7 +204,7 @@ export default function Settings() {
       ) : (
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Torna alle impostazioni')} onPress={() => setCat(null)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <Icon name="arrow-left" size={18} color={t.accent} stroke={2.2} />
-          <Body bold color={t.accent}>{CATS.flatMap((g) => g.rows).find((c) => c.id === cat)?.title ?? ''}</Body>
+          <Body bold color={t.accent}>{CATS.flatMap((g) => g.rows).find((c) => c.id === cat)?.title ?? (cat === 'mascot' ? 'Theia, la mascotte' : '')}</Body>
         </Pressable>
       )}
 
@@ -373,6 +387,8 @@ export default function Settings() {
           <Row><Body small muted style={{ flex: 1 }}>Orari che si ripetono o date scelte: il prossimo turno compare nella Dashboard.</Body><Btn small icon="briefcase" title="Gestisci" onPress={() => go('shifts')} /></Row>
         </Card>
       ) : null}
+
+      {cat === 'mascot' ? <MascotSettings /> : null}
 
       {cat === 'ai' ? (
       <Card>
