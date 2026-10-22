@@ -6,6 +6,7 @@ import { D4 } from './db/d4.ts';
 import { D5 } from './db/d5.ts';
 import { D6 } from './db/d6.ts';
 import { R1 } from './db/r1.ts';
+import { R2 } from './db/r2.ts';
 
 export type DbFood = { id: string; name: string; kcal: number; p: number; c: number; f: number; fib: number; portion: number; tags?: string; cat: string; recipe?: boolean };
 export type Recipe = { id: string; name: string; method: string; items: { foodId: string; grams: number }[] };
@@ -35,7 +36,7 @@ const BY_NAME = new Map(BASE.map((f) => [norm(f.name), f]));
 
 function parseRecipes(): { recipes: Recipe[]; missing: string[] } {
   const recipes: Recipe[] = []; const missing: string[] = []; const seen = new Set<string>();
-  for (const raw of R1.split('\n')) {
+  for (const raw of (R1 + '\n' + R2).split('\n')) {
     const line = raw.trim(); if (!line || line.startsWith('#')) continue;
     const a = line.split('|'); if (a.length < 3) continue;
     const name = a[0].trim(); const id = 'ric-' + slug(name); if (seen.has(id)) continue; seen.add(id);

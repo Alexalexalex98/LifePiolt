@@ -1,5 +1,5 @@
 {
- "count": 13454,
+ "count": 13564,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -27,15 +27,18 @@
   "src/app/(tabs)/docView.tsx": 2,
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
+  "src/app/(tabs)/fitnessCook.tsx": 27,
   "src/app/(tabs)/fitnessDay.tsx": 18,
   "src/app/(tabs)/fitnessDiary.tsx": 45,
   "src/app/(tabs)/fitnessExercise.tsx": 31,
+  "src/app/(tabs)/fitnessFridge.tsx": 46,
   "src/app/(tabs)/fitnessGroup.tsx": 39,
   "src/app/(tabs)/fitnessGroups.tsx": 53,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 39,
   "src/app/(tabs)/fitnessMeal.tsx": 87,
   "src/app/(tabs)/fitnessMealCard.tsx": 30,
+  "src/app/(tabs)/fitnessMealPlan.tsx": 43,
   "src/app/(tabs)/fitnessPass.tsx": 27,
   "src/app/(tabs)/fitnessPlanDay.tsx": 30,
   "src/app/(tabs)/fitnessProgram.tsx": 36,
@@ -56,7 +59,7 @@
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 46,
   "src/app/(tabs)/lifefinance.tsx": 103,
-  "src/app/(tabs)/lifefitness.tsx": 93,
+  "src/app/(tabs)/lifefitness.tsx": 99,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 113,
   "src/app/(tabs)/lifenetwork.tsx": 42,
@@ -436,9 +439,11 @@
   "src/lib/fitness/gymPay.ts": 11,
   "src/lib/fitness/labels.ts": 17,
   "src/lib/fitness/mealInsights.ts": 84,
+  "src/lib/fitness/mealPlan.ts": 27,
   "src/lib/fitness/micro.ts": 35,
   "src/lib/fitness/nutrientInfo.ts": 444,
   "src/lib/fitness/nutrition.ts": 68,
+  "src/lib/fitness/pantry.ts": 1,
   "src/lib/fitness/plan.ts": 15,
   "src/lib/fitness/poses.ts": 368,
   "src/lib/fitness/premium.ts": 3,
@@ -584,6 +589,7 @@
   "src/store/markets.ts": 4,
   "src/store/network.ts": 18,
   "src/store/news.ts": 1,
+  "src/store/pantry.ts": 1,
   "src/store/prefs.ts": 6,
   "src/store/sharing.ts": 1,
   "src/sync/bindings.ts": 2,
@@ -595,5 +601,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1673
+ "withPlaceholders": 1686
 }

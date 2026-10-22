@@ -157,6 +157,13 @@ export default function LifeFitness() {
 
           {tab === 'Cibo' ? (
             <>
+          <Card accent={FIT} onPress={() => go('fitnessMealPlan')}>
+            <Row gap={12}><Icon name="lifefitness" size={22} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 2 }}>Piano alimentare</H><Body small muted>Un piano su misura che cambi come vuoi, confrontato con ciò che mangi davvero.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+          </Card>
+          <Row gap={10}>
+            <Card style={{ flex: 1 }} onPress={() => go('fitnessFridge')}><H style={{ marginBottom: 2 }}>Frigo e spesa</H><Body small muted>Scontrino, scorte, lista condivisa</Body></Card>
+            <Card style={{ flex: 1 }} onPress={() => go('fitnessCook')}><H style={{ marginBottom: 2 }}>Cosa cucino?</H><Body small muted>Ricette e cosa manca</Body></Card>
+          </Row>
           <Card>
             <Pressable accessibilityRole="button" accessibilityLabel={tl('Apri la giornata di oggi')} onPress={() => go('fitnessDay', { day: dayOf(Date.now()) })}>
             <Row gap={14}>

@@ -11,6 +11,7 @@ import { dayOf } from '@/lib/fitness/mealInsights';
 import { DEFAULT_LUNCH, type LunchAnswer, type LunchCfg } from '@/lib/fitness/lunch';
 import type { Override } from '@/lib/fitness/dayPlan';
 import { persisted } from './persist';
+import { usePantry } from './pantry';
 
 export type MealItem = { foodId: string; name: string; grams: number };
 export type Meal = { id: string; ts: number; name: string; foodId?: string; grams: number; macros: Macros; photo?: string; /** ingredienti scelti uno per uno */ items?: MealItem[] };
@@ -108,7 +109,7 @@ export const useFitness = create<State>()(
     finishDay: (date, key, total) => set((s) => ({ exDone: { ...(s.exDone ?? {}), [date]: { key, idx: Array.from({ length: total }, (_, i) => i) } } })),
     set: (p) => set(p),
     logWorkout: (w) => set((s) => ({ history: [...s.history, { ...w, id: uid() }].slice(-1000) })),
-    addMeal: (m) => set((s) => ({ meals: [{ ...m, id: uid() }, ...s.meals].slice(0, 2000) })),
+    addMeal: (m) => { set((s) => ({ meals: [{ ...m, id: uid() }, ...s.meals].slice(0, 2000) })); try { usePantry.getState().consumeMeal({ foodId: m.foodId, grams: m.grams, items: m.items }); } catch { /* frigo non disponibile */ } },
     delMeal: (id) => set((s) => ({ meals: s.meals.filter((m) => m.id !== id) })),
     addWater: (ml, day) => {
       const k = day ?? dayOf(Date.now());
