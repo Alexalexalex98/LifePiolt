@@ -1,5 +1,5 @@
 {
- "count": 13604,
+ "count": 13609,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -552,7 +552,7 @@
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
-  "src/lib/theia.ts": 96,
+  "src/lib/theia.ts": 101,
   "src/lib/theia/ask.ts": 58,
   "src/lib/theia/free.ts": 115,
   "src/lib/theia/radar.ts": 46,
@@ -601,5 +601,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1693
+ "withPlaceholders": 1698
 }

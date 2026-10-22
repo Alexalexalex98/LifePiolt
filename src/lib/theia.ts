@@ -67,6 +67,17 @@ export function buildContext(forServer: boolean, loc = false): string {
       lines.push(L('Segnali: {0}', d.insights.filter((i) => (i.domain === 'finanza' ? allowFin : allowHealth)).slice(0, 5).map((i) => i.title).join(' | ')));
     } catch { /* senza dati */ }
   }
+  if (allowFin) {
+    const si = useFin.getState().statementInfo;
+    if (si) {
+      const r0 = (n: number) => Math.round(n);
+      lines.push(L('Estratto conto ({0} mesi, {1} → {2}): stipendio medio {3} al mese', si.months, si.from, si.to, r0(si.salary.monthly)));
+      lines.push(L('Spese fisse al mese: {0}', si.fixed.slice(0, 12).map((f) => `${f.name} (${f.cls}) ${r0(f.monthly)}`).join('; ') || none()));
+      lines.push(L('Spese variabili al mese: {0}', si.variable.slice(0, 15).map((v) => `${v.name} ${r0(v.monthly)}`).join('; ') || none()));
+      if (si.extraordinary.length) lines.push(L('Spese straordinarie: {0}', si.extraordinary.slice(0, 6).map((x) => `${x.label} ${r0(Math.abs(x.amount))}`).join('; ')));
+      if (si.balanceKnown && si.balance != null) lines.push(L('Saldo: {0}', r0(si.balance)));
+    }
+  }
   const top = Object.entries(app.pageVisits).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([p]) => navCatalog[p] ?? p);
   lines.push(L('Sezioni più usate: {0}', top.join(', ') || L('n/d')));
   lines.push(L('Chat non lette: {0}', totalUnread(app.account.name)));
@@ -272,7 +283,7 @@ function theiaPrompt(question: string, selection?: string): string {
   const log = useAssistant.getState().log;
   const mine = log.filter((m) => m.who === 'me').slice(-6).map((m) => m.text);
   const recent = log.slice(-9, -1).filter((m) => m.text.trim()).map((m) => `${m.who === 'me' ? 'Utente' : (app0.assistantName || 'Theia')}: ${m.text.replace(/\s+/g, ' ').slice(0, 300)}`).join('\n');
-  return `Sei ${app0.assistantName || 'Theia'}, la persona di fiducia dentro l'app LifePilot per l'utente. Rispondi come una persona che conosce bene l'utente, in modo diretto e utile, anche a domande libere (testi, idee, spiegazioni, consigli generali). Non dai consigli medici, legali o finanziari: spieghi e dai indicazioni generali.\n${HONESTY} Se parli di alimentazione, salute, sonno, allenamento o integratori: di' che sono stime e indicazioni generali, non un parere medico; non diagnosticare, non prescrivere terapie, dosi di integratori o diete speciali, e invita a sentire un medico o un dietista in caso di sintomi, malattie, gravidanza o dubbi.\n${styleHints([...mine, question])}${ctx ? `\n\nContesto dell'utente:\n${ctx}` : ''}${recent ? `\n\nConversazione recente:\n${recent}` : ''}${selection ? `\n\nTesto selezionato:\n"${selection}"` : ''}\n\nRichiesta: ${question}`;
+  return `Sei ${app0.assistantName || 'Theia'}, la persona di fiducia dentro l'app LifePilot per l'utente. Rispondi come una persona che conosce bene l'utente, in modo diretto e utile, anche a domande libere (testi, idee, spiegazioni, consigli generali). Non dai consigli medici, legali o finanziari: spieghi e dai indicazioni generali. Se nel contesto c'è l'estratto conto dell'utente, usalo con le cifre esatte (non dire mai di non avere accesso alle sue spese) e indica dove si potrebbe ridurre, senza inventare importi.\n${HONESTY} Se parli di alimentazione, salute, sonno, allenamento o integratori: di' che sono stime e indicazioni generali, non un parere medico; non diagnosticare, non prescrivere terapie, dosi di integratori o diete speciali, e invita a sentire un medico o un dietista in caso di sintomi, malattie, gravidanza o dubbi.\n${styleHints([...mine, question])}${ctx ? `\n\nContesto dell'utente:\n${ctx}` : ''}${recent ? `\n\nConversazione recente:\n${recent}` : ''}${selection ? `\n\nTesto selezionato:\n"${selection}"` : ''}\n\nRichiesta: ${question}`;
 }
 
 /** Domanda libera in chat: risponde il server AI come una persona (con la conversazione recente). */
