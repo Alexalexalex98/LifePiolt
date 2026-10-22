@@ -10,7 +10,7 @@ import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { applyWeekPlan, collectWeekInput, undoWeekPlan } from '@/lib/theia/collectWeek';
 import { dayKeyOf } from '@/lib/theia/core';
-import { dayLabel, planWeek, type WItem } from '@/lib/theia/week';
+import { dayLabel, itemTitle, planWeek, type WItem } from '@/lib/theia/week';
 import { DEFAULT_LUNCH, lunchMinutes } from '@/lib/fitness/lunch';
 import { useFitness } from '@/store/fitness';
 import { toast, showUndoToast } from '@/store/toast';
@@ -73,10 +73,10 @@ export default function WeekPlan() {
             {list.map((it) => {
               const on = !off.includes(it.id);
               return (
-                <Pressable key={it.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={it.title} onPress={() => toggle(it.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.border }}>
+                <Pressable key={it.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={itemTitle(it.title, tl)} onPress={() => toggle(it.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: t.border }}>
                   <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: on ? KIND[it.kind].color : t.border, backgroundColor: on ? KIND[it.kind].color : 'transparent', alignItems: 'center', justifyContent: 'center' }}>{on ? <Icon name="check" size={14} color="#07090d" stroke={3} /> : null}</View>
                   <View style={{ flex: 1, opacity: on ? 1 : 0.5 }}>
-                    <Body bold>{it.title}</Body>
+                    <Body bold>{itemTitle(it.title, tl)}</Body>
                     <Body small muted>{it.kind === 'sonno' ? it.time : `${it.time}-${end(it)}`} · {tl(KIND[it.kind].label)}</Body>
                   </View>
                 </Pressable>

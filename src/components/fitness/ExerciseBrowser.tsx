@@ -8,6 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import type { Equip, Muscle } from '@/lib/fitness/data';
 import { guideOf, searchExercises, type ExerciseX } from '@/lib/fitness/exerciseDb';
+import { equipLabel, muscleLabel } from '@/lib/fitness/labels';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { useFitness } from '@/store/fitness';
@@ -35,16 +36,16 @@ export function ExerciseBrowser({ onCreate }: { onCreate: () => void }) {
     <View>
       <Input placeholder={tl('Cerca tra {0} esercizi', searchExercises({}, customEx, 9999).length)} value={q} onChangeText={(v) => { setQ(v); setShown(PAGE); }} autoCapitalize="none" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }} contentContainerStyle={{ gap: 6 }}>
-        {(['tutti', ...MUSCLES] as const).map((m) => <Pill key={m} label={cap(m)} on={muscle === m} onPress={() => { setMuscle(m); setShown(PAGE); }} />)}
+        {(['tutti', ...MUSCLES] as const).map((m) => <Pill key={m} label={muscleLabel(m)} on={muscle === m} onPress={() => { setMuscle(m); setShown(PAGE); }} />)}
       </ScrollView>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }} contentContainerStyle={{ gap: 6 }}>
-        {(['tutti', ...EQUIPS] as const).map((m) => <Pill key={m} label={m === 'tutti' ? 'Ogni attrezzo' : cap(m)} on={equip === m} onPress={() => { setEquip(m); setShown(PAGE); }} />)}
+        {(['tutti', ...EQUIPS] as const).map((m) => <Pill key={m} label={equipLabel(m)} on={equip === m} onPress={() => { setEquip(m); setShown(PAGE); }} />)}
       </ScrollView>
       <Body small muted style={{ marginBottom: 4 }}>{tl('{0} esercizi', all.length)}</Body>
       {all.slice(0, shown).map((e) => (
         <Pressable key={e.id} accessibilityRole="button" accessibilityLabel={e.name} onPress={() => setOpen(e)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: t.border }}>
           <ExerciseThumb ex={e} size={56} />
-          <View style={{ flex: 1 }}><Body bold>{e.name}</Body><Body small muted>{cap(e.muscle)} · {cap(e.equip)}{e.custom ? ` · ${tl('tuo')}` : ''}</Body></View>
+          <View style={{ flex: 1 }}><Body bold>{e.name}</Body><Body small muted>{muscleLabel(e.muscle)} · {equipLabel(e.equip)}{e.custom ? ` · ${tl('tuo')}` : ''}</Body></View>
           <Icon name="chevron" size={16} color={t.muted} />
         </Pressable>
       ))}
@@ -57,7 +58,7 @@ export function ExerciseBrowser({ onCreate }: { onCreate: () => void }) {
           <ScrollView style={{ maxHeight: 560 }} nestedScrollEnabled>
             <ExerciseMedia ex={open} />
             <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={6}>
-              <Pill label={cap(open.muscle)} off /><Pill label={cap(open.equip)} off />{open.level ? <Pill label={cap(open.level)} off /> : null}<Pill label={open.timed ? 'A tempo' : 'A ripetizioni'} off />
+              <Pill label={muscleLabel(open.muscle)} off /><Pill label={equipLabel(open.equip)} off />{open.level ? <Pill label={cap(open.level)} off /> : null}<Pill label={open.timed ? 'A tempo' : 'A ripetizioni'} off />
             </Row>
             <Body style={{ marginTop: 10 }}>{open.how}</Body>
             {open.en ? <Body small muted style={{ marginTop: 4 }}>Le istruzioni arrivano da un archivio internazionale e sono in inglese.</Body> : null}

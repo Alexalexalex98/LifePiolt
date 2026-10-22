@@ -1,0 +1,37 @@
+{
+  "id": "03-fitness",
+  "capture": "03-fitness",
+  "hook": "Train smarter, every day",
+  "accent": "#ff9d6e",
+  "voice": {
+    "voice": "nova",
+    "instructions": "Warm, upbeat and natural, like a friend showing you something cool. Short pauses between sentences."
+  },
+  "scenes": [
+    {
+      "cue": "week",
+      "say": "Your training week, at a glance. Done, missed, or coming up."
+    },
+    {
+      "cue": "tabs",
+      "say": "Open Train, where programs and exercises live."
+    },
+    {
+      "cue": "exercises",
+      "say": "Browse over a thousand exercises, with filters for muscle and equipment."
+    },
+    {
+      "cue": "card",
+      "say": "Tap one, and the photos animate to show you the movement."
+    },
+    {
+      "cue": "back",
+      "say": "Close it, and you're right where you left off."
+    }
+  ],
+  "outro": {
+    "title": "LifePilot",
+    "subtitle": "Your personal trainer, in your pocket.",
+    "cta": "Try it free"
+  }
+}

@@ -115,3 +115,11 @@ export function planWeek(i: WeekInput): WeekPlan {
   }
   return { days, items, notes };
 }
+
+/** Il titolo di una voce nella lingua dell'app: i titoli sono costruiti dal codice, quindi qui si riconoscono i modelli e si traducono con `tr`. */
+export function itemTitle(title: string, tr: (src: string, ...a: (string | number)[]) => string): string {
+  const m = /^(Lavoro su|Allenamento): (.*)$/.exec(title);
+  if (m) return tr(`${m[1]}: {0}`, m[2]);
+  if (title === 'Pausa pranzo') return tr('Pausa pranzo');
+  return title;
+}

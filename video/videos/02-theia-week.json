@@ -1,0 +1,43 @@
+{
+  "id": "02-theia-week",
+  "capture": "02-theia-week",
+  "hook": "Plan your week in one sentence",
+  "accent": "#8fa4ff",
+  "voice": {
+    "voice": "nova",
+    "instructions": "Warm, upbeat and natural, like a friend showing you something cool. Short pauses between sentences."
+  },
+  "scenes": [
+    {
+      "cue": "open",
+      "say": "Meet Theia, the AI assistant inside LifePilot."
+    },
+    {
+      "cue": "ask",
+      "say": "Just type: plan my week."
+    },
+    {
+      "cue": "proposal",
+      "say": "She looks at your shifts, your tasks and your workouts, and builds a plan."
+    },
+    {
+      "cue": "review",
+      "say": [
+        "Lunch breaks stay free,",
+        "and every day keeps some time for you."
+      ]
+    },
+    {
+      "cue": "confirm",
+      "say": [
+        "You decide what to keep.",
+        "One tap, and it's in your calendar."
+      ]
+    }
+  ],
+  "outro": {
+    "title": "LifePilot",
+    "subtitle": "Theia plans. You decide.",
+    "cta": "Try it free"
+  }
+}

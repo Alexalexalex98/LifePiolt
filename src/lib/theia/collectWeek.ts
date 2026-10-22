@@ -1,5 +1,7 @@
 import { addDay, dayKeyOf } from './core';
 import type { WeekInput, WItem } from './week';
+import { itemTitle } from './week';
+import { t as tl } from '@/i18n/core';
 import { lunchMinutes } from '@/lib/fitness/lunch';
 import { dayInfo } from '@/lib/fitness/dayPlan';
 import { sessionMinutes } from '@/lib/fitness/plan';
@@ -43,7 +45,7 @@ const COLOR: Record<WItem['kind'], string> = { allenamento: '#ff9d6e', task: '#8
 export function applyWeekPlan(items: WItem[]): string {
   const batch = `wk${Date.now().toString(36)}`;
   const life = useLife.getState();
-  for (const it of items) life.addEvent(it.day, { time: it.time, title: it.title, dur: it.dur, ref: batch, color: COLOR[it.kind], reminder: it.kind === 'sonno' });
+  for (const it of items) life.addEvent(it.day, { time: it.time, title: itemTitle(it.title, tl), dur: it.dur, ref: batch, color: COLOR[it.kind], reminder: it.kind === 'sonno' });
   return batch;
 }
 

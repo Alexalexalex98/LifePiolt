@@ -1,5 +1,5 @@
 {
- "count": 13343,
+ "count": 13353,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -226,10 +226,10 @@
   "src/components/feed/TabCards.tsx": 21,
   "src/components/feed/useDeckCards.ts": 2,
   "src/components/fitness/DaySummary.tsx": 22,
-  "src/components/fitness/ExerciseBrowser.tsx": 14,
+  "src/components/fitness/ExerciseBrowser.tsx": 13,
   "src/components/fitness/ExerciseFigure.tsx": 3,
   "src/components/fitness/ExercisePhotos.tsx": 3,
-  "src/components/fitness/ExercisePicker.tsx": 29,
+  "src/components/fitness/ExercisePicker.tsx": 28,
   "src/components/fitness/GymPay.tsx": 20,
   "src/components/fitness/LunchBanner.tsx": 9,
   "src/components/fitness/NutrientSheet.tsx": 16,
@@ -427,6 +427,7 @@
   "src/lib/fitness/foodDb.ts": 24,
   "src/lib/fitness/groups.ts": 16,
   "src/lib/fitness/gymPay.ts": 11,
+  "src/lib/fitness/labels.ts": 17,
   "src/lib/fitness/mealInsights.ts": 84,
   "src/lib/fitness/micro.ts": 35,
   "src/lib/fitness/nutrientInfo.ts": 444,

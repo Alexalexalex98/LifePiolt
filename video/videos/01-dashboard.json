@@ -1,0 +1,36 @@
+{
+  "id": "01-dashboard",
+  "capture": "01-dashboard",
+  "hook": "Your whole day. One screen.",
+  "accent": "#8fa4ff",
+  "voice": {
+    "voice": "nova",
+    "instructions": "Warm, upbeat and natural, like a friend showing you something cool. Short pauses between sentences."
+  },
+  "scenes": [
+    {
+      "cue": "hello",
+      "say": "This is LifePilot, the super app that runs your day."
+    },
+    {
+      "cue": "add",
+      "say": [
+        "Your dashboard starts empty,",
+        "so you choose what matters to you."
+      ]
+    },
+    {
+      "cue": "hold",
+      "say": "Press and hold a widget, and it lands on your screen."
+    },
+    {
+      "cue": "result",
+      "say": "Mood, health, money, workouts. Live data, always one glance away."
+    }
+  ],
+  "outro": {
+    "title": "LifePilot",
+    "subtitle": "One app. Your whole life.",
+    "cta": "Try it free"
+  }
+}

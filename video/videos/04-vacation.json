@@ -1,0 +1,36 @@
+{
+  "id": "04-vacation",
+  "capture": "04-vacation",
+  "hook": "Save for your dream trip",
+  "accent": "#7fd6a4",
+  "voice": {
+    "voice": "nova",
+    "instructions": "Warm, upbeat and natural, like a friend showing you something cool. Short pauses between sentences."
+  },
+  "scenes": [
+    {
+      "cue": "goal",
+      "say": "Need two thousand for a trip? Type the amount."
+    },
+    {
+      "cue": "month",
+      "say": "Pick the month you leave."
+    },
+    {
+      "cue": "result",
+      "say": [
+        "LifePilot reads your bank statement,",
+        "and tells you what to set aside each month."
+      ]
+    },
+    {
+      "cue": "split",
+      "say": "Got two incomes? It finds both, and splits the saving between them."
+    }
+  ],
+  "outro": {
+    "title": "LifePilot",
+    "subtitle": "Know before you book.",
+    "cta": "Try it free"
+  }
+}

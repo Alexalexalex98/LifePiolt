@@ -214,7 +214,7 @@ export async function sendTheia(i: SendInput): Promise<void> {
   store().push({ who: 'me', text, source: 'chat', topic, ext: { ...withAtts, lang: u.lang, voice: i.source === 'voice' } });
 
   // «pianifica la mia settimana»: proposta con anteprima e conferma (allenamenti, task e sonno nei momenti liberi, con turni e impegni sempre occupati)
-  if (!pending && !useLearned.getState().teaching && (u.status === 'passthrough' || u.status === 'translated') && /(pianific|organizz|prepar)\w*\s+(la\s+|il\s+)?(mia\s+|mio\s+)?settiman/i.test(u.text)) {
+  if (!pending && !useLearned.getState().teaching && (u.status === 'passthrough' || u.status === 'translated') && (/(pianific|organizz|prepar)\w*\s+(la\s+|il\s+)?(mia\s+|mio\s+)?settiman/i.test(u.text) || /\b(plan|organi[sz]e|prepare)\s+(my|the|this|next)\s+week\b/i.test(text))) {
     pushAi(t('Ho preparato una proposta per la tua settimana con allenamenti, task e sonno nei momenti liberi. I turni e gli impegni restano occupati. La guardi, togli quello che non vuoi e confermi: non cambio niente da sola.'), { ext: { actions: [{ kind: 'open', label: t('Vedi la proposta'), page: 'weekPlan' }, { kind: 'dismiss', label: t('Non ora') }] } });
     return;
   }

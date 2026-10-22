@@ -1,0 +1,30 @@
+{
+  "name": "lifepilot-videos",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "capture": "node capture/run.mjs",
+    "tts": "node scripts/tts.mjs",
+    "studio": "remotion studio src/index.ts",
+    "render": "node scripts/render.mjs",
+    "build:all": "npm run music && npm run capture && npm run tts && npm run render",
+    "app:build": "cd .. && npx expo export --platform web --output-dir video/app-web",
+    "app:serve": "node scripts/serve-web.mjs",
+    "music": "node scripts/make-music.mjs"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.250",
+    "@remotion/cli": "^4.0.250",
+    "@remotion/media-utils": "^4.0.250",
+    "@remotion/renderer": "^4.0.250",
+    "playwright-core": "^1.56.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.250"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "typescript": "^5.6.3"
+  }
+}

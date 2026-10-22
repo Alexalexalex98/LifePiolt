@@ -1,0 +1,7 @@
+node_modules
+app-web
+out
+.tmp
+public/clips
+public/audio
+public/data

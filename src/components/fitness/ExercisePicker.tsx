@@ -9,6 +9,7 @@ import { Body, Btn, H, Input, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import type { Equip, Muscle } from '@/lib/fitness/data';
+import { equipLabel, muscleLabel } from '@/lib/fitness/labels';
 import { makeCustom, searchExercises, type ExerciseX } from '@/lib/fitness/exerciseDb';
 import { FAMILIES, FAMILY_IDS } from '@/lib/fitness/poses';
 import { saveMediaToDrive } from '@/lib/driveSave';
@@ -57,16 +58,16 @@ export function ExercisePicker({ visible, title = 'Scegli l\'esercizio', onClose
         <View>
           <Input placeholder={`Cerca tra ${searchExercises({}, customEx, 9999).length} esercizi`} value={q} onChangeText={setQ} autoCapitalize="none" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }} contentContainerStyle={{ gap: 6 }}>
-            {(['tutti', ...MUSCLES] as const).map((m) => <Pill key={m} label={cap(m)} on={muscle === m} onPress={() => setMuscle(m)} />)}
+            {(['tutti', ...MUSCLES] as const).map((m) => <Pill key={m} label={muscleLabel(m)} on={muscle === m} onPress={() => setMuscle(m)} />)}
           </ScrollView>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }} contentContainerStyle={{ gap: 6 }}>
-            {(['tutti', ...EQUIPS] as const).map((m) => <Pill key={m} label={m === 'tutti' ? 'Ogni attrezzo' : cap(m)} on={equip === m} onPress={() => setEquip(m)} />)}
+            {(['tutti', ...EQUIPS] as const).map((m) => <Pill key={m} label={equipLabel(m)} on={equip === m} onPress={() => setEquip(m)} />)}
           </ScrollView>
           <ScrollView style={{ maxHeight: 360 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
             {list.map((e) => (
               <Pressable key={e.id} accessibilityRole="button" accessibilityLabel={e.name} onPress={() => { onPick(e); close(); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: t.border }}>
                 <ExerciseThumb ex={e} size={52} />
-                <View style={{ flex: 1 }}><Body bold>{e.name}</Body><Body small muted>{cap(e.muscle)} · {cap(e.equip)}{e.custom ? ` · ${tl('tuo')}` : ''}</Body></View>
+                <View style={{ flex: 1 }}><Body bold>{e.name}</Body><Body small muted>{muscleLabel(e.muscle)} · {equipLabel(e.equip)}{e.custom ? ` · ${tl('tuo')}` : ''}</Body></View>
               </Pressable>
             ))}
             {!list.length ? <Body muted style={{ marginVertical: 10 }}>Nessun esercizio con questi filtri.</Body> : null}
@@ -78,9 +79,9 @@ export function ExercisePicker({ visible, title = 'Scegli l\'esercizio', onClose
           <Body bold>Nome</Body>
           <Input placeholder="Es. Rematore con zaino" value={name} onChangeText={setName} />
           <Body bold style={{ marginTop: 6 }}>Che muscoli lavora</Body>
-          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={6}>{MUSCLES.map((m) => <Pill key={m} label={cap(m)} on={cm === m} onPress={() => setCm(m)} />)}</Row>
+          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={6}>{MUSCLES.map((m) => <Pill key={m} label={muscleLabel(m)} on={cm === m} onPress={() => setCm(m)} />)}</Row>
           <Body bold style={{ marginTop: 8 }}>Attrezzo</Body>
-          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={6}>{EQUIPS.map((m) => <Pill key={m} label={cap(m)} on={ce === m} onPress={() => setCe(m)} />)}</Row>
+          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={6}>{EQUIPS.map((m) => <Pill key={m} label={equipLabel(m)} on={ce === m} onPress={() => setCe(m)} />)}</Row>
           <Body bold style={{ marginTop: 8 }}>Come si misura</Body>
           <Row style={{ justifyContent: 'flex-start' }} gap={6}><Pill label="Ripetizioni" on={!timed} onPress={() => setTimed(false)} /><Pill label="Tempo (secondi)" on={timed} onPress={() => setTimed(true)} /></Row>
           <Body bold style={{ marginTop: 8 }}>Come si esegue (facoltativo)</Body>
