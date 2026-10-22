@@ -18,6 +18,10 @@ export type MonthCalc = {
   income: number;
   incomeLines: IncomeLine[];
   incomeUnsure: number;
+  /** giroconti tra i propri conti: non sono guadagno né spesa, ma cambiano quanto hai sul conto */
+  transferIn: number; transferOut: number;
+  /** saldo senza l'aiuto dei giroconti in entrata */
+  endWithoutTransfers: number;
   fixed: CalcLine[]; fixedTotal: number;
   variable: CalcLine[]; variableTotal: number;
   emergency: number;
@@ -37,6 +41,9 @@ const pretty = (l: string) => l.replace(/^[^·]+·\s*/, '').trim() || l;
 /** `categoryOf` e `alloc` arrivano dal chiamante (categorie e budget dell'utente). */
 export function monthCalc(m: CalcMonth, categoryOf: (label: string) => string, alloc: Record<string, number>, opts: CalcOpts = {}): MonthCalc {
   const keyOf = (x: CalcMove) => moveKey(m.label, x);
+  const skipped = m.movements.filter((x) => opts.skip?.(keyOf(x)));
+  const transferIn = r2(skipped.filter((x) => x.amount > 0).reduce((a, x) => a + x.amount, 0));
+  const transferOut = r2(-skipped.filter((x) => x.amount < 0).reduce((a, x) => a + x.amount, 0));
   const live = m.movements.filter((x) => !opts.skip?.(keyOf(x)));
   const inc = live.filter((x) => x.amount > 0);
   const incomeLines: IncomeLine[] = inc.map((x) => ({ label: pretty(x.label), amount: x.amount, date: x.date ?? '', key: keyOf(x), kind: opts.incomeKind ? opts.incomeKind(x, keyOf(x)) : 'salary' })).sort((a, b) => b.amount - a.amount);
@@ -63,5 +70,5 @@ export function monthCalc(m: CalcMonth, categoryOf: (label: string) => string, a
   const names = [...new Set([...Object.keys(alloc), ...Object.keys(spentBy)])];
   const byCategory = names.map((name) => ({ name, spent: spentBy[name] ?? 0, budget: alloc[name] ?? 0, left: r2((alloc[name] ?? 0) - (spentBy[name] ?? 0)) })).sort((a, b) => b.spent - a.spent);
   const net = m.movements.reduce((a, x) => a + x.amount, 0);
-  return { label: m.label, start: m.start, end: r2(m.start + net), income, incomeLines, incomeUnsure, fixed, fixedTotal, variable, variableTotal, emergency, expenses, left, savedPct: income > 0 ? Math.round(((emergency + left) / income) * 1000) / 10 : 0, byCategory };
+  return { label: m.label, start: m.start, end: r2(m.start + net), income, incomeLines, incomeUnsure, transferIn, transferOut, endWithoutTransfers: r2(m.start + net - transferIn + transferOut), fixed, fixedTotal, variable, variableTotal, emergency, expenses, left, savedPct: income > 0 ? Math.round(((emergency + left) / income) * 1000) / 10 : 0, byCategory };
 }

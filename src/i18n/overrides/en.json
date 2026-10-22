@@ -391,5 +391,7 @@
   "Movimento corretto": "Transaction corrected",
   "Movimento eliminato": "Transaction deleted",
   "Controlla descrizione e importo": "Check description and amount",
-  "Torna al calcolo": "Back to the calculation"
+  "Torna al calcolo": "Back to the calculation",
+  "Include giroconti tra i tuoi conti": "Includes transfers between your accounts",
+  "Non sono guadagno, ma ti hanno aiutato: senza di loro saresti a {0}.": "They are not earnings, but they helped you: without them you would be at {0}."
 }

@@ -8,6 +8,7 @@ import { formatMoney } from '@/i18n/format';
 import { monthCalc, type IncomeKind, type IncomeLine } from '@/lib/financeCalc';
 import { payeeKey } from '@/lib/statementAnalysis';
 import { toast } from '@/store/toast';
+import { t as tl } from '@/i18n/core';
 import { categoryOf, useFin } from '@/store/finance';
 
 /** Il calcolo del mese per intero: saldo sul conto, entrate, spese fisse e variabili, fondo emergenza, quanto resta e categorie contro budget. */
@@ -45,6 +46,7 @@ export function MonthCalcCard() {
         <Body small muted>Sul conto adesso</Body>
         <Text style={{ color: t.text, fontSize: 30, fontWeight: '800' }}>{formatMoney(c.end)}</Text>
         <Body small muted>Inizio mese {formatMoney(c.start)}</Body>
+        {c.transferIn > 0 || c.transferOut > 0 ? <Body small color={t.warn} style={{ marginTop: 4 }}>{`${tl('Include giroconti tra i tuoi conti')}: ${c.transferIn > 0 ? `+${formatMoney(c.transferIn)}` : ''}${c.transferIn > 0 && c.transferOut > 0 ? ' / ' : ''}${c.transferOut > 0 ? `−${formatMoney(c.transferOut)}` : ''}. ${tl('Non sono guadagno, ma ti hanno aiutato: senza di loro saresti a {0}.', formatMoney(c.endWithoutTransfers))}`}</Body> : null}
       </View>
       {open && (
         <>
