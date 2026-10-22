@@ -4,6 +4,8 @@ import { go } from '@/lib/nav';
 import { monthName, vacationPlan } from '@/lib/vacationPlan';
 import { useFin } from '@/store/finance';
 import { useLife } from '@/store/life';
+import { useMonthPlan } from '@/store/monthPlan';
+import { addMonths, estimateIncome, goalMonthly, monthsNeeded } from '@/lib/monthPlan';
 import { findByText, type AiAct } from './aiActionsCore';
 
 const sum = (l: { monthly: number }[]) => l.reduce((a, x) => a + x.monthly, 0);
@@ -31,6 +33,11 @@ export function describe(a: AiAct): string {
       const base = t('Imposto il risparmio «{0}»: {1} entro {2}', a.name, formatCHF(a.goal), monthName(a.month));
       return p && p.status !== 'senza-dati' && p.status !== 'scaduta' && p.perMonth > 0 ? `${base}. ${t('Dal tuo estratto: {0} al mese per {1} mesi.', formatCHF(p.perMonth), p.months)}` : base;
     }
+    case 'income_set': { const { type: _t, ...m } = a; const e = estimateIncome({ ...m, manualNext: m.next }); return t('Imposto l\'entrata prevista: {0} al mese', formatCHF(e.total)); }
+    case 'fixed_add': return t('Aggiungo la spesa fissa «{0}»: {1} al mese', a.name, formatCHF(a.amount));
+    case 'fixed_change': return t('Cambio la spesa fissa «{0}» a {1} al mese', a.match, formatCHF(a.amount));
+    case 'save_goal': return t('Metto da parte per «{0}»: {1} entro {2}, cioè circa {3} questo mese', a.name, formatCHF(a.total), monthName(a.month), formatCHF(goalMonthly({ id: 'x', name: a.name, kind: 'purchase', total: a.total, targetYm: a.month, saved: a.saved }, new Date().toISOString().slice(0, 7))));
+    case 'bill_spread': { const n = a.perMonth ? monthsNeeded(a.total, a.perMonth) : a.months!; return t('Distribuisco «{0}» ({1}) su {2} mesi, circa {3} al mese', a.name, formatCHF(a.total), n, formatCHF(a.total / n)); }
     case 'open': return t('Apro la pagina');
   }
 }
@@ -63,6 +70,18 @@ export function applyAiAction(a: AiAct): { ok: boolean; message: string } {
       life.patchGoal(hit[0]!.id, { p: a.p }); return { ok: true, message: t('Fatto: «{0}» è al {1}%.', hit[0]!.t, a.p) };
     }
     case 'vacation_set': useFin.getState().setVacation({ name: a.name, goal: a.goal, target: a.month, saved: a.saved ?? 0 }); return { ok: true, message: t('Fatto: ho impostato il piano di risparmio «{0}».', a.name) };
+    case 'income_set': { const { type: _t, next, ...m } = a; useMonthPlan.getState().setIncome({ ...m, manualNext: next }); return { ok: true, message: t('Fatto: entrata prevista impostata. La trovi in Piano del mese e puoi cambiarla.') }; }
+    case 'fixed_add': useMonthPlan.getState().addExtraFixed(a.name, a.amount); return { ok: true, message: t('Fatto: aggiunta la spesa fissa «{0}».', a.name) };
+    case 'fixed_change': {
+      const fin = useFin.getState(); const mp = useMonthPlan.getState();
+      const hits = [...(fin.statementInfo?.fixed ?? []).map((x) => ({ kind: 'st' as const, id: x.key, name: x.name })), ...mp.extraFixed.map((x) => ({ kind: 'ex' as const, id: x.id, name: x.name }))];
+      const m = findByText(hits, (x) => x.name, a.match);
+      if (m.length !== 1) return { ok: false, message: m.length ? t('Ne trovo più di una ({0}): dimmi quale.', m.slice(0, 4).map((x) => `«${x.name}»`).join(', ')) : t('Non trovo una spesa fissa che somigli a «{0}».', a.match) };
+      if (m[0]!.kind === 'st') fin.setFixedOverride(m[0]!.id, a.amount); else mp.patchExtraFixed(m[0]!.id, { amount: a.amount });
+      return { ok: true, message: t('Fatto: «{0}» ora è {1} al mese.', m[0]!.name, formatCHF(a.amount)) };
+    }
+    case 'save_goal': useMonthPlan.getState().addGoal({ name: a.name, kind: 'purchase', total: a.total, targetYm: a.month, saved: a.saved }); return { ok: true, message: t('Fatto: obiettivo «{0}» aggiunto al Piano del mese.', a.name) };
+    case 'bill_spread': { const n = a.perMonth ? monthsNeeded(a.total, a.perMonth) : a.months!; useMonthPlan.getState().addPlan({ name: a.name, total: a.total, startYm: addMonths(new Date().toISOString().slice(0, 7), 1), months: n }); return { ok: true, message: t('Fatto: «{0}» è distribuita su {1} mesi nel Piano del mese.', a.name, n) }; }
     case 'open': go(a.page); return { ok: true, message: t('Ecco la pagina.') };
   }
 }

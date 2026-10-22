@@ -13,6 +13,7 @@ import { formatMoney } from '@/i18n/format';
 import { listMovements } from '@/lib/explain';
 import { addMonths, buildMonthPlan, monthsNeeded, spreadOver, type IncomeMode } from '@/lib/monthPlan';
 import { findPlanChecks } from '@/lib/monthPlanChecks';
+import { staleDays } from '@/lib/statementChecks';
 import { monthName } from '@/lib/vacationPlan';
 import { moveKey } from '@/lib/financeCalc';
 import { useFin, type StatementInfo } from '@/store/finance';
@@ -101,6 +102,7 @@ export default function MonthPlan() {
         ) : null}
       </Card>
 
+      {(() => { const d = staleDays(rows, today.toISOString().slice(0, 10)); return d != null && d > 30 ? <Card accent={th.warn}><Body small color={th.warn}>{tl('L\'ultimo movimento dell\'estratto risale a {0} giorni fa: i calcoli non sono aggiornati. Carica un estratto recente da LifeFinance.', d)}</Body></Card> : null; })()}
       {checks.length ? (
         <Card accent={th.warn}>
           <H>Da confermare</H>

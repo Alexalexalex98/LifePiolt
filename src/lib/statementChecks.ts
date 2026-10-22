@@ -14,9 +14,9 @@ export type Tr = (src: string, ...args: (string | number)[]) => string;
 const itTr: Tr = (src, ...a) => src.replace(/\{(\d+)\}/g, (_m, i) => String(a[+i] ?? ''));
 export type Check = {
   id: string;
-  kind: 'multi' | 'sequence' | 'income-multi' | 'income-seq' | 'other';
+  kind: 'multi' | 'sequence' | 'income-multi' | 'income-seq' | 'change' | 'other';
   text: string;
-  options: { label: string; answer: string; effect?: { hide?: string[]; excludeIncome?: string[] } }[];
+  options: { label: string; answer: string; effect?: { hide?: string[]; excludeIncome?: string[]; override?: { key: string; amount: number } } }[];
 };
 
 const ymOf = (iso: string) => iso.slice(0, 7);
@@ -60,7 +60,24 @@ export function findChecks(args: { rows: Row[]; fixed: Fixed[]; incomes: { name:
       }
     }
   }
+  // una spesa fissa che cambia di colpo: aumento vero o errore?
+  for (const f of fixed) {
+    const mine = rows.filter((r) => r.amount < 0 && payeeKey(r.label) === f.key).sort((x, y) => x.date.localeCompare(y.date));
+    if (mine.length < 4) continue;
+    const last = -mine[mine.length - 1]!.amount, prev = mine.slice(0, -1).map((r) => -r.amount).sort((x, y) => x - y);
+    const typical = prev[Math.floor(prev.length / 2)]!;
+    if (typical <= 0 || Math.abs(last - typical) / typical < 0.2 || Math.abs(last - typical) < 15) continue;
+    const id = `change:${f.key}:${Math.round(last)}`;
+    if (answers[id]) continue;
+    out.push({ id, kind: 'change', text: tr('«{0}» di solito costa {1} ma l\'ultimo pagamento è {2}. È un aumento vero o un errore?', f.name.split(': ').pop() ?? f.name, money(typical), money(last)), options: [{ label: tr('Aumento vero: usa il nuovo importo'), answer: 'new', effect: { override: { key: f.key, amount: Math.round(last * 100) / 100 } } }, { label: tr('Una tantum o errore: tieni il solito'), answer: 'keep' }] });
+  }
   return out;
+}
+
+/** Giorni dall'ultimo movimento: se sono tanti, i calcoli non sono aggiornati e va detto. */
+export function staleDays(rows: Row[], today: string): number | null {
+  const last = rows.map((r) => r.date).sort().pop();
+  return last ? Math.floor((Date.parse(today) - Date.parse(last)) / 86400000) : null;
 }
 
 /** «Altro» pesa troppo per capire dove vanno i soldi: le voci più grandi da assegnare. */

@@ -3,6 +3,7 @@ import { useFitness } from '@/store/fitness';
 import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
 import { useLpMoney } from '@/store/lpMoney';
+import { useMonthPlan } from '@/store/monthPlan';
 import { useNet } from '@/store/network';
 import { usePantry } from '@/store/pantry';
 import { useShifts } from '@/store/shifts';
@@ -38,7 +39,7 @@ const SECTIONS: Section[] = [
   { cat: 'agenda', id: 'Agenda, task, note, obiettivi, file', re: /(task|attivit|impegn|event|agenda|calendar|nota|note|obiettiv|file|document|drive|vacanz|automazion|ricord|promemoria|piano|settimana|oggi|domani)/i,
     get: () => { const l = useLife.getState(); return compact({ tasks: l.tasks, goals: l.goals, automations: l.automations, notes: l.notes, files: l.drive.map((f) => ({ name: (f as { name?: string }).name, kind: (f as { kind?: string }).kind })), events: l.events, vacations: l.vacations, vacRange: l.vacRange }, 5, 40, 200); } },
   { cat: 'finance', id: 'Finanze: conto, estratto, budget, bollette, tasse, investimenti', re: /(spes|soldi|budget|risparm|stipendi|estratto|conto|bolletta|bollette|fattur|tass|imposte|dichiarazion|investi|azion|titol|abbonament|affitto|mutuo|finanz|euro|chf|tagli|costi|uscite|entrate|saldo|lifepoint|punti|pagament)/i,
-    get: () => { const f = useFin.getState(); const m = useLpMoney.getState(); return compact({ ...pick(f, ['savingsPct', 'vacation', 'budget', 'guidelines', 'bills', 'invoices', 'tax', 'cash', 'trades', 'plans', 'statementInfo', 'insights']), movimentiUltimiMesi: f.months.slice(-4), lifeMoney: pick(m, ['budgets', 'goals', 'roundUpGoal', 'subs', 'requests']) }, 5, 60, 90); } },
+    get: () => { const f = useFin.getState(); const m = useLpMoney.getState(); return compact({ ...pick(f, ['savingsPct', 'vacation', 'budget', 'guidelines', 'bills', 'invoices', 'tax', 'cash', 'trades', 'plans', 'statementInfo', 'insights', 'checks', 'payeeFix', 'moveKind', 'fixedOverrides']), pianoDelMese: pick(useMonthPlan.getState(), ['income', 'extraFixed', 'goals', 'plans', 'savingsAccount', 'answers']), movimentiUltimiMesi: f.months.slice(-4), lifeMoney: pick(m, ['budgets', 'goals', 'roundUpGoal', 'subs', 'requests']) }, 5, 60, 90); } },
   { cat: 'health', id: 'Salute, umore, sonno, mente', re: /(salute|sonno|dorm|passi|umore|stress|mente|medit|cuore|battit|peso|energia|respir|apple|watch|benessere|allenament)/i,
     get: () => compact(pick(useHealth.getState(), ['series', 'dates', 'workouts', 'mindSessions', 'moods', 'wearable', 'extra']), 5, 30, 90) },
   { cat: 'fitness', id: 'Fitness, cibo, frigo, piano alimentare', re: /(allenament|palestra|esercizi|scheda|programm|fitness|cibo|mangi|pranz|cena|colazion|ricett|frigo|dispensa|spesa|calorie|kcal|proteine|dieta|pasto|acqua|bere|peso)/i,

@@ -199,7 +199,7 @@ type FinState = {
   /** che cos'è un'entrata, deciso dall'utente (chiave del movimento -> tipo); «transfer» non conta nei conti */
   moveKind: Record<string, 'salary' | 'other' | 'refund' | 'transfer'>;
   setMoveKind: (key: string, kind: 'salary' | 'other' | 'refund' | 'transfer' | null) => void;
-  answerCheck: (id: string, answer: string, effect?: { hide?: string[]; excludeIncome?: string[]; cls?: Record<string, string> }) => void;
+  answerCheck: (id: string, answer: string, effect?: { hide?: string[]; excludeIncome?: string[]; cls?: Record<string, string>; override?: { key: string; amount: number } }) => void;
   /** correzioni dell'utente per un beneficiario: cambia classe o non contarla come spesa fissa */
   payeeFix: Record<string, { cls?: string; hide?: boolean }>;
   setPayeeFix: (key: string, fix: { cls?: string; hide?: boolean } | null) => void;
@@ -397,7 +397,7 @@ export const useFin = create<FinState>()(
         const pf = { ...(s.payeeFix ?? {}) };
         (effect?.hide ?? []).forEach((k) => { pf[k] = { ...(pf[k] ?? {}), hide: true }; });
         Object.entries(effect?.cls ?? {}).forEach(([k, c]) => { pf[k] = { ...(pf[k] ?? {}), cls: c }; });
-        return { checks: { ...(s.checks ?? {}), [id]: answer }, payeeFix: pf, salaryExcluded: [...new Set([...(s.salaryExcluded ?? []), ...(effect?.excludeIncome ?? [])])] };
+        return { checks: { ...(s.checks ?? {}), [id]: answer }, payeeFix: pf, fixedOverrides: effect?.override ? { ...(s.fixedOverrides ?? {}), [effect.override.key]: effect.override.amount } : s.fixedOverrides, salaryExcluded: [...new Set([...(s.salaryExcluded ?? []), ...(effect?.excludeIncome ?? [])])] };
       });
       get().recomputeStatement();
     },

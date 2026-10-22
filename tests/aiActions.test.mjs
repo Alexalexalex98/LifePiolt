@@ -133,3 +133,20 @@ test('contratto: solo lordo => chiede il netto, non lo inventa', () => {
   const o = parseContract('{"tipo":"ore","ore_settimanali":40,"paga_oraria_lorda":32}');
   assert.equal(o.model.mode, 'hourly'); assert.equal(o.model.hours, 173); assert.equal(parseContract('niente json'), null);
 });
+
+test('azioni piano del mese: validate', () => {
+  assert.equal(validate({ type: 'income_set', mode: 'hourly', hours: 160, rate: 30 }).mode, 'hourly');
+  assert.equal(validate({ type: 'income_set', mode: 'hourly' }), null);
+  assert.equal(validate({ type: 'bill_spread', name: 'Imposte', total: 3000 }), null);
+  assert.equal(validate({ type: 'bill_spread', name: 'Imposte', total: 3000, months: 12 }).months, 12);
+  assert.equal(validate({ type: 'fixed_change', match: 'cassa malati', amount: 480 }).amount, 480);
+  assert.equal(validate({ type: 'save_goal', name: 'Divano', total: 900, month: '2027-03' }).month, '2027-03');
+});
+
+import { staleDays } from '../src/lib/statementChecks.ts';
+test('spesa fissa cambiata di colpo => domanda; estratto vecchio => giorni', () => {
+  const rows = [...mk('Axa', -100, '2026-06-01', '2026-07-01', '2026-08-01', '2026-09-01'), ...mk('Axa', -180, '2026-10-01')];
+  const c = findChecks({ rows, fixed: [{ name: 'Cassa: Axa', key: 'axa', cls: 'Cassa malati e assicurazioni', monthly: 100 }], incomes: [], answers: {} });
+  assert.equal(c[0].kind, 'change'); assert.equal(c[0].options[0].effect.override.amount, 180);
+  assert.equal(staleDays(rows, '2026-12-01'), 61);
+});

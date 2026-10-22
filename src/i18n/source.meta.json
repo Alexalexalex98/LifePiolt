@@ -1,5 +1,5 @@
 {
- "count": 13770,
+ "count": 13879,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -59,7 +59,7 @@
   "src/app/(tabs)/legalDoc.tsx": 2,
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 46,
-  "src/app/(tabs)/lifefinance.tsx": 103,
+  "src/app/(tabs)/lifefinance.tsx": 105,
   "src/app/(tabs)/lifefitness.tsx": 99,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 113,
@@ -73,6 +73,7 @@
   "src/app/(tabs)/mascot.tsx": 1,
   "src/app/(tabs)/menuPage.tsx": 28,
   "src/app/(tabs)/messagesPage.tsx": 36,
+  "src/app/(tabs)/monthPlan.tsx": 73,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,
   "src/app/(tabs)/myServices.tsx": 17,
@@ -149,7 +150,7 @@
   "src/components/LogoLoader.tsx": 1,
   "src/components/MediaPickerField.tsx": 14,
   "src/components/MentionBox.tsx": 1,
-  "src/components/MonthCalcCard.tsx": 29,
+  "src/components/MonthCalcCard.tsx": 30,
   "src/components/MoodChart.tsx": 6,
   "src/components/NavBar.tsx": 28,
   "src/components/NetSheets.tsx": 333,
@@ -360,7 +361,7 @@
   "src/lib/analytics.ts": 64,
   "src/lib/analyticsData.ts": 32,
   "src/lib/arrival.ts": 8,
-  "src/lib/assistant/aiActions.ts": 27,
+  "src/lib/assistant/aiActions.ts": 39,
   "src/lib/assistant/appActionCore.ts": 42,
   "src/lib/assistant/appActions.ts": 18,
   "src/lib/assistant/dictionary.ts": 51,
@@ -415,6 +416,7 @@
   "src/lib/club/progress.ts": 1,
   "src/lib/club/reputation.ts": 5,
   "src/lib/confirm.ts": 7,
+  "src/lib/contractParse.ts": 2,
   "src/lib/creatorStats.ts": 60,
   "src/lib/csvImport.ts": 45,
   "src/lib/dash/backgrounds.ts": 16,
@@ -495,6 +497,8 @@
   "src/lib/mascot.ts": 55,
   "src/lib/menu.ts": 11,
   "src/lib/modRules.ts": 17,
+  "src/lib/monthPlan.ts": 8,
+  "src/lib/monthPlanChecks.ts": 17,
   "src/lib/moodAnalysis.ts": 57,
   "src/lib/nav.ts": 1,
   "src/lib/netMedia.ts": 7,
@@ -551,7 +555,7 @@
   "src/lib/speech.ts": 4,
   "src/lib/speechCore.ts": 29,
   "src/lib/statementAnalysis.ts": 12,
-  "src/lib/statementChecks.ts": 19,
+  "src/lib/statementChecks.ts": 22,
   "src/lib/statementForecast.ts": 8,
   "src/lib/statementPdf.ts": 3,
   "src/lib/statementReport.ts": 7,
@@ -564,7 +568,7 @@
   "src/lib/theia/ask.ts": 58,
   "src/lib/theia/collect.ts": 1,
   "src/lib/theia/core.ts": 6,
-  "src/lib/theia/financeChecks.ts": 5,
+  "src/lib/theia/financeChecks.ts": 10,
   "src/lib/theia/free.ts": 128,
   "src/lib/theia/radar.ts": 46,
   "src/lib/theia/radarNotify.ts": 3,
@@ -614,5 +618,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1743
+ "withPlaceholders": 1771
 }
