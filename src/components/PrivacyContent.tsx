@@ -48,7 +48,7 @@ export function PrivacyContent({ showPermissions = true, showSharingLink = false
         <H>Cosa verrebbe inviato a un server</H>
         <P>Solo se l'app è collegata a un server (cosa che avviene solo in versioni configurate in questo modo) e solo per le funzioni indicate qui sotto.</P>
         <P>Le domande che fai all'assistente AI vengono inviate al server per ottenere la risposta. Il contesto personale (ad esempio le tue attività) viene aggiunto solo se il permesso "AI Memory" è attivo nelle Impostazioni.</P>
-        <P>I dati di salute e quelli finanziari vengono inclusi nel contesto solo se attivi i permessi "Dati salute" e "Dati finanziari" nelle Impostazioni. Puoi disattivarli in qualsiasi momento.</P>
+        <P>Theia legge sul telefono tutto quello che c'è nell'app. Prima di mandare una parte dei tuoi dati (agenda, finanze, estratto conto, salute...) al servizio AI esterno ti chiede il consenso, ogni volta o per sempre, e lo puoi revocare in qualsiasi momento (GDPR e nLPD).</P>
         <P>Se è configurato un indirizzo per la segnalazione degli errori, in caso di problema viene inviato in forma anonima solo il messaggio tecnico, la versione dell'app e la piattaforma. Nessun dato personale.</P>
       </Card>
       {showPermissions && (

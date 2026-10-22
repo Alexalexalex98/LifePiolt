@@ -36,6 +36,13 @@ export function FileConsentCard() {
         <Pill label="Consenti sempre" on={c.summary === 'always'} onPress={() => set({ summary: 'always' })} />
         <Pill label="Non consentire" on={c.summary === 'never'} onPress={() => set({ summary: 'never' })} />
       </Row>
+      <Body bold style={{ marginTop: 12 }}>I tuoi dati dell'app nelle domande a Theia (agenda, finanze, estratto conto, salute...)</Body>
+      <Body small muted style={{ marginTop: 4 }}>Theia vede tutto quello che c'è nell'app, sul telefono. Solo per rispondere a una domanda con l'AI esterna devo mandare le parti che servono: te lo chiedo prima.</Body>
+      <Row gap={8} style={{ marginTop: 6 }}>
+        <Pill label="Chiedi ogni volta" on={(c.data ?? 'ask') === 'ask'} onPress={() => set({ data: 'ask' })} />
+        <Pill label="Consenti sempre" on={c.data === 'always'} onPress={() => set({ data: 'always' })} />
+        <Pill label="Non consentire" on={c.data === 'never'} onPress={() => set({ data: 'never' })} />
+      </Row>
     </Card>
   );
 }

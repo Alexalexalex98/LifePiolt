@@ -17,6 +17,9 @@ import { HONESTY, guardClaims, humanize, styleHints, tidy } from '@/lib/aiPerson
 import { useAssistant } from '@/store/assistant';
 import { aiChat, aiChatRaw, aiReadFilesFull, aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
 import { useLife } from '@/store/life';
+import { appContext } from '@/lib/theia/appContext';
+import { askSend, logSend } from '@/lib/aiConsent';
+const tl0 = (s: string) => t(s);
 
 /**
  * Theia: l'assistente di LifePilot.
@@ -277,29 +280,37 @@ async function toBase64(uri: string): Promise<string | null> {
 }
 
 /** Prompt di Theia per il server AI: chi e', come scrive l'utente, cosa sa l'app, la conversazione recente e la richiesta. */
-function theiaPrompt(question: string, selection?: string): string {
+async function theiaPrompt(question: string, selection?: string): Promise<string> {
   const app0 = useApp.getState();
-  const ctx = app0.privacy['AI Memory'] ? buildContext(true) : '';
+  let ctx = '';
+  if (app0.privacy['AI Memory']) {
+    const ad = appContext(question);
+    const label = `${tl0('Parti incluse')}: ${ad.topics.map((x) => x.split(':')[0]).join(', ') || tl0('agenda e task')}`;
+    if (await askSend('data', label)) {
+      ctx = `${buildContext(true)}\n\nDati dell'app (veri, calcolati dall'app):\n${ad.text}`;
+      logSend('data', ctx.length, ad.topics.length ? ad.topics : ['contesto']);
+    }
+  }
   const log = useAssistant.getState().log;
   const mine = log.filter((m) => m.who === 'me').slice(-6).map((m) => m.text);
   const recent = log.slice(-9, -1).filter((m) => m.text.trim()).map((m) => `${m.who === 'me' ? 'Utente' : (app0.assistantName || 'Theia')}: ${m.text.replace(/\s+/g, ' ').slice(0, 300)}`).join('\n');
-  return `Sei ${app0.assistantName || 'Theia'}, la persona di fiducia dentro l'app LifePilot per l'utente. Rispondi come una persona che conosce bene l'utente, in modo diretto e utile, anche a domande libere (testi, idee, spiegazioni, consigli generali). Non dai consigli medici, legali o finanziari: spieghi e dai indicazioni generali. Se nel contesto c'è l'estratto conto dell'utente, usalo con le cifre esatte (non dire mai di non avere accesso alle sue spese) e indica dove si potrebbe ridurre, senza inventare importi.\n${HONESTY} Se parli di alimentazione, salute, sonno, allenamento o integratori: di' che sono stime e indicazioni generali, non un parere medico; non diagnosticare, non prescrivere terapie, dosi di integratori o diete speciali, e invita a sentire un medico o un dietista in caso di sintomi, malattie, gravidanza o dubbi.\n${styleHints([...mine, question])}${ctx ? `\n\nContesto dell'utente:\n${ctx}` : ''}${recent ? `\n\nConversazione recente:\n${recent}` : ''}${selection ? `\n\nTesto selezionato:\n"${selection}"` : ''}\n\nRichiesta: ${question}`;
+  return `Sei ${app0.assistantName || 'Theia'}, la persona di fiducia dentro l'app LifePilot per l'utente. Rispondi come una persona che conosce bene l'utente, in modo diretto e utile, anche a domande libere (testi, idee, spiegazioni, consigli generali). Non dai consigli medici, legali o finanziari: spieghi e dai indicazioni generali. Se nel contesto c'è l'estratto conto dell'utente, usalo con le cifre esatte; hai accesso a tutti i dati dell'app che compaiono nel contesto (non dire di non averlo: se un dato manca davvero, dì che non c'è ancora nell'app) e indica dove si potrebbe ridurre, senza inventare importi.\n${HONESTY} Se parli di alimentazione, salute, sonno, allenamento o integratori: di' che sono stime e indicazioni generali, non un parere medico; non diagnosticare, non prescrivere terapie, dosi di integratori o diete speciali, e invita a sentire un medico o un dietista in caso di sintomi, malattie, gravidanza o dubbi.\n${styleHints([...mine, question])}${ctx ? `\n\nContesto dell'utente:\n${ctx}` : ''}${recent ? `\n\nConversazione recente:\n${recent}` : ''}${selection ? `\n\nTesto selezionato:\n"${selection}"` : ''}\n\nRichiesta: ${question}`;
 }
 
 /** Domanda libera in chat: risponde il server AI come una persona (con la conversazione recente). */
 export async function askTheiaChat(question: string): Promise<string> {
-  return guardClaims(tidy(await aiChatRaw(theiaPrompt(question)))).text;
+  return guardClaims(tidy(await aiChatRaw(await theiaPrompt(question)))).text;
 }
 
 /** Domanda su file o foto inviati (consenso gia' dato): risponde il server AI leggendo i file. `result` e' la lettura strutturata dei documenti. */
 export async function askTheiaFiles(question: string, files: { uri: string; mime: string }[]): Promise<{ reply: string; result?: unknown }> {
-  const r = await aiReadFilesFull(theiaPrompt(question), files);
+  const r = await aiReadFilesFull(await theiaPrompt(question), files);
   return { reply: humanize(r.reply), result: r.result };
 }
 
 export async function askTheia(question: string, req: TheiaRequest): Promise<TheiaAnswer> {
   if (aiServerConfigured) {
-    const prompt = theiaPrompt(question, req.text);
+    const prompt = await theiaPrompt(question, req.text);
     const img = req.imageUri ? await imageForAi(req.imageUri) : null;
     try {
       const text = img ? await aiVision(img.base64, img.mime, prompt) : await aiChat(prompt);

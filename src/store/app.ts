@@ -53,6 +53,8 @@ type AppState = {
   devices: Device[];
   integrations: Record<string, boolean>;
   privacy: Record<string, boolean>;
+  /** una tantum: Theia vede per impostazione predefinita anche salute e finanze (poi si può disattivare) */
+  privacyAllOn?: boolean;
   dataLocal: Record<string, boolean>;
   set: (patch: Partial<AppState>) => void;
   trackVisit: (p: string) => void;
@@ -85,7 +87,7 @@ const initial = {
   workHours: { start: '09:00', end: '18:00' },
   devices: [{ name: 'Questo dispositivo', detail: 'Sessione attuale', current: true }] as Device[],
   integrations: { Calendario: true, Health: false, Email: false, Wearable: false, 'Smart Home': false } as Record<string, boolean>,
-  privacy: { 'AI Memory': true, 'Dati salute': false, 'Dati finanziari': false, Posizione: false } as Record<string, boolean>,
+  privacy: { 'AI Memory': true, 'Dati salute': true, 'Dati finanziari': true, Posizione: false } as Record<string, boolean>,
   dataLocal: {} as Record<string, boolean>,
 };
 

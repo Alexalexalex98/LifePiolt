@@ -1,5 +1,5 @@
 {
- "count": 13609,
+ "count": 13624,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -167,7 +167,7 @@
   "src/components/TheiaHost.tsx": 42,
   "src/components/TripCards.tsx": 20,
   "src/components/WeeklyReportButton.tsx": 2,
-  "src/components/aiSettings/FileConsent.tsx": 30,
+  "src/components/aiSettings/FileConsent.tsx": 32,
   "src/components/aiSettings/LocalCapabilities.tsx": 4,
   "src/components/aiSettings/ProvidersSection.tsx": 21,
   "src/components/aiSettings/SendLog.tsx": 9,
@@ -335,7 +335,7 @@
   "src/domain/operations.ts": 10,
   "src/lib/a11y.ts": 1,
   "src/lib/ai.ts": 26,
-  "src/lib/aiConsent.ts": 11,
+  "src/lib/aiConsent.ts": 14,
   "src/lib/aiLinkCode.ts": 1,
   "src/lib/aiPersona.ts": 16,
   "src/lib/aiRouter/adapters/index.ts": 1,
@@ -552,7 +552,8 @@
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
-  "src/lib/theia.ts": 101,
+  "src/lib/theia.ts": 104,
+  "src/lib/theia/appContext.ts": 7,
   "src/lib/theia/ask.ts": 58,
   "src/lib/theia/free.ts": 115,
   "src/lib/theia/radar.ts": 46,
@@ -601,5 +602,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1698
+ "withPlaceholders": 1700
 }

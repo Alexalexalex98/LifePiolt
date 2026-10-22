@@ -7,9 +7,10 @@
 import { alertT } from '@/lib/alert';
 import { useAiRouter } from '@/store/aiRouter';
 
-export type SendKind = 'food' | 'files' | 'summary';
+export type SendKind = 'food' | 'files' | 'summary' | 'data';
 
 const WARN = 'Se non consenti, Theia non potrà capire file, foto e documenti: li terrò solo sul telefono.';
+const WARN_DATA = 'Se non consenti, rispondo senza guardare i tuoi dati: restano solo sul telefono.';
 
 /** Vecchio valore salvato (true/false) -> nuova scelta. */
 const modeOf = (v: unknown): 'ask' | 'always' | 'never' => (v === true || v === 'always' ? 'always' : v === 'never' ? 'never' : 'ask');
@@ -21,12 +22,14 @@ export function askSend(kind: SendKind, what?: string): Promise<boolean> {
   if (mode === 'always') return Promise.resolve(true);
   if (mode === 'never') return Promise.resolve(false);
   return new Promise((resolve) => {
-    const head = kind === 'food' ? 'Inviare la foto del piatto al servizio AI?' : kind === 'summary' ? 'Inviare questi valori al servizio AI?' : 'Inviare questo file al servizio AI?';
-    const body = `${what ? `${what}\n\n` : ''}${kind === 'summary'
+    const head = kind === 'data' ? 'Mandare questi tuoi dati al servizio AI?' : kind === 'food' ? 'Inviare la foto del piatto al servizio AI?' : kind === 'summary' ? 'Inviare questi valori al servizio AI?' : 'Inviare questo file al servizio AI?';
+    const body = `${what ? `${what}\n\n` : ''}${kind === 'data'
+      ? 'Theia vede tutto sul telefono. Per rispondere alla tua domanda devo però mandare le parti elencate sopra al servizio AI (Google Gemini), tramite il server di LifePilot. Non mando nient\'altro, e nel registro "Cosa è stato inviato" resta solo il tipo di dati, mai il contenuto. I dati possono essere trattati fuori da UE e Svizzera (Google): il consenso è facoltativo e lo puoi revocare quando vuoi in Impostazioni > Intelligenza di Theia (GDPR / nLPD). L\'AI può sbagliare: verifica sempre le cifre.'
+      : kind === 'summary'
       ? 'Per darti un parere più dettagliato devo mandare al servizio AI (Google Gemini), tramite il server di LifePilot, solo il testo con i valori del pasto o le medie dei nutrienti. Niente foto, nome, salute in generale, finanze o contatti.'
       : kind === 'food'
       ? 'Per riconoscere gli alimenti devo mandare la foto al servizio AI (Google Gemini), tramite il server di LifePilot. Non invio altro: né salute, né finanze, né contatti.'
-      : 'Per leggerlo devo mandarlo al servizio AI (Google Gemini), tramite il server di LifePilot. Non invio altro: né salute, né finanze, né contatti.'}\n\n${WARN}`;
+      : 'Per leggerlo devo mandarlo al servizio AI (Google Gemini), tramite il server di LifePilot. Non invio altro: né salute, né finanze, né contatti.'}\n\n${kind === 'data' ? WARN_DATA : WARN}`;
     alertT(head, body, [
       { text: 'Non consentire', style: 'cancel', onPress: () => { st.setFileConsent({ [kind]: 'never' }); resolve(false); } },
       { text: 'Consenti sempre', onPress: () => { st.setFileConsent({ [kind]: 'always' }); resolve(true); } },
