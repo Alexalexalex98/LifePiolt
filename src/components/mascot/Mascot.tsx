@@ -25,9 +25,9 @@ function Eyes({ e, ink, blink, glint }: { e: Expression; ink: string; blink: boo
     case 'celebrating': return <G>{arc(LX, true, 6)}{arc(RX, true, 6)}</G>;
     case 'sleepy': return <G><Path d={`M${LX - 12} ${EY + 4} Q${LX} ${EY + 10} ${LX + 12} ${EY + 3}`} stroke={ink} strokeWidth={5} strokeLinecap="round" fill="none" /><Path d={`M${RX - 12} ${EY + 3} Q${RX} ${EY + 10} ${RX + 12} ${EY + 4}`} stroke={ink} strokeWidth={5} strokeLinecap="round" fill="none" /></G>;
     case 'thinking': return <G>{oval(LX - 4, EY - 6, 6.5, 10, 0, true)}{oval(RX - 2, EY - 12, 6.5, 10, 0, true)}</G>;
-    case 'understood': return <G>{oval(LX, EY, 8.5, 14, 0, true)}{oval(RX, EY, 8.5, 14, 0, true)}</G>;
+    case 'understood': return <G>{oval(LX, EY, 9.5, 16, 0, true)}{oval(RX, EY, 9.5, 16, 0, true)}</G>;
     case 'doubtful': return <G>{oval(LX, EY + 6, 5, 6, 0)}{oval(RX, EY, 7, 12, 0, true)}</G>;
-    case 'surprised': return <G>{oval(LX, EY, 9, 15, 0, true)}{oval(RX, EY, 9, 15, 0, true)}</G>;
+    case 'surprised': return <G>{oval(LX, EY, 10, 17, 0, true)}{oval(RX, EY, 10, 17, 0, true)}</G>;
     case 'sad': return <G>{oval(LX, EY + 4, 7.5, 9, -18, true)}{oval(RX, EY + 4, 7.5, 9, 18, true)}</G>;
     case 'working': return <G>{oval(LX, EY + 2, 7, 8)}{oval(RX, EY + 2, 7, 8)}<Path d={`M${LX - 10} ${EY - 11} L${LX + 8} ${EY - 5}`} stroke={ink} strokeWidth={4} strokeLinecap="round" /><Path d={`M${RX + 10} ${EY - 11} L${RX - 8} ${EY - 5}`} stroke={ink} strokeWidth={4} strokeLinecap="round" /></G>;
     case 'love': return <G><Path d={heart(LX, EY, 1)} fill={ink} /><Path d={heart(RX, EY, 1)} fill={ink} /></G>;
@@ -46,7 +46,7 @@ function Eyes({ e, ink, blink, glint }: { e: Expression; ink: string; blink: boo
     case 'nervous': return <G>{oval(LX, EY + 2, 7, 11, 0, true)}{oval(RX, EY + 2, 7, 11, 0, true)}</G>;
     case 'thanks': return <G><Path d={`M${LX - 12} ${EY + 8} Q${LX} ${EY - 4} ${LX + 12} ${EY + 8}`} stroke={ink} strokeWidth={4.5} strokeLinecap="round" fill="none" /><Path d={`M${RX - 12} ${EY + 8} Q${RX} ${EY - 4} ${RX + 12} ${EY + 8}`} stroke={ink} strokeWidth={4.5} strokeLinecap="round" fill="none" /></G>;
     case 'goodbye': return <G>{arc(LX, true)}{oval(RX, EY, 7, 12, 0, true)}</G>;
-    default: return <G>{oval(LX, EY, 7, 12)}{oval(RX, EY, 7, 12)}</G>;
+    default: return <G>{oval(LX, EY, 8.5, 15)}{oval(RX, EY, 8.5, 15)}</G>;
   }
 }
 
@@ -157,9 +157,10 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
         </Defs>
         <Circle cx={100} cy={112} r={98} fill="url(#glow)" opacity={0.55} />
         <Ellipse cx={100} cy={184} rx={54} ry={7} fill="#000" opacity={0.2} />
-        <Path d="M100 22 C142 22 176 62 176 114 C176 156 146 180 100 180 C54 180 24 156 24 114 C24 62 58 22 100 22 Z" fill="url(#body)" />
-        <Path d="M54 66 Q62 42 90 34" stroke="#fff" strokeWidth={7} strokeLinecap="round" fill="none" opacity={0.55} />
-        <Path d={star(60, 62, 9)} fill="#fff" opacity={0.95} />
+        <Path d="M86 22 C128 18 179 56 179 114 C179 158 147 182 100 182 C51 182 21 158 21 118 C21 68 50 26 86 22 Z" fill="url(#body)" />
+        <Path d="M44 78 Q48 46 82 34" stroke="#fff" strokeWidth={9} strokeLinecap="round" fill="none" opacity={0.5} />
+        <Ellipse cx={132} cy={150} rx={30} ry={11} fill="#fff" opacity={0.12} />
+        <Path d={star(58, 60, 12)} fill="#fff" opacity={0.98} />
         <Eyes e={expr} ink={tones.eye} blink={blink} glint="#fff" />
         <Extras e={expr} tone={tones.glow} ink={tones.eye} />
       </Svg>
