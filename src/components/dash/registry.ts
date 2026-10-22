@@ -80,6 +80,7 @@ export const WIDGETS: WidgetDef[] = [
   { type: 'sc-train', cat: 'scorciatoie', title: 'Inizia un allenamento', desc: 'Apri LifeFitness', icon: 'lifefitness', color: FIT, sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'lifefitness', label: 'Allenati', page: 'lifefitness', color: FIT }) },
   { type: 'sc-note', cat: 'scorciatoie', title: 'Nuova nota', desc: 'Scrivi al volo', icon: 'note', color: '#8fb3ff', sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'note', label: 'Nuova nota', page: 'noteedit', color: '#8fb3ff' }) },
   { type: 'sc-task', cat: 'scorciatoie', title: 'Nuovo task', desc: 'Aggiungi una cosa da fare', icon: 'tasks', color: PLAN, sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'tasks', label: 'Nuovo task', page: 'lifetask', color: PLAN }) },
+  { type: 'sc-week', cat: 'scorciatoie', title: 'Pianifica la settimana', desc: 'Theia propone allenamenti, task e sonno nei momenti liberi', icon: 'calendar', color: PLAN, sizes: S1, def: '2x1', Comp: shortcutW({ icon: 'calendar', label: 'Pianifica la settimana', page: 'weekPlan', color: PLAN }) },
   { type: 'sc-chat', cat: 'scorciatoie', title: 'Messaggi', desc: 'Apri le chat', icon: 'send', color: '#c9b6ff', sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'send', label: 'Messaggi', page: 'messagesPage', color: '#c9b6ff' }) },
 ];
 export const WBY: Record<string, WidgetDef> = Object.fromEntries(WIDGETS.map((w) => [w.type, w]));

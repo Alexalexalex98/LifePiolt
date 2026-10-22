@@ -1,6 +1,9 @@
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useState } from 'react';
+import { InfoTip } from '@/components/InfoTip';
+import { refreshRadarNotifications } from '@/lib/theia/notifyRadar';
+import { useRadar } from '@/store/radar';
 import { Pressable, Share, View } from 'react-native';
 import { alertT } from '@/lib/alert';
 
@@ -64,6 +67,8 @@ export default function Settings() {
   const app = useApp();
   const { set } = app;
   const [cat, setCat] = useState<string | null>(null);
+  const radarN = useRadar((x) => x.notify);
+  const setRadarN = useRadar((x) => x.setNotify);
   const [edit, setEdit] = useState<null | 'name' | 'email' | 'assistant'>(null);
   const [editVal, setEditVal] = useState('');
   const [hexDraft, setHexDraft] = useState('');
@@ -229,6 +234,21 @@ export default function Settings() {
             <Row><View><Body bold>{d.name}</Body><Body small muted>{d.detail}</Body></View>{d.current ? <Body small color={t.positive}>attivo</Body> : <Link danger onPress={() => { set({ devices: app.devices.filter((_, j) => j !== i) }); toast('Dispositivo disconnesso'); }}>disconnetti</Link>}</Row>
           </Item>
         ))}
+      </Card>
+      ) : null}
+
+      {cat === 'notif' ? (
+      <Card>
+        <Row><H style={{ flex: 1 }}>Avvisi di Theia</H><InfoTip title="Cosa sono gli avvisi di Theia" body={['Theia guarda budget, agenda, turni, sonno e task e ti avvisa solo quando c\'è qualcosa che conviene sapere: per esempio un mese che finisce in rosso o un turno presto dopo una notte corta.', 'Al massimo un riepilogo al giorno all\'ora che scegli, più un ricordo per andare a letto prima di un turno presto. Mai di notte. Il testo è calcolato sul telefono con i tuoi dati veri e non fa niente da solo.', 'Se non apri l\'app per qualche giorno, l\'avviso resta quello dell\'ultima volta: non invento avvisi a distanza.']} /></Row>
+        <Toggle label="Avvisami quando c'è qualcosa da sapere" value={radarN.on} onChange={async (v) => { if (v) { const r = await requestPermission(); if (!r.ok) { toast(r.message || 'Per gli avvisi servono le notifiche: attivale in Impostazioni'); return; } } setRadarN({ on: v }); void refreshRadarNotifications(); toast(v ? 'Avvisi di Theia accesi' : 'Avvisi di Theia spenti'); }} />
+        {radarN.on ? (
+          <View style={{ marginTop: 8 }}>
+            <Body small muted>Riepilogo ogni giorno verso le:</Body>
+            <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 6 }} gap={6}>
+              {[[7, 30], [8, 0], [9, 0], [12, 0], [18, 0], [20, 0]].map(([h, m]) => <Pill key={`${h}${m}`} label={`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`} on={radarN.hour === h && radarN.minute === m} onPress={() => { setRadarN({ hour: h, minute: m }); void refreshRadarNotifications(); }} />)}
+            </Row>
+          </View>
+        ) : null}
       </Card>
       ) : null}
 

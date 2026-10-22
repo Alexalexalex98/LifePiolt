@@ -60,6 +60,7 @@ test('routeFor: seminari, servizi, prenotazioni, lavoro, punti, impegni, bollett
   assert.deepEqual(bill.params, { id: 'luce-10' });
   assert.deepEqual(bill.fallback, { page: 'plan', params: {} });
   assert.deepEqual(routeFor('reminder'), { valid: true, page: 'plan', params: {} });
+  assert.deepEqual(routeFor('reminder:radar'), { valid: true, page: 'index', params: {} });
   assert.equal(routeFor('system').page, 'notificationsPage');
 });
 

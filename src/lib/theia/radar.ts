@@ -16,6 +16,8 @@ export type Proposal = {
   why: string;
   facts: Fact[];
   action?: { label: string; page: string; params?: Record<string, string> };
+  /** per gli avvisi legati a un momento preciso (es. l'ora di andare a letto): quando ricordarlo, in ms */
+  notifyAt?: number;
 };
 
 const WD = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
@@ -83,10 +85,12 @@ function sleepVsShift(s: Snap, today: string): Proposal[] {
   const last = s.sleep[s.sleep.length - 1];
   if (!last || last.hours >= 6.5) return [];
   const bed = hhmm(startMin - 8 * 60 - 60); // 8 ore di sonno più un'ora per prepararsi e arrivare
+  const [ty, tm, td] = tomorrow.split('-').map(Number);
+  const bedAt = new Date(ty, tm - 1, td, 0, 0, 0, 0).getTime() + (startMin - 9 * 60 - 30) * 60000; // mezz'ora prima di andare a letto
   return [{ id: `sonno-turno:${tomorrow}`, kind: 'sonno-turno', severity: 'warn', title: 'Domani il turno inizia presto e la notte scorsa hai dormito poco',
     why: `Domani il turno «${next.shift.name}» inizia alle ${clock(next.startTs)} e la notte scorsa hai dormito ${fmtNum(last.hours, 1)} ore. Per dormirne 8 e avere un'ora per prepararti, ti conviene essere a letto entro le ${bed}.`,
     facts: [{ label: 'inizio turno', value: clock(next.startTs), source: 'turni' }, { label: 'ore dormite', value: Math.round(last.hours * 10) / 10, unit: 'h', source: 'sonno' }, { label: 'ore di sonno da avere', value: 8, unit: 'h', source: 'obiettivo standard di sonno' }, { label: 'ora a letto', value: bed, source: 'calcolo: inizio turno meno 9 ore' }],
-    action: { label: 'Guarda il sonno', page: 'lifehealth' } }];
+    action: { label: 'Guarda il sonno', page: 'lifehealth' }, notifyAt: bedAt }];
 }
 
 function overdue(s: Snap, today: string): Proposal[] {

@@ -211,6 +211,12 @@ export async function sendTheia(i: SendInput): Promise<void> {
   const topic = i.topic ?? (command ? topicOf(command) ?? undefined : undefined);
   store().push({ who: 'me', text, source: 'chat', topic, ext: { ...withAtts, lang: u.lang, voice: i.source === 'voice' } });
 
+  // «pianifica la mia settimana»: proposta con anteprima e conferma (allenamenti, task e sonno nei momenti liberi, con turni e impegni sempre occupati)
+  if (!pending && !useLearned.getState().teaching && (u.status === 'passthrough' || u.status === 'translated') && /(pianific|organizz|prepar)\w*\s+(la\s+|il\s+)?(mia\s+|mio\s+)?settiman/i.test(u.text)) {
+    pushAi(t('Ho preparato una proposta per la tua settimana con allenamenti, task e sonno nei momenti liberi. I turni e gli impegni restano occupati. La guardi, togli quello che non vuoi e confermi: non cambio niente da sola.'), { ext: { actions: [{ kind: 'open', label: t('Vedi la proposta'), page: 'weekPlan' }, { kind: 'dismiss', label: t('Non ora') }] } });
+    return;
+  }
+
   // domande sui tuoi dati (soldi, agenda, turni, task, sonno, passi, acqua, calorie): risposta calcolata dal codice, con le fonti; se il dato manca lo dico
   if (!pending && !useLearned.getState().teaching && (u.status === 'passthrough' || u.status === 'translated')) {
     try {

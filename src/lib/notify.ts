@@ -249,6 +249,8 @@ export async function refreshBriefings(): Promise<void> {
     }
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     try { void require('@/lib/foodNotify').refreshFoodReminders(); } catch { /* promemoria del cibo non disponibili */ }
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    try { void require('@/lib/theia/notifyRadar').refreshRadarNotifications(); } catch { /* avvisi di Theia non disponibili */ }
   } catch (e) { log.warn('notify', 'Riprogrammazione briefing fallita', errToString(e)); /* mai bloccare l'app per una notifica */ }
 }
 

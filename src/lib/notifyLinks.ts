@@ -126,7 +126,7 @@ export function routeFor(ref: string | null | undefined): Route {
     case 'club': return ok('clubPage', { id: a[0] });
     case 'clubcontent': return INDEX.test(a[2] ?? '0') ? ok('clubContent', a[2] ? { id: a[0], lesson: a[1], t: a[2] } : { id: a[0], lesson: a[1] }) : invalid;
     case 'call': return ok('groupCall', { chat: a[0], mid: a[1] });
-    case 'reminder': return a[0] === 'food' ? ok('ai', { ask: 'Com\'è andata oggi con il cibo?' }) : a[0] === 'water' ? ok('ai', { ask: 'Quanta acqua ho bevuto oggi?' }) : ok('plan', {});
+    case 'reminder': return a[0] === 'food' ? ok('ai', { ask: 'Com\'è andata oggi con il cibo?' }) : a[0] === 'water' ? ok('ai', { ask: 'Quanta acqua ho bevuto oggi?' }) : a[0] === 'radar' ? ok('index', {}) : ok('plan', {});
     case 'system': return ok('notificationsPage', {});
   }
 }
