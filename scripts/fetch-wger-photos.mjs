@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Cerca su wger.de (archivio libero di esercizi) le foto degli esercizi che ancora non ne hanno e salva i collegamenti in src/lib/fitness/exPhotosWger.json.
+ * Cerca su wger.de (archivio libero di esercizi) le foto degli esercizi che ancora non ne hanno e salva i collegamenti in src/lib/fitness/exPhotosWger.ts.
  * Uso:  node scripts/fetch-wger-photos.mjs      (serve internet; ci vogliono un paio di minuti)
  * Le immagini di wger hanno licenza Creative Commons (di solito CC BY-SA): l'app mostra autore e licenza sotto la foto.
  * Si usano SOLO le immagini con una licenza dichiarata; le altre vengono saltate.
@@ -11,10 +11,10 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const terms = JSON.parse(readFileSync(join(ROOT, 'scripts', 'wger-terms.json'), 'utf8'));
-const OUT = join(ROOT, 'src', 'lib', 'fitness', 'exPhotosWger.json');
+const OUT = join(ROOT, 'src', 'lib', 'fitness', 'exPhotosWger.ts');
 const base = 'https://wger.de';
 let out = {};
-try { out = JSON.parse(readFileSync(OUT, 'utf8')); } catch { /* prima volta */ }
+try { out = JSON.parse(readFileSync(OUT, 'utf8').split('= ')[1].split(';\nexport')[0].replace(/^[^{]*/, '')); } catch { /* prima volta */ }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const get = async (u) => { const r = await fetch(u, { headers: { accept: 'application/json' } }); if (!r.ok) throw new Error(`${r.status} ${u}`); return r.json(); };
 
@@ -36,5 +36,5 @@ for (const [id, term] of Object.entries(terms)) {
   } catch (e) { console.log(`- ${id}: ${e.message}`); }
   await sleep(350);
 }
-writeFileSync(OUT, JSON.stringify(out, null, 1));
+writeFileSync(OUT, `/** Foto da wger.de: generato da scripts/fetch-wger-photos.mjs. */\nconst WGER: Record<string, { url: string; license: string; author: string; name: string }> = ${JSON.stringify(out, null, 1)};\nexport default WGER;\n`);
 console.log(`\nTrovate ${found} foto nuove, ${skipped} senza risultato. Totale collegate: ${Object.keys(out).length}.`);
