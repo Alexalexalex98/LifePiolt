@@ -1,5 +1,5 @@
 {
- "count": 13268,
+ "count": 13273,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -29,7 +29,7 @@
   "src/app/(tabs)/extraCheck.tsx": 18,
   "src/app/(tabs)/fitnessDay.tsx": 18,
   "src/app/(tabs)/fitnessDiary.tsx": 45,
-  "src/app/(tabs)/fitnessExercise.tsx": 30,
+  "src/app/(tabs)/fitnessExercise.tsx": 31,
   "src/app/(tabs)/fitnessGroup.tsx": 39,
   "src/app/(tabs)/fitnessGroups.tsx": 53,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
@@ -56,7 +56,7 @@
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
   "src/app/(tabs)/lifefinance.tsx": 101,
-  "src/app/(tabs)/lifefitness.tsx": 90,
+  "src/app/(tabs)/lifefitness.tsx": 93,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 113,
   "src/app/(tabs)/lifenetwork.tsx": 41,
@@ -225,6 +225,7 @@
   "src/components/feed/TabCards.tsx": 21,
   "src/components/feed/useDeckCards.ts": 2,
   "src/components/fitness/DaySummary.tsx": 22,
+  "src/components/fitness/ExerciseBrowser.tsx": 14,
   "src/components/fitness/ExerciseFigure.tsx": 3,
   "src/components/fitness/ExercisePhotos.tsx": 3,
   "src/components/fitness/ExercisePicker.tsx": 28,
@@ -431,6 +432,7 @@
   "src/lib/fitness/poses.ts": 368,
   "src/lib/fitness/premium.ts": 3,
   "src/lib/fitness/programsExtra.ts": 31,
+  "src/lib/fitness/progs/p4.ts": 1,
   "src/lib/fitness/waterBanner.ts": 10,
   "src/lib/focusPlan.ts": 4,
   "src/lib/foodNotify.ts": 5,
@@ -580,5 +582,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1654
+ "withPlaceholders": 1655
 }

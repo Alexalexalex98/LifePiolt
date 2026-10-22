@@ -16,7 +16,7 @@ export function matchScore(p: Program, f: FitProfile): number {
   const dl = Math.abs(LV[p.level] - LV[f.level]);
   s += dl === 0 ? 25 : dl === 1 ? 8 : -20;
   s += p.place === f.place ? 20 : f.place === 'palestra' && p.place === 'casa' ? 6 : -12;
-  s += Math.max(0, 12 - Math.abs(p.days - f.days) * 5);
+  s += Math.max(0, 30 - Math.abs(p.days - f.days) * 10);
   s += Math.max(0, 10 - Math.round(Math.abs(avgMinutes(p) - f.minutes) / 3));
   const hit = (f.needs ?? []).filter((n) => p.tags?.includes(n)).length;
   s += Math.min(90, hit * 45);

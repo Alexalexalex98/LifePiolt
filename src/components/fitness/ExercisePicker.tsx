@@ -4,6 +4,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { ExerciseFigure } from '@/components/fitness/ExerciseFigure';
+import { ExerciseThumb } from '@/components/fitness/ExercisePhotos';
 import { Body, Btn, H, Input, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
@@ -63,7 +64,7 @@ export function ExercisePicker({ visible, title = 'Scegli l\'esercizio', onClose
           <ScrollView style={{ maxHeight: 360 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
             {list.map((e) => (
               <Pressable key={e.id} accessibilityRole="button" accessibilityLabel={e.name} onPress={() => { onPick(e); close(); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: t.border }}>
-                <ExerciseFigure ex={e} size={52} single captions={false} />
+                <ExerciseThumb ex={e} size={52} />
                 <View style={{ flex: 1 }}><Body bold>{e.name}</Body><Body small muted>{cap(e.muscle)} · {cap(e.equip)}{e.custom ? ` · ${tl('tuo')}` : ''}</Body></View>
               </Pressable>
             ))}

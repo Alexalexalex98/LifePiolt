@@ -191,6 +191,6 @@ export const EX_PHOTO_DIR: Record<string, string> = {
 const BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
 /** Indirizzi delle due foto (partenza, arrivo) dell'esercizio, se esistono. */
 export function exPhotoUrls(id: string | undefined): [string, string] | undefined {
-  const dir = id ? EX_PHOTO_DIR[id] : undefined;
+  const dir = id ? (id.startsWith('fx-') ? id.slice(3) : EX_PHOTO_DIR[id]) : undefined;
   return dir ? [`${BASE}${encodeURIComponent(dir)}/0.jpg`, `${BASE}${encodeURIComponent(dir)}/1.jpg`] : undefined;
 }

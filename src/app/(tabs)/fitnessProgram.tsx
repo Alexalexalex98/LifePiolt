@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/T';
 
-import { ExerciseFigure } from '@/components/fitness/ExerciseFigure';
+import { ExerciseThumb } from '@/components/fitness/ExercisePhotos';
 import { ExercisePicker } from '@/components/fitness/ExercisePicker';
 import { Body, Btn, Card, H, Input, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -126,7 +126,7 @@ export default function FitnessProgram() {
               return (
                 <View key={k} style={{ borderTopWidth: k ? 1 : 0, borderTopColor: t.border, paddingVertical: 8 }}>
                   <Pressable accessibilityRole="button" accessibilityLabel={e?.name ?? st.ex} onPress={() => go('fitnessExercise', { id: st.ex })} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <ExerciseFigure ex={e} size={54} captions={false} />
+                    <ExerciseThumb ex={e ?? { id: st.ex }} size={54} />
                     <View style={{ flex: 1 }}><Body bold>{e?.name ?? st.ex}</Body><Text style={{ color: t.muted, fontSize: 12 }}>{e ? cap(e.muscle) : ''}</Text></View>
                     <Body bold>{stepText(st)}</Body>
                   </Pressable>

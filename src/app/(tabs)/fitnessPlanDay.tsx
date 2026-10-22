@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { ExerciseFigure } from '@/components/fitness/ExerciseFigure';
+import { ExerciseThumb } from '@/components/fitness/ExercisePhotos';
 import { ExercisePicker } from '@/components/fitness/ExercisePicker';
 import { FIT } from '@/components/fitness/kit';
 import { InfoTip } from '@/components/InfoTip';
@@ -75,8 +75,8 @@ export default function FitnessPlanDay() {
           return (
             <Pressable key={d} accessibilityRole="button" accessibilityLabel={dt.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })} onPress={() => setDate(d)} style={{ width: CELL - 6, alignItems: 'center', gap: 4 }}>
               <Text style={{ color: d === today ? FIT : t.muted, fontSize: 11, fontWeight: '800' }}>{WD[dt.getDay()]}</Text>
-              <View style={{ width: CELL - 10, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: i.done ? FIT : sel ? t.chip : i.planned ? FIT + '2e' : t.chip + '88', borderWidth: sel ? 2 : 0, borderColor: FIT }}>
-                {i.done ? <Icon name="check" size={18} color="#1c0b04" stroke={3} /> : <Text style={{ color: t.text, fontWeight: '800', fontSize: 15 }}>{dt.getDate()}</Text>}
+              <View style={{ width: CELL - 10, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: i.done ? FIT : (i.planned && d < today) ? t.warn + '26' : sel ? t.chip : i.planned ? FIT + '2e' : t.chip + '88', borderWidth: sel ? 2 : 0, borderColor: FIT }}>
+                {i.done ? <Icon name="check" size={18} color="#1c0b04" stroke={3} /> : (i.planned && d < today) ? <Icon name="x" size={18} color={t.warn} stroke={3} /> : <Text style={{ color: t.text, fontWeight: '800', fontSize: 15 }}>{dt.getDate()}</Text>}
                 {partial ? <View style={{ position: 'absolute', bottom: 4, width: 6, height: 6, borderRadius: 3, backgroundColor: FIT }} /> : null}
               </View>
             </Pressable>
@@ -113,7 +113,7 @@ export default function FitnessPlanDay() {
                     {on ? <Icon name="check" size={16} color="#1c0b04" stroke={3} /> : null}
                   </Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel={e?.name ?? st.ex} onPress={() => go('fitnessExercise', { id: st.ex })} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <ExerciseFigure ex={e} size={46} captions={false} />
+                    <ExerciseThumb ex={e ?? { id: st.ex }} size={46} />
                     <View style={{ flex: 1 }}><Body bold style={on ? { opacity: 0.6 } : undefined}>{e?.name ?? st.ex}</Body><Body small muted>{stepText(st)}</Body></View>
                   </Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel={tl('Cambia esercizio')} hitSlop={8} onPress={() => setSwapAt(k)}><Icon name="repeat" size={18} color={t.muted} /></Pressable>

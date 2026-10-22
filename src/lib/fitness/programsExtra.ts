@@ -3,6 +3,7 @@ import { PROGRAMS, type Goal, type Level, type Place, type Program, type Session
 import { P1 } from './progs/p1.ts';
 import { P2 } from './progs/p2.ts';
 import { P3 } from './progs/p3.ts';
+import { P4 } from './progs/p4.ts';
 
 /** I bisogni che una persona può indicare (e con cui le schede si filtrano e si consigliano). */
 export const NEEDS: { id: string; label: string }[] = [
@@ -43,7 +44,7 @@ function parse(src: string): Program[] {
   }
   return out;
 }
-export const EXTRA_PROGRAMS: Program[] = [...parse(P1), ...parse(P2), ...parse(P3)];
+export const EXTRA_PROGRAMS: Program[] = [...parse(P1), ...parse(P2), ...parse(P3), ...parse(P4)];
 /** Tutte le schede: quelle di base e quelle su misura. */
 export const ALL_PROGRAMS: Program[] = [...PROGRAMS, ...EXTRA_PROGRAMS];
 export const programById = (id: string | undefined): Program | undefined => (id ? ALL_PROGRAMS.find((p) => p.id === id) : undefined);

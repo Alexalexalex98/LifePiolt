@@ -6,9 +6,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
-import { ExerciseFigure } from '@/components/fitness/ExerciseFigure';
-import { ExercisePhotos } from '@/components/fitness/ExercisePhotos';
-import { exPhotoUrls } from '@/lib/fitness/exPhotos';
+import { ExerciseMedia } from '@/components/fitness/ExercisePhotos';
 import { Body, Btn, Card, H, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
@@ -85,9 +83,10 @@ export default function FitnessExercise() {
     <Page id="fitnessExercise" back title={ex.name}>
       <FitHero eyebrow={`${cap(ex.muscle)} · ${cap(ex.equip)}${ex.custom ? ` · ${tl('tuo')}` : ''}`} title={ex.name} sub={ex.timed ? 'A tempo' : 'A ripetizioni'} />
       <Card>
-        <View style={{ marginBottom: 10 }}>{(() => { const own = ex.photos ?? []; const real = own.length ? undefined : exPhotoUrls(ex.id); const urls = own.length ? own : real; return urls ? <ExercisePhotos urls={urls} name={ex.name} real={!!real} /> : <View style={{ alignItems: 'center' }}><ExerciseFigure ex={ex} size={150} /></View>; })()}</View>
+        <View style={{ marginBottom: 10 }}><ExerciseMedia ex={ex} /></View>
         <Body>{ex.how}</Body>
-        <Body small muted style={{ marginTop: 6 }}>Le foto mostrano la posizione di partenza e quella di arrivo: servono a capire come si fa.</Body>
+        {ex.en ? <Body small muted style={{ marginTop: 6 }}>Le istruzioni arrivano da un archivio internazionale e sono in inglese.</Body> : null}
+        <Body small muted style={{ marginTop: 6 }}>Le due foto si alternano: mostrano la posizione di partenza e quella di arrivo.</Body>
       </Card>
       {guide.cues.length ? (
         <Card>

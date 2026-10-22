@@ -9,7 +9,13 @@ import { stepsOf, sessionMinutes, newStep, whyThis, recommend } from '../src/lib
 test('archivio: oltre 200 esercizi, id unici, tutti con famiglia valida', () => {
   assert.ok(ALL_EXERCISES.length >= 200, String(ALL_EXERCISES.length));
   assert.equal(new Set(ALL_EXERCISES.map((e) => e.id)).size, ALL_EXERCISES.length);
-  for (const e of ALL_EXERCISES) { assert.ok(e.fam && FAMILIES[e.fam], `${e.id}: famiglia ${e.fam}`); assert.ok(e.how.length > 15, e.id); }
+  for (const e of ALL_EXERCISES) { assert.ok(e.id.startsWith('fx-') || (e.fam && FAMILIES[e.fam]), `${e.id}: famiglia ${e.fam}`); assert.ok(e.how.length > 15, e.id); }
+});
+test('archivio pubblico: centinaia di esercizi in più, con foto', () => {
+  const fx = ALL_EXERCISES.filter((e) => e.id.startsWith('fx-'));
+  assert.ok(fx.length > 600, String(fx.length));
+  assert.ok(ALL_EXERCISES.length > 900);
+  assert.ok(fx.every((e) => e.en && e.how.length > 10 && e.name));
 });
 test('gli esercizi dei programmi esistono ancora', () => {
   for (const p of PROGRAMS) for (const s of p.sessions) for (const st of s.steps) assert.ok(exById(st.ex), `${p.id}: ${st.ex}`);

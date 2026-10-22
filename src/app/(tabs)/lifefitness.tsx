@@ -11,9 +11,11 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { PARTNER_GYMS, type Goal, type Level, type Place } from '@/lib/fitness/data';
 import { ALL_PROGRAMS, NEEDS, programById } from '@/lib/fitness/programsExtra';
+import { dayInfo } from '@/lib/fitness/dayPlan';
 import { dailyTarget, sumMacros } from '@/lib/fitness/nutrition';
 import { recommend, sessionMinutes, stats, weekView, whyThis, type FitProfile } from '@/lib/fitness/plan';
 import { PREMIUM_PRICE_LP, daysLeft, passPayload, premiumState } from '@/lib/fitness/premium';
+import { ExerciseBrowser } from '@/components/fitness/ExerciseBrowser';
 import { ExercisePicker } from '@/components/fitness/ExercisePicker';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
@@ -45,6 +47,7 @@ export default function LifeFitness() {
   const [buy, setBuy] = useState<'off' | 'ask' | 'busy' | 'done' | 'fail'>('off');
   const [buyMsg, setBuyMsg] = useState('');
   const [lib, setLib] = useState(false);
+  const [sub, setSub] = useState('Programmi');
   const [draft, setDraft] = useState<FitProfile>(fit.profile ?? { goal: 'tonificare', level: 'principiante', place: 'casa', days: 3, minutes: 30 });
   /* arrivi da «LifePass» dopo aver letto come funziona: solo ora si apre la conferma */
   const { buy: buyParam } = useLocalSearchParams<{ buy?: string }>();
@@ -96,15 +99,19 @@ export default function LifeFitness() {
             <Card>
               <Row><H>La tua settimana</H><Btn small ghost title="Cambia" onPress={() => setSetup(true)} /></Row>
               <Row style={{ marginTop: 6, justifyContent: 'space-between' }} gap={4}>
-                {week.map((d) => (
+                {week.map((w) => { const d = dayInfo(w.date, { program: active, profile: fit.profile, history: fit.history, plans: fit.plans ?? {}, now: new Date() }); const dw = { ...d, weekday: w.weekday }; const missed = dw.planned && !dw.done && dw.date < todayIso; return (
                   <Pressable key={d.date} accessibilityRole="button" accessibilityLabel={tl('Apri la giornata del {0}', d.date)} onPress={() => go('fitnessPlanDay', { date: d.date })} style={{ flex: 1, alignItems: 'center', gap: 5 }}>
-                    <Text style={{ color: d.date === todayIso ? FIT : t.muted, fontSize: 11, fontWeight: '800' }}>{DAYS[d.weekday]}</Text>
-                    <View style={{ width: 34, height: 46, borderRadius: 12, backgroundColor: d.done ? FIT : d.planned ? FIT + '2e' : t.chip, alignItems: 'center', justifyContent: 'center', borderWidth: d.date === todayIso ? 2 : 0, borderColor: FIT }}>
-                      {d.done ? <Icon name="check" size={17} color="#1c0b04" stroke={3} /> : d.planned ? <Icon name="lifefitness" size={16} color={FIT} /> : null}
+                    <Text style={{ color: d.date === todayIso ? FIT : t.muted, fontSize: 11, fontWeight: '800' }}>{DAYS[dw.weekday]}</Text>
+                    <View style={{ width: 34, height: 46, borderRadius: 12, backgroundColor: d.done ? FIT : missed ? t.warn + '26' : d.planned ? FIT + '2e' : t.chip, alignItems: 'center', justifyContent: 'center', borderWidth: d.date === todayIso ? 2 : 0, borderColor: FIT }}>
+                      {d.done ? <Icon name="check" size={17} color="#1c0b04" stroke={3} /> : missed ? <Icon name="x" size={17} color={t.warn} stroke={3} /> : d.planned ? <Icon name="lifefitness" size={16} color={FIT} /> : null}
                       {!d.done && (fit.exDone ?? {})[d.date]?.idx.length ? <View style={{ position: 'absolute', bottom: 4, width: 6, height: 6, borderRadius: 3, backgroundColor: FIT }} /> : null}
                     </View>
                   </Pressable>
-                ))}
+                ); })}
+              </Row>
+              <Row style={{ marginTop: 10 }} gap={14}>
+                <Row gap={5}><Icon name="check" size={13} color={FIT} stroke={3} /><Body small muted>Fatto</Body></Row>
+                <Row gap={5}><Icon name="x" size={13} color={t.warn} stroke={3} /><Body small muted>Non fatto</Body></Row>
               </Row>
               <Row style={{ marginTop: 12 }} gap={8}>
                 <Btn small ghost style={{ flex: 1 }} icon="calendar" title="Giorni e allenamenti" onPress={() => go('fitnessPlanDay', { date: todayIso })} />
@@ -126,6 +133,9 @@ export default function LifeFitness() {
 
           {tab === 'Allenarsi' ? (
             <>
+          <TabRow options={['Programmi', 'Esercizi']} value={sub} onChange={setSub} />
+          {sub === 'Esercizi' ? <ExerciseBrowser onCreate={() => setLib(true)} /> : (
+            <>
           <H style={{ marginTop: 8 }}>{fit.profile ? 'Programmi per te' : 'Programmi'}</H>
           {(fit.profile ? recs : ALL_PROGRAMS.slice(0, 4)).map((p) => (
             <Card key={p.id} onPress={() => go('fitnessProgram', { id: p.id })}>
@@ -136,11 +146,12 @@ export default function LifeFitness() {
             </Card>
           ))}
           <Btn ghost title={tl('Tutte le schede ({0})', ALL_PROGRAMS.length)} onPress={() => go('fitnessProgram', { id: '' })} />
-          <Btn ghost icon="lifefitness" title="Libreria degli esercizi" onPress={() => setLib(true)} />
+            </>
+          )}
 
-          <Card accent={FIT} onPress={() => go('fitnessGroups')}>
+          {sub === 'Programmi' ? <Card accent={FIT} onPress={() => go('fitnessGroups')}>
             <Row><View style={{ flex: 1 }}><H>Allenati in gruppo</H><Body small muted>Gruppi gratuiti e a pagamento, ognuno con la sua community. Puoi anche crearne uno.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
-          </Card>
+          </Card> : null}
             </>
           ) : null}
 

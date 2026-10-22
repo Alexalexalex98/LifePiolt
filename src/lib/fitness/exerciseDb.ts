@@ -1,8 +1,9 @@
 /** Archivio esercizi (modulo PURO): oltre 200 esercizi con attrezzo, muscolo, famiglia di movimento (per la dimostrazione), punti chiave ed errori. */
 import { EXERCISES, type Equip, type Exercise, type Muscle } from './data.ts';
 import { FAMILIES, type Family } from './poses.ts';
+import { FREE_EX } from './exFreeData.ts';
 
-export type ExerciseX = Exercise & { fam?: string; /** creato dall'utente */ custom?: boolean; /** foto di esecuzione scelte dall'utente */ photos?: string[] };
+export type ExerciseX = Exercise & { fam?: string; /** creato dall'utente */ custom?: boolean; /** foto di esecuzione scelte dall'utente */ photos?: string[]; /** il testo «come si fa» è in inglese (archivio internazionale) */ en?: boolean; level?: string };
 
 /** Famiglia di movimento degli esercizi storici. */
 const OLD_FAM: Record<string, string> = {
@@ -310,6 +311,11 @@ function build(): ExerciseX[] {
     const name = a[0].trim(); if (names.has(norm(name))) continue; names.add(norm(name));
     let id = slug(name); while (out.some((e) => e.id === id)) id += '-2';
     out.push({ id, name, muscle: a[1] as Muscle, equip: a[2] as Equip, fam: a[3], how: a[4].trim(), ...(a[5] === 't' ? { timed: true } : {}) });
+  }
+  for (const line of FREE_EX.split('\n')) {
+    const a = line.split('|'); if (a.length < 7) continue;
+    const name = a[1].trim(); if (names.has(norm(name)) || out.some((x) => x.id === `fx-${a[0]}`)) continue; names.add(norm(name));
+    out.push({ id: `fx-${a[0]}`, name, muscle: a[2] as Muscle, equip: a[3] as Equip, how: a.slice(6).join('|').trim(), en: true, ...(a[4] ? { level: a[4] } : {}), ...(a[5] === 't' ? { timed: true } : {}) });
   }
   return out;
 }

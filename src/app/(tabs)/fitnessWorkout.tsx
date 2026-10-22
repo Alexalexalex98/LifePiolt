@@ -9,7 +9,7 @@ import { Icon } from '@/lib/icons';
 import { Body, Btn, Card, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
-import { ExerciseFigure } from '@/components/fitness/ExerciseFigure';
+import { ExerciseMedia } from '@/components/fitness/ExercisePhotos';
 import { ExercisePicker } from '@/components/fitness/ExercisePicker';
 import { exById, guideOf, type ExerciseX } from '@/lib/fitness/exerciseDb';
 import { sessionMinutes, stepsOf, editKey } from '@/lib/fitness/plan';
@@ -105,7 +105,7 @@ export default function FitnessWorkout() {
         <Card style={{ marginTop: 12 }}>
           <Text style={{ color: t.text, fontSize: 24, fontWeight: '900' }}>{ex?.name ?? cur.ex}</Text>
           <Body small muted style={{ marginBottom: 8 }}>{tl('Serie {0} di {1}', set, cur.sets)}</Body>
-          <View style={{ alignItems: 'center', marginBottom: 6 }}><ExerciseFigure ex={ex} size={140} /></View>
+          <View style={{ marginBottom: 8 }}><ExerciseMedia ex={ex ?? { id: cur.ex, name: cur.ex }} maxWidth={420} /></View>
           <Text style={{ color: FIT, fontSize: 46, fontWeight: '900', textAlign: 'center', marginVertical: 8 }}>{timed ? mmss(left) : `${cur.reps} ${tl('ripetizioni')}`}</Text>
           <Body small>{ex?.how}</Body>
           {guide.cues.length ? <View style={{ marginTop: 8 }}>{guide.cues.slice(0, 3).map((c) => <Row key={c} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 2 }} gap={6}><Icon name="check" size={13} color={FIT} stroke={2.6} /><Body small muted style={{ flex: 1 }}>{c}</Body></Row>)}</View> : null}
