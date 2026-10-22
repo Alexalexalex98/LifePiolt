@@ -21,3 +21,12 @@ export function bodyTones(color: string): { light: string; base: string; shade: 
   const base = mix('#ffffff', color, 0.5);
   return { light: mix('#ffffff', color, 0.1), base, shade: mix(color, '#0b0d12', 0.22), glow: color, eye: mix(color, '#0b0d12', 0.86) };
 }
+
+/** L'espressione che Theia fa leggendo la sua risposta: dubbio se non sa o non può, «capito» se ha fatto qualcosa, felice altrimenti. */
+export function moodOf(text: string | undefined): Expression {
+  const x = (text ?? '').toLowerCase();
+  if (/\b(non so|non ho (trovato|dati|abbastanza)|non posso|non riesco|non sono sicura|non sono sicuro|mi manca|non ci sono dati)\b/.test(x)) return 'doubtful';
+  if (/\b(ho (aggiunto|salvato|creato|preparato|segnato|spostato|inviato)|fatto|aggiunt[oa]|salvat[oa])\b/.test(x)) return 'understood';
+  if (/\b(attenzione|errore|problema|scadut[oa]|in rosso)\b/.test(x)) return 'sad';
+  return 'happy';
+}

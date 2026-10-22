@@ -23,6 +23,7 @@ import { goBack, go, isFreshForward } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { installTextScale } from '@/lib/textScale';
 import { translateText } from '@/i18n/core';
+import { Mascot } from '@/components/mascot/Mascot';
 import { toast, useToast } from '@/store/toast';
 
 // "Testo più grande" vale per tutti i <Text> dell'app (vedi lib/textScale.ts)
@@ -416,9 +417,14 @@ export function Progress({ value, color }: { value: number; color?: string }) {
   );
 }
 
-export function Empty({ text }: { text: string }) {
+export function Empty({ text, mood = 'sleepy' }: { text: string; mood?: import('@/lib/mascot').Expression }) {
   const t = useTheme();
-  return <Text style={{ color: t.muted, textAlign: 'center', paddingVertical: 22, fontSize: 14, lineHeight: 20 }}>{text}</Text>;
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: 18 }}>
+      <Mascot size={64} color={t.accent} expression={mood} ritual={false} />
+      <Text style={{ color: t.muted, textAlign: 'center', paddingTop: 8, fontSize: 14, lineHeight: 20 }}>{text}</Text>
+    </View>
+  );
 }
 
 /** Icona di ogni scheda nota: se ogni voce ne ha una, `Seg` si disegna con le icone (la scelta mostra anche il nome). */

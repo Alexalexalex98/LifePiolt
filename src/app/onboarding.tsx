@@ -1,5 +1,6 @@
 import { DEFAULT_USER_PHOTO, LOGO, LP_ICON_B, LP_ICON_W } from '@/lib/embeddedAssets';
 import { useState } from 'react';
+import { Mascot } from '@/components/mascot/Mascot';
 import { Image, View } from 'react-native';
 import { Text } from '@/components/T';
 
@@ -34,6 +35,7 @@ export default function Onboarding() {
     <Page id="onboarding" noTop>
       <View style={{ paddingTop: 70 }}>
         <View style={{ position: 'absolute', top: 14, end: 0 }}><LanguageButton /></View>
+        <Mascot size={110} color={t.accent} expression="happy" style={{ marginBottom: 6 }} />
         <Image source={LOGO} style={{ width: 72, height: 72, marginBottom: 14, ...(t.mode === 'light' ? { tintColor: '#10151d' } : null) }} resizeMode="contain" accessibilityLabel={translateText("LifePilot")} />
         <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.display, fontWeight: '800', letterSpacing: -0.5 }}>LifePilot</Text>
         <Body muted style={{ marginTop: 8, marginBottom: 30 }}>

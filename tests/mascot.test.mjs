@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mix, toHex, parseHex, bodyTones, EXPRESSIONS } from '../src/lib/mascot.ts';
+import { moodOf, mix, toHex, parseHex, bodyTones, EXPRESSIONS } from '../src/lib/mascot.ts';
 
 test('colori: esadecimale, mescolanza ai due estremi e a metà', () => {
   assert.deepEqual(parseHex('#ff8000'), [255, 128, 0]); assert.equal(toHex([255, 128, 0]), '#ff8000');
@@ -12,3 +12,7 @@ test('le tinte del corpo: la luce è più chiara della base, l\'ombra più scura
   assert.ok(lum(t.light) > lum(t.base) && lum(t.base) > lum(t.shade) && lum(t.eye) < lum(t.shade));
 });
 test('26 espressioni, tutte diverse', () => { assert.equal(EXPRESSIONS.length, 26); assert.equal(new Set(EXPRESSIONS.map((e) => e.id)).size, 26); });
+test('l\'espressione segue la risposta: dubbio, capito, triste, felice', () => {
+  assert.equal(moodOf('Non ho trovato dati sui movimenti.'), 'doubtful'); assert.equal(moodOf('Ho aggiunto il task al piano.'), 'understood');
+  assert.equal(moodOf('Attenzione: il mese finisce in rosso.'), 'sad'); assert.equal(moodOf('Ecco cosa ho trovato.'), 'happy');
+});

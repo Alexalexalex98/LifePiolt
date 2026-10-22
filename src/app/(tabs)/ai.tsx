@@ -2,6 +2,8 @@ import { ChatBackdrop } from '@/components/chat/ChatBackdrop';
 import { ChatBgSheet } from '@/components/chat/ChatBgSheet';
 import { useChatBg } from '@/store/chatBg';
 import { RichText } from '@/components/RichText';
+import { Mascot } from '@/components/mascot/Mascot';
+import { moodOf } from '@/lib/mascot';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -155,9 +157,7 @@ export default function LifeChat() {
             contentContainerStyle={shown.length === 0 ? { flexGrow: 1, justifyContent: 'center' } : undefined}
             ListEmptyComponent={
               <View style={{ alignItems: 'center', paddingHorizontal: 4, paddingBottom: 8 }}>
-                <LinearGradient colors={[t.accent, t.accent + '66']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-                  <Icon name="sparkle" size={30} color={t.onText} stroke={2} />
-                </LinearGradient>
+                <Mascot size={104} color={t.accent} expression="happy" style={{ marginBottom: 8 }} />
                 <Text style={{ color: t.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.4, textAlign: 'center' }}>{greetWord}, {userName}</Text>
                 <Text style={{ color: t.muted, fontSize: 15, marginTop: 4, textAlign: 'center' }}>Sono {name}. Cosa facciamo oggi?</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16, alignSelf: 'stretch' }}>
@@ -171,12 +171,14 @@ export default function LifeChat() {
                 <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 12, textAlign: 'center' }}>Scrivi un comando o una domanda: ti suggerisco io cosa so fare.</Text>
               </View>
             }
-            ListFooterComponent={busy ? <View style={{ alignSelf: 'flex-start', marginVertical: 6, marginLeft: 4 }}><LogoLoader size={54} /></View> : null}
+            ListFooterComponent={busy ? <View style={{ alignSelf: 'flex-start', marginVertical: 6, marginLeft: 4 }}><Mascot size={56} color={t.accent} expression="working" ritual={false} /></View> : null}
             renderItem={({ item }) => {
               const me = item.who === 'me';
               return (
-                <View style={{ marginVertical: 4 }}>
-                  <View style={{ alignSelf: me ? 'flex-end' : 'flex-start', maxWidth: '88%', backgroundColor: me ? '#e6ebf3' : t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: me ? 0 : 1, borderRadius: 18, padding: 12 }}>
+                <View style={{ marginVertical: 4, flexDirection: 'row', alignItems: 'flex-end', gap: 6, justifyContent: me ? 'flex-end' : 'flex-start' }}>
+                  {!me ? <Mascot size={34} color={t.accent} expression={moodOf(item.text)} animated={item.id === lastAi?.id} ritual={false} /> : null}
+                  <View style={{ flexShrink: 1, maxWidth: '88%' }}>
+                  <View style={{ alignSelf: me ? 'flex-end' : 'flex-start', maxWidth: '100%', backgroundColor: me ? '#e6ebf3' : t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: me ? 0 : 1, borderRadius: 18, padding: 12 }}>
                     {item.image ? <Image source={{ uri: item.image }} style={{ width: 160, height: 100, borderRadius: 10, marginBottom: 6 }} contentFit="cover" /> : null}
                     {item.ext?.images?.length ? <MessageImages uris={item.ext.images} me={me} /> : null}
                     {item.ext?.attachments?.length ? <MessageAttachments items={item.ext.attachments} me={me} /> : null}
@@ -187,6 +189,7 @@ export default function LifeChat() {
                   {item.id === lastAi?.id && item.chips?.length ? (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 }}>{item.chips.map((c) => <Pill key={c} label={c} onPress={() => send(c)} />)}</View>
                   ) : null}
+                  </View>
                 </View>
               );
             }}

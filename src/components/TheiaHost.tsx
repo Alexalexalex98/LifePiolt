@@ -1,3 +1,4 @@
+import { Mascot } from '@/components/mascot/Mascot';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import { usePathname } from 'expo-router';
@@ -147,8 +148,8 @@ export function TheiaFab() {
       <Pressable
         onPress={() => setMenu(true)} onLongPress={clip} delayLongPress={350}
         accessibilityLabel={translateText(`Chiedi a ${name}: tocca per scrivere, mandare foto o documenti o chiedere sulla schermata. Tieni premuto per il testo copiato. Trascinalo per spostarlo`)}
-        style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: 0.92, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 }}>
-        <Icon name="sparkle" size={22} color={t.onText} />
+        style={{ width: 56, height: 56, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 }}>
+        <Mascot size={56} color={t.accent} expression="happy" />
       </Pressable>
     </Animated.View>
     <Sheet visible={menu} title={`Chiedi a ${name}`} onClose={() => setMenu(false)}>
