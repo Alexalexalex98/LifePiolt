@@ -72,3 +72,23 @@ export function monthCalc(m: CalcMonth, categoryOf: (label: string) => string, a
   const net = m.movements.reduce((a, x) => a + x.amount, 0);
   return { label: m.label, start: m.start, end: r2(m.start + net), income, incomeLines, incomeUnsure, transferIn, transferOut, endWithoutTransfers: r2(m.start + net - transferIn + transferOut), fixed, fixedTotal, variable, variableTotal, emergency, expenses, left, savedPct: income > 0 ? Math.round(((emergency + left) / income) * 1000) / 10 : 0, byCategory };
 }
+
+/**
+ * Giroconti segnati dall'utente che sono UNA TANTUM (tornano in meno di 3 mesi): restano separati, fuori da entrate e medie.
+ * Se invece lo stesso giroconto entra/esce ogni mese (3 mesi o più), è una voce ricorrente e conta come entrata/spesa vera.
+ */
+export function oneOffTransfers(months: (CalcMonth & { label: string })[], kinds: Record<string, string>, keyOfPayee: (label: string) => string): Set<string> {
+  const marked = Object.entries(kinds).filter(([, v]) => v === 'transfer').map(([k]) => k);
+  if (!marked.length) return new Set();
+  const monthsByPayee = new Map<string, Set<string>>();
+  for (const m of months) for (const x of m.movements) {
+    const k = `${keyOfPayee(x.label)}|${x.amount > 0 ? '+' : '-'}`;
+    monthsByPayee.set(k, (monthsByPayee.get(k) ?? new Set()).add(m.label));
+  }
+  const byKey = new Map<string, CalcMove>();
+  for (const m of months) for (const x of m.movements) byKey.set(moveKey(m.label, x), x);
+  return new Set(marked.filter((key) => {
+    const x = byKey.get(key); if (!x) return true;
+    return (monthsByPayee.get(`${keyOfPayee(x.label)}|${x.amount > 0 ? '+' : '-'}`)?.size ?? 0) < 3;
+  }));
+}

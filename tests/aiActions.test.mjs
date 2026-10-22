@@ -80,3 +80,13 @@ test('grafico del mese usa la stessa classe dell\'estratto', () => {
   assert.equal(chartCategory('Bmw Schweiz Ag Abteilung Leasing', {}, () => 'Altro'), 'Prestiti e leasing');
   assert.equal(chartCategory('Concordia', {}, () => 'Altro'), 'Cassa malati');
 });
+
+import { oneOffTransfers, moveKey } from '../src/lib/financeCalc.ts';
+test('giroconto una tantum resta fuori, uno che torna ogni mese conta come entrata', () => {
+  const mv = (label, amount, date) => ({ label, amount, date });
+  const months = ['Agosto 2026', 'Settembre 2026', 'Ottobre 2026'].map((label, i) => ({ label, start: 0, movements: [mv('Giro conto Mamma', 200, '05/0' + (8 + i)), ...(i === 2 ? [mv('Giro conto 2', 1000, '20/10')] : [])] }));
+  const kinds = { [moveKey('Ottobre 2026', months[2].movements[0])]: 'transfer', [moveKey('Ottobre 2026', months[2].movements[1])]: 'transfer' };
+  const off = oneOffTransfers(months, kinds, (l) => l.toLowerCase());
+  assert.equal(off.has(moveKey('Ottobre 2026', months[2].movements[1])), true);
+  assert.equal(off.has(moveKey('Ottobre 2026', months[2].movements[0])), false);
+});

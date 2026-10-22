@@ -393,5 +393,8 @@
   "Controlla descrizione e importo": "Check description and amount",
   "Torna al calcolo": "Back to the calculation",
   "Include giroconti tra i tuoi conti": "Includes transfers between your accounts",
-  "Non sono guadagno, ma ti hanno aiutato: senza di loro saresti a {0}.": "They are not earnings, but they helped you: without them you would be at {0}."
+  "Non sono guadagno, ma ti hanno aiutato: senza di loro saresti a {0}.": "They are not earnings, but they helped you: without them you would be at {0}.",
+  "Giroconto tra i miei conti": "Transfer between my accounts",
+  "Giroconto ricorrente: conta come entrata ogni mese": "Recurring transfer: counts as income every month",
+  "Dimmelo tu: non lo indovino. Da questa scelta dipendono entrate, quanto ti resta e le medie. Un giroconto una tantum resta separato e fuori dalle medie; se torna ogni mese conta come entrata.": "You tell me: I won't guess. Income, what's left and the averages depend on this choice. A one-off transfer stays separate and out of the averages; if it comes in every month it counts as income."
 }

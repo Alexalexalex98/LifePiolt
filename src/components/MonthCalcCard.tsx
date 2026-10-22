@@ -5,7 +5,7 @@ import { Text } from '@/components/T';
 import { Body, Btn, Card, H, Pill, Progress, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatMoney } from '@/i18n/format';
-import { monthCalc, type IncomeKind, type IncomeLine } from '@/lib/financeCalc';
+import { monthCalc, oneOffTransfers, type IncomeKind, type IncomeLine } from '@/lib/financeCalc';
 import { payeeKey } from '@/lib/statementAnalysis';
 import { toast } from '@/store/toast';
 import { t as tl } from '@/i18n/core';
@@ -23,12 +23,13 @@ export function MonthCalcCard() {
   const salaryKeys = new Set((info?.salary.sources ?? []).map((x) => x.key));
   const fixedKeys = info ? new Set(info.fixed.map((x) => x.key)) : null;
   const kinds = f.moveKind ?? {};
+  const oneOff = oneOffTransfers(f.months, kinds, payeeKey);
   const c = monthCalc(m, (l) => categoryOf(l, f.categories), f.budget.alloc, {
     isFixed: fixedKeys ? (l) => fixedKeys.has(payeeKey(l)) : undefined,
-    incomeKind: (x, key) => kinds[key] ?? (salaryKeys.has(payeeKey(x.label)) ? 'salary' : undefined),
-    skip: (key) => kinds[key] === 'transfer',
+    incomeKind: (x, key) => (kinds[key] === 'transfer' ? 'other' : kinds[key]) ?? (salaryKeys.has(payeeKey(x.label)) ? 'salary' : undefined),
+    skip: (key) => oneOff.has(key),
   });
-  const KIND: Record<IncomeKind, string> = { salary: 'Stipendio', other: 'Altra entrata', refund: 'Rimborso', transfer: 'Giroconto tra i miei conti (non conta)' };
+  const KIND: Record<IncomeKind, string> = { salary: 'Stipendio', other: 'Altra entrata', refund: 'Rimborso', transfer: 'Giroconto tra i miei conti' };
   const line = (label: string, amount: number, o: { bold?: boolean; color?: string; sign?: string } = {}) => (
     <Row key={label} style={{ paddingVertical: 4 }}>
       <Body small bold={o.bold} style={{ flex: 1, flexShrink: 1 }} numberOfLines={2}>{label}</Body>
@@ -56,7 +57,7 @@ export function MonthCalcCard() {
               <Row>
                 <View style={{ flex: 1, flexShrink: 1 }}>
                   <Body small numberOfLines={2}>{x.label}</Body>
-                  <Body small color={x.kind ? t.muted : t.warn}>{`${x.date ? `${x.date} · ` : ''}${x.kind ? KIND[x.kind] : 'Da confermare: che cos\'è? Tocca per dirmelo'}`}</Body>
+                  <Body small color={x.kind ? t.muted : t.warn}>{`${x.date ? `${x.date} · ` : ''}${kinds[x.key] === 'transfer' ? tl('Giroconto ricorrente: conta come entrata ogni mese') : x.kind ? tl(KIND[x.kind]) : tl('Da confermare: che cos\'è? Tocca per dirmelo')}`}</Body>
                 </View>
                 <Body small bold color={t.positive} style={{ flexShrink: 0, marginStart: 8 }}>{`+${formatMoney(x.amount, { decimals: x.amount % 1 ? 2 : 0 })}`}</Body>
               </Row>
@@ -88,7 +89,7 @@ export function MonthCalcCard() {
           <View style={{ gap: 8 }}>
             <Body bold numberOfLines={3}>{ask.label}</Body>
             <Body small muted>{`${ask.date} · +${formatMoney(ask.amount, { decimals: 2 })}`}</Body>
-            <Body small muted>Dimmelo tu: non lo indovino. Da questa scelta dipendono entrate, quanto ti resta e le medie.</Body>
+            <Body small muted>Dimmelo tu: non lo indovino. Da questa scelta dipendono entrate, quanto ti resta e le medie. Un giroconto una tantum resta separato e fuori dalle medie; se torna ogni mese conta come entrata.</Body>
             <Row gap={8} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
               {(Object.keys(KIND) as IncomeKind[]).map((k) => <Pill key={k} label={KIND[k]} on={kinds[ask.key] === k || (!kinds[ask.key] && ask.kind === k)} onPress={() => { f.setMoveKind(ask.key, k); f.recomputeStatement(); toast('Fatto, ricalcolo'); setAsk(null); }} />)}
             </Row>
