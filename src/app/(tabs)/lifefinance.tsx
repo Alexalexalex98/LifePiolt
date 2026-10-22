@@ -150,6 +150,13 @@ export default function LifeFinance() {
           </Row>
         </Card>
       )}
+      <Card onPress={() => go('vacationPlan')}>
+        <Row gap={10}>
+          <Icon name="lifetravel" size={24} color={t.positive} />
+          <View style={{ flex: 1 }}><H style={{ marginBottom: 2 }}>Risparmio per la vacanza</H><Body small muted>Quanto mettere da parte ogni mese, e da quale stipendio, per arrivarci senza pesare su un mese solo.</Body></View>
+          <Icon name="chevron-right" size={18} color={t.muted} />
+        </Row>
+      </Card>
       <Card onPress={() => go('lifepointsPage')}>
         <H>LifePoints</H>
         <Row>

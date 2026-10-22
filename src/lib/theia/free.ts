@@ -6,6 +6,7 @@
 import { upcoming } from '../shifts.ts';
 import { addDay, dayKeyOf, fmtMoney, fmtNum, humanDay, unverifiedNumbers, type Fact, type Snap } from './core.ts';
 import { radar } from './radar.ts';
+import { monthName, parseTarget, vacationPlan } from '../vacationPlan.ts';
 
 export type ToolOut = { facts: Fact[]; missing?: string };
 export type Tool = { name: string; desc: string; args?: string; run: (s: Snap, a: Record<string, unknown>) => ToolOut };
@@ -102,6 +103,22 @@ export const TOOLS: Tool[] = [
     if (s.water) facts.push({ label: 'acqua segnata oggi', value: Math.round(s.water.todayMl / 100) / 10, unit: 'L', source: 'acqua segnata' }, { label: 'obiettivo acqua', value: Math.round(s.water.goalMl / 100) / 10, unit: 'L', source: 'stima dal peso' });
     if (s.kcal) { facts.push({ label: 'calorie segnate oggi', value: Math.round(s.kcal.today), unit: 'kcal', source: 'pasti segnati' }); if (s.kcal.target) facts.push({ label: 'obiettivo calorie', value: Math.round(s.kcal.target), unit: 'kcal', source: 'stima da età, peso e obiettivo' }); }
     return facts.length ? { facts } : { facts: [], missing: 'Non ho dati su pasti e acqua di oggi.' };
+  } },
+  { name: 'piano_risparmio', desc: 'Piano per mettere da parte soldi entro un mese (vacanza, spesa grossa): quanto al mese, da quale stipendio, se il margine basta. Usa l\'estratto conto', args: 'importo (numero, quanto serve), mese (nome del mese o AAAA-MM; se non detto usa l\'obiettivo salvato)', run: (s, a) => {
+    const sv = s.savings; if (!sv) return { facts: [], missing: 'Per fare il piano mi serve un estratto conto con gli stipendi: caricalo da LifeFinance.' };
+    const goal = num(a.importo, sv.vacation?.goal ?? NaN, 1, 1e9);
+    if (!Number.isFinite(goal)) return { facts: [], missing: 'Non ho capito quanto ti serve: dimmi l\'importo.' };
+    const target = a.mese ? parseTarget(a.mese, new Date(s.now)) : sv.vacation?.target ?? null;
+    if (!target) return { facts: [], missing: 'Non ho capito per quale mese: dimmi per esempio «dicembre».' };
+    const p = vacationPlan({ now: new Date(s.now), goal, target, saved: sv.vacation && !a.importo ? sv.vacation.saved : 0, incomes: sv.incomes, fixed: sv.fixed, variable: sv.variable });
+    const cur = s.currency, src = 'estratto conto (medie)';
+    const facts: Fact[] = [{ label: 'importo da mettere da parte', value: Math.round(p.need), unit: cur, source: 'la tua richiesta' }, { label: 'mese della vacanza', value: monthName(target), source: 'la tua richiesta' }, { label: 'mesi in cui mettere da parte', value: p.months, source: 'calendario' }];
+    if (p.status === 'scaduta') return { facts: [], missing: 'Il mese scelto è già passato.' };
+    facts.push({ label: 'da mettere da parte al mese', value: p.perMonth, unit: cur, source: 'calcolo' }, { label: 'entrate mensili riconosciute', value: p.income, unit: cur, source: src }, { label: 'margine mensile (entrate meno spese medie)', value: p.margin, unit: cur, source: src }, { label: 'quota del margine usata', value: p.sharePct, unit: '%', source: 'calcolo' });
+    p.perSource.forEach((x) => facts.push({ label: `da ${x.name} (entra ${x.monthly} al mese)`, value: x.amount, unit: cur, source: 'in proporzione alle entrate' }));
+    facts.push({ label: 'esito', value: p.status === 'ok' ? 'il margine basta' : p.status === 'stretto' ? 'basta ma resta poco margine' : p.status === 'non-basta' ? 'il margine non basta' : 'senza stipendi riconosciuti non posso dirlo', source: 'calcolo' });
+    if (p.status === 'non-basta') facts.push({ label: 'importo raggiungibile entro la data', value: p.reachable, unit: cur, source: 'calcolo' }, ...(p.monthsNeeded ? [{ label: 'mesi che servirebbero con il margine attuale', value: p.monthsNeeded, source: 'calcolo' } as Fact] : []));
+    return { facts };
   } },
   { name: 'avvisi', desc: 'Gli avvisi del radar: cosa sta per succedere (budget, conflitti agenda-turni, sonno prima di un turno presto, task scaduti)', run: (s) => {
     const r = radar(s);

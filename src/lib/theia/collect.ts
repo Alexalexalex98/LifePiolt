@@ -36,6 +36,16 @@ function finance(now: number): Snap['finance'] {
   } catch { return null; }
 }
 
+function savings(): Snap['savings'] {
+  try {
+    const f = useFin.getState();
+    const st = f.statementInfo;
+    if (!st) return null;
+    const sum = (l: { monthly: number }[]) => l.reduce((a, x) => a + x.monthly, 0);
+    return { incomes: st.salary.sources.map((x) => ({ name: x.name, monthly: x.monthly })), fixed: sum(st.fixed), variable: sum(st.variable), vacation: f.vacation ?? null };
+  } catch { return null; }
+}
+
 /** Una fotografia di ciò che l'app sa di te adesso, nel formato che Theia usa per rispondere e per il radar. */
 export function collectSnap(now = Date.now()): Snap {
   const life = useLife.getState();
@@ -53,6 +63,7 @@ export function collectSnap(now = Date.now()): Snap {
     shifts: useShifts.getState().shifts,
     tasks: life.tasks.map((t) => ({ id: t.id, t: t.t, done: t.done, due: t.due, urgent: t.urgent })),
     finance: finance(now),
+    savings: savings(),
     sleep: series('sleep').map((p) => ({ day: p.day, hours: p.v })),
     steps: series('steps').map((p) => ({ day: p.day, v: p.v })),
     water: Object.keys(fit.water ?? {}).length || fit.body ? { todayMl: (fit.water ?? {})[today] ?? 0, goalMl: waterGoal(fit.body?.weightKg) } : null,

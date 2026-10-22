@@ -1,5 +1,5 @@
 {
- "count": 13282,
+ "count": 13342,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -55,7 +55,7 @@
   "src/app/(tabs)/jobTest.tsx": 47,
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 45,
-  "src/app/(tabs)/lifefinance.tsx": 101,
+  "src/app/(tabs)/lifefinance.tsx": 103,
   "src/app/(tabs)/lifefitness.tsx": 93,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 113,
@@ -108,6 +108,7 @@
   "src/app/(tabs)/syncSettings.tsx": 2,
   "src/app/(tabs)/taxdecl.tsx": 76,
   "src/app/(tabs)/userProfile.tsx": 48,
+  "src/app/(tabs)/vacationPlan.tsx": 32,
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
@@ -538,7 +539,7 @@
   "src/lib/taxDeadlines.ts": 14,
   "src/lib/theia.ts": 96,
   "src/lib/theia/ask.ts": 58,
-  "src/lib/theia/free.ts": 93,
+  "src/lib/theia/free.ts": 115,
   "src/lib/theia/radar.ts": 46,
   "src/lib/theia/radarNotify.ts": 3,
   "src/lib/theia/week.ts": 13,
@@ -549,6 +550,7 @@
   "src/lib/tripPlanner.ts": 102,
   "src/lib/tutorials.ts": 161,
   "src/lib/urgentPin.ts": 3,
+  "src/lib/vacationPlan.ts": 7,
   "src/lib/weather.ts": 15,
   "src/lib/when.ts": 11,
   "src/schemas/change.ts": 3,
@@ -583,5 +585,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1657
+ "withPlaceholders": 1666
 }

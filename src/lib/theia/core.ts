@@ -15,6 +15,8 @@ export type Snap = {
   finance: null | { partial: boolean; day: number; daysInMonth: number; income: number; expense: number; saved: number; end: number; projectionEnd: number | null; over: { category: string; pct: number; level: string }[]; topCats: { n: string; v: number }[];
     /** mese precedente (se c'è) e come sono cambiate le categorie rispetto a quel mese */
     prev?: { label: string; income: number; expense: number } | null; deltas?: { n: string; v: number; prev: number }[]; label?: string };
+  /** dall'estratto conto: entrate che tornano (uno o più stipendi), spese fisse e variabili medie al mese, e l'obiettivo vacanza salvato */
+  savings?: null | { incomes: { name: string; monthly: number }[]; fixed: number; variable: number; vacation?: { name: string; goal: number; target: string; saved: number } | null };
   /** notti più recenti, in ore */
   sleep: { day: string; hours: number }[];
   steps: { day: string; v: number }[];

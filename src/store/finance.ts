@@ -127,6 +127,9 @@ type FinState = {
   categories: FinCategory[];
   insights: Insight[];
   savingsPct: number;
+  /** obiettivo di risparmio con scadenza (vacanza): quanto serve, per quale mese (AAAA-MM) e quanto hai già messo da parte */
+  vacation: { name: string; goal: number; target: string; saved: number } | null;
+  setVacation: (v: { name: string; goal: number; target: string; saved: number } | null) => void;
   months: FinMonth[];
   budget: Budget;
   guidelines: Record<string, number>;
@@ -215,6 +218,7 @@ const blank = () => ({
   categories: defaultCategories,
   insights: [] as Insight[],
   savingsPct: 0,
+  vacation: null as FinState['vacation'],
   months: [{ label: startMonthLabel(), start: 0, locked: false, movements: [] }] as FinMonth[],
   budget: { salary: 0, saveToEmergency: true, alloc: {} } as Budget,
   guidelines: defaultGuidelines,
@@ -239,6 +243,7 @@ export const useFin = create<FinState>()(
     setBudget: (b) => set((s) => ({ budget: { ...s.budget, ...b } })),
     setAlloc: (name, v) => set((s) => ({ budget: { ...s.budget, alloc: { ...s.budget.alloc, [name]: v } } })),
     resetBudget: () => set((s) => ({ budget: defaultBudget(s.budget.salary || 3500, s.budget.saveToEmergency, s.categories, s.months) })),
+    setVacation: (v) => set({ vacation: v }),
     setGuidelineSalary: (v) => set((s) => ({ budget: { ...s.budget, salary: v } })),
     addBill: (b) => set((s) => ({ bills: [...s.bills, { id: uid(), ...b }] })),
     addBills: (list) => {
