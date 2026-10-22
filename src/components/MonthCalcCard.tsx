@@ -5,7 +5,7 @@ import { Text } from '@/components/T';
 import { Body, Btn, Card, H, Pill, Progress, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatMoney } from '@/i18n/format';
-import { monthCalc, oneOffTransfers, type IncomeKind, type IncomeLine } from '@/lib/financeCalc';
+import { monthCalc, oneOffTransfers, transferSource, type IncomeKind, type IncomeLine } from '@/lib/financeCalc';
 import { payeeKey } from '@/lib/statementAnalysis';
 import { toast } from '@/store/toast';
 import { t as tl } from '@/i18n/core';
@@ -23,7 +23,7 @@ export function MonthCalcCard() {
   const salaryKeys = new Set((info?.salary.sources ?? []).map((x) => x.key));
   const fixedKeys = info ? new Set(info.fixed.map((x) => x.key)) : null;
   const kinds = f.moveKind ?? {};
-  const oneOff = oneOffTransfers(f.months, kinds, payeeKey);
+  const oneOff = oneOffTransfers(f.months, kinds, (l) => transferSource(l, payeeKey));
   const c = monthCalc(m, (l) => categoryOf(l, f.categories), f.budget.alloc, {
     isFixed: fixedKeys ? (l) => fixedKeys.has(payeeKey(l)) : undefined,
     incomeKind: (x, key) => (kinds[key] === 'transfer' ? 'other' : kinds[key]) ?? (salaryKeys.has(payeeKey(x.label)) ? 'salary' : undefined),
@@ -89,7 +89,7 @@ export function MonthCalcCard() {
           <View style={{ gap: 8 }}>
             <Body bold numberOfLines={3}>{ask.label}</Body>
             <Body small muted>{`${ask.date} · +${formatMoney(ask.amount, { decimals: 2 })}`}</Body>
-            <Body small muted>Dimmelo tu: non lo indovino. Da questa scelta dipendono entrate, quanto ti resta e le medie. Un giroconto una tantum resta separato e fuori dalle medie; se torna ogni mese conta come entrata.</Body>
+            <Body small muted>Dimmelo tu: non lo indovino. Da questa scelta dipendono entrate, quanto ti resta e le medie. Un giroconto una tantum resta separato e fuori dalle medie; se torna ogni mese dallo stesso conto (o in contanti) conta come entrata.</Body>
             <Row gap={8} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
               {(Object.keys(KIND) as IncomeKind[]).map((k) => <Pill key={k} label={KIND[k]} on={kinds[ask.key] === k || (!kinds[ask.key] && ask.kind === k)} onPress={() => { f.setMoveKind(ask.key, k); f.recomputeStatement(); toast('Fatto, ricalcolo'); setAsk(null); }} />)}
             </Row>

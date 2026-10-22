@@ -92,3 +92,7 @@ export function oneOffTransfers(months: (CalcMonth & { label: string })[], kinds
     return (monthsByPayee.get(`${keyOfPayee(x.label)}|${x.amount > 0 ? '+' : '-'}`)?.size ?? 0) < 3;
   }));
 }
+
+/** Da dove arriva un giroconto: i versamenti in contanti contano come un'unica fonte, tutto il resto è «lo stesso conto» solo se ha lo stesso nome/mittente. */
+export const CASH = /contant|versament|deposit|einzahlung|cash|bargeld/i;
+export const transferSource = (label: string, payee: (l: string) => string): string => (CASH.test(label) ? 'contanti' : payee(label));

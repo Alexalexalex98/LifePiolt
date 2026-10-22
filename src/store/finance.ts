@@ -1,5 +1,5 @@
 import { analyzeStatement, DEFAULT_AVG, DEFAULT_RULE, type Analysis, type AvgRule, type SalaryRule } from '@/lib/statementAnalysis';
-import { moveKey, oneOffTransfers } from '@/lib/financeCalc';
+import { moveKey, oneOffTransfers, transferSource } from '@/lib/financeCalc';
 import { listMovements } from '@/lib/explain';
 import { payeeKey } from '@/lib/statementAnalysis';
 import { Platform } from 'react-native';
@@ -407,7 +407,7 @@ export const useFin = create<FinState>()(
     setSalaryRule: (r, excluded, avg) => { set((s) => ({ salaryRule: r, salaryExcluded: excluded ?? s.salaryExcluded, avgRule: avg ?? s.avgRule })); get().recomputeStatement(); },
     recomputeStatement: (opts) => {
       const s = get();
-      const skipT = oneOffTransfers(s.months, s.moveKind ?? {}, payeeKey);
+      const skipT = oneOffTransfers(s.months, s.moveKind ?? {}, (l) => transferSource(l, payeeKey));
       const rows = listMovements(s.months, (x, m) => !skipT.has(moveKey(m.label, x))).map((r) => ({ date: r.sort, label: r.label, amount: r.amount }));
       const an0 = analyzeStatement(rows, s.salaryRule, s.salaryExcluded, s.avgRule, s.payeeFix ?? {});
       if (!an0) return;

@@ -90,3 +90,11 @@ test('giroconto una tantum resta fuori, uno che torna ogni mese conta come entra
   assert.equal(off.has(moveKey('Ottobre 2026', months[2].movements[1])), true);
   assert.equal(off.has(moveKey('Ottobre 2026', months[2].movements[0])), false);
 });
+
+import { transferSource } from '../src/lib/financeCalc.ts';
+test('giroconti ricorrenti: stesso conto o contanti, non conti diversi', () => {
+  const p = (l) => l.toLowerCase();
+  assert.equal(transferSource('Versamento contanti sportello', p), 'contanti');
+  assert.equal(transferSource('Deposito Cash Lugano', p), 'contanti');
+  assert.notEqual(transferSource('Giro da Mario', p), transferSource('Giro da Anna', p));
+});
