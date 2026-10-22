@@ -17,6 +17,8 @@ import { routeRequest, type RouteResult } from '@/lib/aiRouter';
 import { aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
+import { parseAiActions } from './aiActionsCore';
+import { applyAiAction, describe } from './aiActions';
 import { describeAnalysis, isBillType } from '@/lib/docAnalysis';
 import { statementSummary } from '@/lib/statementReport';
 import { useFin } from '@/store/finance';
@@ -80,9 +82,17 @@ const aiOn = () => aiServerConfigured && !useAiRouter.getState().prefs.phoneOnly
 /** Saluti, ringraziamenti, si/no senza domanda in sospeso e frasi libere: risponde l'AI come una persona. */
 const SMALLTALK = /^(ciao|salve|hey|ehi|buongiorno|buonasera|buon pomeriggio|buonanotte|hi|hello|grazie|thanks|thank you)\b/;
 
+/** Risposta dell'AI: le azioni che propone diventano pulsanti di conferma, descritti dall'app (con i numeri calcolati da lei). */
+function pushWithActions(reply: string): AMsg {
+  const { text, actions } = parseAiActions(reply);
+  if (!actions.length) return pushAi(reply);
+  const lines = actions.map((a) => `• ${describe(a)}`).join('\n');
+  return pushAi(`${text}\n\n${t('Posso farlo io, se vuoi:')}\n${lines}`, { ext: { actions: [...actions.map((a): TheiaAction => ({ kind: 'ai-do', label: actions.length > 1 ? describe(a) : t('Sì, fallo'), act: a })), { kind: 'dismiss', label: t('No, grazie') }] } });
+}
+
 async function aiChatReply(text: string): Promise<void> {
   try {
-    pushAi(await askTheiaChat(text) || t('Risposta vuota dal server.'));
+    pushWithActions(await askTheiaChat(text) || t('Risposta vuota dal server.'));
   } catch (e) {
     pushAi(`${t(friendlyAiError(e instanceof Error ? e.message : 'Errore del server AI.'))}\n\n${t('I comandi sul tuo piano, i task e i report funzionano comunque.')}`, { ext: { actions: [{ kind: 'say', label: t('Riprova'), text }, { kind: 'dismiss', label: t('Lascia stare') }] } });
   }
@@ -575,7 +585,7 @@ async function deepStatementAnalysis(): Promise<void> {
   try {
     logSend('files', summary.length, ['riepilogo']);
     const q = `Questo è il riepilogo delle mie finanze degli ultimi mesi (non sono consigli finanziari, spiegami solo in modo semplice):\n\n${summary}\n\nCosa noti? Dove spendo di più, come va il risparmio e cosa potrei controllare? Rispondi in modo breve e concreto, in italiano.`;
-    if (aiServerConfigured) pushAi(await askTheiaChat(q) || t('Risposta vuota dal server.'));
+    if (aiServerConfigured) pushWithActions(await askTheiaChat(q) || t('Risposta vuota dal server.'));
     else await delegate({ text: q, lang: 'it', source: 'typed' });
   } catch (e) {
     pushAi(e instanceof Error ? e.message : t('Errore del server AI.'));
@@ -614,6 +624,7 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
     case 'say': await sendTheia({ text: action.text, lang: useApp.getState().language, appLang: useApp.getState().language, forced: false, source: 'typed' }); return;
     case 'ai-analysis': await deepStatementAnalysis(); return;
     case 'add-invoices': addInvoicesFromChat(action); return;
+    case 'ai-do': { const r = applyAiAction(action.act); pushAi(r.message); return; }
     case 'bill': openBillReview({ uri: action.uri, mime: action.mime, name: action.name }); return;
     case 'read-files': store().push({ who: 'me', text: action.label, source: 'chat' }); await readFilesWithAi(action.text, action.files); return;
     case 'ask-ai': case 'retry':

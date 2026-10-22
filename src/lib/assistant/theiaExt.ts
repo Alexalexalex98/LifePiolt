@@ -29,6 +29,8 @@ export type TheiaAction =
   | { kind: 'forget'; label: string; id: string }
   /** rimanda a Theia questa frase come se l'utente l'avesse scritta */
   | { kind: 'say'; label: string; text: string }
+  /** azione proposta dall'AI e controllata dall'app: si esegue solo dopo il tocco dell'utente */
+  | { kind: 'ai-do'; label: string; act: import('./aiActionsCore.ts').AiAct }
   | { kind: 'dismiss'; label: string };
 
 export type TheiaExt = {
