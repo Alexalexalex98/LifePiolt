@@ -18,6 +18,8 @@ export type MonthCalc = {
   income: number;
   incomeLines: IncomeLine[];
   incomeUnsure: number;
+  /** rimborsi di spese: non sono guadagno, riducono le spese */
+  refunds: number;
   /** giroconti tra i propri conti: non sono guadagno né spesa, ma cambiano quanto hai sul conto */
   transferIn: number; transferOut: number;
   /** saldo senza l'aiuto dei giroconti in entrata */
@@ -49,7 +51,8 @@ export function monthCalc(m: CalcMonth, categoryOf: (label: string) => string, a
   const incomeLines: IncomeLine[] = inc.map((x) => ({ label: pretty(x.label), amount: x.amount, date: x.date ?? '', key: keyOf(x), kind: opts.incomeKind ? opts.incomeKind(x, keyOf(x)) : 'salary' })).sort((a, b) => b.amount - a.amount);
   const incomeUnsure = r2(incomeLines.filter((x) => !x.kind).reduce((a, x) => a + x.amount, 0));
   const out = live.filter((x) => x.amount < 0).map((x) => ({ label: x.label, amount: -x.amount }));
-  const income = r2(inc.reduce((a, x) => a + x.amount, 0));
+  const refunds = r2(incomeLines.filter((x) => x.kind === 'refund').reduce((a, x) => a + x.amount, 0));
+  const income = r2(incomeLines.filter((x) => x.kind !== 'refund').reduce((a, x) => a + x.amount, 0));
   const group = (list: CalcLine[]): CalcLine[] => {
     const map = new Map<string, number>();
     list.forEach((x) => map.set(pretty(x.label), r2((map.get(pretty(x.label)) ?? 0) + x.amount)));
@@ -64,13 +67,13 @@ export function monthCalc(m: CalcMonth, categoryOf: (label: string) => string, a
   const emergency = sum(emergencyLines);
   const fixedTotal = sum(fixed), variableTotal = sum(variable);
   const expenses = r2(fixedTotal + variableTotal);
-  const left = r2(income - expenses - emergency);
+  const left = r2(income + refunds - expenses - emergency);
   const spentBy: Record<string, number> = {};
   out.forEach((x) => { const c = categoryOf(x.label); spentBy[c] = r2((spentBy[c] ?? 0) + x.amount); });
   const names = [...new Set([...Object.keys(alloc), ...Object.keys(spentBy)])];
   const byCategory = names.map((name) => ({ name, spent: spentBy[name] ?? 0, budget: alloc[name] ?? 0, left: r2((alloc[name] ?? 0) - (spentBy[name] ?? 0)) })).sort((a, b) => b.spent - a.spent);
   const net = m.movements.reduce((a, x) => a + x.amount, 0);
-  return { label: m.label, start: m.start, end: r2(m.start + net), income, incomeLines, incomeUnsure, transferIn, transferOut, endWithoutTransfers: r2(m.start + net - transferIn + transferOut), fixed, fixedTotal, variable, variableTotal, emergency, expenses, left, savedPct: income > 0 ? Math.round(((emergency + left) / income) * 1000) / 10 : 0, byCategory };
+  return { label: m.label, start: m.start, end: r2(m.start + net), income, incomeLines, incomeUnsure, refunds, transferIn, transferOut, endWithoutTransfers: r2(m.start + net - transferIn + transferOut), fixed, fixedTotal, variable, variableTotal, emergency, expenses, left, savedPct: income > 0 ? Math.round(((emergency + left) / income) * 1000) / 10 : 0, byCategory };
 }
 
 /**

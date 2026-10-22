@@ -98,3 +98,38 @@ test('giroconti ricorrenti: stesso conto o contanti, non conti diversi', () => {
   assert.equal(transferSource('Deposito Cash Lugano', p), 'contanti');
   assert.notEqual(transferSource('Giro da Mario', p), transferSource('Giro da Anna', p));
 });
+
+import { estimateIncome, spreadOver, monthsNeeded, buildMonthPlan, detectLumpy, detectDuplicates, matchRefunds, findSavingsMove, goalMonthly } from '../src/lib/monthPlan.ts';
+test('entrata prevista: fissa, a ore con straordinari, a percentuale, manuale vince', () => {
+  assert.equal(estimateIncome({ mode: 'fixed', amount: 4200 }).total, 4200);
+  assert.equal(estimateIncome({ mode: 'hourly', hours: 160, rate: 30, overtimeHours: 10, overtimeRate: 40 }).total, 5200);
+  assert.equal(estimateIncome({ mode: 'commission', amount: 2000, revenue: 20000, pct: 10 }).total, 4000);
+  assert.equal(estimateIncome({ mode: 'fixed', amount: 4200, manualNext: 3900 }).total, 3900);
+});
+test('dilazione: somma esatta e mesi necessari', () => {
+  const s = spreadOver(1000, 3, '2026-11');
+  assert.deepEqual(s.map((x) => x.ym), ['2026-11', '2026-12', '2027-01']);
+  assert.equal(Math.round(s.reduce((a, x) => a + x.amount, 0) * 100) / 100, 1000);
+  assert.equal(monthsNeeded(1000, 300), 4);
+});
+test('piano del mese: entrata - fisse - da parte = da vivere', () => {
+  const p = buildMonthPlan({ ym: '2026-11', income: { mode: 'fixed', amount: 4000 }, fixed: [{ label: 'Affitto', amount: 1900 }, { label: 'Cassa', amount: 500 }], goals: [{ id: 'g', name: 'Vacanza', kind: 'vacation', total: 1200, targetYm: '2027-02' }], plans: [{ id: 'p', name: 'Fattura', total: 600, startYm: '2026-11', months: 3 }], daysLeft: 30 });
+  assert.equal(p.fixedTotal, 2400); assert.equal(p.setAsideTotal, 500); assert.equal(p.free, 1100); assert.equal(p.status, 'ok');
+  assert.equal(goalMonthly({ id: 'g', name: 'v', kind: 'vacation', total: 1200, targetYm: '2027-02' }, '2026-11'), 300);
+});
+test('fattura troppo alta, doppi addebiti, rimborsi, spostamento risparmi', () => {
+  const rows = [{ date: '2026-07-01', label: 'Axa', amount: -100 }, { date: '2026-08-01', label: 'Axa', amount: -100 }, { date: '2026-09-01', label: 'Axa', amount: -100 }, { date: '2026-10-01', label: 'Axa', amount: -900 }];
+  assert.equal(detectLumpy(rows, 4000).length, 1);
+  assert.equal(detectDuplicates([{ date: '2026-10-05', label: 'Coop', amount: -50 }, { date: '2026-10-05', label: 'Coop', amount: -50 }]).length, 1);
+  assert.equal(matchRefunds([{ date: '2026-09-01', label: 'Zalando', amount: -80 }, { date: '2026-09-20', label: 'Zalando', amount: 80 }]).length, 1);
+  assert.ok(findSavingsMove([{ date: '2026-11-25', label: 'Giroconto risparmio', amount: -500 }], 500));
+  assert.equal(findSavingsMove([{ date: '2026-11-25', label: 'Coop', amount: -300 }], 500), null);
+});
+
+import { parseContract } from '../src/lib/contractParse.ts';
+test('contratto: solo lordo => chiede il netto, non lo inventa', () => {
+  const r = parseContract('ecco: {"tipo":"fisso","stipendio_netto_mensile":null,"stipendio_lordo_mensile":5200,"note":"periodo di prova 3 mesi"}');
+  assert.equal(r.model.mode, 'fixed'); assert.equal(r.model.amount, undefined); assert.equal(r.grossOnly, true);
+  const o = parseContract('{"tipo":"ore","ore_settimanali":40,"paga_oraria_lorda":32}');
+  assert.equal(o.model.mode, 'hourly'); assert.equal(o.model.hours, 173); assert.equal(parseContract('niente json'), null);
+});

@@ -64,6 +64,7 @@ export function MonthCalcCard() {
             </Pressable>
           ))}
           {c.incomeLines.length > 1 ? line('Totale entrate', c.income, { bold: true, color: t.positive, sign: '+' }) : null}
+          {c.refunds > 0 ? <Body small muted>{`${tl('Rimborsi di spese (non sono guadagno: riducono le spese)')}: ${formatMoney(c.refunds)}`}</Body> : null}
           {c.incomeUnsure > 0 ? <Body small color={t.warn} style={{ marginTop: 2 }}>{`${formatMoney(c.incomeUnsure)} di entrate non sono ancora confermate: finché non mi dici cosa sono, il calcolo non è sicuro.`}</Body> : null}
           {head(`Spese fisse · ${formatMoney(c.fixedTotal)}`)}
           {c.fixed.map((x) => line(x.label, x.amount, { sign: '−' }))}

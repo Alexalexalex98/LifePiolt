@@ -150,6 +150,13 @@ export default function LifeFinance() {
           </Row>
         </Card>
       )}
+      <Card onPress={() => go('monthPlan')}>
+        <Row gap={10}>
+          <Icon name="calendar" size={24} color={t.accent} />
+          <View style={{ flex: 1 }}><H style={{ marginBottom: 2 }}>Piano del mese</H><Body small muted>Quanto entra, spese fisse, soldi da mettere da parte e quanto ti resta da vivere. Anche fatture grosse distribuite su più mesi.</Body></View>
+          <Icon name="chevron-right" size={18} color={t.muted} />
+        </Row>
+      </Card>
       <Card onPress={() => go('vacationPlan')}>
         <Row gap={10}>
           <Icon name="lifetravel" size={24} color={t.positive} />
