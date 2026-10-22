@@ -42,7 +42,7 @@ function savings(): Snap['savings'] {
     const st = f.statementInfo;
     if (!st) return null;
     const sum = (l: { monthly: number }[]) => l.reduce((a, x) => a + x.monthly, 0);
-    return { incomes: st.salary.sources.map((x) => ({ name: x.name, monthly: x.monthly })), fixed: sum(st.fixed), variable: sum(st.variable), vacation: f.vacation ?? null };
+    return { incomes: st.salary.sources.map((x) => ({ name: x.name, monthly: x.monthly })), fixed: sum(st.fixed), variable: sum(st.variable), items: [...st.fixed.map((x) => ({ name: x.name, cls: x.cls as string, monthly: x.monthly, kind: 'fissa' as const })), ...st.variable.map((x) => ({ name: x.name, cls: 'Altro' as string, monthly: x.monthly, kind: 'variabile' as const }))], vacation: f.vacation ?? null };
   } catch { return null; }
 }
 

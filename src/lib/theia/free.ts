@@ -4,7 +4,7 @@
  * e, se ancora non torna, si mostrano i fatti così come sono. L'AI è iniettata (`llm`), così tutto si prova senza rete.
  */
 import { upcoming } from '../shifts.ts';
-import { addDay, dayKeyOf, fmtMoney, fmtNum, humanDay, unverifiedNumbers, type Fact, type Snap } from './core.ts';
+import { addDay, cutCandidates, dayKeyOf, fmtMoney, fmtNum, humanDay, unverifiedNumbers, type Fact, type Snap } from './core.ts';
 import { radar } from './radar.ts';
 import { monthName, parseTarget, vacationPlan } from '../vacationPlan.ts';
 
@@ -120,6 +120,17 @@ export const TOOLS: Tool[] = [
     if (p.status === 'non-basta') facts.push({ label: 'importo raggiungibile entro la data', value: p.reachable, unit: cur, source: 'calcolo' }, ...(p.monthsNeeded ? [{ label: 'mesi che servirebbero con il margine attuale', value: p.monthsNeeded, source: 'calcolo' } as Fact] : []));
     return { facts };
   } },
+  { name: 'dove_tagliare', desc: 'Dove conviene tagliare per risparmiare: voci di spesa non essenziali dall\'estratto conto, in ordine di risparmio possibile, e quelle da non toccare (cassa malati, affitto, tasse...)', run: (s) => {
+    const sv = s.savings; if (!sv?.items?.length) return { facts: [], missing: 'Per dirti dove tagliare mi serve un estratto conto: caricalo da LifeFinance.' };
+    const cur = s.currency, src = 'estratto conto (medie mensili)';
+    const top = cutCandidates(sv.items);
+    const facts: Fact[] = [];
+    top.forEach((c, i) => facts.push({ label: `${i + 1}. da ridurre: ${c.item.name} (${c.item.cls}, ${c.item.kind}), spesa al mese`, value: Math.round(c.item.monthly), unit: cur, source: src }, { label: `risparmio al mese se ${c.item.name} scende del ${c.pct}% (ipotesi)`, value: c.save, unit: cur, source: 'calcolo' }));
+    if (top.length) facts.push({ label: 'risparmio totale al mese se riduci queste voci', value: top.reduce((a, c) => a + c.save, 0), unit: cur, source: 'calcolo' });
+    const fixedEss = sv.items.filter((i) => ['Affitto', 'Mutuo', 'Cassa malati e assicurazioni', 'Tasse e imposte', 'Energia e acqua', 'Prestiti e leasing'].includes(i.cls)).sort((a, b) => b.monthly - a.monthly).slice(0, 3);
+    fixedEss.forEach((i) => facts.push({ label: `da non toccare (spesa necessaria): ${i.name} (${i.cls})`, value: Math.round(i.monthly), unit: cur, source: src }));
+    return { facts };
+  } },
   { name: 'avvisi', desc: 'Gli avvisi del radar: cosa sta per succedere (budget, conflitti agenda-turni, sonno prima di un turno presto, task scaduti)', run: (s) => {
     const r = radar(s);
     return r.length ? { facts: r.slice(0, 5).flatMap((p) => [{ label: 'avviso', value: p.title, source: 'radar di Theia' } as Fact, ...p.facts]) } : { facts: [{ label: 'avvisi attivi', value: 0, source: 'radar di Theia' }] };
@@ -172,7 +183,7 @@ const factLine = (f: Fact) => `${f.label}: ${typeof f.value === 'number' ? fmtNu
 
 export function answerPrompt(question: string, facts: Fact[], missing: string[], wrong: string[] = []): string {
   return `Sei Theia. Rispondi in italiano, in modo chiaro e breve (al massimo 5 righe), alla domanda dell'utente usando SOLO i fatti qui sotto.
-REGOLE: usa solo numeri, orari e nomi che compaiono nei fatti, scritti uguali (ad esempio «1.234», «06:00»); non fare altri calcoli e non arrotondare in modo diverso; non aggiungere cifre tue. Se i fatti non bastano per rispondere, dillo chiaramente e di' cosa manca. Se un valore è una stima, scrivi che è una stima. Non dare consigli medici, legali o finanziari: puoi indicare cosa osservare e lasciare la scelta all'utente. Nessun elenco puntato lungo, nessun emoji.${wrong.length ? `\nATTENZIONE: nella risposta precedente c'erano numeri non presenti nei fatti (${wrong.join(', ')}). Riscrivila senza di essi.` : ''}
+REGOLE: usa solo numeri, orari e nomi che compaiono nei fatti, scritti uguali (ad esempio «1.234», «06:00»); non fare altri calcoli e non arrotondare in modo diverso; non aggiungere cifre tue. Se i fatti non bastano per rispondere, dillo chiaramente e di' cosa manca. Se un valore è una stima, scrivi che è una stima. Non dare consigli medici o legali. Su soldi e risparmio, se l'utente chiede cosa tagliare o cosa conviene fare, DAGLI una raccomandazione chiara partendo dai fatti (quali voci ridurre per prime e perché, quali non toccare, quanto si risparmia secondo i fatti), dicendo che è un suggerimento e che decide lui. Non salutare e non presentarti: l'utente ti conosce già, vai dritto alla risposta. Nessun elenco puntato lungo, nessun emoji.${wrong.length ? `\nATTENZIONE: nella risposta precedente c'erano numeri non presenti nei fatti (${wrong.join(', ')}). Riscrivila senza di essi.` : ''}
 FATTI:
 ${facts.map(factLine).join('\n') || '(nessuno)'}${missing.length ? `\nDATI MANCANTI:\n${missing.join('\n')}` : ''}
 DOMANDA: ${question}`;

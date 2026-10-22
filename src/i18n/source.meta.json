@@ -1,5 +1,5 @@
 {
- "count": 13703,
+ "count": 13710,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -559,7 +559,9 @@
   "src/lib/theia.ts": 102,
   "src/lib/theia/appContext.ts": 7,
   "src/lib/theia/ask.ts": 58,
-  "src/lib/theia/free.ts": 115,
+  "src/lib/theia/collect.ts": 1,
+  "src/lib/theia/core.ts": 6,
+  "src/lib/theia/free.ts": 128,
   "src/lib/theia/radar.ts": 46,
   "src/lib/theia/radarNotify.ts": 3,
   "src/lib/theia/week.ts": 13,
@@ -607,5 +609,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1724
+ "withPlaceholders": 1727
 }

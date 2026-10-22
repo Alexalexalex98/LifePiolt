@@ -28,3 +28,15 @@ test('trovare una voce: unica, nessuna o ambigua', () => {
   assert.equal(findByText(tasks, (x) => x.t, 'prenotare').length, 2);
   assert.equal(findByText(tasks, (x) => x.t, 'pizza').length, 0);
 });
+
+import { cutCandidates } from '../src/lib/theia/core.ts';
+test('dove tagliare: niente voci essenziali, in ordine di risparmio', () => {
+  const r = cutCandidates([
+    { name: 'Cassa X', cls: 'Cassa malati e assicurazioni', monthly: 993, kind: 'fissa' },
+    { name: 'Netflix', cls: 'Abbonamenti', monthly: 100, kind: 'fissa' },
+    { name: 'Bar', cls: 'Ristoranti e bar', monthly: 200, kind: 'variabile' },
+    { name: 'Varie', cls: 'Altro', monthly: 1000, kind: 'variabile' },
+  ]);
+  assert.deepEqual(r.map((x) => x.item.name), ['Varie', 'Bar', 'Netflix']);
+  assert.deepEqual(r.map((x) => x.save), [200, 60, 40]);
+});

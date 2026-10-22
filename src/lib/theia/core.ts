@@ -16,7 +16,7 @@ export type Snap = {
     /** mese precedente (se c'è) e come sono cambiate le categorie rispetto a quel mese */
     prev?: { label: string; income: number; expense: number } | null; deltas?: { n: string; v: number; prev: number }[]; label?: string };
   /** dall'estratto conto: entrate che tornano (uno o più stipendi), spese fisse e variabili medie al mese, e l'obiettivo vacanza salvato */
-  savings?: null | { incomes: { name: string; monthly: number }[]; fixed: number; variable: number; vacation?: { name: string; goal: number; target: string; saved: number } | null };
+  savings?: null | { incomes: { name: string; monthly: number }[]; fixed: number; variable: number; items?: CutItem[]; vacation?: { name: string; goal: number; target: string; saved: number } | null };
   /** notti più recenti, in ore */
   sleep: { day: string; hours: number }[];
   steps: { day: string; v: number }[];
@@ -79,3 +79,18 @@ export function humanDay(key: string, todayKey: string): string {
 export const addDay = (key: string, n: number) => { const [y, m, d] = key.split('-').map(Number); return dayKeyOf(new Date(y, m - 1, d + n).getTime()); };
 export const toMin = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + (m || 0); };
 export const hhmm = (min: number) => { const m = ((min % 1440) + 1440) % 1440; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+
+/** Una voce di spesa media mensile dell'estratto: fissa (ricorrente) o variabile, con la sua classe. */
+export type CutItem = { name: string; cls: string; monthly: number; kind: 'fissa' | 'variabile' };
+/** Classi che di solito non si possono tagliare (contratti, imposte, casa, salute). */
+const ESSENTIAL = new Set(['Affitto', 'Mutuo', 'Cassa malati e assicurazioni', 'Tasse e imposte', 'Energia e acqua', 'Prestiti e leasing']);
+/** Quanto si può ragionevolmente ridurre una voce, in %: ipotesi di lavoro, non una promessa. */
+const CUT_PCT: Record<string, number> = { 'Abbonamenti': 40, 'Ristoranti e bar': 30, 'Altro': 20, 'Trasporti': 15, 'Telefono e internet': 15, 'Cibo': 10 };
+/** Dove conviene tagliare: voci non essenziali in ordine di risparmio possibile (calcolato). Modulo puro. */
+export function cutCandidates(items: CutItem[], max = 5): { item: CutItem; pct: number; save: number }[] {
+  return items
+    .filter((i) => !ESSENTIAL.has(i.cls) && i.monthly > 0)
+    .map((i) => { const pct = CUT_PCT[i.cls] ?? 15; return { item: i, pct, save: Math.round((i.monthly * pct) / 100) }; })
+    .sort((a, b) => b.save - a.save)
+    .slice(0, max);
+}
