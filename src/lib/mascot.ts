@@ -30,3 +30,20 @@ export function moodOf(text: string | undefined): Expression {
   if (/\b(attenzione|errore|problema|scadut[oa]|in rosso)\b/.test(x)) return 'sad';
   return 'happy';
 }
+
+/** «Theia, fai un adesivo che festeggia»: dalla descrizione scelgo espressione ed eventualmente colore (regole semplici, niente AI: gratis e sempre uguale). */
+const MOODS: [RegExp, Expression][] = [
+  [/\b(ti voglio bene|amore|cuore|innamorat|love|heart|adoro)/, 'love'], [/\b(rid[eo]|ahah|lol|divertent|laugh|funny)/, 'laughing'], [/\b(occhiolino|wink|scherz)/, 'wink'],
+  [/\b(arrabbiat|furios|angry|mad|rabbia)/, 'angry'], [/\b(piang|triste|sad|cry|dispiac)/, 'sad'], [/\b(arross|imbarazz|blush)/, 'blushing'], [/\b(cool|figo|occhiali|sunglasses)/, 'cool'],
+  [/\b(dorm|nanna|buonanotte|sleep|night)/, 'sleeping'], [/\b(confus|boh|non capisco|confused)/, 'confused'], [/\b(idea|intuizione|lampadina)/, 'idea'], [/\b(orgogli|proud|bravo|brava)/, 'proud'],
+  [/\b(timid|shy|vergogn)/, 'shy'], [/\b(emozionat|entusiast|excited|wow|stell)/, 'excited'], [/\b(nervos|ansia|paura|nervous)/, 'nervous'], [/\b(grazie|thanks|thank)/, 'thanks'], [/\b(ciao|addio|bye|arrivederci|saluto)/, 'goodbye'],
+  [/\b(festegg|brindisi|party|complean|celebrat|evviva)/, 'celebrating'], [/\b(sorpres|incredibile|surpris|shock)/, 'surprised'], [/\b(pensa|penso|dubbio|thinking|mmm)/, 'thinking'], [/\b(capito|ok|perfetto|understood|chiaro)/, 'understood'],
+  [/\b(lavor|work|studi)\w*\b/, 'working'], [/\b(sonno|stanc|sleepy|tired)/, 'sleepy'], [/\b(felice|content|happy|bene)/, 'happy'],
+];
+const COLORS: [RegExp, string][] = [[/\b(rosso|red)\b/, '#ff5a5f'], [/\b(blu|azzurro|blue)\b/, '#4aa8ff'], [/\b(verde|green)\b/, '#3ddc97'], [/\b(giallo|oro|yellow|gold)\b/, '#ffc940'], [/\b(rosa|pink)\b/, '#ff7ab8'], [/\b(viola|purple)\b/, '#a98bff'], [/\b(arancio|orange)\b/, '#ff9d6e']];
+export function stickerFromText(text: string): { expr: Expression; color?: string; matched: boolean } {
+  const x = text.toLowerCase();
+  const m = MOODS.find(([re]) => re.test(x));
+  const c = COLORS.find(([re]) => re.test(x));
+  return { expr: m?.[1] ?? 'happy', ...(c ? { color: c[1] } : {}), matched: !!m };
+}

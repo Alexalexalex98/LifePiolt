@@ -15,6 +15,7 @@ export type LMsg = {
   location?: { label?: string };
   contact?: { name: string };
   poll?: { q: string; options?: { t: string }[] };
+  sticker?: { label?: string };
   agenda?: { title?: string; mode?: string };
   taskList?: { title?: string };
   noteShare?: { title?: string; text?: string };
@@ -42,6 +43,7 @@ export function previewParts(m: LMsg): { icon?: string; text: string } {
     case 'file': return { icon: 'file', text: m.media?.name ?? 'Documento' };
     case 'location': return { icon: 'location', text: m.location?.label ? 'Posizione: ' + m.location.label : 'Posizione' };
     case 'contact': return { icon: 'contact', text: m.contact?.name ? 'Contatto: ' + m.contact.name : 'Contatto' };
+    case 'sticker': return { icon: 'sparkle', text: m.sticker?.label ? 'Adesivo: ' + m.sticker.label : 'Adesivo' };
     case 'poll': return { icon: 'poll', text: m.poll?.q ? 'Sondaggio: ' + m.poll.q : 'Sondaggio' };
     case 'agenda': return { icon: 'calendar', text: m.agenda?.mode === 'liberi' ? 'Disponibilità: slot liberi' : m.agenda?.mode === 'occupato' ? 'Disponibilità: occupato/libero' : 'Agenda condivisa' };
     case 'tasks': return { icon: 'tasks', text: m.taskList?.title ? 'Lista task: ' + m.taskList.title : 'Lista task' };

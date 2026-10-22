@@ -12,6 +12,7 @@ import { uid } from '@/lib/format';
 import { fmtDur, previewOf, type ChatMessage, type Poll } from '@/store/chat';
 import { toast } from '@/store/toast';
 import { senderColor, useChatColors } from './parts';
+import { StickerSheet } from './StickerSheet';
 import { AgendaSheet, CallSheet, type CallPlan, DriveSheet, EventSheet, OfferSheet, DocReqSheet, NoteSheet, SlotsSheet, TasksSheet, type SharePayload } from './ShareSheets';
 import { Icon } from '@/lib/icons';
 import { canShare, logOutflow } from '@/lib/privacyGateApp';
@@ -53,6 +54,7 @@ export function Composer(p: Props) {
   const t = useTheme();
   const c = useChatColors();
   const [attach, setAttach] = useState(false);
+  const [stickers, setStickers] = useState(false);
   const [share, setShare] = useState<null | 'agenda' | 'tasks' | 'note' | 'slots' | 'drive' | 'event' | 'offer' | 'docreq' | 'call'>(null);
   const [poll, setPoll] = useState(false);
   const [preview, setPreview] = useState<Picked[] | null>(null);
@@ -193,10 +195,12 @@ export function Composer(p: Props) {
         )}
       </View>
 
+      <StickerSheet visible={stickers} onClose={() => setStickers(false)} onSend={(st) => p.onSendShare({ kind: 'sticker', sticker: st })} />
       <Sheet visible={attach} title="Condividi" onClose={() => setAttach(false)}>
         <Body small muted style={{ marginBottom: 4 }}>Dal telefono</Body>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
           {([
+            ['sparkle', 'Adesivi di Theia', () => { setAttach(false); setStickers(true); }],
             ['file', 'Documento', () => run(pickDocument)],
             ['camera', 'Fotocamera', () => run(takePhoto)],
             ['image', 'Foto e video', () => run(pickFromGallery)],

@@ -1,3 +1,4 @@
+import { Mascot } from '@/components/mascot/Mascot';
 import { memo, useRef } from 'react';
 import { Animated, PanResponder, Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
@@ -66,6 +67,7 @@ export const Bubble = memo(function Bubble(p: Props) {
         {m.kind === 'file' && <FileCard m={m} onLongPress={p.onLongPress} />}
         {m.kind === 'location' && <LocationCard m={m} onLongPress={p.onLongPress} />}
         {m.kind === 'contact' && <ContactCard m={m} />}
+        {m.kind === 'sticker' && m.sticker && <View style={{ alignItems: 'center' }}><Mascot size={104} color={m.sticker.color} expression={m.sticker.expr} ritual={false} />{m.sticker.label ? <Text style={{ color: fg, fontSize: 13, fontWeight: '700', marginTop: 2 }}>{m.sticker.label}</Text> : null}</View>}
         {m.kind === 'poll' && <PollCard m={m} me={p.me} onVote={p.onVote} />}
         {m.kind === 'agenda' && m.agenda && <AgendaCard m={m} me={p.me} chatId={m.chatId} />}
         {m.kind === 'tasks' && m.taskList && <TasksCard m={m} me={p.me} chatId={m.chatId} />}
@@ -75,7 +77,7 @@ export const Bubble = memo(function Bubble(p: Props) {
         {m.kind === 'offer' && m.offer && <OfferCard m={m} me={p.me} chatId={m.chatId} />}
         {m.kind === 'event' && m.event && <EventCard m={m} me={p.me} chatId={m.chatId} />}
         {m.kind === 'call' && m.call && <CallCard m={m} me={p.me} />}
-        {!!m.text && m.kind !== 'poll' && m.kind !== 'audio' && m.kind !== 'call' ? <View style={{ marginTop: m.kind === 'text' ? 0 : 6 }}><LinkText text={m.text} color={fg} size={p.fontSize} /></View> : null}
+        {!!m.text && m.kind !== 'sticker' && m.kind !== 'poll' && m.kind !== 'audio' && m.kind !== 'call' ? <View style={{ marginTop: m.kind === 'text' ? 0 : 6 }}><LinkText text={m.text} color={fg} size={p.fontSize} /></View> : null}
       </>
     );
   }

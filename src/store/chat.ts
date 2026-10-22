@@ -8,7 +8,7 @@ import type { CallShare } from '@/lib/groupCall';
 import { persisted } from './persist';
 import { fmtDate, fmtTime, weekdayLong } from '@/i18n/format';
 
-export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'contact' | 'poll' | 'agenda' | 'tasks' | 'note' | 'slots' | 'event' | 'offer' | 'docreq' | 'call' | 'system';
+export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'contact' | 'poll' | 'agenda' | 'tasks' | 'note' | 'slots' | 'event' | 'offer' | 'docreq' | 'call' | 'system' | 'sticker';
 export type MsgStatus = 'sending' | 'sent' | 'delivered' | 'read';
 
 export type Media = { uri: string; w?: number; h?: number; mime?: string; name?: string; size?: number; durationMs?: number; waveform?: number[] };
@@ -69,6 +69,8 @@ export type ChatMessage = {
   location?: { lat: number; lng: number; label?: string };
   contact?: { name: string; phone?: string };
   poll?: Poll;
+  /** adesivo di Theia: espressione e colore (quello di chi lo manda) */
+  sticker?: { expr: import('@/lib/mascot').Expression; color: string; label?: string };
   agenda?: AgendaShare;
   taskList?: TaskShare;
   noteShare?: NoteShare;
