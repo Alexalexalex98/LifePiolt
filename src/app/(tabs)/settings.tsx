@@ -297,6 +297,7 @@ export default function Settings() {
       <Card>
         <H>Colori</H>
         <Body small muted style={{ marginBottom: 10 }}>Scegli il colore dell'app e il tono dello sfondo. Il testo resta sempre leggibile.</Body>
+        <Btn small ghost icon="sparkle" style={{ marginBottom: 12, alignSelf: 'flex-start' }} title="Conosci Theia, la mascotte" onPress={() => go('mascot')} />
         <Body bold style={{ marginBottom: 8 }}>Colore principale</Body>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={10}>
           {ACCENTS.map((a) => (
