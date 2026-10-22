@@ -60,7 +60,7 @@ export function WaterBanner() {
       <Sheet visible={other} title="Cosa hai bevuto?" onClose={() => setOther(false)}>
         <Body small muted>Tocca la bevanda: segno una porzione tipica. Il conteggio dei liquidi è una stima. Se ha calorie la metto anche nel diario dei pasti.</Body>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={8}>
-          {DRINKS.map((d) => <Pill key={d.id} label={`${tl(d.label)} · ${d.ml} ml`} off onPress={() => drink(d)} />)}
+          {DRINKS.map((d) => <Pill key={d.id} label={`${tl(d.label)} · ${d.ml} ml`} onPress={() => drink(d)} />)}
         </Row>
       </Sheet>
     </>

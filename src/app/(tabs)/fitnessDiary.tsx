@@ -110,8 +110,8 @@ export default function FitnessDiary() {
         <Row><H style={{ flex: 1 }}>Acqua di oggi</H><Body bold>{`${(waterToday / 1000).toFixed(1).replace('.', ',')} / ${(goal / 1000).toFixed(1).replace('.', ',')} L`}</Body></Row>
         <Bar value={waterToday} max={goal} color={FIT} />
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={8}>
-          {[200, 500, 1000].map((ml) => <Pill key={ml} label={ml === 1000 ? '+ 1 L' : `+ ${ml} ml`} off onPress={() => { fit.addWater(ml); }} />)}
-          {waterToday > 0 ? <Pill label="Annulla ultimo" off onPress={() => { fit.addWater(-200); }} /> : null}
+          {[200, 500, 1000].map((ml) => <Pill key={ml} label={ml === 1000 ? '+ 1 L' : `+ ${ml} ml`} onPress={() => { fit.addWater(ml); }} />)}
+          {waterToday > 0 ? <Pill label="Annulla ultimo" onPress={() => { fit.addWater(-200); }} /> : null}
         </Row>
         <Row style={{ marginTop: 12 }}><View style={{ flex: 1 }}><Body>Avvisami per bere</Body><Body small muted>{`${tl('Ogni')} ${Math.round(w.everyMin / 60)} ${tl('ore')}, ${w.from}-${w.to}`}</Body></View><Switch value={w.on} onValueChange={(v) => void setRemind({ on: v })} accessibilityLabel="Avvisami per bere" /></Row>
         {w.on ? (

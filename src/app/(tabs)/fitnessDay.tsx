@@ -38,8 +38,8 @@ export default function FitnessDay() {
         <H style={{ textTransform: 'capitalize' }}>{title}</H>
         <DaySummary meals={g?.meals ?? []} micro={g?.micro} waterMl={water} body={fit.body} />
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={8}>
-          {[200, 500, 1000].map((ml) => <Pill key={ml} label={ml === 1000 ? '+ 1 L acqua' : `+ ${ml} ml acqua`} off onPress={() => { fit.addWater(ml, key); }} />)}
-          {water > 0 ? <Pill label="Annulla ultimo" off onPress={() => { fit.addWater(-200, key); }} /> : null}
+          {[200, 500, 1000].map((ml) => <Pill key={ml} label={ml === 1000 ? '+ 1 L acqua' : `+ ${ml} ml acqua`} onPress={() => { fit.addWater(ml, key); }} />)}
+          {water > 0 ? <Pill label="Annulla ultimo" onPress={() => { fit.addWater(-200, key); }} /> : null}
         </Row>
         {water < goal * 0.5 && key === dayOf(Date.now()) && new Date().getHours() >= 15 ? <Body small style={{ marginTop: 6, color: '#ffb020' }}>Oggi hai bevuto poco: ti conviene bere qualcosa nelle prossime ore.</Body> : null}
       </Card>

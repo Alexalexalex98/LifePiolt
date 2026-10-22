@@ -65,7 +65,7 @@ export default function MessagesPage() {
           <Pill icon="archive" label={allArchived ? 'Ripristina' : 'Archivia'} onPress={() => apply(() => ({ archived: !allArchived }))} />
           <Pill label="Segna da leggere" onPress={() => apply(() => ({ markedUnread: true }))} />
           <Pill icon="trash" label="Elimina" onPress={() => setConfirmDel(true)} />
-          <Pill label="Annulla" off onPress={() => setSel([])} />
+          <Pill label="Annulla" onPress={() => setSel([])} />
         </Row>
       ) : (
         <>
