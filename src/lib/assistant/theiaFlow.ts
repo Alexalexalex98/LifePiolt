@@ -18,6 +18,8 @@ import { aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
 import { parseAiActions } from './aiActionsCore';
+import { isLearnable, recall } from '@/lib/theiaMemory';
+import { useTheiaMemory } from '@/store/theiaMemory';
 import { applyAiAction, describe } from './aiActions';
 import { describeAnalysis, isBillType } from '@/lib/docAnalysis';
 import { statementSummary } from '@/lib/statementReport';
@@ -91,8 +93,18 @@ function pushWithActions(reply: string): AMsg {
 }
 
 async function aiChatReply(text: string): Promise<void> {
+  const plain = !text.includes('\n\n'); // solo una domanda scritta (senza allegati): l'unico caso in cui si impara o si ricorda
+  const kb = useTheiaMemory.getState();
+  const hit = plain ? recall(kb.entries, text) : null;
+  if (hit) {
+    kb.used(hit.id);
+    pushAi(`${hit.a}\n\n${t('Risposta dalla mia memoria (l\'ho imparata il {0}): non ho usato l\'AI esterna.', new Date(hit.ts).toLocaleDateString())}`, { ext: { actions: [{ kind: 'kb-forget', label: t('Non è giusta'), id: hit.id }, { kind: 'kb-redo', label: t('Chiedi di nuovo all\'AI'), id: hit.id, text }] } });
+    return;
+  }
   try {
-    pushWithActions(await askTheiaChat(text) || t('Risposta vuota dal server.'));
+    const reply = await askTheiaChat(text) || t('Risposta vuota dal server.');
+    pushWithActions(reply);
+    if (plain) { const { text: clean, actions } = parseAiActions(reply); if (!actions.length && isLearnable(text, clean)) kb.learn(text, clean); }
   } catch (e) {
     pushAi(`${t(friendlyAiError(e instanceof Error ? e.message : 'Errore del server AI.'))}\n\n${t('I comandi sul tuo piano, i task e i report funzionano comunque.')}`, { ext: { actions: [{ kind: 'say', label: t('Riprova'), text }, { kind: 'dismiss', label: t('Lascia stare') }] } });
   }
@@ -238,7 +250,7 @@ export async function sendTheia(i: SendInput): Promise<void> {
   }
 
   // domande libere sui tuoi dati: l'AI sceglie i calcolatori, il telefono calcola, ogni numero della risposta viene verificato. Senza AI o senza consenso: i fatti, così come sono
-  if (!pending && !useLearned.getState().teaching && (u.status === 'passthrough' || u.status === 'translated') && looksLikeDataQuestion(u.text)) {
+  if (!pending && !useLearned.getState().teaching && (u.status === 'passthrough' || u.status === 'translated') && !aiOn() && looksLikeDataQuestion(u.text)) {
     try {
       const snap = collectSnap();
       let r: FreeResult = { kind: 'outside' };
@@ -624,6 +636,8 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
     case 'say': await sendTheia({ text: action.text, lang: useApp.getState().language, appLang: useApp.getState().language, forced: false, source: 'typed' }); return;
     case 'ai-analysis': await deepStatementAnalysis(); return;
     case 'add-invoices': addInvoicesFromChat(action); return;
+    case 'kb-forget': useTheiaMemory.getState().forget(action.id); pushAi(t('Fatto: ho dimenticato quella risposta.')); return;
+    case 'kb-redo': useTheiaMemory.getState().forget(action.id); await aiChatReply(action.text); return;
     case 'ai-do': { const r = applyAiAction(action.act); pushAi(r.message); return; }
     case 'bill': openBillReview({ uri: action.uri, mime: action.mime, name: action.name }); return;
     case 'read-files': store().push({ who: 'me', text: action.label, source: 'chat' }); await readFilesWithAi(action.text, action.files); return;

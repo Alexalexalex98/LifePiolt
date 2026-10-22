@@ -19,6 +19,8 @@ import { aiChat, aiChatRaw, aiReadFilesFull, aiServerConfigured, aiVision, image
 import { useLife } from '@/store/life';
 import { appContextParts, partsText } from '@/lib/theia/appContext';
 import { askData, logSend } from '@/lib/aiConsent';
+import { computedFacts } from '@/lib/theia/free';
+import { collectSnap } from '@/lib/theia/collect';
 import { AI_ACTION_PROMPT } from '@/lib/assistant/aiActionsCore';
 
 /**
@@ -288,13 +290,14 @@ async function theiaPrompt(question: string, selection?: string): Promise<string
     const ok = await askData([...new Set(parts.map((p) => p.cat))]);
     const use = parts.filter((p) => ok.includes(p.cat));
     if (use.length) {
-      ctx = `${buildContext(true)}\n\nDati dell'app (veri, calcolati dall'app):\n${partsText(use)}`;
+      let calc = ''; try { calc = computedFacts(question, collectSnap()); } catch { /* senza numeri calcolati */ }
+      ctx = `${buildContext(true)}\n\nDati dell'app (veri, calcolati dall'app):\n${partsText(use)}${calc ? `\n\nNumeri già calcolati dal telefono (usali così come sono: non rifare calcoli sui soldi, e se serve un numero che non c'è dì che lo calcola l'app):\n${calc}` : ''}`;
       logSend('summary', ctx.length, use.map((p) => p.label));
     }
   }
   const log = useAssistant.getState().log;
   const mine = log.filter((m) => m.who === 'me').slice(-6).map((m) => m.text);
-  const recent = log.slice(-9, -1).filter((m) => m.text.trim()).map((m) => `${m.who === 'me' ? 'Utente' : (app0.assistantName || 'Theia')}: ${m.text.replace(/\s+/g, ' ').slice(0, 300)}`).join('\n');
+  const recent = log.slice(-17, -1).filter((m) => m.text.trim()).map((m) => `${m.who === 'me' ? 'Utente' : (app0.assistantName || 'Theia')}: ${m.text.replace(/\s+/g, ' ').slice(0, 900)}`).join('\n');
   return `Sei ${app0.assistantName || 'Theia'}, la persona di fiducia dentro l'app LifePilot per l'utente. Rispondi come una persona che conosce bene l'utente, in modo diretto e utile; non salutare e non ripresentarti a ogni risposta (l'utente ti conosce già), salutare solo se ti saluta per primo; se ti chiede cosa tagliare, cosa conviene o cosa scegliere, dai una raccomandazione chiara e motivata con i suoi dati (decide lui), anche a domande libere (testi, idee, spiegazioni, consigli generali). Non dai consigli medici, legali o finanziari: spieghi e dai indicazioni generali. Se nel contesto c'è l'estratto conto dell'utente, usalo con le cifre esatte; hai accesso a tutti i dati dell'app che compaiono nel contesto (non dire di non averlo: se un dato manca davvero, dì che non c'è ancora nell'app) e indica dove si potrebbe ridurre, senza inventare importi.\n${HONESTY} Se parli di alimentazione, salute, sonno, allenamento o integratori: di' che sono stime e indicazioni generali, non un parere medico; non diagnosticare, non prescrivere terapie, dosi di integratori o diete speciali, e invita a sentire un medico o un dietista in caso di sintomi, malattie, gravidanza o dubbi.\n${AI_ACTION_PROMPT}\n${styleHints([...mine, question])}${ctx ? `\n\nContesto dell'utente:\n${ctx}` : ''}${recent ? `\n\nConversazione recente:\n${recent}` : ''}${selection ? `\n\nTesto selezionato:\n"${selection}"` : ''}\n\nRichiesta: ${question}`;
 }
 

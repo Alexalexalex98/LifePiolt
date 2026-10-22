@@ -40,3 +40,19 @@ test('dove tagliare: niente voci essenziali, in ordine di risparmio', () => {
   assert.deepEqual(r.map((x) => x.item.name), ['Varie', 'Bar', 'Netflix']);
   assert.deepEqual(r.map((x) => x.save), [200, 60, 40]);
 });
+
+import { isLearnable, recall, makeEntry, addEntry } from '../src/lib/theiaMemory.ts';
+test('memoria: impara solo conoscenza generale, non cose personali o legate all\'ora', () => {
+  const r = 'La fotosintesi è il processo con cui le piante trasformano luce, acqua e anidride carbonica in zuccheri e ossigeno.';
+  assert.equal(isLearnable('Come funziona la fotosintesi clorofilliana nelle piante', r), true);
+  assert.equal(isLearnable('Quanto ho speso questo mese in ristoranti', r), false);
+  assert.equal(isLearnable('Che tempo fa domani a Lugano', r), false);
+  assert.equal(isLearnable('E quello invece come funziona', r), false);
+  assert.equal(isLearnable('Come funziona la fotosintesi clorofilliana nelle piante', 'Non lo so, riprova più tardi con un altra domanda.'), false);
+});
+test('memoria: ritrova una domanda simile e non una diversa', () => {
+  const e = makeEntry('Come funziona la fotosintesi clorofilliana nelle piante', 'Risposta lunga abbastanza per essere ricordata dal telefono di Theia.');
+  const kb = addEntry([], e);
+  assert.equal(recall(kb, 'Come funziona la fotosintesi nelle piante')?.id, e.id);
+  assert.equal(recall(kb, 'Come funziona il motore a scoppio delle automobili'), null);
+});

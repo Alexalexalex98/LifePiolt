@@ -13,6 +13,7 @@ import { useClub } from '@/store/club';
 import { useFin } from '@/store/finance';
 import { useFitness } from '@/store/fitness';
 import { useHealth } from '@/store/health';
+import { useTheiaMemory } from '@/store/theiaMemory';
 import { useLife } from '@/store/life';
 import { useLpMoney } from '@/store/lpMoney';
 import { useNet } from '@/store/network';
@@ -38,6 +39,7 @@ export default function PrivacyCenter() {
   const history = useAiRouter((s) => s.consentLog);
   const { setDataConsent, revokeAllConsents } = useAiRouter.getState();
   const [showHist, setShowHist] = useState(false);
+  const learned = useTheiaMemory((s) => s.entries.length);
 
   const exportCat = async (id: CatId) => {
     const data = Object.fromEntries(STORES[id].map((s, i) => [`parte${i + 1}`, s.getState()]));
@@ -82,6 +84,13 @@ export default function PrivacyCenter() {
           <Btn small ghost icon="lock" title="Backup cifrato e archivio" onPress={() => go('security')} />
           <Btn small ghost danger title="Elimina tutti i miei dati e l'account" onPress={() => go('settings')} />
         </View>
+      </Card>
+
+      <Card>
+        <H>Cosa ha imparato Theia</H>
+        <Body small muted style={{ marginTop: 4 }}>Quando l'AI risponde a una domanda di conoscenza generale (non personale), Theia la ricorda sul telefono e la prossima volta risponde da sola. Non impara mai dai tuoi dati personali. Puoi cancellare tutto quando vuoi.</Body>
+        <Body small style={{ marginTop: 6 }}>{`${tl('Risposte ricordate')}: ${learned}`}</Body>
+        <Btn small ghost danger style={{ marginTop: 8 }} title="Cancella ciò che ha imparato" onPress={() => { useTheiaMemory.getState().clear(); toast('Memoria di Theia cancellata'); }} />
       </Card>
 
       <SendLog />

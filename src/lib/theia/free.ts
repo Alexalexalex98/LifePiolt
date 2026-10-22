@@ -255,3 +255,18 @@ export async function askFree(question: string, snap: Snap, llm: (prompt: string
   return { kind: 'fallback', text: renderFallback(run.facts, run.missing), facts: run.facts, sources: run.sources, why: `numeri non verificati: ${wrong.join(', ')}` };
 }
 export { fmtMoney };
+
+/** Numeri già calcolati dal telefono per una domanda (soldi, agenda, sonno...): l'AI li usa così come sono e non fa calcoli suoi. */
+export function computedFacts(question: string, snap: Snap): string {
+  const q = question.toLowerCase();
+  const pick = new Set<string>(['avvisi']);
+  if (/(spes|soldi|budget|risparm|stipendi|estratto|saldo|tagli|ridurre|costi|uscite|entrate|euro|chf|finanz|mese)/.test(q)) ['mese', 'categorie_top', 'confronto_mese'].forEach((n) => pick.add(n));
+  if (/(tagli|ridurre|risparm|escludere|togliere|costi)/.test(q)) pick.add('dove_tagliare');
+  if (/(vacanz|viagg|mettere da parte|obiettivo di risparmio|piano di risparmio)/.test(q) && snap.savings?.vacation) pick.add('piano_risparmio');
+  if (/(agenda|impegn|appuntament|oggi|domani|settimana|turn|lavor|task|fare)/.test(q)) ['agenda', 'task', 'turni', 'carico_turni'].forEach((n) => pick.add(n));
+  if (/(sonn|dorm|passi|stanc|energia|salute|allen)/.test(q)) ['sonno', 'passi'].forEach((n) => pick.add(n));
+  if (/(cibo|mang|calori|acqua|pranz|cena)/.test(q)) pick.add('oggi_cibo_acqua');
+  const lines: string[] = [];
+  for (const name of pick) { try { const out = BY[name]?.run(snap, {}); if (out) lines.push(...out.facts.map((f) => `- ${factLine(f)} (${f.source})`)); } catch { /* strumento non disponibile */ } }
+  return lines.join('\n');
+}

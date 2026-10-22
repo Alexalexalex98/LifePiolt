@@ -338,5 +338,14 @@
   "Ecco la pagina.": "Here is the page.",
   "Posso farlo io, se vuoi:": "I can do it for you, if you like:",
   "Sì, fallo": "Yes, do it",
-  "No, grazie": "No, thanks"
+  "No, grazie": "No, thanks",
+  "Risposta dalla mia memoria (l'ho imparata il {0}): non ho usato l'AI esterna.": "Answer from my memory (I learned it on {0}): I did not use the external AI.",
+  "Non è giusta": "That's not right",
+  "Chiedi di nuovo all'AI": "Ask the AI again",
+  "Fatto: ho dimenticato quella risposta.": "Done: I forgot that answer.",
+  "Cosa ha imparato Theia": "What Theia has learned",
+  "Quando l'AI risponde a una domanda di conoscenza generale (non personale), Theia la ricorda sul telefono e la prossima volta risponde da sola. Non impara mai dai tuoi dati personali. Puoi cancellare tutto quando vuoi.": "When the AI answers a general-knowledge (non-personal) question, Theia remembers it on the phone and answers by itself next time. It never learns from your personal data. You can delete everything whenever you want.",
+  "Risposte ricordate": "Remembered answers",
+  "Cancella ciò che ha imparato": "Delete what it has learned",
+  "Memoria di Theia cancellata": "Theia's memory deleted"
 }
