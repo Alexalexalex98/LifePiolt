@@ -1,5 +1,5 @@
 {
- "count": 13273,
+ "count": 13282,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -109,7 +109,7 @@
   "src/app/(tabs)/taxdecl.tsx": 76,
   "src/app/(tabs)/userProfile.tsx": 48,
   "src/app/(tabs)/vacationPlanner.tsx": 15,
-  "src/app/(tabs)/weekPlan.tsx": 17,
+  "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
   "src/app/onboarding.tsx": 10,
   "src/components/AddMovementSheet.tsx": 27,
@@ -230,6 +230,7 @@
   "src/components/fitness/ExercisePhotos.tsx": 3,
   "src/components/fitness/ExercisePicker.tsx": 28,
   "src/components/fitness/GymPay.tsx": 20,
+  "src/components/fitness/LunchBanner.tsx": 9,
   "src/components/fitness/NutrientSheet.tsx": 16,
   "src/components/fitness/WaterBanner.tsx": 14,
   "src/components/fitness/kit.tsx": 1,
@@ -540,7 +541,7 @@
   "src/lib/theia/free.ts": 93,
   "src/lib/theia/radar.ts": 46,
   "src/lib/theia/radarNotify.ts": 3,
-  "src/lib/theia/week.ts": 11,
+  "src/lib/theia/week.ts": 13,
   "src/lib/theiaQuotes.ts": 40,
   "src/lib/themeCustom.ts": 17,
   "src/lib/tour.ts": 47,
@@ -582,5 +583,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1655
+ "withPlaceholders": 1657
 }

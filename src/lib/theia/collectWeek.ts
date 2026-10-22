@@ -1,5 +1,6 @@
 import { addDay, dayKeyOf } from './core';
 import type { WeekInput, WItem } from './week';
+import { lunchMinutes } from '@/lib/fitness/lunch';
 import { dayInfo } from '@/lib/fitness/dayPlan';
 import { sessionMinutes } from '@/lib/fitness/plan';
 import { programById } from '@/lib/fitness/programsExtra';
@@ -32,10 +33,11 @@ export function collectWeekInput(opts?: WeekInput['opts'], nowDate = new Date())
     workStart: wh.start, workEnd: wh.end,
     tasks: ranked.slice(0, 8).map((r) => ({ id: r.task.id, t: r.task.t })),
     workouts, opts,
+    ...(fit.lunch?.on ? { lunch: { from: fit.lunch.from, to: fit.lunch.to, dur: lunchMinutes(fit.lunch) } } : {}),
   };
 }
 
-const COLOR: Record<WItem['kind'], string> = { allenamento: '#ff9d6e', task: '#8fb3ff', sonno: '#c9b6ff' };
+const COLOR: Record<WItem['kind'], string> = { allenamento: '#ff9d6e', task: '#8fb3ff', sonno: '#c9b6ff', pausa: '#7fd6a4' };
 
 /** Mette nel Plan le voci scelte. Ritorna la sigla del gruppo: serve ad annullare tutto in un colpo. */
 export function applyWeekPlan(items: WItem[]): string {

@@ -7,7 +7,7 @@ import { fmtMin, freeSlots, toMin, type Ev } from '../availability.ts';
 import { upcoming, type Shift } from '../shifts.ts';
 import { addDay, dayKeyOf } from './core.ts';
 
-export type WKind = 'allenamento' | 'task' | 'sonno';
+export type WKind = 'allenamento' | 'task' | 'sonno' | 'pausa';
 export type WItem = { id: string; day: string; time: string; dur: number; title: string; kind: WKind };
 export type WeekInput = {
   now: Date;
@@ -18,7 +18,9 @@ export type WeekInput = {
   tasks: { id: string; t: string }[];
   /** allenamenti previsti, non ancora fatti */
   workouts: { day: string; name: string; minutes: number }[];
-  opts?: { workouts?: boolean; tasks?: boolean; sleep?: boolean };
+  /** pausa pranzo (se impostata): finestra e durata in minuti */
+  lunch?: { from: string; to: string; dur: number };
+  opts?: { workouts?: boolean; tasks?: boolean; sleep?: boolean; lunch?: boolean };
 };
 export type WeekPlan = { days: string[]; items: WItem[]; notes: string[] };
 
@@ -29,7 +31,7 @@ const WD = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
 export const dayLabel = (key: string, today: string) => (key === today ? 'oggi' : key === addDay(today, 1) ? 'domani' : `${WD[new Date(key + 'T00:00:00').getDay()]} ${Number(key.slice(8))}`);
 
 export function planWeek(i: WeekInput): WeekPlan {
-  const opts = { workouts: true, tasks: true, sleep: true, ...(i.opts ?? {}) };
+  const opts = { workouts: true, tasks: true, sleep: true, lunch: true, ...(i.opts ?? {}) };
   const today = dayKeyOf(i.now.getTime());
   const days = Array.from({ length: 7 }, (_, k) => addDay(today, k));
   const notes: string[] = [];
@@ -52,6 +54,18 @@ export function planWeek(i: WeekInput): WeekPlan {
 
   if (shiftDays.size) notes.push(`Nella settimana hai ${shiftDays.size === 1 ? 'un giorno' : `${shiftDays.size} giorni`} con turni: li ho considerati occupati, con un'ora di margine prima e dopo.`);
 
+  // 0) pausa pranzo: va messa per prima, così allenamenti e task la lasciano libera. Se è occupata la sposto di poco (entro un'ora), altrimenti lo dico.
+  if (opts.lunch && i.lunch) {
+    const L = i.lunch; const lf = toMin(L.from), lt = toMin(L.to);
+    const skipped: string[] = [];
+    for (const d of days) {
+      const slots = freeSlots(busy[d], fmtMin(Math.max(0, lf - 60)), fmtMin(Math.min(1439, lt + 60)), L.dur, 0, nowMin(d));
+      const fit = slots.map((s) => ({ s, at: Math.min(Math.max(lf, s.from), s.to - L.dur) })).filter((x) => x.at >= x.s.from && x.at + L.dur <= x.s.to).sort((a, b) => Math.abs(a.at - lf) - Math.abs(b.at - lf))[0];
+      if (!fit) { if (d !== today || nowMin(d) < lt) skipped.push(dayLabel(d, today)); continue; }
+      put(d, fit.at, L.dur, 'Pausa pranzo', 'pausa');
+    }
+    if (skipped.length) notes.push(`Non ho trovato posto per la pausa pranzo: ${skipped.join(', ')}.`);
+  }
   // 1) allenamenti
   if (opts.workouts) {
     for (const w of i.workouts.filter((x) => days.includes(x.day))) {

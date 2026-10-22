@@ -8,6 +8,7 @@ import { creditsLeft, makePurchase, payBlock, priceList, consumeCredit, type Pur
 import { checkIn, renewIfDue, startSub, PREMIUM_PRICE_LP, type Sub, type Visit } from '@/lib/fitness/premium';
 import { useNet } from '@/store/network';
 import { dayOf } from '@/lib/fitness/mealInsights';
+import { DEFAULT_LUNCH, type LunchAnswer, type LunchCfg } from '@/lib/fitness/lunch';
 import type { Override } from '@/lib/fitness/dayPlan';
 import { persisted } from './persist';
 
@@ -47,6 +48,12 @@ type State = {
   waterBanner: { on: boolean; afterMin: number; snoozeUntil: number };
   /** ultima volta che hai segnato acqua o una bevanda */
   lastDrink: number;
+  /** pausa pranzo, risposte «hai mangiato?» per giorno e rinvio */
+  lunch: LunchCfg;
+  lunchLog: Record<string, LunchAnswer>;
+  lunchSnooze: number;
+  setLunch: (p: Partial<LunchCfg>) => void;
+  answerLunch: (day: string, a: LunchAnswer, snoozeMin?: number) => void;
   setWaterBanner: (p: Partial<State['waterBanner']>) => void;
   /** esercizi spuntati per data: `key` è la sessione a cui si riferiscono */
   exDone: Record<string, { key: string; idx: number[] }>;
@@ -82,7 +89,9 @@ const uid = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice
 /** Dati di LifeFitness: restano sul telefono (sono dati di salute). */
 export const useFitness = create<State>()(
   persisted<State>('fitness', (set, get) => ({
-    profile: null, body: null, activeProgram: null, history: [], meals: [], water: {}, waterRemind: { on: false, everyMin: 120, from: '09:00', to: '21:00' }, eveningCheck: { on: true, at: '20:45' }, sub: null, visits: [], requests: [], approved: [], invites: [], customEx: [], aiFoods: [], purchases: [], edits: {}, plans: {}, exDone: {}, waterBanner: { on: true, afterMin: 120, snoozeUntil: 0 }, lastDrink: 0,
+    profile: null, body: null, activeProgram: null, history: [], meals: [], water: {}, waterRemind: { on: false, everyMin: 120, from: '09:00', to: '21:00' }, eveningCheck: { on: true, at: '20:45' }, sub: null, visits: [], requests: [], approved: [], invites: [], customEx: [], aiFoods: [], purchases: [], edits: {}, plans: {}, exDone: {}, waterBanner: { on: true, afterMin: 120, snoozeUntil: 0 }, lastDrink: 0, lunch: DEFAULT_LUNCH, lunchLog: {}, lunchSnooze: 0,
+    setLunch: (p) => set((s) => ({ lunch: { ...(s.lunch ?? DEFAULT_LUNCH), ...p } })),
+    answerLunch: (day, a, snoozeMin) => set((s) => ({ lunchLog: { ...(s.lunchLog ?? {}), [day]: a }, lunchSnooze: snoozeMin ? Date.now() + snoozeMin * 60000 : 0 })),
     setWaterBanner: (p) => set((s) => ({ waterBanner: { ...(s.waterBanner ?? { on: true, afterMin: 120, snoozeUntil: 0 }), ...p } })),
     setDayPlan: (date, o) => set((s) => { const plans = { ...(s.plans ?? {}) }; if (o) plans[date] = o; else delete plans[date]; const exDone = { ...(s.exDone ?? {}) }; delete exDone[date]; return { plans, exDone }; }),
     toggleEx: (date, key, k, total, w) => set((s) => {

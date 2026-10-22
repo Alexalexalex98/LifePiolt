@@ -69,3 +69,21 @@ test('task mai nel fine settimana e ricordi del sonno con il giorno giusto', () 
   assert.match(sl[0].title, /domani il turno/);
   assert.match(sl[1].title, /ven 23 il turno/);
 });
+
+test('pausa pranzo: una per giorno, libera dagli impegni, e i task non ci finiscono sopra', () => {
+  const lunch = { from: '12:30', to: '13:30', dur: 60 };
+  const p = planWeek({ ...base, lunch, tasks: [{ id: 'a', t: 'A' }, { id: 'b', t: 'B' }] });
+  const pr = p.items.filter((x) => x.kind === 'pausa');
+  assert.ok(pr.length >= 6, String(pr.length));
+  for (const l of pr) for (const o of p.items.filter((x) => x.kind !== 'pausa')) assert.ok(!overlap(l, o), `${l.day} ${l.time} / ${o.title}`);
+});
+test('pausa pranzo: con un impegno a quell\'ora si sposta di poco, senza sovrapporsi', () => {
+  const lunch = { from: '12:30', to: '13:30', dur: 60 };
+  const p = planWeek({ ...base, lunch, events: { '2026-10-22': [{ time: '12:30', dur: 30, title: 'Call' }] } });
+  const l = p.items.find((x) => x.kind === 'pausa' && x.day === '2026-10-22');
+  assert.ok(l && toM(l.time) >= 13 * 60, l?.time);
+});
+test('pausa pranzo: spenta o disattivata nelle opzioni, non si propone', () => {
+  assert.equal(planWeek(base).items.filter((x) => x.kind === 'pausa').length, 0);
+  assert.equal(planWeek({ ...base, lunch: { from: '12:30', to: '13:30', dur: 60 }, opts: { lunch: false } }).items.filter((x) => x.kind === 'pausa').length, 0);
+});

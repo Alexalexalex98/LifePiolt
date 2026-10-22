@@ -6,6 +6,8 @@ import { DashGrid } from '@/components/dash/DashGrid';
 import { DashData } from '@/components/dash/data';
 import { WBY } from '@/components/dash/registry';
 import { AddWidgetSheet, BackgroundSheet, OptionsSheet } from '@/components/dash/Sheets';
+import { LunchBanner } from '@/components/fitness/LunchBanner';
+import { WaterBanner } from '@/components/fitness/WaterBanner';
 import { Body, Btn, Card, H, Page, Pill, Row } from '@/components/ui';
 import { t as tl } from '@/i18n/core';
 import { parseShape } from '@/lib/dash/grid';
@@ -53,6 +55,8 @@ export default function Dashboard() {
             </View>
           ) : null}
         </View>
+
+        {!edit ? <View style={{ marginTop: 12, gap: 10 }}><LunchBanner /><WaterBanner /></View> : null}
 
         <View style={{ marginTop: 14 }}>
           {items.length === 0 && !edit ? (
