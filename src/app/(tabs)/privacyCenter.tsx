@@ -87,6 +87,14 @@ export default function PrivacyCenter() {
       <SendLog />
 
       <Card>
+        <H>Documenti legali</H>
+        <View style={{ gap: 8, marginTop: 8 }}>
+          <Btn small ghost icon="file" title="Informativa sulla privacy (testo completo)" onPress={() => go('legalDoc', { doc: 'privacy' })} />
+          <Btn small ghost icon="file" title="Termini di servizio" onPress={() => go('legalDoc', { doc: 'terms' })} />
+        </View>
+      </Card>
+
+      <Card>
         <H>Informativa sulla privacy (GDPR / nLPD)</H>
         <Body small muted style={{ marginTop: 4 }}>{LEGAL.controller ? `${tl('Titolare del trattamento')}: ${LEGAL.controller}, ${LEGAL.address}.${LEGAL.privacyEmail ? ` ${tl('Contatto privacy')}: ${LEGAL.privacyEmail}.` : ''}${LEGAL.dpo ? ` ${tl('Responsabile protezione dati')}: ${LEGAL.dpo}.` : ''}` : tl('Titolare del trattamento: in corso di definizione prima del lancio.')}</Body>
         <Body bold style={{ marginTop: 10 }}>Quali dati e perché</Body>

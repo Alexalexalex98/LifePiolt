@@ -303,5 +303,10 @@
   "always": "Always allow",
   "never": "Never",
   "tutto": "everything",
-  "Theia legge sul telefono tutto quello che c'è nell'app. Prima di mandare una parte dei tuoi dati (agenda, finanze, estratto conto, salute...) al servizio AI esterno ti chiede il consenso, ogni volta o per sempre, e lo puoi revocare in qualsiasi momento (GDPR e nLPD).": "Theia reads everything in the app on your phone. Before sending part of your data (agenda, finances, bank statement, health...) to the external AI service it asks for your consent, every time or for good, and you can withdraw it at any time (GDPR and nFADP)."
+  "Theia legge sul telefono tutto quello che c'è nell'app. Prima di mandare una parte dei tuoi dati (agenda, finanze, estratto conto, salute...) al servizio AI esterno ti chiede il consenso, ogni volta o per sempre, e lo puoi revocare in qualsiasi momento (GDPR e nLPD).": "Theia reads everything in the app on your phone. Before sending part of your data (agenda, finances, bank statement, health...) to the external AI service it asks for your consent, every time or for good, and you can withdraw it at any time (GDPR and nFADP).",
+  "Informativa sulla privacy": "Privacy notice",
+  "Termini di servizio": "Terms of service",
+  "Documenti legali": "Legal documents",
+  "Informativa sulla privacy (testo completo)": "Privacy notice (full text)",
+  "Usando l'app accetti i Termini di servizio e l'Informativa sulla privacy.": "By using the app you accept the Terms of Service and the Privacy Notice."
 }

@@ -414,6 +414,8 @@ export default function Settings() {
           <Btn small ghost icon="shield" title="Cosa condivido" onPress={() => go('sharing')} />
           <Btn small icon="shield" title="Centro Privacy (scegli tu)" onPress={() => go('privacyCenter')} />
           <Btn small ghost title="Privacy e permessi" onPress={() => go('privacy')} />
+          <Btn small ghost title="Informativa sulla privacy" onPress={() => go('legalDoc', { doc: 'privacy' })} />
+          <Btn small ghost title="Termini di servizio" onPress={() => go('legalDoc', { doc: 'terms' })} />
           <Btn small ghost icon="lock" title="Sicurezza e archivio" onPress={() => go('security')} />
           <Btn small ghost title="Segnalazioni e utenti bloccati" onPress={() => go('reports')} />
           <Btn small ghost title={tr('stExportBtn')} onPress={exportData} />

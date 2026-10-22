@@ -13,6 +13,7 @@ import { type as fs } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { applyDemo } from '@/store/demo';
 import { useApp } from '@/store/app';
+import { go } from '@/lib/nav';
 import { translateText } from '@/i18n/core';
 
 /** Una sola schermata: il nome e la scelta tra "da zero" e "dati demo". Tutto il resto si imposta dopo, dalle Impostazioni. */
@@ -56,6 +57,11 @@ export default function Onboarding() {
           I dati restano su questo dispositivo. Con i dati demo l'app si riempie di esempi, eliminabili dalle Impostazioni.
         </Body>
         <Btn small ghost style={{ alignSelf: 'flex-start', marginTop: 12 }} title="Come usiamo i tuoi dati" onPress={() => setPriv(true)} />
+        <Body muted small style={{ marginTop: 10 }}>Usando l'app accetti i Termini di servizio e l'Informativa sulla privacy.</Body>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+          <Btn small ghost title="Termini di servizio" onPress={() => go('legalDoc', { doc: 'terms' })} />
+          <Btn small ghost title="Informativa sulla privacy" onPress={() => go('legalDoc', { doc: 'privacy' })} />
+        </View>
       </View>
       <Sheet visible={priv} title="Privacy e permessi" onClose={() => setPriv(false)}>
         <PrivacyContent />
