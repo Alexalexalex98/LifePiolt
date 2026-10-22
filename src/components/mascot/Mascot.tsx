@@ -16,7 +16,7 @@ function Eyes({ e, ink, blink, glint }: { e: Expression; ink: string; blink: boo
   const oval = (cx: number, cy: number, rx: number, ry: number, rot = 0, g = false) => (
     <G rotation={rot} origin={`${cx}, ${cy}`}>
       <Ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={ink} />
-      {g ? <Circle cx={cx + rx * 0.3} cy={cy - ry * 0.4} r={Math.max(2, rx * 0.34)} fill={glint} /> : null}
+      {g ? <><Circle cx={cx + rx * 0.28} cy={cy - ry * 0.42} r={Math.max(2.4, rx * 0.38)} fill={glint} /><Circle cx={cx - rx * 0.3} cy={cy + ry * 0.38} r={Math.max(1.2, rx * 0.15)} fill={glint} opacity={0.8} /></> : null}
     </G>
   );
   if (blink && ['neutral', 'thinking', 'understood', 'doubtful', 'surprised', 'sad', 'working', 'idea', 'nervous'].includes(e)) return <G>{arc(LX, false, 4)}{arc(RX, false, 4)}</G>;
@@ -82,6 +82,7 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
   const [shown, setShown] = useState(color);
   const [expr, setExpr] = useState<Expression>(expression);
   const [blink, setBlink] = useState(false);
+  const [yaw, setYaw] = useState(0);
   const prev = useRef(color);
   const breathe = useRef(new Animated.Value(0)).current;
   const hop = useRef(new Animated.Value(0)).current; // 0 a terra, 1 in alto
@@ -91,6 +92,8 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
   const expRef = useRef(expression); expRef.current = expression;
 
   useEffect(() => { setExpr(expression); }, [expression]);
+  // rotazione su sé stessa: l'angolo (in radianti) guida occhi, riflesso e luce, così gira come una sfera e non come uno specchio
+  useEffect(() => { const id = spin.addListener(({ value }) => setYaw(value * Math.PI * 2)); return () => spin.removeListener(id); }, [spin]);
 
   useEffect(() => {
     if (!live) return;
@@ -139,16 +142,16 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
   }, [color, live, ritual, squash, hop, spin, burst]);
 
   const tones = useMemo(() => bodyTones(shown), [shown]);
+  const sin = Math.sin(yaw), cos = Math.cos(yaw), front = cos > 0.02;
   const sy = Animated.add(breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] }), squash.interpolate({ inputRange: [0, 1], outputRange: [0, -0.2] }));
   const sx = Animated.add(breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }), squash.interpolate({ inputRange: [0, 1], outputRange: [0, 0.13] }));
-  const flip = spin.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [1, 0.06, -1, 0.06, 1] });
   const ty = hop.interpolate({ inputRange: [0, 1], outputRange: [0, -size * 0.22] });
 
   return (
-    <Animated.View accessibilityRole="image" accessibilityLabel="Theia" style={[{ width: size, height: size }, style, { transform: [{ translateY: ty }, { scaleX: Animated.multiply(sx, flip) }, { scaleY: sy }] }]}>
+    <Animated.View accessibilityRole="image" accessibilityLabel="Theia" style={[{ width: size, height: size }, style, { transform: [{ translateY: ty }, { scaleX: sx }, { scaleY: sy }] }]}>
       <Svg width={size} height={size} viewBox="0 0 200 200">
         <Defs>
-          <RadialGradient id="body" cx="38%" cy="28%" rx="85%" ry="85%" fx="38%" fy="28%">
+          <RadialGradient id="body" cx={`${38 - sin * 26}%`} cy="28%" rx="85%" ry="85%" fx={`${38 - sin * 26}%`} fy="28%">
             <Stop offset="0" stopColor={tones.light} /><Stop offset="0.55" stopColor={tones.base} /><Stop offset="1" stopColor={tones.shade} />
           </RadialGradient>
           <RadialGradient id="glow" cx="50%" cy="50%" rx="50%" ry="50%">
@@ -157,12 +160,22 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
         </Defs>
         <Circle cx={100} cy={112} r={98} fill="url(#glow)" opacity={0.55} />
         <Ellipse cx={100} cy={184} rx={54} ry={7} fill="#000" opacity={0.2} />
-        <Path d="M86 22 C128 18 179 56 179 114 C179 158 147 182 100 182 C51 182 21 158 21 118 C21 68 50 26 86 22 Z" fill="url(#body)" />
-        <Path d="M44 78 Q48 46 82 34" stroke="#fff" strokeWidth={9} strokeLinecap="round" fill="none" opacity={0.5} />
+        <G transform={`translate(100 0) scale(${1 - 0.05 * Math.abs(sin)} 1) translate(-100 0)`}>
+          <Path d="M86 22 C128 18 179 56 179 114 C179 158 147 182 100 182 C51 182 21 158 21 118 C21 68 50 26 86 22 Z" fill="url(#body)" />
+        </G>
+        {front ? (
+          <G transform={`translate(${-sin * 20} 0)`} opacity={Math.min(1, cos * 2)}>
+            <Path d="M44 78 Q48 46 82 34" stroke="#fff" strokeWidth={9} strokeLinecap="round" fill="none" opacity={0.5} />
+            <Path d={star(58, 60, 12)} fill="#fff" opacity={0.98} />
+          </G>
+        ) : null}
         <Ellipse cx={132} cy={150} rx={30} ry={11} fill="#fff" opacity={0.12} />
-        <Path d={star(58, 60, 12)} fill="#fff" opacity={0.98} />
-        <Eyes e={expr} ink={tones.eye} blink={blink} glint="#fff" />
-        <Extras e={expr} tone={tones.glow} ink={tones.eye} />
+        {front ? (
+          <G transform={`translate(${100 + sin * 62} 0) scale(${Math.max(0.12, cos)} 1) translate(-100 0)`} opacity={Math.min(1, cos * 3)}>
+            <Eyes e={expr} ink={tones.eye} blink={blink} glint="#fff" />
+          </G>
+        ) : null}
+        {Math.abs(sin) < 0.35 ? <Extras e={expr} tone={tones.glow} ink={tones.eye} /> : null}
       </Svg>
       <Animated.View pointerEvents="none" style={{ position: 'absolute', left: -size * 0.15, top: -size * 0.15, width: size * 1.3, height: size * 1.3, borderRadius: size, borderWidth: 3, borderColor: tones.glow, opacity: burst.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.8, 0] }), transform: [{ scale: burst.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1.15] }) }] }} />
     </Animated.View>

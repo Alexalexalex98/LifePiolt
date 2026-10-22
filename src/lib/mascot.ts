@@ -18,6 +18,6 @@ export const mix = (a: string, b: string, t: number): string => { const x = pars
 
 /** Le tre tinte del corpo (luce, base, ombra) e il bagliore, a partire dal colore scelto. Il corpo è bianco-grigio con una velatura di colore, così resta leggibile con ogni colore. */
 export function bodyTones(color: string): { light: string; base: string; shade: string; glow: string; eye: string } {
-  const base = mix('#ffffff', color, 0.62);
-  return { light: mix('#ffffff', color, 0.18), base, shade: mix(color, '#0b0d12', 0.38), glow: color, eye: mix(color, '#0b0d12', 0.86) };
+  const base = mix('#ffffff', color, 0.5);
+  return { light: mix('#ffffff', color, 0.1), base, shade: mix(color, '#0b0d12', 0.22), glow: color, eye: mix(color, '#0b0d12', 0.86) };
 }
