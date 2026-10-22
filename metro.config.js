@@ -2,6 +2,9 @@ const path = require('path');
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
+/* la cartella video/ (Remotion, con le sue dipendenze) non fa parte dell'app: Metro non deve né guardarla né indicizzarla */
+const videoDir = path.join(__dirname, 'video').replace(/[\\/]/g, '[\\\\/]');
+config.resolver.blockList = [].concat(config.resolver.blockList ?? [], new RegExp(`${videoDir}[\\\\/].*`));
 const src = path.join(__dirname, 'src') + path.sep;
 const shim = path.join(__dirname, 'src', 'lib', 'rn-shim.tsx');
 const shimPressable = path.join(__dirname, 'src', 'lib', 'rn-shim-pressable.tsx');
@@ -17,7 +20,10 @@ const missingShim = path.join(__dirname, 'src', 'lib', 'shims', 'missing.js');
 const OPTIONAL = new Set(['@shopify/react-native-skia', 'react-native-health-connect']);
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // avvio rapido (LP_FAST=1): le traduzioni (circa 10 MB) non entrano nel pacchetto; l'app resta in italiano, che è la lingua originale
-  if (process.env.LP_FAST === '1' && /(^|[\\/])locales[\\/][a-z]{2}\.json$/.test(moduleName) && /[\\/]i18n[\\/]/.test(context.originModulePath)) {
+  // LP_LANGS=en,de tiene le lingue elencate (circa 1 MB l'una) e toglie le altre
+  const keep = (process.env.LP_LANGS ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  const lang = /(^|[\\/])locales[\\/]([a-z]{2})\.json$/.exec(moduleName)?.[2];
+  if (process.env.LP_FAST === '1' && lang && !keep.includes(lang) && /[\\/]i18n[\\/]/.test(context.originModulePath)) {
     return { type: 'sourceFile', filePath: path.join(__dirname, 'src', 'lib', 'shims', 'emptyCatalog.json') };
   }
   if (OPTIONAL.has(moduleName)) {
