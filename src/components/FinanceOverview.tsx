@@ -17,6 +17,7 @@ import { Icon } from '@/lib/icons';
 import { alertsFor } from '@/lib/budgetState';
 import { analyze, buildRecap, parseMonthLabel, rateZone, type Analysis, type MonthStat, type RecapAction } from '@/lib/financeRecap';
 import { categoryOf, emergencyByMonth, useFin } from '@/store/finance';
+import { chartCategory, dueFixed } from '@/lib/statementChecks';
 
 export type OverviewHandlers = {
   onAlerts: () => void; onBills: () => void; onEmergency: () => void; onImport: () => void; onMovements: (monthIdx: number) => void;
@@ -32,6 +33,17 @@ const monthShortOf = (label: string) => { const p = parseMonthLabel(label); retu
 const monthLongOf = (label: string) => { const p = parseMonthLabel(label); return p ? fmtDate(new Date(p.y, p.m, 1), { month: 'long', year: 'numeric' }) : label; };
 
 /** Larghezza disponibile misurata (le card hanno padding): evita grafici troncati a 320pt. */
+/** Stessa classe dell'estratto: così «Dove vanno le spese» e le spese fisse non si contraddicono; la categoria scelta dall'utente (nome nell'etichetta) vince. */
+function useCatC() {
+  const cats = useFin((s) => s.categories);
+  const fix = useFin((s) => s.payeeFix);
+  return (l: string) => {
+    const x = l.trim().toLowerCase();
+    const hit = cats.find((c) => x === c.n.toLowerCase() || x.startsWith(`${c.n.toLowerCase()} ·`) || x.startsWith(`${c.n.toLowerCase()} -`));
+    return hit ? hit.n : chartCategory(l, fix, (z) => categoryOf(z, cats));
+  };
+}
+
 function useBox(initial = 260) {
   const [w, setW] = useState(initial);
   return [w, (e: LayoutChangeEvent) => { const x = Math.floor(e.nativeEvent.layout.width); if (x > 40 && x !== w) setW(x); }] as const;
@@ -211,6 +223,7 @@ function TopSpenders({ a, onPick, ink }: { a: Analysis; onPick: (n: string) => v
 
 /* ---------------- hero: saldo, variazione, mini-andamento ---------------- */
 function Hero({ a, onMovements, initialEx }: { a: Analysis; onMovements: () => void; initialEx?: 'saldo' | 'in' | 'out' | 'save' }) {
+  const catC = useCatC();
   const th = useTheme();
   const months = useFin((s) => s.months);
   const cats = useFin((s) => s.categories);
@@ -273,7 +286,7 @@ function Hero({ a, onMovements, initialEx }: { a: Analysis; onMovements: () => v
       <ExplainSheet visible={ex !== null} onClose={() => setEx(null)} {...(() => {
         const inMonth = (m: { label: string }) => m.label === cur.label;
         if (ex === 'in') { const rows = listMovements(months, (x, m) => inMonth(m) && x.amount > 0); return { title: `Entrate di ${cur.label}`, formula: 'Tutti gli accrediti dell’estratto in questo mese.', rows, total: sumRows(rows) }; }
-        if (ex === 'out') { const rows = listMovements(months, (x, m) => inMonth(m) && x.amount < 0 && categoryOf(x.label, cats) !== 'Fondo emergenza'); return { title: `Uscite di ${cur.label}`, formula: 'Tutti gli addebiti dell’estratto in questo mese (senza i versamenti nel fondo emergenza).', rows, total: sumRows(rows) }; }
+        if (ex === 'out') { const rows = listMovements(months, (x, m) => inMonth(m) && x.amount < 0 && catC(x.label) !== 'Fondo emergenza'); return { title: `Uscite di ${cur.label}`, formula: 'Tutti gli addebiti dell’estratto in questo mese (senza i versamenti nel fondo emergenza).', rows, total: sumRows(rows) }; }
         if (ex === 'save') { const rows = listMovements(months, (_x, m) => inMonth(m)); return { title: `Risparmio di ${cur.label}`, formula: `Risparmio = entrate (${money(cur.income)}) meno uscite (${money(cur.expense)}) = ${money(cur.saved)}.`, rows, total: sumRows(rows) }; }
         const rows = listMovements(months, () => true);
         const first = months.length ? months[months.length - 1].start : 0;
@@ -310,6 +323,7 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
   const th = useTheme();
   const ink = useInk();
   const f = useFin();
+  const catC = useCatC();
   const narrow = useWindowDimensions().width < 350;
   const [allText, setAllText] = useState(false);
   const [sheet, setSheet] = useState<null | { kind: 'month'; i: number } | { kind: 'cat'; n: string } | { kind: 'gauge' } | { kind: 'point'; i: number }>(null);
@@ -320,7 +334,7 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
     f.categories.forEach((c) => { colors[c.n] = c.c; });
     const alerts = alertsFor(f).map((x) => ({ category: x.category, level: x.level, pct: x.pct }));
     const inp = {
-      months: f.months, catOf: (l: string) => categoryOf(l, f.categories), catColors: colors,
+      months: f.months, catOf: catC, catColors: colors,
       billsMonthly: f.bills.reduce((s, b) => s + (b.freq === 'monthly' ? b.amount : b.amount / 12), 0),
       efTotal: f.months.reduce((s, m) => s + emergencyByMonth(m), 0), alerts,
       day: now.getDate(), daysInMonth: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(),
@@ -343,10 +357,16 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
   const cur = a.cur;
   const enough = a.series.length >= 2;
   const basisLabel = a.basis ? monthLongOf(a.basis.label) : '';
+  const dueNote = (() => {
+    if (!f.statementInfo || !a.basis || !a.basisIsCurrent) return '';
+    const iso = new Date().toISOString().slice(0, 10);
+    const due = dueFixed(listMovements(f.months, () => true).map((r) => ({ date: r.sort, label: r.label, amount: r.amount })), f.statementInfo.fixed.map((x) => ({ name: x.name, key: x.key, cls: x.cls, monthly: x.monthly })), iso);
+    return due.length ? ` ${t('Non ancora addebitate questo mese (di solito intorno al giorno indicato)')}: ${due.slice(0, 4).map((d) => `${d.name.split(': ').pop()} ${Math.round(d.monthly)} (${d.day})`).join(', ')}.` : '';
+  })();
   const catMovs = (n: string) => {
     if (!a.basis) return [];
     const idx = f.months.findIndex((m) => m.label === a.basis!.label);
-    return (f.months[idx]?.movements ?? []).filter((x) => x.amount < 0 && categoryOf(x.label, f.categories) === n);
+    return (f.months[idx]?.movements ?? []).filter((x) => x.amount < 0 && catC(x.label) === n);
   };
 
   return (
@@ -392,7 +412,7 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
       </Section>
 
       {/* (b) donut */}
-      <Section title="Dove vanno le spese" hint={a.basis ? (a.basisIsCurrent ? `Uscite di ${basisLabel}${a.partial ? ' finora' : ''} per categoria (le voci sotto il 4% sono in Altro).` : `Uscite dell'ultimo mese chiuso, ${basisLabel} (le voci sotto il 4% sono in Altro).`) : undefined}>
+      <Section title="Dove vanno le spese" hint={a.basis ? `${a.basisIsCurrent ? `Uscite di ${basisLabel}${a.partial ? ' finora' : ''} per categoria (le voci sotto il 4% sono in Altro).` : `Uscite dell'ultimo mese chiuso, ${basisLabel} (le voci sotto il 4% sono in Altro).`}${dueNote}` : undefined}>
         {a.donut.length ? (
           <View>
             <View style={{ alignItems: 'center', marginBottom: 10 }} accessibilityLabel={t('Spese per categoria: {0}', a.donut.map((d) => `${translateText(d.n)} ${d.p}%`).join(', '))} accessibilityRole="image">

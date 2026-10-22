@@ -56,3 +56,27 @@ test('memoria: ritrova una domanda simile e non una diversa', () => {
   assert.equal(recall(kb, 'Come funziona la fotosintesi nelle piante')?.id, e.id);
   assert.equal(recall(kb, 'Come funziona il motore a scoppio delle automobili'), null);
 });
+
+import { findChecks, dueFixed, chartCategory } from '../src/lib/statementChecks.ts';
+const mk = (label, amount, ...dates) => dates.map((date) => ({ date, label, amount }));
+test('controlli estratto: due casse malati nello stesso periodo => domanda, non si indovina', () => {
+  const rows = [...mk('Concordia', -874, '2026-06-07', '2026-07-07', '2026-08-07'), ...mk('Css Kranken', -481, '2026-06-07', '2026-07-07', '2026-08-07')];
+  const fixed = [{ name: 'Cassa malati e assicurazioni: Concordia', key: 'concordia', cls: 'Cassa malati e assicurazioni', monthly: 874 }, { name: 'Cassa malati e assicurazioni: Css Kranken', key: 'css kranken', cls: 'Cassa malati e assicurazioni', monthly: 481 }];
+  const c = findChecks({ rows, fixed, incomes: [], answers: {} });
+  assert.equal(c.length, 1); assert.equal(c[0].kind, 'multi');
+  assert.equal(findChecks({ rows, fixed, incomes: [], answers: { [c[0].id]: 'all' } }).length, 0);
+});
+test('controlli estratto: due stipendi in periodi diversi => cambio lavoro', () => {
+  const rows = [...mk('Ditta A', 4000, '2026-01-25', '2026-02-25', '2026-03-25'), ...mk('Ditta B', 4500, '2026-06-25', '2026-07-25', '2026-08-25')];
+  const c = findChecks({ rows, fixed: [], incomes: [{ name: 'Ditta A', key: 'ditta a', monthly: 4000 }, { name: 'Ditta B', key: 'ditta b', monthly: 4500 }], answers: {} });
+  assert.equal(c[0].kind, 'income-seq'); assert.deepEqual(c[0].options[0].effect.excludeIncome, ['ditta a']);
+});
+test('spese fisse non ancora addebitate questo mese', () => {
+  const rows = mk('Affitto S Immo Sa', -1905, '2026-08-27', '2026-09-27');
+  const d = dueFixed(rows, [{ name: 'Affitto: S Immo', key: 'affitto s immo sa', cls: 'Affitto', monthly: 1905 }], '2026-10-22');
+  assert.equal(d.length, 1); assert.equal(d[0].day, 27);
+});
+test('grafico del mese usa la stessa classe dell\'estratto', () => {
+  assert.equal(chartCategory('Bmw Schweiz Ag Abteilung Leasing', {}, () => 'Altro'), 'Prestiti e leasing');
+  assert.equal(chartCategory('Concordia', {}, () => 'Altro'), 'Cassa malati');
+});

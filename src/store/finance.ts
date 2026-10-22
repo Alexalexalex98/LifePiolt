@@ -1,4 +1,5 @@
 import { analyzeStatement, DEFAULT_AVG, DEFAULT_RULE, type Analysis, type AvgRule, type SalaryRule } from '@/lib/statementAnalysis';
+import { moveKey } from '@/lib/financeCalc';
 import { listMovements } from '@/lib/explain';
 import { Platform } from 'react-native';
 import { create } from 'zustand';
@@ -192,6 +193,12 @@ type FinState = {
   avgRule: AvgRule;
   /** importi delle spese fisse impostati a mano (chiave = voce), che valgono al posto di quelli calcolati dall'estratto */
   fixedOverrides: Record<string, number>;
+  /** risposte dell'utente alle domande «da confermare» sull'estratto (id domanda -> risposta) */
+  checks: Record<string, string>;
+  /** che cos'è un'entrata, deciso dall'utente (chiave del movimento -> tipo); «transfer» non conta nei conti */
+  moveKind: Record<string, 'salary' | 'other' | 'refund' | 'transfer'>;
+  setMoveKind: (key: string, kind: 'salary' | 'other' | 'refund' | 'transfer' | null) => void;
+  answerCheck: (id: string, answer: string, effect?: { hide?: string[]; excludeIncome?: string[]; cls?: Record<string, string> }) => void;
   /** correzioni dell'utente per un beneficiario: cambia classe o non contarla come spesa fissa */
   payeeFix: Record<string, { cls?: string; hide?: boolean }>;
   setPayeeFix: (key: string, fix: { cls?: string; hide?: boolean } | null) => void;
@@ -381,18 +388,31 @@ export const useFin = create<FinState>()(
     avgRule: DEFAULT_AVG,
     fixedOverrides: {} as Record<string, number>,
     payeeFix: {} as Record<string, { cls?: string; hide?: boolean }>,
+    checks: {} as Record<string, string>,
+    moveKind: {} as Record<string, 'salary' | 'other' | 'refund' | 'transfer'>,
+    setMoveKind: (key, kind) => set((s) => { const o = { ...(s.moveKind ?? {}) }; if (kind == null) delete o[key]; else o[key] = kind; return { moveKind: o }; }),
+    answerCheck: (id, answer, effect) => {
+      set((s) => {
+        const pf = { ...(s.payeeFix ?? {}) };
+        (effect?.hide ?? []).forEach((k) => { pf[k] = { ...(pf[k] ?? {}), hide: true }; });
+        Object.entries(effect?.cls ?? {}).forEach(([k, c]) => { pf[k] = { ...(pf[k] ?? {}), cls: c }; });
+        return { checks: { ...(s.checks ?? {}), [id]: answer }, payeeFix: pf, salaryExcluded: [...new Set([...(s.salaryExcluded ?? []), ...(effect?.excludeIncome ?? [])])] };
+      });
+      get().recomputeStatement();
+    },
     setPayeeFix: (key, fix) => { set((s) => { const o = { ...(s.payeeFix ?? {}) }; if (!fix) delete o[key]; else o[key] = fix; return { payeeFix: o }; }); get().recomputeStatement(); },
     editMovement: (mi, vi, patch) => { set((s) => ({ months: s.months.map((m, i) => (i === mi ? { ...m, movements: m.movements.map((x, j) => (j === vi ? { ...x, ...(patch.label != null ? { label: patch.label } : {}), ...(patch.amount != null ? { amount: patch.amount } : {}) } : x)) } : m)) })); get().recomputeStatement(); },
     setFixedOverride: (key, amount) => { set((s) => { const o = { ...(s.fixedOverrides ?? {}) }; if (amount == null) delete o[key]; else o[key] = amount; return { fixedOverrides: o }; }); get().recomputeStatement(); },
     setSalaryRule: (r, excluded, avg) => { set((s) => ({ salaryRule: r, salaryExcluded: excluded ?? s.salaryExcluded, avgRule: avg ?? s.avgRule })); get().recomputeStatement(); },
     recomputeStatement: (opts) => {
       const s = get();
-      const rows = listMovements(s.months, () => true).map((r) => ({ date: r.sort, label: r.label, amount: r.amount }));
-      const an0 = analyzeStatement(rows, s.salaryRule, s.salaryExcluded, s.avgRule);
+      const skipT = new Set(Object.entries(s.moveKind ?? {}).filter(([, v]) => v === 'transfer').map(([k]) => k));
+      const rows = listMovements(s.months, (x, m) => !skipT.has(moveKey(m.label, x))).map((r) => ({ date: r.sort, label: r.label, amount: r.amount }));
+      const an0 = analyzeStatement(rows, s.salaryRule, s.salaryExcluded, s.avgRule, s.payeeFix ?? {});
       if (!an0) return;
       const ov = s.fixedOverrides ?? {};
       const pf = s.payeeFix ?? {};
-      const an = { ...an0, fixed: an0.fixed.filter((f) => !pf[f.key]?.hide).map((f) => { const nc = pf[f.key]?.cls; const g = nc ? { ...f, cls: nc as typeof f.cls, name: f.name.startsWith(`${f.cls}: `) ? `${nc}: ${f.name.slice(f.cls.length + 2)}` : f.name } : f; return ov[f.key] != null ? { ...g, monthly: ov[f.key], overridden: { by: 'utente' as const, calculated: f.monthly } } : g; }) };
+      const an = { ...an0, fixed: an0.fixed.filter((f) => !pf[f.key]?.hide).map((f) => { const g = f; return ov[f.key] != null ? { ...g, monthly: ov[f.key], overridden: { by: 'utente' as const, calculated: f.monthly } } : g; }) };
       const old = s.statementInfo;
       const bal = typeof opts?.balance === 'number' ? opts.balance : old?.balance;
       const info: StatementInfo = { ...an, count: rows.length, balanceKnown: typeof opts?.balance === 'number' || !!old?.balanceKnown, ...(bal !== undefined ? { balance: bal } : {}), at: Date.now() };

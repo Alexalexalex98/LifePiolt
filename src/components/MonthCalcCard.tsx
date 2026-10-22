@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
-import { Body, Card, H, Progress, Row } from '@/components/ui';
+import { Body, Btn, Card, H, Pill, Progress, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { formatMoney } from '@/i18n/format';
-import { monthCalc } from '@/lib/financeCalc';
+import { monthCalc, type IncomeKind, type IncomeLine } from '@/lib/financeCalc';
+import { payeeKey } from '@/lib/statementAnalysis';
+import { toast } from '@/store/toast';
 import { categoryOf, useFin } from '@/store/finance';
 
 /** Il calcolo del mese per intero: saldo sul conto, entrate, spese fisse e variabili, fondo emergenza, quanto resta e categorie contro budget. */
@@ -13,13 +15,23 @@ export function MonthCalcCard() {
   const t = useTheme();
   const f = useFin();
   const [open, setOpen] = useState(true);
+  const [ask, setAsk] = useState<IncomeLine | null>(null);
   const m = f.months[0];
   if (!m) return null;
-  const c = monthCalc(m, (l) => categoryOf(l, f.categories), f.budget.alloc);
+  const info = f.statementInfo;
+  const salaryKeys = new Set((info?.salary.sources ?? []).map((x) => x.key));
+  const fixedKeys = info ? new Set(info.fixed.map((x) => x.key)) : null;
+  const kinds = f.moveKind ?? {};
+  const c = monthCalc(m, (l) => categoryOf(l, f.categories), f.budget.alloc, {
+    isFixed: fixedKeys ? (l) => fixedKeys.has(payeeKey(l)) : undefined,
+    incomeKind: (x, key) => kinds[key] ?? (salaryKeys.has(payeeKey(x.label)) ? 'salary' : undefined),
+    skip: (key) => kinds[key] === 'transfer',
+  });
+  const KIND: Record<IncomeKind, string> = { salary: 'Stipendio', other: 'Altra entrata', refund: 'Rimborso', transfer: 'Giroconto tra i miei conti (non conta)' };
   const line = (label: string, amount: number, o: { bold?: boolean; color?: string; sign?: string } = {}) => (
     <Row key={label} style={{ paddingVertical: 4 }}>
-      <Body small bold={o.bold} style={{ flex: 1 }} numberOfLines={1}>{label}</Body>
-      <Body small bold={o.bold} color={o.color}>{o.sign ?? ''}{formatMoney(amount, { decimals: amount % 1 ? 2 : 0 })}</Body>
+      <Body small bold={o.bold} style={{ flex: 1, flexShrink: 1 }} numberOfLines={2}>{label}</Body>
+      <Body small bold={o.bold} color={o.color} style={{ flexShrink: 0, marginStart: 8 }}>{o.sign ?? ''}{formatMoney(amount, { decimals: amount % 1 ? 2 : 0 })}</Body>
     </Row>
   );
   const head = (txt: string) => <Text style={{ color: t.muted, fontSize: 11, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 12, marginBottom: 2 }}>{txt}</Text>;
@@ -37,7 +49,19 @@ export function MonthCalcCard() {
       {open && (
         <>
           {head('Entrate')}
-          {line('Stipendio e altre entrate', c.income, { bold: true, color: t.positive, sign: '+' })}
+          {c.incomeLines.length === 0 ? <Body small muted>Nessuna entrata registrata questo mese.</Body> : c.incomeLines.map((x) => (
+            <Pressable key={x.key} onPress={() => setAsk(x)} accessibilityRole="button" style={{ paddingVertical: 4 }}>
+              <Row>
+                <View style={{ flex: 1, flexShrink: 1 }}>
+                  <Body small numberOfLines={2}>{x.label}</Body>
+                  <Body small color={x.kind ? t.muted : t.warn}>{`${x.date ? `${x.date} · ` : ''}${x.kind ? KIND[x.kind] : 'Da confermare: che cos\'è? Tocca per dirmelo'}`}</Body>
+                </View>
+                <Body small bold color={t.positive} style={{ flexShrink: 0, marginStart: 8 }}>{`+${formatMoney(x.amount, { decimals: x.amount % 1 ? 2 : 0 })}`}</Body>
+              </Row>
+            </Pressable>
+          ))}
+          {c.incomeLines.length > 1 ? line('Totale entrate', c.income, { bold: true, color: t.positive, sign: '+' }) : null}
+          {c.incomeUnsure > 0 ? <Body small color={t.warn} style={{ marginTop: 2 }}>{`${formatMoney(c.incomeUnsure)} di entrate non sono ancora confermate: finché non mi dici cosa sono, il calcolo non è sicuro.`}</Body> : null}
           {head(`Spese fisse · ${formatMoney(c.fixedTotal)}`)}
           {c.fixed.map((x) => line(x.label, x.amount, { sign: '−' }))}
           {head(`Spese variabili · ${formatMoney(c.variableTotal)}`)}
@@ -57,6 +81,19 @@ export function MonthCalcCard() {
           ))}
         </>
       )}
+      <Sheet visible={!!ask} title="Che cos'è questa entrata?" onClose={() => setAsk(null)}>
+        {ask ? (
+          <View style={{ gap: 8 }}>
+            <Body bold numberOfLines={3}>{ask.label}</Body>
+            <Body small muted>{`${ask.date} · +${formatMoney(ask.amount, { decimals: 2 })}`}</Body>
+            <Body small muted>Dimmelo tu: non lo indovino. Da questa scelta dipendono entrate, quanto ti resta e le medie.</Body>
+            <Row gap={8} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+              {(Object.keys(KIND) as IncomeKind[]).map((k) => <Pill key={k} label={KIND[k]} on={kinds[ask.key] === k || (!kinds[ask.key] && ask.kind === k)} onPress={() => { f.setMoveKind(ask.key, k); f.recomputeStatement(); toast('Fatto, ricalcolo'); setAsk(null); }} />)}
+            </Row>
+            {kinds[ask.key] ? <Btn small ghost title="Torna alla scelta automatica" onPress={() => { f.setMoveKind(ask.key, null); f.recomputeStatement(); setAsk(null); }} /> : null}
+          </View>
+        ) : null}
+      </Sheet>
     </Card>
   );
 }

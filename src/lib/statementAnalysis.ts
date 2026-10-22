@@ -87,14 +87,15 @@ export type VarItem = { name: string; total: number; monthly: number; payments: 
 export type Extra = { date: string; label: string; amount: number };
 export type Analysis = { salary: SalaryResult; fixed: FixedItem[]; variable: VarItem[]; extraordinary: Extra[]; months: number; from: string; to: string };
 
-export function analyzeSpending(rows: Row[]): { fixed: FixedItem[]; variable: VarItem[]; extraordinary: Extra[]; months: number } {
+export type PayeeFixes = Record<string, { cls?: string; hide?: boolean }>;
+export function analyzeSpending(rows: Row[], fix: PayeeFixes = {}): { fixed: FixedItem[]; variable: VarItem[]; extraordinary: Extra[]; months: number } {
   const debits = rows.filter((r) => r.amount < 0 && !/fondo emergenza/i.test(r.label));
   const monthsAll = new Set(rows.map((r) => r.date.slice(0, 7))).size || 1;
   const groups = new Map<string, Row[]>();
   debits.forEach((r) => { const k = payeeKey(r.label); if (k.length >= 3) groups.set(k, [...(groups.get(k) ?? []), r]); });
   const fixed: FixedItem[] = []; const fixedKeys = new Set<string>();
   groups.forEach((list, k) => {
-    const cls = classify(list[0].label);
+    const cls = (fix[k]?.cls as Cls | undefined) ?? classify(list[0].label);
     const perMonth = new Map<string, number>(); list.forEach((r) => perMonth.set(r.date.slice(0, 7), (perMonth.get(r.date.slice(0, 7)) ?? 0) - r.amount));
     const months = perMonth.size; const per = list.length / months;
     const monthly = r2(median([...perMonth.values()]));
@@ -112,7 +113,7 @@ export function analyzeSpending(rows: Row[]): { fixed: FixedItem[]; variable: Va
   const extraordinary: Extra[] = []; const varAcc = new Map<string, { total: number; payments: number }>();
   debits.forEach((r) => {
     const k = payeeKey(r.label); if (fixedKeys.has(k)) return;
-    const cls = classify(r.label);
+    const cls = (fix[k]?.cls as Cls | undefined) ?? classify(r.label);
     // grossi pagamenti una tantum (>= 1000 che non tornano): non fanno media
     if (-r.amount >= 1000 || cls === 'Tasse e imposte' && -r.amount >= 400) { extraordinary.push({ date: r.date, label: strip(r.label), amount: r.amount }); return; }
     const cur = varAcc.get(cls) ?? { total: 0, payments: 0 }; varAcc.set(cls, { total: cur.total - r.amount, payments: cur.payments + 1 });
@@ -121,8 +122,8 @@ export function analyzeSpending(rows: Row[]): { fixed: FixedItem[]; variable: Va
   return { fixed: fixed.sort((a, b) => b.monthly - a.monthly), variable, extraordinary: extraordinary.sort((a, b) => b.date.localeCompare(a.date)), months: monthsAll };
 }
 
-export function analyzeStatement(rows: Row[], rule: SalaryRule = DEFAULT_RULE, excluded: string[] = [], avg: AvgRule = DEFAULT_AVG): Analysis | null {
+export function analyzeStatement(rows: Row[], rule: SalaryRule = DEFAULT_RULE, excluded: string[] = [], avg: AvgRule = DEFAULT_AVG, fix: PayeeFixes = {}): Analysis | null {
   if (!rows.length) return null;
   const dates = rows.map((r) => r.date).sort();
-  return { salary: analyzeSalary(rows, rule, excluded, avg), ...analyzeSpending(rows), from: dates[0], to: dates[dates.length - 1] };
+  return { salary: analyzeSalary(rows, rule, excluded, avg), ...analyzeSpending(rows, fix), from: dates[0], to: dates[dates.length - 1] };
 }

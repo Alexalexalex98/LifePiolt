@@ -1,5 +1,5 @@
 {
- "count": 13709,
+ "count": 13768,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -135,7 +135,8 @@
   "src/components/ErrorBoundary.tsx": 10,
   "src/components/ExplainSheet.tsx": 3,
   "src/components/FinTabs.tsx": 4,
-  "src/components/FinanceOverview.tsx": 78,
+  "src/components/FinanceOverview.tsx": 79,
+  "src/components/FixedEditSheet.tsx": 30,
   "src/components/GoalProgress.tsx": 17,
   "src/components/Inbox.tsx": 4,
   "src/components/InfoTip.tsx": 1,
@@ -148,7 +149,7 @@
   "src/components/LogoLoader.tsx": 1,
   "src/components/MediaPickerField.tsx": 14,
   "src/components/MentionBox.tsx": 1,
-  "src/components/MonthCalcCard.tsx": 16,
+  "src/components/MonthCalcCard.tsx": 27,
   "src/components/MoodChart.tsx": 6,
   "src/components/NavBar.tsx": 28,
   "src/components/NetSheets.tsx": 333,
@@ -162,6 +163,7 @@
   "src/components/QrScanner.tsx": 4,
   "src/components/ReportsSheet.tsx": 17,
   "src/components/SharingView.tsx": 29,
+  "src/components/StatementChecksCard.tsx": 18,
   "src/components/StatementForecastCard.tsx": 18,
   "src/components/T.tsx": 1,
   "src/components/TaskActions.tsx": 48,
@@ -477,7 +479,7 @@
   "src/lib/invoice.ts": 21,
   "src/lib/jobFiles.ts": 2,
   "src/lib/jobFit.ts": 3,
-  "src/lib/knowledge.ts": 1,
+  "src/lib/knowledge.ts": 14,
   "src/lib/lifepay.ts": 10,
   "src/lib/liveRoom.ts": 39,
   "src/lib/liveTheme.ts": 4,
@@ -549,6 +551,7 @@
   "src/lib/speech.ts": 4,
   "src/lib/speechCore.ts": 29,
   "src/lib/statementAnalysis.ts": 12,
+  "src/lib/statementChecks.ts": 19,
   "src/lib/statementForecast.ts": 8,
   "src/lib/statementPdf.ts": 3,
   "src/lib/statementReport.ts": 7,
@@ -561,10 +564,12 @@
   "src/lib/theia/ask.ts": 58,
   "src/lib/theia/collect.ts": 1,
   "src/lib/theia/core.ts": 6,
+  "src/lib/theia/financeChecks.ts": 5,
   "src/lib/theia/free.ts": 128,
   "src/lib/theia/radar.ts": 46,
   "src/lib/theia/radarNotify.ts": 3,
   "src/lib/theia/week.ts": 13,
+  "src/lib/theiaMemory.ts": 1,
   "src/lib/theiaQuotes.ts": 40,
   "src/lib/themeCustom.ts": 17,
   "src/lib/tour.ts": 47,
@@ -609,5 +614,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1729
+ "withPlaceholders": 1742
 }
