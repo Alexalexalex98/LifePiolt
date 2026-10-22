@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addStock, consume, lowStock, syncShopping, parseReceiptItems, parseTypedList, compareDay, matchFood, stockGrams } from '../src/lib/fitness/pantry.ts';
-import { TEMPLATES, generatePlan, dayKcal, needsFor, kcalOf } from '../src/lib/fitness/mealPlan.ts';
+import { balanceDay, TEMPLATES, generatePlan, dayKcal, needsFor, kcalOf } from '../src/lib/fitness/mealPlan.ts';
 import { FOOD } from '../src/lib/fitness/nutrition.ts';
 
 test('piano: tutti gli alimenti dei pasti base esistono nel database', () => {
@@ -53,4 +53,20 @@ test('confronto piano e mangiato: differenze per alimento', () => {
 test('bisogni dei prossimi giorni e kcal di un pasto', () => {
   const { days } = generatePlan({ diet: 'onnivoro', avoid: [], meals: 3, kcal: 2000 });
   assert.ok(needsFor(days, 0, 3).size > 3); assert.ok(kcalOf(days[0][0].items) > 200); assert.ok(stockGrams({ qty: 2, unit: 'pz' }) === 200);
+});
+test('ridimensiona il giorno verso l\'obiettivo, tenendo fermo il pasto cambiato', () => {
+  const { days } = generatePlan({ diet: 'onnivoro', avoid: [], meals: 4, kcal: 2000 });
+  const day = days[0]; const lockedId = day[1].id; const before = day[1].items.map((i) => i.grams).join();
+  const r = balanceDay(day, 2400, lockedId);
+  assert.equal(r.day[1].items.map((i) => i.grams).join(), before);
+  assert.ok(Math.abs(r.kcal - 2400) < 200 || r.status !== 'ok', String(r.kcal));
+});
+test('obiettivo impossibile: troppo alto per pochi pasti -> low; troppo basso -> high', () => {
+  const { days } = generatePlan({ diet: 'onnivoro', avoid: [], meals: 3, kcal: 2000 });
+  assert.equal(balanceDay(days[0], 6000).status, 'low');
+  assert.equal(balanceDay(days[0], 500).status, 'high');
+  assert.equal(balanceDay(days[0], 2000).status, 'ok');
+});
+test('scontrino: chiavi compatte', () => {
+  assert.deepEqual(parseReceiptItems('{"p":[{"n":"Latte","q":2,"u":"pz"}]}'), [{ name: 'Latte', qty: 2, unit: 'pz' }]);
 });

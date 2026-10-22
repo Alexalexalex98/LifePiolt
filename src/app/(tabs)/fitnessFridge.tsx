@@ -10,7 +10,7 @@ import { t as tl } from '@/i18n/core';
 import { askSend, logSend } from '@/lib/aiConsent';
 import { aiReadFiles, aiServerConfigured } from '@/lib/aiServer';
 import { saveMediaToDrive } from '@/lib/driveSave';
-import { RECEIPT_ITEMS_PROMPT, lowStock, parseReceiptItems, parseTypedList, type Line, type PantryItem } from '@/lib/fitness/pantry';
+import { FRIDGE_PROMPT, RECEIPT_ITEMS_PROMPT, lowStock, parseReceiptItems, parseTypedList, type Line, type PantryItem } from '@/lib/fitness/pantry';
 import { Icon } from '@/lib/icons';
 import { pickNetMedia, takeNetPhoto } from '@/lib/netMedia';
 import { useApp } from '@/store/app';
@@ -41,19 +41,20 @@ export default function Fridge() {
   const people = useMemo(() => [...new Set([...Object.values(chats).filter((c) => c.type === 'dm').map((c) => c.id.replace(/^dm:/, '')), ...following])].filter((n) => n && n !== me), [chats, following, me]);
   const low = lowStock(p.items);
 
-  async function scan(camera: boolean) {
+  async function scan(camera: boolean, what: 'receipt' | 'fridge' = 'receipt') {
     setBusy(true);
     try {
       const m = camera ? await takeNetPhoto() : await pickNetMedia('photo');
       if (!m) return;
-      saveMediaToDrive({ uri: m.uri, media: 'photo', from: 'Scontrino', folder: 'Ricevute' });
-      if (!aiServerConfigured) { toast(tl('Per leggere lo scontrino serve il server AI, che qui non è collegato: scrivi tu la lista.')); setTyped(true); return; }
-      if (!(await askSend('files', 'Foto di uno scontrino'))) { toast(tl('Non invio la foto: scrivi tu la lista.')); setTyped(true); return; }
+      saveMediaToDrive({ uri: m.uri, media: 'photo', from: what === 'fridge' ? 'Frigo' : 'Scontrino', ...(what === 'fridge' ? {} : { folder: 'Ricevute' }) });
+      if (!aiServerConfigured) { toast(tl('Per leggere la foto serve il server AI, che qui non è collegato: scrivi tu la lista.')); setTyped(true); return; }
+      if (!(await askSend('files', what === 'fridge' ? 'Foto del frigo' : 'Foto di uno scontrino'))) { toast(tl('Non invio la foto: scrivi tu la lista.')); setTyped(true); return; }
       logSend('files', 0, ['image/jpeg']);
-      const lines = parseReceiptItems(await aiReadFiles(RECEIPT_ITEMS_PROMPT, [{ uri: m.uri, mime: 'image/jpeg' }]));
-      if (!lines.length) { toast(tl('Non riesco a leggere i prodotti: scrivi tu la lista.')); setTyped(true); return; }
+      toast(tl('Sto leggendo la foto: può volerci fino a un minuto.'));
+      const lines = parseReceiptItems(await aiReadFiles(what === 'fridge' ? FRIDGE_PROMPT : RECEIPT_ITEMS_PROMPT, [{ uri: m.uri, mime: 'image/jpeg' }], 90000, 1000));
+      if (!lines.length) { toast(tl('Non ho riconosciuto prodotti in questa foto: riprova più da vicino o scrivi tu la lista.')); setTyped(true); return; }
       setReview(lines);
-    } catch (e) { toast(e instanceof Error ? e.message : tl('Non riesco ad aprire la fotocamera')); } finally { setBusy(false); }
+    } catch (e) { const msg = e instanceof Error ? e.message : ''; toast(/tempo|time|abort/i.test(msg) ? tl('La lettura ha impiegato troppo tempo. Riprova con una foto più vicina e nitida, oppure scrivi tu la lista.') : msg || tl('Non riesco ad aprire la fotocamera')); setTyped(true); } finally { setBusy(false); }
   }
   const addReview = () => { if (!review) return; const n = p.addLines(review); setReview(null); toast(tl('Aggiunti {0} prodotti al frigo', n)); };
 
@@ -75,6 +76,7 @@ export default function Fridge() {
         <>
           <Row gap={8} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
             <Btn small icon="camera" title={busy ? tl('Leggo…') : tl('Scontrino')} disabled={busy} onPress={() => void scan(true)} />
+            <Btn small icon="camera" title={tl('Foto del frigo')} disabled={busy} onPress={() => void scan(true, 'fridge')} />
             <Btn small ghost icon="image" title={tl('Da galleria')} disabled={busy} onPress={() => void scan(false)} />
             <Btn small ghost icon="edit" title={tl('Scrivi la lista')} onPress={() => setTyped(true)} />
           </Row>

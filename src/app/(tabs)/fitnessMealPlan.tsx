@@ -7,8 +7,9 @@ import { Body, Btn, Card, H, Input, Page, Pill, Row, Sheet } from '@/components/
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { compareDay } from '@/lib/fitness/pantry';
-import { dayKcal, kcalOf, needsFor, type Avoid, type Diet, type PlanMeal } from '@/lib/fitness/mealPlan';
-import { dayOf } from '@/lib/fitness/mealInsights';
+import { InfoTip } from '@/components/InfoTip';
+import { balanceDay, dayKcal, kcalOf, needsFor, type Avoid, type Diet, type PlanMeal } from '@/lib/fitness/mealPlan';
+import { dayOf, mealTitle } from '@/lib/fitness/mealInsights';
 import { FOOD, NUTRITION_DISCLAIMER, dailyTarget, searchFoods } from '@/lib/fitness/nutrition';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
@@ -30,10 +31,13 @@ export default function MealPlan() {
   const [day, setDay] = useState(todayIdx());
   const [edit, setEdit] = useState<{ d: number; m: PlanMeal } | null>(null);
   const [q, setQ] = useState('');
-  const target = fit.body ? dailyTarget(fit.body) : prefs.kcal;
+  const target = prefs.kcalOverride ?? (fit.body ? dailyTarget(fit.body) : prefs.kcal);
   const found = q.trim() ? searchFoods(q, 8) : [];
   const meals = plan?.[day] ?? [];
   const eatenToday = fit.meals.filter((m) => dayOf(m.ts) === dayOf(Date.now()));
+  const gapB = meals.length ? balanceDay(meals, target) : null;
+  const total = dayKcal(meals);
+  const gap = gapB && Math.abs(total - target) > target * 0.08 && gapB.status !== 'ok' ? gapB : null;
   const cmp = plan && day === todayIdx() ? compareDay(meals.flatMap((m) => m.items), eatenToday) : null;
 
   const create = (again?: boolean) => {
@@ -44,6 +48,17 @@ export default function MealPlan() {
   const patchMeal = (d: number, id: string, fn: (m: PlanMeal) => PlanMeal | null) => {
     if (!plan) return;
     setPlan(plan.map((dd, i) => (i === d ? dd.map((m) => (m.id === id ? fn(m) : m)).filter((m): m is PlanMeal => !!m) : dd)));
+  };
+  /** Cambia l'obiettivo calorico: tutta la settimana si ridimensiona (dove è possibile con porzioni ragionevoli). */
+  const changeTarget = (v: number) => { setPrefs({ kcalOverride: v, kcal: v }); if (plan) setPlan(plan.map((d) => balanceDay(d, v).day)); };
+  /** Salva il pasto cambiato: il titolo segue gli ingredienti e gli altri pasti del giorno si ridimensionano per restare sull'obiettivo. */
+  const saveMeal = (d: number, m: PlanMeal) => {
+    if (!plan) return;
+    const renamed: PlanMeal = { ...m, name: m.items.length ? mealTitle(m.items.map((i) => FOOD(i.foodId)?.name ?? i.foodId)) : m.name };
+    const dayNew = plan[d].map((x) => (x.id === m.id ? renamed : x));
+    const b = balanceDay(dayNew, target, m.id);
+    setPlan(plan.map((dd, i) => (i === d ? b.day : dd)));
+    if (b.status !== 'ok') toast(tl('Non riesco a restare sull\'obiettivo: guarda il suggerimento sotto'));
   };
   const missingForWeek = () => {
     if (!plan) return;
@@ -85,7 +100,22 @@ export default function MealPlan() {
               </Pressable>
             ))}
           </Row>
-          <Body small muted>{tl('Totale del giorno: {0} kcal (obiettivo {1})', dayKcal(meals), target)}</Body>
+          <Row gap={8}>
+            <Body small muted style={{ flex: 1 }}>{tl('Totale del giorno: {0} kcal (obiettivo {1})', dayKcal(meals), target)}</Body>
+            <Pressable accessibilityRole="button" accessibilityLabel={tl('Meno')} hitSlop={8} onPress={() => changeTarget(Math.max(1000, target - 100))}><Icon name="minus" size={18} color={t.muted} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={tl('Di più')} hitSlop={8} onPress={() => changeTarget(Math.min(6000, target + 100))}><Icon name="plus" size={18} color={t.muted} /></Pressable>
+          </Row>
+          {gap ? (
+            <Card accent={t.warn}>
+              <Row gap={8}><H style={{ flex: 1, marginBottom: 0 }}>{gap.status === 'low' ? tl('Mancano calorie') : tl('Troppe calorie')}</H><InfoTip title={tl('Perché non riesco a restare sull\'obiettivo')} body={gap.status === 'low' ? [tl('Per arrivare a {0} kcal con {1} pasti ogni porzione dovrebbe diventare enorme: oltre circa il doppio di una porzione normale. Con porzioni ragionevoli, questi pasti arrivano al massimo a {2} kcal.', target, meals.length, gap.max), tl('Hai due strade: aggiungere un pasto o uno spuntino (così le calorie si distribuiscono su più momenti), oppure abbassare l\'obiettivo.')] : [tl('Per scendere a {0} kcal con {1} pasti ogni porzione dovrebbe diventare minuscola: meno della metà di una porzione normale. Con porzioni ragionevoli, questi pasti non scendono sotto {2} kcal.', target, meals.length, gap.min), tl('Hai due strade: togliere un pasto o uno spuntino, oppure alzare l\'obiettivo.')]} /></Row>
+              <Body small style={{ marginTop: 4 }}>{gap.status === 'low' ? tl('Con {0} pasti arrivo al massimo a circa {1} kcal.', meals.length, gap.max) : tl('Con {0} pasti non scendo sotto circa {1} kcal.', meals.length, gap.min)}</Body>
+              <Row style={{ marginTop: 8, flexWrap: 'wrap', justifyContent: 'flex-start' }} gap={8}>
+                <Btn small title={gap.status === 'low' ? tl('Obiettivo a {0} kcal', gap.max) : tl('Obiettivo a {0} kcal', gap.min)} onPress={() => changeTarget(gap.status === 'low' ? gap.max : gap.min)} />
+                {gap.status === 'low' && prefs.meals < 5 ? <Btn small ghost title={tl('Passa a {0} pasti', prefs.meals + 1)} onPress={() => { setPrefs({ meals: (prefs.meals + 1) as 3 | 4 | 5 }); create(false); }} /> : null}
+                {gap.status === 'high' && prefs.meals > 3 ? <Btn small ghost title={tl('Passa a {0} pasti', prefs.meals - 1)} onPress={() => { setPrefs({ meals: (prefs.meals - 1) as 3 | 4 | 5 }); create(false); }} /> : null}
+              </Row>
+            </Card>
+          ) : null}
           {meals.map((m) => (
             <Card key={m.id} onPress={() => setEdit({ d: day, m })}>
               <Row><View style={{ flex: 1 }}><Body small color={FIT}>{tl(SLOT[m.slot])} · {kcalOf(m.items)} kcal</Body><Body bold>{m.name}</Body><Body small muted>{m.items.map((i) => `${FOOD(i.foodId)?.name ?? i.foodId} ${i.grams} g`).join(' · ')}</Body></View><Icon name="edit" size={18} color={t.muted} /></Row>
@@ -124,7 +154,7 @@ export default function MealPlan() {
             <Input value={q} onChangeText={setQ} placeholder={tl('Aggiungi un alimento')} autoCapitalize="none" />
             {found.map((f) => <Pressable key={f.id} accessibilityRole="button" onPress={() => { setEdit({ d: edit.d, m: { ...edit.m, items: [...edit.m.items, { foodId: f.id, grams: f.portion }] } }); setQ(''); }} style={{ paddingVertical: 8 }}><Body>{f.name} <Text style={{ color: t.muted }}>· {f.portion} g</Text></Body></Pressable>)}
             <Row gap={8} style={{ marginTop: 10 }}>
-              <Btn style={{ flex: 1 }} title={tl('Salva')} onPress={() => { patchMeal(edit.d, edit.m.id, () => edit.m); setEdit(null); setQ(''); }} />
+              <Btn style={{ flex: 1 }} title={tl('Salva')} onPress={() => { saveMeal(edit.d, edit.m); setEdit(null); setQ(''); }} />
               <Btn style={{ flex: 1 }} ghost danger title={tl('Togli il pasto')} onPress={() => { patchMeal(edit.d, edit.m.id, () => null); setEdit(null); }} />
             </Row>
             <Body small muted style={{ marginTop: 8 }}>{tl('Le calorie del pasto: {0} kcal.', kcalOf(edit.m.items))}</Body>

@@ -1,5 +1,5 @@
 {
- "count": 13564,
+ "count": 13580,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -31,14 +31,14 @@
   "src/app/(tabs)/fitnessDay.tsx": 18,
   "src/app/(tabs)/fitnessDiary.tsx": 45,
   "src/app/(tabs)/fitnessExercise.tsx": 31,
-  "src/app/(tabs)/fitnessFridge.tsx": 46,
+  "src/app/(tabs)/fitnessFridge.tsx": 49,
   "src/app/(tabs)/fitnessGroup.tsx": 39,
   "src/app/(tabs)/fitnessGroups.tsx": 53,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 39,
   "src/app/(tabs)/fitnessMeal.tsx": 87,
   "src/app/(tabs)/fitnessMealCard.tsx": 30,
-  "src/app/(tabs)/fitnessMealPlan.tsx": 43,
+  "src/app/(tabs)/fitnessMealPlan.tsx": 55,
   "src/app/(tabs)/fitnessPass.tsx": 27,
   "src/app/(tabs)/fitnessPlanDay.tsx": 30,
   "src/app/(tabs)/fitnessProgram.tsx": 36,
@@ -443,7 +443,7 @@
   "src/lib/fitness/micro.ts": 35,
   "src/lib/fitness/nutrientInfo.ts": 444,
   "src/lib/fitness/nutrition.ts": 68,
-  "src/lib/fitness/pantry.ts": 1,
+  "src/lib/fitness/pantry.ts": 2,
   "src/lib/fitness/plan.ts": 15,
   "src/lib/fitness/poses.ts": 368,
   "src/lib/fitness/premium.ts": 3,
@@ -601,5 +601,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1686
+ "withPlaceholders": 1692
 }

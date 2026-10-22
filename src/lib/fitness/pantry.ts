@@ -58,18 +58,19 @@ export function syncShopping(shop: ShopItem[], items: PantryItem[], newId: () =>
 }
 
 /* ---------------------------------------------------------------- scontrino: righe dei prodotti */
-export const RECEIPT_ITEMS_PROMPT = 'Questa è la foto di uno scontrino della spesa. Elenca SOLO i prodotti alimentari e per la casa che si consumano. Rispondi SOLO con JSON: {"prodotti":[{"nome":"...","quantita":numero,"unita":"g"|"ml"|"pz"}]}. Se sullo scontrino non c\'è il peso, usa "pz" e la quantità comprata. Non inventare prodotti che non leggi: se una riga è illeggibile, saltala.';
+export const RECEIPT_ITEMS_PROMPT = 'Scontrino della spesa. Elenca SOLO i prodotti alimentari. Rispondi SOLO con JSON compatto, niente altro testo: {"p":[{"n":"nome breve","q":numero,"u":"g"|"ml"|"pz"}]}. Senza peso scritto usa "pz" e la quantità comprata. Non inventare: salta le righe illeggibili.';
+export const FRIDGE_PROMPT = 'Foto del contenuto di un frigo o di una dispensa. Elenca SOLO gli alimenti che vedi chiaramente. Rispondi SOLO con JSON compatto, niente altro testo: {"p":[{"n":"nome breve","q":numero stimato,"u":"g"|"ml"|"pz"}]}. Usa "pz" per ciò che si conta (uova, yogurt, mele) e una stima in g o ml per il resto. Non inventare ciò che non si vede.';
 
 export function parseReceiptItems(text: string): Line[] {
   const m = /\{[\s\S]*\}/.exec(text ?? ''); if (!m) return [];
   try {
     const o = JSON.parse(m[0]) as { prodotti?: unknown; items?: unknown };
-    const list = (o.prodotti ?? o.items) as { nome?: unknown; name?: unknown; quantita?: unknown; qty?: unknown; unita?: unknown; unit?: unknown }[] | undefined;
+    const list = (o.prodotti ?? o.items ?? (o as { p?: unknown }).p) as { nome?: unknown; name?: unknown; n?: unknown; quantita?: unknown; qty?: unknown; q?: unknown; unita?: unknown; unit?: unknown; u?: unknown }[] | undefined;
     if (!Array.isArray(list)) return [];
     return list.slice(0, 80).map((x) => {
-      const name = String(x.nome ?? x.name ?? '').replace(/\s+/g, ' ').trim().slice(0, 60);
-      const qty = Number(String(x.quantita ?? x.qty ?? 1).replace(',', '.'));
-      const u = String(x.unita ?? x.unit ?? 'pz').toLowerCase();
+      const name = String(x.nome ?? x.name ?? x.n ?? '').replace(/\s+/g, ' ').trim().slice(0, 60);
+      const qty = Number(String(x.quantita ?? x.qty ?? x.q ?? 1).replace(',', '.'));
+      const u = String(x.unita ?? x.unit ?? x.u ?? 'pz').toLowerCase();
       const unit: Unit = u === 'g' || u === 'kg' ? 'g' : u === 'ml' || u === 'l' || u === 'lt' ? 'ml' : 'pz';
       const mult = u === 'kg' || u === 'l' || u === 'lt' ? 1000 : 1;
       return { name, qty: Number.isFinite(qty) && qty > 0 ? Math.min(100000, qty * mult) : 1, unit };

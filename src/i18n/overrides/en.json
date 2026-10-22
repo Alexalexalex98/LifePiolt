@@ -222,5 +222,15 @@
   "Ricette e cosa manca": "Recipes and what's missing",
   "Per quante persone": "For how many people",
   "Per quante persone fai la spesa": "How many people you shop for",
-  "Il piano è per una persona: le quantità della spesa si moltiplicano.": "The plan is for one person: shopping amounts are multiplied."
+  "Il piano è per una persona: le quantità della spesa si moltiplicano.": "The plan is for one person: shopping amounts are multiplied.",
+  "Foto del frigo": "Fridge photo",
+  "Sto leggendo la foto: può volerci fino a un minuto.": "Reading the photo: it can take up to a minute.",
+  "Non ho riconosciuto prodotti in questa foto: riprova più da vicino o scrivi tu la lista.": "I couldn't recognise any products in this photo: try closer or type the list.",
+  "La lettura ha impiegato troppo tempo. Riprova con una foto più vicina e nitida, oppure scrivi tu la lista.": "Reading took too long. Try a closer, sharper photo, or type the list.",
+  "Per leggere la foto serve il server AI, che qui non è collegato: scrivi tu la lista.": "Reading the photo needs the AI server, which isn't connected here: type the list.",
+  "Mancano calorie": "Missing calories",
+  "Troppe calorie": "Too many calories",
+  "Non riesco a restare sull'obiettivo: guarda il suggerimento sotto": "I can't stay on target: see the suggestion below",
+  "Obiettivo a {0} kcal": "Target {0} kcal",
+  "Passa a {0} pasti": "Switch to {0} meals"
 }

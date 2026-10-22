@@ -10,7 +10,7 @@ export type PlanMeal = { id: string; slot: Slot; name: string; items: PlanItem[]
 export type PlanDay = PlanMeal[];
 export type Diet = 'onnivoro' | 'vegetariano' | 'vegano';
 export type Avoid = 'lattosio' | 'glutine' | 'frutta secca' | 'pesce' | 'uova';
-export type PlanPrefs = { diet: Diet; avoid: Avoid[]; meals: 3 | 4 | 5; kcal: number; /** per quante persone si fa la spesa (il piano resta per una persona) */ people?: number };
+export type PlanPrefs = { diet: Diet; avoid: Avoid[]; meals: 3 | 4 | 5; kcal: number; /** per quante persone si fa la spesa (il piano resta per una persona) */ people?: number; /** obiettivo calorico scelto a mano (altrimenti quello calcolato) */ kcalOverride?: number };
 
 type Tpl = { slot: Slot; name: string; items: [string, number][]; veg?: boolean; vegan?: boolean; lactose?: boolean; gluten?: boolean; nuts?: boolean; fish?: boolean; egg?: boolean };
 const T = (slot: Slot, name: string, items: [string, number][], f: Partial<Tpl> = {}): Tpl => ({ slot, name, items, ...f });
@@ -79,9 +79,24 @@ export function generatePlan(p: PlanPrefs, seed = 0): { days: PlanDay[]; warning
       const t = pool[(d + seed + slot.length) % pool.length];
       day.push({ id: `${d}-${slot}`, slot, name: t.name, items: scale(t.items, (p.kcal * SHARE[slot]) / shareSum) });
     }
-    days.push(day);
+    days.push(balanceDay(day, p.kcal).day);
   }
   return { days, warnings };
+}
+
+export type Balance = { day: PlanDay; status: 'ok' | 'low' | 'high'; kcal: number; /** calorie raggiungibili con porzioni ragionevoli */ min: number; max: number };
+const MIN_K = 0.5, MAX_K = 2.2;
+/** Ridimensiona le porzioni dei pasti (tranne quello che l'utente ha appena cambiato) per arrivare alle calorie dell'obiettivo. Se non si riesce con porzioni ragionevoli lo dice: troppo pochi o troppi pasti per quell'obiettivo. */
+export function balanceDay(day: PlanDay, target: number, locked?: string): Balance {
+  const kc = (m: PlanMeal) => kcalOf(m.items);
+  const L = day.filter((m) => m.id === locked).reduce((a, m) => a + kc(m), 0);
+  const U = day.filter((m) => m.id !== locked).reduce((a, m) => a + kc(m), 0);
+  const min = Math.round(L + U * MIN_K), max = Math.round(L + U * MAX_K);
+  if (U <= 0) { const k = L; return { day, status: k < target * 0.95 ? 'low' : k > target * 1.05 ? 'high' : 'ok', kcal: k, min, max }; }
+  const k = Math.min(MAX_K, Math.max(MIN_K, (target - L) / U));
+  const out = day.map((m) => (m.id === locked ? m : { ...m, items: m.items.map((i) => ({ ...i, grams: round5(i.grams * k) })) }));
+  const total = out.reduce((a, m) => a + kc(m), 0);
+  return { day: out, status: total < target * 0.95 ? 'low' : total > target * 1.05 ? 'high' : 'ok', kcal: total, min, max };
 }
 
 export const dayKcal = (day: PlanDay): number => day.reduce((s, m) => s + kcalOf(m.items), 0);
