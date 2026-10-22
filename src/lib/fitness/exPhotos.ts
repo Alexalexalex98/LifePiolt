@@ -271,3 +271,8 @@ export function exPhotoUrls(id: string | undefined): [string, string] | undefine
   const dir = id ? (id.startsWith('fx-') ? id.slice(3) : EX_PHOTO_DIR[id]) : undefined;
   return dir ? [`${BASE}${encodeURIComponent(dir)}/0.jpg`, `${BASE}${encodeURIComponent(dir)}/1.jpg`] : undefined;
 }
+
+import WGER from './exPhotosWger.json';
+type WgerPhoto = { url: string; license: string; author: string; name: string };
+/** Foto aggiunte da wger.de (licenza Creative Commons): una sola immagine per esercizio, con autore e licenza da mostrare. */
+export function wgerPhoto(id: string | undefined): WgerPhoto | undefined { return id ? (WGER as Record<string, WgerPhoto>)[id] : undefined; }

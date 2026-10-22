@@ -42,12 +42,14 @@ export default function Dashboard() {
       <DashData>
         <View style={{ marginTop: 6 }}>
           <Row>
-            {extraMascot ? <Mascot size={50} color={t.accent} expression="happy" ritual={false} style={{ marginEnd: 8 }} /> : null}
-            <View style={{ flex: 1 }}>
+            {extraMascot ? <Mascot size={40} color={t.accent} expression="happy" ritual={false} style={{ marginEnd: 8 }} /> : null}
+            <View style={{ flex: 1, flexShrink: 1, minWidth: 0 }}>
               <H style={{ marginBottom: 0 }}>{`${tl(greet)}${account.name ? `, ${account.name.split(' ')[0]}` : ''}`}</H>
               <Body small muted style={{ textTransform: 'capitalize' }}>{date}</Body>
             </View>
-            {edit ? <Btn small title="Fine" onPress={() => setEdit(false)} /> : <Row gap={8}><Btn small ghost icon="edit" title="Modifica" onPress={() => setEdit(true)} /><Btn small icon="plus" title="Widget" onPress={() => setAdding(true)} /></Row>}
+          </Row>
+          <Row style={{ justifyContent: 'flex-start', marginTop: 8 }} gap={8}>
+            {edit ? <Btn small title="Fine" onPress={() => setEdit(false)} /> : <><Btn small ghost icon="edit" title="Modifica" onPress={() => setEdit(true)} /><Btn small icon="plus" title="Widget" onPress={() => setAdding(true)} /></>}
           </Row>
           {edit ? (
             <View style={{ marginTop: 10, gap: 8 }}>

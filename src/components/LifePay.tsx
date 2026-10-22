@@ -67,6 +67,9 @@ function PassTab({ onClose }: { onClose: () => void }) {
  */
 const useWallet = create<{ armed: boolean; visible: boolean; setArmed: (v: boolean) => void; setVisible: (v: boolean) => void }>((set) => ({ armed: false, visible: false, setArmed: (armed) => set({ armed }), setVisible: (visible) => set({ visible }) }));
 const FAB = { start: 14, size: 44, bottom: 84 };
+let held = false;
+/** Vero mentre un dito sta premendo sul portafoglio: i widget dietro non devono reagire (es. entrare in modifica). */
+export const walletHeld = () => held;
 
 /** Da mettere sulla vista principale dell'app: osserva i tocchi (senza prenderli) e accende il portafoglio se lo tieni premuto. */
 export function useWalletTouch() {
@@ -75,7 +78,7 @@ export function useWalletTouch() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const off = useRef<ReturnType<typeof setTimeout> | null>(null);
   const origin = useRef<{ x: number; y: number } | null>(null);
-  const clear = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } origin.current = null; };
+  const clear = () => { held = false; if (timer.current) { clearTimeout(timer.current); timer.current = null; } origin.current = null; };
   const inside = (x: number, y: number) => {
     const left = (isRtlLayout() ? width - FAB.start - FAB.size : FAB.start) - 10, right = left + FAB.size + 20;
     const bottomY = height - (FAB.bottom + insets.bottom), topY = bottomY - FAB.size;
@@ -85,6 +88,7 @@ export function useWalletTouch() {
     onTouchStart: (e: GestureResponderEvent) => {
       clear();
       const n = e.nativeEvent; if (n.touches.length !== 1 || !useWallet.getState().visible || useWallet.getState().armed || !inside(n.pageX, n.pageY)) return;
+      held = true;
       origin.current = { x: n.pageX, y: n.pageY };
       timer.current = setTimeout(() => {
         timer.current = null;

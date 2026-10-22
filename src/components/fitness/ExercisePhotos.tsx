@@ -5,20 +5,22 @@ import { Text } from '@/components/T';
 
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
-import { exPhotoUrls } from '@/lib/fitness/exPhotos';
+import { exPhotoUrls, wgerPhoto } from '@/lib/fitness/exPhotos';
 import type { ExerciseX } from '@/lib/fitness/exerciseDb';
 import { Icon } from '@/lib/icons';
 
 /** Le foto di un esercizio: le tue, se le hai messe, altrimenti quelle dell'archivio. */
-export const photosOf = (ex: Pick<ExerciseX, 'id' | 'photos'>): { urls: string[]; real: boolean } | null => {
+export const photosOf = (ex: Pick<ExerciseX, 'id' | 'photos'>): { urls: string[]; real: boolean; credit?: string } | null => {
   const own = ex.photos ?? [];
   if (own.length) return { urls: own, real: false };
   const r = exPhotoUrls(ex.id);
-  return r ? { urls: r, real: true } : null;
+  if (r) return { urls: r, real: true };
+  const w = wgerPhoto(ex.id);
+  return w ? { urls: [w.url], real: false, credit: `${tl('Foto')}: ${w.author} · ${w.license} · wger.de` } : null;
 };
 
 /** Le due foto (partenza e arrivo) una sopra l'altra che si alternano con dissolvenza, come se la persona si muovesse. */
-export function ExercisePhotos({ urls, name, real, maxWidth }: { urls: string[]; name: string; real: boolean; maxWidth?: number }) {
+export function ExercisePhotos({ urls, name, real, maxWidth, credit }: { urls: string[]; name: string; real: boolean; maxWidth?: number; credit?: string }) {
   const t = useTheme();
   const k = useRef(new Animated.Value(0)).current;
   const two = urls.length > 1;
@@ -39,7 +41,7 @@ export function ExercisePhotos({ urls, name, real, maxWidth }: { urls: string[];
         <Image source={{ uri: urls[0] }} style={{ position: 'absolute', width: '100%', height: '100%' }} contentFit="cover" cachePolicy="disk" accessibilityLabel={`${name}: ${tl('Partenza')}`} />
         {two ? <Animated.View style={{ position: 'absolute', width: '100%', height: '100%', opacity: k }}><Image source={{ uri: urls[1] }} style={{ width: '100%', height: '100%' }} contentFit="cover" cachePolicy="disk" accessibilityLabel={`${name}: ${tl('Arrivo')}`} /></Animated.View> : null}
       </View>
-      {real ? <Text style={{ color: t.muted, fontSize: 11, marginTop: 6 }}>{tl('Foto: Free Exercise DB (pubblico dominio).')}</Text> : null}
+      {real ? <Text style={{ color: t.muted, fontSize: 11, marginTop: 6 }}>{tl('Foto: Free Exercise DB (pubblico dominio).')}</Text> : credit ? <Text style={{ color: t.muted, fontSize: 11, marginTop: 6 }}>{credit}</Text> : null}
     </View>
   );
 }
@@ -59,6 +61,6 @@ export function ExerciseThumb({ ex, size = 52 }: { ex: Pick<ExerciseX, 'id' | 'p
 export function ExerciseMedia({ ex, maxWidth }: { ex: Pick<ExerciseX, 'id' | 'photos' | 'name'>; maxWidth?: number }) {
   const t = useTheme();
   const p = photosOf(ex);
-  if (p) return <ExercisePhotos urls={p.urls} name={ex.name} real={p.real} maxWidth={maxWidth} />;
+  if (p) return <ExercisePhotos urls={p.urls} name={ex.name} real={p.real} credit={p.credit} maxWidth={maxWidth} />;
   return <View style={{ aspectRatio: 850 / 567, borderRadius: 16, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth, alignSelf: 'center' }}><Icon name="lifefitness" size={48} color={t.muted} /></View>;
 }

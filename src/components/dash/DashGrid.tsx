@@ -18,6 +18,7 @@ export const GAP = 8;
 type Ghost = { x: number; y: number; w: number; h: number; ok: boolean } | null;
 
 /** La griglia: 4 colonne di quadratini, posizioni libere. In modifica compaiono i puntini e si trascina dalla maniglia. */
+import { walletHeld } from '@/components/LifePay';
 export function DashGrid({ edit, onEnterEdit, onSelect }: { edit: boolean; onEnterEdit: () => void; onSelect: (id: string) => void }) {
   const t = useTheme();
   const items = useDash((s) => s.items);
@@ -30,7 +31,7 @@ export function DashGrid({ edit, onEnterEdit, onSelect }: { edit: boolean; onEnt
   const rows = visibleRows(items, edit ? 6 : 1);
   const H = Math.max(0, rows * step - GAP);
   const onLayout = (e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width);
-  const enter = useMemo(() => ({ enter: onEnterEdit }), [onEnterEdit]);
+  const enter = useMemo(() => ({ enter: () => { if (!walletHeld()) onEnterEdit(); } }), [onEnterEdit]);
 
   return (
     <View onLayout={onLayout} style={{ width: '100%' }}>
