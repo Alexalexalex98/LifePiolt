@@ -11,4 +11,4 @@ test('le tinte del corpo: la luce è più chiara della base, l\'ombra più scura
   const lum = (h) => { const [r, g, b] = parseHex(h); return r + g + b; };
   assert.ok(lum(t.light) > lum(t.base) && lum(t.base) > lum(t.shade) && lum(t.eye) < lum(t.shade));
 });
-test('dieci espressioni, tutte diverse', () => { assert.equal(EXPRESSIONS.length, 10); assert.equal(new Set(EXPRESSIONS.map((e) => e.id)).size, 10); });
+test('26 espressioni, tutte diverse', () => { assert.equal(EXPRESSIONS.length, 26); assert.equal(new Set(EXPRESSIONS.map((e) => e.id)).size, 26); });

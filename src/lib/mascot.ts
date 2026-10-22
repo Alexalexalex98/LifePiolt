@@ -1,8 +1,12 @@
 /** La mascotte di Theia (modulo PURO): colori derivati dal colore dell'app ed elenco delle espressioni. */
-export type Expression = 'neutral' | 'happy' | 'thinking' | 'understood' | 'doubtful' | 'celebrating' | 'sleepy' | 'surprised' | 'sad' | 'working';
+export type Expression = 'neutral' | 'happy' | 'thinking' | 'understood' | 'doubtful' | 'celebrating' | 'sleepy' | 'surprised' | 'sad' | 'working'
+  | 'love' | 'laughing' | 'wink' | 'angry' | 'crying' | 'blushing' | 'cool' | 'sleeping' | 'confused' | 'idea' | 'proud' | 'shy' | 'excited' | 'nervous' | 'thanks' | 'goodbye';
 export const EXPRESSIONS: { id: Expression; label: string }[] = [
   { id: 'neutral', label: 'Neutra' }, { id: 'happy', label: 'Felice' }, { id: 'thinking', label: 'Pensa' }, { id: 'understood', label: 'Ha capito' }, { id: 'doubtful', label: 'Ha un dubbio' },
   { id: 'celebrating', label: 'Festeggia' }, { id: 'sleepy', label: 'Assonnata' }, { id: 'surprised', label: 'Sorpresa' }, { id: 'sad', label: 'Triste' }, { id: 'working', label: 'Al lavoro' },
+  { id: 'love', label: 'Innamorata' }, { id: 'laughing', label: 'Ride' }, { id: 'wink', label: 'Occhiolino' }, { id: 'angry', label: 'Arrabbiata' }, { id: 'crying', label: 'Piange' }, { id: 'blushing', label: 'Arrossisce' },
+  { id: 'cool', label: 'Cool' }, { id: 'sleeping', label: 'Dorme' }, { id: 'confused', label: 'Confusa' }, { id: 'idea', label: 'Ha un\'idea' }, { id: 'proud', label: 'Orgogliosa' }, { id: 'shy', label: 'Timida' },
+  { id: 'excited', label: 'Emozionata' }, { id: 'nervous', label: 'Nervosa' }, { id: 'thanks', label: 'Grazie' }, { id: 'goodbye', label: 'Ciao' },
 ];
 
 type RGB = [number, number, number];

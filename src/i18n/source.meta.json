@@ -1,5 +1,5 @@
 {
- "count": 13386,
+ "count": 13401,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -479,7 +479,7 @@
   "src/lib/markets/fundamentals.ts": 62,
   "src/lib/markets/identify.ts": 1,
   "src/lib/markets/invest.ts": 6,
-  "src/lib/mascot.ts": 10,
+  "src/lib/mascot.ts": 26,
   "src/lib/menu.ts": 11,
   "src/lib/modRules.ts": 17,
   "src/lib/moodAnalysis.ts": 57,
