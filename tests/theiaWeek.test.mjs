@@ -58,3 +58,14 @@ test('opzioni: si possono togliere gli allenamenti', () => {
   const p = planWeek({ ...base, workouts: [{ day: '2026-10-22', name: 'A', minutes: 30 }], opts: { workouts: false } });
   assert.equal(p.items.length, 0);
 });
+
+test('task mai nel fine settimana e ricordi del sonno con il giorno giusto', () => {
+  const many = Array.from({ length: 7 }, (_, k) => ({ id: `t${k}`, t: `T${k}` }));
+  const p = planWeek({ ...base, tasks: many });
+  p.items.filter((x) => x.kind === 'task').forEach((x) => { const w = new Date(x.day + 'T00:00:00').getDay(); assert.ok(w !== 0 && w !== 6, x.day); });
+  const shifts = [{ id: 's', name: 'Alba', start: '06:00', end: '14:00', weekdays: [3, 4], dates: [], color: '#fff' }];
+  const sl = planWeek({ ...base, shifts }).items.filter((x) => x.kind === 'sonno');
+  assert.equal(sl.length, 2);
+  assert.match(sl[0].title, /domani il turno/);
+  assert.match(sl[1].title, /ven 23 il turno/);
+});

@@ -67,6 +67,8 @@ export function planWeek(i: WeekInput): WeekPlan {
     const ts = [...i.tasks];
     for (const d of days) {
       if (!ts.length) break;
+      const wk = new Date(d + 'T00:00:00').getDay();
+      if (wk === 0 || wk === 6) continue; // i task di lavoro non si mettono nel fine settimana
       const slots = freeSlots(busy[d], i.workStart, i.workEnd, 60, 60, nowMin(d));
       const slot = slots[0];
       if (!slot) continue;
@@ -88,7 +90,7 @@ export function planWeek(i: WeekInput): WeekPlan {
       if (bedMs <= i.now.getTime()) continue;
       const bd = dayKeyOf(bedMs); const b = new Date(bedMs);
       if (!busy[bd]) continue;
-      items.push({ id: `w${n++}`, day: bd, time: fmtMin(b.getHours() * 60 + b.getMinutes()), dur: 15, title: `A letto: domani il turno «${o.shift.name}» inizia alle ${fmtMin(startMin)}`, kind: 'sonno' });
+      items.push({ id: `w${n++}`, day: bd, time: fmtMin(b.getHours() * 60 + b.getMinutes()), dur: 15, title: `A letto: ${dayLabel(sd, today)} il turno «${o.shift.name}» inizia alle ${fmtMin(startMin)}`, kind: 'sonno' });
     }
   }
   items.sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time));
