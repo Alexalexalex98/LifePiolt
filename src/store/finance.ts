@@ -192,6 +192,11 @@ type FinState = {
   avgRule: AvgRule;
   /** importi delle spese fisse impostati a mano (chiave = voce), che valgono al posto di quelli calcolati dall'estratto */
   fixedOverrides: Record<string, number>;
+  /** correzioni dell'utente per un beneficiario: cambia classe o non contarla come spesa fissa */
+  payeeFix: Record<string, { cls?: string; hide?: boolean }>;
+  setPayeeFix: (key: string, fix: { cls?: string; hide?: boolean } | null) => void;
+  /** corregge un movimento letto male (importo o descrizione) */
+  editMovement: (mi: number, vi: number, patch: { label?: string; amount?: number }) => void;
   setFixedOverride: (key: string, amount: number | null) => void;
   setSalaryRule: (r: SalaryRule, excluded?: string[], avg?: AvgRule) => void;
   recomputeStatement: (opts?: { apply?: boolean; balance?: number | null }) => void;
@@ -238,7 +243,7 @@ export const useFin = create<FinState>()(
     ...blank(),
 
     addMovement: (idx, mv) => set((s) => ({ months: s.months.map((m, i) => (i === idx ? { ...m, movements: [...m.movements, mv] } : m)) })),
-    delMovement: (idx, mi) => set((s) => ({ months: s.months.map((m, i) => (i === idx ? { ...m, movements: m.movements.filter((_, j) => j !== mi) } : m)) })),
+    delMovement: (idx, mi) => { set((s) => ({ months: s.months.map((m, i) => (i === idx ? { ...m, movements: m.movements.filter((_, j) => j !== mi) } : m)) })); if (get().statementInfo) get().recomputeStatement(); },
     dismissInsight: (id, v) => set((s) => ({ insights: s.insights.map((i) => (i.id === id ? { ...i, dismissed: v } : i)) })),
     setBudget: (b) => set((s) => ({ budget: { ...s.budget, ...b } })),
     setAlloc: (name, v) => set((s) => ({ budget: { ...s.budget, alloc: { ...s.budget.alloc, [name]: v } } })),
@@ -375,6 +380,9 @@ export const useFin = create<FinState>()(
     salaryExcluded: [] as string[],
     avgRule: DEFAULT_AVG,
     fixedOverrides: {} as Record<string, number>,
+    payeeFix: {} as Record<string, { cls?: string; hide?: boolean }>,
+    setPayeeFix: (key, fix) => { set((s) => { const o = { ...(s.payeeFix ?? {}) }; if (!fix) delete o[key]; else o[key] = fix; return { payeeFix: o }; }); get().recomputeStatement(); },
+    editMovement: (mi, vi, patch) => { set((s) => ({ months: s.months.map((m, i) => (i === mi ? { ...m, movements: m.movements.map((x, j) => (j === vi ? { ...x, ...(patch.label != null ? { label: patch.label } : {}), ...(patch.amount != null ? { amount: patch.amount } : {}) } : x)) } : m)) })); get().recomputeStatement(); },
     setFixedOverride: (key, amount) => { set((s) => { const o = { ...(s.fixedOverrides ?? {}) }; if (amount == null) delete o[key]; else o[key] = amount; return { fixedOverrides: o }; }); get().recomputeStatement(); },
     setSalaryRule: (r, excluded, avg) => { set((s) => ({ salaryRule: r, salaryExcluded: excluded ?? s.salaryExcluded, avgRule: avg ?? s.avgRule })); get().recomputeStatement(); },
     recomputeStatement: (opts) => {
@@ -383,7 +391,8 @@ export const useFin = create<FinState>()(
       const an0 = analyzeStatement(rows, s.salaryRule, s.salaryExcluded, s.avgRule);
       if (!an0) return;
       const ov = s.fixedOverrides ?? {};
-      const an = { ...an0, fixed: an0.fixed.map((f) => (ov[f.key] != null ? { ...f, monthly: ov[f.key], overridden: { by: 'utente' as const, calculated: f.monthly } } : f)) };
+      const pf = s.payeeFix ?? {};
+      const an = { ...an0, fixed: an0.fixed.filter((f) => !pf[f.key]?.hide).map((f) => { const nc = pf[f.key]?.cls; const g = nc ? { ...f, cls: nc as typeof f.cls, name: f.name.startsWith(`${f.cls}: `) ? `${nc}: ${f.name.slice(f.cls.length + 2)}` : f.name } : f; return ov[f.key] != null ? { ...g, monthly: ov[f.key], overridden: { by: 'utente' as const, calculated: f.monthly } } : g; }) };
       const old = s.statementInfo;
       const bal = typeof opts?.balance === 'number' ? opts.balance : old?.balance;
       const info: StatementInfo = { ...an, count: rows.length, balanceKnown: typeof opts?.balance === 'number' || !!old?.balanceKnown, ...(bal !== undefined ? { balance: bal } : {}), at: Date.now() };

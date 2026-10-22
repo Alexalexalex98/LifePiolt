@@ -11,6 +11,7 @@ import { RENT_RULE, suggestPlan } from '@/lib/budgetPlan';
 import { toast } from '@/store/toast';
 import { categoryOf, useFin, type StatementInfo } from '@/store/finance';
 import { ExplainSheet } from '@/components/ExplainSheet';
+import { FixedEditSheet } from '@/components/FixedEditSheet';
 import { FormHead, Preview, Segments, Stepper } from '@/components/formKit';
 import { Icon } from '@/lib/icons';
 import { analyzeSalary, DEFAULT_AVG, type AvgRule } from '@/lib/statementAnalysis';
@@ -98,6 +99,7 @@ function StatementBudget({ info }: { info: StatementInfo }) {
   const [to, setTo] = useState(f.salaryRule.to);
   const [excl, setExcl] = useState<string[]>(f.salaryExcluded);
   const [avg, setAvg] = useState<AvgRule>(f.avgRule);
+  const [fx, setFx] = useState<StatementInfo['fixed'][number] | null>(null);
   const months = f.months;
   const salary = info.salary.monthly;
   const fixedTotal = info.fixed.reduce((s, b) => s + b.monthly, 0);
@@ -153,7 +155,7 @@ function StatementBudget({ info }: { info: StatementInfo }) {
         <H>Spese fisse (dall’estratto)</H>
         <Body small muted style={{ marginBottom: 4 }}>Quelle che tornano mese per mese: affitto, cassa malati e assicurazioni, mutuo, prestiti e leasing, telefono, energia, abbonamenti. Non i biglietti singoli.</Body>
         {info.fixed.length ? info.fixed.map((b, i) => (
-          <Pressable key={b.key} onPress={() => openFixed(b)} accessibilityRole="button" style={{ paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: th.item }}>
+          <Pressable key={b.key} onPress={() => openFixed(b)} onLongPress={() => setFx(b)} accessibilityRole="button" style={{ paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: th.item }}>
             <Row><Body bold style={{ flex: 1 }}>{b.name}</Body><Body bold>{formatMoney(b.monthly)}</Body></Row>
             <Body small muted>{pct(b.monthly)}% dello stipendio · {b.payments} pagamenti in {b.months} mesi · ultimo {dmy(b.lastDate)} · tocca per vederli</Body>
             {b.overridden ? <Body small color={th.warn}>{`Importo impostato da te (dall’estratto risultava ${formatMoney(b.overridden.calculated)}). Dì a Theia «ripristina ${b.name.split(':')[0].toLowerCase()}» per tornare al calcolo.`}</Body> : null}
@@ -182,6 +184,7 @@ function StatementBudget({ info }: { info: StatementInfo }) {
         </Card>
       ) : null}
 
+      <FixedEditSheet item={fx} onClose={() => setFx(null)} />
       <ExplainSheet visible={!!ex} title={ex?.title ?? ''} formula={ex?.formula} rows={ex?.rows ?? []} total={ex?.total} onClose={() => setEx(null)} />
       <Sheet visible={ruleOpen} title="Come si calcola" onClose={() => setRuleOpen(false)}>
         {(() => {
