@@ -18,7 +18,7 @@ import { useChat } from '@/store/chat';
 import { Icon } from '@/lib/icons';
 import { libraryPermission } from '@/lib/mediaPerm';
 
-const fileFolders = ['Documenti', 'Ricevute', 'Bollette e fatture', 'Salute', 'Lavoro', 'Altro'];
+const fileFolders = ['Documenti', 'Video', 'Ricevute', 'Bollette e fatture', 'Salute', 'Lavoro', 'Altro'];
 const gradients: [string, string][] = [['#3a2a5c', '#171224'], ['#1f3b2c', '#131c17'], ['#3a2a1a', '#221a10'], ['#2a1f45', '#181128'], ['#1a2f3a', '#111c22'], ['#3a1f2c', '#22131a']];
 const sizeLabel = (bytes?: number) => (bytes == null ? '—' : bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
 

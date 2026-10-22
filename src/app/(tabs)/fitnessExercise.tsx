@@ -19,6 +19,7 @@ import { exById, guideOf } from '@/lib/fitness/exerciseDb';
 import { hasPremiumFeature } from '@/lib/premiumApp';
 import { Icon } from '@/lib/icons';
 import { go, goBack } from '@/lib/nav';
+import { saveMediaToDrive } from '@/lib/driveSave';
 import { pickNetMedia, takeNetVideo, type NetMedia } from '@/lib/netMedia';
 import { useFitness } from '@/store/fitness';
 import { toast } from '@/store/toast';
@@ -51,7 +52,7 @@ export default function FitnessExercise() {
   const record = async (camera: boolean) => {
     try {
       const m = camera ? await takeNetVideo(30) : await pickNetMedia('video');
-      if (m && m.media === 'video') { setClip(m); setRes(null); setTicks({}); }
+      if (m && m.media === 'video') { saveMediaToDrive({ uri: m.uri, media: 'video', from: 'Esercizio' }); setClip(m); setRes(null); setTicks({}); }
     } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la fotocamera'); }
   };
   const ask = async () => {

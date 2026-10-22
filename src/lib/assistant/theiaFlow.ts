@@ -25,6 +25,7 @@ import { openBillReview } from '@/components/theia/billRoute';
 import { BILL_FOLDER } from '@/lib/bills/files';
 import { useLife } from '@/store/life';
 import { useAiRouter } from '@/store/aiRouter';
+import { saveMediaToDrive } from '@/lib/driveSave';
 import { weekdayShortDate } from '@/lib/format';
 import { fmtBytes, needsAnalysis, textPayload, type Att } from '@/lib/attachments';
 import { isCancel, isNo, isYes } from './appActionCore';
@@ -172,6 +173,7 @@ export async function sendTheia(i: SendInput): Promise<void> {
   if (images.length || atts.some(needsAnalysis)) {
     store().push({ who: 'me', text, source: 'chat', topic: i.topic, ext: { images: images.length ? images.map((x) => x.uri) : undefined, ...withAtts, lang: i.lang, voice: i.source === 'voice' } });
     saveToDrive(atts);
+    for (const x of images) saveMediaToDrive({ uri: x.uri, media: 'photo', from: 'Theia' });
     if (aiOn()) {
       const list = [...images.map((x) => ({ uri: x.uri, mime: x.mime })), ...atts.filter((a) => a.kind === 'document' && a.uri && !a.text).map((a) => ({ uri: a.uri!, mime: a.mime ?? 'application/pdf', name: a.name }))];
       if (list.length) { await readFilesWithAi([text, payload].filter(Boolean).join('\n\n'), list); return; }

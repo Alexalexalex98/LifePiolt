@@ -7,6 +7,7 @@ import { Body, Btn, Input, Row, Sheet } from '@/components/ui';
 import { askSend, logSend } from '@/lib/aiConsent';
 import { AiServerError, aiReadFiles, aiServerConfigured } from '@/lib/aiServer';
 import { movementLabel } from '@/lib/csvImport';
+import { saveMediaToDrive } from '@/lib/driveSave';
 import { pickNetMedia, takeNetPhoto } from '@/lib/netMedia';
 import { RECEIPT_PROMPT, isoFromInput, parseReceipt } from '@/lib/receipt';
 import { categoryOf, useFin } from '@/store/finance';
@@ -32,6 +33,7 @@ export function AddMovementSheet({ visible, onClose }: { visible: boolean; onClo
     try {
       const m = camera ? await takeNetPhoto() : await pickNetMedia('photo');
       if (!m) return;
+      saveMediaToDrive({ uri: m.uri, media: 'photo', from: 'Scontrino', folder: 'Ricevute' });
       if (!aiServerConfigured) { setNote('Per leggere lo scontrino serve il server AI, che qui non è collegato. Scrivi tu descrizione e importo.'); return; }
       if (!(await askSend('files', 'Foto di uno scontrino'))) { setNote('Non invio la foto: senza il permesso non posso leggere lo scontrino. Scrivi tu descrizione e importo.'); return; }
       logSend('files', 0, ['image/jpeg']);

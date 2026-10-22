@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { fmtDur as fmtDurImpl, lastMessage, previewText } from '@/lib/chatList';
+import { saveMediaToDrive } from '@/lib/driveSave';
 import { uid } from '@/lib/format';
 import type { CallNotes, TLine } from '@/lib/callNotes';
 import type { CallShare } from '@/lib/groupCall';
@@ -228,6 +229,7 @@ export const useChat = create<ChatState>()(
         messages: { ...s.messages, [id]: [...(s.messages[id] ?? []), msg] },
         chats: s.chats[id] ? { ...s.chats, [id]: { ...s.chats[id], draft: '', lastRead: Date.now(), archived: false } } : s.chats,
       }));
+      if ((m.kind === 'image' || m.kind === 'video') && m.media?.uri) saveMediaToDrive({ uri: m.media.uri, media: m.kind === 'video' ? 'video' : 'photo', from: 'Chat', name: m.media.name, size: m.media.size });
       return mid;
     },
     receive: (id, from, m) => {

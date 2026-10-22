@@ -1,5 +1,6 @@
 import * as Contacts from 'expo-contacts';
 import { Image } from 'expo-image';
+import { saveMediaToDrive } from '@/lib/driveSave';
 import * as ImagePicker from 'expo-image-picker';
 import { useMemo, useState } from 'react';
 import { Linking, Platform, Pressable, View } from 'react-native';
@@ -112,6 +113,7 @@ export function TaskActionSheet({ taskId, onClose }: { taskId: string | null; on
   const addPhoto = async () => {
     const perm = await libraryPermission(); if (!perm.granted) { toast('Serve il permesso per le foto'); return; }
     const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+    if (!r.canceled && r.assets[0]?.uri) saveMediaToDrive({ uri: r.assets[0].uri, media: 'photo', from: 'Task' });
     if (!r.canceled && r.assets[0]?.uri) setList({ ...list, photos: [...(list.photos ?? []), r.assets[0].uri] });
   };
   const shopping = () => {

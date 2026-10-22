@@ -24,6 +24,7 @@ import { aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
 import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { go } from '@/lib/nav';
 import { Icon } from '@/lib/icons';
+import { saveMediaToDrive } from '@/lib/driveSave';
 import { pickNetMediaMany, takeNetPhoto } from '@/lib/netMedia';
 import { useFitness } from '@/store/fitness';
 import { toast } from '@/store/toast';
@@ -62,7 +63,7 @@ export default function FitnessMeal() {
       let uri: string | null = null;
       if (camera) { const m = await takeNetPhoto(); if (m) uri = m.uri; }
       else { const l = await pickNetMediaMany(1); if (l[0] && l[0].media === 'photo') uri = l[0].uri; }
-      if (uri) { setPhoto(uri); setReport(null); if (hasPremiumFeature('meal-photo')) void analyze(uri); }
+      if (uri) { saveMediaToDrive({ uri, media: 'photo', from: 'Pasto' }); setPhoto(uri); setReport(null); if (hasPremiumFeature('meal-photo')) void analyze(uri); }
     } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la fotocamera'); }
   };
   const premium = hasPremiumFeature('meal-photo');

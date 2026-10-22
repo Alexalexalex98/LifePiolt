@@ -11,6 +11,7 @@ import { t as tl } from '@/i18n/core';
 import type { Equip, Muscle } from '@/lib/fitness/data';
 import { makeCustom, searchExercises, type ExerciseX } from '@/lib/fitness/exerciseDb';
 import { FAMILIES, FAMILY_IDS } from '@/lib/fitness/poses';
+import { saveMediaToDrive } from '@/lib/driveSave';
 import { pickNetMediaMany, takeNetPhoto } from '@/lib/netMedia';
 import { useFitness } from '@/store/fitness';
 import { toast } from '@/store/toast';
@@ -40,8 +41,8 @@ export function ExercisePicker({ visible, title = 'Scegli l\'esercizio', onClose
   const close = () => { setMode('list'); onClose(); };
   const shoot = async (camera: boolean) => {
     try {
-      if (camera) { const m = await takeNetPhoto(); if (m) setPhotos((p) => [...p, m.uri].slice(0, 2)); }
-      else { const l = await pickNetMediaMany(2); setPhotos((p) => [...p, ...l.filter((x) => x.media === 'photo').map((x) => x.uri)].slice(0, 2)); }
+      if (camera) { const m = await takeNetPhoto(); if (m) { saveMediaToDrive({ uri: m.uri, media: 'photo', from: 'Esercizio' }); setPhotos((p) => [...p, m.uri].slice(0, 2)); } }
+      else { const l = await pickNetMediaMany(2); l.filter((x) => x.media === 'photo').forEach((x) => saveMediaToDrive({ uri: x.uri, media: 'photo', from: 'Esercizio' })); setPhotos((p) => [...p, ...l.filter((x) => x.media === 'photo').map((x) => x.uri)].slice(0, 2)); }
     } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la fotocamera'); }
   };
   const save = () => {
