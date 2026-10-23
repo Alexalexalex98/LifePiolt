@@ -85,10 +85,10 @@ export function AccountFlow({ initial = 'create', onDone, onBack }: { initial?: 
             <View style={{ flex: 1 }}><Input placeholder="Città" value={f.city} onChangeText={(v) => up('city', v)} autoCapitalize="words" accessibilityLabel="Città" /><E k="city" /></View>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={{ flex: 1 }}><Input placeholder="CAP" value={f.postal} onChangeText={(v) => up('postal', v)} autoComplete="postal-code" accessibilityLabel="CAP" /></View>
-            <View style={{ flex: 2 }}><Input placeholder="Via e numero" value={f.street} onChangeText={(v) => up('street', v)} autoCapitalize="words" autoComplete="street-address" accessibilityLabel="Via" /></View>
+            <View style={{ flex: 1 }}><Input placeholder="CAP" value={f.postal} onChangeText={(v) => up('postal', v)} autoComplete="postal-code" accessibilityLabel="CAP" /><E k="postal" /></View>
+            <View style={{ flex: 2 }}><Input placeholder="Via e numero" value={f.street} onChangeText={(v) => up('street', v)} autoCapitalize="words" autoComplete="street-address" accessibilityLabel="Via" /><E k="street" /></View>
           </View>
-          <Body small muted>Via e CAP sono facoltativi: servono solo per servizi che richiedono un indirizzo. Nessuno li vede.</Body>
+          <Body small muted>L'indirizzo completo serve per un account vero e per i servizi che lo richiedono. Nessun altro utente lo vede.</Body>
           <View>
             <Toggle value={f.age} onChange={(v) => up('age', v)} label={`Confermo di avere almeno ${MIN_AGE} anni`} /><E k="age" />
             <Toggle value={f.terms} onChange={(v) => up('terms', v)} label={<Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={4}><Body>Accetto i</Body><Btn small ghost title="Termini di servizio" onPress={() => go('legalDoc', { doc: 'terms' })} /></Row>} /><E k="terms" />

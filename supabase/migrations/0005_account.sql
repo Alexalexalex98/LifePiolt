@@ -36,6 +36,7 @@ begin
   if uid is null then raise exception 'unauthorized' using errcode = 'PT401'; end if;
   if char_length(btrim(coalesce(p->>'nome', ''))) < 1 or char_length(btrim(coalesce(p->>'cognome', ''))) < 1 then raise exception 'nome_mancante' using errcode = 'P0001'; end if;
   if (p->>'data_nascita') is null then raise exception 'data_nascita_mancante' using errcode = 'P0001'; end if;
+  if char_length(btrim(coalesce(p->>'paese', ''))) < 2 or char_length(btrim(coalesce(p->>'citta', ''))) < 2 or char_length(btrim(coalesce(p->>'cap', ''))) < 3 or char_length(btrim(coalesce(p->>'via', ''))) < 3 then raise exception 'indirizzo_mancante' using errcode = 'P0001'; end if;
   if coalesce((p->>'termini')::boolean, false) is not true or coalesce((p->>'privacy')::boolean, false) is not true or coalesce((p->>'eta')::boolean, false) is not true then
     raise exception 'consensi_mancanti' using errcode = 'P0001';
   end if;

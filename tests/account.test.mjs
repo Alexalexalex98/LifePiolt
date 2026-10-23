@@ -4,7 +4,7 @@ import { ageOn, emailOk, EMPTY_FORM, LEGAL_VERSION, needsReaccept, parseBirth, t
 import { SupabaseTransport } from '../src/sync/supabaseTransport.ts';
 
 const NOW = new Date('2026-10-23T12:00:00Z');
-const ok = { ...EMPTY_FORM, firstName: 'Anna', lastName: 'Rossi', email: 'Anna@Example.com ', birth: '15/03/1990', country: 'Svizzera', city: 'Lugano', terms: true, privacy: true, age: true };
+const ok = { ...EMPTY_FORM, firstName: 'Anna', lastName: 'Rossi', email: 'Anna@Example.com ', birth: '15/03/1990', country: 'Svizzera', city: 'Lugano', postal: '6900', street: 'Via Nassa 5', terms: true, privacy: true, age: true };
 
 test('data di nascita: formati validi e date inesistenti', () => {
   assert.equal(parseBirth('15/03/1990'), '1990-03-15');
@@ -24,7 +24,7 @@ test('sotto i 16 anni non si crea l\'account', () => {
 });
 test('senza consensi o dati obbligatori si blocca', () => {
   const e = validateAccount({ ...EMPTY_FORM }, NOW);
-  for (const k of ['firstName', 'lastName', 'email', 'birth', 'country', 'city', 'terms', 'privacy', 'age']) assert.ok(e[k], k);
+  for (const k of ['firstName', 'lastName', 'email', 'birth', 'country', 'city', 'postal', 'street', 'terms', 'privacy', 'age']) assert.ok(e[k], k);
   assert.ok(validateAccount({ ...ok, terms: false }, NOW).terms);
   assert.ok(validateAccount({ ...ok, birth: '15/03/2999' }, NOW).birth);
 });

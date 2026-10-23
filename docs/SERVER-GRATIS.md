@@ -44,5 +44,8 @@ Le tre migrazioni sono state eseguite su un Postgres 16 locale (con le tabelle `
 
 ## Account (migrazione 0005)
 Per creare account veri servono, nell'ordine: le migrazioni 0001, 0002, 0003, 0004 e **0005_account.sql** (SQL Editor di Supabase), il login con email attivo (Authentication → Providers → Email, con il codice a 6 cifre: nel modello "Magic Link" inserisci `{{ .Token }}`), e un **SMTP tuo** (Authentication → SMTP): quello incluso manda pochissime email l'ora e non va bene per utenti veri.
-L'app chiede nome, cognome, email, data di nascita (minimo 16 anni, controllata anche dal server), paese e città (via e CAP facoltativi) e registra data e versione di Termini e Informativa (`consent_log`, solo aggiunta). Senza server collegato l'account si può creare solo in modalità di prova (build di sviluppo o `EXPO_PUBLIC_ACCOUNT_TEST=1`, codice fisso 123456, nessun dato esce dal telefono); in una build normale resta la modalità demo.
+L'app chiede nome, cognome, email, data di nascita (minimo 16 anni, controllata anche dal server), paese, città, via e CAP (tutti obbligatori) e registra data e versione di Termini e Informativa (`consent_log`, solo aggiunta). Senza server collegato l'account si può creare solo in modalità di prova (build di sviluppo o `EXPO_PUBLIC_ACCOUNT_TEST=1`, codice fisso 123456, nessun dato esce dal telefono); in una build normale resta la modalità demo.
 Quando cambi Termini o Informativa aggiorna `LEGAL_VERSION` in `src/lib/accountCore.ts`.
+
+## Una persona, un account (migrazione 0006)
+Vedi `docs/identita.md`: il server tiene solo l'impronta del documento (mai numero o foto). Manca ancora il fornitore che verifica il documento.

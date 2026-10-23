@@ -1,5 +1,5 @@
 {
- "count": 14294,
+ "count": 14296,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -345,7 +345,7 @@
   "src/domain/operations.ts": 10,
   "src/lib/a11y.ts": 1,
   "src/lib/accountApi.ts": 8,
-  "src/lib/accountCore.ts": 11,
+  "src/lib/accountCore.ts": 13,
   "src/lib/ai.ts": 26,
   "src/lib/aiConsent.ts": 22,
   "src/lib/aiLinkCode.ts": 1,
