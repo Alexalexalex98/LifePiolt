@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { SmartTaskSheet, TaskBreakdownSheet, TaskRow } from '@/components/plan';
 import { Body, Btn, Card, Empty, Page, Row, Seg } from '@/components/ui';
+import { go } from '@/lib/nav';
 import { taskIsDone, useLife } from '@/store/life';
 
 export default function LifeTask() {
@@ -22,7 +23,7 @@ export default function LifeTask() {
   return (
     <Page id="lifetask" title="LifeTask" back>
       <Card><Row><Stat l="Attivi" v={active} /><Stat l="Completati" v={done} /><Stat l="Ore pianificate" v={`${hours}h`} /></Row></Card>
-      <Btn small ghost style={{ marginBottom: 14 }} title="+ Task" onPress={() => setSheet(true)} />
+      <Row style={{ justifyContent: 'flex-start', marginBottom: 14 }} gap={8}><Btn small ghost title="+ Task" onPress={() => setSheet(true)} /><Btn small icon="tasks" title="Progetti ad albero" onPress={() => go('projects')} /></Row>
       <Seg options={['Tutti', 'Attivi', 'Completati']} value={filter} onChange={setFilter} />
       <Card>
         {list.length === 0 ? <Empty text="Ancora nessun task qui: aggiungine uno quando vuoi." /> : list.map((t) => <TaskRow key={t.id} task={t} onOpen={setOpen} />)}

@@ -9,6 +9,7 @@ import { BackupCryptoError, decryptBackup, encryptBackup, isLpBackupText } from 
 import { initRandom } from '@/db/random';
 import { useAccount } from '@/store/account';
 import { useFriends } from '@/store/friends';
+import { useProjects } from '@/store/projects';
 import { useApp } from '@/store/app';
 import { useAssistant } from '@/store/assistant';
 import { useChat } from '@/store/chat';
@@ -43,7 +44,7 @@ export { STORE_LABELS, type BackupPreview } from './backupCore';
 type Rehydratable = { persist: { rehydrate: () => Promise<void> | void; getOptions: () => { name?: string } }; getState: () => { reset?: () => void } };
 
 /** Tutti gli store persistenti (chiave AsyncStorage lp2-*). Se ne aggiungi uno nuovo, mettilo qui. */
-const STORES = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, usePrefs, useTheia, useInterests, useIdentity, useLive, useSharing, useSync, useTour, useAiRouter, usePrivacyLog, useClub, useCalPrefs, useMod] as unknown as Rehydratable[];
+const STORES = [useApp, useProjects, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, usePrefs, useTheia, useInterests, useIdentity, useLive, useSharing, useSync, useTour, useAiRouter, usePrivacyLog, useClub, useCalPrefs, useMod] as unknown as Rehydratable[];
 
 const version = () => Constants.expoConfig?.version ?? '';
 
@@ -129,7 +130,7 @@ export async function wipeAllData(): Promise<void> {
   resetSearch();
   try { useSecurity.getState().reset(); } catch { /* ignore */ }
   try { useApp.getState().reset(); } catch { /* ignore */ }
-  try { useAccount.getState().clear(); useFriends.getState().reset(); } catch { /* ignore */ }
+  try { useAccount.getState().clear(); useFriends.getState().reset(); useProjects.getState().reset(); } catch { /* ignore */ }
   if (Platform.OS !== 'web') {
     // allegati delle chat salvati nella memoria dell'app e file temporanei
     try { const d = new Directory(Paths.document, 'chat'); if (d.exists) d.delete(); } catch { /* ignore */ }

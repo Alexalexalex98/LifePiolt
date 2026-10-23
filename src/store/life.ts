@@ -11,7 +11,7 @@ export type Goal = { id: string; t: string; p: number; hist?: { d: string; p: nu
 export type AutoNotify = { kind: 'daily' | 'weekly'; hour: number; minute: number; weekday?: number; title: string; body: string };
 export type Automation = { id: string; t: string; on: boolean; rule?: { key: string; notify?: AutoNotify } };
 export type Note = { id: string; text: string; date: string };
-export type DriveFile = { id: string; n: string; s: string; folder: string; date: string; uri?: string };
+export type DriveFile = { id: string; n: string; s: string; folder: string; date: string; uri?: string; /** solo cartella «Progetti»: i titoli dalla radice alla task a cui appartiene il file */ path?: string[] };
 /** dur = durata in minuti (se manca si assumono 60); ref = id dell'iscrizione/prenotazione che l'ha creato. */
 /** color = id della tavolozza (lib/calendarColors.ts), se manca vale il colore di default per urgenza/tipo. */
 export type CalEvent = { time: string; title: string; important?: boolean; place?: string; reminder?: boolean; dur?: number; ref?: string; color?: string };
@@ -24,7 +24,7 @@ const freshTrash = (l: TrashItem[]) => l.filter((x) => Date.now() - x.at < TRASH
 export type ChatMsg = { who: 'me' | 'ai'; text: string };
 
 export const driveFolders = ['Documenti', 'Ricevute', 'Salute', 'Foto', 'Lavoro', 'Altro'];
-export const driveFolderColors: Record<string, string> = { Documenti: '#7bb8e0', Ricevute: '#e0c97b', Salute: '#ff9d9d', Foto: '#b96bff', Video: '#6ec9dd', Lavoro: '#7be0b0', 'Bollette e fatture': '#e0b97b', Altro: '#8e98a8' };
+export const driveFolderColors: Record<string, string> = { Documenti: '#7bb8e0', Ricevute: '#e0c97b', Salute: '#ff9d9d', Foto: '#b96bff', Video: '#6ec9dd', Progetti: '#6bd0c0', Lavoro: '#7be0b0', 'Bollette e fatture': '#e0b97b', Altro: '#8e98a8' };
 
 export function detectFileFolder(name: string): string {
   const low = name.toLowerCase();
@@ -78,7 +78,7 @@ type LifeState = {
   delNote: (id: string) => { note: Note; idx: number } | null;
   restoreNote: (n: Note, idx: number) => void;
 
-  addFile: (f: Omit<DriveFile, 'id'>) => void;
+  addFile: (f: Omit<DriveFile, 'id'> & { id?: string }) => void;
   delFile: (id: string) => void;
   restoreFile: (f: DriveFile) => void;
 
