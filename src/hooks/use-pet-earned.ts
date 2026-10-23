@@ -14,3 +14,15 @@ export function useEarned(): { earned: Earned; day: string } {
   const moodLogged = useHealth((s) => s.moods.some((m) => (m.day ?? m.date)?.slice(0, 10) === day));
   return { earned: earnedToday({ tasksDone, mealsLogged: meals, waterMl, workouts, moodLogged }), day };
 }
+
+/** Come useEarned ma per un giorno qualsiasi (serve alle sfide), leggendo i dati senza iscriversi ai cambiamenti. */
+export function earnedForDay(day: string): Earned {
+  const life = useLife.getState(), fit = useFitness.getState(), health = useHealth.getState();
+  return earnedToday({
+    tasksDone: life.tasks.filter((t) => t.done && t.doneAt === day).length,
+    mealsLogged: fit.meals.filter((m) => dayKey(new Date(m.ts)) === day).length,
+    waterMl: (fit.water ?? {})[day] ?? 0,
+    workouts: health.workouts.filter((w) => w.date?.slice(0, 10) === day).length + fit.history.filter((w) => ((w as { date?: string }).date ?? '').slice(0, 10) === day).length,
+    moodLogged: health.moods.some((m) => (m.day ?? m.date)?.slice(0, 10) === day),
+  });
+}

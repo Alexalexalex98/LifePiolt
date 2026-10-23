@@ -1,7 +1,7 @@
 /**
  * Theia da accudire (modulo PURO): un piccolo animaletto virtuale che sta bene se ti prendi cura di te.
  * Il cibo non si compra: si GUADAGNA facendo le cose vere dell'app (task fatti, pasti e acqua segnati, allenamenti, umore).
- * Niente morte né punizioni: se la trascuri è triste e basta. Le necessità calano con le ore; tutto si calcola da data e ora, senza timer in background.
+ * Niente morte, niente punizioni, niente sensi di colpa: se manchi Theia è tranquilla e contenta di rivederti. Le necessità calano piano fino a una soglia; tutto si calcola da data e ora, senza timer in background.
  */
 import type { Expression } from './mascot.ts';
 
@@ -24,9 +24,11 @@ export type PetState = {
 
 export const newPet = (now = Date.now(), name = 'Theia'): PetState => ({ name, born: now, xp: 0, food: 70, water: 70, joy: 70, ts: now, streak: 0, streakDay: '', spent: { day: '', snack: 0, water: 0, fit: 0, love: 0, pet: 0 }, share: false });
 
-/** Calo all'ora: dopo circa un giorno senza cure arriva a zero. */
+/** Calo all'ora, fino alla soglia minima: dopo qualche giorno Theia è semplicemente tranquilla, mai triste. */
 export const DECAY: Record<Need, number> = { food: 3.5, water: 4.5, joy: 2.5 };
-const clamp = (n: number) => Math.max(0, Math.min(100, n));
+/** Sotto questa soglia non scende mai: Theia non soffre e non si ammala se manchi; al massimo è tranquilla. */
+export const FLOOR = 35;
+const clamp = (n: number) => Math.max(FLOOR, Math.min(100, n));
 
 /** Le necessità aggiornate all'ora attuale (non cambia lo stato: ritorna una copia). */
 export function tick(p: PetState, now = Date.now()): PetState {
@@ -64,33 +66,32 @@ export function give(p0: PetState, kind: Kind, e: Earned, day: string, now = Dat
   return { pet: updateStreak(next, day), ok: true, leveledUp: levelOf(next.xp) > levelOf(p.xp) };
 }
 
-/** Un giorno conta nella serie se hai dato da mangiare E da bere (o hai fatto un allenamento). */
+/** Un giorno di cura conta se hai dato da mangiare E da bere (o ti sei allenato). I giorni si SOMMANO e non si azzerano mai: nessuna punizione se salti. */
 function updateStreak(p: PetState, day: string): PetState {
   const s = p.spent;
   if (s.day !== day || p.streakDay === day) return p;
   const cared = (s.snack > 0 && s.water > 0) || s.fit > 0;
   if (!cared) return p;
-  const y = new Date(Date.parse(day) - 86400000).toISOString().slice(0, 10);
-  return { ...p, streak: p.streakDay === y ? p.streak + 1 : 1, streakDay: day };
+  return { ...p, streak: p.streak + 1, streakDay: day };
 }
-/** La serie si spezza se ieri non c'è stata cura: si vede, senza punizioni. */
-export const streakNow = (p: PetState, day: string): number => { const y = new Date(Date.parse(day) - 86400000).toISOString().slice(0, 10); return p.streakDay === day || p.streakDay === y ? p.streak : 0; };
+/** Giorni di cura in totale (non si perdono mai). */
+export const streakNow = (p: PetState, _day: string): number => p.streak;
 
 export const levelOf = (xp: number) => Math.floor(Math.sqrt(Math.max(0, xp) / 20)) + 1;
 export const xpForLevel = (lvl: number) => (lvl - 1) ** 2 * 20;
 export const levelProgress = (xp: number) => { const l = levelOf(xp), a = xpForLevel(l), b = xpForLevel(l + 1); return { level: l, pct: Math.round(((xp - a) / (b - a)) * 100), toNext: b - xp }; };
 
-/** Come sta, in parole e in espressione della mascotte. */
+/** Come sta, in parole e in espressione. Mai triste né sofferente: se manchi è tranquilla, e ti fa capire con garbo cosa le farebbe piacere. */
 export function moodOf(p: PetState, hour = new Date().getHours()): { expr: Expression; label: string; worst: Need | null } {
   const low = (['food', 'water', 'joy'] as Need[]).map((n) => ({ n, v: p[n] })).sort((a, b) => a.v - b.v)[0]!;
-  if (low.v < 10) return { expr: 'crying', label: 'Sta male: ha bisogno di te', worst: low.n };
-  if (low.v < 30) return { expr: low.n === 'food' ? 'hungry' : low.n === 'water' ? 'sad' : 'bored', label: low.n === 'food' ? 'Ha fame' : low.n === 'water' ? 'Ha sete' : 'Si annoia', worst: low.n };
-  if (hour >= 23 || hour < 6) return { expr: 'sleepy', label: 'Ha sonno', worst: null };
+  if (hour >= 23 || hour < 6) return { expr: 'sleepy', label: 'Sta riposando', worst: null };
+  if (low.v < 50) return { expr: 'relaxed', label: low.n === 'food' ? 'Uno spuntino le farebbe piacere' : low.n === 'water' ? 'Un bicchiere d\'acqua le farebbe piacere' : 'Una coccola le farebbe piacere', worst: low.n };
   const avg = (p.food + p.water + p.joy) / 3;
-  return avg > 80 ? { expr: 'love', label: 'Sta benissimo', worst: null } : avg > 55 ? { expr: 'happy', label: 'Sta bene', worst: null } : { expr: 'neutral', label: 'Va tutto sommato bene', worst: null };
+  return avg > 80 ? { expr: 'love', label: 'Sta benissimo', worst: null } : { expr: 'happy', label: 'Sta bene', worst: null };
 }
 
 /** Quello che gli altri possono vedere, se l'utente lo permette: mai le attività vere, solo livello, serie e umore. */
+/** `streak` = giorni di cura in totale */
 export type PetPublic = { name: string; level: number; streak: number; expr: Expression; label: string };
 export function publicOf(p: PetState, day: string, now = Date.now()): PetPublic {
   const t = tick(p, now);

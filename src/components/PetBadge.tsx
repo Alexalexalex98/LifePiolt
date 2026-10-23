@@ -25,7 +25,7 @@ export function PetBadge({ name }: { name: string }) {
         <Mascot size={64} color={th.accent} expression={p.expr} animated={false} />
         <View style={{ flex: 1 }}>
           <Body bold>{`${p.name} · ${tl('livello')} ${p.level}`}</Body>
-          <Body small muted>{`${p.streak > 0 ? `${p.streak} ${tl('giorni di serie')} · ` : ''}${tl(p.label)}`}</Body>
+          <Body small muted>{`${p.streak > 0 ? `${p.streak} ${tl('giorni di cura')} · ` : ''}${tl(p.label)}`}</Body>
         </View>
       </Row>
     </Card>

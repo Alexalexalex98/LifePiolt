@@ -18,6 +18,7 @@ import { aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
 import { parseAiActions } from './aiActionsCore';
+import { CRISIS_RESOURCES, CRISIS_TEXT, detectCrisis } from '@/lib/safety';
 import { isLearnable, recall } from '@/lib/theiaMemory';
 import { useTheiaMemory } from '@/store/theiaMemory';
 import { applyAiAction, describe } from './aiActions';
@@ -187,6 +188,12 @@ export async function sendTheia(i: SendInput): Promise<void> {
   const images = i.images ?? [];
   const atts = i.attachments ?? [];
   if (!text && !images.length && !atts.length) return;
+  // messaggi di rischio (farsi del male, morire): risposta fissa e prudente con aiuto umano, mai affidata all'AI
+  if (text && detectCrisis(text)) {
+    store().push({ who: 'me', text, source: 'chat', topic: i.topic, ext: { lang: i.lang, voice: i.source === 'voice' } });
+    pushAi(t(CRISIS_TEXT), { ext: { actions: [...CRISIS_RESOURCES.map((r): TheiaAction => ({ kind: 'open', label: t(r.label), url: `tel:${r.tel}` })), { kind: 'dismiss', label: t('Per ora sto bene, grazie') }] } });
+    return;
+  }
   const eng = getAssistant();
   const payload = textPayload(atts);
   const withAtts = atts.length ? { attachments: atts } : {};

@@ -19,6 +19,8 @@ LifePilot is an app to organize agenda, tasks, notes, personal finances, health 
 ## 5. No advice (health, finance, legal, tax)
 LifePilot does **not** provide medical, nutrition, financial, investment, tax or legal advice. Calculations, estimates, guidance and analyses (e.g. calories, budget, forecasts, tax return) are general information. For decisions about health, money, taxes or law, consult a qualified professional. In case of symptoms, emergencies or medical doubts, contact a doctor or the emergency services. Investments carry the risk of losing capital and past performance does not guarantee future results.
 
+- Theia is **not an emergency service**, offers no therapy and does not replace professional help. If you are unwell or in danger, contact a trusted person or the emergency services right away (112; in Switzerland also 144 and 143).
+
 ## 6. LifePoints
 LifePoints are an **in-app credit**, usable only inside LifePilot for the features indicated. They are not money, e-money, cryptocurrency or an investment; they earn no interest and [are not refundable / the refund rules are: ●]. We may correct counting errors and suspend LifePoints in case of abuse or fraud. [This section must be defined with a lawyer based on payment and virtual-currency rules in Switzerland and the EU.]
 

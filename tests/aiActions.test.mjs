@@ -156,7 +156,7 @@ test('pet: le necessità calano con le ore, i gettoni si guadagnano facendo cose
   const t0 = Date.UTC(2026, 9, 23, 8);
   const p = newPet(t0);
   assert.equal(tick(p, t0 + 10 * 3600000).food, 70 - 35);
-  assert.equal(tick(p, t0 + 100 * 3600000).water, 0);
+  assert.equal(tick(p, t0 + 100 * 3600000).water, 35);
   const e = earnedToday({ tasksDone: 9, mealsLogged: 1, waterMl: 1200, workouts: 0, moodLogged: true });
   assert.deepEqual(e, { snack: 6, water: 2, fit: 0, love: 1 });
 });
@@ -168,12 +168,28 @@ test('pet: senza gettone non mangia; con il gettone sì, e la serie parte con ci
   let r = give(p, 'snack', e, day, t0); assert.equal(r.ok, true); assert.equal(r.pet.food, 45);
   r = give(r.pet, 'snack', e, day, t0); assert.equal(r.ok, false);
   r = give(r.pet, 'water', e, day, t0); assert.equal(r.pet.streak, 1); assert.equal(streakNow(r.pet, day), 1);
-  assert.equal(streakNow(r.pet, '2026-10-26'), 0);
+  assert.equal(streakNow(r.pet, '2026-10-26'), 1);
   assert.equal(available(r.pet, e, day).snack, 0);
 });
 test('pet: livelli, umore e vista pubblica senza dettagli privati', () => {
   assert.equal(levelOf(0), 1); assert.equal(levelOf(20), 2); assert.equal(levelOf(80), 3);
-  assert.equal(moodOf({ ...newPet(), food: 5 }, 12).expr, 'crying');
-  assert.equal(moodOf({ ...newPet(), food: 20 }, 12).expr, 'hungry');
+  assert.equal(moodOf({ ...newPet(), food: 5 }, 12).expr, 'relaxed');
+  assert.ok(!/male|fame|sete|triste/i.test(moodOf({ ...newPet(), food: 5 }, 12).label));
   assert.deepEqual(Object.keys(publicOf(newPet(Date.now()), '2026-10-23')).sort(), ['expr', 'label', 'level', 'name', 'streak']);
+});
+
+import { detectCrisis } from '../src/lib/safety.ts';
+test('sicurezza: riconosce messaggi di rischio, non frasi normali', () => {
+  for (const s of ['Voglio morire', 'a volte penso di farla finita', 'I want to kill myself', 'ich will mich umbringen', 'mi taglio le vene', 'Non voglio più vivere']) assert.equal(detectCrisis(s), true, s);
+  for (const s of ['Voglio morire dal ridere ahah', 'ho mal di testa', 'quanto costa un taglio di capelli', 'mi sono tagliato la barba', 'mi taglio i capelli domani']) assert.equal(detectCrisis(s), false, s);
+});
+
+import { progressOf, inviteText, daysOf } from '../src/lib/challenges.ts';
+test('sfide cooperative: si sommano i due, tetto giornaliero, nessuna penalità', () => {
+  const c = { id: 'c', withName: 'Anna', kind: 'water', target: 10, startDay: '2026-10-20', days: 3, friend: { '2026-10-20': 3, '2026-10-21': 9 }, createdAt: 0 };
+  assert.deepEqual(daysOf(c), ['2026-10-20', '2026-10-21', '2026-10-22']);
+  const p = progressOf(c, '2026-10-21', (d) => (d === '2026-10-20' ? 2 : 10));
+  assert.equal(p.mine, 2 + 4); assert.equal(p.friend, 3 + 4); assert.equal(p.total, 13); assert.equal(p.state, 'reached');
+  assert.equal(progressOf({ ...c, friend: {} }, '2026-10-30', () => 0).state, 'ended');
+  assert.ok(!/perd|colpa|classifica/i.test(inviteText('Io', c)));
 });

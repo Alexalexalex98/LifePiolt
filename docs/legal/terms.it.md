@@ -19,6 +19,8 @@ LifePilot è un'app per organizzare agenda, task, note, finanze personali, salut
 ## 5. Nessuna consulenza (salute, finanza, legale, fiscale)
 LifePilot **non** fornisce consulenza medica, di nutrizione, finanziaria, di investimento, fiscale o legale. Calcoli, stime, indicazioni e analisi (es. calorie, budget, previsioni, dichiarazione fiscale) sono informazioni generali. Per decisioni su salute, soldi, tasse o diritto rivolgiti a un professionista abilitato. In caso di sintomi, emergenze o dubbi medici contatta un medico o i servizi di emergenza. Gli investimenti comportano rischio di perdita del capitale e le prestazioni passate non garantiscono quelle future.
 
+- Theia **non è un servizio di emergenza**, non offre terapia né sostituisce un aiuto professionale. Se stai male o sei in pericolo, contatta subito una persona di fiducia o i servizi di emergenza (112; in Svizzera anche 144 e 143).
+
 ## 6. LifePoints
 I LifePoints sono un **credito interno all'app**, usabile solo dentro LifePilot per le funzioni indicate. Non sono denaro, moneta elettronica, criptovaluta né un investimento; non danno interessi e [non sono rimborsabili/ le regole di rimborso sono: ●]. Possiamo correggere errori di conteggio e sospendere i LifePoints in caso di abuso o frode. [Questa sezione va definita con un legale in base alla normativa su pagamenti e valute virtuali in Svizzera e UE.]
 
