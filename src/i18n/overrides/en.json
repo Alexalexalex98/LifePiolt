@@ -1075,5 +1075,9 @@
   "Codice di conferma": "Confirmation code",
   "Codice inviato a {0}.": "Code sent to {0}.",
   "Ti ho scritto un codice a {0}. Controlla anche lo spam.": "I sent a code to {0}. Check your spam folder too.",
-  "Scrivi l'email del tuo account: ti mando un codice. Sul nuovo telefono ritrovi i tuoi dati.": "Enter your account email: I'll send you a code. On the new phone you get your data back."
+  "Scrivi l'email del tuo account: ti mando un codice. Sul nuovo telefono ritrovi i tuoi dati.": "Enter your account email: I'll send you a code. On the new phone you get your data back.",
+  "Controlla prima di salvare: l'AI può sbagliare nomi e quantità. Puoi cambiare il nome, la quantità e l'unità, togliere le righe che non vanno e aggiungere altri alimenti.": "Check before saving: the AI can get names and quantities wrong. You can change the name, quantity and unit, remove wrong lines and add other foods.",
+  "Alimento": "Food",
+  "Quantità": "Quantity",
+  "Aggiungi un alimento": "Add a food"
 }

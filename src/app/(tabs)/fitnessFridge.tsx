@@ -56,7 +56,9 @@ export default function Fridge() {
       setReview(lines);
     } catch (e) { const msg = e instanceof Error ? e.message : ''; toast(/tempo|time|abort/i.test(msg) ? tl('La lettura ha impiegato troppo tempo. Riprova con una foto più vicina e nitida, oppure scrivi tu la lista.') : msg || tl('Non riesco ad aprire la fotocamera')); setTyped(true); } finally { setBusy(false); }
   }
-  const addReview = () => { if (!review) return; const n = p.addLines(review); setReview(null); toast(tl('Aggiunti {0} prodotti al frigo', n)); };
+  const setLine = (i: number, patch: Partial<Line>) => setReview((r) => (r ?? []).map((l, k) => (k === i ? { ...l, ...patch } : l)));
+  const step = (u: string) => (u === 'pz' ? 1 : u === 'g' ? 50 : 100);
+  const addReview = () => { if (!review) return; const n = p.addLines(review.filter((l) => l.name.trim() && l.qty > 0)); setReview(null); toast(tl('Aggiunti {0} prodotti al frigo', n)); };
 
   return (
     <Page id="fitnessFridge" back title={tl('Frigo e spesa')}>
@@ -115,11 +117,23 @@ export default function Fridge() {
       <AiNote />
 
       <Sheet visible={!!review} title={tl('Cosa ho letto')} onClose={() => setReview(null)}>
-        <Body small muted style={{ marginBottom: 6 }}>{tl('Controlla: l\'AI può sbagliare nomi e quantità. Togli le righe che non vanno.')}</Body>
+        <Body small muted style={{ marginBottom: 6 }}>{tl('Controlla prima di salvare: l\'AI può sbagliare nomi e quantità. Puoi cambiare il nome, la quantità e l\'unità, togliere le righe che non vanno e aggiungere altri alimenti.')}</Body>
         {(review ?? []).map((l, i) => (
-          <Row key={i} style={{ paddingVertical: 6 }}><View style={{ flex: 1 }}><Body>{l.name}</Body></View><Body muted>{fmt(l.qty, l.unit)}</Body><Pressable accessibilityRole="button" accessibilityLabel={tl('Togli')} hitSlop={8} onPress={() => setReview((r) => (r ?? []).filter((_, k) => k !== i))}><Icon name="x" size={18} color={t.muted} /></Pressable></Row>
+          <View key={i} style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: t.border, gap: 6 }}>
+            <Row gap={8}>
+              <View style={{ flex: 1 }}><Input value={l.name} onChangeText={(v) => setLine(i, { name: v })} placeholder={tl('Alimento')} accessibilityLabel={tl('Alimento')} /></View>
+              <Pressable accessibilityRole="button" accessibilityLabel={tl('Togli')} hitSlop={8} onPress={() => setReview((r) => (r ?? []).filter((_, k) => k !== i))}><Icon name="x" size={18} color={t.muted} /></Pressable>
+            </Row>
+            <Row gap={8} style={{ justifyContent: 'flex-start' }}>
+              <Pill label="−" onPress={() => setLine(i, { qty: Math.max(0, Math.round((l.qty - step(l.unit)) * 10) / 10) })} />
+              <View style={{ width: 84 }}><Input value={String(l.qty)} onChangeText={(v) => setLine(i, { qty: Number(v.replace(',', '.')) || 0 })} keyboardType="numeric" accessibilityLabel={tl('Quantità')} /></View>
+              <Pill label="+" onPress={() => setLine(i, { qty: Math.round((l.qty + step(l.unit)) * 10) / 10 })} />
+              {(['pz', 'g', 'ml'] as const).map((u) => <Pill key={u} label={u} on={l.unit === u} onPress={() => setLine(i, { unit: u })} />)}
+            </Row>
+          </View>
         ))}
-        <Btn style={{ marginTop: 10 }} title={tl('Aggiungi al frigo')} disabled={!review?.length} onPress={addReview} />
+        <Btn style={{ marginTop: 10 }} small ghost icon="plus" title={tl('Aggiungi un alimento')} onPress={() => setReview((r) => [...(r ?? []), { name: '', qty: 1, unit: 'pz' } as Line])} />
+        <Btn style={{ marginTop: 10 }} title={tl('Aggiungi al frigo')} disabled={!review?.some((l) => l.name.trim() && l.qty > 0)} onPress={addReview} />
       </Sheet>
 
       <Sheet visible={typed} title={tl('Scrivi cosa hai comprato')} onClose={() => setTyped(false)}>
