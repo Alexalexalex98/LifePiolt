@@ -7,6 +7,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { go } from '@/lib/nav';
 import { peoplePool } from '@/lib/network';
 import { useApp } from '@/store/app';
+import { useFriends } from '@/store/friends';
 import { useChat } from '@/store/chat';
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
@@ -19,12 +20,14 @@ export function PickPeopleSheet({ visible, onClose, addTo }: { visible: boolean;
   const [group, setGroup] = useState(!!addTo);
   const [sel, setSel] = useState<string[]>([]);
   const [name, setName] = useState('');
-  const people = peoplePool(me).filter((n) => !addTo?.existing.includes(n) && n.toLowerCase().includes(q.trim().toLowerCase()));
+  const real = useFriends((x) => x.friends).filter((f) => f.status === 'accepted').map((f) => f.chat);
+  const people = [...new Set([...real, ...peoplePool(me)])].filter((n) => !addTo?.existing.includes(n) && n.toLowerCase().includes(q.trim().toLowerCase()));
   const reset = () => { setQ(''); setSel([]); setName(''); setGroup(!!addTo); };
   const done = () => { reset(); onClose(); };
 
   return (
     <Sheet visible={visible} title={addTo ? 'Aggiungi partecipanti' : group ? 'Nuovo gruppo' : 'Nuova chat'} onClose={done}>
+      {!addTo && !group && <Item onPress={() => { done(); go('friendsPage'); }}><Row style={{ justifyContent: 'flex-start' }} gap={10}><Icon name="contact" size={22} color={t.text} /><View style={{ flex: 1 }}><Body bold>Amici con codice amico</Body><Body small muted>Il tuo codice e aggiungere un amico vero</Body></View></Row></Item>}
       {!addTo && !group && <Item onPress={() => setGroup(true)}><Row style={{ justifyContent: 'flex-start' }} gap={10}><Icon name="users" size={22} color={t.text} /><Body bold>Nuovo gruppo</Body></Row></Item>}
       {group && !addTo && <Input placeholder="Nome del gruppo" value={name} onChangeText={setName} />}
       <Input placeholder="Cerca una persona…" value={q} onChangeText={setQ} />

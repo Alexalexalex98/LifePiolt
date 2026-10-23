@@ -1,5 +1,5 @@
 {
- "count": 14378,
+ "count": 14380,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -200,7 +200,7 @@
   "src/components/chat/CallCard.tsx": 19,
   "src/components/chat/ChatBgSheet.tsx": 10,
   "src/components/chat/Composer.tsx": 48,
-  "src/components/chat/NewChat.tsx": 11,
+  "src/components/chat/NewChat.tsx": 13,
   "src/components/chat/PinnedCalls.tsx": 2,
   "src/components/chat/ShareSheets.tsx": 94,
   "src/components/chat/StickerSheet.tsx": 15,
