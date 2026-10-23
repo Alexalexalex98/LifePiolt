@@ -37,6 +37,8 @@ Theia reads everything in the app on your phone to help you. When it answers wit
 - **AI can make mistakes.** Always check figures and information. Guidance on health and finances is general and does not replace a doctor, dietitian or advisor.
 - We do not use your data to train models. [To be confirmed with the AI provider contract.]
 
+- **Signals on the phone.** The game may notice, only on the phone and without sending anything, changes in your data (for example less sleep, less activity, very harsh phrases written to Theia) to gently suggest an activity. They are hints, not diagnoses; we do not analyse anyone's face, voice or posture. You can turn it off at any time from Theia's page.
+
 ## 6. Who we share data with (recipients)
 - **AI service**: Google (Gemini), through our server, only with your consent and for the single request.
 - **Our server and hosting provider** ([name, e.g. Cloudflare]) to forward AI requests and, if you turn on synchronization or LifeNetwork, to deliver data.

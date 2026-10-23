@@ -37,6 +37,8 @@ Theia legge sul telefono tutto quello che c'è nell'app per aiutarti. Quando ris
 - **L'AI può sbagliare.** Verifica sempre cifre e informazioni. Le indicazioni su salute e finanze sono generali e non sostituiscono un medico, un dietista o un consulente.
 - Non usiamo i tuoi dati per addestrare modelli. [Da confermare con il contratto con il fornitore AI.]
 
+- **Segnali sul telefono.** Il gioco può accorgersi, solo sul telefono e senza inviare nulla, di cambiamenti nei tuoi dati (per esempio meno sonno, meno attività, frasi molto dure scritte a Theia) per proporti con garbo un'attività. Sono indizi e non diagnosi; non analizziamo volto, voce o postura di nessuno. Puoi spegnerlo in ogni momento dalla pagina di Theia.
+
 ## 6. Con chi condividiamo i dati (destinatari)
 - **Servizio AI**: Google (Gemini), tramite il nostro server, solo con il tuo consenso e per la singola richiesta.
 - **Il nostro server e il fornitore di hosting** ([nome, es. Cloudflare]) per inoltrare le richieste AI e, se attivi sincronizzazione o LifeNetwork, per consegnare i dati.

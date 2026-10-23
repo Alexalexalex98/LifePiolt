@@ -1,7 +1,7 @@
 /**
  * Theia da accudire (modulo PURO): un piccolo animaletto virtuale che sta bene se ti prendi cura di te.
  * Il cibo non si compra: si GUADAGNA facendo le cose vere dell'app (task fatti, pasti e acqua segnati, allenamenti, umore).
- * Niente morte, niente punizioni, niente sensi di colpa: se manchi Theia è tranquilla e contenta di rivederti. Le necessità calano piano fino a una soglia; tutto si calcola da data e ora, senza timer in background.
+ * Niente morte, niente punizioni, niente sensi di colpa: se manchi Theia è tranquilla e felice di rivederti. Le necessità calano piano fino a una soglia; tutto si calcola da data e ora, senza timer in background.
  */
 import type { Expression } from './mascot.ts';
 
@@ -81,11 +81,11 @@ export const levelOf = (xp: number) => Math.floor(Math.sqrt(Math.max(0, xp) / 20
 export const xpForLevel = (lvl: number) => (lvl - 1) ** 2 * 20;
 export const levelProgress = (xp: number) => { const l = levelOf(xp), a = xpForLevel(l), b = xpForLevel(l + 1); return { level: l, pct: Math.round(((xp - a) / (b - a)) * 100), toNext: b - xp }; };
 
-/** Come sta, in parole e in espressione. Mai triste né sofferente: se manchi è tranquilla, e ti fa capire con garbo cosa le farebbe piacere. */
+/** Come sta, in parole e in espressione. Mai triste né sofferente: se manchi è tranquilla, e ti fa capire con garbo cosa farebbe piacere. */
 export function moodOf(p: PetState, hour = new Date().getHours()): { expr: Expression; label: string; worst: Need | null } {
   const low = (['food', 'water', 'joy'] as Need[]).map((n) => ({ n, v: p[n] })).sort((a, b) => a.v - b.v)[0]!;
   if (hour >= 23 || hour < 6) return { expr: 'sleepy', label: 'Sta riposando', worst: null };
-  if (low.v < 50) return { expr: 'relaxed', label: low.n === 'food' ? 'Uno spuntino le farebbe piacere' : low.n === 'water' ? 'Un bicchiere d\'acqua le farebbe piacere' : 'Una coccola le farebbe piacere', worst: low.n };
+  if (low.v < 50) return { expr: 'relaxed', label: low.n === 'food' ? 'Uno spuntino farebbe piacere a Theia' : low.n === 'water' ? 'Un bicchiere d\'acqua farebbe piacere a Theia' : 'Una coccola farebbe piacere a Theia', worst: low.n };
   const avg = (p.food + p.water + p.joy) / 3;
   return avg > 80 ? { expr: 'love', label: 'Sta benissimo', worst: null } : { expr: 'happy', label: 'Sta bene', worst: null };
 }

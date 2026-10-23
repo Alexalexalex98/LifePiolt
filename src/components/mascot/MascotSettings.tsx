@@ -75,7 +75,7 @@ export function MascotSettings() {
           </Card>
           <Card>
             <H>{tl('Theia da accudire')}</H>
-            <Body small muted>{tl('Un piccolo gioco: dalle da mangiare e da bere facendo le cose di ogni giorno e fate insieme attività per capire meglio cosa senti. Theia non ti fa stare meglio: sei tu a fare la differenza, il gioco è qui per darti consapevolezza. Gli altri possono vederla, se vuoi.')}</Body>
+            <Body small muted>{tl('Un piccolo gioco: una creatura da accudire e da veder crescere facendo le cose di ogni giorno. Se vuoi, gli altri possono vedere Theia.')}</Body>
             <Btn small style={{ marginTop: 8, alignSelf: 'flex-start' }} icon="heart" title="Vai da Theia" onPress={() => go('theiaPet')} />
           </Card>
           <Card>

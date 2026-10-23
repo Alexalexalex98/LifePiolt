@@ -6,6 +6,7 @@ import { DashGrid } from '@/components/dash/DashGrid';
 import { DashData } from '@/components/dash/data';
 import { WBY } from '@/components/dash/registry';
 import { AddWidgetSheet, BackgroundSheet, OptionsSheet } from '@/components/dash/Sheets';
+import { GameInvite } from '@/components/GameInvite';
 import { Mascot } from '@/components/mascot/Mascot';
 import { useMascot } from '@/hooks/use-mascot';
 import { useTheme } from '@/hooks/use-theme';
@@ -77,6 +78,7 @@ export default function Dashboard() {
               <Btn style={{ marginTop: 12 }} icon="plus" title="Aggiungi un widget" onPress={() => setAdding(true)} />
             </Card>
           ) : null}
+          {!edit ? <GameInvite /> : null}
           <DashGrid edit={edit} onEnterEdit={() => setEdit(true)} onSelect={setSel} />
         </View>
         {items.length > 0 && !edit ? <Btn style={{ marginTop: 16 }} ghost icon="plus" title="Aggiungi un widget" onPress={() => setAdding(true)} /> : null}

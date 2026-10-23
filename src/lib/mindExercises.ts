@@ -3,7 +3,7 @@
  * L'app non dice cosa fare né cosa provare: dà strumenti per vedere meglio cosa succede dentro di sé; la scelta di cosa farne è dell'utente.
  * Non è terapia né un dispositivo medico e non sostituisce un professionista. Niente punteggi, niente diagnosi, niente «giusto/sbagliato».
  */
-export type StepKind = 'text' | 'scale' | 'multi' | 'choice' | 'check' | 'breath' | 'info';
+export type StepKind = 'text' | 'scale' | 'multi' | 'choice' | 'check' | 'breath' | 'info' | 'ladder';
 export type Step = {
   id: string; kind: StepKind; prompt: string; hint?: string;
   options?: string[]; min?: number; max?: number; optional?: boolean;
@@ -19,6 +19,8 @@ export const EMOTIONS: Record<string, string[]> = {
   'Difficili': ['Tristezza', 'Rabbia', 'Ansia', 'Paura', 'Frustrazione', 'Solitudine', 'Vergogna', 'Senso di colpa', 'Stanchezza', 'Delusione'],
   'Altre': ['Confusione', 'Noia', 'Sorpresa', 'Nostalgia'],
 };
+/** Scala delle situazioni: «punteggio|testo» (SUDS 0-100), dal gradino più basso al più alto. */
+export const ladderSorted = (rows: string[]) => rows.map((r) => { const [n, ...t] = r.split('|'); return { suds: Number(n) || 0, text: t.join('|') }; }).filter((x) => x.text.trim()).sort((a, b) => a.suds - b.suds);
 export const BODY = ['Testa', 'Gola', 'Petto', 'Stomaco', 'Spalle', 'Mani', 'Tutto il corpo', 'Non lo so'];
 
 export const EXERCISES: Exercise[] = [
@@ -84,6 +86,49 @@ export const EXERCISES: Exercise[] = [
       { id: 'why', kind: 'text', prompt: 'Cosa ti ha fatto sentire così?', optional: true },
     ],
     closing: 'Quei momenti sono tuoi: li ritrovi nel diario quando ne hai voglia.' },
+  { id: 'abc', title: 'Cosa è successo, cosa ho pensato, cosa ho sentito', minutes: 4,
+    why: 'Non sono gli eventi a farci sentire in un certo modo da soli: conta anche come li leggiamo. Metterli in fila aiuta a vederlo.',
+    steps: [
+      { id: 'a', kind: 'text', prompt: 'A. La situazione: cosa è successo di concreto? (ad esempio: il capo mi ha scritto una mail)' },
+      { id: 'b', kind: 'text', prompt: 'B. I pensieri: cosa ti è passato per la mente in quel momento? (ad esempio: «mi licenzieranno»)' },
+      { id: 'c', kind: 'multi', prompt: 'C. Le conseguenze: che emozioni hai provato?', options: Object.values(EMOTIONS).flat() },
+      { id: 'c2', kind: 'text', prompt: 'E nel corpo o nel comportamento? (ad esempio: cuore veloce, mi sono isolato)', optional: true },
+    ],
+    closing: 'Hai messo in fila evento, pensiero e conseguenza. Non c\'è niente da correggere: se ti va, puoi provare a guardare quel pensiero più da vicino.' },
+  { id: 'evidence', title: 'Metti alla prova un pensiero', minutes: 5,
+    why: 'Come un investigatore: cosa dice a favore, cosa dice contro, e che lettura più equilibrata esiste.',
+    steps: [
+      { id: 'th', kind: 'text', prompt: 'Quale pensiero vuoi mettere alla prova?' },
+      { id: 'b1', kind: 'scale', prompt: 'Quanto ci credi adesso, da 0 a 100?', min: 0, max: 100 },
+      { id: 'pro', kind: 'text', prompt: 'Quali fatti concreti dicono che sia vero?' },
+      { id: 'con', kind: 'text', prompt: 'Quali fatti dicono il contrario, o che sia esagerato?' },
+      { id: 'bal', kind: 'text', prompt: 'Una lettura più equilibrata e gentile della stessa situazione, con parole tue.' },
+      { id: 'b2', kind: 'scale', prompt: 'E adesso, quanto credi al pensiero di prima, da 0 a 100?', min: 0, max: 100 },
+    ],
+    closing: 'Non serve convincersi di niente: hai guardato i fatti da più lati. Quello che ne fai lo decidi tu.' },
+  { id: 'ladder', title: 'Una scala di situazioni, un gradino alla volta', minutes: 6,
+    why: 'Per ciò che si evita per paura, a volte aiuta elencare le situazioni dalla più facile alla più difficile e scegliere da dove partire.',
+    steps: [
+      { id: 'info', kind: 'info', prompt: 'Scrivi fino a 10 situazioni che eviti o che ti mettono ansia. Per ognuna dai un numero da 0 (nessun disagio) a 100 (il massimo).' },
+      { id: 'ladder', kind: 'ladder', prompt: 'Le tue situazioni' },
+    ],
+    closing: 'Spesso si parte da un gradino gestibile, intorno a 30-50, restando nella situazione finché il disagio cala da solo. Vai al tuo ritmo e scegli tu se e quando. Se la paura è molto forte o limita parecchio la tua vita, farlo con un professionista è più sicuro.' },
+  { id: 'schedule', title: 'Pianifico una piccola cosa', minutes: 3,
+    why: 'Quando manca la voglia, decidere prima una cosa piccola può aiutare: spesso è l\'azione a sbloccare la motivazione, non il contrario.',
+    steps: [
+      { id: 'what', kind: 'text', prompt: 'Quale piccola attività vuoi fare? (ad esempio: camminare 10 minuti, mettere in ordine la scrivania)' },
+      { id: 'when', kind: 'choice', prompt: 'Quando?', options: ['Oggi', 'Domani', 'Questa settimana'] },
+      { id: 'pred', kind: 'scale', prompt: 'Quanto piacere pensi di provare, da 0 a 10?', min: 0, max: 10, optional: true },
+    ],
+    closing: 'Fatto: l\'hai decisa tu. Dopo averla fatta, se ti va, ti chiedo com\'è andata.' },
+  { id: 'rate', title: 'Com\'è andata?', minutes: 1,
+    why: 'Notare quanto ti sei sentito capace e quanto ti è piaciuto aiuta a capire cosa fa per te.',
+    steps: [
+      { id: 'did', kind: 'choice', prompt: 'L\'hai fatta?', options: ['Sì', 'In parte', 'Non ancora'] },
+      { id: 'mastery', kind: 'scale', prompt: 'Quanto ti sei sentito capace, da 0 a 10?', min: 0, max: 10, showIf: { id: 'did', equals: 'Sì' } },
+      { id: 'pleasure', kind: 'scale', prompt: 'Quanto ti è piaciuta, da 0 a 10?', min: 0, max: 10, showIf: { id: 'did', equals: 'Sì' } },
+    ],
+    closing: 'Grazie di avermelo detto. Qualsiasi risposta va bene: serve solo a conoscerti meglio.' },
 ];
 
 export type Answer = string | number | string[];
@@ -95,6 +140,7 @@ export const visibleSteps = (ex: Exercise, answers: Record<string, Answer>): Ste
 /** Il passo si può superare? I passi facoltativi sì sempre; gli altri servono una risposta. */
 export function stepDone(s: Step, a: Answer | undefined): boolean {
   if (s.optional || s.kind === 'info' || s.kind === 'breath') return true;
+  if (s.kind === 'ladder') return Array.isArray(a) && a.length > 0;
   if (s.kind === 'multi') return Array.isArray(a) && a.length > 0;
   if (s.kind === 'scale') return typeof a === 'number';
   return typeof a === 'string' && a.trim().length > 0;

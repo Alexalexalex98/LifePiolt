@@ -206,3 +206,33 @@ test('spazio consapevolezza: passi condizionati, passi facoltativi, diario solo 
   assert.equal(ins.total, 3); assert.equal(ins.topEmotions[0].n, 'Ansia'); assert.equal(ins.beliefShift.avg, 30);
   assert.ok(EXERCISES.every((e) => !/devi\b|sbagliat[oa]\b.*emozion/i.test(e.steps.map((s) => s.prompt).join(' '))));
 });
+
+import { signalsOf, nextInvite, newInviteState, suggestHuman } from '../src/lib/wellbeing.ts';
+const base = { today: '2026-10-23', sleep: [], mood: [], tasksDone: [], workoutDays: [], sentDays: [], declined: 0, overdueTasks: 0, mealDays: [], texts: [] };
+const days = (n, from = '2026-10-10') => Array.from({ length: n }, (_, i) => new Date(Date.parse(from) + i * 86400000).toISOString().slice(0, 10));
+test('segnali: nessun dato => nessun intervento; tutto nella norma => silenzio', () => {
+  assert.deepEqual(signalsOf(base), []);
+  assert.deepEqual(signalsOf({ ...base, sleep: days(7, '2026-10-17').map((d) => ({ d, v: 7.5 })) }), []);
+});
+test('segnali: umore pesante per due settimane, frasi dure ripetute, niente allenamento dopo averli fatti', () => {
+  const mood = days(10, '2026-10-12').map((d) => ({ d, v: 2 }));
+  assert.equal(signalsOf({ ...base, mood })[0].id, 'mood');
+  const texts = [{ d: '2026-10-15', text: 'Tanto andrà male' }, { d: '2026-10-18', text: 'non ne faccio una giusta' }, { d: '2026-10-20', text: 'Nessuno mi capisce' }];
+  assert.ok(signalsOf({ ...base, texts }).some((s) => s.id === 'pessimism'));
+  assert.ok(signalsOf({ ...base, workoutDays: days(6, '2026-09-20') }).some((s) => s.id === 'moves'));
+  assert.ok(!signalsOf({ ...base, texts: [{ d: '2026-10-22', text: 'Oggi il capo mi ha scritto una mail' }] }).length);
+});
+test('proposte: una ogni 3 giorni, silenziabili, spegnibili; il supporto umano solo se dura', () => {
+  const sig = signalsOf({ ...base, mood: days(10, '2026-10-12').map((d) => ({ d, v: 2 })) });
+  const now = Date.parse('2026-10-23');
+  const st = newInviteState();
+  assert.equal(nextInvite(sig, st, now).id, 'mood');
+  assert.equal(nextInvite(sig, { ...st, lastAny: now - 86400000 }, now), null);
+  assert.equal(nextInvite(sig, { ...st, muted: ['mood'] }, now), null);
+  assert.equal(nextInvite(sig, { ...st, on: false }, now), null);
+  assert.equal(suggestHuman(sig, st, '2026-10-23'), false);
+});
+test('body: attacco di panico => propone respiro e sensi subito', () => {
+  const s = signalsOf({ ...base, texts: [{ d: '2026-10-23', text: 'Ho avuto un attacco di panico' }] });
+  assert.deepEqual(s[0].exercises, ['senses', 'breath']);
+});

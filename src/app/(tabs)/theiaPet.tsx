@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
@@ -72,7 +73,7 @@ export default function TheiaPet() {
   };
   const boast = () => {
     const pub = publicOf(now, day);
-    const text = `${pub.name} ${tl('è al livello')} ${pub.level}${pub.streak > 1 ? `, ${pub.streak} ${tl('giorni di cura')}` : ''}. ${tl('Mi prendo cura di me e lei sta bene!')}`;
+    const text = `${pub.name} ${tl('è al livello')} ${pub.level}${pub.streak > 1 ? `, ${pub.streak} ${tl('giorni di cura')}` : ''}. ${tl('Theia sta crescendo bene!')}`;
     const net = useNet.getState();
     net.patch({ posts: [{ id: newId(), author: me, text, media: null, tag: topicList[0], likes: 0, ts: Date.now() } as never, ...net.posts] });
     toast('Pubblicato su LifeNetwork');
@@ -82,6 +83,10 @@ export default function TheiaPet() {
   const mind = useMindSpace();
   const [run, setRun] = useState<Exercise | null>(null);
   const [diary, setDiary] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
+  const { ex: exParam } = useLocalSearchParams<{ ex?: string }>();
+  useEffect(() => { const e = EXERCISES.find((q) => q.id === exParam); if (e) setRun(e); }, [exParam]);
+  const followUp = useMemo(() => { const sch = [...mind.entries].reverse().find((x) => x.ex === 'schedule'); if (!sch || Date.now() - sch.ts < 20 * 3600000) return null; const rated = mind.entries.some((x) => x.ex === 'rate' && x.ts > sch.ts); return rated ? null : sch; }, [mind.entries]);
   const ins = useMemo(() => insightsOf(mind.entries), [mind.entries]);
   const [cs, setCs] = useState<{ with: string; kind: ChallengeKind; target: number; days: number } | null>(null);
   const [upd, setUpd] = useState<{ id: string; n: string } | null>(null);
@@ -91,7 +96,7 @@ export default function TheiaPet() {
 
   return (
     <Page id="theiaPet" back title="Theia da accudire">
-      <Body small muted style={{ marginBottom: 8 }}>Theia sta bene se ti prendi cura di te: da mangiare e da bere le guadagni facendo le cose vere dell'app. È un gioco, non un obbligo: se manchi per giorni Theia è tranquilla e contenta di rivederti, e non perde mai nulla.</Body>
+      <Body small muted style={{ marginBottom: 8 }}>Una creatura da accudire e da veder crescere. Cibo e acqua si guadagnano facendo le cose di ogni giorno nell'app. Nessuna fretta: se manchi per giorni, Theia è felice di rivederti e non perde mai nulla.</Body>
       <Card accent={th.accent}>
         <View style={{ alignItems: 'center', paddingVertical: 8 }}>
           <Mascot size={190} color={th.accent} expression={shown} motion={mv} />
@@ -101,18 +106,27 @@ export default function TheiaPet() {
         {bar('Cibo', now.food)}{bar('Acqua', now.water)}{bar('Affetto', now.joy)}
         <Row style={{ marginTop: 12 }}><Body bold style={{ flex: 1 }}>{`${tl('Livello')} ${lp.level}`}</Body><Body small muted>{`${lp.toNext} ${tl('punti al prossimo')}`}</Body></Row>
         <Progress value={lp.pct} />
-        <Body small muted style={{ marginTop: 6 }}>{streak > 0 ? `${tl('Giorni di cura')}: ${streak}` : tl('Quando le dai da mangiare e da bere, il giorno si aggiunge ai tuoi giorni di cura.')}</Body>
+        <Body small muted style={{ marginTop: 6 }}>{streak > 0 ? `${tl('Giorni di cura')}: ${streak}` : tl('Quando dai da mangiare e da bere a Theia, il giorno si aggiunge ai tuoi giorni di cura.')}</Body>
       </Card>
 
+      {followUp ? (
+        <Card>
+          <H>Com'è andata?</H>
+          <Body small muted style={{ marginTop: 4 }}>{`${tl('Avevi pensato di fare')}: ${String(followUp.answers.what ?? '')}. ${tl('Se ti va, dimmi com\'è andata.')}`}</Body>
+          <Btn small style={{ marginTop: 8, alignSelf: 'flex-start' }} title="Te lo racconto" onPress={() => setRun(EXERCISES.find((q) => q.id === 'rate')!)} />
+        </Card>
+      ) : null}
+
       <Card>
-        <H>Fate qualcosa insieme</H>
-        <Body small muted style={{ marginTop: 4 }}>Theia non ti fa stare meglio: sei tu a fare la differenza. Qui ci sono piccole attività da fare insieme, quando ti va, per capire meglio cosa senti e cosa pensi. Nessuna ti dice cosa fare: scegli tu se e come usarle.</Body>
-        {EXERCISES.map((e) => (
+        <H>Attività insieme a Theia</H>
+        <Body small muted style={{ marginTop: 4 }}>Piccole attività da fare insieme a Theia, quando ti va, per fermarti un momento a capire cosa senti e cosa pensi. Nessuna ti dice cosa fare: scegli tu se e come usarle.</Body>
+        <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} title={listOpen ? 'Nascondi le attività' : 'Scegli un\'attività'} onPress={() => setListOpen(!listOpen)} />
+        {listOpen ? EXERCISES.filter((e) => e.id !== 'rate').map((e) => (
           <Row key={e.id} style={{ paddingVertical: 8 }} gap={10}>
             <View style={{ flex: 1 }}><Body bold>{tl(e.title)}</Body><Body small muted>{`${e.minutes} min · ${tl(e.why)}`}</Body></View>
             <Btn small ghost title="Proviamo" onPress={() => setRun(e)} />
           </Row>
-        ))}
+        )) : null}
         <Body small muted style={{ marginTop: 6 }}>Sono spunti di autoconsapevolezza, non una terapia e non sostituiscono un professionista. Se stai male, parlane con una persona di fiducia o chiedi aiuto: in Svizzera 143, in Europa 112.</Body>
         <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} icon="file" title={diary ? 'Nascondi il diario' : `Il vostro diario (${mind.entries.length})`} onPress={() => setDiary(!diary)} />
         {diary ? (
@@ -134,7 +148,7 @@ export default function TheiaPet() {
       </Card>
 
       <Card>
-        <H>Cosa le dai</H>
+        <H>Cosa dai a Theia</H>
         <Body small muted style={{ marginTop: 4 }}>I gettoni di oggi si guadagnano con le cose vere: tocca una voce senza gettoni e ti porto dove guadagnarlo.</Body>
         {KINDS.map((a) => (
           <Row key={a.k} style={{ paddingVertical: 8 }}>
@@ -147,6 +161,7 @@ export default function TheiaPet() {
       <Card>
         <H>Fai vedere Theia agli altri</H>
         <Toggle label="Mostra la mia Theia nel profilo" value={pet.share} onChange={setShare} hint="Gli altri vedono solo nome, livello, giorni di cura e umore: mai cosa fai o i tuoi dati. Puoi spegnerlo quando vuoi." />
+        <Toggle label="Lascia che il gioco mi proponga un'attività quando nota un cambiamento" value={mind.inv.on} onChange={(v) => mind.patchInv({ on: v })} hint="Lo vede solo il telefono, nei tuoi dati: niente esce. Sono indizi, non diagnosi, e ti spiega sempre perché lo vedi. Puoi spegnerlo quando vuoi." />
         <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} icon="send" title="Vantati su LifeNetwork" onPress={boast} />
         <Body small muted style={{ marginTop: 4 }}>Scrive un post con il livello di Theia e i tuoi giorni di cura. Lo decidi tu: non esce niente senza il tuo tocco.</Body>
       </Card>
