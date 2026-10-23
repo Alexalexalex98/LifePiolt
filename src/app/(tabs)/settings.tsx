@@ -37,6 +37,7 @@ import { applyDemo, resetAllData } from '@/store/demo';
 import { AccountFlow } from '@/components/AccountFlow';
 import { deleteAccountEverywhere, signOutAccount } from '@/lib/accountApi';
 import { useAccount } from '@/store/account';
+import { diagnoseSocial, type DiagStep } from '@/social/socialApi';
 import { fmtDate } from '@/i18n/format';
 
 const dataLabels: Record<string, string> = {
@@ -83,6 +84,8 @@ export default function Settings() {
   const [del, setDel] = useState<0 | 1 | 2>(0);
   const acc = useAccount();
   const [accOpen, setAccOpen] = useState(false);
+  const [diag, setDiag] = useState<DiagStep[] | null>(null);
+  const [diagBusy, setDiagBusy] = useState(false);
   async function accOut() { await signOutAccount(); toast('Sei uscito: i dati restano sul telefono'); }
   const [restore, setRestore] = useState<null | { text: string; preview: BackupPreview | null; step: 1 | 2; error?: string }>(null);
   const [errSheet, setErrSheet] = useState(false);
@@ -246,6 +249,7 @@ export default function Settings() {
         <Item><Row><Body muted>Nome dell'assistente AI</Body><Pressable onPress={() => { setEditVal(app.assistantName); setEdit('assistant'); }}><Body bold>{app.assistantName}</Body></Pressable></Row></Item>
         <Item last><Row><Body muted>Accesso</Body>{acc.status === 'none' ? <Link onPress={() => setAccOpen(true)}>Crea account</Link> : <Link danger onPress={() => void accOut()}>Esci</Link>}</Row></Item>
         <Body small muted style={{ marginTop: 8 }}>{acc.status === 'verified' ? `Account confermato · ${acc.email}. L'accesso avviene con un codice via email, senza password.` : acc.status === 'test' ? 'Account di prova: nessun server collegato, vale solo su questo telefono.' : app.demo ? "Stai usando la modalità demo: nessun account, dati di esempio. Creando un account i dati demo vengono tolti." : "Non hai ancora un account: l'app funziona sul telefono. Con un account ritrovi i dati su un altro telefono e parli con gli amici."}</Body>
+        {acc.status === 'verified' ? <Btn small ghost style={{ marginTop: 8 }} title={diagBusy ? 'Controllo...' : 'Prova il collegamento social'} disabled={diagBusy} onPress={() => { setDiagBusy(true); void diagnoseSocial().then((r) => { setDiag(r); setDiagBusy(false); }); }} /> : null}
         {acc.status === 'none' ? <Btn small style={{ marginTop: 8 }} title={app.demo ? 'Crea il tuo account (toglie i dati demo)' : 'Crea il tuo account'} onPress={() => setAccOpen(true)} /> : null}
       </Card>
       ) : null}
@@ -491,6 +495,16 @@ export default function Settings() {
       </Sheet>
       <WorkHoursSheet key={`${app.workHours.start}${app.workHours.end}${wh}`} visible={wh} onClose={() => setWh(false)} />
       <Sheet visible={!!info} title={info ? infos[info].title : ''} onClose={() => setInfo(null)}>{info && <Body small muted>{infos[info].body}</Body>}</Sheet>
+      <Sheet visible={!!diag} title="Collegamento social" onClose={() => setDiag(null)}>
+        {(diag ?? []).map((st) => (
+          <View key={st.label} style={{ marginBottom: 8 }}>
+            <Body bold style={{ color: st.ok ? t.positive : t.danger }}>{`${st.ok ? 'OK' : 'Problema'} · ${tl(st.label)}`}</Body>
+            {st.detail ? <Body small muted>{st.detail}</Body> : null}
+          </View>
+        ))}
+        {diag && diag.every((x) => x.ok) ? <Body small>Tutto a posto: puoi pubblicare un post dalla sezione Network e lo vedranno gli altri utenti.</Body> : <Body small muted>Mandami uno screenshot di questa schermata se qualcosa non va.</Body>}
+        <Btn style={{ marginTop: 10 }} ghost title="Chiudi" onPress={() => setDiag(null)} />
+      </Sheet>
       <Sheet visible={accOpen} title="Il tuo account" onClose={() => setAccOpen(false)}>
         <AccountFlow onBack={() => setAccOpen(false)} onDone={() => { if (app.demo) { resetAllData(); set({ demo: false }); } setAccOpen(false); toast('Account creato'); }} />
       </Sheet>

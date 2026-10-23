@@ -47,9 +47,39 @@ export async function uploadMedia(s: Social, uri: string): Promise<string | null
   } catch { return null; }
 }
 
+/** L'ultimo errore del server nel pubblicare (per dirlo all'utente invece di tacere). */
+export let lastPostError = '';
 export async function insertPost(s: Social, row: Record<string, unknown>): Promise<RemotePost | null> {
   const r = await s.sb.from('social_posts').insert(row).select('*').single();
+  lastPostError = r.error ? (r.error.message || r.error.code || 'errore sconosciuto') : '';
   return r.error ? null : (r.data as RemotePost);
+}
+
+export type DiagStep = { label: string; ok: boolean; detail?: string };
+/** Prova una per una le cose che servono a pubblicare (accesso, profilo pubblico, lettura e scrittura dei post, archivio dei file) e dice dove si ferma. */
+export async function diagnoseSocial(): Promise<DiagStep[]> {
+  const steps: DiagStep[] = [];
+  const s = await socialSession();
+  if (!s) {
+    const c = await loadServerConfig();
+    const hasCfg = !!((c.url || process.env.EXPO_PUBLIC_SUPABASE_URL) && (c.anonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY));
+    steps.push({ label: 'Server collegato', ok: hasCfg, detail: hasCfg ? undefined : 'Mancano indirizzo e chiave del server (.env.local).' });
+    steps.push({ label: 'Accesso con il tuo account', ok: false, detail: hasCfg ? 'Non risulti collegato: esci e accedi di nuovo con il codice.' : undefined });
+    return steps;
+  }
+  steps.push({ label: 'Server collegato e accesso fatto', ok: true });
+  const prof = await s.sb.from('social_profiles').upsert({ user_id: s.userId, display_name: s.name.slice(0, 60), updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  steps.push({ label: 'Profilo pubblico', ok: !prof.error, detail: prof.error ? (prof.error.message || prof.error.code) : undefined });
+  const read = await s.sb.from('social_posts').select('id').limit(1);
+  steps.push({ label: 'Lettura dei post', ok: !read.error, detail: read.error ? (read.error.message || read.error.code) : undefined });
+  const write = await s.sb.from('social_posts').insert({ author_id: s.userId, body: 'prova', deleted_at: new Date().toISOString() }).select('id').single();
+  if (!write.error && write.data?.id) await s.sb.from('social_posts').delete().eq('id', write.data.id);
+  steps.push({ label: 'Scrittura di un post', ok: !write.error, detail: write.error ? (write.error.message || write.error.code) : undefined });
+  try {
+    const up = await s.sb.storage.from('social-media').upload(`${s.userId}/prova-${Date.now()}.txt`, new Blob(['ok']), { contentType: 'text/plain' });
+    steps.push({ label: 'Archivio foto e video', ok: !up.error, detail: up.error ? up.error.message : undefined });
+  } catch (e) { steps.push({ label: 'Archivio foto e video', ok: false, detail: e instanceof Error ? e.message : 'errore' }); }
+  return steps;
 }
 export async function fetchFeed(s: Social, limit = 60): Promise<RemotePost[]> {
   const r = await s.sb.from('social_posts').select('*').order('created_at', { ascending: false }).limit(limit);

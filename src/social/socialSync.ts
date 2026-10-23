@@ -2,8 +2,9 @@ import { AppState } from 'react-native';
 
 import { useApp } from '@/store/app';
 import { useNet } from '@/store/network';
+import { toast } from '@/store/toast';
 import { refreshShared } from './sharedCommands';
-import { deletePost, ensurePublicProfile, fetchFeed, insertPost, myLikes, setLike, socialSession, updatePost, uploadMedia, type Social } from './socialApi';
+import { deletePost, ensurePublicProfile, fetchFeed, insertPost, lastPostError, myLikes, setLike, socialSession, updatePost, uploadMedia, type Social } from './socialApi';
 import { mergeRemote, toInsertRow, type LocalPostLike, type RemotePost } from './socialCore';
 
 /**
@@ -17,6 +18,7 @@ import { mergeRemote, toInsertRow, type LocalPostLike, type RemotePost } from '.
  */
 type NetPost = LocalPostLike & Record<string, unknown>;
 const publishing = new Set<number>();
+const failed = new Set<number>();
 let ready = false;
 let lastPull = 0;
 let started = false;
@@ -36,7 +38,8 @@ async function publishNew(s: Social) {
       if (p.uris?.length) up.list = (await Promise.all(p.uris.map((u) => (/^https?:/.test(u) ? u : uploadMedia(s, u))))).filter((u): u is string => !!u);
       if (p.media && p.uri && !up.media && !/^https?:/.test(p.uri)) continue; // il file non è partito: riprovo al prossimo giro
       const row = await insertPost(s, toInsertRow(p, s.userId, up));
-      if (row) useNet.getState().patch({ posts: useNet.getState().posts.map((x) => (x.id === p.id ? { ...x, remoteId: row.id } : x)) as never });
+      if (row) { useNet.getState().patch({ posts: useNet.getState().posts.map((x) => (x.id === p.id ? { ...x, remoteId: row.id } : x)) as never }); toast('Pubblicato online'); failed.delete(p.id); }
+      else if (!failed.has(p.id)) { failed.add(p.id); toast(`Non sono riuscito a pubblicare online: ${lastPostError || 'riprovo più tardi'}. Il post resta sul telefono.`); }
     } finally { publishing.delete(p.id); }
   }
 }
