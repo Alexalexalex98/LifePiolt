@@ -5,7 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ExerciseRunner } from '@/components/mascot/ExerciseRunner';
 import { Mascot } from '@/components/mascot/Mascot';
-import { PetScene, phaseOf } from '@/components/pet/PetScene';
+import { phaseOf } from '@/components/pet/PetScene';
+import { RoomView, type Placed } from '@/components/pet/RoomView';
+import { petStats } from '@/hooks/use-pet-stats';
+import { COINS, HOUSES, ITEMS, KIND_NAME, QUALITY_NAME, ROOMS, houseOf, itemOf, repairCost, wearOf } from '@/lib/petHome';
+import { claimable, milestonesOf, sizeFactor, stageOf } from '@/lib/petMilestones';
+import { nextInvite, signalsOf } from '@/lib/wellbeing';
+import { wellbeingInput } from '@/lib/wellbeingData';
+import { usePetHome } from '@/store/petHome';
 import { Text } from '@/components/T';
 import { Body, Btn, Card, H, Input, Pill, Progress, Row, Sheet, Toggle } from '@/components/ui';
 import { earnedForDay, useEarned } from '@/hooks/use-pet-earned';
@@ -14,6 +21,7 @@ import { t as tl } from '@/i18n/core';
 import { KINDS as CK, inviteText, progressOf, progressText, type ChallengeKind } from '@/lib/challenges';
 import { Icon } from '@/lib/icons';
 import { goBack } from '@/lib/nav';
+import { dayKey } from '@/lib/format';
 import { EXERCISES, insightsOf, type Exercise } from '@/lib/mindExercises';
 import type { Expression, MotionId } from '@/lib/mascot';
 import { peoplePool } from '@/lib/network';
@@ -35,7 +43,8 @@ const ACTIONS: { k: Kind; title: string; icon: string; earn: string; page: strin
   { k: 'love', title: 'Pensiero', icon: 'heart', earn: 'Lo guadagni segnando come stai', page: 'lifehealth', expr: 'love', mv: 'dance' },
   { k: 'pet', title: 'Coccola', icon: 'smile', earn: 'Poche al giorno, gratis', page: '', expr: 'blushing', mv: 'squish' },
 ];
-type Panel = 'activities' | 'friends' | 'settings' | null;
+type Panel = 'activities' | 'friends' | 'settings' | 'goals' | 'invite' | null;
+type View_ = 'theia' | 'home';
 const hue = (name: string) => ACCENTS[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % ACCENTS.length]!.hex;
 
 function Gauge({ icon, v, color }: { icon: string; v: number; color: string }) {
@@ -51,7 +60,7 @@ function Gauge({ icon, v, color }: { icon: string; v: number; color: string }) {
 export default function TheiaPet() {
   const th = useTheme();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const me = useApp((s) => s.account.name);
   const { pet, others, refresh, giveTo, rename, setShare, setOthers, visit } = usePet();
   const { earned, day } = useEarned();
@@ -69,6 +78,14 @@ export default function TheiaPet() {
   const [vis, setVis] = useState<string | null>(null);
   const [vmv, setVmv] = useState<{ id: MotionId; n: number }>({ id: 'bounce', n: 0 });
   const { ex: exParam } = useLocalSearchParams<{ ex?: string }>();
+  const home = usePetHome();
+  const [view, setView] = useState<View_>('theia');
+  const [shopKind, setShopKind] = useState<string | null>(null);
+  const inv = useMindSpace((x) => x.inv);
+  // la proposta di Theia: solo se i dati mostrano un cambiamento, senza lista in vista e senza insistere
+  const invite = useMemo(() => { try { return nextInvite(signalsOf(wellbeingInput()), inv, Date.now()); } catch { return null; } }, [inv.on, inv.lastAny, inv.muted.length]);
+  const stats = petStats();
+  const pending = claimable(stats, home.claimed);
 
   useEffect(() => {
     const away = (Date.now() - pet.ts) / 86400000;
@@ -90,7 +107,7 @@ export default function TheiaPet() {
   const streak = streakNow(now, day);
   const phase = phaseOf(new Date().getHours());
   const shown = temp ?? mood.expr;
-  const size = Math.min(270, width * 0.72);
+  const size = Math.round(Math.min(240, (width - 24) * 0.6) * sizeFactor(levelProgress(pet.xp).level));
 
   const react = (e: Expression, m: MotionId, ms = 1800) => { setTemp(e); setMv((x) => ({ id: m, n: x.n + 1 })); setTimeout(() => setTemp(null), ms); };
   const act = (a: (typeof ACTIONS)[number]) => {
@@ -98,7 +115,8 @@ export default function TheiaPet() {
     const r = giveTo(a.k, earned, day);
     if (!r.ok) return;
     react(a.expr, a.mv); setBubble(false);
-    toast(r.leveledUp ? tl('Theia è salita di livello!') : 'Fatto');
+    const gain = COINS[a.k] ?? 0; if (gain) usePetHome.getState().addCoins(gain);
+    toast(r.leveledUp ? tl('Theia è salita di livello!') : gain ? `+${gain} ${tl('stelline')}` : 'Fatto');
   };
   const poke = () => { if (avail.pet > 0) giveTo('pet', earned, day); react('blushing', 'squish', 1400); };
 
@@ -116,7 +134,7 @@ export default function TheiaPet() {
     toast('Pubblicato su LifeNetwork');
   };
   const visitDo = (id: MotionId, text?: string) => { setVmv((x) => ({ id, n: x.n + 1 })); if (vis && text) { dm(vis, text); toast('Inviato'); } };
-  const openVisit = (n: string) => { setPanel(null); setVis(n); if (visit(n, day)) toast('Visita fatta'); };
+  const openVisit = (n: string) => { setPanel(null); setVis(n); if (visit(n, day)) { usePetHome.getState().addCoins(COINS.visit!); toast('Visita fatta'); } };
 
   const btn = (round: number, icon: string, label: string, onPress: () => void, badge?: number, dim?: boolean) => (
     <Pressable accessibilityRole="button" accessibilityLabel={tl(label)} onPress={onPress} style={{ alignItems: 'center', width: round + 14 }}>
@@ -128,50 +146,118 @@ export default function TheiaPet() {
     </Pressable>
   );
 
-  return (
-    <View style={{ flex: 1, backgroundColor: th.bg }}>
-      <PetScene phase={phase} accent={th.accent} />
+  const stage = stageOf(lp.level);
+  const placedOf = (room: (typeof ROOMS)[number]['id']): Placed => {
+    const out: Placed = {};
+    for (const [k, uid] of Object.entries(home.placed[room] ?? {})) { const o = home.owned.find((x) => x.uid === uid); const it = o && itemOf(o.item); if (o && it) out[k as keyof Placed] = { quality: it.quality, wear: wearOf(o, Date.now()) }; }
+    return out;
+  };
 
-      {/* in alto: indietro, nome e livello, amici e impostazioni */}
+  return (
+    <View style={{ flex: 1, backgroundColor: '#12182a' }}>
+      {/* in alto: indietro, nome e crescita, stelline, bisogni */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 14, gap: 10 }}>
-        <Row gap={10}>
+        <Row gap={8}>
           {btn(40, 'arrow-left', 'Indietro', () => goBack(), undefined, true)}
-          <View style={{ flex: 1, backgroundColor: '#00000055', borderRadius: 16, paddingVertical: 6, paddingHorizontal: 12 }}>
+          <View style={{ flex: 1, backgroundColor: '#ffffff18', borderRadius: 16, paddingVertical: 6, paddingHorizontal: 12 }}>
             {name === null ? (
-              <Pressable onPress={() => setName(pet.name)}><Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', textShadowColor: '#0009', textShadowRadius: 4 }}>{`${pet.name} · ${tl('Livello')} ${lp.level}`}</Text></Pressable>
+              <Pressable onPress={() => setName(pet.name)}><Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }} numberOfLines={1}>{`${pet.name} · ${tl(stage.name)} · ${tl('Livello')} ${lp.level}`}</Text></Pressable>
             ) : <Input value={name} onChangeText={setName} onBlur={() => { rename(name); setName(null); }} onSubmitEditing={() => { rename(name); setName(null); }} autoFocus />}
-            <View style={{ height: 8, borderRadius: 4, backgroundColor: '#ffffff30', overflow: 'hidden', marginTop: 4 }}><View style={{ width: `${lp.pct}%`, height: 8, backgroundColor: '#ffd75e' }} /></View>
+            <View style={{ height: 7, borderRadius: 4, backgroundColor: '#ffffff30', overflow: 'hidden', marginTop: 4 }}><View style={{ width: `${lp.pct}%`, height: 7, backgroundColor: '#ffd75e' }} /></View>
           </View>
-          {btn(40, 'users', 'Amici', () => setPanel('friends'), undefined, true)}
-          {btn(40, 'gear', 'Impostazioni', () => setPanel('settings'), undefined, true)}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ffffff18', borderRadius: 16, paddingVertical: 10, paddingHorizontal: 12 }}><Icon name="star" size={15} color="#ffd75e" stroke={2} /><Text style={{ color: '#fff', fontWeight: '800' }}>{home.coins}</Text></View>
         </Row>
         <Row gap={8}>
           <Gauge icon="meal" v={now.food} color="#ffb84f" /><Gauge icon="drop" v={now.water} color="#4fc7e0" /><Gauge icon="heart" v={now.joy} color="#ff6f91" />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#00000040', borderRadius: 14, paddingVertical: 6, paddingHorizontal: 10 }}><Icon name="star" size={14} color="#ffd75e" stroke={2} /><Text style={{ color: '#fff', fontWeight: '800' }}>{streak}</Text></View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ffffff18', borderRadius: 14, paddingVertical: 6, paddingHorizontal: 10 }}><Icon name="calendar" size={14} color="#fff" stroke={2} /><Text style={{ color: '#fff', fontWeight: '800' }}>{streak}</Text></View>
         </Row>
       </View>
 
-      {/* il palcoscenico: Theia, toccala */}
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        {bubble && !temp ? (
-          <Pressable onPress={() => setBubble(false)} style={{ backgroundColor: '#ffffffee', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14, maxWidth: width * 0.8, marginBottom: 8 }}>
+      {/* la stanza di Theia, come un quadro: Theia dentro, toccala */}
+      <View style={{ marginHorizontal: 12, marginTop: 10, borderRadius: 22, overflow: 'hidden', height: view === 'home' ? 230 : Math.min(((width - 24) * 380) / 360, height * 0.48), justifyContent: 'flex-end', alignItems: 'center', paddingBottom: Math.max(6, ((width - 24) / 360) * 58) }}>
+        <RoomView room={view === 'home' ? home.room : 'living'} phase={phase} accent={th.accent} placed={placedOf(view === 'home' ? home.room : 'living')} tier={home.tier} />
+        <View style={{ position: 'absolute', top: 8, right: 8, gap: 8 }}>
+          {btn(38, 'award', 'Traguardi', () => setPanel('goals'), pending.length || undefined, true)}
+          {btn(38, 'users', 'Amici', () => setPanel('friends'), undefined, true)}
+          {btn(38, 'gear', 'Impostazioni', () => setPanel('settings'), undefined, true)}
+        </View>
+        {invite && !temp ? (
+          <Pressable onPress={() => { setPanel('invite'); useMindSpace.getState().shown(invite.id, Date.now(), dayKey()); }} style={{ backgroundColor: '#ffffffee', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14, marginBottom: 4, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#ff5d73', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontWeight: '900' }}>!</Text></View>
+            <Text style={{ color: '#1a2233', fontWeight: '700' }}>{tl('Theia vuole dirti qualcosa…')}</Text>
+          </Pressable>
+        ) : bubble && !temp && view === 'theia' ? (
+          <Pressable onPress={() => setBubble(false)} style={{ backgroundColor: '#ffffffee', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14, maxWidth: width * 0.7, marginBottom: 4 }}>
             <Text style={{ color: '#1a2233', fontWeight: '700', textAlign: 'center' }}>{tl(mood.label)}</Text>
           </Pressable>
-        ) : <View style={{ height: 40 }} />}
-        <Pressable accessibilityRole="button" accessibilityLabel={pet.name} onPress={poke}><Mascot size={size} color={th.accent} expression={shown} motion={mv} /></Pressable>
+        ) : null}
+        <Pressable accessibilityRole="button" accessibilityLabel={pet.name} onPress={poke}><Mascot size={view === 'home' ? Math.round(size * 0.55) : size} color={th.accent} expression={shown} motion={mv} /></Pressable>
       </View>
 
-      {/* in basso: le azioni */}
-      <View style={{ paddingBottom: 14, gap: 10 }}>
-        <Row gap={10} style={{ justifyContent: 'center' }}>
-          <Pill label={tl('Attività insieme')} on={false} onPress={() => setPanel('activities')} />
-        </Row>
-        <Row style={{ justifyContent: 'space-between', paddingHorizontal: 10 }}>
-          {ACTIONS.map((a) => <View key={a.k}>{btn(54, a.icon, a.title, () => act(a), avail[a.k] > 0 ? avail[a.k] : undefined, avail[a.k] <= 0)}</View>)}
-        </Row>
+      {/* in basso: azioni (Theia) oppure casa e negozio (Casa) */}
+      {view === 'theia' ? (
+        <View style={{ paddingBottom: 8, gap: 10 }}>
+          <Row style={{ justifyContent: 'space-between', paddingHorizontal: 10 }}>
+            {ACTIONS.map((a) => <View key={a.k}>{btn(54, a.icon, a.title, () => act(a), avail[a.k] > 0 ? avail[a.k] : undefined, avail[a.k] <= 0)}</View>)}
+          </Row>
+        </View>
+      ) : (
+        <ScrollView style={{ flex: 1, backgroundColor: '#12182a', borderTopLeftRadius: 22, borderTopRightRadius: 22 }} contentContainerStyle={{ padding: 14, gap: 10 }}>
+          <Row gap={8} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>{houseOf(home).rooms.map((r) => <Pill key={r} label={tl(ROOMS.find((x) => x.id === r)!.name)} on={home.room === r} onPress={() => home.setRoom(r)} />)}</Row>
+          {ROOMS.find((r) => r.id === home.room)!.slots.map((k) => {
+            const cur = home.placed[home.room]?.[k]; const curO = home.owned.find((o) => o.uid === cur);
+            const mine = home.owned.filter((o) => itemOf(o.item)?.kind === k);
+            return (
+              <View key={k} style={{ backgroundColor: '#1d2540', borderRadius: 16, padding: 12, gap: 6 }}>
+                <Row><Body bold style={{ flex: 1 }}>{tl(KIND_NAME[k])}</Body>{curO ? <Body small muted>{`${tl(QUALITY_NAME[itemOf(curO.item)!.quality])} · ${wearOf(curO, Date.now())}% ${tl('usurato')}`}</Body> : <Body small muted>{tl('Vuoto')}</Body>}</Row>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {mine.map((o) => {
+                    const it = itemOf(o.item)!; const w = wearOf(o, Date.now()); const inUse = cur === o.uid;
+                    return (
+                      <View key={o.uid} style={{ width: 150, backgroundColor: inUse ? '#27406b' : '#232d4f', borderRadius: 12, padding: 10, gap: 4 }}>
+                        <Body small bold>{tl(QUALITY_NAME[it.quality])}</Body>
+                        <Progress value={100 - w} />
+                        <Body small muted>{w >= 100 ? tl('Da cambiare') : w >= 70 ? tl('Consumato') : tl('In buono stato')}</Body>
+                        <Row gap={6} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+                          {inUse ? <Btn small ghost title="Togli" onPress={() => home.unplaceItem(home.room, k)} /> : <Btn small title="Usa" onPress={() => { const r = home.placeItem(home.room, o.uid); if (!r.ok) toast(r.reason ?? ''); }} />}
+                          {w > 0 ? <Btn small ghost title={`${tl('Ripara')} ${repairCost(it)}`} onPress={() => { const r = home.repairItem(o.uid); toast(r.ok ? 'Riparato' : r.reason ?? ''); }} /> : null}
+                          <Btn small ghost danger title={`${tl('Cambia')} +${Math.floor(it.price / 4)}`} onPress={() => { const r = home.sellItem(o.uid); toast(r.ok ? 'Fatto' : r.reason ?? ''); }} />
+                        </Row>
+                      </View>
+                    );
+                  })}
+                  {([0, 1, 2] as const).map((q) => { const it = ITEMS.find((i) => i.kind === k && i.quality === q)!; return (
+                    <View key={it.id} style={{ width: 130, backgroundColor: '#1a2140', borderRadius: 12, padding: 10, gap: 4, borderWidth: 1, borderColor: q === 2 ? '#f2c94c88' : '#2e3a66' }}>
+                      <Body small bold>{tl(QUALITY_NAME[q])}</Body>
+                      <Body small muted>{`${it.days} ${tl('giorni')}`}</Body>
+                      <Btn small title={`${it.price} ★`} onPress={() => { const r = home.buyItem(it.id); if (r.ok && r.uid) { home.placeItem(home.room, r.uid); toast('Comprato'); } else toast(r.reason ?? ''); }} />
+                    </View>
+                  ); })}
+                </ScrollView>
+              </View>
+            );
+          })}
+          {HOUSES[home.tier + 1] ? (
+            <View style={{ backgroundColor: '#1d2540', borderRadius: 16, padding: 12, gap: 6 }}>
+              <Body bold>{`${tl('Cambia casa')}: ${tl(HOUSES[home.tier + 1]!.name)}`}</Body>
+              <Body small muted>{`${HOUSES[home.tier + 1]!.rooms.length} ${tl('stanze')} · ${tl('livello')} ${HOUSES[home.tier + 1]!.level} · ${HOUSES[home.tier + 1]!.price} ★`}</Body>
+              <Btn small title="Trasloca" onPress={() => { const r = home.upgradeHouse(lp.level); toast(r.ok ? 'Nuova casa!' : r.reason ?? ''); if (r.ok) react('celebrating', 'jump', 2400); }} />
+            </View>
+          ) : <Body small muted>Hai la casa più grande: l'attico.</Body>}
+          <Body small muted>Le stelline si guadagnano facendo le cose vere dell'app e non si comprano con soldi. I mobili si consumano piano: ripararli o cambiarli è una tua scelta e non cambia come sta Theia.</Body>
+        </ScrollView>
+      )}
+
+      {/* le due schede del gioco, come nei giochi di cura: Theia e Casa */}
+      <View style={{ flexDirection: 'row', margin: 10, marginTop: 4, backgroundColor: '#00000066', borderRadius: 22, padding: 4 }}>
+        {([['theia', 'Theia', 'heart'], ['home', 'Casa', 'home']] as const).map(([id, label, icon]) => (
+          <Pressable key={id} accessibilityRole="button" onPress={() => setView(id)} style={{ flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, borderRadius: 18, backgroundColor: view === id ? th.accent : 'transparent' }}>
+            <Icon name={icon as never} size={16} color="#fff" stroke={2} /><Text style={{ color: '#fff', fontWeight: '800' }}>{tl(label)}</Text>
+          </Pressable>
+        ))}
       </View>
 
-      <ExerciseRunner ex={run} onClose={() => setRun(null)} onSave={(answers) => { if (run) { mind.add(run.id, answers); usePet.getState().addXp(4); toast('Salvato nel diario'); } }} />
+      <ExerciseRunner ex={run} onClose={() => setRun(null)} onSave={(answers) => { if (run) { mind.add(run.id, answers); usePet.getState().addXp(4); usePetHome.getState().addCoins(COINS.activity!); toast('Salvato nel diario'); } }} />
 
       {/* attività insieme: solo se le scegli tu (o se te le propone il gioco) */}
       <Sheet visible={panel === 'activities'} title="Attività insieme a Theia" onClose={() => setPanel(null)}>
@@ -260,6 +346,36 @@ export default function TheiaPet() {
         ) : null}
       </Sheet>
 
+
+      {/* traguardi: Theia cresce con te */}
+      <Sheet visible={panel === 'goals'} title="Traguardi" onClose={() => setPanel(null)}>
+        <View style={{ gap: 10 }}>
+          <Body small muted>Theia cresce con te: ogni tuo traguardo vero porta a lei stelline, punti per crescere e a volte un mobile in regalo. Si ritirano quando vuoi e non scadono.</Body>
+          {milestonesOf(stats, home.claimed).sort((x, y) => Number(y.done && !y.claimed) - Number(x.done && !x.claimed) || Number(x.claimed) - Number(y.claimed) || y.pct - x.pct).map((m) => (
+            <View key={m.id} style={{ gap: 4 }}>
+              <Row gap={8}><View style={{ flex: 1 }}><Body bold>{tl(m.title)}</Body><Body small muted>{tl(m.desc)}</Body></View>
+                {m.claimed ? <Body small muted>{tl('Ritirato')}</Body> : m.done ? <Btn small title={`+${m.reward.coins} ★`} onPress={() => { const r = home.claim(m.id); if (r.ok) { usePet.getState().addXp(r.xp); react('celebrating', 'jump', 2400); toast(`${tl('Theia è felice!')} +${r.coins} ${tl('stelline')}${m.reward.item ? ` · ${tl('e un mobile in regalo')}` : ''}`); } }} /> : <Body small muted>{`${Math.min(m.value, m.target)}/${m.target}`}</Body>}</Row>
+              {!m.done ? <Progress value={m.pct} /> : null}
+            </View>
+          ))}
+        </View>
+      </Sheet>
+
+      {/* una proposta di Theia: solo quando i dati mostrano un cambiamento, una cosa su misura, senza insistere */}
+      <Sheet visible={panel === 'invite'} title="Theia vuole dirti qualcosa" onClose={() => setPanel(null)}>
+        {invite ? (
+          <View style={{ gap: 10 }}>
+            <Body>{`${tl('Ho notato che')} ${tl(invite.fact)}. ${tl('Non so come stai davvero: se ti va, c\'è una cosa piccola che possiamo fare insieme. Decidi tu.')}`}</Body>
+            {invite.exercises.slice(0, 2).map((id) => { const e = EXERCISES.find((q) => q.id === id); return e ? <Btn key={id} title={`${tl(e.title)} · ${e.minutes} min`} onPress={() => { setPanel(null); setRun(e); }} /> : null; })}
+            <Row gap={8}>
+              <Btn small ghost style={{ flex: 1 }} title="Non adesso" onPress={() => { mind.patchInv({ lastAny: Date.now() }); setPanel(null); }} />
+              <Btn small ghost style={{ flex: 1 }} title="Non mostrarmelo più" onPress={() => { mind.patchInv({ muted: [...mind.inv.muted, invite.id] }); setPanel(null); }} />
+            </Row>
+            <Body small muted>Sono indizi dai tuoi dati sul telefono, non una diagnosi. Se stai male, parlane con una persona di fiducia: in Svizzera 143, in Europa 112.</Body>
+          </View>
+        ) : <Body muted>Niente da dirti per ora.</Body>}
+      </Sheet>
+
       {/* impostazioni del gioco */}
       <Sheet visible={panel === 'settings'} title="Impostazioni del gioco" onClose={() => setPanel(null)}>
         <View style={{ gap: 8 }}>
@@ -267,6 +383,7 @@ export default function TheiaPet() {
           <Toggle label="Lascia che il gioco mi proponga un'attività quando nota un cambiamento" value={mind.inv.on} onChange={(v) => mind.patchInv({ on: v })} hint="Lo vede solo il telefono, nei tuoi dati: niente esce. Sono indizi, non diagnosi, e ti spiega sempre perché lo vedi. Puoi spegnerlo quando vuoi." />
           <Btn small ghost style={{ alignSelf: 'flex-start' }} icon="send" title="Vantati su LifeNetwork" onPress={boast} />
           <Body small muted>Scrive un post con il livello di Theia e i tuoi giorni di cura. Lo decidi tu: non esce niente senza il tuo tocco.</Body>
+          <Btn small ghost style={{ alignSelf: 'flex-start' }} title="Tutte le attività e il diario" onPress={() => setPanel('activities')} />
           <Btn small ghost style={{ alignSelf: 'flex-start' }} icon="palette" title="Colore, espressioni e movimenti" onPress={() => { setPanel(null); go('settings'); }} />
         </View>
       </Sheet>

@@ -236,3 +236,36 @@ test('body: attacco di panico => propone respiro e sensi subito', () => {
   const s = signalsOf({ ...base, texts: [{ d: '2026-10-23', text: 'Ho avuto un attacco di panico' }] });
   assert.deepEqual(s[0].exercises, ['senses', 'breath']);
 });
+
+import { newHome, buy, repair, place, unplace, sell, upgrade, wearOf, itemOf, ITEMS, HOUSES, houseOf } from '../src/lib/petHome.ts';
+test('casa di Theia: si compra con le stelline, si piazza solo dove c\'è posto, si consuma e si ripara', () => {
+  const t0 = Date.UTC(2026, 9, 1);
+  let s = { ...newHome(), coins: 100 };
+  assert.equal(ITEMS.length, 33);
+  assert.equal(buy(s, 'sofa:2', t0).ok, false);
+  let r = buy(s, 'sofa:0', t0); assert.equal(r.ok, true); assert.equal(r.state.coins, 60);
+  const u = r.state.owned[0].uid;
+  assert.equal(place(r.state, 'living', u).ok, true); assert.equal(place(r.state, 'kitchen', u).ok, false);
+  assert.equal(wearOf(r.state.owned[0], t0 + 7 * 86400000), 50);
+  assert.equal(wearOf(r.state.owned[0], t0 + 99 * 86400000), 100);
+  const rp = repair(r.state, u, t0 + 20 * 86400000); assert.equal(rp.ok, true); assert.equal(rp.state.coins, 60 - 16); assert.equal(wearOf(rp.state.owned[0], t0 + 20 * 86400000), 0);
+  const sl = sell(place(r.state, 'living', u).state, u); assert.equal(sl.state.coins, 70); assert.equal(sl.state.owned.length, 0);
+  assert.deepEqual(unplace(place(r.state, 'living', u).state, 'living', 'sofa').placed.living, {});
+});
+test('casa di Theia: salire di casa richiede livello e stelline; l\'attico ha 5 stanze', () => {
+  let s = { ...newHome(), coins: 500 };
+  assert.equal(upgrade(s, 1).ok, false); assert.equal(upgrade(s, 3).ok, true);
+  assert.equal(houseOf(upgrade(s, 3).state).rooms.length, 2);
+  assert.equal(HOUSES[3].rooms.length, 5); assert.equal(upgrade({ ...s, tier: 3, coins: 9999 }, 99).ok, false);
+});
+
+import { milestonesOf, claimable, stageOf, sizeFactor } from '../src/lib/petMilestones.ts';
+test('traguardi: scattano con i numeri veri, si ritirano una volta, Theia cresce senza mai rimpicciolire', () => {
+  const stats = { tasksDone: 12, workouts: 0, goalsDone: 1, meals: 0, mindEntries: 0, challengesReached: 0, careDays: 3, savingMonths: 0, level: 1 };
+  const c = claimable(stats, []).map((m) => m.id);
+  assert.deepEqual(c.sort(), ['careDays:3', 'goalsDone:1', 'tasksDone:10']);
+  assert.equal(claimable(stats, ['tasksDone:10']).some((m) => m.id === 'tasksDone:10'), false);
+  assert.equal(milestonesOf(stats, []).find((m) => m.id === 'tasksDone:50').pct, 24);
+  assert.equal(stageOf(1).name, 'Cucciolo'); assert.equal(stageOf(7).name, 'Adulto'); assert.equal(stageOf(12).name, 'Saggio');
+  assert.ok(sizeFactor(10) > sizeFactor(1) && sizeFactor(20) === sizeFactor(10));
+});
