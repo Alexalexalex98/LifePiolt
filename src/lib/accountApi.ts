@@ -59,7 +59,7 @@ export async function verifyCode(emailRaw: string, code: string): Promise<Res & 
     await tr.auth.signIn({ email, token: code });
     await applyTransport();
     const g = await (await supa()).rpc<{ complete?: boolean; nome?: string; cognome?: string; paese?: string; citta?: string }>('account_get');
-    return g?.complete ? { ok: true, existing: { firstName: g.nome ?? '', lastName: g.cognome ?? '', country: g.paese ?? '', city: g.citta ?? '' } } : { ok: true };
+    return g?.complete && (g.nome ?? '').trim() ? { ok: true, existing: { firstName: g.nome ?? '', lastName: g.cognome ?? '', country: g.paese ?? '', city: g.citta ?? '' } } : { ok: true };
   } catch (e) { return { ok: false, message: msg(e) }; }
 }
 

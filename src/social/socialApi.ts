@@ -64,7 +64,13 @@ export async function diagnoseSocial(): Promise<DiagStep[]> {
     const c = await loadServerConfig();
     const hasCfg = !!((c.url || process.env.EXPO_PUBLIC_SUPABASE_URL) && (c.anonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY));
     steps.push({ label: 'Server collegato', ok: hasCfg, detail: hasCfg ? undefined : 'Mancano indirizzo e chiave del server (.env.local).' });
-    steps.push({ label: 'Accesso con il tuo account', ok: false, detail: hasCfg ? 'Non risulti collegato: esci e accedi di nuovo con il codice.' : undefined });
+    if (hasCfg) {
+      const sess = await (getSupabase(c.url || process.env.EXPO_PUBLIC_SUPABASE_URL || '', c.anonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '') as unknown as Sb).auth.getSession().catch(() => null);
+      const hasSession = !!sess?.data.session;
+      const hasName = !!useApp.getState().account.name?.trim();
+      steps.push({ label: 'Accesso con il tuo account', ok: hasSession, detail: hasSession ? undefined : 'Non risulti collegato: esci e accedi di nuovo con il codice.' });
+      steps.push({ label: 'Nome nell\'account', ok: hasName, detail: hasName ? undefined : 'Manca il tuo nome: esci, accedi di nuovo e completa i tuoi dati.' });
+    }
     return steps;
   }
   steps.push({ label: 'Server collegato e accesso fatto', ok: true });

@@ -1177,5 +1177,8 @@
   "Hai mandato troppe richieste: riprova tra un po'.": "You sent too many requests: try again in a while.",
   "Prima serve il profilo pubblico: apri Impostazioni → Account → Prova il collegamento social.": "A public profile is needed first: open Settings → Account → Test the social connection.",
   "Amici con codice amico": "Friends with friend code",
-  "Il tuo codice e aggiungere un amico vero": "Your code and adding a real friend"
+  "Il tuo codice e aggiungere un amico vero": "Your code and adding a real friend",
+  "Nome nell'account": "Name in the account",
+  "Manca il tuo nome: esci, accedi di nuovo e completa i tuoi dati.": "Your name is missing: sign out, sign in again and complete your details.",
+  "Non risulti collegato: esci e accedi di nuovo con il codice.": "You don't appear to be signed in: sign out and sign in again with the code."
 }

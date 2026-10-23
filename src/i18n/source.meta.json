@@ -1,5 +1,5 @@
 {
- "count": 14380,
+ "count": 14382,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -609,7 +609,7 @@
   "src/social/dmSync.ts": 2,
   "src/social/friendsApi.ts": 1,
   "src/social/sharedCommands.ts": 4,
-  "src/social/socialApi.ts": 10,
+  "src/social/socialApi.ts": 12,
   "src/social/socialCore.ts": 3,
   "src/social/socialSync.ts": 3,
   "src/store/aiRouter.ts": 1,
