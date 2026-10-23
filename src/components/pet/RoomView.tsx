@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Circle, Defs, Ellipse, G, Line, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, G, Image as SvgImage, Line, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import type { Phase } from '@/components/pet/PetScene';
 import type { Kind, Quality, RoomId } from '@/lib/petHome';
@@ -39,6 +39,17 @@ function G2({ id, c, t = 0.28, b = 0.22 }: { id: string; c: string; t?: number; 
 const Shadow = ({ cx, cy, rx }: { cx: number; cy: number; rx: number }) => <Ellipse cx={cx} cy={cy} rx={rx} ry={Math.max(6, rx * 0.1)} fill="#000" opacity={0.2} />;
 const Gloss = ({ x, y, w, h, o = 0.3 }: { x: number; y: number; w: number; h: number; o?: number }) => <Ellipse cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2} fill="#fff" opacity={o} />;
 
+/** Mobili disegnati a mano (immagini): dove c'è lo sprite si usa quello, altrimenti il disegno vettoriale. x/y/w/h = riquadro nella stanza, appoggiato al pavimento. */
+const SPRITES: Record<string, { src: number; x: number; y: number; w: number; h: number }> = {
+  'sofa:0': { src: require('../../../assets/pet/sofa-0.png'), x: 0, y: 330, w: 156, h: 132 },
+  'sofa:1': { src: require('../../../assets/pet/sofa-1.png'), x: 0, y: 330, w: 156, h: 132 },
+  'sofa:2': { src: require('../../../assets/pet/sofa-2.png'), x: 0, y: 330, w: 156, h: 132 },
+  'bed:0': { src: require('../../../assets/pet/bed-0.png'), x: 4, y: 316, w: 180, h: 146 },
+  'table:0': { src: require('../../../assets/pet/table-0.png'), x: 20, y: 360, w: 140, h: 102 },
+  'desk:0': { src: require('../../../assets/pet/desk-0.png'), x: 14, y: 356, w: 144, h: 106 },
+  'bench:0': { src: require('../../../assets/pet/bench-0.png'), x: 14, y: 352, w: 144, h: 110 },
+};
+
 function Art({ kind, q, accent, wear }: { kind: Kind; q: Quality; accent: string; wear: number }) {
   const base = baseOf(kind, q, accent);
   const gold = q === 2 ? '#f2c94c' : null;
@@ -46,7 +57,15 @@ function Art({ kind, q, accent, wear }: { kind: Kind; q: Quality; accent: string
   const id = `${kind}${q}`;
   const wood = q === 2 ? '#6b4326' : '#b98f5f';
   let body: JSX.Element;
-  switch (kind) {
+  const sp = SPRITES[`${kind}:${q}`];
+  if (sp) {
+    body = (
+      <G>
+        <Shadow cx={sp.x + sp.w / 2} cy={461} rx={sp.w * 0.46} />
+        <SvgImage x={sp.x} y={sp.y} width={sp.w} height={sp.h} href={sp.src} preserveAspectRatio="xMidYMax meet" />
+      </G>
+    );
+  } else switch (kind) {
     case 'sofa': body = (
       <G>
         <Defs><G2 id={`${id}a`} c={base} /><G2 id={`${id}b`} c={base} t={0.4} b={0.05} /><G2 id={`${id}c`} c={d} t={0.1} b={0.3} /></Defs>

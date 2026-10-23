@@ -50,9 +50,8 @@
 - [ ] Provare animazioni e tocco sul telefono (da fare)
 - [ ] Casa: stanze, mobili, usura, traslochi (solo test)
 - [ ] Mobili con grafica più realistica
-  - [x] Quattro sprite creati con Canva (divani e letto)
-  - [ ] Collegare gli sprite alle stanze (da fare)
-  - [ ] Creare gli altri mobili (da fare: crediti Canva finiti)
+  - [x] Sette sprite creati con Canva e collegati alle stanze (3 divani, letto, tavolo, scrivania, panchina)
+  - [ ] Creare gli altri mobili: tappeto, pianta, lampada, quadro, mensola, armadio e le versioni più belle (da fare: crediti Canva finiti)
 - [ ] Traguardi e stelline senza rivelare i valori (solo test)
 - [ ] Amici nel gioco: visite e sfide con persone vere (da fare: ora sono dati finti)
 - [ ] Inviti gentili al benessere (segnali, esercizi CBT) (solo test)

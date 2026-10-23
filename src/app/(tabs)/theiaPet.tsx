@@ -217,7 +217,7 @@ export default function TheiaPet() {
       </View>
 
       {/* la stanza di Theia, come un quadro: Theia dentro, toccala */}
-      <View style={{ marginHorizontal: 12, marginTop: 10, borderRadius: 22, overflow: 'hidden', height: view === 'home' ? 230 : tray ? Math.min(((width - 24) * 380) / 360, height * 0.34) : Math.min(((width - 24) * 380) / 360, height * 0.46), justifyContent: 'flex-end', alignItems: 'center', paddingBottom: Math.max(6, ((width - 24) / 360) * 58) }} onLayout={(e) => setStageSz({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      <View style={{ marginHorizontal: 12, marginTop: 10, borderRadius: 22, overflow: 'hidden', height: view === 'home' ? 290 : tray ? Math.min(((width - 24) * 380) / 360, height * 0.34) : Math.min(((width - 24) * 380) / 360, height * 0.46), justifyContent: 'flex-end', alignItems: 'center', paddingBottom: Math.max(6, ((width - 24) / 360) * 58) }} onLayout={(e) => setStageSz({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
         <RoomView room={view === 'home' ? home.room : 'living'} phase={phase} accent={th.accent} placed={placedOf(view === 'home' ? home.room : 'living')} tier={home.tier} />
         <View style={{ position: 'absolute', bottom: 8, right: 8, flexDirection: 'row', gap: 8 }}>
           {can.goals ? btn(36, 'award', 'Traguardi', () => { home.markSeen('goals'); setPanel('goals'); }, pending.length || undefined, true, true) : null}
