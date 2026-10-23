@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExerciseRunner } from '@/components/mascot/ExerciseRunner';
 import { Mascot } from '@/components/mascot/Mascot';
 import { phaseOf } from '@/components/pet/PetScene';
+import { FeedFx, type FeedRun } from '@/components/pet/FeedFx';
+import { FoodArt } from '@/components/pet/FoodArt';
 import { RoomView, type Placed } from '@/components/pet/RoomView';
 import { petStats } from '@/hooks/use-pet-stats';
 import { HOUSES, ITEMS, KIND_NAME, QUALITY_NAME, ROOMS, houseOf, itemOf, repairCost, wearOf } from '@/lib/petHome';
@@ -25,6 +27,9 @@ import { dayKey } from '@/lib/format';
 import { EXERCISES, insightsOf, type Exercise } from '@/lib/mindExercises';
 import type { Expression, MotionId } from '@/lib/mascot';
 import { peoplePool } from '@/lib/network';
+import { FOODS, foodsOf, ownedFoods, reactionOf, type FoodDef } from '@/lib/petFood';
+import { useFitness } from '@/store/fitness';
+import { usePantry } from '@/store/pantry';
 import { available, levelProgress, moodOf, publicOf, streakNow, tick, type Kind } from '@/lib/pet';
 import { ACCENTS } from '@/lib/themeCustom';
 import { useApp } from '@/store/app';
@@ -39,7 +44,7 @@ import { go } from '@/lib/nav';
 const ACTIONS: { k: Kind; title: string; icon: string; earn: string; page: string; expr: Expression; mv: MotionId }[] = [
   { k: 'snack', title: 'Spuntino', icon: 'meal', earn: 'Lo guadagni completando task e segnando i pasti', page: 'lifetask', expr: 'eating', mv: 'bounce' },
   { k: 'water', title: 'Acqua', icon: 'drop', earn: 'La guadagni segnando l\'acqua che bevi', page: 'lifefitness', expr: 'water', mv: 'nod' },
-  { k: 'fit', title: 'Energia', icon: 'activity', earn: 'La guadagni facendo un allenamento', page: 'lifefitness', expr: 'workout', mv: 'jump' },
+  { k: 'fit', title: 'Movimento', icon: 'activity', earn: 'La guadagni facendo un allenamento', page: 'lifefitness', expr: 'workout', mv: 'jump' },
   { k: 'love', title: 'Pensiero', icon: 'heart', earn: 'Lo guadagni segnando come stai', page: 'lifehealth', expr: 'love', mv: 'dance' },
   { k: 'pet', title: 'Coccola', icon: 'smile', earn: 'Poche al giorno, gratis', page: '', expr: 'blushing', mv: 'squish' },
 ];
@@ -47,14 +52,16 @@ type Panel = 'activities' | 'friends' | 'settings' | 'goals' | 'invite' | null;
 type View_ = 'theia' | 'home';
 const hue = (name: string) => ACCENTS[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % ACCENTS.length]!.hex;
 
-function Gauge({ icon, v, color }: { icon: string; v: number; color: string }) {
+function Gauge({ icon, v, color, label }: { icon: string; v: number; color: string; label: string }) {
   return (
-    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#00000040', borderRadius: 14, paddingVertical: 6, paddingHorizontal: 8 }}>
-      <Icon name={icon as never} size={16} color="#fff" stroke={2} />
-      <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: '#ffffff30', overflow: 'hidden' }}><View style={{ width: `${Math.round(v)}%`, height: 8, backgroundColor: color, borderRadius: 4 }} /></View>
+    <View accessible accessibilityLabel={`${tl(label)} ${Math.round(v)}%`} style={{ flex: 1, alignItems: 'center', gap: 4, backgroundColor: '#00000040', borderRadius: 14, paddingVertical: 6, paddingHorizontal: 6 }}>
+      <Icon name={icon as never} size={15} color="#fff" stroke={2} />
+      <View style={{ alignSelf: 'stretch', height: 7, borderRadius: 4, backgroundColor: '#ffffff30', overflow: 'hidden' }}><View style={{ width: `${Math.round(v)}%`, height: 7, backgroundColor: color, borderRadius: 4 }} /></View>
     </View>
   );
 }
+
+const QUAL: Record<string, { label: string; color: string }> = { fresco: { label: 'Fresco', color: '#5fd39a' }, neutro: { label: 'Ogni tanto', color: '#ffb84f' }, goloso: { label: 'Goloso', color: '#ff7aa8' } };
 
 /** Theia, il gioco: una creatura da accudire e da veder crescere, in un salotto che cambia con l'ora. Cibo e acqua si guadagnano con le cose vere dell'app; se vuoi, giochi con gli amici. */
 export default function TheiaPet() {
@@ -69,6 +76,12 @@ export default function TheiaPet() {
   const [panel, setPanel] = useState<Panel>(null);
   const [name, setName] = useState<string | null>(null);
   const [bubble, setBubble] = useState(true);
+  const [tray, setTray] = useState<'snack' | 'water' | null>(null);
+  const [feedRun, setFeedRun] = useState<FeedRun | null>(null);
+  const [say, setSay] = useState<string | null>(null);
+  const [stageSz, setStageSz] = useState({ w: 0, h: 0 });
+  const pantry = usePantry((x) => x.items);
+  const meals = useFitness((x) => x.meals);
   const mind = useMindSpace();
   const [run, setRun] = useState<Exercise | null>(null);
   const [tab, setTab] = useState<'friends' | 'challenges'>('friends');
@@ -118,12 +131,29 @@ export default function TheiaPet() {
 
   const react = (e: Expression, m: MotionId, ms = 1800) => { setTemp(e); setMv((x) => ({ id: m, n: x.n + 1 })); setTimeout(() => setTemp(null), ms); };
   const act = (a: (typeof ACTIONS)[number]) => {
+    if (a.k === 'snack' || a.k === 'water') { setTray((t) => (t === a.k ? null : (a.k as 'snack' | 'water'))); return; }
     if (avail[a.k] <= 0) { if (a.page) { toast(`${tl(a.earn)}.`); go(a.page); } else toast('Per oggi basta coccole: tornano domani'); return; }
     const r = giveTo(a.k, earned, day);
     if (!r.ok) return;
     react(a.expr, a.mv); setBubble(false);
     usePetHome.getState().earn(a.k);
     toast(r.leveledUp ? tl('Theia è salita di livello!') : tl('Theia è contenta'));
+  };
+  const feed = (d: FoodDef, label?: string) => {
+    const a = ACTIONS.find((x) => x.k === d.kind)!;
+    if (avail[d.kind] <= 0) { toast(`${tl(a.earn)}.`); return; }
+    const before = tick(usePet.getState().pet);
+    const r = giveTo(d.kind, earned, day, d.fx);
+    if (!r.ok) return;
+    usePetHome.getState().earn(d.kind);
+    const after = tick(usePet.getState().pet);
+    const dE = Math.round((after.energy ?? 70) - (before.energy ?? 70)); const dH = Math.round((after.health ?? 70) - (before.health ?? 70));
+    const q = reactionOf(d);
+    setBubble(false); setSay(null);
+    react('eating', 'bounce', 900);
+    setTimeout(() => { react(d.q === 'goloso' ? 'blushing' : 'love', d.q === 'goloso' ? 'squish' : 'dance', 1700); setSay(label ? `${label}: ${tl(q.text)}` : q.text); setTimeout(() => setSay(null), 2600); }, 900);
+    setFeedRun({ n: Date.now(), art: d.art, q: d.q, energy: dE, health: dH });
+    if (r.leveledUp) toast(tl('Theia è salita di livello!'));
   };
   const poke = () => { if (avail.pet > 0) giveTo('pet', earned, day); react('blushing', 'squish', 1400); };
 
@@ -143,13 +173,13 @@ export default function TheiaPet() {
   const visitDo = (id: MotionId, text?: string) => { setVmv((x) => ({ id, n: x.n + 1 })); if (vis && text) { dm(vis, text); toast('Inviato'); } };
   const openVisit = (n: string) => { setPanel(null); setVis(n); if (visit(n, day)) { usePetHome.getState().earn('visit'); toast('Visita fatta'); } };
 
-  const btn = (round: number, icon: string, label: string, onPress: () => void, badge?: number, dim?: boolean) => (
-    <Pressable accessibilityRole="button" accessibilityLabel={tl(label)} onPress={onPress} style={{ alignItems: 'center', width: round + 14 }}>
+  const btn = (round: number, icon: string, label: string, onPress: () => void, badge?: number, dim?: boolean, noLabel?: boolean) => (
+    <Pressable accessibilityRole="button" accessibilityLabel={tl(label)} onPress={onPress} style={{ alignItems: 'center', width: noLabel ? round : round + 14 }}>
       <View style={{ width: round, height: round, borderRadius: round / 2, backgroundColor: dim ? '#ffffff30' : th.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#ffffffcc' }}>
         <Icon name={icon as never} size={round * 0.42} color="#fff" stroke={2} />
         {badge ? <View style={{ position: 'absolute', top: -4, right: -4, minWidth: 22, height: 22, borderRadius: 11, backgroundColor: '#ff5d73', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{badge}</Text></View> : null}
       </View>
-      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700', marginTop: 4, textShadowColor: '#0008', textShadowRadius: 3 }}>{tl(label)}</Text>
+      {noLabel ? null : <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700', marginTop: 4, textShadowColor: '#0008', textShadowRadius: 3 }} numberOfLines={1}>{tl(label)}</Text>}
     </Pressable>
   );
 
@@ -165,28 +195,34 @@ export default function TheiaPet() {
       {/* in alto: indietro, nome e crescita, stelline, bisogni */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 14, gap: 10 }}>
         <Row gap={8}>
-          {btn(40, 'arrow-left', 'Indietro', () => goBack(), undefined, true)}
+          {btn(40, 'arrow-left', 'Indietro', () => goBack(), undefined, true, true)}
           <View style={{ flex: 1, backgroundColor: '#ffffff18', borderRadius: 16, paddingVertical: 6, paddingHorizontal: 12 }}>
             {name === null ? (
-              <Pressable onPress={() => setName(pet.name)}><Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }} numberOfLines={1}>{`${pet.name} · ${tl(stage.name)} · ${tl('Livello')} ${lp.level}`}</Text></Pressable>
+              <Pressable onPress={() => setName(pet.name)}>
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }} numberOfLines={1}>{pet.name}</Text>
+                <Text style={{ color: '#ffffffb0', fontSize: 11, fontWeight: '600' }} numberOfLines={1}>{`${tl(stageOf(lp.level).name)} · ${tl('Livello')} ${lp.level} · ${streak} ${tl('giorni di cura')}`}</Text>
+              </Pressable>
             ) : <Input value={name} onChangeText={setName} onBlur={() => { rename(name); setName(null); }} onSubmitEditing={() => { rename(name); setName(null); }} autoFocus />}
-            <View style={{ height: 7, borderRadius: 4, backgroundColor: '#ffffff30', overflow: 'hidden', marginTop: 4 }}><View style={{ width: `${lp.pct}%`, height: 7, backgroundColor: '#ffd75e' }} /></View>
+            <View style={{ height: 6, borderRadius: 3, backgroundColor: '#ffffff30', overflow: 'hidden', marginTop: 4 }}><View style={{ width: `${lp.pct}%`, height: 6, backgroundColor: '#ffd75e' }} /></View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ffffff18', borderRadius: 16, paddingVertical: 10, paddingHorizontal: 12 }}><Icon name="star" size={15} color="#ffd75e" stroke={2} /><Text style={{ color: '#fff', fontWeight: '800' }}>{home.coins}</Text></View>
         </Row>
-        <Row gap={8}>
-          <Gauge icon="meal" v={now.food} color="#ffb84f" /><Gauge icon="drop" v={now.water} color="#4fc7e0" /><Gauge icon="heart" v={now.joy} color="#ff6f91" />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ffffff18', borderRadius: 14, paddingVertical: 6, paddingHorizontal: 10 }}><Icon name="calendar" size={14} color="#fff" stroke={2} /><Text style={{ color: '#fff', fontWeight: '800' }}>{streak}</Text></View>
+        <Row gap={6}>
+          <Gauge icon="meal" label="Fame" v={now.food} color="#ffb84f" />
+          <Gauge icon="drop" label="Acqua" v={now.water} color="#4fc7e0" />
+          <Gauge icon="activity" label="Energia" v={now.energy ?? 70} color="#b6e35c" />
+          <Gauge icon="shield" label="Salute" v={now.health ?? 70} color="#5fd39a" />
+          <Gauge icon="smile" label="Allegria" v={now.joy} color="#ff6f91" />
         </Row>
       </View>
 
       {/* la stanza di Theia, come un quadro: Theia dentro, toccala */}
-      <View style={{ marginHorizontal: 12, marginTop: 10, borderRadius: 22, overflow: 'hidden', height: view === 'home' ? 230 : Math.min(((width - 24) * 380) / 360, height * 0.48), justifyContent: 'flex-end', alignItems: 'center', paddingBottom: Math.max(6, ((width - 24) / 360) * 58) }}>
+      <View style={{ marginHorizontal: 12, marginTop: 10, borderRadius: 22, overflow: 'hidden', height: view === 'home' ? 230 : tray ? Math.min(((width - 24) * 380) / 360, height * 0.34) : Math.min(((width - 24) * 380) / 360, height * 0.46), justifyContent: 'flex-end', alignItems: 'center', paddingBottom: Math.max(6, ((width - 24) / 360) * 58) }} onLayout={(e) => setStageSz({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
         <RoomView room={view === 'home' ? home.room : 'living'} phase={phase} accent={th.accent} placed={placedOf(view === 'home' ? home.room : 'living')} tier={home.tier} />
-        <View style={{ position: 'absolute', top: 8, right: 8, gap: 8 }}>
-          {can.goals ? btn(38, 'award', 'Traguardi', () => { home.markSeen('goals'); setPanel('goals'); }, pending.length || undefined, true) : null}
-          {can.friends ? btn(38, 'users', 'Amici', () => { home.markSeen('friends'); setPanel('friends'); }, undefined, true) : null}
-          {btn(38, 'gear', 'Impostazioni', () => setPanel('settings'), undefined, true)}
+        <View style={{ position: 'absolute', bottom: 8, right: 8, flexDirection: 'row', gap: 8 }}>
+          {can.goals ? btn(36, 'award', 'Traguardi', () => { home.markSeen('goals'); setPanel('goals'); }, pending.length || undefined, true, true) : null}
+          {can.friends ? btn(36, 'users', 'Amici', () => { home.markSeen('friends'); setPanel('friends'); }, undefined, true, true) : null}
+          {btn(36, 'gear', 'Impostazioni', () => setPanel('settings'), undefined, true, true)}
         </View>
         {invite && !temp ? (
           <Pressable onPress={() => { setPanel('invite'); useMindSpace.getState().shown(invite.id, Date.now(), dayKey()); }} style={{ backgroundColor: '#ffffffee', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14, marginBottom: 4, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -198,20 +234,56 @@ export default function TheiaPet() {
             <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: th.accent, alignItems: 'center', justifyContent: 'center' }}><Icon name="sparkle" size={13} color="#fff" stroke={2.2} /></View>
             <Text style={{ color: '#1a2233', fontWeight: '700' }}>{tl(DISCOVER[discover]!)}</Text>
           </Pressable>
+        ) : say ? (
+          <View style={{ backgroundColor: '#ffffffee', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14, maxWidth: width * 0.7, marginBottom: 4 }}><Text style={{ color: '#1a2233', fontWeight: '700', textAlign: 'center' }}>{tl(say)}</Text></View>
         ) : bubble && !temp && view === 'theia' ? (
           <Pressable onPress={() => setBubble(false)} style={{ backgroundColor: '#ffffffee', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14, maxWidth: width * 0.7, marginBottom: 4 }}>
             <Text style={{ color: '#1a2233', fontWeight: '700', textAlign: 'center' }}>{tl(mood.label)}</Text>
           </Pressable>
         ) : null}
-        <Pressable accessibilityRole="button" accessibilityLabel={pet.name} onPress={poke}><Mascot size={view === 'home' ? Math.round(size * 0.55) : size} color={th.accent} expression={shown} motion={mv} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={pet.name} onPress={poke}><Mascot size={view === 'home' ? Math.round(size * 0.55) : tray ? Math.round(size * 0.72) : size} color={th.accent} expression={shown} motion={mv} /></Pressable>
+        <FeedFx run={feedRun} w={stageSz.w} h={stageSz.h} />
       </View>
 
       {/* in basso: azioni (Theia) oppure casa e negozio (Casa) */}
       {view === 'theia' ? (
-        <View style={{ paddingBottom: 8, gap: 10 }}>
-          <Row style={{ justifyContent: 'space-between', paddingHorizontal: 10 }}>
-            {ACTIONS.map((a) => <View key={a.k}>{btn(54, a.icon, a.title, () => act(a), avail[a.k] > 0 ? avail[a.k] : undefined, avail[a.k] <= 0)}</View>)}
-          </Row>
+        <View style={{ flex: 1, gap: 8 }}>
+          <View style={{ flexDirection: 'row', paddingHorizontal: 10, marginTop: 8 }}>
+            {ACTIONS.map((a) => (
+              <Pressable key={a.k} accessibilityRole="button" accessibilityLabel={tl(a.title)} onPress={() => act(a)} style={{ flex: 1, alignItems: 'center' }}>
+                <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: tray === a.k ? '#ffffff' : avail[a.k] > 0 ? th.accent : '#ffffff30', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#ffffffcc' }}>
+                  <Icon name={a.icon as never} size={21} color={tray === a.k ? '#12182a' : '#fff'} stroke={2} />
+                  {avail[a.k] > 0 ? <View style={{ position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, backgroundColor: '#ff5d73', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{avail[a.k]}</Text></View> : null}
+                </View>
+                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700', marginTop: 4 }} numberOfLines={1} adjustsFontSizeToFit>{tl(a.title)}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {tray ? (
+            <ScrollView style={{ flex: 1, backgroundColor: '#1a2140', borderTopLeftRadius: 22, borderTopRightRadius: 22 }} contentContainerStyle={{ padding: 14, gap: 12 }}>
+              <Row><Text style={{ color: '#fff', fontWeight: '800', fontSize: 16, flex: 1 }}>{tl(tray === 'snack' ? 'Cosa le dai da mangiare?' : 'Cosa le dai da bere?')}</Text><Pressable accessibilityRole="button" accessibilityLabel={tl('Chiudi')} hitSlop={10} onPress={() => setTray(null)}><Icon name="x" size={20} color="#fff" stroke={2} /></Pressable></Row>
+              {avail[tray] <= 0 ? <Pressable onPress={() => { const a = ACTIONS.find((x) => x.k === tray)!; toast(`${tl(a.earn)}.`); go(a.page); }} style={{ backgroundColor: '#ffffff14', borderRadius: 12, padding: 10 }}><Text style={{ color: '#ffffffd0', fontSize: 13 }}>{tl(tray === 'snack' ? 'Per un altro spuntino serve un gettone: lo guadagni completando task e segnando i pasti.' : 'Per un\'altra bevanda serve un gettone: lo guadagni segnando l\'acqua che bevi.')}</Text></Pressable> : null}
+              {(() => {
+                const mine = ownedFoods([...pantry.map((x) => x.name), ...meals.slice(0, 40).map((m) => m.name)]).filter((o) => o.def.kind === tray);
+                const card = (def: FoodDef, label?: string) => (
+                  <Pressable key={`${def.id}-${label ?? ''}`} accessibilityRole="button" accessibilityLabel={label ?? tl(def.name)} onPress={() => feed(def, label)} style={{ width: 92, alignItems: 'center', backgroundColor: '#232d4f', borderRadius: 14, paddingVertical: 8, paddingHorizontal: 4, opacity: avail[tray] > 0 ? 1 : 0.55 }}>
+                    <FoodArt id={def.art} size={46} />
+                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700', marginTop: 2, textAlign: 'center' }} numberOfLines={2}>{label ?? tl(def.name)}</Text>
+                    <Text style={{ color: QUAL[def.q]!.color, fontSize: 10, fontWeight: '800', marginTop: 2 }}>{tl(QUAL[def.q]!.label)}</Text>
+                  </Pressable>
+                );
+                const grid = (list: React.ReactNode[]) => <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{list}</View>;
+                return (
+                  <>
+                    {mine.length ? <View style={{ gap: 6 }}><Text style={{ color: '#ffffffb0', fontSize: 12, fontWeight: '700' }}>{tl('Dal tuo frigo e dai tuoi pasti')}</Text>{grid(mine.map((o) => card(o.def, o.label)))}<Text style={{ color: '#ffffff80', fontSize: 11 }}>{tl('Non toglie niente dal tuo frigo vero.')}</Text></View> : null}
+                    <View style={{ gap: 6 }}><Text style={{ color: '#ffffffb0', fontSize: 12, fontWeight: '700' }}>{tl('Freschi')}</Text>{grid(foodsOf(tray, 'fresco').map((d) => card(d)))}</View>
+                    <View style={{ gap: 6 }}><Text style={{ color: '#ffffffb0', fontSize: 12, fontWeight: '700' }}>{tl('Sfizi')}</Text>{grid([...foodsOf(tray, 'neutro'), ...foodsOf(tray, 'goloso')].map((d) => card(d)))}</View>
+                    <Text style={{ color: '#ffffff80', fontSize: 11 }}>{tl('Scegli tu. I cibi freschi le danno energia e salute; quelli molto zuccherati o fritti la rendono felice sul momento, ma le tolgono energia e salute. Si recupera sempre.')}</Text>
+                  </>
+                );
+              })()}
+            </ScrollView>
+          ) : <Text style={{ color: '#ffffff80', fontSize: 12, textAlign: 'center', paddingHorizontal: 20 }}>{tl('Tocca Spuntino o Acqua per scegliere cosa darle.')}</Text>}
         </View>
       ) : (
         <ScrollView style={{ flex: 1, backgroundColor: '#12182a', borderTopLeftRadius: 22, borderTopRightRadius: 22 }} contentContainerStyle={{ padding: 14, gap: 10 }}>

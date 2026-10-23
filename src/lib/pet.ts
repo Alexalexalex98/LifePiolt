@@ -4,13 +4,16 @@
  * Niente morte, niente punizioni, niente sensi di colpa: se manchi Theia è tranquilla e felice di rivederti. Le necessità calano piano fino a una soglia; tutto si calcola da data e ora, senza timer in background.
  */
 import type { Expression } from './mascot.ts';
+import type { Fx } from './petFood.ts';
 
-export type Need = 'food' | 'water' | 'joy';
+export type Need = 'food' | 'water' | 'joy' | 'energy' | 'health';
 export type PetState = {
   name: string;
   born: number;
   xp: number;
   food: number; water: number; joy: number;
+  /** energia e salute: salgono con cibi freschi, acqua e movimento, scendono con cibi molto zuccherati o fritti (mai sotto la soglia) */
+  energy?: number; health?: number;
   /** ultimo aggiornamento delle necessità (ms) */
   ts: number;
   streak: number;
@@ -22,10 +25,10 @@ export type PetState = {
   share: boolean;
 };
 
-export const newPet = (now = Date.now(), name = 'Theia'): PetState => ({ name, born: now, xp: 0, food: 70, water: 70, joy: 70, ts: now, streak: 0, streakDay: '', spent: { day: '', snack: 0, water: 0, fit: 0, love: 0, pet: 0 }, share: false });
+export const newPet = (now = Date.now(), name = 'Theia'): PetState => ({ name, born: now, xp: 0, food: 70, water: 70, joy: 70, energy: 70, health: 70, ts: now, streak: 0, streakDay: '', spent: { day: '', snack: 0, water: 0, fit: 0, love: 0, pet: 0 }, share: false });
 
 /** Calo all'ora, fino alla soglia minima: dopo qualche giorno Theia è semplicemente tranquilla, mai triste. */
-export const DECAY: Record<Need, number> = { food: 3.5, water: 4.5, joy: 2.5 };
+export const DECAY: Record<Need, number> = { food: 3.5, water: 4.5, joy: 2.5, energy: 2, health: 0.4 };
 /** Sotto questa soglia non scende mai: Theia non soffre e non si ammala se manchi; al massimo è tranquilla. */
 export const FLOOR = 35;
 const clamp = (n: number) => Math.max(FLOOR, Math.min(100, n));
@@ -34,7 +37,7 @@ const clamp = (n: number) => Math.max(FLOOR, Math.min(100, n));
 export function tick(p: PetState, now = Date.now()): PetState {
   const h = Math.max(0, (now - p.ts) / 3600000);
   if (h <= 0) return p;
-  return { ...p, food: clamp(p.food - DECAY.food * h), water: clamp(p.water - DECAY.water * h), joy: clamp(p.joy - DECAY.joy * h), ts: now };
+  return { ...p, food: clamp(p.food - DECAY.food * h), water: clamp(p.water - DECAY.water * h), joy: clamp(p.joy - DECAY.joy * h), energy: clamp((p.energy ?? 70) - DECAY.energy * h), health: clamp((p.health ?? 70) - DECAY.health * h), ts: now };
 }
 
 /** Gettoni guadagnati OGGI facendo cose vere. I tetti evitano di barare dando 100 volte la stessa cosa. */
@@ -45,8 +48,8 @@ export function earnedToday(a: { tasksDone: number; mealsLogged: number; waterMl
 export type Kind = 'snack' | 'water' | 'fit' | 'love' | 'pet';
 /** Coccole gratis, ma poche al giorno. */
 export const PET_DAILY = 3;
-export const EFFECT: Record<Kind, { need: Need | null; gain: number; xp: number }> = {
-  snack: { need: 'food', gain: 25, xp: 5 }, water: { need: 'water', gain: 30, xp: 3 }, fit: { need: 'joy', gain: 20, xp: 10 }, love: { need: 'joy', gain: 15, xp: 2 }, pet: { need: 'joy', gain: 6, xp: 0 },
+export const EFFECT: Record<Kind, Fx> = {
+  snack: { food: 25, xp: 5 }, water: { water: 30, xp: 3 }, fit: { joy: 20, energy: 20, health: 4, xp: 10 }, love: { joy: 15, xp: 2 }, pet: { joy: 6, xp: 0 },
 };
 
 const todaySpent = (p: PetState, day: string) => (p.spent.day === day ? p.spent : { day, snack: 0, water: 0, fit: 0, love: 0, pet: 0 });
@@ -56,13 +59,14 @@ export function available(p: PetState, e: Earned, day: string): Record<Kind, num
 }
 
 /** Dà qualcosa a Theia. Se non c'è il gettone, non fa nulla e lo dice. */
-export function give(p0: PetState, kind: Kind, e: Earned, day: string, now = Date.now()): { pet: PetState; ok: boolean; leveledUp: boolean } {
+export function give(p0: PetState, kind: Kind, e: Earned, day: string, now = Date.now(), fxOver?: Fx): { pet: PetState; ok: boolean; leveledUp: boolean } {
   const p = tick(p0, now);
   if (available(p, e, day)[kind] <= 0) return { pet: p, ok: false, leveledUp: false };
-  const fx = EFFECT[kind];
+  const fx = fxOver ?? EFFECT[kind];
   const s = todaySpent(p, day);
-  const next: PetState = { ...p, xp: p.xp + fx.xp, spent: { ...s, [kind]: s[kind] + 1 } };
-  if (fx.need) next[fx.need] = clamp(next[fx.need] + fx.gain);
+  const next: PetState = { ...p, xp: p.xp + (fx.xp ?? 0), spent: { ...s, [kind]: s[kind] + 1 } };
+  for (const n of ['food', 'water', 'joy'] as const) if (fx[n]) next[n] = clamp(next[n] + (fx[n] ?? 0));
+  for (const n of ['energy', 'health'] as const) if (fx[n]) next[n] = clamp((next[n] ?? 70) + (fx[n] ?? 0));
   return { pet: updateStreak(next, day), ok: true, leveledUp: levelOf(next.xp) > levelOf(p.xp) };
 }
 
@@ -83,10 +87,11 @@ export const levelProgress = (xp: number) => { const l = levelOf(xp), a = xpForL
 
 /** Come sta, in parole e in espressione. Mai triste né sofferente: se manchi è tranquilla, e ti fa capire con garbo cosa farebbe piacere. */
 export function moodOf(p: PetState, hour = new Date().getHours()): { expr: Expression; label: string; worst: Need | null } {
-  const low = (['food', 'water', 'joy'] as Need[]).map((n) => ({ n, v: p[n] })).sort((a, b) => a.v - b.v)[0]!;
+  const low = (['food', 'water', 'joy', 'energy', 'health'] as Need[]).map((n) => ({ n, v: p[n] ?? 70 })).sort((a, b) => a.v - b.v)[0]!;
   if (hour >= 23 || hour < 6) return { expr: 'sleepy', label: 'Sta riposando', worst: null };
-  if (low.v < 50) return { expr: 'relaxed', label: low.n === 'food' ? 'Uno spuntino farebbe piacere a Theia' : low.n === 'water' ? 'Un bicchiere d\'acqua farebbe piacere a Theia' : 'Una coccola farebbe piacere a Theia', worst: low.n };
-  const avg = (p.food + p.water + p.joy) / 3;
+  const LABEL: Record<Need, string> = { food: 'Uno spuntino farebbe piacere a Theia', water: 'Un bicchiere d\'acqua farebbe piacere a Theia', joy: 'Una coccola farebbe piacere a Theia', energy: 'Theia ha poca energia: acqua e cibi freschi la aiutano', health: 'Theia sta meglio con cibi freschi e un po\' di movimento' };
+  if (low.v < 50) return { expr: 'relaxed', label: LABEL[low.n], worst: low.n };
+  const avg = (p.food + p.water + p.joy + (p.energy ?? 70) + (p.health ?? 70)) / 5;
   return avg > 80 ? { expr: 'love', label: 'Sta benissimo', worst: null } : { expr: 'happy', label: 'Sta bene', worst: null };
 }
 

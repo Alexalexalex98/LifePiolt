@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { give, newPet, tick, type Earned, type Kind, type PetPublic, type PetState } from '@/lib/pet';
+import type { Fx } from '@/lib/petFood';
 
 import { persisted } from './persist';
 
@@ -13,7 +14,7 @@ type State = {
   visits: Record<string, string>;
   visit: (name: string, day: string) => boolean;
   refresh: () => void;
-  giveTo: (kind: Kind, earned: Earned, day: string) => { ok: boolean; leveledUp: boolean };
+  giveTo: (kind: Kind, earned: Earned, day: string, fx?: Fx) => { ok: boolean; leveledUp: boolean };
   /** punti per aver fatto un'attività insieme (esplorazione, non cura) */
   addXp: (n: number) => void;
   rename: (name: string) => void;
@@ -28,7 +29,7 @@ export const usePet = create<State>()(
     visits: {},
     visit: (name, day) => { if (get().visits[name] === day) return false; set((s) => ({ visits: { ...s.visits, [name]: day }, pet: { ...s.pet, xp: s.pet.xp + 2 } })); return true; },
     refresh: () => set((s) => ({ pet: tick(s.pet) })),
-    giveTo: (kind, earned, day) => { const r = give(get().pet, kind, earned, day); if (r.ok) set({ pet: r.pet }); else set({ pet: r.pet }); return { ok: r.ok, leveledUp: r.leveledUp }; },
+    giveTo: (kind, earned, day, fx) => { const r = give(get().pet, kind, earned, day, Date.now(), fx); if (r.ok) set({ pet: r.pet }); else set({ pet: r.pet }); return { ok: r.ok, leveledUp: r.leveledUp }; },
     addXp: (n) => set((s) => ({ pet: { ...s.pet, xp: s.pet.xp + n } })),
     rename: (name) => set((s) => ({ pet: { ...s.pet, name: name.trim().slice(0, 20) || 'Theia' } })),
     setShare: (share) => set((s) => ({ pet: { ...s.pet, share } })),
