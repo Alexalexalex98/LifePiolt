@@ -12,6 +12,7 @@ import { weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { childrenOf, isDone, isLeaf, pathOf, progressOf, toOutline, type PNode } from '@/lib/projectTree';
+import { pdfToText } from '@/lib/pdfText';
 import { readUriBytes } from '@/lib/readUri';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
@@ -57,10 +58,14 @@ export default function Projects() {
   };
   async function importFile() {
     try {
-      const r = await DocumentPicker.getDocumentAsync({ type: ['text/*', 'application/octet-stream'], copyToCacheDirectory: true });
+      const r = await DocumentPicker.getDocumentAsync({ type: ['text/*', 'application/pdf', 'application/octet-stream'], copyToCacheDirectory: true });
       if (r.canceled || !r.assets[0]) return;
-      const bytes = await readUriBytes(r.assets[0].uri);
-      doImport(new TextDecoder().decode(bytes));
+      const a = r.assets[0];
+      const bytes = await readUriBytes(a.uri);
+      const isPdf = a.mimeType === 'application/pdf' || /\.pdf$/i.test(a.name) || (bytes[0] === 0x25 && bytes[1] === 0x50);
+      const txt = isPdf ? pdfToText(bytes) : new TextDecoder().decode(bytes);
+      if (!txt.trim()) { toast(isPdf ? 'Non riesco a leggere il testo di questo PDF: serve un PDF di solo testo (o usa «Incolla testo»)' : 'Il file è vuoto'); return; }
+      doImport(txt);
     } catch { toast('Non riesco a leggere il file: usa «Incolla testo»'); }
   }
   async function attachFile(n: PNode) {

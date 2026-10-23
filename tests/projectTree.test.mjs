@@ -53,3 +53,22 @@ test('limite di voci e cartelle di LifeDrive', () => {
   assert.equal(buildTree(parseOutline(big).items, 10).truncated, true);
   assert.deepEqual(driveSubfolders([['A', 'B'], ['A', 'C', 'D'], ['X']], ['A']), ['B', 'C']);
 });
+
+import { readFileSync } from 'node:fs';
+import { pdfToText } from '../src/lib/pdfText.ts';
+const strip = (s) => s.replace(/^\d+(\.\d+)*\.?\s+/, '').replace(/→/g, '->');
+test('il PDF dello stato dell\'app si legge e dà lo stesso albero del file di testo', () => {
+  const fromPdf = buildTree(parseOutline(pdfToText(new Uint8Array(readFileSync('docs/STATO-APP.pdf')))).items).nodes;
+  const fromMd = buildTree(parseOutline(readFileSync('docs/STATO-APP.md', 'utf8')).items).nodes;
+  assert.equal(fromPdf.length, fromMd.length);
+  assert.deepEqual(fromPdf.map((n) => [strip(n.title), n.parentIndex, n.done]), fromMd.map((n) => [strip(n.title), n.parentIndex, n.done]));
+  assert.equal(fromPdf.filter((n) => n.parentIndex === null).length, 1);
+});
+test('un file che non è un PDF o non ha testo leggibile dà testo vuoto', () => {
+  assert.equal(pdfToText(new TextEncoder().encode('ciao')), '');
+  assert.equal(pdfToText(new TextEncoder().encode('%PDF-1.4\n1 0 obj\n<< >>\nendobj\n')), '');
+});
+test('numerazione tipo 1, 1.1, 1.1.1 con righe a capo del PDF', () => {
+  const r = buildTree(parseOutline('Progetto\nintroduzione\n1 Casa\n[ ] 1.1 Cucina da pulire\ncon calma\n[x] 1.2 Bagno\n2 Lavoro\n[ ] 2.1 Email\n[ ] 2.1.1 Rispondere').items).nodes;
+  assert.deepEqual(r.map((n) => [n.title, n.parentIndex, n.done]), [['Progetto', null, false], ['Casa', 0, false], ['Cucina da pulire con calma', 1, false], ['Bagno', 1, true], ['Lavoro', 0, false], ['Email', 4, false], ['Rispondere', 5, false]]);
+});

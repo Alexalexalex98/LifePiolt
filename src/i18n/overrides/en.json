@@ -1222,5 +1222,7 @@
   "Cerca una chat o scrivi un nome": "Search a chat or type a name",
   "Nessun file qui. Carica un file da una task in Progetti: la cartella si crea da sola.": "No files here. Upload a file from a task in Projects: the folder creates itself.",
   "file": "files",
-  "Apri": "Open"
+  "Apri": "Open",
+  "Non riesco a leggere il testo di questo PDF: serve un PDF di solo testo (o usa «Incolla testo»)": "I can't read the text of this PDF: it needs a text-only PDF (or use “Paste text”)",
+  "Il file è vuoto": "The file is empty"
 }

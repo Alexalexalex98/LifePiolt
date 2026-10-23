@@ -39,9 +39,38 @@ export const rootOf = (nodes: PNode[], id: string): PNode | undefined => { let c
 export type Parsed = { title: string; depth: number; done: boolean; note?: string };
 const clean = (s: string) => s.replace(/\*\*|__|`/g, '').replace(/\s+/g, ' ').trim().slice(0, 200);
 
+const NUM_RE = /^\s*(?:\[([ xX-])\]\s*)?(\d+(?:\.\d+)*)[.)]?\s+(\S.*)$/;
+/** Un elenco numerato (1, 1.1, 1.1.1…) come esce da un PDF, dove i rientri si perdono: la profondità la dà il numero. */
+function isNumbered(lines: string[]): boolean {
+  const l = lines.filter((x) => x.trim()); if (l.length < 4) return false;
+  const dotted = l.filter((x) => { const m = NUM_RE.exec(x); return !!m && m[2]!.includes('.'); }).length;
+  return dotted >= 3 && dotted / l.length >= 0.3;
+}
+function parseNumbered(lines: string[]): { items: Parsed[]; skipped: number } {
+  const items: Parsed[] = []; let numberedSeen = false; let lastTop = 0;
+  for (const raw of lines) {
+    const line = raw.trim(); if (!line) continue;
+    const m = NUM_RE.exec(line);
+    // un numero conta come voce solo se segue l'ordine (1, poi 2…): «23 ottobre 2026» in una frase non è una sezione
+    const parts = m ? m[2]!.split('.').map(Number) : [];
+    const inOrder = !!m && (parts.length === 1 ? parts[0] === lastTop + 1 : parts[0]! >= 1 && parts[0]! <= lastTop);
+    if (m && inOrder) {
+      lastTop = parts.length === 1 ? parts[0]! : lastTop; numberedSeen = true; items.push({ title: clean(m[3]!), depth: m[2]!.split('.').length, done: (m[1] ?? '').toLowerCase() === 'x' }); continue; }
+    const q = /^>\s?(.*)$/.exec(line);
+    const last = items[items.length - 1];
+    if (!items.length) { items.push({ title: clean(line), depth: 0, done: false }); continue; }
+    if (!numberedSeen) { last!.note = `${last!.note ? `${last!.note} ` : ''}${clean(line)}`.slice(0, 400); continue; }
+    if (q) { if (q[1]) last!.note = `${last!.note ? `${last!.note} ` : ''}${clean(q[1])}`.slice(0, 400); continue; }
+    // riga che continua il titolo di prima (a capo del PDF)
+    last!.title = clean(`${last!.title} ${line}`);
+  }
+  return { items, skipped: 0 };
+}
+
 /** Dal testo all'elenco di voci con profondità. Capisce: titoli #, ##…, elenchi -, *, +, 1., 1), caselle [ ] e [x], righe rientrate (2, 4 spazi o tab). */
 export function parseOutline(text: string): { items: Parsed[]; skipped: number } {
   const lines = text.replace(/\r/g, '').replace(/^﻿/, '').split('\n');
+  if (isNumbered(lines)) return parseNumbered(lines);
   const items: Parsed[] = []; let skipped = 0;
   let headingDepth = -1; let stack: number[] = []; let inFence = false; let inFront = false;
   lines.forEach((raw, i) => {

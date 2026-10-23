@@ -1,0 +1,919 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 10 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/Contents 11 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/Contents 12 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+7 0 obj
+<<
+/PageMode /UseNone /Pages 9 0 R /Type /Catalog
+>>
+endobj
+8 0 obj
+<<
+/Author (\(anonymous\)) /CreationDate (D:20261023150836+00'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20261023150836+00'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (\(unspecified\)) /Title (LifePilot - stato dell'app) /Trapped /False
+>>
+endobj
+9 0 obj
+<<
+/Count 3 /Kids [ 4 0 R 5 0 R 6 0 R ] /Type /Pages
+>>
+endobj
+10 0 obj
+<<
+/Length 7807
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 57.02362 768.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 4 Tm /F2 18 Tf 22 TL (LifePilot) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 718.5354 cm
+q
+.333333 .333333 .333333 rg
+BT 1 0 0 1 0 40.5 Tm /F1 9.5 Tf 12.5 TL (Come leggere: [x] = verificato \(visto a schermo o confermato da te\). [ ] con \253\(solo test\)\273 = il codice c'\350 e i test) Tj T* (automatici passano, ma non l'ho visto sul telefono. [ ] con \253\(da fare\)\273 = manca. Importa questo file da Progetti ->) Tj T* -0.122733 Tw (Importa da file: ogni sezione diventa una task con le sue sotto-task e la percentuale si calcola da sola. Aggiornato il) Tj T* 0 Tw (23 ottobre 2026.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 712.5354 cm
+Q
+q
+1 0 0 1 57.02362 695.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (1 Account e accesso) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 681.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 1.1 Creare un account con email e codice di conferma \(il codice arriva e funziona\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 667.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 1.2 Via, CAP, data di nascita \(minimo 16 anni\) e consensi obbligatori nel modulo) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 653.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.3 Salvare i dati anagrafici sul server \(da riprovare dopo la migrazione 0008: esci, accedi, completa i dati\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 639.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.4 Accedere da un altro telefono con la stessa email \(da provare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 625.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 1.5 Esplorare l'app con i dati demo, senza account n\351 documento) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 611.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.6 Cancellare l'account dal server insieme ai dati \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 597.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.7 Invio email dai nostri indirizzi \(serve un dominio e Resend verificato\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 583.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.8 Un account per persona con il documento) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 569.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([x] 1.8.1 Impronta del documento sul server, senza numero n\351 foto \(provata su database locale\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 555.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.8.2 Scegliere il fornitore di verifica \(Veriff, Stripe Identity, IDnow, Persona\205\) \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 541.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.8.3 Funzione server che riceve l'esito dal fornitore \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 527.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.8.4 Collegare la verifica nell'app \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 509.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (2 Server Supabase) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 495.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 2.1 Progetto creato \(Lifepiolt2, Zurigo\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 481.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 2.2 Migrazioni 0001-0007 eseguite \(tabelle, post, account, identit\340, amici, messaggi\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 467.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 2.3 Eseguire la migrazione 0008 \(account completo solo con nome e data di nascita\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 453.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 2.4 Mittente email con dominio proprio e SMTP \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 439.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 2.5 Piano a pagamento prima di far entrare utenti veri \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 425.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 2.6 Funzioni server per l'AI e per esportare i dati \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 408.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (3 Social) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 394.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F2 9.5 Tf 12.5 TL (3.1 Post) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 367.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 15.5 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.1.1 Pubblicare un post vero e vederlo sul server \(da provare: Impostazioni -> Account -> Prova il) Tj T* (collegamento social\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 353.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.1.2 Foto e video nei post) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 339.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.1.3 Mi piace online) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 325.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.1.4 Commenti online \(da fare: non collegati\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 311.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.1.5 Segui e follower online \(da fare: non collegati\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 297.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.1.6 Storie e community online \(da fare: non collegate\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 283.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F2 9.5 Tf 12.5 TL (3.2 Amici e messaggi) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 269.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.2.1 Il mio codice amico \(da provare con due account\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 255.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.2.2 Richiedere, accettare, rifiutare e bloccare un amico \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 241.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.2.3 Messaggi di testo in tempo reale tra due persone \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 227.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.2.4 Foto, vocali e allegati nei messaggi online \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 213.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.2.5 Notifiche push a app chiusa \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 199.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.2.6 Conferme di lettura \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 185.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.2.7 Cifratura da un capo all'altro \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 171.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.2.8 Segnalare un utente e pannello di moderazione \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 154.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (4 Theia, il gioco) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 140.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 4.1 Schermata riordinata: indietro, bisogni in una riga, pulsanti puliti) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 126.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 4.2 Scegliere cosa dare da mangiare e da bere, con cibi freschi e sfizi) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 112.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 4.3 Energia e salute che salgono o scendono secondo le scelte, senza punizioni) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 98.03543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 4.4 Grafica del cibo e animazione di quando mangia) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 84.03543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.5 Alimenti presi dal tuo frigo e dai tuoi pasti \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 70.03543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.6 Provare animazioni e tocco sul telefono \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 56.03543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.7 Casa: stanze, mobili, usura, traslochi \(solo test\)) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+11 0 obj
+<<
+/Length 7694
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 57.02362 778.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.8 Mobili con grafica pi\371 realistica) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 764.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([x] 4.8.1 Quattro sprite creati con Canva \(divani e letto\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 750.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.8.2 Collegare gli sprite alle stanze \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 736.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.8.3 Creare gli altri mobili \(da fare: crediti Canva finiti\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 722.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.9 Traguardi e stelline senza rivelare i valori \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 708.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.10 Amici nel gioco: visite e sfide con persone vere \(da fare: ora sono dati finti\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 694.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.11 Inviti gentili al benessere \(segnali, esercizi CBT\) \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 680.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.12 Scrivere il progetto \253Tamagotchi del benessere\273 \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 662.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (5 Theia, l'assistente) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 648.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 5.1 Azioni proposte da Theia e confermate da te \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 634.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 5.2 Conversare liberamente come Gemini \(da collegare: serve il worker con la chiave\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 620.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 5.3 Imparare dai messaggi e dalle interazioni \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 606.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 5.4 Analisi di immagini \(da collegare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 592.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 5.5 Piano del mese: spese, risparmi, rate, stipendi \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 578.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 5.6 Correggere a mano ci\362 che Theia ha letto) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 561.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (6 LifeFitness e cibo) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 547.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 6.1 Acqua: scegliere il giorno, a che punto sei, cosa succede se poca o troppa) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 533.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 6.2 Frigo e spesa: cambiare nomi e quantit\340 prima di salvare \(visto a schermo, da riprovare con una foto\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 519.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.3 Leggere scontrino e foto del frigo \(da fare: serve il server AI\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 505.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.4 Foto vere degli esercizi \(da fare: script sul tuo computer\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 491.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.5 Altre ricette \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 477.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.6 Allenamenti, programmi, pasti e calorie \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 459.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (7 LifeFinance e LifePoints) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 445.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 7.1 Conto, spese, budget e obiettivi \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 431.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 7.2 Bollette e QR \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 417.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 7.3 Investimenti e titoli \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 403.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 7.4 LifePoints tra utenti \(da fare: serve il server\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 389.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 7.5 Conti, pagamenti e licenze \(da fare: societ\340 e consulente\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 372.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (8 LifeHealth e benessere) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 358.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 8.1 Umore, sonno, movimento \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 344.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 8.2 Apple Health e Apple Watch \(da provare su iPhone con build vera\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 326.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (9 Dashboard, Plan e organizzazione) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 312.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.1 Dashboard a widget e sfondi \(da rifinire\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 298.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.2 Plan e agenda con conflitti \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 284.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.3 LifeNotes \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 270.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.4 LifeTask classico \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 256.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.5 Progetti ad albero) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 242.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.5.1 Importare un file e creare padre e figli \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 228.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.5.2 Percentuale e padre completato dai figli \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 214.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.5.3 Caricare un file in una task e vederlo in LifeDrive \(da provare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 200.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.5.4 Condividere un progetto in chat \(da provare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 186.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.5.5 Progetti condivisi che si aggiornano da soli tra pi\371 persone \(da fare: serve il server\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 172.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.6 LifeDrive con cartelle e anteprime \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 158.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.7 LifeTravel \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 141.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (10 LifeNetwork) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 127.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.1 Profilo, biglietto da visita e recensioni \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 113.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.2 Servizi, seminari, LifeClub \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 99.03543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.3 Lavoro e candidature \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 85.03543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.4 Idee e contributi \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 71.03543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.5 Chat in stile WhatsApp e call di gruppo \(solo test\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 53.53543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (11 Privacy e documenti legali) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+12 0 obj
+<<
+/Length 2416
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 57.02362 778.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 11.1 Informativa e Termini scritti e dentro l'app \(italiano e inglese\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 764.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 11.2 Centro Privacy: consenso per categoria) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 750.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 11.3 Dati del titolare, indirizzo e contatto privacy \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 736.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 11.4 Revisione di un avvocato \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 722.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 11.5 Controllare i numeri di emergenza prima del lancio \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 708.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 11.6 Far rivedere da un professionista le soglie sull'acqua \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 690.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (12 Lingue) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 676.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([x] 12.1 Italiano e inglese completi) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 662.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 12.2 Le altre 10 lingue: mancano circa 5.500 frasi per lingua \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 645.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (13 Pubblicazione sugli store) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 631.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.1 Build di prova su iPhone e Android \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 617.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.2 Account sviluppatore Apple e Google \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 603.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.3 Schede e dichiarazioni sulla privacy per gli store \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 589.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.4 Icona, schermate e testi degli store \(da fare\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 571.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (14 Video di presentazione) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 557.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 14.1 Progetto video con l'app reale \(messo in pausa\)) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+xref
+0 13
+0000000000 65535 f 
+0000000061 00000 n 
+0000000102 00000 n 
+0000000209 00000 n 
+0000000321 00000 n 
+0000000525 00000 n 
+0000000729 00000 n 
+0000000933 00000 n 
+0000001001 00000 n 
+0000001294 00000 n 
+0000001365 00000 n 
+0000009224 00000 n 
+0000016970 00000 n 
+trailer
+<<
+/ID 
+[<70b29def5e150027b3b3f7730bc705ac><70b29def5e150027b3b3f7730bc705ac>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 8 0 R
+/Root 7 0 R
+/Size 13
+>>
+startxref
+19438
+%%EOF
