@@ -23,6 +23,8 @@ LifePilot works first of all **on your device**. Agenda, tasks, notes, finances,
 | Technical data | app version, device type, errors (anonymous, only if error reporting is configured) | error-reporting server |
 | AI requests | your questions to Theia and, **only with your consent**, the parts of your data needed to answer | sent to the AI service for the single request |
 
+**Messages between friends**: if you add a friend with their code and you message each other, text messages go through our server (Supabase, Switzerland/EU) and can be read only by the two of you and the server; **they are not end-to-end encrypted yet**. They are deleted with the account. Your friend code only lets people who know it send you a request: there is no search by name.
+
 We do not collect data for advertising, we do not sell it and we do not do commercial profiling.
 
 ## 4. Why we process it and on which legal basis

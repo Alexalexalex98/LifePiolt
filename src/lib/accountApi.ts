@@ -7,6 +7,7 @@ import { loadServerConfig } from '@/sync/secure';
 import { SupabaseTransport } from '@/sync/supabaseTransport';
 import { useAccount } from '@/store/account';
 import { useApp } from '@/store/app';
+import { stopDmSync } from '@/social/dmSync';
 
 import { LEGAL_VERSION, TEST_CODE, normalizeEmail, toServerPayload, type AccountForm } from './accountCore';
 
@@ -90,6 +91,7 @@ export function restoreAccount(email: string, p: { firstName: string; lastName: 
 
 export async function signOutAccount(): Promise<void> {
   try { if ((await backend()) === 'server') await getTransport().auth.signOut?.(); } catch { /* ignore */ }
+  stopDmSync();
   useAccount.getState().clear();
 }
 

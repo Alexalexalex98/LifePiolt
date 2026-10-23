@@ -32,3 +32,11 @@ Nessun aggiornamento in tempo reale: il feed si aggiorna all'avvio e al ritorno 
 Solo con scelta esplicita dell'utente («Condividi con tutti»). Si condivide la frase (numeri sostituiti da {n}) e l'azione, mai altro.
 Un comando di altri si usa solo se ha almeno 2 voti favorevoli e passa il controllo di sicurezza sul telefono (`isSafeShared`):
 mai su soldi, messaggi, acquisti, cancellazioni o persone.
+
+## Amici e messaggi (migrazione 0007)
+- **Codice amico**: 8 caratteri (senza O, 0, I, 1), uno per persona; chi lo conosce manda una richiesta, l'altro accetta, rifiuta o blocca. Nessuna ricerca per nome.
+- **Messaggi diretti**: solo tra amici (lo controlla il server), solo testo; li leggono mittente e destinatario (RLS). Arrivano in tempo reale (Supabase Realtime) e, per sicurezza, ogni 30 secondi e al ritorno in primo piano.
+- Le chat sono quelle di sempre: la chat con un amico vero compare come ogni altra; foto, posizione e altro restano sul telefono (per ora).
+- **Non cifrati end-to-end** (vedi docs/e2e-plan.md). Chi amministra il progetto può leggerli: va scritto nell'informativa (fatto).
+- Per attivarlo: SQL Editor → incolla `supabase/migrations/0007_friends_messages.sql` → Run. Poi, nell'app: Messaggi → icona amici.
+- Da fare ancora: notifiche push a app chiusa, conferme di lettura, foto nei messaggi, segnalazione di un utente.

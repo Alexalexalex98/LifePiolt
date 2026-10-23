@@ -1,5 +1,5 @@
 {
- "count": 14349,
+ "count": 14378,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -44,6 +44,7 @@
   "src/app/(tabs)/fitnessProgram.tsx": 36,
   "src/app/(tabs)/fitnessWorkout.tsx": 25,
   "src/app/(tabs)/focus.tsx": 27,
+  "src/app/(tabs)/friendsPage.tsx": 39,
   "src/app/(tabs)/groupCall.tsx": 78,
   "src/app/(tabs)/help.tsx": 20,
   "src/app/(tabs)/ideaProfile.tsx": 24,
@@ -72,7 +73,7 @@
   "src/app/(tabs)/lpStatement.tsx": 20,
   "src/app/(tabs)/mascot.tsx": 1,
   "src/app/(tabs)/menuPage.tsx": 28,
-  "src/app/(tabs)/messagesPage.tsx": 36,
+  "src/app/(tabs)/messagesPage.tsx": 37,
   "src/app/(tabs)/monthPlan.tsx": 73,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,
@@ -101,7 +102,7 @@
   "src/app/(tabs)/security.tsx": 5,
   "src/app/(tabs)/seminarPage.tsx": 44,
   "src/app/(tabs)/servicePage.tsx": 31,
-  "src/app/(tabs)/settings.tsx": 176,
+  "src/app/(tabs)/settings.tsx": 177,
   "src/app/(tabs)/sharing.tsx": 2,
   "src/app/(tabs)/shifts.tsx": 30,
   "src/app/(tabs)/shopPage.tsx": 42,
@@ -471,6 +472,7 @@
   "src/lib/focusPlan.ts": 4,
   "src/lib/foodNotify.ts": 5,
   "src/lib/format.ts": 12,
+  "src/lib/friendsCore.ts": 4,
   "src/lib/goalData.ts": 28,
   "src/lib/groupCall.ts": 7,
   "src/lib/habits/labels.ts": 10,
@@ -604,6 +606,8 @@
   "src/lib/when.ts": 11,
   "src/schemas/change.ts": 3,
   "src/schemas/collections.ts": 3,
+  "src/social/dmSync.ts": 2,
+  "src/social/friendsApi.ts": 1,
   "src/social/sharedCommands.ts": 4,
   "src/social/socialApi.ts": 10,
   "src/social/socialCore.ts": 3,
@@ -639,5 +643,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1792
+ "withPlaceholders": 1794
 }

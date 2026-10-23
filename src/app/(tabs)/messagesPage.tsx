@@ -55,6 +55,7 @@ export default function MessagesPage() {
     <Page id="messagesPage" title={sel.length ? `${sel.length} selezionate` : archived ? 'Archiviate' : 'Messaggi'}
       right={<Row gap={8}>
         {archived && <Pressable onPress={() => setArchived(false)}><Text style={{ color: t.accent }}>Chiudi</Text></Pressable>}
+        {!sel.length && !archived ? <Pressable onPress={() => go('friendsPage')} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Amici')}><Icon name="users" size={22} color={t.text} /></Pressable> : null}
         {!sel.length && !archived && filter !== 'LifeClub' ? <Pressable onPress={() => setNewOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Nuova chat')}><Icon name="plus" size={24} color={t.text} /></Pressable> : null}
         <Pressable onPress={() => go('chatSettings')} hitSlop={8} accessibilityLabel={translateText("Impostazioni chat")}><Icon name="gear" size={21} color={t.text} /></Pressable>
       </Row>}>
