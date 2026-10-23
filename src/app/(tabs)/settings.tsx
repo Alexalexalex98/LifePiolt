@@ -33,7 +33,10 @@ import { useHealth } from '@/store/health';
 import { useLife } from '@/store/life';
 import { useTravel } from '@/store/travel';
 import { toast } from '@/store/toast';
-import { applyDemo } from '@/store/demo';
+import { applyDemo, resetAllData } from '@/store/demo';
+import { AccountFlow } from '@/components/AccountFlow';
+import { deleteAccountEverywhere, signOutAccount } from '@/lib/accountApi';
+import { useAccount } from '@/store/account';
 import { fmtDate } from '@/i18n/format';
 
 const dataLabels: Record<string, string> = {
@@ -78,6 +81,9 @@ export default function Settings() {
   const [wh, setWh] = useState(false);
   const [info, setInfo] = useState<null | 'help' | 'contact' | 'terms'>(null);
   const [del, setDel] = useState<0 | 1 | 2>(0);
+  const acc = useAccount();
+  const [accOpen, setAccOpen] = useState(false);
+  async function accOut() { await signOutAccount(); toast('Sei uscito: i dati restano sul telefono'); }
   const [restore, setRestore] = useState<null | { text: string; preview: BackupPreview | null; step: 1 | 2; error?: string }>(null);
   const [errSheet, setErrSheet] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -144,6 +150,8 @@ export default function Settings() {
     setBusy(true);
     try {
       await cancelAll();
+      const del = await deleteAccountEverywhere();
+      if (!del.ok) { setBusy(false); toast(del.message || 'Non riesco a eliminare l\'account dal server: riprova con la connessione attiva'); return; }
       await wipeAllData();
       useErrorLog.getState().clear();
     } catch (e) { logError(e, 'settings.deleteAll'); toast('Eliminazione non completata'); }
@@ -236,7 +244,9 @@ export default function Settings() {
         <Item><Row><Body muted>{tr('stNameLabel')}</Body><Pressable onPress={() => { setEditVal(app.account.name); setEdit('name'); }}><Body bold>{app.account.name || '—'}</Body></Pressable></Row></Item>
         <Item><Row><Body muted>{tr('stEmailLabel')}</Body><Pressable onPress={() => { setEditVal(app.account.email); setEdit('email'); }}><Body bold>{app.account.email || 'Aggiungi email'}</Body></Pressable></Row></Item>
         <Item><Row><Body muted>Nome dell'assistente AI</Body><Pressable onPress={() => { setEditVal(app.assistantName); setEdit('assistant'); }}><Body bold>{app.assistantName}</Body></Pressable></Row></Item>
-        <Item last><Row><Body muted>{tr('stPasswordLabel')}</Body><Link onPress={() => toast("Il cambio password sarà disponibile con l'account online")}>{tr('stChangePasswordBtn')}</Link></Row></Item>
+        <Item last><Row><Body muted>Accesso</Body>{acc.status === 'none' ? <Link onPress={() => setAccOpen(true)}>Crea account</Link> : <Link danger onPress={() => void accOut()}>Esci</Link>}</Row></Item>
+        <Body small muted style={{ marginTop: 8 }}>{acc.status === 'verified' ? `Account confermato · ${acc.email}. L'accesso avviene con un codice via email, senza password.` : acc.status === 'test' ? 'Account di prova: nessun server collegato, vale solo su questo telefono.' : app.demo ? "Stai usando la modalità demo: nessun account, dati di esempio. Creando un account i dati demo vengono tolti." : "Non hai ancora un account: l'app funziona sul telefono. Con un account ritrovi i dati su un altro telefono e parli con gli amici."}</Body>
+        {acc.status === 'none' ? <Btn small style={{ marginTop: 8 }} title={app.demo ? 'Crea il tuo account (toglie i dati demo)' : 'Crea il tuo account'} onPress={() => setAccOpen(true)} /> : null}
       </Card>
       ) : null}
 
@@ -481,6 +491,9 @@ export default function Settings() {
       </Sheet>
       <WorkHoursSheet key={`${app.workHours.start}${app.workHours.end}${wh}`} visible={wh} onClose={() => setWh(false)} />
       <Sheet visible={!!info} title={info ? infos[info].title : ''} onClose={() => setInfo(null)}>{info && <Body small muted>{infos[info].body}</Body>}</Sheet>
+      <Sheet visible={accOpen} title="Il tuo account" onClose={() => setAccOpen(false)}>
+        <AccountFlow onBack={() => setAccOpen(false)} onDone={() => { if (app.demo) { resetAllData(); set({ demo: false }); } setAccOpen(false); toast('Account creato'); }} />
+      </Sheet>
       <Sheet visible={del === 1} title="Eliminare tutti i miei dati?" onClose={() => setDel(0)}>
         <Body small muted>Verranno eliminati dal telefono task, note, file, salute, finanze, messaggi, impostazioni e profilo. Prima puoi salvare un backup.</Body>
         <Row style={{ marginTop: 14 }}>

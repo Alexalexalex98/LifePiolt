@@ -13,7 +13,8 @@ LifePilot funziona prima di tutto **sul tuo dispositivo**. Agenda, task, note, f
 ## 3. Quali dati trattiamo
 | Categoria | Esempi | Dove stanno |
 |---|---|---|
-| Dati del profilo | nome, email, foto, biografia, biglietto da visita | telefono (e, se usi LifeNetwork, visibili agli altri secondo le tue impostazioni) |
+| **Dati dell'account** | nome, cognome, email, data di nascita, paese, città, via e CAP (facoltativi), lingua, versione e data dei documenti accettati (Termini, Informativa, conferma dell'età) | server nell'Unione Europea (Supabase, Francoforte) e, in parte, telefono |
+| Dati del profilo | foto, biografia, biglietto da visita | telefono (e, se usi LifeNetwork, visibili agli altri secondo le tue impostazioni) |
 | Agenda e produttività | task, impegni, note, obiettivi, file, turni | telefono |
 | **Finanze** (sensibili) | estratto conto, movimenti, budget, bollette, tasse, investimenti, LifePoints | telefono |
 | **Salute e benessere** (categoria particolare, art. 9 GDPR) | sonno, passi, umore, allenamenti, peso, pasti, frigo, dati di Apple Health se li colleghi | telefono |
@@ -26,6 +27,8 @@ Non raccogliamo dati per pubblicità, non li vendiamo e non facciamo profilazion
 
 ## 4. Perché li trattiamo e su quale base giuridica
 - **Far funzionare l'app sul tuo telefono** (esecuzione del servizio che hai richiesto, art. 6.1.b GDPR).
+- **Creare e gestire il tuo account**: identificarti con l'email e un codice di conferma, avere un solo account per persona, ritrovare i dati su un altro telefono, controllare l'età minima di 16 anni (esecuzione del servizio, art. 6.1.b GDPR; obbligo di legge per l'età).
+- **Conservare la prova dei tuoi consensi**: quale documento hai accettato, in quale versione e quando (obbligo di dimostrare il consenso, art. 7.1 GDPR; interesse legittimo).
 - **Mandare i tuoi dati a Theia con l'AI esterna**: il tuo **consenso esplicito**, specifico per categoria (art. 6.1.a e, per salute e dati particolari, art. 9.2.a GDPR; consenso ai sensi della nLPD). Lo dai o lo neghi per ogni categoria nel **Centro Privacy** e puoi revocarlo in ogni momento.
 - **Notifiche, promemoria e briefing** che attivi tu (esecuzione del servizio / consenso).
 - **Sicurezza, prevenzione di abusi e moderazione** in LifeNetwork (interesse legittimo, art. 6.1.f GDPR; obblighi di legge).
@@ -54,6 +57,8 @@ Alcuni destinatari (es. Google, fornitori di hosting) possono trattare dati fuor
 - **Sul telefono**: finché non li cancelli tu (per categoria dal Centro Privacy, oppure con "Elimina tutti i miei dati") o disinstalli l'app.
 - **Richieste all'AI**: non le conserviamo sul nostro server oltre il tempo tecnico necessario per rispondere [da confermare]. Il fornitore AI le tratta secondo il suo contratto con noi.
 - **Registro degli invii e delle scelte di consenso**: restano sul tuo telefono finché non li cancelli.
+- **Dati dell'account** (nome, email, data di nascita, indirizzo, registro dei consensi): finché mantieni l'account. Con "Elimina tutti i miei dati" l'account e tutti i dati collegati si cancellano dal server e dal telefono; resta solo un contatore anonimo di account eliminati, senza alcun dato personale.
+- **Codici di conferma via email**: valgono pochi minuti e non si conservano dopo l'uso.
 - **Dati sul server** (se attivi sincronizzazione/LifeNetwork): finché mantieni l'account e poi per [●] giorni, salvo obblighi di legge.
 
 ## 9. I tuoi diritti

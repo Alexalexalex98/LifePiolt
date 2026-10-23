@@ -13,7 +13,8 @@ LifePilot works first of all **on your device**. Agenda, tasks, notes, finances,
 ## 3. Which data we process
 | Category | Examples | Where it lives |
 |---|---|---|
-| Profile data | name, email, photo, bio, business card | phone (and, if you use LifeNetwork, visible to others according to your settings) |
+| **Account data** | first and last name, email, date of birth, country, city, street and postcode (optional), language, version and date of the documents you accepted (Terms, Privacy Notice, age confirmation) | server in the European Union (Supabase, Frankfurt) and, in part, your phone |
+| Profile data | photo, bio, business card | phone (and, if you use LifeNetwork, visible to others according to your settings) |
 | Agenda and productivity | tasks, events, notes, goals, files, shifts | phone |
 | **Finances** (sensitive) | bank statement, transactions, budget, bills, taxes, investments, LifePoints | phone |
 | **Health and wellbeing** (special category, Art. 9 GDPR) | sleep, steps, mood, workouts, weight, meals, fridge, Apple Health data if you connect it | phone |
@@ -25,6 +26,8 @@ LifePilot works first of all **on your device**. Agenda, tasks, notes, finances,
 We do not collect data for advertising, we do not sell it and we do not do commercial profiling.
 
 ## 4. Why we process it and on which legal basis
+- **Creating and managing your account**: identifying you by email and a confirmation code, keeping one account per person, restoring your data on another phone, checking the minimum age of 16 (performance of the service, Art. 6.1.b GDPR; legal obligation for age).
+- **Keeping proof of your consents**: which document you accepted, in which version and when (duty to demonstrate consent, Art. 7.1 GDPR; legitimate interest).
 - **Making the app work on your phone** (performance of the service you requested, Art. 6.1.b GDPR).
 - **Sending your data to Theia with the external AI**: your **explicit consent**, specific for each category (Art. 6.1.a and, for health and other special-category data, Art. 9.2.a GDPR; consent under the nFADP). You give or refuse it for each category in the **Privacy Center** and can withdraw it at any time.
 - **Notifications, reminders and briefings** you turn on (performance of the service / consent).
@@ -54,6 +57,8 @@ Some recipients (e.g. Google, hosting providers) may process data outside the EU
 - **On the phone**: until you delete it (per category from the Privacy Center, or with "Delete all my data") or uninstall the app.
 - **AI requests**: we do not keep them on our server beyond the technical time needed to answer [to be confirmed]. The AI provider processes them under its contract with us.
 - **Send log and consent choices**: stay on your phone until you delete them.
+- **Account data** (name, email, date of birth, address, consent log): for as long as you keep the account. "Delete all my data" removes the account and all linked data from the server and the phone; only an anonymous counter of deleted accounts remains, with no personal data.
+- **Email confirmation codes**: valid for a few minutes and not kept after use.
 - **Data on the server** (if you turn on synchronization/LifeNetwork): as long as you keep the account and then for [●] days, unless the law requires otherwise.
 
 ## 9. Your rights

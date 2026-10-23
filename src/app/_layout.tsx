@@ -26,6 +26,7 @@ import * as Localization from 'expo-localization';
 import { applyLanguage } from '@/i18n/apply';
 import { setFormatPrefs } from '@/i18n/format';
 import { detectLang, normalizeLang } from '@/i18n/languages';
+import { useAccount } from '@/store/account';
 import { useApp } from '@/store/app';
 import { useFin } from '@/store/finance';
 import { useChat } from '@/store/chat';
@@ -62,7 +63,7 @@ defineBackgroundTask();
 // effetti collaterali delle operazioni di dominio (promemoria, notifiche in-app, registro di uscita): src/domain/handlers.ts
 registerDomainHandlers();
 
-const stores = [useApp, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, useInterests, useIdentity, useLive, useSharing, useSync, useTour, useAiRouter, usePrivacyLog, useSecurity];
+const stores = [useApp, useAccount, useLife, useHealth, useFin, useTravel, useNet, useChat, useJobs, useContext, useAssistant, useDiscover, useInterests, useIdentity, useLive, useSharing, useSync, useTour, useAiRouter, usePrivacyLog, useSecurity];
 const allHydrated = () => stores.every((s) => s.persist.hasHydrated());
 
 export { ErrorScreen as ErrorBoundary } from '@/components/ErrorScreen';

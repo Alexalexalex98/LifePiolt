@@ -41,3 +41,8 @@ Limiti indicativi del piano Free: circa 500 MB di database, 1 GB di file, 50.000
 
 ## Verifica fatta
 Le tre migrazioni sono state eseguite su un Postgres 16 locale (con le tabelle `auth` simulate): push idempotente (stesso cambio inviato due volte = confermato una volta), pull per cursore e isolamento tra due utenti (l'utente B non vede i dati di A) funzionano. Il collegamento con un vero progetto Supabase non è ancora stato provato: serve il tuo progetto (passo 1-4).
+
+## Account (migrazione 0005)
+Per creare account veri servono, nell'ordine: le migrazioni 0001, 0002, 0003, 0004 e **0005_account.sql** (SQL Editor di Supabase), il login con email attivo (Authentication → Providers → Email, con il codice a 6 cifre: nel modello "Magic Link" inserisci `{{ .Token }}`), e un **SMTP tuo** (Authentication → SMTP): quello incluso manda pochissime email l'ora e non va bene per utenti veri.
+L'app chiede nome, cognome, email, data di nascita (minimo 16 anni, controllata anche dal server), paese e città (via e CAP facoltativi) e registra data e versione di Termini e Informativa (`consent_log`, solo aggiunta). Senza server collegato l'account si può creare solo in modalità di prova (build di sviluppo o `EXPO_PUBLIC_ACCOUNT_TEST=1`, codice fisso 123456, nessun dato esce dal telefono); in una build normale resta la modalità demo.
+Quando cambi Termini o Informativa aggiorna `LEGAL_VERSION` in `src/lib/accountCore.ts`.

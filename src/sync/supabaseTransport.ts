@@ -85,6 +85,9 @@ export class SupabaseTransport implements SyncTransport {
     return r.data as T;
   }
 
+  /** Chiamata a una funzione del server con la sessione dell'utente (account_save, account_get): niente di generico, il nome lo decide l'app. */
+  async rpc<T>(fn: string, args: Record<string, unknown> = {}): Promise<T> { return this.call<T>(fn, args); }
+
   async push(changes: WireChange[]): Promise<PushResult> {
     const d = await this.call<PushResult>('sync_push', { batch: { v: 1, deviceId: this.cfg.deviceId, deviceName: this.cfg.deviceName, platform: this.platform, changes } });
     return { acked: d.acked ?? [], rejected: d.rejected ?? [], serverCursor: String(d.serverCursor ?? '0') };
