@@ -15,6 +15,8 @@ import { useFitness } from '@/store/fitness';
 import { useHealth } from '@/store/health';
 import { useTheiaMemory } from '@/store/theiaMemory';
 import { useLife } from '@/store/life';
+import { useMindSpace } from '@/store/mindSpace';
+import { usePet } from '@/store/pet';
 import { useLpMoney } from '@/store/lpMoney';
 import { useNet } from '@/store/network';
 import { usePantry } from '@/store/pantry';
@@ -26,7 +28,7 @@ type AnyStore = { getState: () => unknown; setState: (s: never, replace: true) =
 const STORES: Record<CatId, AnyStore[]> = {
   agenda: [useLife, useShifts] as unknown as AnyStore[],
   finance: [useFin, useLpMoney] as unknown as AnyStore[],
-  health: [useHealth] as unknown as AnyStore[],
+  health: [useHealth, useMindSpace, usePet] as unknown as AnyStore[],
   fitness: [useFitness, usePantry] as unknown as AnyStore[],
   travel: [useTravel] as unknown as AnyStore[],
   network: [useNet, useClub] as unknown as AnyStore[],

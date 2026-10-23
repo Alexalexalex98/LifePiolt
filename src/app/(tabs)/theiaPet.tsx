@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
+import { ExerciseRunner } from '@/components/mascot/ExerciseRunner';
 import { Mascot } from '@/components/mascot/Mascot';
+import { EXERCISES, EMOTIONS, insightsOf, type Exercise } from '@/lib/mindExercises';
+import { useMindSpace } from '@/store/mindSpace';
 import { Body, Btn, Card, H, Input, Page, Pill, Progress, Row, Sheet, Toggle } from '@/components/ui';
 import { earnedForDay, useEarned } from '@/hooks/use-pet-earned';
 import { KINDS as CK, inviteText, progressOf, progressText, type ChallengeKind } from '@/lib/challenges';
@@ -76,6 +79,10 @@ export default function TheiaPet() {
   };
   const others2 = useMemo(() => Object.entries(others), [others]);
   const ch = useChallenges();
+  const mind = useMindSpace();
+  const [run, setRun] = useState<Exercise | null>(null);
+  const [diary, setDiary] = useState(false);
+  const ins = useMemo(() => insightsOf(mind.entries), [mind.entries]);
   const [cs, setCs] = useState<{ with: string; kind: ChallengeKind; target: number; days: number } | null>(null);
   const [upd, setUpd] = useState<{ id: string; n: string } | null>(null);
   const friends = useMemo(() => peoplePool(me).slice(0, 8), [me]);
@@ -95,6 +102,35 @@ export default function TheiaPet() {
         <Row style={{ marginTop: 12 }}><Body bold style={{ flex: 1 }}>{`${tl('Livello')} ${lp.level}`}</Body><Body small muted>{`${lp.toNext} ${tl('punti al prossimo')}`}</Body></Row>
         <Progress value={lp.pct} />
         <Body small muted style={{ marginTop: 6 }}>{streak > 0 ? `${tl('Giorni di cura')}: ${streak}` : tl('Quando le dai da mangiare e da bere, il giorno si aggiunge ai tuoi giorni di cura.')}</Body>
+      </Card>
+
+      <Card>
+        <H>Fate qualcosa insieme</H>
+        <Body small muted style={{ marginTop: 4 }}>Theia non ti fa stare meglio: sei tu a fare la differenza. Qui ci sono piccole attività da fare insieme, quando ti va, per capire meglio cosa senti e cosa pensi. Nessuna ti dice cosa fare: scegli tu se e come usarle.</Body>
+        {EXERCISES.map((e) => (
+          <Row key={e.id} style={{ paddingVertical: 8 }} gap={10}>
+            <View style={{ flex: 1 }}><Body bold>{tl(e.title)}</Body><Body small muted>{`${e.minutes} min · ${tl(e.why)}`}</Body></View>
+            <Btn small ghost title="Proviamo" onPress={() => setRun(e)} />
+          </Row>
+        ))}
+        <Body small muted style={{ marginTop: 6 }}>Sono spunti di autoconsapevolezza, non una terapia e non sostituiscono un professionista. Se stai male, parlane con una persona di fiducia o chiedi aiuto: in Svizzera 143, in Europa 112.</Body>
+        <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} icon="file" title={diary ? 'Nascondi il diario' : `Il vostro diario (${mind.entries.length})`} onPress={() => setDiary(!diary)} />
+        {diary ? (
+          <View style={{ marginTop: 8, gap: 6 }}>
+            {ins.total > 0 ? <Body small muted>{`${tl('Ultimi 30 giorni')}: ${ins.total} ${tl('attività')}${ins.topEmotions.length ? ` · ${tl('emozioni più nominate')}: ${ins.topEmotions.map((x) => `${tl(x.n)} (${x.c})`).join(', ')}` : ''}${ins.beliefShift ? ` · ${tl('guardando i pensieri da vicino, la fiducia in loro è cambiata in media di')} ${ins.beliefShift.avg > 0 ? '−' : '+'}${Math.abs(ins.beliefShift.avg)} ${tl('punti')}` : ''}.`}</Body> : <Body small muted>Ancora nessuna attività nel diario.</Body>}
+            {[...mind.entries].reverse().slice(0, 12).map((x) => {
+              const e = EXERCISES.find((q) => q.id === x.ex);
+              const t0 = (x.answers.emo as string[] | undefined)?.join(', ') ?? (x.answers.th as string | undefined) ?? (x.answers.g1 as string | undefined) ?? (x.answers.what as string | undefined) ?? '';
+              return (
+                <Row key={x.id} gap={8}>
+                  <View style={{ flex: 1 }}><Body small bold>{`${new Date(x.ts).toLocaleDateString()} · ${tl(e?.title ?? '')}`}</Body>{t0 ? <Body small muted numberOfLines={2}>{String(t0)}</Body> : null}</View>
+                  <Btn small ghost danger icon="trash" title="" label="Elimina" onPress={() => mind.remove(x.id)} />
+                </Row>
+              );
+            })}
+            <Body small muted>Resta solo sul tuo telefono. Lo esporti o lo cancelli dal Centro Privacy (categoria Salute e umore).</Body>
+          </View>
+        ) : null}
       </Card>
 
       <Card>
@@ -149,6 +185,7 @@ export default function TheiaPet() {
           ))}
         </Card>
       ) : null}
+      <ExerciseRunner ex={run} onClose={() => setRun(null)} onSave={(answers) => { if (run) { mind.add(run.id, answers); usePet.getState().addXp(4); toast('Salvato nel diario'); } }} />
       <Sheet visible={!!cs} title="Nuova sfida" onClose={() => setCs(null)}>
         {cs ? (
           <View style={{ gap: 8 }}>

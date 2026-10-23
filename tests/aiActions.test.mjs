@@ -193,3 +193,16 @@ test('sfide cooperative: si sommano i due, tetto giornaliero, nessuna penalità'
   assert.equal(progressOf({ ...c, friend: {} }, '2026-10-30', () => 0).state, 'ended');
   assert.ok(!/perd|colpa|classifica/i.test(inviteText('Io', c)));
 });
+
+import { EXERCISES, visibleSteps, stepDone, insightsOf } from '../src/lib/mindExercises.ts';
+test('spazio consapevolezza: passi condizionati, passi facoltativi, diario solo con conteggi', () => {
+  const loop = EXERCISES.find((e) => e.id === 'loop');
+  assert.ok(visibleSteps(loop, { act: 'Sì' }).some((s) => s.id === 'small')); assert.ok(!visibleSteps(loop, { act: 'Sì' }).some((s) => s.id === 'later'));
+  assert.ok(visibleSteps(loop, { act: 'No, non adesso' }).some((s) => s.id === 'later'));
+  const th = EXERCISES.find((e) => e.id === 'thought');
+  assert.equal(stepDone(th.steps[0], ''), false); assert.equal(stepDone(th.steps.find((s) => s.id === 'friend'), undefined), true);
+  const now = Date.now();
+  const ins = insightsOf([{ id: '1', ex: 'name', ts: now, answers: { emo: ['Ansia', 'Stanchezza'] } }, { id: '2', ex: 'name', ts: now, answers: { emo: ['Ansia'] } }, { id: '3', ex: 'thought', ts: now, answers: { b1: 80, b2: 50 } }, { id: '4', ex: 'name', ts: now - 90 * 86400000, answers: { emo: ['Rabbia'] } }], now);
+  assert.equal(ins.total, 3); assert.equal(ins.topEmotions[0].n, 'Ansia'); assert.equal(ins.beliefShift.avg, 30);
+  assert.ok(EXERCISES.every((e) => !/devi\b|sbagliat[oa]\b.*emozion/i.test(e.steps.map((s) => s.prompt).join(' '))));
+});

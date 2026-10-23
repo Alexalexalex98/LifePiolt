@@ -7,7 +7,7 @@ export type CatId = 'agenda' | 'finance' | 'health' | 'fitness' | 'travel' | 'ne
 export const CATS: { id: CatId; label: string; what: string; special?: boolean }[] = [
   { id: 'agenda', label: 'Agenda, task e note', what: 'task, impegni, note, obiettivi, nomi dei file, turni' },
   { id: 'finance', label: 'Finanze', what: 'estratto conto, movimenti, budget, bollette, tasse, investimenti, LifePoints', special: true },
-  { id: 'health', label: 'Salute e umore', what: 'sonno, passi, umore, allenamenti registrati, sedute di mente', special: true },
+  { id: 'health', label: 'Salute e umore', what: 'sonno, passi, umore, allenamenti registrati, diario delle attività con Theia', special: true },
   { id: 'fitness', label: 'Fitness e cibo', what: 'programmi, peso, pasti, frigo, piano alimentare', special: true },
   { id: 'travel', label: 'Viaggi', what: 'città, hotel, itinerari salvati, budget di viaggio' },
   { id: 'network', label: 'LifeNetwork', what: 'post, prenotazioni, seminari, profilo, notifiche' },

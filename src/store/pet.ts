@@ -11,6 +11,8 @@ type State = {
   others: Record<string, PetPublic & { demo?: boolean }>;
   refresh: () => void;
   giveTo: (kind: Kind, earned: Earned, day: string) => { ok: boolean; leveledUp: boolean };
+  /** punti per aver fatto un'attività insieme (esplorazione, non cura) */
+  addXp: (n: number) => void;
   rename: (name: string) => void;
   setShare: (v: boolean) => void;
   setOthers: (o: State['others']) => void;
@@ -22,6 +24,7 @@ export const usePet = create<State>()(
     others: {},
     refresh: () => set((s) => ({ pet: tick(s.pet) })),
     giveTo: (kind, earned, day) => { const r = give(get().pet, kind, earned, day); if (r.ok) set({ pet: r.pet }); else set({ pet: r.pet }); return { ok: r.ok, leveledUp: r.leveledUp }; },
+    addXp: (n) => set((s) => ({ pet: { ...s.pet, xp: s.pet.xp + n } })),
     rename: (name) => set((s) => ({ pet: { ...s.pet, name: name.trim().slice(0, 20) || 'Theia' } })),
     setShare: (share) => set((s) => ({ pet: { ...s.pet, share } })),
     setOthers: (others) => set({ others }),
