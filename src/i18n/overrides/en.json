@@ -1071,5 +1071,9 @@
   "Come va l'acqua negli ultimi giorni": "How your water is going lately",
   "Scrivi il CAP": "Enter your postcode",
   "Scrivi via e numero": "Enter street and number",
-  "L'indirizzo completo serve per un account vero e per i servizi che lo richiedono. Nessun altro utente lo vede.": "The full address is needed for a real account and for services that require it. No other user sees it."
+  "L'indirizzo completo serve per un account vero e per i servizi che lo richiedono. Nessun altro utente lo vede.": "The full address is needed for a real account and for services that require it. No other user sees it.",
+  "Codice di conferma": "Confirmation code",
+  "Codice inviato a {0}.": "Code sent to {0}.",
+  "Ti ho scritto un codice a {0}. Controlla anche lo spam.": "I sent a code to {0}. Check your spam folder too.",
+  "Scrivi l'email del tuo account: ti mando un codice. Sul nuovo telefono ritrovi i tuoi dati.": "Enter your account email: I'll send you a code. On the new phone you get your data back."
 }

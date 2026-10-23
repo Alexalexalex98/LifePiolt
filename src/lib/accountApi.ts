@@ -43,7 +43,7 @@ export async function sendCode(emailRaw: string): Promise<Res> {
     if (b === 'none') return { ok: false, message: "Il servizio account non è ancora attivo: per ora puoi esplorare l'app con i dati demo." };
     if (b === 'test') return { ok: true, message: tl('Modalità di prova: nessuna email inviata. Il codice è {0}.', TEST_CODE) };
     await (await supa()).auth.signIn({ email });
-    return { ok: true, message: tl('Ti ho scritto un codice a 6 cifre a {0}. Controlla anche lo spam.', email) };
+    return { ok: true, message: tl('Ti ho scritto un codice a {0}. Controlla anche lo spam.', email) };
   } catch (e) { return { ok: false, message: msg(e) }; }
 }
 

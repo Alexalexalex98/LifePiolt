@@ -104,7 +104,7 @@ export function AccountFlow({ initial = 'create', onDone, onBack }: { initial?: 
       {step === 'login' ? (
         <>
           <H>Accedi</H>
-          <Body small muted>Scrivi l'email del tuo account: ti mando un codice a 6 cifre. Sul nuovo telefono ritrovi i tuoi dati.</Body>
+          <Body small muted>Scrivi l'email del tuo account: ti mando un codice. Sul nuovo telefono ritrovi i tuoi dati.</Body>
           <View><Input placeholder="Email" value={f.email} onChangeText={(v) => up('email', v)} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" accessibilityLabel="Email" /><E k="email" /></View>
           {note ? <Body small>{tl(note)}</Body> : null}
           <Btn title={busy ? 'Un momento...' : 'Invia il codice'} disabled={busy || unavailable || !emailOk(f.email)} onPress={() => void submitLogin()} />
@@ -115,8 +115,8 @@ export function AccountFlow({ initial = 'create', onDone, onBack }: { initial?: 
       {step === 'code' ? (
         <>
           <H>Inserisci il codice</H>
-          <Body small muted>{tl('Codice a 6 cifre inviato a {0}.', f.email.trim().toLowerCase())}</Body>
-          <Input placeholder="Codice a 6 cifre" value={code} onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'} textContentType="oneTimeCode" accessibilityLabel="Codice" />
+          <Body small muted>{tl('Codice inviato a {0}.', f.email.trim().toLowerCase())}</Body>
+          <Input placeholder="Codice di conferma" value={code} onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 10))} keyboardType="number-pad" maxLength={10} autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'} textContentType="oneTimeCode" accessibilityLabel="Codice" />
           {note ? <Body small>{tl(note)}</Body> : null}
           <Btn title={busy ? 'Controllo...' : 'Conferma'} disabled={busy || code.length < 6} onPress={() => void submitCode()} />
           <Row gap={8} style={{ justifyContent: 'flex-start' }}>
