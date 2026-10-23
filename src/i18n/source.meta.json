@@ -1,5 +1,5 @@
 {
- "count": 14262,
+ "count": 14294,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -28,8 +28,8 @@
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
   "src/app/(tabs)/fitnessCook.tsx": 27,
-  "src/app/(tabs)/fitnessDay.tsx": 18,
-  "src/app/(tabs)/fitnessDiary.tsx": 45,
+  "src/app/(tabs)/fitnessDay.tsx": 23,
+  "src/app/(tabs)/fitnessDiary.tsx": 56,
   "src/app/(tabs)/fitnessExercise.tsx": 31,
   "src/app/(tabs)/fitnessFridge.tsx": 49,
   "src/app/(tabs)/fitnessGroup.tsx": 39,
@@ -453,7 +453,7 @@
   "src/lib/fitness/groups.ts": 16,
   "src/lib/fitness/gymPay.ts": 11,
   "src/lib/fitness/labels.ts": 17,
-  "src/lib/fitness/mealInsights.ts": 84,
+  "src/lib/fitness/mealInsights.ts": 89,
   "src/lib/fitness/mealPlan.ts": 27,
   "src/lib/fitness/micro.ts": 35,
   "src/lib/fitness/nutrientInfo.ts": 444,
@@ -465,6 +465,7 @@
   "src/lib/fitness/programsExtra.ts": 31,
   "src/lib/fitness/progs/p4.ts": 1,
   "src/lib/fitness/waterBanner.ts": 10,
+  "src/lib/fitness/waterInsights.ts": 23,
   "src/lib/focusPlan.ts": 4,
   "src/lib/foodNotify.ts": 5,
   "src/lib/format.ts": 12,
@@ -633,5 +634,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1784
+ "withPlaceholders": 1790
 }

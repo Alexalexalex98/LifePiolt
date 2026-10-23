@@ -10,11 +10,16 @@ import { t as tl } from '@/i18n/core';
 import { withMicro } from '@/lib/fitness/mealMicro';
 import { NUTRITION_LEGAL } from '@/lib/fitness/micro';
 import { dayOf, displayName, dayStats, groupByDay, quality, slotOf, waterGoal } from '@/lib/fitness/mealInsights';
+import { waterLevel } from '@/lib/fitness/waterInsights';
 import { dailyTargets } from '@/lib/fitness/nutrition';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { useFitness } from '@/store/fitness';
 
+const Bar = ({ value, max, color }: { value: number; max: number; color: string }) => {
+  const t = useTheme();
+  return <View style={{ height: 8, borderRadius: 4, backgroundColor: t.chip, overflow: 'hidden', marginVertical: 6 }}><View style={{ width: `${Math.min(100, Math.round((value / Math.max(1, max)) * 100))}%`, height: 8, backgroundColor: color }} /></View>;
+};
 const SLOT: Record<string, string> = { colazione: 'Colazione', pranzo: 'Pranzo', merenda: 'Merenda', cena: 'Cena', notte: 'Dopo cena' };
 const hhmm = (ts: number) => new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
@@ -31,17 +36,28 @@ export default function FitnessDay() {
   const [y, m, d] = key.split('-').map(Number);
   const title = new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
   const goal = waterGoal(fit.body?.weightKg);
+  const isToday = key === dayOf(Date.now());
+  const wl = waterLevel(water, goal);
   const qCol = q ? (q.level === 'ok' ? '#5fd39a' : q.level === 'attenzione' ? '#ffb020' : t.danger) : FIT;
   return (
     <Page id="fitnessDay" back title="Resoconto del giorno">
       <Card accent={FIT}>
         <H style={{ textTransform: 'capitalize' }}>{title}</H>
         <DaySummary meals={g?.meals ?? []} micro={g?.micro} waterMl={water} body={fit.body} />
-        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={8}>
+      </Card>
+
+      <Card>
+        <Row><H style={{ flex: 1 }}>Acqua</H><Body bold>{`${(water / 1000).toFixed(1).replace('.', ',')} / ${(goal / 1000).toFixed(1).replace('.', ',')} L`}</Body></Row>
+        <Bar value={water} max={goal} color={FIT} />
+        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={8}>
           {[200, 500, 1000].map((ml) => <Pill key={ml} label={ml === 1000 ? '+ 1 L acqua' : `+ ${ml} ml acqua`} onPress={() => { fit.addWater(ml, key); }} />)}
           {water > 0 ? <Pill label="Annulla ultimo" onPress={() => { fit.addWater(-200, key); }} /> : null}
         </Row>
-        {water < goal * 0.5 && key === dayOf(Date.now()) && new Date().getHours() >= 15 ? <Body small style={{ marginTop: 6, color: '#ffb020' }}>Oggi hai bevuto poco: ti conviene bere qualcosa nelle prossime ore.</Body> : null}
+        {isToday && water < goal ? <Body small muted style={{ marginTop: 6 }}>{tl('Ti mancano ancora {0} per arrivare all\'obiettivo.', `${(Math.max(0, goal - water) / 1000).toFixed(1).replace('.', ',')} L`)}</Body> : null}
+        {water >= goal ? <Body small style={{ marginTop: 6, color: '#5fd39a' }}>Obiettivo raggiunto per questo giorno.</Body> : null}
+        {water > 0 && wl === 'troppa' ? <Body small style={{ marginTop: 6, color: '#ffb020' }}>Hai bevuto molta più acqua del necessario: ti conviene distribuirla nella giornata. Trovi cosa può succedere nello storico.</Body> : null}
+        {water > 0 && !isToday && wl === 'poca' ? <Body small style={{ marginTop: 6, color: '#ffb020' }}>Quel giorno hai bevuto poco. Se succede spesso, nello storico trovi cosa può causare.</Body> : null}
+        <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} title="Come va l'acqua negli ultimi giorni" onPress={() => go('fitnessDiary')} />
       </Card>
 
       {q ? (

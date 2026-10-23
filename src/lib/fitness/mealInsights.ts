@@ -6,6 +6,7 @@
  */
 import { MICRO_INFO, NUTRITION_LEGAL, microRows, scaleMicro, sumMicro, type Micro } from './micro.ts';
 import type { Macros } from './nutrition.ts';
+import { WHAT_IF_HIGH, WHAT_IF_HIGH_WARN, WHAT_IF_LOW, WHAT_IF_LOW_WARN, waterLevel } from './waterInsights.ts';
 
 export type DayMeal = { id: string; ts: number; name: string; grams: number; macros: Macros; photo?: string; /** vitamine e minerali stimati */ micro?: Micro; /** calorie che vengono da cibo spazzatura (fritti, dolci, bibite, fast food) */ junkKcal?: number };
 export type DayGroup = { key: string; ts: number; meals: DayMeal[]; total: Macros; micro: Micro; junkKcal: number };
@@ -73,10 +74,25 @@ export function periodStats(meals: DayMeal[], water: Record<string, number>, now
 /** Acqua di riferimento al giorno (ml): circa 30 ml per kg, tra 1,5 e 2,5 litri; senza il peso 2 litri. */
 export const waterGoal = (weightKg?: number): number => (weightKg && weightKg > 30 ? Math.round(Math.min(2500, Math.max(1500, weightKg * 30)) / 50) * 50 : 2000);
 
+const litri = (ml: number) => `${(ml / 1000).toFixed(1).replace('.', ',')}`;
+/** L'acqua nel periodo: poca, nella norma o troppa, con cosa può succedere. Vale anche senza pasti registrati. */
+function waterFinding(s: Stats, ctx: Ctx): Finding | null {
+  if (s.waterMl === null) return null;
+  const wg = waterGoal(ctx.weightKg);
+  const lv = waterLevel(s.waterMl, wg);
+  const media = `In media ${litri(s.waterMl)} litri al giorno, il riferimento per te è circa ${litri(wg)}.`;
+  if (lv === 'poca') return { id: 'acqua', level: 'carenza', title: 'Poca acqua', detail: media, tip: `Tieni una bottiglia a portata di mano e bevi un bicchiere a ogni pasto e a metà mattina e pomeriggio. Se ne bevi poca può succedere: ${WHAT_IF_LOW.slice(0, 3).join('; ')}. ${WHAT_IF_LOW_WARN}` };
+  if (lv === 'troppa') return { id: 'acqua-troppa', level: 'attenzione', title: 'Troppa acqua', detail: media, tip: `Bere molto più del necessario può diluire il sodio nel sangue: ${WHAT_IF_HIGH.slice(0, 3).join('; ')}. ${WHAT_IF_HIGH_WARN}` };
+  if (lv === 'quasi') return { id: 'acqua-quasi', level: 'attenzione', title: 'Un po\' poca acqua', detail: media, tip: 'Sei vicino: un bicchiere in più a pranzo e uno nel pomeriggio ti portano all\'obiettivo.' };
+  return { id: 'acqua-ok', level: 'ok', title: lv === 'molta' ? 'Molta acqua' : 'Acqua nella norma', detail: media, tip: '' };
+}
+
 /** I punti su cui lavorare (e quelli già in ordine), dal più importante. Valori di riferimento generali per un adulto. */
 export function findings(s: Stats, ctx: Ctx = {}): Finding[] {
   const out: Finding[] = [];
-  if (!s.days) return out;
+  const wf = waterFinding(s, ctx);
+  if (!s.days) return wf ? [wf] : out;
+  if (wf) out.push(wf);
   const a = s.avg;
   const kcal = a.kcal || 1;
   const T = ctx.targetKcal;
@@ -99,11 +115,6 @@ export function findings(s: Stats, ctx: Ctx = {}): Finding[] {
   const fatPct = (a.f * 9 * 100) / kcal;
   if (fatPct > 38) out.push({ id: 'grassi', level: 'attenzione', title: 'Molti grassi in totale', detail: `Circa il ${Math.round(fatPct)}% delle calorie dai grassi (di solito 20-35%).`, tip: 'Controlla condimenti e fritture, e scegli cotture al forno o alla piastra.' });
   if (s.mealsPerDay < 2.5 && s.days >= 2) out.push({ id: 'pasti', level: 'attenzione', title: 'Pochi pasti registrati', detail: `In media ${s.mealsPerDay} pasti al giorno nel diario.`, tip: 'Se salti i pasti, prova tre pasti regolari e uno spuntino; se invece non li registri, il giudizio è meno preciso.' });
-  const wg = waterGoal(ctx.weightKg);
-  if (s.waterMl !== null) {
-    if (s.waterMl < wg * 0.7) out.push({ id: 'acqua', level: 'carenza', title: 'Poca acqua', detail: `In media ${(s.waterMl / 1000).toFixed(1).replace('.', ',')} litri al giorno, ne servirebbero circa ${(wg / 1000).toFixed(1).replace('.', ',')}.`, tip: 'Tieni una bottiglia a portata di mano e bevi un bicchiere a ogni pasto e a metà mattina e pomeriggio.' });
-    else out.push({ id: 'acqua-ok', level: 'ok', title: 'Acqua nella norma', detail: `In media ${(s.waterMl / 1000).toFixed(1).replace('.', ',')} litri al giorno.`, tip: '' });
-  }
   if (s.micro) {
     const rows = microRows(s.micro);
     const low = rows.filter((r) => r.pct < 60).sort((x, y) => x.pct - y.pct);
@@ -122,7 +133,11 @@ export function findings(s: Stats, ctx: Ctx = {}): Finding[] {
 
 /** Testo per la chat: com'è andata, dove mancano cose e cosa migliorare. */
 export function analysisText(s: Stats, list: Finding[], name?: string): string {
-  if (!s.days) return 'Non ho ancora abbastanza pasti nel diario per dirti qualcosa di utile. Registra qualche pasto (anche solo con una foto) e riprovo.';
+  if (!s.days) {
+    const w = list.find((f) => f.id.startsWith('acqua'));
+    const base = 'Non ho ancora abbastanza pasti nel diario per dirti qualcosa di utile. Registra qualche pasto (anche solo con una foto) e riprovo.';
+    return w ? `${base}\n\nSull'acqua, però, posso dirti questo. ${w.title}: ${w.detail}${w.tip ? ` ${w.tip}` : ''}` : base;
+  }
   const who = name ? `${name}, ` : '';
   const bad = list.filter((f) => f.level !== 'ok');
   const good = list.filter((f) => f.level === 'ok');

@@ -12,6 +12,7 @@ import { t as tl } from '@/i18n/core';
 import { DaySummary } from '@/components/fitness/DaySummary';
 import { withMicro } from '@/lib/fitness/mealMicro';
 import { NUTRITION_LEGAL } from '@/lib/fitness/micro';
+import { WATER_NOTE, WHAT_IF_HIGH, WHAT_IF_HIGH_WARN, WHAT_IF_LOW, WHAT_IF_LOW_WARN, dayKey, waterPeriod, waterVerdict } from '@/lib/fitness/waterInsights';
 import { dayOf, displayName, groupByDay, periodStats, quality, slotOf, waterGoal } from '@/lib/fitness/mealInsights';
 import { dailyTarget, dailyTargets } from '@/lib/fitness/nutrition';
 import { refreshFoodReminders } from '@/lib/foodNotify';
@@ -49,8 +50,14 @@ export default function FitnessDiary() {
   const q = tg ? quality(st, tg) : null;
   const qCol = q ? (q.level === 'ok' ? '#5fd39a' : q.level === 'attenzione' ? '#ffb020' : t.danger) : FIT;
   const today = dayOf(Date.now());
-  const waterToday = (fit.water ?? {})[today] ?? 0;
+  const [wDay, setWDay] = useState(today);
+  const [whatIf, setWhatIf] = useState<'low' | 'high' | null>(null);
+  const wAmount = (fit.water ?? {})[wDay] ?? 0;
+  const wDays = Array.from({ length: 7 }, (_, i) => { const ts = Date.now() - i * 86400000; return { key: dayKey(ts), label: i === 0 ? tl('Oggi') : i === 1 ? tl('Ieri') : new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'numeric' }) }; });
   const goal = waterGoal(fit.body?.weightKg);
+  const wp = waterPeriod(fit.water ?? {}, Date.now(), period, goal);
+  const wv = waterVerdict(wp);
+  const wCol = !wv ? FIT : wv.level === 'ok' ? '#5fd39a' : wv.level === 'attenzione' ? '#ffb020' : t.danger;
   const w = fit.waterRemind ?? { on: false, everyMin: 120, from: '09:00', to: '21:00' };
   const ev = fit.eveningCheck ?? { on: true, at: '20:45' };
 
@@ -106,13 +113,45 @@ export default function FitnessDiary() {
         </Card>
       ) : null}
 
-      <Card>
-        <Row><H style={{ flex: 1 }}>Acqua di oggi</H><Body bold>{`${(waterToday / 1000).toFixed(1).replace('.', ',')} / ${(goal / 1000).toFixed(1).replace('.', ',')} L`}</Body></Row>
-        <Bar value={waterToday} max={goal} color={FIT} />
-        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={8}>
-          {[200, 500, 1000].map((ml) => <Pill key={ml} label={ml === 1000 ? '+ 1 L' : `+ ${ml} ml`} onPress={() => { fit.addWater(ml); }} />)}
-          {waterToday > 0 ? <Pill label="Annulla ultimo" onPress={() => { fit.addWater(-200); }} /> : null}
+      <Card accent={FIT}>
+        <Row><H style={{ flex: 1 }}>Acqua</H><Body bold>{`${(wAmount / 1000).toFixed(1).replace('.', ',')} / ${(goal / 1000).toFixed(1).replace('.', ',')} L`}</Body></Row>
+        <Body small muted style={{ marginTop: 2 }}>Scegli il giorno e segna quanta acqua hai bevuto: puoi sistemare anche i giorni passati.</Body>
+        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={6}>
+          {wDays.map((d) => <Pill key={d.key} label={d.label} on={wDay === d.key} onPress={() => setWDay(d.key)} />)}
         </Row>
+        <Bar value={wAmount} max={goal} color={FIT} />
+        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={8}>
+          {[200, 500, 1000].map((ml) => <Pill key={ml} label={ml === 1000 ? '+ 1 L' : `+ ${ml} ml`} onPress={() => { fit.addWater(ml, wDay); }} />)}
+          {wAmount > 0 ? <Pill label="Annulla ultimo" onPress={() => { fit.addWater(-200, wDay); }} /> : null}
+        </Row>
+        {wAmount > 0 && wAmount < goal ? <Body small muted style={{ marginTop: 6 }}>{tl('Ti mancano ancora {0} per arrivare all\'obiettivo.', `${(Math.max(0, goal - wAmount) / 1000).toFixed(1).replace('.', ',')} L`)}</Body> : null}
+        {wAmount >= goal ? <Body small style={{ marginTop: 6, color: '#5fd39a' }}>Obiettivo raggiunto per questo giorno.</Body> : null}
+
+        <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.border }}>
+          <Body bold>A che punto sei</Body>
+          <Row style={{ justifyContent: 'flex-start', marginTop: 6 }} gap={8}>{([7, 30] as const).map((d) => <Pill key={d} label={`${d} ${tl('giorni')}`} on={period === d} onPress={() => setPeriod(d)} />)}</Row>
+          {wv && wp.avgMl !== null ? (
+            <View style={{ marginTop: 10 }}>
+              <Row><Body bold style={{ color: wCol, fontSize: 18 }}>{tl(wv.title)}</Body><Body bold>{`${Math.round(wp.pct * 100)}%`}</Body></Row>
+              <Bar value={wp.avgMl} max={wp.goal} color={wCol} />
+              <Body small muted style={{ marginTop: 6 }}>{tl('In media {0} al giorno su {1}: obiettivo raggiunto in {2} giorni su {3} con acqua segnata.', `${(wp.avgMl / 1000).toFixed(1).replace('.', ',')} L`, `${(wp.goal / 1000).toFixed(1).replace('.', ',')} L`, wp.daysAtGoal, wp.loggedDays)}</Body>
+              {wp.unloggedDays > 0 ? <Body small muted style={{ marginTop: 2 }}>{tl('{0} giorni senza acqua segnata: non li conto nella media.', wp.unloggedDays)}</Body> : null}
+              {wv.advice ? <Body small style={{ marginTop: 6 }}>{tl(wv.advice)}</Body> : null}
+            </View>
+          ) : <Body small muted style={{ marginTop: 8 }}>Segna l'acqua che bevi: dopo qualche giorno ti dico se ne bevi abbastanza.</Body>}
+          <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={8}>
+            <Pill label="Se ne bevo poca" on={whatIf === 'low'} onPress={() => setWhatIf(whatIf === 'low' ? null : 'low')} />
+            <Pill label="Se ne bevo troppa" on={whatIf === 'high'} onPress={() => setWhatIf(whatIf === 'high' ? null : 'high')} />
+          </Row>
+          {whatIf ? (
+            <View style={{ marginTop: 8, gap: 4 }}>
+              <Body small bold>{whatIf === 'low' ? 'Cosa può succedere se ne bevi poca' : 'Cosa può succedere se ne bevi troppa'}</Body>
+              {(whatIf === 'low' ? WHAT_IF_LOW : WHAT_IF_HIGH).map((x) => <Body key={x} small muted>{`• ${tl(x)}`}</Body>)}
+              <Body small style={{ marginTop: 4 }}>{tl(whatIf === 'low' ? WHAT_IF_LOW_WARN : WHAT_IF_HIGH_WARN)}</Body>
+            </View>
+          ) : null}
+          <Body small muted style={{ marginTop: 8 }}>{WATER_NOTE}</Body>
+        </View>
         <Row style={{ marginTop: 12 }}><View style={{ flex: 1 }}><Body>Avvisami per bere</Body><Body small muted>{`${tl('Ogni')} ${Math.round(w.everyMin / 60)} ${tl('ore')}, ${w.from}-${w.to}`}</Body></View><Switch value={w.on} onValueChange={(v) => void setRemind({ on: v })} accessibilityLabel="Avvisami per bere" /></Row>
         {w.on ? (
           <Row style={{ justifyContent: 'flex-start', marginTop: 6 }} gap={8}>
