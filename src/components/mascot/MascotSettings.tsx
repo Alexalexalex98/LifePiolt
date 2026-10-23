@@ -6,7 +6,8 @@ import { Mascot } from '@/components/mascot/Mascot';
 import { Body, Btn, Card, H, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
-import { EXPRESSIONS, type Expression } from '@/lib/mascot';
+import { EXPRESSIONS, MOTIONS, type Expression, type MotionId } from '@/lib/mascot';
+import { go } from '@/lib/nav';
 import { ACCENTS } from '@/lib/themeCustom';
 import { useApp } from '@/store/app';
 import { useStickers } from '@/store/stickers';
@@ -25,11 +26,13 @@ export function MascotSettings() {
   const set = useApp((s) => s.set);
   const mine = useStickers((s) => s.mine.length);
   const [expr, setExpr] = useState<Expression>('happy');
+  const [mv, setMv] = useState<{ id: MotionId; n: number }>({ id: 'bounce', n: 0 });
+  const play = (id: MotionId) => setMv((x) => ({ id, n: x.n + 1 }));
   return (
     <>
       <Card accent={t.accent}>
         <View style={{ alignItems: 'center', paddingVertical: 14 }}>
-          <Mascot size={180} color={t.accent} expression={mode === 'off' ? 'sleepy' : expr} />
+          <Mascot size={180} color={t.accent} expression={mode === 'off' ? 'sleepy' : expr} motion={mv} />
         </View>
         <Body small muted style={{ textAlign: 'center' }}>{tl('Cambia il colore: Theia si adatta e fa una piccola scena.')}</Body>
       </Card>
@@ -50,7 +53,7 @@ export function MascotSettings() {
       {mode !== 'off' ? (
         <>
           <Card>
-            <H>{tl('Colore')}</H>
+            <Row><H style={{ flex: 1 }}>{tl('Colore')}</H><Mascot size={72} color={t.accent} expression={expr} /></Row>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingVertical: 6 }}>
               {ACCENTS.map((a) => <Pressable key={a.id} accessibilityRole="button" accessibilityLabel={a.label} accessibilityState={{ selected: custom?.accent === a.hex }} onPress={() => set({ custom: { ...custom, accent: a.hex } })} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: a.hex, borderWidth: custom?.accent === a.hex ? 3 : 0, borderColor: t.text }} />)}
             </ScrollView>
@@ -58,10 +61,22 @@ export function MascotSettings() {
             {custom?.accent ? <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} title="Torna al colore originale" onPress={() => set({ custom: { ...custom, accent: undefined } })} /> : null}
           </Card>
           <Card>
-            <H>{tl('Espressione')}</H>
+            <Row><H style={{ flex: 1 }}>{tl('Espressione')}</H><Mascot size={72} color={t.accent} expression={expr} motion={mv} /></Row>
             <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 6 }} gap={8}>
-              {EXPRESSIONS.map((e) => <Pill key={e.id} label={tl(e.label)} on={expr === e.id} onPress={() => setExpr(e.id)} />)}
+              {EXPRESSIONS.map((e) => <Pill key={e.id} label={tl(e.label)} on={expr === e.id} onPress={() => { setExpr(e.id); play('nod'); }} />)}
             </Row>
+          </Card>
+          <Card>
+            <Row><H style={{ flex: 1 }}>{tl('Movimenti')}</H><Mascot size={72} color={t.accent} expression={expr} motion={mv} /></Row>
+            <Body small muted>{tl('Tocca un movimento e guarda Theia farlo.')}</Body>
+            <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 6 }} gap={8}>
+              {MOTIONS.map((m) => <Pill key={m.id} label={tl(m.label)} on={mv.id === m.id && mv.n > 0} onPress={() => play(m.id)} />)}
+            </Row>
+          </Card>
+          <Card>
+            <H>{tl('Theia da accudire')}</H>
+            <Body small muted>{tl('Dalle da mangiare e da bere facendo le cose di ogni giorno: più ti prendi cura di te, più Theia sta bene. Gli altri possono vederla, se vuoi.')}</Body>
+            <Btn small style={{ marginTop: 8, alignSelf: 'flex-start' }} icon="heart" title="Vai da Theia" onPress={() => go('theiaPet')} />
           </Card>
           <Card>
             <H>{tl('Adesivi')}</H>

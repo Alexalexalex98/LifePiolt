@@ -150,3 +150,30 @@ test('spesa fissa cambiata di colpo => domanda; estratto vecchio => giorni', () 
   assert.equal(c[0].kind, 'change'); assert.equal(c[0].options[0].effect.override.amount, 180);
   assert.equal(staleDays(rows, '2026-12-01'), 61);
 });
+
+import { newPet, tick, earnedToday, give, available, levelOf, moodOf, streakNow, publicOf } from '../src/lib/pet.ts';
+test('pet: le necessità calano con le ore, i gettoni si guadagnano facendo cose vere', () => {
+  const t0 = Date.UTC(2026, 9, 23, 8);
+  const p = newPet(t0);
+  assert.equal(tick(p, t0 + 10 * 3600000).food, 70 - 35);
+  assert.equal(tick(p, t0 + 100 * 3600000).water, 0);
+  const e = earnedToday({ tasksDone: 9, mealsLogged: 1, waterMl: 1200, workouts: 0, moodLogged: true });
+  assert.deepEqual(e, { snack: 6, water: 2, fit: 0, love: 1 });
+});
+test('pet: senza gettone non mangia; con il gettone sì, e la serie parte con cibo+acqua', () => {
+  const t0 = Date.UTC(2026, 9, 23, 8), day = '2026-10-23';
+  let p = { ...newPet(t0), food: 20, water: 20 };
+  assert.equal(give(p, 'snack', { snack: 0, water: 0, fit: 0, love: 0 }, day, t0).ok, false);
+  const e = { snack: 1, water: 1, fit: 0, love: 0 };
+  let r = give(p, 'snack', e, day, t0); assert.equal(r.ok, true); assert.equal(r.pet.food, 45);
+  r = give(r.pet, 'snack', e, day, t0); assert.equal(r.ok, false);
+  r = give(r.pet, 'water', e, day, t0); assert.equal(r.pet.streak, 1); assert.equal(streakNow(r.pet, day), 1);
+  assert.equal(streakNow(r.pet, '2026-10-26'), 0);
+  assert.equal(available(r.pet, e, day).snack, 0);
+});
+test('pet: livelli, umore e vista pubblica senza dettagli privati', () => {
+  assert.equal(levelOf(0), 1); assert.equal(levelOf(20), 2); assert.equal(levelOf(80), 3);
+  assert.equal(moodOf({ ...newPet(), food: 5 }, 12).expr, 'crying');
+  assert.equal(moodOf({ ...newPet(), food: 20 }, 12).expr, 'hungry');
+  assert.deepEqual(Object.keys(publicOf(newPet(Date.now()), '2026-10-23')).sort(), ['expr', 'label', 'level', 'name', 'streak']);
+});

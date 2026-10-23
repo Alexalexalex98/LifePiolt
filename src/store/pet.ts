@@ -1,0 +1,29 @@
+import { create } from 'zustand';
+
+import { give, newPet, tick, type Earned, type Kind, type PetPublic, type PetState } from '@/lib/pet';
+
+import { persisted } from './persist';
+
+/** Theia da accudire: stato salvato sul telefono. Le necessità si aggiornano con l'ora quando si apre. */
+type State = {
+  pet: PetState;
+  /** Theia degli altri utenti (solo di chi ha scelto di mostrarla): qui arrivano dalla rete; in demo sono esempi */
+  others: Record<string, PetPublic & { demo?: boolean }>;
+  refresh: () => void;
+  giveTo: (kind: Kind, earned: Earned, day: string) => { ok: boolean; leveledUp: boolean };
+  rename: (name: string) => void;
+  setShare: (v: boolean) => void;
+  setOthers: (o: State['others']) => void;
+};
+
+export const usePet = create<State>()(
+  persisted<State>('pet', (set, get) => ({
+    pet: newPet(),
+    others: {},
+    refresh: () => set((s) => ({ pet: tick(s.pet) })),
+    giveTo: (kind, earned, day) => { const r = give(get().pet, kind, earned, day); if (r.ok) set({ pet: r.pet }); else set({ pet: r.pet }); return { ok: r.ok, leveledUp: r.leveledUp }; },
+    rename: (name) => set((s) => ({ pet: { ...s.pet, name: name.trim().slice(0, 20) || 'Theia' } })),
+    setShare: (share) => set((s) => ({ pet: { ...s.pet, share } })),
+    setOthers: (others) => set({ others }),
+  })),
+);

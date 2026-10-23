@@ -53,3 +53,10 @@ export function stickerFromText(text: string): { expr: Expression; color?: strin
   const c = COLORS.find(([re]) => re.test(x));
   return { expr: m?.[1] ?? 'happy', ...(c ? { color: c[1] } : {}), matched: !!m };
 }
+
+/** I movimenti di Theia: ogni id è una piccola scena (salto, giro, danza...). */
+export type MotionId = 'bounce' | 'jump' | 'spin' | 'dance' | 'nod' | 'wave' | 'float' | 'squish';
+export const MOTIONS: { id: MotionId; label: string; expr: Expression }[] = [
+  { id: 'bounce', label: 'Rimbalza', expr: 'happy' }, { id: 'jump', label: 'Salta', expr: 'excited' }, { id: 'spin', label: 'Gira', expr: 'surprised' }, { id: 'dance', label: 'Balla', expr: 'laughing' },
+  { id: 'nod', label: 'Annuisce', expr: 'ok' }, { id: 'wave', label: 'Saluta', expr: 'goodbye' }, { id: 'float', label: 'Fluttua', expr: 'relaxed' }, { id: 'squish', label: 'Si schiaccia', expr: 'shy' },
+];

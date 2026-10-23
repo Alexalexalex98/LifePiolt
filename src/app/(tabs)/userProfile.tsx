@@ -10,6 +10,7 @@ import { paletteFor } from '@/components/feed/feedColors';
 import { chunk } from '@/components/feed/feedLogic';
 import { IdeaHero } from '@/components/feed/SpecialCards';
 import { ArtPlaceholder, ArtShapes, RingAvatar } from '@/components/feed/parts';
+import { PetBadge } from '@/components/PetBadge';
 import { IdBadge, LifePointsRow, StatsBar } from '@/components/profile/ProfileParts';
 import { VideoPoster } from '@/components/stories/VideoPoster';
 import { Body, Btn, Card, Chev, Empty, Page, Row } from '@/components/ui';
@@ -113,6 +114,7 @@ export default function UserProfile() {
     stats: (
       <View key="stats" style={{ marginTop: 16 }}>
         <StatsBar name={name} followers={followers} following={followingCount} onFollowing={isMe ? () => openSheet('following') : undefined} />
+        <PetBadge name={name} />
       </View>
     ),
     lifepoints: <View key="lifepoints" style={{ marginTop: 14 }}><LifePointsRow name={name} isMe={isMe} /></View>,

@@ -3,7 +3,7 @@ import { Animated, Easing, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, Path, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
-import { EYES_OF, bodyTones, mix, type Expression } from '@/lib/mascot';
+import { EYES_OF, MOTIONS, bodyTones, mix, type Expression, type MotionId } from '@/lib/mascot';
 
 const LX = 76, RX = 124, EY = 128;
 const star = (x: number, y: number, r: number) => `M${x} ${y - r} Q${x + r * 0.18} ${y - r * 0.18} ${x + r} ${y} Q${x + r * 0.18} ${y + r * 0.18} ${x} ${y + r} Q${x - r * 0.18} ${y + r * 0.18} ${x - r} ${y} Q${x - r * 0.18} ${y - r * 0.18} ${x} ${y - r} Z`;
@@ -107,7 +107,7 @@ function Extras({ e, tone, ink }: { e: Expression; tone: string; ink: string }) 
  * Theia, la mascotte: una piccola sfera luminosa disegnata in vettoriale. Prende il colore dell'app, respira, sbatte gli occhi e cambia espressione.
  * Quando il colore cambia fa la sua piccola scena (si schiaccia, salta, gira su sé stessa, si illumina e festeggia) e poi torna all'espressione richiesta.
  */
-export function Mascot({ size = 140, color, expression = 'neutral', animated = true, ritual = true, shake = false, style }: { size?: number; color: string; expression?: Expression; animated?: boolean; ritual?: boolean; /** il solletico: ride e trema */ shake?: boolean; style?: StyleProp<ViewStyle> }) {
+export function Mascot({ size = 140, color, expression = 'neutral', animated = true, ritual = true, shake = false, motion, style }: { /** un movimento una tantum: cambia `n` per rifarlo */ motion?: { id: MotionId; n: number }; size?: number; color: string; expression?: Expression; animated?: boolean; ritual?: boolean; /** il solletico: ride e trema */ shake?: boolean; style?: StyleProp<ViewStyle> }) {
   const reduce = useReduceMotion();
   const live = animated && !reduce;
   const [shown, setShown] = useState(color);
@@ -124,6 +124,27 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
   const expRef = useRef(expression); expRef.current = expression;
 
   useEffect(() => { setExpr(shake ? 'laughing' : expression); }, [expression, shake]);
+  // i movimenti: salto, giro, danza... una scena sola ogni volta che `motion.n` cambia
+  useEffect(() => {
+    if (!live || !motion || !motion.n) return;
+    const T = (v: Animated.Value, to: number, ms: number, easing = Easing.inOut(Easing.quad)) => Animated.timing(v, { toValue: to, duration: ms, easing, useNativeDriver: true });
+    const up = (h = 1, ms = 200) => T(hop, h, ms, Easing.out(Easing.quad)), down = (ms = 200) => T(hop, 0, ms, Easing.in(Easing.quad));
+    let anim: Animated.CompositeAnimation;
+    switch (motion.id) {
+      case 'bounce': anim = Animated.sequence([up(0.55, 180), down(180), up(0.4, 150), down(150), up(0.25, 120), down(120)]); break;
+      case 'jump': anim = Animated.sequence([T(squash, 1, 140), Animated.parallel([T(squash, 0, 100), up(1, 260)]), down(260), T(squash, 1, 90), Animated.spring(squash, { toValue: 0, friction: 4, tension: 160, useNativeDriver: true })]); break;
+      case 'spin': anim = Animated.sequence([T(spin, 1, 800), Animated.timing(spin, { toValue: 0, duration: 1, useNativeDriver: true })]); break;
+      case 'dance': anim = Animated.sequence([...[1, -1, 1, -1].flatMap((d) => [Animated.parallel([T(wiggle, d, 160), up(0.25, 160)]), down(110)]), T(wiggle, 0, 120)]); break;
+      case 'nod': anim = Animated.sequence([T(squash, 0.7, 150), T(squash, 0, 150), T(squash, 0.7, 150), T(squash, 0, 150)]); break;
+      case 'wave': anim = Animated.sequence([T(wiggle, 1, 200), T(wiggle, -1, 330), T(wiggle, 1, 330), T(wiggle, 0, 200)]); break;
+      case 'float': anim = Animated.sequence([T(hop, 0.5, 900), Animated.delay(500), T(hop, 0, 900)]); break;
+      default: anim = Animated.sequence([T(squash, 1, 220), Animated.delay(250), Animated.spring(squash, { toValue: 0, friction: 3, tension: 140, useNativeDriver: true })]);
+    }
+    const e = MOTIONS.find((m) => m.id === motion.id)?.expr;
+    if (e) setExpr(e);
+    anim.start(() => { setExpr(expRef.current); });
+    return () => anim.stop();
+  }, [motion?.n]);
   useEffect(() => {
     if (!shake) { wiggle.setValue(0); return; }
     const loop = Animated.loop(Animated.sequence([
