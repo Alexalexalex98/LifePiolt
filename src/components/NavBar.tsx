@@ -1,4 +1,5 @@
 import { isDoubleTap, triggerPageRefresh } from '@/lib/pageRefresh';
+import { Mascot } from '@/components/mascot/Mascot';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useEffect, useRef, useState } from 'react';
 import { Modal, PanResponder, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
@@ -234,7 +235,7 @@ export function MenuSheet() {
   const tourMode = useTour((s) => s.mode), tourLevel = useTour((s) => s.level), tourAll = useTour((s) => s.allUnlocked);
   const groups = [
     { label: 'Principali', items: [['ai', 'LifeChat'], ['home', sn.home], ['plan', sn.plan]] },
-    { label: 'Le tue sezioni', items: [['lifehealth', 'LifeHealth'], ['lifefitness', 'LifeFitness'], ['lifenetwork', 'LifeNetwork'], ['lifefinance', 'LifeFinance'], ['lifenotes', 'LifeNotes'], ['lifetravel', 'LifeTravel'], ['lifedrive', 'LifeDrive'], ['lifetask', 'LifeTask'], ['lifepointsPage', 'LifePoints'], ['myServices', 'I tuoi servizi'], ['myClubs', 'I tuoi LifeClub']] },
+    { label: 'Le tue sezioni', items: [['lifehealth', 'LifeHealth'], ['lifefitness', 'LifeFitness'], ['lifenetwork', 'LifeNetwork'], ['lifefinance', 'LifeFinance'], ['lifenotes', 'LifeNotes'], ['lifetravel', 'LifeTravel'], ['lifedrive', 'LifeDrive'], ['lifetask', 'LifeTask'], ['lifepointsPage', 'LifePoints'], ['theiaPet', 'Theia, il gioco'], ['myServices', 'I tuoi servizi'], ['myClubs', 'I tuoi LifeClub']] },
     { label: 'Account', items: [['activity', 'La tua attività'], ['creatorStats', 'Le tue statistiche'], ['orders', 'I miei ordini'], ['savedPosts', 'Post salvati'], ['importSocial', 'Importa da un altro social'], ['help', 'Aiuto e domande'], ['settings', sn.settings]] },
   ];
   return (
@@ -257,7 +258,7 @@ export function MenuSheet() {
                 <Item key={id} last={i === g.items.length - 1} style={{ paddingHorizontal: 14, paddingVertical: 12 }} onPress={() => { setMenu(false); if (locked) requestUnlock(id); else go(id); }}>
                   <Row style={{ justifyContent: 'flex-start', opacity: locked ? 0.5 : 1 }}>
                     <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: color + '22', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name={id === 'creatorStats' ? 'chart' : id} size={17} color={color} stroke={1.9} />
+                      {id === 'theiaPet' ? <Mascot size={26} color={t.accent} animated={false} expression="happy" /> : <Icon name={id === 'creatorStats' ? 'chart' : id} size={17} color={color} stroke={1.9} />}
                     </View>
                     <Text style={{ color: t.text, fontWeight: '500', flex: 1 }}>{label}</Text>
                     {locked ? <Icon name="lock" size={16} color={t.muted} stroke={2.2} /> : <Chev />}

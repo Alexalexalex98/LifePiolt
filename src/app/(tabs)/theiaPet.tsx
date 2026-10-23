@@ -1,76 +1,113 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ExerciseRunner } from '@/components/mascot/ExerciseRunner';
 import { Mascot } from '@/components/mascot/Mascot';
-import { EXERCISES, EMOTIONS, insightsOf, type Exercise } from '@/lib/mindExercises';
-import { useMindSpace } from '@/store/mindSpace';
-import { Body, Btn, Card, H, Input, Page, Pill, Progress, Row, Sheet, Toggle } from '@/components/ui';
+import { PetScene, phaseOf } from '@/components/pet/PetScene';
+import { Text } from '@/components/T';
+import { Body, Btn, Card, H, Input, Pill, Progress, Row, Sheet, Toggle } from '@/components/ui';
 import { earnedForDay, useEarned } from '@/hooks/use-pet-earned';
-import { KINDS as CK, inviteText, progressOf, progressText, type ChallengeKind } from '@/lib/challenges';
-import { useChallenges } from '@/store/challenges';
-import { useChat } from '@/store/chat';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
+import { KINDS as CK, inviteText, progressOf, progressText, type ChallengeKind } from '@/lib/challenges';
+import { Icon } from '@/lib/icons';
+import { goBack } from '@/lib/nav';
+import { EXERCISES, insightsOf, type Exercise } from '@/lib/mindExercises';
 import type { Expression, MotionId } from '@/lib/mascot';
-import { go } from '@/lib/nav';
-import { available, levelProgress, moodOf, publicOf, streakNow, tick, type Kind } from '@/lib/pet';
 import { peoplePool } from '@/lib/network';
+import { available, levelProgress, moodOf, publicOf, streakNow, tick, type Kind } from '@/lib/pet';
+import { ACCENTS } from '@/lib/themeCustom';
 import { useApp } from '@/store/app';
+import { useChallenges } from '@/store/challenges';
+import { useChat } from '@/store/chat';
+import { useMindSpace } from '@/store/mindSpace';
 import { newId, topicList, useNet } from '@/store/network';
 import { usePet } from '@/store/pet';
 import { toast } from '@/store/toast';
+import { go } from '@/lib/nav';
 
-const KINDS: { k: Kind; title: string; earn: string; page: string; expr: Expression; mv: MotionId }[] = [
-  { k: 'snack', title: 'Spuntino', earn: 'Lo guadagni completando task e segnando i pasti', page: 'lifetask', expr: 'eating', mv: 'bounce' },
-  { k: 'water', title: 'Acqua', earn: 'La guadagni segnando l\'acqua che bevi', page: 'lifefitness', expr: 'water', mv: 'nod' },
-  { k: 'fit', title: 'Allenamento', earn: 'Lo guadagni facendo un allenamento', page: 'lifefitness', expr: 'workout', mv: 'jump' },
-  { k: 'love', title: 'Un pensiero', earn: 'Lo guadagni segnando come stai', page: 'lifehealth', expr: 'love', mv: 'dance' },
-  { k: 'pet', title: 'Coccola', earn: 'Poche al giorno, gratis', page: '', expr: 'blushing', mv: 'squish' },
+const ACTIONS: { k: Kind; title: string; icon: string; earn: string; page: string; expr: Expression; mv: MotionId }[] = [
+  { k: 'snack', title: 'Spuntino', icon: 'meal', earn: 'Lo guadagni completando task e segnando i pasti', page: 'lifetask', expr: 'eating', mv: 'bounce' },
+  { k: 'water', title: 'Acqua', icon: 'drop', earn: 'La guadagni segnando l\'acqua che bevi', page: 'lifefitness', expr: 'water', mv: 'nod' },
+  { k: 'fit', title: 'Energia', icon: 'activity', earn: 'La guadagni facendo un allenamento', page: 'lifefitness', expr: 'workout', mv: 'jump' },
+  { k: 'love', title: 'Pensiero', icon: 'heart', earn: 'Lo guadagni segnando come stai', page: 'lifehealth', expr: 'love', mv: 'dance' },
+  { k: 'pet', title: 'Coccola', icon: 'smile', earn: 'Poche al giorno, gratis', page: '', expr: 'blushing', mv: 'squish' },
 ];
+type Panel = 'activities' | 'friends' | 'settings' | null;
+const hue = (name: string) => ACCENTS[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % ACCENTS.length]!.hex;
 
-/** Theia da accudire: sta bene se ti prendi cura di te. Il cibo si guadagna facendo cose vere; se vuoi, gli altri la vedono e ti sproni a vicenda. */
+function Gauge({ icon, v, color }: { icon: string; v: number; color: string }) {
+  return (
+    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#00000040', borderRadius: 14, paddingVertical: 6, paddingHorizontal: 8 }}>
+      <Icon name={icon as never} size={16} color="#fff" stroke={2} />
+      <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: '#ffffff30', overflow: 'hidden' }}><View style={{ width: `${Math.round(v)}%`, height: 8, backgroundColor: color, borderRadius: 4 }} /></View>
+    </View>
+  );
+}
+
+/** Theia, il gioco: una creatura da accudire e da veder crescere, in un salotto che cambia con l'ora. Cibo e acqua si guadagnano con le cose vere dell'app; se vuoi, giochi con gli amici. */
 export default function TheiaPet() {
   const th = useTheme();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const me = useApp((s) => s.account.name);
-  const { pet, others, refresh, giveTo, rename, setShare, setOthers } = usePet();
+  const { pet, others, refresh, giveTo, rename, setShare, setOthers, visit } = usePet();
   const { earned, day } = useEarned();
   const [mv, setMv] = useState<{ id: MotionId; n: number }>({ id: 'bounce', n: 0 });
   const [temp, setTemp] = useState<Expression | null>(null);
+  const [panel, setPanel] = useState<Panel>(null);
   const [name, setName] = useState<string | null>(null);
+  const [bubble, setBubble] = useState(true);
+  const ch = useChallenges();
+  const mind = useMindSpace();
+  const [run, setRun] = useState<Exercise | null>(null);
+  const [tab, setTab] = useState<'friends' | 'challenges'>('friends');
+  const [cs, setCs] = useState<{ with: string; kind: ChallengeKind; target: number; days: number } | null>(null);
+  const [upd, setUpd] = useState<{ id: string; n: string } | null>(null);
+  const [vis, setVis] = useState<string | null>(null);
+  const [vmv, setVmv] = useState<{ id: MotionId; n: number }>({ id: 'bounce', n: 0 });
+  const { ex: exParam } = useLocalSearchParams<{ ex?: string }>();
+
   useEffect(() => {
     const away = (Date.now() - pet.ts) / 86400000;
     if (away >= 1) { setTemp('happy'); setMv((x) => ({ id: 'bounce', n: x.n + 1 })); setTimeout(() => setTemp(null), 2600); toast('Che bello rivederti!'); }
     refresh(); const h = setInterval(refresh, 60000); return () => clearInterval(h);
   }, [refresh]);
-  // esempi di altri utenti, solo finché non arrivano quelli veri: dichiarati come demo
   useEffect(() => {
     if (Object.keys(others).length) return;
     const demo: typeof others = {};
-    peoplePool(me).slice(0, 3).forEach((n, i) => { demo[n] = { name: 'Theia', level: 3 + i * 4, streak: 2 + i * 5, expr: i === 1 ? 'proud' : 'happy', label: i === 1 ? 'Sta benissimo' : 'Sta bene', demo: true }; });
+    peoplePool(me).slice(0, 4).forEach((n, i) => { demo[n] = { name: 'Theia', level: 3 + i * 4, streak: 2 + i * 5, expr: i === 1 ? 'proud' : 'happy', label: i === 1 ? 'Sta benissimo' : 'Sta bene', demo: true }; });
     if (Object.keys(demo).length) setOthers(demo);
   }, []);
+  useEffect(() => { const e = EXERCISES.find((q) => q.id === exParam); if (e) setRun(e); }, [exParam]);
 
   const now = tick(pet);
   const mood = moodOf(now);
   const avail = available(now, earned, day);
   const lp = levelProgress(now.xp);
   const streak = streakNow(now, day);
+  const phase = phaseOf(new Date().getHours());
   const shown = temp ?? mood.expr;
-  const bar = (label: string, v: number) => (
-    <View style={{ marginTop: 8 }}>
-      <Row><Body small bold style={{ flex: 1 }}>{tl(label)}</Body><Body small muted>{Math.round(v)}%</Body></Row>
-      <Progress value={Math.round(v)} />
-    </View>
-  );
-  const act = (a: (typeof KINDS)[number]) => {
+  const size = Math.min(270, width * 0.72);
+
+  const react = (e: Expression, m: MotionId, ms = 1800) => { setTemp(e); setMv((x) => ({ id: m, n: x.n + 1 })); setTimeout(() => setTemp(null), ms); };
+  const act = (a: (typeof ACTIONS)[number]) => {
     if (avail[a.k] <= 0) { if (a.page) { toast(`${tl(a.earn)}.`); go(a.page); } else toast('Per oggi basta coccole: tornano domani'); return; }
     const r = giveTo(a.k, earned, day);
     if (!r.ok) return;
-    setTemp(a.expr); setMv((x) => ({ id: a.mv, n: x.n + 1 })); setTimeout(() => setTemp(null), 1800);
-    toast(r.leveledUp ? `${tl('Theia è salita di livello!')}` : 'Fatto');
+    react(a.expr, a.mv); setBubble(false);
+    toast(r.leveledUp ? tl('Theia è salita di livello!') : 'Fatto');
   };
+  const poke = () => { if (avail.pet > 0) giveTo('pet', earned, day); react('blushing', 'squish', 1400); };
+
+  const friends = useMemo(() => Object.entries(others), [others]);
+  const peopleList = useMemo(() => peoplePool(me).slice(0, 8), [me]);
+  const dm = (to: string, text: string) => { const c = useChat.getState(); c.send(c.ensureDm(to, me), me, { kind: 'text', text }); };
+  const mineOn = (kind: ChallengeKind) => (d: string) => earnedForDay(d)[kind];
+  const ins = useMemo(() => insightsOf(mind.entries), [mind.entries]);
+  const followUp = useMemo(() => { const sch = [...mind.entries].reverse().find((x) => x.ex === 'schedule'); if (!sch || Date.now() - sch.ts < 20 * 3600000) return null; return mind.entries.some((x) => x.ex === 'rate' && x.ts > sch.ts) ? null : sch; }, [mind.entries]);
   const boast = () => {
     const pub = publicOf(now, day);
     const text = `${pub.name} ${tl('è al livello')} ${pub.level}${pub.streak > 1 ? `, ${pub.streak} ${tl('giorni di cura')}` : ''}. ${tl('Theia sta crescendo bene!')}`;
@@ -78,152 +115,185 @@ export default function TheiaPet() {
     net.patch({ posts: [{ id: newId(), author: me, text, media: null, tag: topicList[0], likes: 0, ts: Date.now() } as never, ...net.posts] });
     toast('Pubblicato su LifeNetwork');
   };
-  const others2 = useMemo(() => Object.entries(others), [others]);
-  const ch = useChallenges();
-  const mind = useMindSpace();
-  const [run, setRun] = useState<Exercise | null>(null);
-  const [diary, setDiary] = useState(false);
-  const [listOpen, setListOpen] = useState(false);
-  const { ex: exParam } = useLocalSearchParams<{ ex?: string }>();
-  useEffect(() => { const e = EXERCISES.find((q) => q.id === exParam); if (e) setRun(e); }, [exParam]);
-  const followUp = useMemo(() => { const sch = [...mind.entries].reverse().find((x) => x.ex === 'schedule'); if (!sch || Date.now() - sch.ts < 20 * 3600000) return null; const rated = mind.entries.some((x) => x.ex === 'rate' && x.ts > sch.ts); return rated ? null : sch; }, [mind.entries]);
-  const ins = useMemo(() => insightsOf(mind.entries), [mind.entries]);
-  const [cs, setCs] = useState<{ with: string; kind: ChallengeKind; target: number; days: number } | null>(null);
-  const [upd, setUpd] = useState<{ id: string; n: string } | null>(null);
-  const friends = useMemo(() => peoplePool(me).slice(0, 8), [me]);
-  const mineOn = (kind: ChallengeKind) => (d: string) => earnedForDay(d)[kind];
-  const dm = (to: string, text: string) => { const c = useChat.getState(); c.send(c.ensureDm(to, me), me, { kind: 'text', text }); };
+  const visitDo = (id: MotionId, text?: string) => { setVmv((x) => ({ id, n: x.n + 1 })); if (vis && text) { dm(vis, text); toast('Inviato'); } };
+  const openVisit = (n: string) => { setPanel(null); setVis(n); if (visit(n, day)) toast('Visita fatta'); };
+
+  const btn = (round: number, icon: string, label: string, onPress: () => void, badge?: number, dim?: boolean) => (
+    <Pressable accessibilityRole="button" accessibilityLabel={tl(label)} onPress={onPress} style={{ alignItems: 'center', width: round + 14 }}>
+      <View style={{ width: round, height: round, borderRadius: round / 2, backgroundColor: dim ? '#ffffff30' : th.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#ffffffcc' }}>
+        <Icon name={icon as never} size={round * 0.42} color="#fff" stroke={2} />
+        {badge ? <View style={{ position: 'absolute', top: -4, right: -4, minWidth: 22, height: 22, borderRadius: 11, backgroundColor: '#ff5d73', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{badge}</Text></View> : null}
+      </View>
+      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700', marginTop: 4, textShadowColor: '#0008', textShadowRadius: 3 }}>{tl(label)}</Text>
+    </Pressable>
+  );
 
   return (
-    <Page id="theiaPet" back title="Theia da accudire">
-      <Body small muted style={{ marginBottom: 8 }}>Una creatura da accudire e da veder crescere. Cibo e acqua si guadagnano facendo le cose di ogni giorno nell'app. Nessuna fretta: se manchi per giorni, Theia è felice di rivederti e non perde mai nulla.</Body>
-      <Card accent={th.accent}>
-        <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-          <Mascot size={190} color={th.accent} expression={shown} motion={mv} />
-          {name === null ? <Body bold style={{ marginTop: 6 }} onPress={() => setName(pet.name)}>{pet.name}</Body> : <View style={{ width: 200, marginTop: 6 }}><Input value={name} onChangeText={setName} onBlur={() => { rename(name); setName(null); }} onSubmitEditing={() => { rename(name); setName(null); }} autoFocus /></View>}
-          <Body small muted>{tl(mood.label)}</Body>
-        </View>
-        {bar('Cibo', now.food)}{bar('Acqua', now.water)}{bar('Affetto', now.joy)}
-        <Row style={{ marginTop: 12 }}><Body bold style={{ flex: 1 }}>{`${tl('Livello')} ${lp.level}`}</Body><Body small muted>{`${lp.toNext} ${tl('punti al prossimo')}`}</Body></Row>
-        <Progress value={lp.pct} />
-        <Body small muted style={{ marginTop: 6 }}>{streak > 0 ? `${tl('Giorni di cura')}: ${streak}` : tl('Quando dai da mangiare e da bere a Theia, il giorno si aggiunge ai tuoi giorni di cura.')}</Body>
-      </Card>
+    <View style={{ flex: 1, backgroundColor: th.bg }}>
+      <PetScene phase={phase} accent={th.accent} />
 
-      {followUp ? (
-        <Card>
-          <H>Com'è andata?</H>
-          <Body small muted style={{ marginTop: 4 }}>{`${tl('Avevi pensato di fare')}: ${String(followUp.answers.what ?? '')}. ${tl('Se ti va, dimmi com\'è andata.')}`}</Body>
-          <Btn small style={{ marginTop: 8, alignSelf: 'flex-start' }} title="Te lo racconto" onPress={() => setRun(EXERCISES.find((q) => q.id === 'rate')!)} />
-        </Card>
-      ) : null}
-
-      <Card>
-        <H>Attività insieme a Theia</H>
-        <Body small muted style={{ marginTop: 4 }}>Piccole attività da fare insieme a Theia, quando ti va, per fermarti un momento a capire cosa senti e cosa pensi. Nessuna ti dice cosa fare: scegli tu se e come usarle.</Body>
-        <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} title={listOpen ? 'Nascondi le attività' : 'Scegli un\'attività'} onPress={() => setListOpen(!listOpen)} />
-        {listOpen ? EXERCISES.filter((e) => e.id !== 'rate').map((e) => (
-          <Row key={e.id} style={{ paddingVertical: 8 }} gap={10}>
-            <View style={{ flex: 1 }}><Body bold>{tl(e.title)}</Body><Body small muted>{`${e.minutes} min · ${tl(e.why)}`}</Body></View>
-            <Btn small ghost title="Proviamo" onPress={() => setRun(e)} />
-          </Row>
-        )) : null}
-        <Body small muted style={{ marginTop: 6 }}>Sono spunti di autoconsapevolezza, non una terapia e non sostituiscono un professionista. Se stai male, parlane con una persona di fiducia o chiedi aiuto: in Svizzera 143, in Europa 112.</Body>
-        <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} icon="file" title={diary ? 'Nascondi il diario' : `Il vostro diario (${mind.entries.length})`} onPress={() => setDiary(!diary)} />
-        {diary ? (
-          <View style={{ marginTop: 8, gap: 6 }}>
-            {ins.total > 0 ? <Body small muted>{`${tl('Ultimi 30 giorni')}: ${ins.total} ${tl('attività')}${ins.topEmotions.length ? ` · ${tl('emozioni più nominate')}: ${ins.topEmotions.map((x) => `${tl(x.n)} (${x.c})`).join(', ')}` : ''}${ins.beliefShift ? ` · ${tl('guardando i pensieri da vicino, la fiducia in loro è cambiata in media di')} ${ins.beliefShift.avg > 0 ? '−' : '+'}${Math.abs(ins.beliefShift.avg)} ${tl('punti')}` : ''}.`}</Body> : <Body small muted>Ancora nessuna attività nel diario.</Body>}
-            {[...mind.entries].reverse().slice(0, 12).map((x) => {
-              const e = EXERCISES.find((q) => q.id === x.ex);
-              const t0 = (x.answers.emo as string[] | undefined)?.join(', ') ?? (x.answers.th as string | undefined) ?? (x.answers.g1 as string | undefined) ?? (x.answers.what as string | undefined) ?? '';
-              return (
-                <Row key={x.id} gap={8}>
-                  <View style={{ flex: 1 }}><Body small bold>{`${new Date(x.ts).toLocaleDateString()} · ${tl(e?.title ?? '')}`}</Body>{t0 ? <Body small muted numberOfLines={2}>{String(t0)}</Body> : null}</View>
-                  <Btn small ghost danger icon="trash" title="" label="Elimina" onPress={() => mind.remove(x.id)} />
-                </Row>
-              );
-            })}
-            <Body small muted>Resta solo sul tuo telefono. Lo esporti o lo cancelli dal Centro Privacy (categoria Salute e umore).</Body>
+      {/* in alto: indietro, nome e livello, amici e impostazioni */}
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 14, gap: 10 }}>
+        <Row gap={10}>
+          {btn(40, 'arrow-left', 'Indietro', () => goBack(), undefined, true)}
+          <View style={{ flex: 1, backgroundColor: '#00000055', borderRadius: 16, paddingVertical: 6, paddingHorizontal: 12 }}>
+            {name === null ? (
+              <Pressable onPress={() => setName(pet.name)}><Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', textShadowColor: '#0009', textShadowRadius: 4 }}>{`${pet.name} · ${tl('Livello')} ${lp.level}`}</Text></Pressable>
+            ) : <Input value={name} onChangeText={setName} onBlur={() => { rename(name); setName(null); }} onSubmitEditing={() => { rename(name); setName(null); }} autoFocus />}
+            <View style={{ height: 8, borderRadius: 4, backgroundColor: '#ffffff30', overflow: 'hidden', marginTop: 4 }}><View style={{ width: `${lp.pct}%`, height: 8, backgroundColor: '#ffd75e' }} /></View>
           </View>
-        ) : null}
-      </Card>
+          {btn(40, 'users', 'Amici', () => setPanel('friends'), undefined, true)}
+          {btn(40, 'gear', 'Impostazioni', () => setPanel('settings'), undefined, true)}
+        </Row>
+        <Row gap={8}>
+          <Gauge icon="meal" v={now.food} color="#ffb84f" /><Gauge icon="drop" v={now.water} color="#4fc7e0" /><Gauge icon="heart" v={now.joy} color="#ff6f91" />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#00000040', borderRadius: 14, paddingVertical: 6, paddingHorizontal: 10 }}><Icon name="star" size={14} color="#ffd75e" stroke={2} /><Text style={{ color: '#fff', fontWeight: '800' }}>{streak}</Text></View>
+        </Row>
+      </View>
 
-      <Card>
-        <H>Cosa dai a Theia</H>
-        <Body small muted style={{ marginTop: 4 }}>I gettoni di oggi si guadagnano con le cose vere: tocca una voce senza gettoni e ti porto dove guadagnarlo.</Body>
-        {KINDS.map((a) => (
-          <Row key={a.k} style={{ paddingVertical: 8 }}>
-            <View style={{ flex: 1 }}><Body bold>{tl(a.title)}</Body><Body small muted>{a.page ? tl(a.earn) : tl(a.earn)}</Body></View>
-            <Btn small ghost={avail[a.k] <= 0} title={avail[a.k] > 0 ? `${tl('Dai')} (${avail[a.k]})` : a.page ? tl('Guadagnalo') : tl('Domani')} onPress={() => act(a)} />
-          </Row>
-        ))}
-      </Card>
+      {/* il palcoscenico: Theia, toccala */}
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        {bubble && !temp ? (
+          <Pressable onPress={() => setBubble(false)} style={{ backgroundColor: '#ffffffee', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14, maxWidth: width * 0.8, marginBottom: 8 }}>
+            <Text style={{ color: '#1a2233', fontWeight: '700', textAlign: 'center' }}>{tl(mood.label)}</Text>
+          </Pressable>
+        ) : <View style={{ height: 40 }} />}
+        <Pressable accessibilityRole="button" accessibilityLabel={pet.name} onPress={poke}><Mascot size={size} color={th.accent} expression={shown} motion={mv} /></Pressable>
+      </View>
 
-      <Card>
-        <H>Fai vedere Theia agli altri</H>
-        <Toggle label="Mostra la mia Theia nel profilo" value={pet.share} onChange={setShare} hint="Gli altri vedono solo nome, livello, giorni di cura e umore: mai cosa fai o i tuoi dati. Puoi spegnerlo quando vuoi." />
-        <Toggle label="Lascia che il gioco mi proponga un'attività quando nota un cambiamento" value={mind.inv.on} onChange={(v) => mind.patchInv({ on: v })} hint="Lo vede solo il telefono, nei tuoi dati: niente esce. Sono indizi, non diagnosi, e ti spiega sempre perché lo vedi. Puoi spegnerlo quando vuoi." />
-        <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} icon="send" title="Vantati su LifeNetwork" onPress={boast} />
-        <Body small muted style={{ marginTop: 4 }}>Scrive un post con il livello di Theia e i tuoi giorni di cura. Lo decidi tu: non esce niente senza il tuo tocco.</Body>
-      </Card>
+      {/* in basso: le azioni */}
+      <View style={{ paddingBottom: 14, gap: 10 }}>
+        <Row gap={10} style={{ justifyContent: 'center' }}>
+          <Pill label={tl('Attività insieme')} on={false} onPress={() => setPanel('activities')} />
+        </Row>
+        <Row style={{ justifyContent: 'space-between', paddingHorizontal: 10 }}>
+          {ACTIONS.map((a) => <View key={a.k}>{btn(54, a.icon, a.title, () => act(a), avail[a.k] > 0 ? avail[a.k] : undefined, avail[a.k] <= 0)}</View>)}
+        </Row>
+      </View>
 
-      <Card>
-        <H>Sfide con gli amici</H>
-        <Body small muted style={{ marginTop: 4 }}>Si vince insieme: si sommano le cose che fate voi due. Nessuna classifica e nessuna penalità: se non arrivate al traguardo, riprovate con calma.</Body>
-        {ch.list.map((c) => {
-          const k = CK.find((x) => x.id === c.kind)!; const p = progressOf(c, day, mineOn(c.kind));
-          return (
-            <View key={c.id} style={{ marginTop: 12, gap: 4 }}>
-              <Row><Body bold style={{ flex: 1 }}>{`${tl(k.label)} · ${c.withName}`}</Body><Body small muted>{p.state === 'reached' ? tl('Obiettivo raggiunto insieme!') : p.state === 'ended' ? tl('Finita: se vuoi riprovate') : `${p.daysLeft + 1} ${tl('giorni')}`}</Body></Row>
-              <Progress value={p.pct} />
-              <Body small muted>{`${tl('Tu')}: ${p.mine} · ${c.withName}: ${p.friend} · ${tl('insieme')} ${p.total}/${c.target} ${tl(k.unit)}`}</Body>
-              <Row gap={8} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-                <Btn small ghost icon="send" title="Mandagli i miei progressi" onPress={() => { dm(c.withName, progressText(me, c, p)); toast('Inviato'); }} />
-                <Btn small ghost title={`${tl('Cosa ha fatto')} ${c.withName}`} onPress={() => setUpd({ id: c.id, n: String(c.friend[day] ?? 0) })} />
-                <Btn small ghost danger icon="trash" title="" label="Elimina" onPress={() => ch.remove(c.id)} />
-              </Row>
-            </View>
-          );
-        })}
-        <Btn small ghost style={{ marginTop: 10, alignSelf: 'flex-start' }} icon="plus" title="Nuova sfida" onPress={() => setCs({ with: friends[0] ?? '', kind: 'water', target: 14, days: 7 })} />
-        <Body small muted style={{ marginTop: 6 }}>I progressi dell'amico arrivano quando anche lui usa LifePilot e ve li scambiate in chat; finché non c'è la rete li scrivi tu dopo averne parlato.</Body>
-      </Card>
+      <ExerciseRunner ex={run} onClose={() => setRun(null)} onSave={(answers) => { if (run) { mind.add(run.id, answers); usePet.getState().addXp(4); toast('Salvato nel diario'); } }} />
 
-      {others2.length ? (
-        <Card>
-          <H>La Theia degli altri</H>
-          <Body small muted style={{ marginTop: 4 }}>Chi sceglie di mostrarla compare qui. Nessuna classifica: serve solo per ispirarsi e sfidarsi insieme.</Body>
-          {others2.map(([n, p]) => (
-            <Row key={n} style={{ paddingVertical: 6 }} gap={10}>
-              <Mascot size={48} color={th.accent} expression={p.expr} animated={false} />
-              <View style={{ flex: 1 }}><Body bold>{n}</Body><Body small muted>{`${p.name} · ${tl('livello')} ${p.level} · ${p.streak} ${tl('giorni di cura')} · ${tl(p.label)}${p.demo ? ` · ${tl('esempio')}` : ''}`}</Body></View>
+      {/* attività insieme: solo se le scegli tu (o se te le propone il gioco) */}
+      <Sheet visible={panel === 'activities'} title="Attività insieme a Theia" onClose={() => setPanel(null)}>
+        <View style={{ gap: 8 }}>
+          <Body small muted>Piccole attività da fare insieme a Theia, quando ti va, per fermarti un momento a capire cosa senti e cosa pensi. Nessuna ti dice cosa fare: scegli tu se e come usarle. Non sono una terapia e non sostituiscono un professionista.</Body>
+          {followUp ? <Btn small title={`${tl('Com\'è andata?')} · ${String(followUp.answers.what ?? '')}`} onPress={() => { setPanel(null); setRun(EXERCISES.find((q) => q.id === 'rate')!); }} /> : null}
+          {EXERCISES.filter((e) => e.id !== 'rate').map((e) => (
+            <Row key={e.id} gap={10} style={{ paddingVertical: 6 }}>
+              <View style={{ flex: 1 }}><Body bold>{tl(e.title)}</Body><Body small muted>{`${e.minutes} min · ${tl(e.why)}`}</Body></View>
+              <Btn small ghost title="Proviamo" onPress={() => { setPanel(null); setRun(e); }} />
             </Row>
           ))}
-        </Card>
-      ) : null}
-      <ExerciseRunner ex={run} onClose={() => setRun(null)} onSave={(answers) => { if (run) { mind.add(run.id, answers); usePet.getState().addXp(4); toast('Salvato nel diario'); } }} />
-      <Sheet visible={!!cs} title="Nuova sfida" onClose={() => setCs(null)}>
+          <H>Il vostro diario</H>
+          {ins.total > 0 ? <Body small muted>{`${tl('Ultimi 30 giorni')}: ${ins.total} ${tl('attività')}${ins.topEmotions.length ? ` · ${tl('emozioni più nominate')}: ${ins.topEmotions.map((x) => `${tl(x.n)} (${x.c})`).join(', ')}` : ''}${ins.beliefShift ? ` · ${tl('guardando i pensieri da vicino, la fiducia in loro è cambiata in media di')} ${ins.beliefShift.avg > 0 ? '−' : '+'}${Math.abs(ins.beliefShift.avg)} ${tl('punti')}` : ''}.`}</Body> : <Body small muted>Ancora nessuna attività nel diario.</Body>}
+          {[...mind.entries].reverse().slice(0, 10).map((x) => {
+            const e = EXERCISES.find((q) => q.id === x.ex);
+            const t0 = (x.answers.emo as string[] | undefined)?.join(', ') ?? (x.answers.th as string | undefined) ?? (x.answers.a as string | undefined) ?? (x.answers.g1 as string | undefined) ?? (x.answers.what as string | undefined) ?? '';
+            return (
+              <Row key={x.id} gap={8}>
+                <View style={{ flex: 1 }}><Body small bold>{`${new Date(x.ts).toLocaleDateString()} · ${tl(e?.title ?? '')}`}</Body>{t0 ? <Body small muted numberOfLines={2}>{String(t0)}</Body> : null}</View>
+                <Btn small ghost danger icon="trash" title="" label="Elimina" onPress={() => mind.remove(x.id)} />
+              </Row>
+            );
+          })}
+          <Body small muted>Resta solo sul tuo telefono. Lo esporti o lo cancelli dal Centro Privacy (categoria Salute e umore). Se stai male, parlane con una persona di fiducia: in Svizzera 143, in Europa 112.</Body>
+        </View>
+      </Sheet>
+
+      {/* amici e sfide */}
+      <Sheet visible={panel === 'friends'} title="Amici" onClose={() => setPanel(null)}>
+        <View style={{ gap: 8 }}>
+          <Row gap={8} style={{ justifyContent: 'flex-start' }}><Pill label={tl('Le Theia degli amici')} on={tab === 'friends'} onPress={() => setTab('friends')} /><Pill label={tl('Sfide insieme')} on={tab === 'challenges'} onPress={() => setTab('challenges')} /></Row>
+          {tab === 'friends' ? (
+            <>
+              <Body small muted>Chi sceglie di mostrare la propria Theia compare qui. Puoi andare a trovarla: le due Theia giocano insieme. Nessuna classifica.</Body>
+              {friends.length === 0 ? <Body muted>Ancora nessun amico con la Theia visibile.</Body> : friends.map(([n, p]) => (
+                <Row key={n} gap={10} style={{ paddingVertical: 6 }}>
+                  <Mascot size={52} color={hue(n)} expression={p.expr} animated={false} />
+                  <View style={{ flex: 1 }}><Body bold>{n}</Body><Body small muted>{`${p.name} · ${tl('livello')} ${p.level} · ${p.streak} ${tl('giorni di cura')}${p.demo ? ` · ${tl('esempio')}` : ''}`}</Body></View>
+                  <Btn small title="Vai a trovarla" onPress={() => openVisit(n)} />
+                </Row>
+              ))}
+            </>
+          ) : (
+            <>
+              <Body small muted>Si vince insieme: si sommano le cose che fate voi due. Nessuna classifica e nessuna penalità: se non arrivate al traguardo, riprovate con calma.</Body>
+              {ch.list.map((c) => {
+                const k = CK.find((x) => x.id === c.kind)!; const p = progressOf(c, day, mineOn(c.kind));
+                return (
+                  <View key={c.id} style={{ gap: 4, marginTop: 6 }}>
+                    <Row><Body bold style={{ flex: 1 }}>{`${tl(k.label)} · ${c.withName}`}</Body><Body small muted>{p.state === 'reached' ? tl('Obiettivo raggiunto insieme!') : p.state === 'ended' ? tl('Finita: se vuoi riprovate') : `${p.daysLeft + 1} ${tl('giorni')}`}</Body></Row>
+                    <Progress value={p.pct} />
+                    <Body small muted>{`${tl('Tu')}: ${p.mine} · ${c.withName}: ${p.friend} · ${tl('insieme')} ${p.total}/${c.target} ${tl(k.unit)}`}</Body>
+                    <Row gap={8} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+                      <Btn small ghost icon="send" title="Mandagli i miei progressi" onPress={() => { dm(c.withName, progressText(me, c, p)); toast('Inviato'); }} />
+                      <Btn small ghost title={`${tl('Cosa ha fatto')} ${c.withName}`} onPress={() => { setPanel(null); setUpd({ id: c.id, n: String(c.friend[day] ?? 0) }); }} />
+                      <Btn small ghost danger icon="trash" title="" label="Elimina" onPress={() => ch.remove(c.id)} />
+                    </Row>
+                  </View>
+                );
+              })}
+              <Btn small ghost style={{ alignSelf: 'flex-start' }} icon="plus" title="Nuova sfida" onPress={() => { setPanel(null); setCs({ with: peopleList[0] ?? '', kind: 'water', target: 14, days: 7 }); }} />
+              <Body small muted>I progressi dell'amico arrivano quando anche lui usa LifePilot e ve li scambiate in chat; finché non c'è la rete li scrivi tu dopo averne parlato.</Body>
+            </>
+          )}
+        </View>
+      </Sheet>
+
+      {/* una visita: le due Theia insieme */}
+      <Sheet visible={!!vis} title={vis ? `${tl('Da')} ${vis}` : ''} onClose={() => { setVis(null); setPanel('friends'); }}>
+        {vis ? (
+          <View style={{ gap: 10 }}>
+            <Row style={{ justifyContent: 'space-evenly', alignItems: 'flex-end' }}>
+              <View style={{ alignItems: 'center' }}><Mascot size={120} color={th.accent} expression="happy" motion={vmv} /><Body small muted>{pet.name}</Body></View>
+              <View style={{ alignItems: 'center' }}><Mascot size={120} color={hue(vis)} expression={others[vis]?.expr ?? 'happy'} motion={{ id: vmv.id, n: vmv.n }} /><Body small muted>{`${others[vis]?.name ?? 'Theia'} · ${vis}`}</Body></View>
+            </Row>
+            <Row gap={8} style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Btn small ghost title="Salutatevi" onPress={() => visitDo('wave')} />
+              <Btn small ghost title="Ballate" onPress={() => visitDo('dance')} />
+              <Btn small ghost title="Saltate" onPress={() => visitDo('jump')} />
+              <Btn small ghost title="Un abbraccio" onPress={() => visitDo('squish', `${me}: ${tl('la mia Theia ha abbracciato la tua!')}`)} />
+              <Btn small ghost title="Un regalino" onPress={() => visitDo('bounce', `${me}: ${tl('ti ho lasciato uno spuntino per la tua Theia!')}`)} />
+            </Row>
+            <Body small muted>Gli abbracci e i regalini arrivano all'amico come messaggio in chat. Se ti va, nessun obbligo di rispondere.</Body>
+          </View>
+        ) : null}
+      </Sheet>
+
+      {/* impostazioni del gioco */}
+      <Sheet visible={panel === 'settings'} title="Impostazioni del gioco" onClose={() => setPanel(null)}>
+        <View style={{ gap: 8 }}>
+          <Toggle label="Mostra la mia Theia nel profilo" value={pet.share} onChange={setShare} hint="Gli altri vedono solo nome, livello, giorni di cura e umore: mai cosa fai o i tuoi dati. Puoi spegnerlo quando vuoi." />
+          <Toggle label="Lascia che il gioco mi proponga un'attività quando nota un cambiamento" value={mind.inv.on} onChange={(v) => mind.patchInv({ on: v })} hint="Lo vede solo il telefono, nei tuoi dati: niente esce. Sono indizi, non diagnosi, e ti spiega sempre perché lo vedi. Puoi spegnerlo quando vuoi." />
+          <Btn small ghost style={{ alignSelf: 'flex-start' }} icon="send" title="Vantati su LifeNetwork" onPress={boast} />
+          <Body small muted>Scrive un post con il livello di Theia e i tuoi giorni di cura. Lo decidi tu: non esce niente senza il tuo tocco.</Body>
+          <Btn small ghost style={{ alignSelf: 'flex-start' }} icon="palette" title="Colore, espressioni e movimenti" onPress={() => { setPanel(null); go('settings'); }} />
+        </View>
+      </Sheet>
+
+      <Sheet visible={!!cs} title="Nuova sfida" onClose={() => { setCs(null); setPanel('friends'); setTab('challenges'); }}>
         {cs ? (
           <View style={{ gap: 8 }}>
             <Body small muted>Scegli con chi e cosa fare insieme. Sono cose vere dell'app: acqua, cose fatte, allenamenti.</Body>
             <Body small bold>Con chi</Body>
-            <Row gap={6} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>{friends.map((n) => <Pill key={n} label={n} on={cs.with === n} onPress={() => setCs({ ...cs, with: n })} />)}</Row>
+            <Row gap={6} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>{peopleList.map((n) => <Pill key={n} label={n} on={cs.with === n} onPress={() => setCs({ ...cs, with: n })} />)}</Row>
             <Body small bold>Cosa</Body>
             <Row gap={6} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>{CK.map((k) => <Pill key={k.id} label={tl(k.label)} on={cs.kind === k.id} onPress={() => setCs({ ...cs, kind: k.id, target: k.presets[0]! })} />)}</Row>
             <Body small bold>Traguardo insieme</Body>
             <Row gap={6} style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>{CK.find((k) => k.id === cs.kind)!.presets.map((n) => <Pill key={n} label={`${n} ${tl(CK.find((k) => k.id === cs.kind)!.unit)}`} on={cs.target === n} onPress={() => setCs({ ...cs, target: n })} />)}</Row>
             <Body small bold>Quanti giorni</Body>
             <Row gap={6} style={{ justifyContent: 'flex-start' }}>{[3, 7, 14].map((n) => <Pill key={n} label={`${n}`} on={cs.days === n} onPress={() => setCs({ ...cs, days: n })} />)}</Row>
-            <Btn title="Invita" disabled={!cs.with} onPress={() => { const c = { withName: cs.with, kind: cs.kind, target: cs.target, startDay: day, days: cs.days }; ch.add(c); dm(cs.with, inviteText(me, c)); setCs(null); toast('Invito mandato in chat'); }} />
+            <Btn title="Invita" disabled={!cs.with} onPress={() => { const c = { withName: cs.with, kind: cs.kind, target: cs.target, startDay: day, days: cs.days }; ch.add(c); dm(cs.with, inviteText(me, c)); setCs(null); setPanel('friends'); setTab('challenges'); toast('Invito mandato in chat'); }} />
           </View>
         ) : null}
       </Sheet>
-      <Sheet visible={!!upd} title="Cosa ha fatto oggi" onClose={() => setUpd(null)}>
+      <Sheet visible={!!upd} title="Cosa ha fatto oggi" onClose={() => { setUpd(null); setPanel('friends'); setTab('challenges'); }}>
         {upd ? <View style={{ gap: 8 }}>
           <Body small muted>Scrivi quanto ti ha detto che ha fatto oggi (solo per la sfida).</Body>
           <Input value={upd.n} onChangeText={(v) => setUpd({ ...upd, n: v })} keyboardType="numeric" />
-          <Btn title="Salva" onPress={() => { ch.setFriend(upd.id, day, Number(upd.n.replace(',', '.')) || 0); setUpd(null); }} />
+          <Btn title="Salva" onPress={() => { ch.setFriend(upd.id, day, Number(upd.n.replace(',', '.')) || 0); setUpd(null); setPanel('friends'); setTab('challenges'); }} />
         </View> : null}
       </Sheet>
-    </Page>
+    </View>
   );
 }

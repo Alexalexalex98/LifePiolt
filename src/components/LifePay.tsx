@@ -113,7 +113,7 @@ export function LifePayFab() {
   const kb = useKeyboardInset();
   const pathname = usePathname();
   const armed = useWallet((s) => s.armed);
-  const hidden = open || kb.visible || /conversationPage|liveRoom|storyView|storyCreate|swipeDeck|photoEdit/.test(pathname);
+  const hidden = open || kb.visible || /conversationPage|liveRoom|storyView|storyCreate|swipeDeck|photoEdit|theiaPet/.test(pathname);
   useEffect(() => { useWallet.getState().setVisible(!hidden); if (hidden) useWallet.getState().setArmed(false); }, [hidden]);
   if (hidden) return null;
   return (
