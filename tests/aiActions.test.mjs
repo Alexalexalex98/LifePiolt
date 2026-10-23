@@ -269,3 +269,14 @@ test('traguardi: scattano con i numeri veri, si ritirano una volta, Theia cresce
   assert.equal(stageOf(1).name, 'Cucciolo'); assert.equal(stageOf(7).name, 'Adulto'); assert.equal(stageOf(12).name, 'Saggio');
   assert.ok(sizeFactor(10) > sizeFactor(1) && sizeFactor(20) === sizeFactor(10));
 });
+
+import { rewardFor } from '../src/lib/petHome.ts';
+test('stelline: calano se si ripete sempre la stessa cosa, premio piccolo per la varietà', () => {
+  const now = Date.now();
+  const same = (n) => Array.from({ length: n }, () => ({ k: 'fit', ts: now - 1000 }));
+  const r = [0, 1, 2, 3, 5, 9].map((n) => rewardFor('fit', same(n), now));
+  assert.equal(r[0], 5); assert.ok(r[1] < r[0] && r[2] < r[1] && r[5] <= r[3] && r[5] <= 1);
+  assert.equal(rewardFor('pet', [], now), 0);
+  const mixed = [{ k: 'snack', ts: now - 1 }, { k: 'water', ts: now - 1 }, { k: 'love', ts: now - 1 }];
+  assert.ok(rewardFor('fit', mixed, now) > rewardFor('fit', [], now) - 1);
+});

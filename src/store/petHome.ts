@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { buy, newHome, place, repair, sell, unplace, upgrade, type HomeState, type Kind, type RoomId } from '@/lib/petHome';
+import { buy, newHome, place, repair, rewardFor, sell, unplace, upgrade, type EarnLog, type HomeState, type Kind, type RoomId } from '@/lib/petHome';
 import { MILESTONES } from '@/lib/petMilestones';
 
 import { persisted } from './persist';
@@ -8,6 +8,9 @@ import { persisted } from './persist';
 type State = HomeState & {
   room: RoomId;
   claimed: string[];
+  log: EarnLog;
+  /** una cosa vera è stata fatta: arrivano stelline (quante, l'utente non lo sa) */
+  earn: (kind: string) => void;
   setRoom: (r: RoomId) => void;
   addCoins: (n: number) => void;
   buyItem: (id: string) => { ok: boolean; reason?: string; uid?: string };
@@ -26,6 +29,8 @@ export const usePetHome = create<State>()(
     ...newHome(),
     room: 'living',
     claimed: [],
+    log: [],
+    earn: (kind) => set((s) => { const n = rewardFor(kind, s.log ?? [], Date.now()); return { coins: s.coins + n, log: [...(s.log ?? []), { k: kind, ts: Date.now() }].slice(-300) }; }),
     setRoom: (room) => set({ room }),
     addCoins: (n) => set((s) => ({ coins: s.coins + n })),
     buyItem: (id) => { const r = buy(snap(get()), id, Date.now()); if (r.ok) set(r.state); return { ok: r.ok, reason: r.reason, uid: r.state.owned[r.state.owned.length - 1]?.uid }; },

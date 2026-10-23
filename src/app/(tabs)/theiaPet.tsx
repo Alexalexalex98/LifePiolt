@@ -8,7 +8,7 @@ import { Mascot } from '@/components/mascot/Mascot';
 import { phaseOf } from '@/components/pet/PetScene';
 import { RoomView, type Placed } from '@/components/pet/RoomView';
 import { petStats } from '@/hooks/use-pet-stats';
-import { COINS, HOUSES, ITEMS, KIND_NAME, QUALITY_NAME, ROOMS, houseOf, itemOf, repairCost, wearOf } from '@/lib/petHome';
+import { HOUSES, ITEMS, KIND_NAME, QUALITY_NAME, ROOMS, houseOf, itemOf, repairCost, wearOf } from '@/lib/petHome';
 import { claimable, milestonesOf, sizeFactor, stageOf } from '@/lib/petMilestones';
 import { nextInvite, signalsOf } from '@/lib/wellbeing';
 import { wellbeingInput } from '@/lib/wellbeingData';
@@ -115,8 +115,8 @@ export default function TheiaPet() {
     const r = giveTo(a.k, earned, day);
     if (!r.ok) return;
     react(a.expr, a.mv); setBubble(false);
-    const gain = COINS[a.k] ?? 0; if (gain) usePetHome.getState().addCoins(gain);
-    toast(r.leveledUp ? tl('Theia è salita di livello!') : gain ? `+${gain} ${tl('stelline')}` : 'Fatto');
+    usePetHome.getState().earn(a.k);
+    toast(r.leveledUp ? tl('Theia è salita di livello!') : tl('Theia è contenta'));
   };
   const poke = () => { if (avail.pet > 0) giveTo('pet', earned, day); react('blushing', 'squish', 1400); };
 
@@ -134,7 +134,7 @@ export default function TheiaPet() {
     toast('Pubblicato su LifeNetwork');
   };
   const visitDo = (id: MotionId, text?: string) => { setVmv((x) => ({ id, n: x.n + 1 })); if (vis && text) { dm(vis, text); toast('Inviato'); } };
-  const openVisit = (n: string) => { setPanel(null); setVis(n); if (visit(n, day)) { usePetHome.getState().addCoins(COINS.visit!); toast('Visita fatta'); } };
+  const openVisit = (n: string) => { setPanel(null); setVis(n); if (visit(n, day)) { usePetHome.getState().earn('visit'); toast('Visita fatta'); } };
 
   const btn = (round: number, icon: string, label: string, onPress: () => void, badge?: number, dim?: boolean) => (
     <Pressable accessibilityRole="button" accessibilityLabel={tl(label)} onPress={onPress} style={{ alignItems: 'center', width: round + 14 }}>
@@ -244,7 +244,7 @@ export default function TheiaPet() {
               <Btn small title="Trasloca" onPress={() => { const r = home.upgradeHouse(lp.level); toast(r.ok ? 'Nuova casa!' : r.reason ?? ''); if (r.ok) react('celebrating', 'jump', 2400); }} />
             </View>
           ) : <Body small muted>Hai la casa più grande: l'attico.</Body>}
-          <Body small muted>Le stelline si guadagnano facendo le cose vere dell'app e non si comprano con soldi. I mobili si consumano piano: ripararli o cambiarli è una tua scelta e non cambia come sta Theia.</Body>
+          <Body small muted>Le stelline arrivano da Theia quando ti prendi cura di te e non si comprano con soldi. I mobili si consumano piano: ripararli o cambiarli è una tua scelta e non cambia come sta Theia.</Body>
         </ScrollView>
       )}
 
@@ -257,7 +257,7 @@ export default function TheiaPet() {
         ))}
       </View>
 
-      <ExerciseRunner ex={run} onClose={() => setRun(null)} onSave={(answers) => { if (run) { mind.add(run.id, answers); usePet.getState().addXp(4); usePetHome.getState().addCoins(COINS.activity!); toast('Salvato nel diario'); } }} />
+      <ExerciseRunner ex={run} onClose={() => setRun(null)} onSave={(answers) => { if (run) { mind.add(run.id, answers); usePet.getState().addXp(4); usePetHome.getState().earn('activity'); toast('Salvato nel diario'); } }} />
 
       {/* attività insieme: solo se le scegli tu (o se te le propone il gioco) */}
       <Sheet visible={panel === 'activities'} title="Attività insieme a Theia" onClose={() => setPanel(null)}>
@@ -350,11 +350,11 @@ export default function TheiaPet() {
       {/* traguardi: Theia cresce con te */}
       <Sheet visible={panel === 'goals'} title="Traguardi" onClose={() => setPanel(null)}>
         <View style={{ gap: 10 }}>
-          <Body small muted>Theia cresce con te: ogni tuo traguardo vero porta a lei stelline, punti per crescere e a volte un mobile in regalo. Si ritirano quando vuoi e non scadono.</Body>
+          <Body small muted>Theia cresce con te: ogni tuo traguardo vero porta a lei dei benefici. Li ritiri quando vuoi e non scadono.</Body>
           {milestonesOf(stats, home.claimed).sort((x, y) => Number(y.done && !y.claimed) - Number(x.done && !x.claimed) || Number(x.claimed) - Number(y.claimed) || y.pct - x.pct).map((m) => (
             <View key={m.id} style={{ gap: 4 }}>
               <Row gap={8}><View style={{ flex: 1 }}><Body bold>{tl(m.title)}</Body><Body small muted>{tl(m.desc)}</Body></View>
-                {m.claimed ? <Body small muted>{tl('Ritirato')}</Body> : m.done ? <Btn small title={`+${m.reward.coins} ★`} onPress={() => { const r = home.claim(m.id); if (r.ok) { usePet.getState().addXp(r.xp); react('celebrating', 'jump', 2400); toast(`${tl('Theia è felice!')} +${r.coins} ${tl('stelline')}${m.reward.item ? ` · ${tl('e un mobile in regalo')}` : ''}`); } }} /> : <Body small muted>{`${Math.min(m.value, m.target)}/${m.target}`}</Body>}</Row>
+                {m.claimed ? <Body small muted>{tl('Ritirato')}</Body> : m.done ? <Btn small title="Ritira" onPress={() => { const r = home.claim(m.id); if (r.ok) { usePet.getState().addXp(r.xp); react('celebrating', 'jump', 2400); toast(`${tl('Theia è felice!')}${m.reward.item ? ` · ${tl('e un mobile in regalo')}` : ''}`); } }} /> : <Body small muted>{`${Math.min(m.value, m.target)}/${m.target}`}</Body>}</Row>
               {!m.done ? <Progress value={m.pct} /> : null}
             </View>
           ))}
