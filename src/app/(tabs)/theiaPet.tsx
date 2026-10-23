@@ -69,7 +69,6 @@ export default function TheiaPet() {
   const [panel, setPanel] = useState<Panel>(null);
   const [name, setName] = useState<string | null>(null);
   const [bubble, setBubble] = useState(true);
-  const ch = useChallenges();
   const mind = useMindSpace();
   const [run, setRun] = useState<Exercise | null>(null);
   const [tab, setTab] = useState<'friends' | 'challenges'>('friends');
@@ -78,6 +77,7 @@ export default function TheiaPet() {
   const [vis, setVis] = useState<string | null>(null);
   const [vmv, setVmv] = useState<{ id: MotionId; n: number }>({ id: 'bounce', n: 0 });
   const { ex: exParam } = useLocalSearchParams<{ ex?: string }>();
+  const ch = useChallenges();
   const home = usePetHome();
   const [view, setView] = useState<View_>('theia');
   const [shopKind, setShopKind] = useState<string | null>(null);
@@ -86,6 +86,13 @@ export default function TheiaPet() {
   const invite = useMemo(() => { try { return nextInvite(signalsOf(wellbeingInput()), inv, Date.now()); } catch { return null; } }, [inv.on, inv.lastAny, inv.muted.length]);
   const stats = petStats();
   const pending = claimable(stats, home.claimed);
+  // tutto si scopre: all'inizio c'è solo Theia; casa, amici e traguardi compaiono man mano e Theia lo fa notare, senza obblighi
+  const lvl = levelProgress(pet.xp).level;
+  const can = { home: lvl >= 2 || home.owned.length > 0 || pet.streak >= 2, friends: lvl >= 3 || ch.list.length > 0, goals: pending.length > 0 || home.claimed.length > 0 || pet.streak >= 3 };
+  const seen = home.seen ?? [];
+  const discover = (['home', 'friends', 'goals'] as const).find((f) => can[f] && !seen.includes(f));
+  const DISCOVER: Record<string, string> = { home: 'Theia ha trovato una casa tutta sua…', friends: 'Theia vuole conoscere gli altri…', goals: 'Theia ha un traguardo da mostrarti…' };
+  const openDiscover = (f: 'home' | 'friends' | 'goals') => { home.markSeen(f); if (f === 'home') setView('home'); else setPanel(f === 'friends' ? 'friends' : 'goals'); };
 
   useEffect(() => {
     const away = (Date.now() - pet.ts) / 86400000;
@@ -177,14 +184,19 @@ export default function TheiaPet() {
       <View style={{ marginHorizontal: 12, marginTop: 10, borderRadius: 22, overflow: 'hidden', height: view === 'home' ? 230 : Math.min(((width - 24) * 380) / 360, height * 0.48), justifyContent: 'flex-end', alignItems: 'center', paddingBottom: Math.max(6, ((width - 24) / 360) * 58) }}>
         <RoomView room={view === 'home' ? home.room : 'living'} phase={phase} accent={th.accent} placed={placedOf(view === 'home' ? home.room : 'living')} tier={home.tier} />
         <View style={{ position: 'absolute', top: 8, right: 8, gap: 8 }}>
-          {btn(38, 'award', 'Traguardi', () => setPanel('goals'), pending.length || undefined, true)}
-          {btn(38, 'users', 'Amici', () => setPanel('friends'), undefined, true)}
+          {can.goals ? btn(38, 'award', 'Traguardi', () => { home.markSeen('goals'); setPanel('goals'); }, pending.length || undefined, true) : null}
+          {can.friends ? btn(38, 'users', 'Amici', () => { home.markSeen('friends'); setPanel('friends'); }, undefined, true) : null}
           {btn(38, 'gear', 'Impostazioni', () => setPanel('settings'), undefined, true)}
         </View>
         {invite && !temp ? (
           <Pressable onPress={() => { setPanel('invite'); useMindSpace.getState().shown(invite.id, Date.now(), dayKey()); }} style={{ backgroundColor: '#ffffffee', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14, marginBottom: 4, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#ff5d73', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontWeight: '900' }}>!</Text></View>
             <Text style={{ color: '#1a2233', fontWeight: '700' }}>{tl('Theia vuole dirti qualcosa…')}</Text>
+          </Pressable>
+        ) : discover && !temp && view === 'theia' ? (
+          <Pressable onPress={() => openDiscover(discover)} style={{ backgroundColor: '#ffffffee', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14, marginBottom: 4, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: th.accent, alignItems: 'center', justifyContent: 'center' }}><Icon name="sparkle" size={13} color="#fff" stroke={2.2} /></View>
+            <Text style={{ color: '#1a2233', fontWeight: '700' }}>{tl(DISCOVER[discover]!)}</Text>
           </Pressable>
         ) : bubble && !temp && view === 'theia' ? (
           <Pressable onPress={() => setBubble(false)} style={{ backgroundColor: '#ffffffee', borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14, maxWidth: width * 0.7, marginBottom: 4 }}>
@@ -249,13 +261,13 @@ export default function TheiaPet() {
       )}
 
       {/* le due schede del gioco, come nei giochi di cura: Theia e Casa */}
-      <View style={{ flexDirection: 'row', margin: 10, marginTop: 4, backgroundColor: '#00000066', borderRadius: 22, padding: 4 }}>
+      {can.home || view === 'home' ? <View style={{ flexDirection: 'row', margin: 10, marginTop: 4, backgroundColor: '#00000066', borderRadius: 22, padding: 4 }}>
         {([['theia', 'Theia', 'heart'], ['home', 'Casa', 'home']] as const).map(([id, label, icon]) => (
-          <Pressable key={id} accessibilityRole="button" onPress={() => setView(id)} style={{ flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, borderRadius: 18, backgroundColor: view === id ? th.accent : 'transparent' }}>
+          <Pressable key={id} accessibilityRole="button" onPress={() => { if (id === 'home') home.markSeen('home'); setView(id); }} style={{ flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, borderRadius: 18, backgroundColor: view === id ? th.accent : 'transparent' }}>
             <Icon name={icon as never} size={16} color="#fff" stroke={2} /><Text style={{ color: '#fff', fontWeight: '800' }}>{tl(label)}</Text>
           </Pressable>
         ))}
-      </View>
+      </View> : null}
 
       <ExerciseRunner ex={run} onClose={() => setRun(null)} onSave={(answers) => { if (run) { mind.add(run.id, answers); usePet.getState().addXp(4); usePetHome.getState().earn('activity'); toast('Salvato nel diario'); } }} />
 

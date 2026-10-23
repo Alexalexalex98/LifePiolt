@@ -9,6 +9,9 @@ type State = HomeState & {
   room: RoomId;
   claimed: string[];
   log: EarnLog;
+  /** funzioni del gioco già scoperte (viste almeno una volta) */
+  seen: string[];
+  markSeen: (id: string) => void;
   /** una cosa vera è stata fatta: arrivano stelline (quante, l'utente non lo sa) */
   earn: (kind: string) => void;
   setRoom: (r: RoomId) => void;
@@ -30,6 +33,8 @@ export const usePetHome = create<State>()(
     room: 'living',
     claimed: [],
     log: [],
+    seen: [],
+    markSeen: (id) => set((s) => ((s.seen ?? []).includes(id) ? s : { seen: [...(s.seen ?? []), id] })),
     earn: (kind) => set((s) => { const n = rewardFor(kind, s.log ?? [], Date.now()); return { coins: s.coins + n, log: [...(s.log ?? []), { k: kind, ts: Date.now() }].slice(-300) }; }),
     setRoom: (room) => set({ room }),
     addCoins: (n) => set((s) => ({ coins: s.coins + n })),
