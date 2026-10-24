@@ -132,7 +132,7 @@ export function guestTooMany(ip, now = Date.now()) {
   const a = (guestHits.get(ip) ?? []).filter((t) => now - t < 60000);
   a.push(now); guestHits.set(ip, a);
   if (guestHits.size > 2000) guestHits.clear();
-  return a.length > 6;
+  return a.length > 12;
 }
 
 export default {
@@ -143,8 +143,7 @@ export default {
     const user = await whoIs(req, env, fetcher);
     let lite = false; let info = { plan: 'guest', lite: true };
     if (!user) {
-      /* accesso non verificato: Theia risponde lo stesso, ma in modalita' leggera e con un freno stretto */
-      if (!['/chat', '/translate'].includes(path)) return json({ error: 'non autorizzato' }, 401);
+      /* senza account (o con accesso scaduto) Theia funziona lo stesso, chat, foto e documenti: modalita' leggera e un freno per dispositivo */
       if (guestTooMany(req.headers.get('cf-connecting-ip') || 'ospite')) return json({ error: 'troppe richieste: aspetta un minuto' }, 429);
       lite = true;
     } else {

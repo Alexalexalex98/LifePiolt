@@ -33,8 +33,8 @@ function applyCfg() {
   URL_BASE = (old ? DEFAULT_AI_URL : (c.url || ENV_URL)).trim().replace(/\/+$/, '');
   TOKEN = old ? '' : (c.token || ENV_TOKEN).trim();
   aiServerHost = URL_BASE.replace(/^https?:\/\//, '');
-  /* serve un indirizzo e o la parola d'ordine di prova o un account confermato (il server controlla il tuo accesso) */
-  aiServerConfigured = Boolean(URL_BASE && (TOKEN || useAccount.getState().status === 'verified'));
+  /* basta l'indirizzo: le chiavi stanno sul server. Con un account il server ti da' il tuo limite, senza ti da' quello degli ospiti */
+  aiServerConfigured = Boolean(URL_BASE);
 }
 applyCfg();
 useAiServerCfg.subscribe(applyCfg);
@@ -64,7 +64,7 @@ const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const BUSY = /high demand|overloaded|unavailable|try again later|quota|rate/i;
 
 async function call<T>(path: string, body: unknown, timeoutMs = 45000): Promise<T> {
-  if (!aiServerConfigured) throw new AiServerError('Il server AI non è collegato (serve un account confermato, oppure indirizzo e parola d\'ordine di prova).');
+  if (!aiServerConfigured) throw new AiServerError('Il server AI non è collegato: manca l\'indirizzo del server.');
   /* il servizio AI è a volte sovraccarico (503/429): si riprova due volte con una pausa, poi si spiega in italiano */
   for (let attempt = 0; ; attempt++) {
     try { return await callOnce<T>(path, body, timeoutMs); }

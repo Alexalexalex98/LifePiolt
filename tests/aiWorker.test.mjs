@@ -33,11 +33,11 @@ test('/chat, /vision, /analyze e /translate rispondono come il vecchio server', 
   assert.deepEqual(an2.result, [{ voce: 1 }]);
   assert.equal((await (await worker.fetch(req('/translate', { lang: 'en', texts: ['x', 'y'] }), env)).json()).reply, '["a","b"]');
 });
-test('senza accesso valido Theia risponde lo stesso (modalita\' leggera); foto e documenti no; percorso sconosciuto: 404; GET è il controllo di salute', async () => {
+test('senza accesso valido Theia risponde lo stesso (modalita\' leggera), anche per le foto; percorso sconosciuto: 404; GET è il controllo di salute', async () => {
   const env = envWith(async () => ({ response: 'x' }), { SUPABASE_URL: '', SUPABASE_KEY: '' });
   const g = await worker.fetch(req('/chat', { message: 'a' }, 'sbagliato'), env);
   assert.equal(g.status, 200); const gj = await g.json(); assert.equal(gj.reply, 'x'); assert.equal(gj.plan, 'guest'); assert.equal(gj.lite, true);
-  assert.equal((await worker.fetch(req('/vision', { image: 'AAAA', mime: 'image/jpeg', prompt: 'a' }, 'sbagliato'), env)).status, 401);
+  assert.equal((await worker.fetch(req('/vision', { image: 'AAAA', mime: 'image/jpeg', prompt: 'a' }, 'sbagliato'), env)).status, 200);
   assert.equal((await worker.fetch(req('/boh', {}), env)).status, 404);
   const h = await worker.fetch(new Request('https://x.dev/'), env);
   assert.equal((await h.json()).ok, true);
@@ -74,6 +74,6 @@ test('piani: free/plus/pro con limiti diversi; finiti i messaggi completi si pas
 });
 test('se il conteggio non risponde non si blocca nessuno; il freno degli ospiti e\' stretto', async () => {
   assert.equal(await usage('t', { SUPABASE_URL: 'https://s.co', SUPABASE_KEY: 'k' }, async () => new Response('{}', { status: 404 })), null);
-  let blocked = false; for (let i = 0; i < 8; i++) blocked = guestTooMany('ip', 5000) || blocked;
+  let blocked = false; for (let i = 0; i < 14; i++) blocked = guestTooMany('ip', 5000) || blocked;
   assert.ok(blocked);
 });
