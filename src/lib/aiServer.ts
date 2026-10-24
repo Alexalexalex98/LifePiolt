@@ -10,10 +10,15 @@ import { useAiServerCfg } from '@/store/aiServerCfg';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { humanize } from './aiPersona';
 import { bytesToBase64, readUriBytes } from './readUri';
+import { useAccount } from '@/store/account';
+import { getSupabase } from '@/sync/supabaseClient';
+import { loadServerConfig } from '@/sync/secure';
 /** Versione del collegamento al server AI: compare negli errori, cosi' si vede quale codice sta girando sul telefono. */
 export const AI_BUILD = 'ai-v5';
 /* Indirizzo e token: prima quelli inseriti nell'app (Impostazioni > Intelligenza di Theia), altrimenti quelli della build. I valori cambiano da soli quando li modifichi. */
-const ENV_URL = process.env.EXPO_PUBLIC_AI_URL ?? '';
+/** Il server IA di LifePilot (modelli aperti, niente Google). L'indirizzo è pubblico; l'accesso è col tuo account. */
+export const DEFAULT_AI_URL = 'https://lifepilot-ai2.alex-stefanovic1998.workers.dev';
+const ENV_URL = process.env.EXPO_PUBLIC_AI_URL ?? DEFAULT_AI_URL;
 const ENV_TOKEN = process.env.EXPO_PUBLIC_AI_TOKEN ?? '';
 let URL_BASE = '';
 let TOKEN = '';
@@ -25,10 +30,23 @@ function applyCfg() {
   URL_BASE = (c.url || ENV_URL).trim().replace(/\/+$/, '');
   TOKEN = (c.token || ENV_TOKEN).trim();
   aiServerHost = URL_BASE.replace(/^https?:\/\//, '');
-  aiServerConfigured = Boolean(URL_BASE && TOKEN);
+  /* serve un indirizzo e o la parola d'ordine di prova o un account confermato (il server controlla il tuo accesso) */
+  aiServerConfigured = Boolean(URL_BASE && (TOKEN || useAccount.getState().status === 'verified'));
 }
 applyCfg();
 useAiServerCfg.subscribe(applyCfg);
+useAccount.subscribe(applyCfg);
+
+/** Il tuo accesso su Supabase: il server IA verifica che sia vero e ti dà il tuo limite. Se non c'è, resta la parola d'ordine di prova. */
+async function userToken(): Promise<string> {
+  try {
+    const c = await loadServerConfig();
+    const url = c.url || process.env.EXPO_PUBLIC_SUPABASE_URL || ''; const key = c.anonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+    if (!url || !key) return '';
+    const { data } = await (getSupabase(url, key) as unknown as { auth: { getSession(): Promise<{ data: { session: { access_token?: string } | null } }> } }).auth.getSession();
+    return data.session?.access_token ?? '';
+  } catch { return ''; }
+}
 
 export class AiServerError extends Error {
   status: number;
@@ -39,7 +57,7 @@ const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const BUSY = /high demand|overloaded|unavailable|try again later|quota|rate/i;
 
 async function call<T>(path: string, body: unknown, timeoutMs = 45000): Promise<T> {
-  if (!aiServerConfigured) throw new AiServerError('Il server AI non è collegato (mancano EXPO_PUBLIC_AI_URL ed EXPO_PUBLIC_AI_TOKEN).');
+  if (!aiServerConfigured) throw new AiServerError('Il server AI non è collegato (serve un account confermato, oppure indirizzo e parola d\'ordine di prova).');
   /* il servizio AI è a volte sovraccarico (503/429): si riprova due volte con una pausa, poi si spiega in italiano */
   for (let attempt = 0; ; attempt++) {
     try { return await callOnce<T>(path, body, timeoutMs); }
@@ -69,7 +87,7 @@ function postXhr(url: string, headers: Record<string, string>, body: string, sig
   });
 }
 async function post(url: string, body: string, signal: AbortSignal): Promise<{ r: Reply; via: string }> {
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` };
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${(await userToken()) || TOKEN}` };
   try {
     const r = await fetch(url, { method: 'POST', headers, body, signal });
     return { r: { ok: r.ok, status: r.status, json: await r.json().catch(() => ({})) }, via: 'fetch' };
@@ -87,7 +105,7 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
     const j = r.json as { error?: string; details?: { error?: { message?: string } } };
     if (!r.ok) {
       const why = j.details?.error?.message ?? j.error ?? `errore ${r.status}`;
-      throw new AiServerError(r.status === 401 ? 'Il token dell’app non è quello del server (non autorizzato).' : `Il server AI ha risposto: ${why}`, r.status);
+      throw new AiServerError(r.status === 401 ? 'Il server AI non riconosce il tuo accesso: esci e accedi di nuovo dal tuo account.' : `Il server AI ha risposto: ${why}`, r.status);
     }
     return j as T;
   } catch (e) {

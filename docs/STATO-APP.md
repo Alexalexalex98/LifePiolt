@@ -60,7 +60,12 @@
 
 ## 5. Theia, l'assistente
 - [ ] Azioni proposte da Theia e confermate da te (solo test)
-- [ ] Conversare liberamente come Gemini (da collegare: serve il worker con la chiave)
+- [ ] Conversare liberamente con modelli aperti, senza Google
+  - [x] Nuovo server IA pubblicato (lifepilot-ai2) con gpt-oss-120b, Nemotron, Llama 3.3 e Llama 4 Scout per le foto
+  - [ ] Provarlo dall'app con il tuo account (da fare)
+  - [ ] Tre livelli scelti dall'utente: solo telefono, IA di LifePilot, IA esterna (da fare)
+  - [ ] OCR sul telefono per documenti bancari (da fare)
+  - [ ] Modelli più forti (GLM, DeepSeek, Kimi): richiedono un piano Cloudflare a pagamento
 - [ ] Imparare dai messaggi e dalle interazioni (solo test)
 - [ ] Analisi di immagini (da collegare)
 - [ ] Piano del mese: spese, risparmi, rate, stipendi (solo test)
