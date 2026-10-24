@@ -42,3 +42,10 @@ Docs: https://docs.expo.dev/eas/index.md
 
 ## Principi di prodotto
 Leggi docs/PRINCIPI.md prima di aggiungere o cambiare funzioni (scoperta graduale, nessuna colpa, dati dell'utente, numeri veri).
+
+## Regole del proprietario (valgono sempre, anche con i connettori collegati)
+- **Mai comprare niente**: né domini, né abbonamenti, né piani a pagamento, né crediti, né upgrade, anche se un connettore (Cloudflare, Stripe, Supabase, Expo, Canva, Resend, ecc.) lo permette. Se serve un acquisto, dillo al proprietario con prezzo e motivo e fai fare a lui.
+- **Mai cancellare o disattivare risorse** (progetti, database, tabelle con dati, Worker, domini, account, abbonamenti, file, chiavi) senza che il proprietario lo chieda esplicitamente per quella specifica risorsa. Vale anche per risorse che sembrano vecchie o inutilizzate: segnalale, non toccarle.
+- **Mai disdire o cambiare un abbonamento** e mai creare pagamenti, fatture, abbonamenti o addebiti, nemmeno in modalità di prova senza averlo chiesto.
+- Le modifiche al database (migrazioni) e ai server si possono fare solo su ciò che il proprietario ha indicato (oggi: progetto Supabase Lifepilot2, account Cloudflare del progetto) e sempre con modifiche non distruttive.
+- Mai incollare chiavi o token in chat, nel codice o nel repository.
