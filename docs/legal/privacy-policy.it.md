@@ -10,6 +10,12 @@ Questa informativa spiega come trattiamo i dati personali quando usi l'app LifeP
 ## 2. Il principio di base: i tuoi dati restano sul tuo telefono
 LifePilot funziona prima di tutto **sul tuo dispositivo**. Agenda, task, note, finanze, estratto conto, salute, cibo, viaggi e le altre informazioni che inserisci sono salvati sul telefono. Non li carichiamo sui nostri server per impostazione predefinita. Se sul telefono attivi la sincronizzazione o ti colleghi a un server, lo trovi spiegato nell'app e puoi disattivarlo.
 
+### I tuoi dati restano tuoi
+I dati che inserisci nell'app sono **tuoi**: non diventano nostri e non li vendiamo. Noi li trattiamo soltanto per darti il servizio che chiedi, e in ogni momento puoi vederli, correggerli, portarli via o cancellarli (anche l'account intero).
+**Dati critici.** Sono sempre critici la salute e il benessere, le finanze e i documenti bancari, l'identità e i documenti d'identità, la posizione precisa e i messaggi privati; puoi segnare come critico anche altro. Per i dati critici: li usiamo **solo** per la singola richiesta che fai; **non** li usiamo per addestrare modelli di intelligenza artificiale, per statistiche, per profilarti o per pubblicità; **non** li condividiamo con terzi se non con chi, come nostro fornitore, serve a eseguire quella richiesta; escono dal telefono **solo** con il tuo consenso esplicito, specifico per categoria, che puoi revocare quando vuoi, e non è mai obbligatorio per usare le altre funzioni.
+**Gli altri dati** li usiamo per far funzionare l'app; le statistiche d'uso, se le attivi, sono anonime.
+Se un dato esce dal telefono te lo diciamo **prima**, dicendoti dove va e chi lo tratta.
+
 ## 3. Quali dati trattiamo
 | Categoria | Esempi | Dove stanno |
 |---|---|---|

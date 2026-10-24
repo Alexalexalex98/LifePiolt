@@ -10,6 +10,12 @@ This notice explains how we process personal data when you use the LifePilot app
 ## 2. The basic principle: your data stays on your phone
 LifePilot works first of all **on your device**. Agenda, tasks, notes, finances, bank statement, health, food, travel and the other information you enter are stored on your phone. We do not upload them to our servers by default. If you turn on synchronization or connect to a server on your phone, the app explains it and you can turn it off.
 
+### Your data stays yours
+The data you enter in the app is **yours**: it does not become ours and we do not sell it. We process it only to give you the service you ask for, and at any time you can see it, correct it, take it with you or delete it (including the whole account).
+**Critical data.** Health and wellbeing, finances and bank documents, identity and ID documents, precise location and private messages are always critical; you can mark other data as critical too. For critical data: we use it **only** for the single request you make; we do **not** use it to train artificial-intelligence models, for statistics, to profile you or for advertising; we do **not** share it with third parties other than the supplier who, on our behalf, is needed to carry out that request; it leaves the phone **only** with your explicit consent, specific to each category, which you can withdraw at any time and which is never required to use the other features.
+**All other data** is used to make the app work; usage statistics, if you turn them on, are anonymous.
+If any data leaves the phone we tell you **before**, saying where it goes and who processes it.
+
 ## 3. Which data we process
 | Category | Examples | Where it lives |
 |---|---|---|
