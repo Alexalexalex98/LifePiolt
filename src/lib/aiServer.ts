@@ -20,6 +20,7 @@ export const AI_BUILD = 'ai-v5';
 export const DEFAULT_AI_URL = 'https://lifepilot-ai2.alex-stefanovic1998.workers.dev';
 const ENV_URL = process.env.EXPO_PUBLIC_AI_URL ?? DEFAULT_AI_URL;
 const ENV_TOKEN = process.env.EXPO_PUBLIC_AI_TOKEN ?? '';
+const OLD_SERVER = /lifepilot-api\./i;
 let URL_BASE = '';
 let TOKEN = '';
 /** Indirizzo del server AI senza il token (per mostrarlo nelle impostazioni). */
@@ -27,8 +28,10 @@ export let aiServerHost = '';
 export let aiServerConfigured = false;
 function applyCfg() {
   const c = useAiServerCfg.getState();
-  URL_BASE = (c.url || ENV_URL).trim().replace(/\/+$/, '');
-  TOKEN = (c.token || ENV_TOKEN).trim();
+  /* il vecchio server (lifepilot-api) non capisce piu' l'accesso con l'account: se e' rimasto salvato sul telefono si passa al nuovo */
+  const old = OLD_SERVER.test(c.url) || OLD_SERVER.test(ENV_URL);
+  URL_BASE = (old ? DEFAULT_AI_URL : (c.url || ENV_URL)).trim().replace(/\/+$/, '');
+  TOKEN = old ? '' : (c.token || ENV_TOKEN).trim();
   aiServerHost = URL_BASE.replace(/^https?:\/\//, '');
   /* serve un indirizzo e o la parola d'ordine di prova o un account confermato (il server controlla il tuo accesso) */
   aiServerConfigured = Boolean(URL_BASE && (TOKEN || useAccount.getState().status === 'verified'));
@@ -91,7 +94,9 @@ function postXhr(url: string, headers: Record<string, string>, body: string, sig
   });
 }
 async function post(url: string, body: string, signal: AbortSignal, refresh = false): Promise<{ r: Reply; via: string }> {
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${(await userToken(refresh)) || TOKEN}` };
+  /* l'accesso del tuo account va solo al nostro server: a un server scelto da te si manda solo la sua parola d'ordine */
+  const ours = url.startsWith(DEFAULT_AI_URL);
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${(ours ? await userToken(refresh) : '') || TOKEN}` };
   try {
     const r = await fetch(url, { method: 'POST', headers, body, signal });
     return { r: { ok: r.ok, status: r.status, json: await r.json().catch(() => ({})) }, via: 'fetch' };
@@ -112,7 +117,7 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
     if (r.ok && j.plan) lastAiInfo = { plan: j.plan, lite: !!j.lite, left: j.left, limit: j.limit };
     if (!r.ok) {
       const why = j.details?.error?.message ?? j.error ?? `errore ${r.status}`;
-      throw new AiServerError(r.status === 401 ? 'Il server AI non riconosce il tuo accesso: esci e accedi di nuovo dal tuo account.' : `Il server AI ha risposto: ${why}`, r.status);
+      throw new AiServerError(r.status === 401 ? 'Il server AI non riconosce il tuo accesso: esci e accedi di nuovo dal tuo account. (' + aiServerHost + ')' : `Il server AI ha risposto: ${why}`, r.status);
     }
     return j as T;
   } catch (e) {
