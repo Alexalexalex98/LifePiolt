@@ -11,7 +11,6 @@ export function billReviewExists(): boolean {
   if (known !== undefined) return known;
   try {
     // Metro risolve `require.context` in fase di build: deve restare una chiamata letterale
-    // @ts-expect-error `require.context` è fornito da Metro, non dai tipi di Node
     known = (require.context('../../app/(tabs)', false, /^\.\/billReview\.tsx?$/) as Ctx).keys().length > 0;
   } catch { known = true; }
   return known;

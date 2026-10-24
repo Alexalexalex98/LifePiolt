@@ -12,6 +12,7 @@ import { adjacentSection, sectionDirection } from '@/lib/sectionSwipe';
 import { settleEscrow } from '@/lib/escrow';
 import { ensureSampleParticipants, ensureSampleRecordings, ensureSampleShops } from '@/lib/shopSeed';
 import { settleIdeas } from '@/lib/ideasActions';
+import { TAB_SCREENS } from '@/lib/tabScreens';
 
 import { DiscoverHost } from '@/components/Discover';
 import { LifePayFab, LifePayHost, useWalletTouch } from '@/components/LifePay';
@@ -126,7 +127,9 @@ export default function TabsLayout() {
           </View>
         ) : null}
         <Animated.View style={{ flex: 1, transform: [{ translateX: x }] }}>
-          <Tabs backBehavior="history" tabBar={(p) => <Animated.View style={{ transform: [{ translateX: negX }] }}><NavBar {...p} /></Animated.View>} screenOptions={{ headerShown: false, lazy: true, animation: 'none' }} />
+          <Tabs backBehavior="history" tabBar={(p) => <Animated.View style={{ transform: [{ translateX: negX }] }}><NavBar {...p} /></Animated.View>} screenOptions={{ headerShown: false, lazy: true, animation: 'none' }}>
+            {TAB_SCREENS.map((n) => <Tabs.Screen key={n} name={n} />)}
+          </Tabs>
         </Animated.View>
       </View>
       <LifePayFab />
