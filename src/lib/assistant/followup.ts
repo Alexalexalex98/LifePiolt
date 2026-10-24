@@ -47,7 +47,7 @@ export function friendlyAiError(msg: string): string {
   const m = msg.toLowerCase();
   if (/high demand|overload|unavailable|503|try again later|temporar/.test(m)) return 'Il servizio AI è molto richiesto in questo momento e non riesce a rispondere. Non è un problema dell’app: riprova tra qualche minuto.';
   if (/429|rate|quota|too many/.test(m)) return 'Hai fatto molte richieste in poco tempo: aspetta un minuto e riprova.';
-  if (/401|403|unauthor|forbidden|token/.test(m)) return 'Il servizio AI non ha accettato la richiesta (accesso non valido). Controlla la configurazione del server AI.';
+  if (/401|403|unauthor|forbidden|token/.test(m)) return 'Il servizio AI non ha accettato l’accesso per questa richiesta (foto e documenti richiedono l’accesso al tuo account). Esci e accedi di nuovo dal tuo account e riprova.';
   if (/network|fetch|timeout|failed to/.test(m)) return 'Non riesco a raggiungere il servizio AI: controlla la connessione e riprova.';
   return msg;
 }

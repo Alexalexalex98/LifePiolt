@@ -17,7 +17,7 @@ import { routeRequest, type RouteResult } from '@/lib/aiRouter';
 import { aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
-import { parseAiActions } from './aiActionsCore';
+import { parseAiActions, splitReply } from './aiActionsCore';
 import { CRISIS_RESOURCES, CRISIS_TEXT, detectCrisis } from '@/lib/safety';
 import { isLearnable, recall } from '@/lib/theiaMemory';
 import { useTheiaMemory } from '@/store/theiaMemory';
@@ -86,11 +86,25 @@ const aiOn = () => aiServerConfigured && !useAiRouter.getState().prefs.phoneOnly
 const SMALLTALK = /^(ciao|salve|hey|ehi|buongiorno|buonasera|buon pomeriggio|buonanotte|hi|hello|grazie|thanks|thank you)\b/;
 
 /** Risposta dell'AI: le azioni che propone diventano pulsanti di conferma, descritti dall'app (con i numeri calcolati da lei). */
-function pushWithActions(reply: string): AMsg {
-  const { text, actions } = parseAiActions(reply);
-  if (!actions.length) return pushAi(reply);
+function pushParsed(text: string, actions: ReturnType<typeof parseAiActions>['actions']): AMsg {
+  if (!actions.length) return pushAi(text);
   const lines = actions.map((a) => `• ${describe(a)}`).join('\n');
   return pushAi(`${text}\n\n${t('Posso farlo io, se vuoi:')}\n${lines}`, { ext: { actions: [...actions.map((a): TheiaAction => ({ kind: 'ai-do', label: actions.length > 1 ? describe(a) : t('Sì, fallo'), act: a })), { kind: 'dismiss', label: t('No, grazie') }] } });
+}
+function pushWithActions(reply: string): AMsg {
+  const { text, actions } = parseAiActions(reply);
+  return pushParsed(text, actions);
+}
+/** Theia scrive come in una chat: piu' messaggi brevi, uno dopo l'altro (i pulsanti stanno sull'ultimo). */
+const pause = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+async function pushReply(reply: string): Promise<void> {
+  const { text, actions } = parseAiActions(reply);
+  const parts = splitReply(text);
+  if (parts.length <= 1) { pushParsed(parts[0] ?? text, actions); return; }
+  for (let i = 0; i < parts.length; i++) {
+    if (i < parts.length - 1) { pushAi(parts[i]); await pause(Math.min(1500, 500 + parts[i + 1].length * 9)); }
+    else pushParsed(parts[i], actions);
+  }
 }
 
 async function aiChatReply(text: string): Promise<void> {
@@ -104,8 +118,8 @@ async function aiChatReply(text: string): Promise<void> {
   }
   try {
     const reply = await askTheiaChat(text) || t('Risposta vuota dal server.');
-    pushWithActions(reply);
-    if (plain) { const { text: clean, actions } = parseAiActions(reply); if (!actions.length && isLearnable(text, clean)) kb.learn(text, clean); }
+    await pushReply(reply);
+    if (plain) { const { text: parsed, actions } = parseAiActions(reply); const clean = splitReply(parsed).join('\n\n'); if (!actions.length && isLearnable(text, clean)) kb.learn(text, clean); }
   } catch (e) {
     pushAi(`${t(friendlyAiError(e instanceof Error ? e.message : 'Errore del server AI.'))}\n\n${t('I comandi sul tuo piano, i task e i report funzionano comunque.')}`, { ext: { actions: [{ kind: 'say', label: t('Riprova'), text }, { kind: 'dismiss', label: t('Lascia stare') }] } });
   }
@@ -604,7 +618,7 @@ async function deepStatementAnalysis(): Promise<void> {
   try {
     logSend('files', summary.length, ['riepilogo']);
     const q = `Questo è il riepilogo delle mie finanze degli ultimi mesi (non sono consigli finanziari, spiegami solo in modo semplice):\n\n${summary}\n\nCosa noti? Dove spendo di più, come va il risparmio e cosa potrei controllare? Rispondi in modo breve e concreto, in italiano.`;
-    if (aiServerConfigured) pushWithActions(await askTheiaChat(q) || t('Risposta vuota dal server.'));
+    if (aiServerConfigured) await pushReply(await askTheiaChat(q) || t('Risposta vuota dal server.'));
     else await delegate({ text: q, lang: 'it', source: 'typed' });
   } catch (e) {
     pushAi(e instanceof Error ? e.message : t('Errore del server AI.'));

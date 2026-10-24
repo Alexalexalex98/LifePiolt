@@ -8,3 +8,9 @@ Cloudflare Worker con **modelli aperti su Workers AI** (niente Google). Pubblica
 - Quota finita → risposta 429 con `code: 'quota'`, l'app mostra un messaggio chiaro.
 - Non registra mai il contenuto delle richieste.
 - Test: `tests/aiWorker.test.mjs`. Pubblicazione: via connettore Cloudflare (non c'è un comando automatico nel repository).
+
+## Limiti per piano e risposta garantita (migrazione 0010)
+- Ogni richiesta `/chat`, `/vision`, `/analyze` conta sul tuo account (`ai_take()` su Supabase, con il tuo token). Messaggi "completi" al giorno: **free 30, plus 200, pro 1000** (si cambiano in `0010_ai_limits.sql`). Il piano si legge da `entitlements` (lo scrive solo il service_role).
+- Finiti i messaggi completi Theia **risponde comunque**, con modelli piu' leggeri (`LITE`) e risposte piu' brevi (450 token). Freno al minuto: free 15, plus 30, pro 60.
+- Accesso non verificato (token scaduto o assente): `/chat` e `/translate` rispondono in modalita' leggera con freno stretto per IP (6 al minuto); foto e documenti richiedono l'accesso (401).
+- Ogni risposta riporta `plan`, `lite`, `left`, `limit`. Se il conteggio non risponde nessuno viene bloccato.

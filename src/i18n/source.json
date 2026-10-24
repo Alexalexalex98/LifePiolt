@@ -6078,7 +6078,7 @@
  "Il servizio AI ci mette troppo a rispondere (probabilmente è molto richiesto). Riprova tra poco. · {0}",
  "Il servizio AI è molto richiesto in questo momento e non riesce a rispondere. Non è un problema dell’app: riprova tra qualche minuto.",
  "Il servizio AI è molto richiesto in questo momento. Ho riprovato più volte: riprova tra qualche minuto, oppure scegli tu gli alimenti qui sotto.",
- "Il servizio AI non ha accettato la richiesta (accesso non valido). Controlla la configurazione del server AI.",
+ "Il servizio AI non ha accettato l’accesso per questa richiesta (foto e documenti richiedono l’accesso al tuo account). Esci e accedi di nuovo dal tuo account e riprova.",
  "Il servizio di trascrizione non è ancora collegato: per ora la voce funziona solo dove il telefono la riconosce da solo. Puoi scrivere il comando.",
  "Il silenzio non è tempo perso, è spazio per capire cosa ti serve.",
  "Il sistema limita i task in background (risparmio energetico o impostazioni).",

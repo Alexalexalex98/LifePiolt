@@ -38,15 +38,19 @@ useAiServerCfg.subscribe(applyCfg);
 useAccount.subscribe(applyCfg);
 
 /** Il tuo accesso su Supabase: il server IA verifica che sia vero e ti dà il tuo limite. Se non c'è, resta la parola d'ordine di prova. */
-async function userToken(): Promise<string> {
+async function userToken(refresh = false): Promise<string> {
   try {
     const c = await loadServerConfig();
     const url = c.url || process.env.EXPO_PUBLIC_SUPABASE_URL || ''; const key = c.anonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
     if (!url || !key) return '';
-    const { data } = await (getSupabase(url, key) as unknown as { auth: { getSession(): Promise<{ data: { session: { access_token?: string } | null } }> } }).auth.getSession();
+    const auth = (getSupabase(url, key) as unknown as { auth: { getSession(): Promise<{ data: { session: { access_token?: string } | null } }>; refreshSession(): Promise<{ data: { session: { access_token?: string } | null } }> } }).auth;
+    const { data } = refresh ? await auth.refreshSession() : await auth.getSession();
     return data.session?.access_token ?? '';
   } catch { return ''; }
 }
+
+/** Piano e messaggi "completi" rimasti oggi, come li ha detti il server nell'ultima risposta (finiti, Theia risponde in modo piu' breve). */
+export let lastAiInfo: { plan: string; lite: boolean; left?: number; limit?: number } | null = null;
 
 export class AiServerError extends Error {
   status: number;
@@ -86,8 +90,8 @@ function postXhr(url: string, headers: Record<string, string>, body: string, sig
     x.send(body);
   });
 }
-async function post(url: string, body: string, signal: AbortSignal): Promise<{ r: Reply; via: string }> {
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${(await userToken()) || TOKEN}` };
+async function post(url: string, body: string, signal: AbortSignal, refresh = false): Promise<{ r: Reply; via: string }> {
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${(await userToken(refresh)) || TOKEN}` };
   try {
     const r = await fetch(url, { method: 'POST', headers, body, signal });
     return { r: { ok: r.ok, status: r.status, json: await r.json().catch(() => ({})) }, via: 'fetch' };
@@ -101,8 +105,11 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
   const ctl = new AbortController();
   const h = setTimeout(() => ctl.abort(), timeoutMs);
   try {
-    const { r } = await post(`${URL_BASE}${path}`, JSON.stringify(body), ctl.signal);
-    const j = r.json as { error?: string; details?: { error?: { message?: string } } };
+    let { r } = await post(`${URL_BASE}${path}`, JSON.stringify(body), ctl.signal);
+    /* l'accesso puo' essere scaduto: lo rinnovo e riprovo una volta */
+    if (r.status === 401) ({ r } = await post(`${URL_BASE}${path}`, JSON.stringify(body), ctl.signal, true));
+    const j = r.json as { error?: string; details?: { error?: { message?: string } }; plan?: string; lite?: boolean; left?: number; limit?: number };
+    if (r.ok && j.plan) lastAiInfo = { plan: j.plan, lite: !!j.lite, left: j.left, limit: j.limit };
     if (!r.ok) {
       const why = j.details?.error?.message ?? j.error ?? `errore ${r.status}`;
       throw new AiServerError(r.status === 401 ? 'Il server AI non riconosce il tuo accesso: esci e accedi di nuovo dal tuo account.' : `Il server AI ha risposto: ${why}`, r.status);

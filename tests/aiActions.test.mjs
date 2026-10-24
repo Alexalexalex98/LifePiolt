@@ -280,3 +280,11 @@ test('stelline: calano se si ripete sempre la stessa cosa, premio piccolo per la
   const mixed = [{ k: 'snack', ts: now - 1 }, { k: 'water', ts: now - 1 }, { k: 'love', ts: now - 1 }];
   assert.ok(rewardFor('fit', mixed, now) > rewardFor('fit', [], now) - 1);
 });
+
+test('Theia scrive piu\' messaggi brevi: si dividono sulla riga |||', async () => {
+  const { splitReply } = await import('../src/lib/assistant/aiActionsCore.ts');
+  assert.deepEqual(splitReply('Certo.\n|||\nEcco i numeri:\n• a\n• b\n\n|||\n\nVuoi che li metta nel piano?'), ['Certo.', 'Ecco i numeri:\n• a\n• b', 'Vuoi che li metta nel piano?']);
+  assert.deepEqual(splitReply('Un solo messaggio'), ['Un solo messaggio']);
+  assert.deepEqual(splitReply('a\n|||\n|||\nb|||c'), ['a', 'bc']);
+  assert.equal(splitReply('1\n|||\n2\n|||\n3\n|||\n4\n|||\n5\n|||\n6').length, 5);
+});

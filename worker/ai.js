@@ -10,6 +10,9 @@ const json = (o, status = 200) => new Response(JSON.stringify(o), { status, head
 /** I modelli, dal più forte al più leggero: se uno non risponde si passa al successivo. Su un piano a pagamento si possono aggiungere in cima GLM, DeepSeek, Kimi. */
 export const SMART = ['@cf/openai/gpt-oss-120b', '@cf/nvidia/nemotron-3-120b-a12b', '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/qwen/qwen3.8-27b'];
 export const VISION = ['@cf/meta/llama-4-scout-17b-16e-instruct'];
+/** Modalita' leggera: risposte piu' brevi e veloci, per quando i messaggi "completi" del giorno sono finiti o l'accesso non e' verificato. Theia risponde comunque. */
+export const LITE = ['@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/qwen/qwen3.8-27b', '@cf/openai/gpt-oss-120b'];
+export const LITE_TOKENS = 450;
 
 const SYSTEM = 'Sei Theia, l\'assistente di LifePilot: gentile, chiara e precisa. Rispondi nella lingua dell\'utente. Non inventare mai numeri, date o fatti che non ti sono stati dati: se non lo sai, dillo. I calcoli con i dati dell\'utente li fai solo sui numeri che ti sono forniti e li mostri. Non dai consigli medici, legali o fiscali definitivi: indichi di sentire un professionista. Niente emoji.';
 
@@ -57,11 +60,11 @@ export async function whoIs(req, env, fetcher = fetch) {
 
 /* Freno semplice per persona: al massimo 40 richieste al minuto da questo punto di accesso. */
 const hits = new Map();
-export function tooMany(id, now = Date.now()) {
+export function tooMany(id, now = Date.now(), max = 40) {
   const a = (hits.get(id) ?? []).filter((t) => now - t < 60000);
   a.push(now); hits.set(id, a);
   if (hits.size > 2000) hits.clear();
-  return a.length > 40;
+  return a.length > max;
 }
 
 const msgs = (system, user, extra = []) => [{ role: 'system', content: system }, ...extra, { role: 'user', content: user }];
@@ -75,16 +78,18 @@ async function pdfText(env, f) {
   } catch { return ''; }
 }
 
-async function handle(path, b, env) {
+async function handle(path, b, env, lite = false) {
+  const TEXT = lite ? LITE : SMART;
+  const cap = (n) => (lite ? Math.min(n, LITE_TOKENS) : n);
   if (path === '/chat') {
     const history = Array.isArray(b.history) ? b.history.slice(-12).filter((m) => m && (m.role === 'user' || m.role === 'assistant')).map((m) => ({ role: m.role, content: String(m.content ?? '').slice(0, 4000) })) : [];
-    const { text } = await run(env, SMART, { messages: msgs(SYSTEM, String(b.message ?? '').slice(0, 24000), history) });
+    const { text } = await run(env, TEXT, { messages: msgs(SYSTEM, String(b.message ?? '').slice(0, 24000), history) }, cap(1500));
     return { reply: text };
   }
   if (path === '/vision') {
     if (String(b.mime || '').includes('pdf')) {
       const t = await pdfText(env, { data: b.image });
-      const { text } = await run(env, SMART, { messages: msgs(SYSTEM, `${String(b.prompt ?? '')}\n\nTesto del documento:\n${t || '(vuoto)'}`) });
+      const { text } = await run(env, TEXT, { messages: msgs(SYSTEM, `${String(b.prompt ?? '')}\n\nTesto del documento:\n${t || '(vuoto)'}`) }, cap(1500));
       return { reply: text };
     }
     const { text } = await run(env, VISION, { messages: imageMsg(String(b.prompt ?? 'Descrivi l\'immagine.'), [{ data: b.image, mime: b.mime }]) }, 1200);
@@ -99,7 +104,7 @@ async function handle(path, b, env) {
     for (const f of pdfs) doc += `\n\n--- documento ---\n${await pdfText(env, f)}`;
     const { text } = images.length
       ? await run(env, VISION, { messages: imageMsg(`${question}${doc}`, images) }, 1500)
-      : await run(env, SMART, { messages: msgs(SYSTEM, `${question}${doc}`) });
+      : await run(env, TEXT, { messages: msgs(SYSTEM, `${question}${doc}`) }, cap(1500));
     let result = null;
     try { const m = text.match(/[[{][\s\S]*[\]}]/); if (m) result = JSON.parse(m[0]); } catch { /* testo libero */ }
     return { reply: text, result };
@@ -112,19 +117,49 @@ async function handle(path, b, env) {
   return null;
 }
 
+/** Conta una richiesta sul tuo account (con il tuo stesso token) e dice piano e se hai ancora messaggi "completi" oggi. Se non risponde, nessun blocco. */
+export async function usage(tok, env, fetcher = fetch) {
+  try {
+    const r = await fetcher(`${env.SUPABASE_URL}/rest/v1/rpc/ai_take`, { method: 'POST', headers: { apikey: env.SUPABASE_KEY, authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: '{}' });
+    if (!r.ok) return null;
+    const u = await r.json();
+    return u && typeof u.full === 'boolean' ? u : null;
+  } catch { return null; }
+}
+const RATE = { free: 15, plus: 30, pro: 60 };
+const guestHits = new Map();
+export function guestTooMany(ip, now = Date.now()) {
+  const a = (guestHits.get(ip) ?? []).filter((t) => now - t < 60000);
+  a.push(now); guestHits.set(ip, a);
+  if (guestHits.size > 2000) guestHits.clear();
+  return a.length > 6;
+}
+
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, _ctx, fetcher = fetch) {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
     const path = new URL(req.url).pathname;
     if (req.method !== 'POST') return json({ ok: true, service: 'lifepilot-ai', models: { smart: SMART[0], vision: VISION[0] } });
-    const user = await whoIs(req, env);
-    if (!user) return json({ error: 'non autorizzato' }, 401);
-    if (tooMany(user.id)) return json({ error: 'troppe richieste: aspetta un minuto' }, 429);
+    const user = await whoIs(req, env, fetcher);
+    let lite = false; let info = { plan: 'guest', lite: true };
+    if (!user) {
+      /* accesso non verificato: Theia risponde lo stesso, ma in modalita' leggera e con un freno stretto */
+      if (!['/chat', '/translate'].includes(path)) return json({ error: 'non autorizzato' }, 401);
+      if (guestTooMany(req.headers.get('cf-connecting-ip') || 'ospite')) return json({ error: 'troppe richieste: aspetta un minuto' }, 429);
+      lite = true;
+    } else {
+      const tok = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+      const u = user.id === 'prova' || path === '/translate' ? null : await usage(tok, env, fetcher);
+      const plan = u?.plan ?? 'free';
+      if (tooMany(user.id, Date.now(), RATE[plan] ?? 15)) return json({ error: 'troppe richieste: aspetta un minuto' }, 429);
+      lite = u ? !u.full : false;
+      info = { plan, lite, left: u ? Math.max(0, u.limit - u.used) : undefined, limit: u?.limit };
+    }
     let b;
     try { b = await req.json(); } catch { return json({ error: 'richiesta non valida' }, 400); }
     try {
-      const out = await handle(path, b, env);
-      return out ? json(out) : json({ error: 'percorso sconosciuto' }, 404);
+      const out = await handle(path, b, env, lite);
+      return out ? json({ ...out, ...info }) : json({ error: 'percorso sconosciuto' }, 404);
     } catch (e) {
       if (e?.quota) return json({ error: 'Il limite gratuito di oggi dell\'intelligenza artificiale è finito: riprova domani.', code: 'quota' }, 429);
       return json({ error: 'Il servizio AI non ha risposto: riprova tra poco.' }, 502);

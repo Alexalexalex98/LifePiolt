@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import worker, { SMART, VISION, isQuota, run, textOf, tooMany, whoIs } from '../worker/ai.js';
+import worker, { SMART, VISION, LITE, isQuota, run, textOf, tooMany, whoIs, usage, guestTooMany } from '../worker/ai.js';
 
 const req = (path, body, tok = 'prova') => new Request(`https://x.dev${path}`, { method: 'POST', headers: { authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
 const envWith = (ai, more = {}) => ({ AI: { run: ai, toMarkdown: async () => [{ data: 'testo del pdf' }] }, APP_TOKEN: 'prova', SUPABASE_URL: 'https://s.supabase.co', SUPABASE_KEY: 'k', ...more });
@@ -33,9 +33,11 @@ test('/chat, /vision, /analyze e /translate rispondono come il vecchio server', 
   assert.deepEqual(an2.result, [{ voce: 1 }]);
   assert.equal((await (await worker.fetch(req('/translate', { lang: 'en', texts: ['x', 'y'] }), env)).json()).reply, '["a","b"]');
 });
-test('senza token o con token sbagliato: 401; percorso sconosciuto: 404; GET è il controllo di salute', async () => {
+test('senza accesso valido Theia risponde lo stesso (modalita\' leggera); foto e documenti no; percorso sconosciuto: 404; GET è il controllo di salute', async () => {
   const env = envWith(async () => ({ response: 'x' }), { SUPABASE_URL: '', SUPABASE_KEY: '' });
-  assert.equal((await worker.fetch(req('/chat', { message: 'a' }, 'sbagliato'), env)).status, 401);
+  const g = await worker.fetch(req('/chat', { message: 'a' }, 'sbagliato'), env);
+  assert.equal(g.status, 200); const gj = await g.json(); assert.equal(gj.reply, 'x'); assert.equal(gj.plan, 'guest'); assert.equal(gj.lite, true);
+  assert.equal((await worker.fetch(req('/vision', { image: 'AAAA', mime: 'image/jpeg', prompt: 'a' }, 'sbagliato'), env)).status, 401);
   assert.equal((await worker.fetch(req('/boh', {}), env)).status, 404);
   const h = await worker.fetch(new Request('https://x.dev/'), env);
   assert.equal((await h.json()).ok, true);
@@ -52,4 +54,26 @@ test('il token di Supabase viene verificato dal server di accesso e ricordato un
 test('freno: oltre 40 richieste al minuto per persona', () => {
   let blocked = false; for (let i = 0; i < 45; i++) blocked = tooMany('freno', 1000) || blocked;
   assert.ok(blocked); assert.equal(tooMany('altro', 1000), false);
+});
+
+test('piani: free/plus/pro con limiti diversi; finiti i messaggi completi si passa ai modelli leggeri ma si risponde', async () => {
+  const used = [];
+  const f = async (url, o) => {
+    if (url.endsWith('/auth/v1/user')) return new Response(JSON.stringify({ id: 'u' + o.headers.authorization.slice(7) }));
+    const plan = o.headers.authorization.slice(7);
+    const limit = { free: 30, plus: 200, pro: 1000 }[plan]; const n = plan === 'free' ? 31 : 5;
+    used.push(plan);
+    return new Response(JSON.stringify({ plan, limit, used: n, full: n <= limit }));
+  };
+  const seen = [];
+  const env = envWith(async (m, input) => { seen.push([m, input.max_tokens]); return { response: 'ok' }; }, { SUPABASE_URL: 'https://s.co', SUPABASE_KEY: 'k' });
+  const call = async (plan) => (await worker.fetch(req('/chat', { message: 'ciao' }, plan), env, undefined, f)).json();
+  const free = await call('free'); assert.equal(free.lite, true); assert.equal(free.plan, 'free'); assert.equal(seen.at(-1)[0], LITE[0]); assert.ok(seen.at(-1)[1] <= 450);
+  const plus = await call('plus'); assert.equal(plus.lite, false); assert.equal(plus.left, 195); assert.equal(seen.at(-1)[0], SMART[0]);
+  const pro = await call('pro'); assert.equal(pro.limit, 1000); assert.equal(pro.lite, false);
+});
+test('se il conteggio non risponde non si blocca nessuno; il freno degli ospiti e\' stretto', async () => {
+  assert.equal(await usage('t', { SUPABASE_URL: 'https://s.co', SUPABASE_KEY: 'k' }, async () => new Response('{}', { status: 404 })), null);
+  let blocked = false; for (let i = 0; i < 8; i++) blocked = guestTooMany('ip', 5000) || blocked;
+  assert.ok(blocked);
 });
