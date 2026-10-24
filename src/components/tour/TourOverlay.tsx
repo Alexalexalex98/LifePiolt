@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, findNodeHandle, Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -44,7 +45,7 @@ export function TourOverlay({ steps, index, name, onNext, onBack, onSkip, onDone
   const step = steps[Math.min(index, steps.length - 1)];
   const last = index >= steps.length - 1;
   const [rect, setRect] = useState<Rect | null>(null);
-  const focusRef = useRef<View>(null);
+  const focusRef = useRef<ComponentRef<typeof View>>(null);
 
   // misura il bersaglio ora e poi spesso: segue scroll, rotazione, tastiera e cambi di layout
   useEffect(() => {

@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { snapBackdrop } from '@/lib/storyBackdrop';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -79,7 +80,7 @@ export function StoriesBar({ mode = 'Per te' }: { mode?: 'Per te' | 'Seguiti' })
   const rest = groups.filter((g) => !g.mine);
   const others = [...rest.filter((g) => g.unseen === 0).sort((a, b) => a.latest - b.latest), ...rest.filter((g) => g.unseen > 0)];
   const seenCount = rest.filter((g) => g.unseen === 0).length;
-  const scroller = useRef<ScrollView>(null);
+  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   const prevSeen = useRef(seenCount);
   const CARD_W = 124;
   useEffect(() => { const first = prevSeen.current === seenCount; scroller.current?.scrollTo({ x: seenCount * CARD_W, animated: !first }); prevSeen.current = seenCount; }, [seenCount]);

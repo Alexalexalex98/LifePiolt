@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
@@ -5,7 +6,7 @@ import { registerTarget, unregisterTarget } from './registry';
 
 /** Registra l'elemento come bersaglio del tour (si misura quando serve: rotazione, scroll e cambi di layout compresi). */
 export function useTourTarget(id: string) {
-  const ref = useRef<View>(null);
+  const ref = useRef<ComponentRef<typeof View>>(null);
   useEffect(() => {
     registerTarget(id, ref);
     return () => unregisterTarget(id, ref);

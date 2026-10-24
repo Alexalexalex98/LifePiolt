@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { DEFAULT_USER_PHOTO, LOGO, LP_ICON_B, LP_ICON_W } from '@/lib/embeddedAssets';
 import { onPageRefresh } from '@/lib/pageRefresh';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -139,7 +140,7 @@ export function Page({ id, title, back, children, right, scroll = true, noTop, b
   const sameAsTag = !!title && !!tag && translateText(title).trim().toLowerCase() === tag.trim().toLowerCase();
   const params = useLocalSearchParams();
   const memKey = id + JSON.stringify(params);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const scrollLocked = useScrollLock((s) => s.locked);
   useEffect(() => { pageScroll.scrollTo = (y) => scrollRef.current?.scrollTo({ y: Math.max(0, y), animated: false }); }, []);
   const [refreshTick, setRefreshTick] = useState(0);

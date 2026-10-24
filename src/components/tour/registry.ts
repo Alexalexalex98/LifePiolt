@@ -1,18 +1,19 @@
+import type { ComponentRef } from 'react';
 import type { RefObject } from 'react';
 import type { View } from 'react-native';
 
 /** Rettangolo di un bersaglio in coordinate della finestra (quelle di measureInWindow). */
 export type Rect = { x: number; y: number; w: number; h: number };
 
-const targets = new Map<string, RefObject<View | null>[]>();
+const targets = new Map<string, RefObject<ComponentRef<typeof View> | null>[]>();
 
-export function registerTarget(id: string, ref: RefObject<View | null>) {
+export function registerTarget(id: string, ref: RefObject<ComponentRef<typeof View> | null>) {
   const list = targets.get(id) ?? [];
   if (!list.includes(ref)) list.push(ref);
   targets.set(id, list);
 }
 
-export function unregisterTarget(id: string, ref: RefObject<View | null>) {
+export function unregisterTarget(id: string, ref: RefObject<ComponentRef<typeof View> | null>) {
   const list = (targets.get(id) ?? []).filter((r) => r !== ref);
   if (list.length) targets.set(id, list);
   else targets.delete(id);
@@ -20,7 +21,7 @@ export function unregisterTarget(id: string, ref: RefObject<View | null>) {
 
 export const hasTarget = (id: string | undefined): boolean => !!id && (targets.get(id)?.length ?? 0) > 0;
 
-function measureOne(ref: RefObject<View | null>): Promise<Rect | null> {
+function measureOne(ref: RefObject<ComponentRef<typeof View> | null>): Promise<Rect | null> {
   return new Promise((resolve) => {
     const node = ref.current;
     if (!node || typeof node.measureInWindow !== 'function') return resolve(null);

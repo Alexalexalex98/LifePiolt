@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { MentionSuggest, MentionText } from '@/components/MentionBox';
 import { snapBackdrop } from '@/lib/storyBackdrop';
 import { useLocalSearchParams } from 'expo-router';
@@ -38,7 +39,7 @@ export default function PostPage() {
   const visible = useVisible();
   // scorre fino al commento indicato dalla notifica e lo evidenzia per un attimo
   const reduce = useReduceMotion();
-  const scroller = useRef<ScrollView>(null);
+  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   const commentsTop = useRef(0);
   const rowY = useRef<Record<number, number>>({});
   const rowRefs = useRef<Record<number, unknown>>({});

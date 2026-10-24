@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { isDoubleTap, triggerPageRefresh } from '@/lib/pageRefresh';
 import { Mascot } from '@/components/mascot/Mascot';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
@@ -45,7 +46,7 @@ function NavEditor({ visible, onClose }: { visible: boolean; onClose: () => void
   const [drag, setDrag] = useState<{ id: string; from: 'bar' | 'grid'; x: number; y: number } | null>(null);
   const dragRef = useRef(drag); dragRef.current = drag;
   const origin = useRef({ x: 0, y: 0 });
-  const rootRef = useRef<View>(null);
+  const rootRef = useRef<ComponentRef<typeof View>>(null);
   const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
   const start = useRef<{ id: string; from: 'bar' | 'grid'; x: number; y: number } | null>(null);
 

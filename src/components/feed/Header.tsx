@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
@@ -62,7 +63,7 @@ export function NetTabs({ tabs, value, onChange }: { tabs: { key: string; label:
   const t = useTheme();
   const reduce = useReduceMotion();
   const pos = useRef<Record<string, { x: number; w: number }>>({}).current;
-  const sv = useRef<ScrollView>(null);
+  const sv = useRef<ComponentRef<typeof ScrollView>>(null);
   const x = useRef(new Animated.Value(0)).current;
   const w = useRef(new Animated.Value(0)).current;
   const [ready, setReady] = useState(false);

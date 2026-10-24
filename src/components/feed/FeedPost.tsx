@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { useVideoFx } from '@/hooks/use-video-fx';
 import type { VideoFx } from '@/lib/videoFx';
 import { StoryFx } from '@/components/stories/StoryFx';
@@ -142,7 +143,7 @@ function PlayingVideo({ uri, width, height, poster, vfx }: { vfx?: VideoFx; uri:
 export function MediaArea({ post, w, onDouble, onSingle, heart }: { post: FeedPostData; w: number; onDouble: () => void; onSingle: () => void; heart: Animated.Value }) {
   const images = post.uris?.length ? post.uris : post.uri ? [post.uri] : [];
   const [page, setPage] = useState(0);
-  const scroller = useRef<ScrollView>(null);
+  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   const lastTap = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);

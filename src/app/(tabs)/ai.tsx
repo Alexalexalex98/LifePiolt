@@ -174,7 +174,7 @@ export default function LifeChat() {
                 <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 12, textAlign: 'center' }}>Scrivi un comando o una domanda: ti suggerisco io cosa so fare.</Text>
               </View>
             }
-            ListFooterComponent={busy ? <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginVertical: 6 }}>{showM ? <Mascot size={34} color={t.accent} expression="doubtful" ritual={false} /> : null}<View style={{ backgroundColor: t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 13 }}><TypingDots /></View></View> : null}
+            ListFooterComponent={busy ? <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginVertical: 6 }}>{showM ? <Mascot size={34} color={t.accent} expression="doubtful" ritual={false} /> : null}<View style={{ backgroundColor: t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 13 }}><TypingDots /></View></View> : undefined}
             renderItem={({ item }) => {
               const me = item.who === 'me';
               return (

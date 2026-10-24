@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
@@ -34,7 +35,7 @@ export default function FitnessPlanDay() {
   const [choose, setChoose] = useState(false);
   const [progPick, setProgPick] = useState<string | null>(null);
   const [swapAt, setSwapAt] = useState<number | null>(null);
-  const strip = useRef<ScrollView>(null);
+  const strip = useRef<ComponentRef<typeof ScrollView>>(null);
 
   const active = fit.activeProgram ? programById(fit.activeProgram) ?? null : null;
   const ctx = useMemo(() => ({ program: active, profile: fit.profile, history: fit.history, plans: fit.plans ?? {}, now: new Date() }), [active, fit.profile, fit.history, fit.plans]);

@@ -1,5 +1,7 @@
+import type { ComponentRef } from 'react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, ScrollView, View, type ViewToken } from 'react-native';
+import { FlatList, Pressable, ScrollView, View } from "react-native";
+type ViewToken = { item: any; key: string; index?: number | null; isViewable: boolean; section?: any };;
 
 import { Text } from '@/components/T';
 import { Body, Btn, Input, Row, Seg, Sheet } from '@/components/ui';
@@ -477,7 +479,7 @@ function DayPage({ k, width, onPickDay, onOpenBand }: { k: string; width: number
   const events = useLife((s) => s.events);
   const bands = useBands();
   const wh = useApp((s) => s.workHours);
-  const vRef = useRef<ScrollView>(null);
+  const vRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const today = dayKey();
   const lay = useMemo(() => layoutDay(events[k]), [events, k]);
   const dayBands = bandsOnDay(bands, k);

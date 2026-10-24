@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppState, InteractionManager, Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { destroyStorage, openBackend } from './backend';
 import { KvEngine } from './engine.ts';
@@ -68,7 +68,7 @@ export function getEngine(): KvEngine {
       notify,
       debounceMs: Platform.OS === 'web' ? 100 : 500,
       maxWaitMs: 3000,
-      runIdle: Platform.OS === 'web' ? undefined : (fn) => { InteractionManager.runAfterInteractions(fn); },
+      runIdle: Platform.OS === 'web' ? undefined : (fn) => { setTimeout(fn, 0); },
     });
     hookLifecycle();
   }

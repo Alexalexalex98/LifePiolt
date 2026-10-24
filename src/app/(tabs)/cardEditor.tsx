@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { PanResponder, Platform, Pressable, ScrollView, Share, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,7 +31,7 @@ export default function CardEditor() {
   const [ink, setInk] = useState('#111111');
   const [width, setWidth] = useState(4);
   const [draft, setDraft] = useState<Stroke | null>(null);
-  const shot = useRef<View>(null);
+  const shot = useRef<ComponentRef<typeof View>>(null);
   const design = h.present;
   const cur: Side = design[side];
   const win = useWindowDimensions();

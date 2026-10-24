@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { TextInput as RNTextInput, View } from 'react-native';
 import { Text } from '@/components/T';
 
@@ -29,7 +29,7 @@ export function LessonThread({ club, course, lesson, tier, pos, anchor, setAncho
   const [text, setText] = useState('');
   const [isQ, setIsQ] = useState(true);
   const [replyTo, setReplyTo] = useState<string | null>(null);
-  const inputRef = useRef<RNTextInput>(null);
+  const inputRef = useRef<ComponentRef<typeof RNTextInput>>(null);
   useEffect(() => { if (focusNonce > 0) setTimeout(() => inputRef.current?.focus(), 80); }, [focusNonce]);
 
   const mine = useMemo(() => all.filter((c) => c.lessonId === lesson.id && c.clubId === club.id), [all, lesson.id, club.id]);

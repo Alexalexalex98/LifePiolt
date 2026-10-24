@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { diversify } from '@/components/feed/feedLogic';
 import { onPageRefresh } from '@/lib/pageRefresh';
 import { useStoryPeek } from '@/store/storyPeek';
@@ -115,7 +116,7 @@ export default function LifeNetwork() {
   useEffect(() => { const y = offsetRef.current; const h = requestAnimationFrame(() => listRef.current?.scrollToOffset({ offset: y, animated: false })); return () => cancelAnimationFrame(h); }, [prefs.homeFilter]);
   const swipes = net.swipes;
   /* zone di Network: il recap (in alto) non cambia mai sezione; solo l'area dei post (da «Per te / Swipe / Seguiti» in giù) sì */
-  const toggleRef = useRef<View>(null);
+  const toggleRef = useRef<ComponentRef<typeof View>>(null);
   const feedTop = useRef(0);
   const measureFeed = useCallback(() => { toggleRef.current?.measureInWindow?.((_x, y) => { if (Number.isFinite(y)) feedTop.current = y; }); }, []);
   const prevTab = useRef<'Per te' | 'Seguiti'>('Per te');

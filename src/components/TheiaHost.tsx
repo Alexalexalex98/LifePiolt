@@ -1,3 +1,4 @@
+import type { ComponentRef } from 'react';
 import { TypingDots } from '@/components/mascot/TypingDots';
 import { useMascot } from '@/hooks/use-mascot';
 import { Mascot } from '@/components/mascot/Mascot';
@@ -40,7 +41,7 @@ export function TheiaHost() {
   const [busy, setBusy] = useState(false);
   const [since, setSince] = useState(0);
   const showM = useMascot('core');
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => {
     if (!open) return;
