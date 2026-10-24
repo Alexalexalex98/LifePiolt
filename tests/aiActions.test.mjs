@@ -288,3 +288,10 @@ test('Theia scrive piu\' messaggi brevi: si dividono sulla riga |||', async () =
   assert.deepEqual(splitReply('a\n|||\n|||\nb|||c'), ['a', 'bc']);
   assert.equal(splitReply('1\n|||\n2\n|||\n3\n|||\n4\n|||\n5\n|||\n6').length, 5);
 });
+
+test('le varianti dei modelli aperti: senza AZIONE e con un elenco', () => {
+  const a = parseAiActions('Ok.\n[[{"type":"open","page":"lifefinance"}]]');
+  assert.deepEqual(a.actions, [{ type: 'open', page: 'lifefinance' }]); assert.equal(a.text, 'Ok.');
+  const b = parseAiActions('Fatto [[AZIONE [{"type":"open","page":"plan"},{"type":"note_add","text":"x"}]]]');
+  assert.equal(b.actions.length, 2); assert.equal(b.text, 'Fatto');
+});

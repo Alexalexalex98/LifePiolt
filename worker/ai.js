@@ -9,7 +9,7 @@ const json = (o, status = 200) => new Response(JSON.stringify(o), { status, head
 
 /** I modelli, dal più forte al più leggero: se uno non risponde si passa al successivo. Su un piano a pagamento si possono aggiungere in cima GLM, DeepSeek, Kimi. */
 export const SMART = ['@cf/openai/gpt-oss-120b', '@cf/nvidia/nemotron-3-120b-a12b', '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/qwen/qwen3.8-27b'];
-export const VISION = ['@cf/meta/llama-4-scout-17b-16e-instruct'];
+export const VISION = ['@cf/mistralai/mistral-small-3.1-24b-instruct', '@cf/meta/llama-4-scout-17b-16e-instruct'];
 /** Modalita' leggera: risposte piu' brevi e veloci, per quando i messaggi "completi" del giorno sono finiti o l'accesso non e' verificato. Theia risponde comunque. */
 export const LITE = ['@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/qwen/qwen3.8-27b', '@cf/openai/gpt-oss-120b'];
 export const LITE_TOKENS = 450;

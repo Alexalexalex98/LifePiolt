@@ -21,7 +21,8 @@ export type AiAct =
 
 export const OPEN_PAGES = ['monthPlan', 'lifefinance', 'vacationPlan', 'privacyCenter', 'fitnessMealPlan', 'fitnessFridge', 'lifetask', 'plan', 'settings'];
 
-const RE = /\[\[\s*AZIONE\s+(\{[\s\S]*?\})\s*\]\]/gi;
+/* accetta anche le varianti dei modelli aperti: senza la parola AZIONE, con un elenco [[{...},{...}]] */
+const RE = /\[\[\s*(?:AZIONE\s*:?\s*)?(\[?\s*\{[\s\S]*?\}\s*\]?)\s*\]\]/gi;
 const isDate = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
 const isTime = (s: unknown): s is string => typeof s === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
 const isYm = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
@@ -59,7 +60,10 @@ export function validate(o: unknown): AiAct | null {
 /** Separa il testo da leggere dalle azioni proposte (al massimo 4, valide). */
 export function parseAiActions(reply: string): { text: string; actions: AiAct[] } {
   const actions: AiAct[] = [];
-  const text = reply.replace(RE, (_m, j: string) => { try { const v = validate(JSON.parse(j)); if (v && actions.length < 4) actions.push(v); } catch { /* json non valido: ignorata */ } return ''; }).replace(/\n{3,}/g, '\n\n').trim();
+  const text = reply.replace(RE, (_m, j: string) => {
+    try { const raw = JSON.parse(j) as unknown; for (const o of Array.isArray(raw) ? raw : [raw]) { const v = validate(o); if (v && actions.length < 4) actions.push(v); } } catch { /* json non valido: ignorata */ }
+    return '';
+  }).replace(/\n{3,}/g, '\n\n').trim();
   return { text, actions };
 }
 

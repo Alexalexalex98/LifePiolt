@@ -131,7 +131,7 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
 /** Come aiChat ma senza togliere il grassetto e gli elenchi (la chat li mostra bene). */
 export const aiChatRaw = async (message: string) => String((await call<{ reply: string }>('/chat', { message })).reply ?? '');
 export const aiChat = async (message: string) => humanize((await call<{ reply: string }>('/chat', { message })).reply);
-export const aiVision = async (image: string, mime: string, prompt: string) => humanize((await call<{ reply: string }>('/vision', { image, mime, prompt })).reply);
+export const aiVision = async (image: string, mime: string, prompt: string) => humanize((await call<{ reply: string }>('/vision', { image, mime, prompt }, 90000)).reply);
 export const aiAnalyze = (files: { data: string; mime: string }[], question?: string, context?: string) => call<{ reply: string; result: unknown }>('/analyze', { files, question, context }, 90000);
 export const aiTranslate = async (lang: string, texts: string[]) => {
   const r = await call<{ reply: string }>('/translate', { lang, texts });
