@@ -18,7 +18,8 @@
 ## 2. Server Supabase
 - [x] Progetto creato (Lifepiolt2, Zurigo)
 - [x] Migrazioni 0001-0007 eseguite (tabelle, post, account, identità, amici, messaggi)
-- [ ] Eseguire la migrazione 0008 (account completo solo con nome e data di nascita)
+- [x] Migrazione 0008 applicata (account completo solo con nome e data di nascita)
+- [x] Migrazione 0009 applicata: funzioni più sicure e amicizie non spiabili
 - [ ] Mittente email con dominio proprio e SMTP (da fare)
 - [ ] Piano a pagamento prima di far entrare utenti veri (da fare)
 - [ ] Funzioni server per l'AI e per esportare i dati (da fare)
