@@ -27,6 +27,7 @@ export const TAB_SCREENS: string[] = [
   'editProfile',
   'extraCheck',
   'fitnessCook',
+  'fitnessBody',
   'fitnessDay',
   'fitnessDiary',
   'fitnessExercise',

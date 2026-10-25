@@ -77,3 +77,32 @@ test('se il conteggio non risponde non si blocca nessuno; il freno degli ospiti 
   let blocked = false; for (let i = 0; i < 14; i++) blocked = guestTooMany('ip', 5000) || blocked;
   assert.ok(blocked);
 });
+
+const DDG = `<div class="result"><h2 class="result__title"><a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.louvre.fr%2Fvisita&amp;rut=abc">Visitare il Louvre &amp; gli ingressi</a></h2><a class="result__snippet" href="//x">L&#x27;ingresso <b>Piramide</b> è il più affollato; il Carrousel è più tranquillo.</a></div>
+<div class="result"><a class="result__a" href="https://example.org/guida">Guida</a><a class="result__snippet" href="x">Consigli pratici.</a></div>`;
+test('ricerca web: si leggono titolo, indirizzo e frase dei risultati', async () => {
+  const { parseDdg, webSearch } = await import('../worker/ai.js');
+  const r = parseDdg(DDG);
+  assert.equal(r.length, 2); assert.equal(r[0].url, 'https://www.louvre.fr/visita'); assert.equal(r[0].title, 'Visitare il Louvre & gli ingressi');
+  assert.match(r[0].snippet, /ingresso Piramide è il più affollato/); assert.equal(r[1].url, 'https://example.org/guida');
+  const wiki = async (url) => (String(url).includes('duckduckgo') ? new Response('', { status: 503 }) : new Response(JSON.stringify({ query: { pages: { 1: { title: 'Museo del Louvre', extract: 'Il Louvre è un museo di Parigi.' } } } })));
+  const w = await webSearch('louvre', wiki);
+  assert.equal(w[0].url, 'https://it.wikipedia.org/wiki/Museo_del_Louvre'); assert.match(w[0].snippet, /museo di Parigi/);
+});
+test('/chat con domanda di fatti: cerca sul web, risponde con le fonti; saluti e dati personali no', async () => {
+  const seen = [];
+  const ai = async (m, input) => {
+    const last = input.messages.at(-1).content, sys = input.messages[0].content;
+    if (/Decidi se/.test(sys)) return { response: /louvre/i.test(last) ? '{"search":true,"query":"louvre ingresso migliore"}' : '{"search":false}' };
+    seen.push(last); return { response: 'Meglio il Carrousel.' };
+  };
+  const env = { ...envWith(ai), __fetch: async () => new Response(DDG) };
+  const a = await (await worker.fetch(req('/chat', { message: 'PROMPT', q: 'In che ingresso sarebbe meglio entrare nel Louvre?' }), env)).json();
+  assert.match(a.reply, /Meglio il Carrousel\./); assert.match(a.reply, /Fonti: louvre\.fr, example\.org\./); assert.match(seen[0], /Risultati di una ricerca sul web/);
+  const b = await (await worker.fetch(req('/chat', { message: 'PROMPT', q: 'quanto ho speso ieri?' }), env)).json();
+  assert.equal(b.reply, 'Meglio il Carrousel.'); assert.doesNotMatch(seen[1], /ricerca sul web/);
+  const c = await (await worker.fetch(req('/chat', { message: 'PROMPT', q: 'ciao', web: true }), env)).json();
+  assert.doesNotMatch(c.reply, /Fonti/);
+  const d = await (await worker.fetch(req('/chat', { message: 'PROMPT', q: 'In che ingresso del Louvre?', web: false }), env)).json();
+  assert.doesNotMatch(d.reply, /Fonti/);
+});

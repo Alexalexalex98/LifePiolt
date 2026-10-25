@@ -11,7 +11,7 @@ import { persisted } from './persist';
 
 /** Intelligenza di Theia: preferenze, piano, consensi per fornitore, contatori d'uso e cronologia "Cosa è stato inviato". Tutto sul telefono. */
 export type ConsentMode = 'ask' | 'always' | 'never';
-export type FileConsent = { food: ConsentMode; files: ConsentMode; summary?: ConsentMode; data?: ConsentMode };
+export type FileConsent = { food: ConsentMode; files: ConsentMode; summary?: ConsentMode; data?: ConsentMode; body?: ConsentMode };
 type State = {
   prefs: AiPrefs;
   planId: PlanId;

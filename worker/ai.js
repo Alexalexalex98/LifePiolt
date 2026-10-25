@@ -67,6 +67,58 @@ export function tooMany(id, now = Date.now(), max = 40) {
   return a.length > max;
 }
 
+
+/* ---------- ricerca sul web (solo con la tua domanda, mai i tuoi dati) ---------- */
+const UA = 'Mozilla/5.0 (compatible; LifePilot/1.0)';
+const ents = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#x27;': "'", '&#39;': "'", '&nbsp;': ' ' };
+const clean = (h) => String(h ?? '').replace(/<[^>]+>/g, ' ').replace(/&(amp|lt|gt|quot|nbsp|#x27|#39);/g, (m) => ents[m] ?? m).replace(/\s+/g, ' ').trim();
+/** Estrae titolo, indirizzo e frase dai risultati di DuckDuckGo (pagina semplice). */
+export function parseDdg(html, max = 6) {
+  const out = [];
+  const parts = String(html).split('result__a').slice(1);
+  for (const part of parts) {
+    const href = /href="([^"]+)"/.exec(part)?.[1];
+    const title = clean(/>([\s\S]*?)<\/a>/.exec(part)?.[1]);
+    const snippet = clean(/result__snippet[^>]*>([\s\S]*?)<\/a>/.exec(part)?.[1]);
+    if (!href || !title) continue;
+    let url = href.replace(/&amp;/g, '&');
+    try { const u = new URL(url.startsWith('//') ? `https:${url}` : url, 'https://duckduckgo.com'); url = u.searchParams.get('uddg') ?? u.href; } catch { continue; }
+    if (!/^https?:/.test(url) || /duckduckgo\.com\/y\.js/.test(url)) continue;
+    out.push({ title, url, snippet });
+    if (out.length >= max) break;
+  }
+  return out;
+}
+/** Cerca sul web: prima DuckDuckGo, se non risponde Wikipedia (italiano, poi inglese). */
+export async function webSearch(q, fetcher = fetch) {
+  try {
+    const r = await fetcher('https://html.duckduckgo.com/html/', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': UA }, body: `q=${encodeURIComponent(q)}&kl=it-it` });
+    if (r.ok) { const res = parseDdg(await r.text()); if (res.length) return res; }
+  } catch { /* si prova Wikipedia */ }
+  for (const lang of ['it', 'en']) {
+    try {
+      const r = await fetcher(`https://${lang}.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrlimit=4&prop=extracts&exintro=1&explaintext=1&exchars=700&format=json&origin=*`, { headers: { 'user-agent': UA } });
+      if (!r.ok) continue;
+      const pages = Object.values((await r.json())?.query?.pages ?? {});
+      const res = pages.map((p) => ({ title: p.title, url: `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(String(p.title).replace(/ /g, '_'))}`, snippet: clean(p.extract) })).filter((p) => p.snippet);
+      if (res.length) return res;
+    } catch { /* prossima lingua */ }
+  }
+  return [];
+}
+const SKIP_WEB = /^\s*(ciao|salve|grazie|ok|s[iì]|no|va bene|perfetto)\b[^?]{0,20}$/i;
+/** Decide se serve cercare sul web e con quale frase GENERICA (niente nomi, importi, salute o altri dati personali). */
+export async function planSearch(env, q) {
+  if (!q || q.length < 10 || SKIP_WEB.test(q)) return null;
+  try {
+    const { text } = await run(env, LITE, { messages: msgs('Decidi se per rispondere a questa domanda serve cercare sul web: fatti aggiornati, luoghi, orari, prezzi, notizie, eventi, procedure, cose che potresti non sapere o non ricordare con certezza. NON cercare per: saluti, conversazione, calcoli, richieste sui dati personali dell\'utente (soldi, salute, agenda, task), consigli generali, cose che sai con certezza. Rispondi SOLO con JSON: {"search":true|false,"query":"frase di ricerca breve"}. La query deve essere generica e anonima: niente nomi di persone private, importi, indirizzi, dati di salute o finanziari.', String(q).slice(0, 600)) }, 120);
+    const m = /\{[\s\S]*\}/.exec(text);
+    const j = m ? JSON.parse(m[0]) : null;
+    return j?.search === true && typeof j.query === 'string' && j.query.trim() ? j.query.trim().slice(0, 160) : null;
+  } catch { return null; }
+}
+const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+
 const msgs = (system, user, extra = []) => [{ role: 'system', content: system }, ...extra, { role: 'user', content: user }];
 const imageMsg = (text, images) => [{ role: 'system', content: SYSTEM }, { role: 'user', content: [{ type: 'text', text }, ...images.map((im) => ({ type: 'image_url', image_url: { url: `data:${im.mime || 'image/jpeg'};base64,${im.data}` } }))] }];
 
@@ -83,8 +135,20 @@ async function handle(path, b, env, lite = false) {
   const cap = (n) => (lite ? Math.min(n, LITE_TOKENS) : n);
   if (path === '/chat') {
     const history = Array.isArray(b.history) ? b.history.slice(-12).filter((m) => m && (m.role === 'user' || m.role === 'assistant')).map((m) => ({ role: m.role, content: String(m.content ?? '').slice(0, 4000) })) : [];
-    const { text } = await run(env, TEXT, { messages: msgs(SYSTEM, String(b.message ?? '').slice(0, 24000), history) }, cap(1500));
-    return { reply: text };
+    let message = String(b.message ?? '').slice(0, 24000);
+    let sources = [];
+    if (b.web !== false && b.q) {
+      const query = await planSearch(env, String(b.q));
+      if (query) {
+        const found = await webSearch(query, env.__fetch ?? fetch);
+        if (found.length) {
+          sources = found.slice(0, 4).map((x) => host(x.url)).filter(Boolean);
+          message += `\n\nRisultati di una ricerca sul web per «${query}» (usali per rispondere ai fatti; se non bastano dillo con onestà; non inventare):\n` + found.map((x, i) => `[${i + 1}] ${x.title} (${host(x.url)}): ${x.snippet}`).join('\n');
+        }
+      }
+    }
+    const { text } = await run(env, TEXT, { messages: msgs(SYSTEM, message, history) }, cap(1500));
+    return { reply: sources.length ? `${text}\n\nFonti: ${[...new Set(sources)].join(', ')}.` : text };
   }
   if (path === '/vision') {
     if (String(b.mime || '').includes('pdf')) {

@@ -37,7 +37,7 @@ function Dose({ label, eaten, goal, unit = 'g', state, hint, onPress }: { label:
  * Resoconto di un giorno (o di una media): anello delle calorie, grammi di proteine, carboidrati e grassi mangiati rispetto a quelli che
  * dovresti mangiare, altri valori con il limite (arancione se superato di poco, rosso se superato di più) e l'acqua.
  */
-export function DaySummary({ meals, waterMl, body, avg, micro }: { /** vitamine e minerali stimati */ micro?: Micro; meals: Meal[] | Pick<Meal, 'macros'>[]; waterMl?: number | null; body: BodyT | null; /** valori già medi (al posto della somma dei pasti) */ avg?: ReturnType<typeof sumTotals> }) {
+export function DaySummary({ meals, waterMl, body, avg, micro, single }: { /** un solo piatto: niente acqua e niente «ti mancano…» (valgono per la giornata) */ single?: boolean; /** vitamine e minerali stimati */ micro?: Micro; meals: Meal[] | Pick<Meal, 'macros'>[]; waterMl?: number | null; body: BodyT | null; /** valori già medi (al posto della somma dei pasti) */ avg?: ReturnType<typeof sumTotals> }) {
   const t = useTheme();
   const [info, setInfo] = useState<NutrientId | null>(null);
   const sum = avg ?? sumTotals(meals.map((m) => m.macros));
@@ -50,22 +50,22 @@ export function DaySummary({ meals, waterMl, body, avg, micro }: { /** vitamine 
   return (
     <View>
       <View style={{ alignItems: 'center', marginTop: 8 }}>
-        <Ring size={156} stroke={15} value={tg ? sum.kcal / tg.kcal : 0} big={String(sum.kcal)} small={tg ? `su ${tg.kcal} kcal` : 'kcal'} color={tg ? kCol : FIT} />
+        <Ring size={156} stroke={15} value={tg ? sum.kcal / tg.kcal : 0} big={String(sum.kcal)} small={single ? 'kcal di questo piatto' : tg ? `su ${tg.kcal} kcal` : 'kcal'} color={tg ? kCol : FIT} />
       </View>
       <View style={{ marginTop: 6 }}>
         <Body bold>Macronutrienti</Body>
-        <Dose label={tl('Proteine')} onPress={() => setInfo('protein')} eaten={g(sum.p)} goal={tg?.protein} state={limitState(sum.p, tg ? tg.protein * 1.6 : undefined)} hint={tg && sum.p < tg.protein * 0.8 ? tl('ne mancano circa {0} g', Math.round(tg.protein - sum.p)) : undefined} />
-        <Dose label={tl('Carboidrati')} onPress={() => setInfo('carbs')} eaten={g(sum.c)} goal={tg?.carbs} state={limitState(sum.c, tg?.carbs)} hint={tg && sum.c > tg.carbs ? tl('oltre di {0} g', Math.round(sum.c - tg.carbs)) : undefined} />
-        <Dose label={tl('Grassi')} onPress={() => setInfo('fat')} eaten={g(sum.f)} goal={tg?.fat} state={limitState(sum.f, tg?.fat)} hint={tg && sum.f > tg.fat ? tl('oltre di {0} g', Math.round(sum.f - tg.fat)) : undefined} />
+        <Dose label={tl('Proteine')} onPress={() => setInfo('protein')} eaten={g(sum.p)} goal={tg?.protein} state={limitState(sum.p, tg ? tg.protein * 1.6 : undefined)} hint={!single && tg && sum.p < tg.protein * 0.8 ? tl('ne mancano circa {0} g', Math.round(tg.protein - sum.p)) : undefined} />
+        <Dose label={tl('Carboidrati')} onPress={() => setInfo('carbs')} eaten={g(sum.c)} goal={tg?.carbs} state={limitState(sum.c, tg?.carbs)} hint={!single && tg && sum.c > tg.carbs ? tl('oltre di {0} g', Math.round(sum.c - tg.carbs)) : undefined} />
+        <Dose label={tl('Grassi')} onPress={() => setInfo('fat')} eaten={g(sum.f)} goal={tg?.fat} state={limitState(sum.f, tg?.fat)} hint={!single && tg && sum.f > tg.fat ? tl('oltre di {0} g', Math.round(sum.f - tg.fat)) : undefined} />
       </View>
-      {tg && kState !== 'ok' ? <Body bold style={{ marginTop: 8, color: kCol }}>{tl('Hai superato il fabbisogno di {0} kcal', Math.round(sum.kcal - tg.kcal))}</Body> : null}
+      {!single && tg && kState !== 'ok' ? <Body bold style={{ marginTop: 8, color: kCol }}>{tl('Hai superato il fabbisogno di {0} kcal', Math.round(sum.kcal - tg.kcal))}</Body> : null}
       <View style={{ marginTop: 12 }}>
         <Body bold>Altri valori</Body>
         <Dose label={tl('Grassi saturi')} onPress={() => setInfo('sat')} eaten={g(sum.sat)} goal={tg?.satMax} state={limitState(sum.sat ?? 0, tg?.satMax)} hint={tg ? tl('massimo {0} g', tg.satMax) : undefined} />
         <Dose label={tl('Zuccheri')} onPress={() => setInfo('sugar')} eaten={g(sum.sug)} goal={tg?.sugarMax} state={limitState(sum.sug ?? 0, tg?.sugarMax)} hint={tg ? tl('massimo {0} g (anche quelli di frutta e latte)', tg.sugarMax) : undefined} />
-        <Dose label={tl('Fibre')} onPress={() => setInfo('fibre')} eaten={g(sum.fib)} goal={tg?.fibre} state="ok" hint={tg && (sum.fib ?? 0) < tg.fibre ? tl('ne servono almeno {0} g', tg.fibre) : undefined} />
+        <Dose label={tl('Fibre')} onPress={() => setInfo('fibre')} eaten={g(sum.fib)} goal={tg?.fibre} state="ok" hint={!single && tg && (sum.fib ?? 0) < tg.fibre ? tl('ne servono almeno {0} g', tg.fibre) : undefined} />
         <Dose label={tl('Sale')} onPress={() => setInfo('salt')} eaten={g(sum.salt)} goal={tg?.saltMax} state={limitState(sum.salt ?? 0, tg?.saltMax)} hint={tg ? tl('massimo {0} g', tg.saltMax) : undefined} />
-        <Dose label={tl('Acqua')} onPress={() => setInfo('water')} eaten={Math.round(((waterMl ?? 0) / 1000) * 10) / 10} goal={Math.round((wGoal / 1000) * 10) / 10} unit="L" state={wState} hint={(waterMl ?? 0) < wGoal * 0.7 ? tl('ne servirebbero circa {0}', L(wGoal)) : undefined} />
+        {single ? null : <Dose label={tl('Acqua')} onPress={() => setInfo('water')} eaten={Math.round(((waterMl ?? 0) / 1000) * 10) / 10} goal={Math.round((wGoal / 1000) * 10) / 10} unit="L" state={wState} hint={(waterMl ?? 0) < wGoal * 0.7 ? tl('ne servirebbero circa {0}', L(wGoal)) : undefined} />}
       </View>
       {micro ? (
         <View style={{ marginTop: 12 }}>

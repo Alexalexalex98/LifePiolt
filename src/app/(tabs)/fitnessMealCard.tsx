@@ -14,6 +14,8 @@ import { tidy } from '@/lib/aiPersona';
 import { toast } from '@/store/toast';
 
 import { FIT } from '@/components/fitness/kit';
+import { DaySummary } from '@/components/fitness/DaySummary';
+import { Icon } from '@/lib/icons';
 import { Body, Btn, Card, H, Item, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
@@ -34,6 +36,7 @@ export default function FitnessMealCard() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const m = fit.meals.find((x) => x.id === String(id));
   const [viewer, setViewer] = useState(false);
+  const [full, setFull] = useState(false);
   const [ai, setAi] = useState<{ busy: boolean; text?: string; error?: string }>({ busy: false });
   if (!m) return <Page id="fitnessMealCard" back title="Pasto"><Card><Body muted>Questo pasto non c'è più.</Body></Card></Page>;
   const x = m.macros;
@@ -57,17 +60,15 @@ export default function FitnessMealCard() {
         <Body style={{ marginTop: 6 }}>{op.text}</Body>
         <Body small muted style={{ marginTop: 8 }}>È calcolato sui valori di questo pasto, non su una visita. {NUTRITION_LEGAL}</Body>
       </Card>
-      {(() => {
-        const top = microRows(microOfMeal(m)).filter((r) => r.pct >= 15).sort((a, b) => b.pct - a.pct).slice(0, 6);
-        return top.length ? (
-          <Card>
-            <H>Vitamine e minerali (stima)</H>
-            <Body small muted>Quello che questo pasto porta, rispetto al riferimento di un giorno:</Body>
-            {top.map((r) => <Row key={r.key} style={{ marginTop: 4 }}><Body small muted>{tl(r.label)}</Body><Body small>{`${r.value} ${r.unit} · ${r.pct}%`}</Body></Row>)}
-            <Body small muted style={{ marginTop: 8 }}>Stime per categoria di alimento, non un dato medico.</Body>
-          </Card>
-        ) : null;
-      })()}
+      <Card>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: full }} accessibilityLabel={tl('Valori nutrizionali completi del piatto')} onPress={() => setFull((v) => !v)}>
+          <Row gap={10}>
+            <View style={{ flex: 1 }}><H style={{ marginBottom: 2 }}>Valori nutrizionali completi</H><Body small muted>{full ? 'Solo di questo piatto: macronutrienti, altri valori, vitamine e minerali.' : 'Tocca per aprire: macronutrienti, zuccheri, fibre, sale, vitamine e minerali di questo piatto.'}</Body></View>
+            <Icon name="chevron" size={18} color={t.muted} />
+          </Row>
+        </Pressable>
+        {full ? <DaySummary single meals={[m]} micro={microOfMeal(m)} body={fit.body} /> : null}
+      </Card>
       <Card>
         <H>Parere più dettagliato dell'AI</H>
         <Body small muted style={{ marginTop: 2 }}>Mando all'AI solo il testo del pasto (ingredienti e valori), senza la foto, e ti rispondo con un parere più ragionato.</Body>
@@ -79,7 +80,9 @@ export default function FitnessMealCard() {
           if (!(await askSend('summary', `${m.name} · ${x.kcal} kcal`))) { toast('Non invio niente: senza il tuo permesso non chiedo il parere all\'AI.'); return; }
           setAi({ busy: true });
           try {
-            const prompt = mealAiPrompt(m, items, { targetKcal: fit.body ? dailyTarget(fit.body) : undefined, goal: fit.body?.goal });
+            const since = m.ts - 14 * 86400000;
+            const recentHighSugar = fit.meals.filter((o) => o.id !== m.id && o.ts >= since && o.ts <= m.ts && (o.macros.sug ?? 0) >= 20).length;
+            const prompt = mealAiPrompt(m, items, { targetKcal: fit.body ? dailyTarget(fit.body) : undefined, goal: fit.body?.goal, recentHighSugar });
             logSend('summary', prompt.length, ['testo']);
             setAi({ busy: false, text: tidy(await aiChatRaw(prompt)) });
           } catch (e) { setAi({ busy: false, error: e instanceof AiServerError ? e.message : 'Non sono riuscito a contattare il servizio AI.' }); }

@@ -43,7 +43,7 @@ Non raccogliamo dati per pubblicità, non li vendiamo e non facciamo profilazion
 - **Obblighi di legge** (es. richieste di autorità, obblighi fiscali per eventuali pagamenti).
 
 ## 5. L'intelligenza artificiale (Theia)
-Theia legge sul telefono tutto quello che c'è nell'app per aiutarti. Quando risponde con un servizio AI esterno (**Google Gemini**, tramite il **nostro server**), devono uscire dal telefono la tua domanda e le parti dei dati che servono. Prima di farlo ti chiediamo il consenso, **per categoria**, con tre scelte: *chiedi ogni volta*, *consenti sempre*, *mai*. Se non consenti, Theia risponde senza guardare quei dati. Foto e file (bollette, scontrini, estratti conto in PDF) escono solo con il tuo consenso per quell'invio.
+Theia legge sul telefono tutto quello che c'è nell'app per aiutarti. Quando risponde con un servizio AI esterno (modelli di intelligenza artificiale **aperti**, eseguiti sull'infrastruttura di **Cloudflare (Workers AI)**, tramite il **nostro server**), devono uscire dal telefono la tua domanda e le parti dei dati che servono. Prima di farlo ti chiediamo il consenso, **per categoria**, con tre scelte: *chiedi ogni volta*, *consenti sempre*, *mai*. Se non consenti, Theia risponde senza guardare quei dati. Foto e file (bollette, scontrini, estratti conto in PDF) escono solo con il tuo consenso per quell'invio. Quando Theia non conosce una cosa può cercarla sul web (DuckDuckGo, o Wikipedia come riserva) tramite il nostro server: parte solo una frase di ricerca generica ricavata dalla tua domanda, senza i tuoi dati personali; puoi disattivarlo in Intelligenza di Theia. Le **foto del corpo** (Controllo del corpo) restano sul telefono, escono solo con il tuo consenso dato ogni volta (mai «sempre»), servono solo per quell'analisi e non vengono conservate né usate per addestrare modelli.
 - Nel registro "Cosa è stato inviato" restano solo tipo, data e dimensione, mai il contenuto.
 - **L'AI può sbagliare.** Verifica sempre cifre e informazioni. Le indicazioni su salute e finanze sono generali e non sostituiscono un medico, un dietista o un consulente.
 - Non usiamo i tuoi dati per addestrare modelli. [Da confermare con il contratto con il fornitore AI.]
@@ -51,7 +51,7 @@ Theia legge sul telefono tutto quello che c'è nell'app per aiutarti. Quando ris
 - **Segnali sul telefono.** Il gioco può accorgersi, solo sul telefono e senza inviare nulla, di cambiamenti nei tuoi dati (per esempio meno sonno, meno attività, frasi molto dure scritte a Theia) per proporti con garbo un'attività. Sono indizi e non diagnosi; non analizziamo volto, voce o postura di nessuno. Puoi spegnerlo in ogni momento dalla pagina di Theia.
 
 ## 6. Con chi condividiamo i dati (destinatari)
-- **Servizio AI**: Google (Gemini), tramite il nostro server, solo con il tuo consenso e per la singola richiesta.
+- **Servizio AI**: Cloudflare (Workers AI, modelli aperti), tramite il nostro server, solo con il tuo consenso e per la singola richiesta.
 - **Il nostro server e il fornitore di hosting** ([nome, es. Cloudflare]) per inoltrare le richieste AI e, se attivi sincronizzazione o LifeNetwork, per consegnare i dati.
 - **Servizi che l'app interroga per darti informazioni** (ricevono dati tecnici come l'indirizzo IP e, quando serve, una città o coordinate): Open-Meteo (meteo e ricerca città), OpenStreetMap/Nominatim, Overpass e OSRM (luoghi e percorsi), Stooq (quotazioni), feed di notizie di testate giornalistiche, GitHub (foto degli esercizi).
 - **Altri utenti**, solo ciò che scegli di pubblicare o inviare in LifeNetwork e nelle chat.
@@ -59,7 +59,7 @@ Theia legge sul telefono tutto quello che c'è nell'app per aiutarti. Quando ris
 Non vendiamo i dati a nessuno.
 
 ## 7. Trasferimenti fuori da UE/SEE e Svizzera
-Alcuni destinatari (es. Google, fornitori di hosting) possono trattare dati fuori da UE/SEE e Svizzera, anche negli Stati Uniti. Lo facciamo solo con garanzie adeguate: decisione di adeguatezza (incluso il Data Privacy Framework UE-USA e Svizzera-USA per i soggetti certificati) oppure clausole contrattuali standard, con misure supplementari quando necessario. [Elencare i destinatari e le garanzie effettive.]
+Alcuni destinatari (es. Cloudflare, fornitori di hosting) possono trattare dati fuori da UE/SEE e Svizzera, anche negli Stati Uniti. Lo facciamo solo con garanzie adeguate: decisione di adeguatezza (incluso il Data Privacy Framework UE-USA e Svizzera-USA per i soggetti certificati) oppure clausole contrattuali standard, con misure supplementari quando necessario. [Elencare i destinatari e le garanzie effettive.]
 
 ## 8. Per quanto tempo conserviamo i dati
 - **Sul telefono**: finché non li cancelli tu (per categoria dal Centro Privacy, oppure con "Elimina tutti i miei dati") o disinstalli l'app.

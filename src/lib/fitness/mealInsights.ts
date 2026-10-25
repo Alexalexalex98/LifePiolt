@@ -42,7 +42,7 @@ export function slotOf(ts: number): 'colazione' | 'pranzo' | 'merenda' | 'cena' 
 export type Level = 'ok' | 'attenzione' | 'carenza';
 export type Finding = { id: string; level: Level; title: string; detail: string; tip: string };
 export type Stats = { days: number; asked: number; avg: Macros; mealsPerDay: number; waterMl: number | null; waterDays: number; /** media al giorno di vitamine e minerali (stima) */ micro?: Micro; /** quota media di calorie da cibo spazzatura (0-1) */ junkShare?: number };
-export type Ctx = { targetKcal?: number; weightKg?: number; goal?: 'dimagrire' | 'mantenere' | 'massa' };
+export type Ctx = { targetKcal?: number; weightKg?: number; goal?: 'dimagrire' | 'mantenere' | 'massa'; /** quanti pasti con molti zuccheri (20 g o più) ha registrato negli ultimi 14 giorni, escluso questo */ recentHighSugar?: number };
 
 /**
  * Medie al giorno sugli ultimi `period` giorni. Si contano solo i giorni con almeno un pasto; il giorno corrente
@@ -170,7 +170,12 @@ export function mealOpinion(m: Pick<DayMeal, 'ts' | 'macros' | 'grams'>, ctx: Ct
   else if (pPct >= 20) lines.push('Buon contenuto di proteine.');
   if ((x.fib ?? 0) < 3 && x.kcal > 300) { lines.push('Poche fibre: manca una verdura o un cereale integrale.'); lack++; }
   else if ((x.fib ?? 0) >= 6) lines.push('Ricco di fibre, bene per la sazietà.');
-  if (sPct > 25 && (x.sug ?? 0) > 15) { lines.push(`Molti zuccheri (${x.sug} g): meglio non abituarsi.`); bad++; }
+  /* zuccheri: avviso garbato; l'OMS indica meno di 25 g al giorno di zuccheri liberi come ideale */
+  if ((x.sug ?? 0) >= 20 || (sPct > 22 && (x.sug ?? 0) > 12)) {
+    const late = slotOf(m.ts) === 'cena' || slotOf(m.ts) === 'notte';
+    lines.push(`Ci sono parecchi zuccheri (${x.sug} g, quasi la quota che si consiglia in un giorno intero): una volta ogni tanto va benissimo; se capita spesso conviene alleggerire.${late ? ' A quest\'ora, poi, uno zuccherino così può rendere più difficile addormentarsi.' : ''}`);
+    bad++;
+  }
   if (satPct > 14 && (x.sat ?? 0) > 8) { lines.push(`Grassi saturi alti (${x.sat} g).`); bad++; }
   if ((x.salt ?? 0) > 2.5) { lines.push(`Molto sale (${x.salt} g): per oggi compensa con piatti poco salati.`); bad++; }
   return { verdict: bad >= 2 ? 'attenzione' : lack >= 1 || bad === 1 ? 'attenzione' : 'ok', text: lines.join(' ') };
@@ -258,10 +263,20 @@ export function quality(s: Stats, tg: Targets): Quality | null {
 const GUIDE = 'Rispondi in italiano, con tono da persona che conosce bene l\'utente, senza consigli medici: sono indicazioni generali. Formato: una frase iniziale con il giudizio; poi un elenco con «• » di al massimo 4 punti (cosa va bene, cosa manca o è troppo, un\'idea concreta per migliorare); usa il **grassetto** solo per 1-3 parole chiave. Niente titoli, niente emoji. Al massimo 130 parole. Chiudi sempre con una frase breve: sono stime, non un parere medico, e per dubbi o sintomi ci si rivolge al medico o a un dietista. Non parlare di diagnosi, terapie o integratori e non promettere risultati. Se i dati sono pochi o stimati, dillo.';
 
 /** Testo da mandare all'AI per un parere dettagliato su un pasto (nessuna foto, nessun dato personale oltre a obiettivo e fabbisogno). */
+const DETAIL_GUIDE = `Rispondi in italiano come farebbe un medico o un dietista di fiducia che commenta il piatto con totale sincerità, ma con riguardo: mai duro, mai giudicante, mai allarmista. Struttura:
+• Prima una frase onesta di giudizio complessivo.
+• Poi, UNA riga per ogni ingrediente o parte del piatto (cosa porta di buono, cosa pesa: zuccheri, grassi saturi, sale, fibre, proteine).
+• Se va bene o no per questo momento della giornata (colazione, pranzo, cena, ecc.) e perché (energia, sazietà, sonno, digestione).
+• Se c'è molto zucchero, dillo chiaramente, con gentilezza, indicando il valore e cosa significa.
+• Se il pasto è occasionale va bene; se dai dati risulta ricorrente, dillo con garbo e indica la direzione giusta con 2 o 3 modifiche concrete e semplici (cosa togliere, aggiungere o sostituire).
+• Chiudi ricordando che è una stima e che decide sempre lei/lui se seguire i consigli; per dubbi o sintomi, il medico o un dietista. Non fare diagnosi, non prescrivere terapie o integratori, non promettere risultati. Niente emoji. Usa il **grassetto** solo per poche parole chiave. Massimo 260 parole.`;
+
+/** Testo da mandare all'AI per un parere dettagliato su un pasto (nessuna foto, nessun dato personale oltre a obiettivo e fabbisogno). */
 export function mealAiPrompt(m: { ts: number; name: string; macros: Macros }, items: { name: string; grams: number }[], ctx: Ctx = {}): string {
   const x = m.macros;
   const d = new Date(m.ts);
-  return `Dai un parere dettagliato su questo pasto (${slotOf(m.ts)}, ore ${pad(d.getHours())}:${pad(d.getMinutes())}).\nPiatto: ${m.name}\nIngredienti: ${items.map((i) => `${i.name} ${i.grams} g`).join('; ') || 'non indicati'}\nValori stimati: ${x.kcal} kcal, proteine ${x.p} g, carboidrati ${x.c} g, grassi ${x.f} g, grassi saturi ${x.sat ?? '?'} g, zuccheri ${x.sug ?? '?'} g, fibre ${x.fib ?? '?'} g, sale ${x.salt ?? '?'} g.\n${ctx.targetKcal ? `Fabbisogno giornaliero stimato: ${ctx.targetKcal} kcal. ` : ''}${ctx.goal ? `Obiettivo: ${ctx.goal}. ` : ''}\n${GUIDE}`;
+  const rec = ctx.recentHighSugar ? `Negli ultimi 14 giorni ha registrato altri ${ctx.recentHighSugar} pasti con molti zuccheri (20 g o più): quindi non è un caso isolato.` : 'Non risultano altri pasti molto zuccherini negli ultimi 14 giorni: sembra un caso occasionale.';
+  return `Dai un parere dettagliato su questo pasto (${slotOf(m.ts)}, ore ${pad(d.getHours())}:${pad(d.getMinutes())}).\nPiatto: ${m.name}\nIngredienti: ${items.map((i) => `${i.name} ${i.grams} g`).join('; ') || 'non indicati'}\nValori stimati: ${x.kcal} kcal, proteine ${x.p} g, carboidrati ${x.c} g, grassi ${x.f} g, grassi saturi ${x.sat ?? '?'} g, zuccheri ${x.sug ?? '?'} g, fibre ${x.fib ?? '?'} g, sale ${x.salt ?? '?'} g.\n${ctx.targetKcal ? `Fabbisogno giornaliero stimato: ${ctx.targetKcal} kcal. ` : ''}${ctx.goal ? `Obiettivo: ${ctx.goal}. ` : ''}\n${rec}\n${DETAIL_GUIDE}`;
 }
 
 /** Testo per un parere più dettagliato sulle medie dell'alimentazione (solo numeri). */

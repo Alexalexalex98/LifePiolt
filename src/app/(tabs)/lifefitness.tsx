@@ -134,6 +134,7 @@ export default function LifeFitness() {
           {tab === 'Allenarsi' ? (
             <>
           <TabRow options={['Programmi', 'Esercizi']} value={sub} onChange={setSub} />
+          {sub === 'Esercizi' ? <Card accent={FIT} onPress={() => go('fitnessBody')}><Row gap={12}><Icon name="camera" size={22} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 2 }}>Controllo del corpo</H><Body small muted>4 foto: l'AI vede cosa va bene e cosa migliorare con esercizi e alimentazione.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row></Card> : null}
           {sub === 'Esercizi' ? <ExerciseBrowser onCreate={() => setLib(true)} /> : (
             <>
           <H style={{ marginTop: 8 }}>{fit.profile ? 'Programmi per te' : 'Programmi'}</H>

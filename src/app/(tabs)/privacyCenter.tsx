@@ -55,7 +55,7 @@ export default function PrivacyCenter() {
 
       <Card>
         <H>Cosa può vedere l'AI esterna</H>
-        <Body small muted style={{ marginTop: 4 }}>Theia legge tutto sul telefono. Solo quando risponde con l'AI esterna (Google Gemini, tramite il nostro server) manda le parti che servono, e solo come scegli qui sotto. Finanze, salute e cibo sono dati particolarmente sensibili: non escono mai senza il tuo consenso.</Body>
+        <Body small muted style={{ marginTop: 4 }}>Theia legge tutto sul telefono. Solo quando risponde con l'AI esterna (modelli aperti su Cloudflare, tramite il nostro server) manda le parti che servono, e solo come scegli qui sotto. Finanze, salute e cibo sono dati particolarmente sensibili: non escono mai senza il tuo consenso.</Body>
         {CATS.map((c) => (
           <View key={c.id} style={{ marginTop: 12 }}>
             <Body bold>{c.label}</Body>
@@ -113,7 +113,7 @@ export default function PrivacyCenter() {
         <Body bold style={{ marginTop: 10 }}>Base giuridica</Body>
         <Body small muted>Per mandare i tuoi dati all'AI esterna: il tuo consenso esplicito (art. 6.1.a e 9.2.a GDPR; consenso nLPD). Per il funzionamento dell'app sul telefono: l'esecuzione del servizio che hai richiesto. Puoi revocare il consenso quando vuoi, senza conseguenze sulle funzioni che restano sul telefono.</Body>
         <Body bold style={{ marginTop: 10 }}>A chi vanno e dove</Body>
-        <Body small muted>Solo se consenti: al nostro server e al servizio AI (Google Gemini), per la singola richiesta. Il trattamento può avvenire fuori da UE e Svizzera, con le garanzie previste dalla legge (clausole contrattuali standard o decisione di adeguatezza).</Body>
+        <Body small muted>Solo se consenti: al nostro server e al servizio AI (modelli aperti, su Cloudflare), per la singola richiesta. Il trattamento può avvenire fuori da UE e Svizzera, con le garanzie previste dalla legge (clausole contrattuali standard o decisione di adeguatezza).</Body>
         <Body bold style={{ marginTop: 10 }}>Per quanto tempo</Body>
         <Body small muted>Sul telefono finché non li cancelli tu. Le richieste all'AI non vengono conservate da noi; nel registro degli invii restano solo tipo, data e dimensione.</Body>
         <Body bold style={{ marginTop: 10 }}>I tuoi diritti</Body>

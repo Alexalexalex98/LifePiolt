@@ -10,6 +10,7 @@ import { initRandom } from '@/db/random';
 import { useAccount } from '@/store/account';
 import { useFriends } from '@/store/friends';
 import { useProjects } from '@/store/projects';
+import { useBodyCheck } from '@/store/bodyCheck';
 import { useApp } from '@/store/app';
 import { useAssistant } from '@/store/assistant';
 import { useChat } from '@/store/chat';
@@ -130,7 +131,7 @@ export async function wipeAllData(): Promise<void> {
   resetSearch();
   try { useSecurity.getState().reset(); } catch { /* ignore */ }
   try { useApp.getState().reset(); } catch { /* ignore */ }
-  try { useAccount.getState().clear(); useFriends.getState().reset(); useProjects.getState().reset(); } catch { /* ignore */ }
+  try { useAccount.getState().clear(); useFriends.getState().reset(); useProjects.getState().reset(); useBodyCheck.getState().reset(); } catch { /* ignore */ }
   if (Platform.OS !== 'web') {
     // allegati delle chat salvati nella memoria dell'app e file temporanei
     try { const d = new Directory(Paths.document, 'chat'); if (d.exists) d.delete(); } catch { /* ignore */ }

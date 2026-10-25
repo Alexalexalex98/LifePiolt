@@ -14,3 +14,7 @@ Cloudflare Worker con **modelli aperti su Workers AI** (niente Google). Pubblica
 - Finiti i messaggi completi Theia **risponde comunque**, con modelli piu' leggeri (`LITE`) e risposte piu' brevi (450 token). Freno al minuto: free 15, plus 30, pro 60.
 - Senza account (o con accesso scaduto) tutto funziona lo stesso, anche foto e documenti: modalita' leggera e freno per dispositivo (12 al minuto per IP). Le chiavi restano solo sul server; l'app non ne contiene.
 - Ogni risposta riporta `plan`, `lite`, `left`, `limit`. Se il conteggio non risponde nessuno viene bloccato.
+
+## Ricerca sul web
+- Per `/chat` l'app manda anche `q` (la sola domanda) e `web` (attivo di base, si spegne in Intelligenza di Theia). Un primo passaggio leggero decide se serve cercare e produce una frase GENERICA (niente nomi, importi, salute); poi si cerca su DuckDuckGo (pagina semplice) e, se non risponde, su Wikipedia (it, poi en). I risultati (titolo + frase) vanno al modello, che risponde con «Fonti: sito, sito».
+- Non si aprono le pagine dei risultati (la CPU dei Worker gratuiti e' limitata). Non provato dal vivo dal mio ambiente: serve un controllo dal telefono. Se DuckDuckGo blocca l'indirizzo del Worker, resta Wikipedia.

@@ -181,3 +181,14 @@ test('titoli dei pasti: corti ma chiari', () => {
   assert.equal(displayName({ name: 'x', items: [{ name: 'Riso bianco cotto' }, { name: 'Pollo alla piastra' }] }), 'Riso bianco e pollo');
   assert.ok(mealTitle(['Una descrizione molto molto lunga di un alimento che continua a lungo senza motivo', 'Altro alimento lungo davvero']).length <= 52);
 });
+
+test('molti zuccheri in un pasto: avviso garbato, con orario e ricorrenza', async () => {
+  const mi = await import('../src/lib/fitness/mealInsights.ts');
+  const cena = new Date(2026, 9, 25, 19, 56).getTime();
+  const macros = { kcal: 505, p: 13.3, c: 107.6, f: 2.6, sat: 0.4, sug: 28.1, fib: 10.3, salt: 0.7 };
+  const op = mi.mealOpinion({ ts: cena, macros, grams: 400 }, { targetKcal: 2000 });
+  assert.match(op.text, /zuccheri \(28\.1 g/); assert.match(op.text, /una volta ogni tanto/); assert.match(op.text, /addormentarsi/); assert.equal(op.verdict, 'attenzione');
+  const p1 = mi.mealAiPrompt({ ts: cena, name: 'Fette biscottate e fragole', macros }, [{ name: 'Fette', grams: 100 }], { recentHighSugar: 3 });
+  assert.match(p1, /altri 3 pasti con molti zuccheri/); assert.match(p1, /UNA riga per ogni ingrediente/); assert.match(p1, /decide sempre/);
+  assert.match(mi.mealAiPrompt({ ts: cena, name: 'x', macros }, [], {}), /occasionale/);
+});

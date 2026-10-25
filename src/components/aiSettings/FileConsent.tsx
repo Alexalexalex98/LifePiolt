@@ -11,6 +11,22 @@ import { aiServerConfigured, aiServerHost, pingAiServer } from '@/lib/aiServer';
 import { useAiRouter } from '@/store/aiRouter';
 import { go } from '@/lib/nav';
 
+/** Ricerca sul web: se Theia non sa una cosa la cerca online. Parte solo la tua domanda, resa generica, senza i tuoi dati. */
+export function WebSearchCard() {
+  const web = useAiServerCfg((s) => s.web !== false);
+  const set = useAiServerCfg((s) => s.set);
+  return (
+    <Card>
+      <H>Ricerca sul web</H>
+      <Body small muted style={{ marginTop: 4 }}>Se Theia non conosce una cosa (orari, luoghi, notizie, prezzi) la cerca online e ti risponde con le fonti. Dal server parte solo una frase di ricerca generica ricavata dalla tua domanda: mai i tuoi dati, i tuoi nomi, i tuoi importi o la tua salute.</Body>
+      <Row gap={8} style={{ marginTop: 8 }}>
+        <Pill label="Attiva" on={web} onPress={() => set({ web: true })} />
+        <Pill label="Disattiva" on={!web} onPress={() => set({ web: false })} />
+      </Row>
+    </Card>
+  );
+}
+
 /** Consenso a mandare foto e file al servizio AI: si cambia o si toglie quando si vuole. */
 export function FileConsentCard() {
   const c = useAiRouter((s) => s.fileConsent);
@@ -18,7 +34,7 @@ export function FileConsentCard() {
   return (
     <Card>
       <H>Foto e file inviati all'AI</H>
-      <Body small muted style={{ marginTop: 4 }}>Per leggere foto, documenti e bollette Theia deve mandarli al servizio AI (Google Gemini), tramite il server di LifePilot. Se non lo permetti, Theia non può capire file, foto e documenti: restano solo sul telefono.</Body>
+      <Body small muted style={{ marginTop: 4 }}>Per leggere foto, documenti e bollette Theia deve mandarli al servizio AI (modelli aperti, su Cloudflare), tramite il server di LifePilot. Se non lo permetti, Theia non può capire file, foto e documenti: restano solo sul telefono.</Body>
       <Body bold style={{ marginTop: 10 }}>Foto dei piatti</Body>
       <Row gap={8} style={{ marginTop: 6 }}>
         <Pill label="Chiedi ogni volta" on={c.food === 'ask'} onPress={() => set({ food: 'ask' })} />

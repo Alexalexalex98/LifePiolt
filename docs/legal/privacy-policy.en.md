@@ -43,7 +43,7 @@ We do not collect data for advertising, we do not sell it and we do not do comme
 - **Legal obligations** (e.g. authority requests, tax obligations for any payments).
 
 ## 5. Artificial intelligence (Theia)
-Theia reads everything in the app on your phone to help you. When it answers with an external AI service (**Google Gemini**, through **our server**), your question and the parts of your data that are needed must leave the phone. Before doing so we ask for your consent, **per category**, with three choices: *ask every time*, *always allow*, *never*. If you do not consent, Theia answers without looking at that data. Photos and files (bills, receipts, PDF statements) leave only with your consent for that sending.
+Theia reads everything in the app on your phone to help you. When it answers with an external AI service (**open** AI models run on **Cloudflare (Workers AI)** infrastructure, through **our server**), your question and the parts of your data that are needed must leave the phone. Before doing so we ask for your consent, **per category**, with three choices: *ask every time*, *always allow*, *never*. If you do not consent, Theia answers without looking at that data. Photos and files (bills, receipts, PDF statements) leave only with your consent for that sending. When Theia does not know something it can search the web (DuckDuckGo, or Wikipedia as a fallback) through our server: only a generic search phrase derived from your question is sent, without your personal data; you can turn it off in Theia's Intelligence settings. **Body photos** (Body check) stay on your phone, leave it only with your consent given every single time (never "always"), are used only for that analysis and are neither stored nor used to train models.
 - The "What was sent" log only keeps type, date and size, never the content.
 - **AI can make mistakes.** Always check figures and information. Guidance on health and finances is general and does not replace a doctor, dietitian or advisor.
 - We do not use your data to train models. [To be confirmed with the AI provider contract.]
@@ -51,7 +51,7 @@ Theia reads everything in the app on your phone to help you. When it answers wit
 - **Signals on the phone.** The game may notice, only on the phone and without sending anything, changes in your data (for example less sleep, less activity, very harsh phrases written to Theia) to gently suggest an activity. They are hints, not diagnoses; we do not analyse anyone's face, voice or posture. You can turn it off at any time from Theia's page.
 
 ## 6. Who we share data with (recipients)
-- **AI service**: Google (Gemini), through our server, only with your consent and for the single request.
+- **AI service**: Cloudflare (Workers AI, open models), through our server, only with your consent and for the single request.
 - **Our server and hosting provider** ([name, e.g. Cloudflare]) to forward AI requests and, if you turn on synchronization or LifeNetwork, to deliver data.
 - **Services the app queries to give you information** (they receive technical data such as the IP address and, when needed, a city or coordinates): Open-Meteo (weather and city search), OpenStreetMap/Nominatim, Overpass and OSRM (places and routes), Stooq (quotes), news feeds of news publishers, GitHub (exercise photos).
 - **Other users**, only what you choose to publish or send in LifeNetwork and chats.
@@ -59,7 +59,7 @@ Theia reads everything in the app on your phone to help you. When it answers wit
 We do not sell data to anyone.
 
 ## 7. Transfers outside the EU/EEA and Switzerland
-Some recipients (e.g. Google, hosting providers) may process data outside the EU/EEA and Switzerland, including in the United States. We do so only with adequate safeguards: an adequacy decision (including the EU-US and Swiss-US Data Privacy Framework for certified entities) or standard contractual clauses, with supplementary measures where necessary. [List the actual recipients and safeguards.]
+Some recipients (e.g. Cloudflare, hosting providers) may process data outside the EU/EEA and Switzerland, including in the United States. We do so only with adequate safeguards: an adequacy decision (including the EU-US and Swiss-US Data Privacy Framework for certified entities) or standard contractual clauses, with supplementary measures where necessary. [List the actual recipients and safeguards.]
 
 ## 8. How long we keep data
 - **On the phone**: until you delete it (per category from the Privacy Center, or with "Delete all my data") or uninstall the app.

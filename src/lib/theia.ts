@@ -309,7 +309,7 @@ async function theiaPrompt(question: string, selection?: string): Promise<string
 
 /** Domanda libera in chat: risponde il server AI come una persona (con la conversazione recente). */
 export async function askTheiaChat(question: string): Promise<string> {
-  return guardClaims(tidy(await aiChatRaw(await theiaPrompt(question)))).text;
+  return guardClaims(tidy(await aiChatRaw(await theiaPrompt(question), question))).text;
 }
 
 /** Domanda su file o foto inviati (consenso gia' dato): risponde il server AI leggendo i file. `result` e' la lettura strutturata dei documenti. */
