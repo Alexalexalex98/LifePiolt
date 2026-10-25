@@ -300,3 +300,17 @@ test('comando «crea queste task» con un file: riconosciuto; testo normale no',
   const MAKE = /\b(crea|creami|creare|aggiung\w*|import\w*|trasform\w*|fai|fammi|metti|inserisc\w*)\b.*\b(task|attivit\w*|compiti|to-?do|progett\w*|voci|lista|elenco)\b/i;
   assert.ok(MAKE.test('Crea queste task')); assert.ok(MAKE.test('trasforma il file in un progetto')); assert.ok(!MAKE.test('cosa dice il documento?'));
 });
+
+test('l\'AI propone azioni solo se le chiedi o dici si: mai a un saluto', async () => {
+  const { filterActions } = await import('../src/lib/assistant/aiActionsCore.ts');
+  const open = { type: 'open', page: 'lifefinance' }, task = { type: 'task_add', t: 'x' };
+  assert.deepEqual(filterActions('Ciao come stai?', [open, task]), []);
+  assert.deepEqual(filterActions('apri le finanze', [open, task]), [open]);
+  assert.deepEqual(filterActions('aggiungi un task', [open, task]), [task]);
+  assert.deepEqual(filterActions('Sì crea le task', [open, task]), [open, task]);
+});
+
+test('«Si ho una domanda…» non e\' un si all\'azione', async () => {
+  const { filterActions } = await import('../src/lib/assistant/aiActionsCore.ts');
+  assert.deepEqual(filterActions('Si ho una domanda com\'è nato l\'universo?', [{ type: 'open', page: 'lifefinance' }]), []);
+});

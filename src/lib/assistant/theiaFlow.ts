@@ -17,7 +17,7 @@ import { routeRequest, type RouteResult } from '@/lib/aiRouter';
 import { aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
-import { parseAiActions, splitReply } from './aiActionsCore';
+import { filterActions, parseAiActions, splitReply } from './aiActionsCore';
 import { pdfToText } from '@/lib/pdfText';
 import { readUriBytes } from '@/lib/readUri';
 import { useProjects } from '@/store/projects';
@@ -100,8 +100,10 @@ function pushWithActions(reply: string): AMsg {
 }
 /** Theia scrive come in una chat: piu' messaggi brevi, uno dopo l'altro (i pulsanti stanno sull'ultimo). */
 const pause = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-async function pushReply(reply: string): Promise<void> {
-  const { text, actions } = parseAiActions(reply);
+async function pushReply(reply: string, userText?: string): Promise<void> {
+  const parsed = parseAiActions(reply);
+  const { text } = parsed;
+  const actions = userText === undefined ? parsed.actions : filterActions(userText, parsed.actions);
   const parts = splitReply(text);
   if (parts.length <= 1) { pushParsed(parts[0] ?? text, actions); return; }
   for (let i = 0; i < parts.length; i++) {
@@ -121,7 +123,7 @@ async function aiChatReply(text: string): Promise<void> {
   }
   try {
     const reply = await askTheiaChat(text) || t('Risposta vuota dal server.');
-    await pushReply(reply);
+    await pushReply(reply, text);
     if (plain) { const { text: parsed, actions } = parseAiActions(reply); const clean = splitReply(parsed).join('\n\n'); if (!actions.length && isLearnable(text, clean)) kb.learn(text, clean); }
   } catch (e) {
     pushAi(`${t(friendlyAiError(e instanceof Error ? e.message : 'Errore del server AI.'))}\n\n${t('I comandi sul tuo piano, i task e i report funzionano comunque.')}`, { ext: { actions: [{ kind: 'say', label: t('Riprova'), text }, { kind: 'dismiss', label: t('Lascia stare') }] } });
@@ -170,7 +172,7 @@ export async function readFilesWithAi(question: string, files: { uri: string; mi
     const kind = TIPO.exec(reply)?.[1] ?? '';
     const bill = /^bollett|fattur/i.test(kind);
     const text = reply.replace(TIPO, '').trim();
-    { const pa = parseAiActions(text); if (pa.actions.length) { pushParsed(splitReply(pa.text).join('\n\n') || pa.text, pa.actions); return; } }
+    { const pa = parseAiActions(text); const acts = filterActions(question, pa.actions); if (pa.actions.length) { pushParsed(splitReply(pa.text).join('\n\n') || pa.text, acts); return; } }
     pushAi(text || t('Risposta vuota dal server.'), bill && first ? { ext: { actions: [{ kind: 'bill', label: t('Aggiungi alle bollette'), uri: first.uri, mime: first.mime, name: first.name ?? t('Bolletta') }, { kind: 'dismiss', label: t('No, grazie') }] } } : undefined);
   } catch (e) {
     pushAi(e instanceof Error ? e.message : t('Errore del server AI.'));

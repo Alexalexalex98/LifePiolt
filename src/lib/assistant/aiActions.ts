@@ -6,7 +6,7 @@ import { useFin } from '@/store/finance';
 import { useLife } from '@/store/life';
 import { useMonthPlan } from '@/store/monthPlan';
 import { addMonths, estimateIncome, goalMonthly, monthsNeeded } from '@/lib/monthPlan';
-import { findByText, type AiAct } from './aiActionsCore';
+import { OPEN_LABELS, findByText, type AiAct } from './aiActionsCore';
 
 const sum = (l: { monthly: number }[]) => l.reduce((a, x) => a + x.monthly, 0);
 
@@ -38,7 +38,7 @@ export function describe(a: AiAct): string {
     case 'fixed_change': return t('Cambio la spesa fissa «{0}» a {1} al mese', a.match, formatCHF(a.amount));
     case 'save_goal': return t('Metto da parte per «{0}»: {1} entro {2}, cioè circa {3} questo mese', a.name, formatCHF(a.total), monthName(a.month), formatCHF(goalMonthly({ id: 'x', name: a.name, kind: 'purchase', total: a.total, targetYm: a.month, saved: a.saved }, new Date().toISOString().slice(0, 7))));
     case 'bill_spread': { const n = a.perMonth ? monthsNeeded(a.total, a.perMonth) : a.months!; return t('Distribuisco «{0}» ({1}) su {2} mesi, circa {3} al mese', a.name, formatCHF(a.total), n, formatCHF(a.total / n)); }
-    case 'open': return t('Apro la pagina');
+    case 'open': return t('Apro {0}', t(OPEN_LABELS[a.page] ?? 'la pagina'));
   }
 }
 
