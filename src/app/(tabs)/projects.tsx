@@ -44,6 +44,7 @@ export default function Projects() {
   const [child, setChild] = useState('');
   const [share, setShare] = useState(false);
   const [who, setWho] = useState('');
+  const [comment, setComment] = useState('');
   const chats = useChat((s) => s.chats);
 
   const roots = useMemo(() => nodes.filter((n) => n.parent === null), [nodes]);
@@ -98,18 +99,20 @@ export default function Projects() {
           ) : (
             <Pressable accessibilityRole="button" accessibilityLabel={open ? tl('Chiudi') : tl('Apri')} onPress={() => setCollapsed((c) => ({ ...c, [n.id]: open }))} hitSlop={8} style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: open ? '90deg' : '0deg' }] }}><Icon name="chevron" size={18} color={t.muted} /></Pressable>
           )}
-          <Pressable style={{ flex: 1 }} onPress={() => { setMenu(n); setRename(n.title); setChild(''); }}>
+          <Pressable style={{ flex: 1 }} onPress={() => { setMenu(n); setRename(n.title); setChild(''); setComment(''); }}>
             <Text style={{ color: d ? t.muted : t.text, textDecorationLine: d ? 'line-through' : 'none', fontWeight: leaf ? '500' : '700' }}>{n.title}</Text>
             {!leaf ? <Text style={{ color: t.muted, fontSize: 11 }}>{`${pr.done}/${pr.total} · ${pr.pct}%${d ? ` · ${tl('completato')}` : ''}`}</Text> : null}
           </Pressable>
+          {n.comments?.length ? <Row gap={2}><Icon name="comment" size={14} color={t.muted} /><Text style={{ color: t.muted, fontSize: 11 }}>{n.comments.length}</Text></Row> : null}
           {n.files.length ? <Row gap={2}><Icon name="paperclip" size={14} color={t.muted} /><Text style={{ color: t.muted, fontSize: 11 }}>{n.files.length}</Text></Row> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={tl('Altro')} onPress={() => { setMenu(n); setRename(n.title); setChild(''); }} hitSlop={8}><Icon name="more" size={18} color={t.muted} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={tl('Altro')} onPress={() => { setMenu(n); setRename(n.title); setChild(''); setComment(''); }} hitSlop={8}><Icon name="more" size={18} color={t.muted} /></Pressable>
         </View>
         {open ? kids.map((k) => <Row_ key={k.id} n={k} depth={depth + 1} />) : null}
       </View>
     );
   };
 
+  const live = menu ? nodes.find((x) => x.id === menu.id) : undefined;
   const menuFiles = menu ? useLife.getState().drive.filter((f) => menu.files.includes(f.id)) : [];
 
   return (
@@ -163,6 +166,23 @@ export default function Projects() {
       <Sheet visible={!!menu} title={menu?.title ?? ''} onClose={() => setMenu(null)}>
         {menu ? (
           <View style={{ gap: 10 }}>
+            {menu.note ? <View style={{ gap: 2 }}><Body small muted>{tl('Descrizione')}</Body><Body>{menu.note}</Body></View> : null}
+            <View style={{ gap: 6 }}>
+              <Body small muted>{(live?.comments?.length ?? 0) ? tl('Commenti ({0})', live!.comments!.length) : tl('Commenti')}</Body>
+              {(live?.comments ?? []).map((c) => (
+                <View key={c.id} style={{ backgroundColor: t.card, borderColor: t.border, borderWidth: 1, borderRadius: 12, padding: 10, gap: 2 }}>
+                  <Row gap={6} style={{ justifyContent: 'space-between' }}>
+                    <Text style={{ color: t.text, fontWeight: '700', fontSize: 12.5 }}>{c.by} <Text style={{ color: t.muted, fontWeight: '400', fontSize: 11.5 }}>{new Date(c.at).toLocaleDateString()}</Text></Text>
+                    {c.by === me ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina il commento')} hitSlop={8} onPress={() => P().removeComment(menu.id, c.id)}><Icon name="trash" size={14} color={t.muted} /></Pressable> : null}
+                  </Row>
+                  <Text style={{ color: t.text }}>{c.text}</Text>
+                </View>
+              ))}
+              <Row gap={8}>
+                <View style={{ flex: 1 }}><Input value={comment} onChangeText={setComment} placeholder="Scrivi un commento: come l'hai risolta, cosa serve sapere" multiline style={{ minHeight: 44, maxHeight: 90 }} onSubmitEditing={() => { if (P().addComment(menu.id, me, comment)) setComment(''); }} /></View>
+                <Btn small icon="send" title="" disabled={!comment.trim()} onPress={() => { if (P().addComment(menu.id, me, comment)) { setComment(''); toast('Commento aggiunto'); } }} />
+              </Row>
+            </View>
             <Input value={rename} onChangeText={setRename} placeholder="Nome" />
             <Btn small ghost title="Rinomina" disabled={!rename.trim() || rename.trim() === menu.title} onPress={() => { P().rename(menu.id, rename); setMenu({ ...menu, title: rename.trim() }); }} />
             <Row gap={8}><View style={{ flex: 1 }}><Input value={child} onChangeText={setChild} placeholder="Nuova sotto-attività" onSubmitEditing={() => { if (P().addChild(menu.id, child)) { setChild(''); toast('Aggiunta'); } else toast('Non posso aggiungere altri livelli'); }} /></View><Btn small icon="plus" title="" disabled={!child.trim()} onPress={() => { if (P().addChild(menu.id, child)) { setChild(''); toast('Aggiunta'); } else toast('Non posso aggiungere altri livelli'); }} /></Row>

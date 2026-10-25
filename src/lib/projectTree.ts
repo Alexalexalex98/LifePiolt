@@ -3,7 +3,8 @@
  * Il padre non si completa a mano: è completato solo quando lo sono tutti i figli; la percentuale si calcola sulle foglie.
  * Si importa da un elenco di testo (Markdown con - [ ] / - [x], titoli # oppure righe rientrate) e si esporta nello stesso formato.
  */
-export type PNode = { id: string; parent: string | null; title: string; /** vale solo per le foglie */ done: boolean; note?: string; /** id dei file caricati in LifeDrive */ files: string[]; /** persone con cui è condiviso (solo sul progetto radice) */ shared: string[]; createdAt: number };
+export type PNode = { id: string; parent: string | null; title: string; /** vale solo per le foglie */ done: boolean; note?: string; /** id dei file caricati in LifeDrive */ files: string[]; /** persone con cui è condiviso (solo sul progetto radice) */ shared: string[]; createdAt: number; /** commenti: cosa si è fatto, come si è risolto */ comments?: PComment[] };
+export type PComment = { id: string; by: string; text: string; at: number };
 export const MAX_NODES = 3000;
 export const MAX_DEPTH = 12;
 

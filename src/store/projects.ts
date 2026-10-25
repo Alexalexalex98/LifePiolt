@@ -18,6 +18,8 @@ type State = {
   attach: (id: string, fileId: string) => void;
   detach: (id: string, fileId: string) => void;
   setShared: (rootId: string, names: string[]) => void;
+  addComment: (id: string, by: string, text: string) => boolean;
+  removeComment: (id: string, commentId: string) => void;
   reset: () => void;
 };
 const mk = (parent: string | null, title: string, done = false, note?: string): PNode => ({ id: uid(), parent, title: title.trim().slice(0, 200), done, ...(note ? { note } : null), files: [], shared: [], createdAt: Date.now() });
@@ -57,6 +59,13 @@ export const useProjects = create<State>()(persisted<State>('projects', (set, ge
   attach: (id, fileId) => set((s) => ({ nodes: s.nodes.map((n) => (n.id === id ? { ...n, files: [...n.files, fileId] } : n)) })),
   detach: (id, fileId) => set((s) => ({ nodes: s.nodes.map((n) => (n.id === id ? { ...n, files: n.files.filter((f) => f !== fileId) } : n)) })),
   setShared: (rootId, names) => set((s) => ({ nodes: s.nodes.map((n) => (n.id === rootId ? { ...n, shared: [...new Set(names)] } : n)) })),
+  addComment: (id, by, text) => {
+    const tx = text.trim().slice(0, 1000); if (!tx || !get().nodes.some((n) => n.id === id)) return false;
+    const c = { id: uid(), by: by.trim().slice(0, 60) || 'Io', text: tx, at: Date.now() };
+    set((s) => ({ nodes: s.nodes.map((n) => (n.id === id ? { ...n, comments: [...(n.comments ?? []), c].slice(-200) } : n)) }));
+    return true;
+  },
+  removeComment: (id, commentId) => set((s) => ({ nodes: s.nodes.map((n) => (n.id === id ? { ...n, comments: (n.comments ?? []).filter((c) => c.id !== commentId) } : n)) })),
   reset: () => set({ nodes: [] }),
 })));
 export { rootOf };
