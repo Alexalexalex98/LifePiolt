@@ -15,7 +15,8 @@ import { confirmDelete } from '@/lib/confirm';
 import { askSend, logSend } from '@/lib/aiConsent';
 import { tidy } from '@/lib/aiPersona';
 import { AiServerError, aiReadFiles, aiServerConfigured } from '@/lib/aiServer';
-import { BODY_SLOTS, BODY_TIPS, bodyPrompt, type BodySlot } from '@/lib/fitness/bodyCheck';
+import { scheduleAt } from '@/lib/notify';
+import { BODY_REPEAT_DAYS, BODY_SLOTS, BODY_TIPS, bodyPrompt, type BodySlot } from '@/lib/fitness/bodyCheck';
 import { persistFile } from '@/lib/chatMedia';
 import { Icon } from '@/lib/icons';
 import { pickNetMedia, takeNetPhoto } from '@/lib/netMedia';
@@ -50,10 +51,12 @@ export default function FitnessBody() {
       const files = BODY_SLOTS.map((s) => ({ uri: photos[s.id]!, mime: 'image/jpeg' }));
       logSend('body', 0, ['4 foto del corpo']);
       const b = fit.body;
-      const reply = await aiReadFiles(bodyPrompt({ sex: b?.sex, age: b?.age, weightKg: b?.weightKg, heightCm: b?.heightCm, goal: b?.goal, activity: b?.activity }), files, 120000, 1100);
+      const reply = await aiReadFiles(bodyPrompt({ sex: b?.sex, age: b?.age, weightKg: b?.weightKg, heightCm: b?.heightCm, goal: b?.goal, activity: b?.activity }, reports[0] ? { ts: reports[0].ts, text: reports[0].text } : undefined), files, 120000, 1100);
       const text = tidy(reply);
       if (!text) { setError('Non ho ricevuto una risposta: riprova tra poco.'); return; }
-      setOpenId(addReport(text));
+      setOpenId(addReport(text, { ...photos }));
+      /* tra un po' ti ricordo di rifare le foto, per vedere i progressi */
+      void scheduleAt('body-photos', new Date(Date.now() + BODY_REPEAT_DAYS * 86400000), 'Foto del corpo', 'Sono passate 4 settimane: rifai le 4 foto per vedere i tuoi progressi.', undefined, 'promemoria').catch(() => undefined);
     } catch (e) { setError(e instanceof AiServerError ? e.message : 'Non sono riuscito a contattare il servizio AI.'); }
     finally { setBusy(false); }
   }
@@ -69,7 +72,7 @@ export default function FitnessBody() {
     <Page id="fitnessBody" back title="Controllo del corpo">
       <Card accent={FIT}>
         <H>Quattro foto, un parere sul tuo allenamento</H>
-        <Body small muted style={{ marginTop: 2 }}>Scatta o scegli 4 foto: davanti, dietro e i due lati. L'AI guarda cosa va bene e cosa si può migliorare con esercizi, alimentazione e abitudini. È una valutazione indicativa da foto, non una visita.</Body>
+        <Body small muted style={{ marginTop: 2 }}>Scatta o scegli 4 foto: davanti, dietro e i due lati. Dopo circa 4 settimane ti chiedo di rifarle, così vedi i progressi. L'AI guarda cosa va bene e cosa si può migliorare con esercizi, alimentazione e abitudini. È una valutazione indicativa da foto, non una visita.</Body>
         {BODY_TIPS.map((x) => <Body key={x} small muted style={{ marginTop: 3 }}>{`• ${tl(x)}`}</Body>)}
       </Card>
 
@@ -105,6 +108,7 @@ export default function FitnessBody() {
               </Pressable>
               {openId === r.id ? (
                 <View style={{ marginTop: 6 }}>
+                  {r.photos ? <Row gap={6} style={{ marginBottom: 8 }}>{BODY_SLOTS.map((sl) => r.photos?.[sl.id] ? <Pressable key={sl.id} accessibilityRole="button" accessibilityLabel={sl.label} onPress={() => setViewer(r.photos![sl.id]!)} style={{ flex: 1 }}><Image source={{ uri: r.photos[sl.id]! }} style={{ width: '100%', aspectRatio: 3 / 4, borderRadius: 10 }} contentFit="cover" /></Pressable> : <View key={sl.id} style={{ flex: 1 }} />)}</Row> : null}
                   <RichText text={r.text} color={t.text} accent={t.text} />
                   <AiNote />
                   <Btn small ghost danger style={{ marginTop: 8, alignSelf: 'flex-start' }} icon="trash" title="Elimina questa analisi" onPress={() => delReport(r.id)} />

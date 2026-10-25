@@ -5,7 +5,7 @@ import { Pressable, View } from 'react-native';
 
 import { DaySummary } from '@/components/fitness/DaySummary';
 import { FIT } from '@/components/fitness/kit';
-import { Body, Btn, Card, H, Item, Page, Pill, Row, Seg } from '@/components/ui';
+import { Body, Btn, Card, H, Item, Page, Pill, Row, TabRow } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { withMicro } from '@/lib/fitness/mealMicro';
@@ -28,7 +28,7 @@ const hhmm = (ts: number) => new Date(ts).toLocaleTimeString(undefined, { hour: 
 export default function FitnessDay() {
   const t = useTheme();
   const fit = useFitness();
-  const { day } = useLocalSearchParams<{ day?: string }>();
+  const { day, focus } = useLocalSearchParams<{ day?: string; focus?: string }>();
   const [per, setPer] = useState('Giorno');
   const key = day && /^\d{4}-\d{2}-\d{2}$/.test(String(day)) ? String(day) : dayOf(Date.now());
   const g = groupByDay(withMicro(fit.meals)).find((x) => x.key === key);
@@ -54,7 +54,7 @@ export default function FitnessDay() {
     const totalKcal = inRange.reduce((a, x) => a + x.macros.kcal, 0);
     return (
       <Page id="fitnessDay" back title="Pasti e calorie">
-        <Seg plain options={['Giorno', 'Settimana', 'Mese', 'Anno', 'Sempre']} value={per} onChange={setPer} />
+        <TabRow options={['Giorno', 'Settimana', 'Mese', 'Anno', 'Sempre']} value={per} onChange={setPer} />
         <Card accent={FIT}>
           <H>{per === 'Sempre' ? tl('Da sempre') : per === 'Settimana' ? tl('Ultima settimana') : per === 'Mese' ? tl('Ultimo mese') : tl('Ultimo anno')}</H>
           {st.days ? (
@@ -69,15 +69,8 @@ export default function FitnessDay() {
       </Page>
     );
   }
-  return (
-    <Page id="fitnessDay" back title="Pasti e calorie">
-      <Seg plain options={['Giorno', 'Settimana', 'Mese', 'Anno', 'Sempre']} value={per} onChange={setPer} />
-      <Card accent={FIT}>
-        <H style={{ textTransform: 'capitalize' }}>{title}</H>
-        <DaySummary meals={g?.meals ?? []} micro={g?.micro} waterMl={water} body={fit.body} />
-      </Card>
-
-      <Card>
+  const waterCard = (
+      <Card accent={focus === 'water' ? FIT : undefined}>
         <Row><H style={{ flex: 1 }}>Acqua</H><Body bold>{`${(water / 1000).toFixed(1).replace('.', ',')} / ${(goal / 1000).toFixed(1).replace('.', ',')} L`}</Body></Row>
         <Bar value={water} max={goal} color={FIT} />
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={8}>
@@ -90,6 +83,17 @@ export default function FitnessDay() {
         {water > 0 && !isToday && wl === 'poca' ? <Body small style={{ marginTop: 6, color: '#ffb020' }}>Quel giorno hai bevuto poco. Se succede spesso, nello storico trovi cosa può causare.</Body> : null}
         <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} title="Come va l'acqua negli ultimi giorni" onPress={() => go('fitnessDiary')} />
       </Card>
+  );
+  return (
+    <Page id="fitnessDay" back title="Pasti e calorie">
+      <TabRow options={['Giorno', 'Settimana', 'Mese', 'Anno', 'Sempre']} value={per} onChange={setPer} />
+      {focus === 'water' ? waterCard : null}
+      <Card accent={FIT}>
+        <H style={{ textTransform: 'capitalize' }}>{title}</H>
+        <DaySummary meals={g?.meals ?? []} micro={g?.micro} waterMl={water} body={fit.body} />
+      </Card>
+
+      {focus === 'water' ? null : waterCard}
 
       {q ? (
         <Card>

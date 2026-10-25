@@ -1,5 +1,5 @@
 {
- "count": 14485,
+ "count": 14491,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -27,7 +27,7 @@
   "src/app/(tabs)/docView.tsx": 2,
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
-  "src/app/(tabs)/fitnessBody.tsx": 23,
+  "src/app/(tabs)/fitnessBody.tsx": 25,
   "src/app/(tabs)/fitnessCook.tsx": 27,
   "src/app/(tabs)/fitnessDay.tsx": 35,
   "src/app/(tabs)/fitnessDiary.tsx": 56,
@@ -62,7 +62,7 @@
   "src/app/(tabs)/life.tsx": 14,
   "src/app/(tabs)/lifedrive.tsx": 47,
   "src/app/(tabs)/lifefinance.tsx": 105,
-  "src/app/(tabs)/lifefitness.tsx": 101,
+  "src/app/(tabs)/lifefitness.tsx": 107,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 113,
   "src/app/(tabs)/lifenetwork.tsx": 42,
@@ -225,7 +225,7 @@
   "src/components/club/parts.tsx": 3,
   "src/components/club/pickFile.ts": 2,
   "src/components/dash/DashGrid.tsx": 4,
-  "src/components/dash/Sheets.tsx": 28,
+  "src/components/dash/Sheets.tsx": 26,
   "src/components/dash/data.tsx": 1,
   "src/components/dash/registry.ts": 97,
   "src/components/dash/widgetsA.tsx": 51,
@@ -452,7 +452,7 @@
   "src/lib/feedSwipe.ts": 3,
   "src/lib/financeRecap.ts": 57,
   "src/lib/findPlace.ts": 55,
-  "src/lib/fitness/bodyCheck.ts": 18,
+  "src/lib/fitness/bodyCheck.ts": 19,
   "src/lib/fitness/data.ts": 203,
   "src/lib/fitness/exPhotos.ts": 145,
   "src/lib/fitness/execCheck.ts": 10,
@@ -648,5 +648,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1810
+ "withPlaceholders": 1812
 }

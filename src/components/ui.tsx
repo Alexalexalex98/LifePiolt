@@ -444,7 +444,7 @@ const LABEL_ICONS: Record<string, string> = {
   Acquisti: 'orders', Guadagnati: 'trend-up', 'LifePoint giornaliero': 'coin',
   File: 'file', Foto: 'image', Minuti: 'clock', Ore: 'timer', Barre: 'chart', Linee: 'activity', Torta: 'circle',
   Scelta: 'checksquare', Numero: 'poll', Aperta: 'edit',
-  Oggi: 'sun', Allenarsi: 'lifefitness', Cibo: 'meal', 'LifePass e centri': 'award',
+  Oggi: 'sun', Allenarsi: 'lifefitness', Cibo: 'meal',
   Scelte: 'settings', Limiti: 'timer', Fornitori: 'users', Prova: 'play', Cronologia: 'clock',
   Media: 'image', Documenti: 'file', Link: 'link',
 };

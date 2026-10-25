@@ -11,13 +11,21 @@ export const BODY_SLOTS: { id: BodySlot; label: string; hint: string }[] = [
 ];
 export const BODY_TIPS = ['Stessa luce e stesso posto ogni volta, con una luce che non faccia ombre dure.', 'Abiti aderenti o sportivi, così si vedono le forme.', 'Il telefono all\'altezza del petto, a un paio di metri, tutto il corpo in foto.', 'Ripeti le foto ogni 4-6 settimane per vedere i cambiamenti.'];
 
+/** Dopo quanti giorni Theia propone di rifare le foto per vedere i progressi. */
+export const BODY_REPEAT_DAYS = 28;
+/** Giorni che mancano alle prossime foto (0 o meno = e' ora); null se non c'e' ancora un'analisi. */
+export function daysToNextPhotos(lastTs: number | undefined, now = Date.now()): number | null {
+  if (!lastTs) return null;
+  return Math.ceil((lastTs + BODY_REPEAT_DAYS * 86400000 - now) / 86400000);
+}
+
 export type BodyCtx = { sex?: 'f' | 'm'; age?: number; weightKg?: number; heightCm?: number; goal?: 'dimagrire' | 'mantenere' | 'massa'; activity?: string };
 
 /** Testo da mandare all'AI insieme alle 4 foto (davanti, dietro, lato sinistro, lato destro, in questo ordine). */
-export function bodyPrompt(ctx: BodyCtx = {}): string {
+export function bodyPrompt(ctx: BodyCtx = {}, previous?: { ts: number; text: string }): string {
   const who = [ctx.sex ? (ctx.sex === 'f' ? 'donna' : 'uomo') : '', ctx.age ? `${ctx.age} anni` : '', ctx.heightCm ? `${ctx.heightCm} cm` : '', ctx.weightKg ? `${ctx.weightKg} kg` : '', ctx.activity ? `attività ${ctx.activity}` : '', ctx.goal ? `obiettivo: ${ctx.goal}` : ''].filter(Boolean).join(', ');
   return `Ti mando 4 foto della stessa persona in piedi, in quest'ordine: davanti, dietro, lato sinistro, lato destro.${who ? ` Dati indicati: ${who}.` : ''}
-Fai una valutazione generale di allenamento e postura, come farebbe un preparatore atletico attento e rispettoso. Rispondi in italiano, con garbo, in modo sincero ma mai giudicante o offensivo; non commentare l'aspetto estetico in modo negativo e non fare paragoni con altre persone.
+${previous ? `Questa persona ha già fatto un'analisi ${Math.max(1, Math.round((Date.now() - previous.ts) / 86400000 / 7))} settimane fa. Il testo di quell'analisi era:\n"""\n${previous.text.slice(0, 2500)}\n"""\nOra confronta le foto di adesso con quella valutazione: nella prima sezione di' cosa è migliorato, cosa è rimasto uguale e cosa va ancora curato (se le foto non permettono il confronto dillo, senza inventare).\n` : ''}Fai una valutazione generale di allenamento e postura, come farebbe un preparatore atletico attento e rispettoso. Rispondi in italiano, con garbo, in modo sincero ma mai giudicante o offensivo; non commentare l'aspetto estetico in modo negativo e non fare paragoni con altre persone.
 Struttura (titoli brevi in grassetto, elenchi con «• »):
 **Cosa si vede di buono** — punti di forza e aree già ben sviluppate.
 **Cosa si può migliorare** — aree meno sviluppate o poco tonificate, simmetria tra destra e sinistra, postura (spalle, schiena, bacino, ginocchia) solo se emerge chiaramente dalle foto; se una foto non è chiara dillo.

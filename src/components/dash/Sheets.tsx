@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,17 +20,21 @@ import { toast } from '@/store/toast';
 
 const shapeLabel = (k: string) => k.replace('x', '×');
 
-/** Aggiungi un widget: prima la categoria, poi la lista con l'anteprima e le forme possibili. Tocchi una forma e il widget entra nel primo posto libero. */
+/** Aggiungi un widget: tutti i widget in un'unica lista, divisi da un sottotitolo per sezione (con il colore della sezione). Tieni premuto e il widget entra nel primo posto libero. */
 export function AddWidgetSheet({ visible, onClose, onAdded }: { visible: boolean; onClose: () => void; onAdded?: (id: string) => void }) {
   const t = useTheme();
   const add = useDash((s) => s.add);
   const items = useDash((s) => s.items);
-  const [cat, setCat] = useState<CatId | null>(null);
   const PREVIEW_CELL = Math.max(56, Math.floor((useWindowDimensions().width - 60 - 3 * GAP) / 4));
-  const close = () => { setCat(null); onClose(); };
-  const c = CATS.find((x) => x.id === cat);
-  const list = WIDGETS.filter((w) => w.cat === cat);
-  const subs = [...new Set(list.map((w) => w.sub ?? ''))];
+  /* le anteprime compaiono a gruppi, cosi' la finestra si apre subito anche con tutti i widget */
+  const [shown, setShown] = useState(6);
+  useEffect(() => {
+    if (!visible) { setShown(6); return; }
+    if (shown >= WIDGETS.length) return;
+    const h = setTimeout(() => setShown((n) => n + 6), 120);
+    return () => clearTimeout(h);
+  }, [visible, shown]);
+  const close = () => { setShown(6); onClose(); };
   /** Si aggiunge tenendo premuto: entra con la forma consigliata nel primo posto libero, pronto da spostare. Le altre forme si scelgono dal pulsante in basso a destra del widget. */
   const put = (type: string) => {
     const w = WBY[type];
@@ -40,47 +44,44 @@ export function AddWidgetSheet({ visible, onClose, onAdded }: { visible: boolean
     close();
     onAdded?.(id);
   };
+  let n = 0;
   return (
-    <Sheet visible={visible} title={c ? tl(c.label) : 'Aggiungi un widget'} onClose={close}>
-      {!c ? (
-        <View>
-          {CATS.map((x, i) => (
-            <Item key={x.id} last={i === CATS.length - 1} onPress={() => setCat(x.id)}>
-              <Row gap={12}>
-                <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: x.color + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={x.icon} size={18} color={x.color} stroke={2} /></View>
-                <Body style={{ flex: 1 }}>{x.label}</Body>
-                <Body small muted>{WIDGETS.filter((w) => w.cat === x.id).length}</Body>
-                <Icon name="chevron" size={16} color={t.muted} />
-              </Row>
-            </Item>
-          ))}
-        </View>
-      ) : (
-        <View>
-          <Btn small ghost icon="arrow-left" title="Categorie" onPress={() => setCat(null)} />
-          <Body small muted style={{ marginTop: 8 }}>Tieni premuto il widget che vuoi: entra nella Dashboard con la forma consigliata, poi lo sposti dove vuoi. Le altre forme le scegli dal pulsante in basso a destra del widget.</Body>
-          {subs.map((sub) => (
-            <View key={sub}>
-              {sub ? <Body bold style={{ marginTop: 14 }}>{tl(sub)}</Body> : null}
-              {list.filter((w) => (w.sub ?? '') === sub).map((w) => {
-                const prev = parseShape(w.def);
-                const pw = prev.w * PREVIEW_CELL + (prev.w - 1) * GAP, ph = prev.h * PREVIEW_CELL + (prev.h - 1) * GAP;
-                const Comp = w.Comp;
-                return (
-                  <View key={w.type} style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: t.border, paddingTop: 12 }}>
-                    <Row gap={8}><Body bold style={{ flex: 1 }}>{w.title}</Body>{items.some((i) => i.type === w.type) ? <Pill label="Già aggiunto" off /> : null}</Row>
-                    <Body small muted>{w.desc}</Body>
-                    <Pressable accessibilityRole="button" accessibilityLabel={`${tl('Aggiungi')} ${tl(w.title)}`} accessibilityHint={tl('Tieni premuto per aggiungerlo alla Dashboard')} delayLongPress={350} onLongPress={() => put(w.type)} style={{ marginTop: 8, alignSelf: 'flex-start' }}>
-                      <View pointerEvents="none" style={{ width: pw, height: ph }}><Comp w={prev.w} h={prev.h} pw={pw} ph={ph} /></View>
-                    </Pressable>
-                    <Body small muted style={{ marginTop: 6 }}>Tieni premuto per aggiungerlo.</Body>
-                  </View>
-                );
-              })}
-            </View>
-          ))}
-        </View>
-      )}
+    <Sheet visible={visible} title="Aggiungi un widget" onClose={close}>
+      <Body small muted>Tieni premuto il widget che vuoi: entra nella Dashboard con la forma consigliata, poi lo sposti dove vuoi. Le altre forme le scegli dal pulsante in basso a destra del widget.</Body>
+      {CATS.map((c) => {
+        const list = WIDGETS.filter((w) => w.cat === c.id);
+        if (!list.length) return null;
+        const subs = [...new Set(list.map((w) => w.sub ?? ''))];
+        return (
+          <View key={c.id} style={{ marginTop: 20 }}>
+            <Row gap={10} style={{ justifyContent: 'flex-start', paddingBottom: 6, borderBottomWidth: 2, borderBottomColor: c.color }}>
+              <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: c.color + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={c.icon} size={17} color={c.color} stroke={2} /></View>
+              <Body bold style={{ flex: 1, fontSize: 18, color: c.color }}>{tl(c.label)}</Body>
+              <Body small muted>{list.length}</Body>
+            </Row>
+            {subs.map((sub) => (
+              <View key={sub}>
+                {sub ? <Body small muted style={{ marginTop: 12, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '700' }}>{tl(sub)}</Body> : null}
+                {list.filter((w) => (w.sub ?? '') === sub).map((w) => {
+                  const prev = parseShape(w.def);
+                  const pw = prev.w * PREVIEW_CELL + (prev.w - 1) * GAP, ph = prev.h * PREVIEW_CELL + (prev.h - 1) * GAP;
+                  const Comp = w.Comp;
+                  const show = n++ < shown;
+                  return (
+                    <View key={w.type} style={{ marginTop: 12, borderLeftWidth: 3, borderLeftColor: c.color, paddingLeft: 12 }}>
+                      <Row gap={8}><Body bold style={{ flex: 1 }}>{w.title}</Body>{items.some((i) => i.type === w.type) ? <Pill label="Già aggiunto" off /> : null}</Row>
+                      <Body small muted>{w.desc}</Body>
+                      <Pressable accessibilityRole="button" accessibilityLabel={`${tl('Aggiungi')} ${tl(w.title)}`} accessibilityHint={tl('Tieni premuto per aggiungerlo alla Dashboard')} delayLongPress={350} onLongPress={() => put(w.type)} style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+                        <View pointerEvents="none" style={{ width: pw, height: ph }}>{show ? <Comp w={prev.w} h={prev.h} pw={pw} ph={ph} /> : <View style={{ flex: 1, borderRadius: 18, backgroundColor: c.color + '14' }} />}</View>
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        );
+      })}
     </Sheet>
   );
 }

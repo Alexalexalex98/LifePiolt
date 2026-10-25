@@ -51,21 +51,8 @@ export default function FitnessPass() {
         ))}
       </Card>
 
-      <Card>
-        <Row><H>{tl('Centri convenzionati ({0})', gyms.length)}</H></Row>
-        {cities.map((city) => (
-          <View key={city} style={{ marginTop: 6 }}>
-            <Text style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.6, marginBottom: 2 }}>{city.toUpperCase()}</Text>
-            {gyms.filter((g) => g.city === city).map((g, i) => (
-              <View key={g.id} style={{ paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderTopColor: t.item }}>
-                <Row><Body bold style={{ flex: 1 }}>{g.name}</Body><Body small muted>{KIND[g.kind]}</Body></Row>
-                <Body small muted>{g.services.join(' · ')}</Body>
-                <Body small muted>{g.hours}</Body>
-              </View>
-            ))}
-          </View>
-        ))}
-        <Btn small ghost style={{ marginTop: 10 }} title="Vedi i dettagli e i prezzi dei centri" onPress={() => go('fitnessGyms')} />
+      <Card accent={FIT} onPress={() => go('fitnessGyms')}>
+        <Row gap={10}><View style={{ flex: 1 }}><H style={{ marginBottom: 2 }}>{tl('Centri convenzionati ({0})', gyms.length)}</H><Body small muted>Tocca per vedere la scheda dei centri: servizi, orari e prezzi.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
       </Card>
 
       <Card accent={FIT}>

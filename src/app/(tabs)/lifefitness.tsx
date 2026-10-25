@@ -6,7 +6,7 @@ import { Text } from '@/components/T';
 
 import { FIT, FitHero, Ring, StatTile } from '@/components/fitness/kit';
 import { QrView } from '@/components/profile/CardFace';
-import { Body, Btn, Card, H, Item, Page, Pill, Row, Sheet, Switch, TabRow } from '@/components/ui';
+import { Body, Btn, Card, H, Item, Page, Pill, Row, IconSeg, Sheet, Switch, TabRow } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { PARTNER_GYMS, type Goal, type Level, type Place } from '@/lib/fitness/data';
@@ -21,6 +21,8 @@ import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { fmtDate } from '@/lib/when';
 import { useApp } from '@/store/app';
+import { useBodyCheck } from '@/store/bodyCheck';
+import { daysToNextPhotos } from '@/lib/fitness/bodyCheck';
 import { useFitness } from '@/store/fitness';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
@@ -30,7 +32,7 @@ const LEVELS: Level[] = ['principiante', 'intermedio', 'avanzato'];
 const PLACES: Place[] = ['casa', 'palestra', 'piscina'];
 const DAYS = ['L', 'M', 'M', 'G', 'V', 'S', 'D'];
 /** La pagina è divisa in quattro parti: oggi, allenamenti, cibo e abbonamento/centri. */
-const TABS = ['Oggi', 'Allenarsi', 'Cibo', 'LifePass e centri'];
+const TABS = ['Oggi', 'Allenarsi', 'Cibo', 'LifePass'];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** LifeFitness: il personal trainer sempre con te e il LifePass per i centri convenzionati e l'analisi dei pasti. */
@@ -51,7 +53,7 @@ export default function LifeFitness() {
   const [draft, setDraft] = useState<FitProfile>(fit.profile ?? { goal: 'tonificare', level: 'principiante', place: 'casa', days: 3, minutes: 30 });
   /* arrivi da «LifePass» dopo aver letto come funziona: solo ora si apre la conferma */
   const { buy: buyParam } = useLocalSearchParams<{ buy?: string }>();
-  useEffect(() => { if (buyParam) { router.setParams({ buy: '' }); setTab('LifePass e centri'); setBuy('ask'); } }, [buyParam]);
+  useEffect(() => { if (buyParam) { router.setParams({ buy: '' }); setTab('LifePass'); setBuy('ask'); } }, [buyParam]);
   useEffect(() => { fit.settle(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const now = Date.now();
   const state = premiumState(fit.sub, now);
@@ -71,6 +73,7 @@ export default function LifeFitness() {
       <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>{options.map((o) => <Pill key={String(o)} label={typeof o === 'number' ? String(o) : cap(String(o))} on={draft[k] === o} onPress={() => setDraft({ ...draft, [k]: o })} />)}</Row>
     </View>
   );
+  const bodyReports = useBodyCheck((s) => s.reports);
   const saveProfile = () => {
     fit.set({ profile: draft, activeProgram: recommend(draft, 1)[0]?.id ?? null });
     setSetup(false); toast('Ho preparato il tuo piano');
@@ -78,7 +81,7 @@ export default function LifeFitness() {
 
   return (
     <Page id="lifefitness" title="LifeFitness">
-          <TabRow options={TABS} value={tab} onChange={setTab} />
+          <IconSeg value={tab} onChange={setTab} options={[{ id: 'Oggi', icon: 'sun', label: 'Oggi' }, { id: 'Allenarsi', icon: 'lifefitness', label: 'Allenarsi' }, { id: 'Cibo', icon: 'meal', label: 'Cibo' }, { id: 'LifePass', icon: 'award', label: 'LifePass' }]} />
 
           {tab === 'Oggi' ? (
             <>
@@ -94,6 +97,23 @@ export default function LifeFitness() {
               ) : <Btn ghost title="Cambia il piano" onPress={() => setSetup(true)} />}
             </FitHero>
           )}
+
+          {fit.profile ? (() => {
+            const d = daysToNextPhotos(bodyReports[0]?.ts);
+            const due = d !== null && d <= 0;
+            return (
+              <Card accent={FIT} onPress={() => go('fitnessBody')}>
+                <Row gap={12}>
+                  <Icon name="camera" size={22} color={FIT} />
+                  <View style={{ flex: 1 }}>
+                    <H style={{ marginBottom: 2 }}>{d === null ? 'Foto del corpo' : due ? 'È ora di nuove foto' : 'Foto del corpo'}</H>
+                    <Body small muted>{d === null ? 'Aggiungi 4 foto: l\'AI vede cosa va bene e cosa migliorare con esercizi e alimentazione.' : due ? 'Sono passate 4 settimane: rifai le 4 foto per vedere i tuoi progressi.' : tl('Prossime foto tra {0} giorni, per vedere i progressi.', d)}</Body>
+                  </View>
+                  <Icon name="chevron" size={18} color={t.muted} />
+                </Row>
+              </Card>
+            );
+          })() : null}
 
           {fit.profile && active ? (
             <Card>
@@ -134,7 +154,6 @@ export default function LifeFitness() {
           {tab === 'Allenarsi' ? (
             <>
           <TabRow options={['Programmi', 'Esercizi']} value={sub} onChange={setSub} />
-          {sub === 'Esercizi' ? <Card accent={FIT} onPress={() => go('fitnessBody')}><Row gap={12}><Icon name="camera" size={22} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 2 }}>Controllo del corpo</H><Body small muted>4 foto: l'AI vede cosa va bene e cosa migliorare con esercizi e alimentazione.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row></Card> : null}
           {sub === 'Esercizi' ? <ExerciseBrowser onCreate={() => setLib(true)} /> : (
             <>
           <H style={{ marginTop: 8 }}>{fit.profile ? 'Programmi per te' : 'Programmi'}</H>
@@ -194,7 +213,7 @@ export default function LifeFitness() {
             </>
           ) : null}
 
-          {tab === 'LifePass e centri' ? (
+          {tab === 'LifePass' ? (
             <>
           {state === 'nessuno' || state === 'scaduto' ? (
             <Card accent={FIT}>
@@ -242,6 +261,11 @@ export default function LifeFitness() {
           <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={6}>
             {NEEDS.map((n) => { const on = (draft.needs ?? []).includes(n.id); return <Pill key={n.id} label={n.label} on={on} onPress={() => setDraft({ ...draft, needs: on ? (draft.needs ?? []).filter((x) => x !== n.id) : [...(draft.needs ?? []), n.id] })} />; })}
           </Row>
+        </View>
+        <View style={{ marginBottom: 10 }}>
+          <Body bold style={{ marginBottom: 2 }}>Foto del corpo (facoltativo)</Body>
+          <Body small muted style={{ marginBottom: 6 }}>4 foto (davanti, dietro, lati): l'AI vede cosa va bene e cosa migliorare con esercizi e alimentazione. Poi ti chiedo di rifarle dopo circa 4 settimane per vedere i progressi.</Body>
+          <Btn small ghost icon="camera" title={bodyReports.length ? 'Aggiungi nuove foto' : 'Aggiungi le 4 foto'} onPress={() => { saveProfile(); go('fitnessBody'); }} />
         </View>
         <Btn title="Prepara il piano" onPress={saveProfile} />
       </Sheet>
