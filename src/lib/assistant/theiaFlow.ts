@@ -18,6 +18,9 @@ import { aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
 import { parseAiActions, splitReply } from './aiActionsCore';
+import { pdfToText } from '@/lib/pdfText';
+import { readUriBytes } from '@/lib/readUri';
+import { useProjects } from '@/store/projects';
 import { CRISIS_RESOURCES, CRISIS_TEXT, detectCrisis } from '@/lib/safety';
 import { isLearnable, recall } from '@/lib/theiaMemory';
 import { useTheiaMemory } from '@/store/theiaMemory';
@@ -167,6 +170,7 @@ export async function readFilesWithAi(question: string, files: { uri: string; mi
     const kind = TIPO.exec(reply)?.[1] ?? '';
     const bill = /^bollett|fattur/i.test(kind);
     const text = reply.replace(TIPO, '').trim();
+    { const pa = parseAiActions(text); if (pa.actions.length) { pushParsed(splitReply(pa.text).join('\n\n') || pa.text, pa.actions); return; } }
     pushAi(text || t('Risposta vuota dal server.'), bill && first ? { ext: { actions: [{ kind: 'bill', label: t('Aggiungi alle bollette'), uri: first.uri, mime: first.mime, name: first.name ?? t('Bolletta') }, { kind: 'dismiss', label: t('No, grazie') }] } } : undefined);
   } catch (e) {
     pushAi(e instanceof Error ? e.message : t('Errore del server AI.'));
@@ -189,6 +193,27 @@ function addInvoicesFromChat(a: Extract<TheiaAction, { kind: 'add-invoices' }>) 
   }
   void refreshBillReminders().catch(() => {});
   pushAi(added ? (added > 1 ? t('Fatto: ho aggiunto {0} fatture alle bollette, con il file collegato.', added) : t('Fatto: ho aggiunto la fattura alle bollette, con il file collegato.')) : t('Queste fatture ci sono già nelle bollette: non le ho duplicate.'), { ext: { actions: [{ kind: 'open', label: t('Apri Finanze'), page: 'lifefinance' }] } });
+}
+
+
+/** «Crea queste task» con un file allegato: se il testo si legge sul telefono, diventa un progetto ad albero (senza AI e senza inviare nulla). */
+const MAKE_TASKS = /\b(crea|creami|creare|aggiung\w*|import\w*|trasform\w*|fai|fammi|metti|inserisc\w*)\b.*\b(task|attivit\w*|compiti|to-?do|progett\w*|voci|lista|elenco)\b/i;
+async function importDocsAsProject(atts: Att[]): Promise<boolean> {
+  let roots = 0; let count = 0; let name = '';
+  for (const a of atts) {
+    if (a.kind !== 'document' || !a.uri) continue;
+    try {
+      const bytes = await readUriBytes(a.uri);
+      const isPdf = a.mime === 'application/pdf' || /\.pdf$/i.test(a.name ?? '') || (bytes[0] === 0x25 && bytes[1] === 0x50);
+      const txt = isPdf ? pdfToText(bytes) : new TextDecoder().decode(bytes);
+      if (!txt.trim()) continue;
+      const r = useProjects.getState().importText(txt);
+      if (r.count) { roots += r.roots; count += r.count; name = name || (a.name ?? ''); }
+    } catch { /* si prova con gli altri file, poi con l'AI */ }
+  }
+  if (!count) return false;
+  pushAi(t('Fatto: dal file {0} ho creato {1} voci ({2} progetti principali) in Progetti, con le sotto-attività a più livelli. Il file resta in LifeDrive e non ho inviato nulla.', name ? `«${name}»` : '', count, roots), { ext: { actions: [{ kind: 'open', label: t('Apri Progetti'), page: 'projects' }, { kind: 'dismiss', label: t('Ok') }] } });
+  return true;
 }
 
 export async function sendTheia(i: SendInput): Promise<void> {
@@ -217,6 +242,7 @@ export async function sendTheia(i: SendInput): Promise<void> {
     store().push({ who: 'me', text, source: 'chat', topic: i.topic, ext: { images: images.length ? images.map((x) => x.uri) : undefined, ...withAtts, lang: i.lang, voice: i.source === 'voice' } });
     saveToDrive(atts);
     for (const x of images) saveMediaToDrive({ uri: x.uri, media: 'photo', from: 'Theia' });
+    if (!images.length && MAKE_TASKS.test(text) && (await importDocsAsProject(atts))) return;
     if (aiOn()) {
       const list = [...images.map((x) => ({ uri: x.uri, mime: x.mime })), ...atts.filter((a) => a.kind === 'document' && a.uri && !a.text).map((a) => ({ uri: a.uri!, mime: a.mime ?? 'application/pdf', name: a.name }))];
       if (list.length) { await readFilesWithAi([text, payload].filter(Boolean).join('\n\n'), list); return; }
@@ -451,8 +477,8 @@ async function teachStep(text: string, command?: string): Promise<void> {
       const cmd = command ?? text;
       const r = await getAssistant().handle(cmd);
       if (!r.handled) return false;
-      pushAi(styleText(r.text, usePrefs.getState().answerStyle), { chips: r.chips });
-      if (r.navigate) go(r.navigate);
+      if (r.navigate) go(r.navigate); // «apri …»: si apre la pagina, senza scrivere in chat
+      else pushAi(styleText(r.text, usePrefs.getState().answerStyle), { chips: r.chips });
       done('cmd', generalize(phrase, cmd), t('faccio «{0}»', cmd));
       return true;
     } catch { return false; }
@@ -483,9 +509,7 @@ async function handlePhrase(text: string): Promise<boolean> {
     }
     case 'cmd': return runLocal(set.target);
     case 'page': {
-      const label = PAGES.find((p) => p.page === set.target)?.label ?? '';
-      go(set.target);
-      pushAi(label ? t('Ecco {0}.', label) : t('Ecco la pagina.'));
+      go(set.target); // si apre la pagina e basta: niente messaggio in chat
       return true;
     }
     case 'act': {
@@ -533,8 +557,8 @@ async function runLocal(command: string): Promise<boolean> {
   try {
     const r = await eng.handle(command);
     if (!r.handled) return false;
-    pushAi(styleText(r.text, usePrefs.getState().answerStyle), { chips: r.chips });
     if (r.navigate) go(r.navigate);
+    else pushAi(styleText(r.text, usePrefs.getState().answerStyle), { chips: r.chips });
     return true;
   } catch {
     pushAi(t('Qualcosa è andato storto. Riprova tra un attimo.'));
@@ -659,7 +683,7 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
     case 'add-invoices': addInvoicesFromChat(action); return;
     case 'kb-forget': useTheiaMemory.getState().forget(action.id); pushAi(t('Fatto: ho dimenticato quella risposta.')); return;
     case 'kb-redo': useTheiaMemory.getState().forget(action.id); await aiChatReply(action.text); return;
-    case 'ai-do': { const r = applyAiAction(action.act); pushAi(r.message); return; }
+    case 'ai-do': { const r = applyAiAction(action.act); if (r.message) pushAi(r.message); return; }
     case 'bill': openBillReview({ uri: action.uri, mime: action.mime, name: action.name }); return;
     case 'read-files': store().push({ who: 'me', text: action.label, source: 'chat' }); await readFilesWithAi(action.text, action.files); return;
     case 'ask-ai': case 'retry':

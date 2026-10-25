@@ -15,7 +15,7 @@ export const getAssistant = () => (engine ??= new Assistant(makeEnv()));
  * 1) le regole locali capiscono i comandi (piano, task, profilo, report...) senza AI e senza rete;
  * 2) se non capiscono, e solo allora, la domanda va al server AI (se c'è) o alle risposte locali di Theia.
  */
-export async function sendToAssistant(text: string, opts: { source?: 'chat' | 'theia'; req?: TheiaRequest; topic?: string } = {}): Promise<AMsg> {
+export async function sendToAssistant(text: string, opts: { source?: 'chat' | 'theia'; req?: TheiaRequest; topic?: string } = {}): Promise<AMsg | null> {
   const store = useAssistant.getState();
   const req = opts.req;
   store.push({ who: 'me', text, source: opts.source ?? 'chat', image: req?.imageUri, topic: opts.topic });
@@ -25,9 +25,8 @@ export async function sendToAssistant(text: string, opts: { source?: 'chat' | 't
     if (!hasContext || eng.pending) {
       const r = await eng.handle(text);
       if (r.handled) {
-        const m = useAssistant.getState().push({ who: 'ai', text: styleText(r.text, usePrefs.getState().answerStyle), chips: r.chips, source: opts.source ?? 'chat' });
-        if (r.navigate) go(r.navigate);
-        return m;
+        if (r.navigate) { go(r.navigate); return null; }
+        return useAssistant.getState().push({ who: 'ai', text: styleText(r.text, usePrefs.getState().answerStyle), chips: r.chips, source: opts.source ?? 'chat' });
       }
       // senza server non invento risposte: dico cosa so fare davvero
       if (!theiaOnline) return useAssistant.getState().push({ who: 'ai', text: r.text, chips: r.chips, source: opts.source ?? 'chat' });

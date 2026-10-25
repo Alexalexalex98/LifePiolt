@@ -82,6 +82,6 @@ export function applyAiAction(a: AiAct): { ok: boolean; message: string } {
     }
     case 'save_goal': useMonthPlan.getState().addGoal({ name: a.name, kind: 'purchase', total: a.total, targetYm: a.month, saved: a.saved }); return { ok: true, message: t('Fatto: obiettivo «{0}» aggiunto al Piano del mese.', a.name) };
     case 'bill_spread': { const n = a.perMonth ? monthsNeeded(a.total, a.perMonth) : a.months!; useMonthPlan.getState().addPlan({ name: a.name, total: a.total, startYm: addMonths(new Date().toISOString().slice(0, 7), 1), months: n }); return { ok: true, message: t('Fatto: «{0}» è distribuita su {1} mesi nel Piano del mese.', a.name, n) }; }
-    case 'open': go(a.page); return { ok: true, message: t('Ecco la pagina.') };
+    case 'open': go(a.page); return { ok: true, message: '' };
   }
 }

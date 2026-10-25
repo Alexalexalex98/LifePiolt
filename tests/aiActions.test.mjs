@@ -295,3 +295,8 @@ test('le varianti dei modelli aperti: senza AZIONE e con un elenco', () => {
   const b = parseAiActions('Fatto [[AZIONE [{"type":"open","page":"plan"},{"type":"note_add","text":"x"}]]]');
   assert.equal(b.actions.length, 2); assert.equal(b.text, 'Fatto');
 });
+
+test('comando «crea queste task» con un file: riconosciuto; testo normale no', () => {
+  const MAKE = /\b(crea|creami|creare|aggiung\w*|import\w*|trasform\w*|fai|fammi|metti|inserisc\w*)\b.*\b(task|attivit\w*|compiti|to-?do|progett\w*|voci|lista|elenco)\b/i;
+  assert.ok(MAKE.test('Crea queste task')); assert.ok(MAKE.test('trasforma il file in un progetto')); assert.ok(!MAKE.test('cosa dice il documento?'));
+});

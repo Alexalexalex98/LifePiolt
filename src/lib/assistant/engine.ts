@@ -375,7 +375,11 @@ export class Assistant {
     const { text: rawP, place } = this.splitPlace(raw0);
     const raw = rawP.replace(impRe, ' ').replace(/\s+/g, ' ').trim();
     const w = parseWhen(raw, this.env.now());
-    const title = extractTitle(raw, w.spans, /\b(aggiungi|metti|inserisci|segna|programma|pianifica|fissa|prenota|crea|organizza|imposta|ricordami|ogni|tutti|tutte|i|le|giorni|giorno|settimana|settimane|sera|mattina|pomeriggio|al piano|nel piano|ho|per|il|un|una|uno|lo|la|tra|fra|ore|ora|minuti|minuto|due|tre)\b|\bevery (day|week|evening|morning|afternoon|night|weekday)\b|\b(every|daily|weekly)\b/g);
+    const STRIP = /\b(aggiungi|metti|inserisci|segna|programma|pianifica|fissa|prenota|crea|organizza|imposta|ricordami|ogni|tutti|tutte|i|le|giorni|giorno|settimana|settimane|sera|mattina|pomeriggio|al piano|nel piano|ho|per|il|un|una|uno|lo|la|tra|fra|ore|ora|minuti|minuto|due|tre)\b|\bevery (day|week|evening|morning|afternoon|night|weekday)\b|\b(every|daily|weekly)\b/g;
+    /* «… con il nome Colloquio Paradiso»: il titolo e' esattamente quello che viene dopo, senza «con il nome» */
+    const named = raw.match(/\b(?:con\s+(?:il\s+)?(?:nome|titolo)|dal\s+nome|di\s+nome|con\s+nome|chiamat[oa]|intitolat[oa]|named|called|titled)\s*[:«"“']?\s*(.+?)[»"”']?\s*$/i);
+    const explicit = named ? extractTitle(named[1], parseWhen(named[1], this.env.now()).spans, STRIP) : '';
+    const title = explicit || extractTitle(raw, w.spans, STRIP);
     const recur = recurring ? (/\bogni (giorno|sera|mattina|pomeriggio)\b|\btutti i giorni\b|\btutte le (sere|mattine)\b|\bevery (day|evening|morning|afternoon|night|weekday)\b|\bdaily\b/.test(norm(raw)) ? 'daily' : 'weekly') : undefined;
     let day = w.day;
     const rel = this.relativeTime(raw0);

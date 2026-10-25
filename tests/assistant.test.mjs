@@ -375,3 +375,9 @@ test('ogni comando suggerito da Theia viene capito (motore o guida), non cade ne
   for (const q of ['Quanti LifePoints ho?', 'quanti lp ho', 'qual è il mio saldo lifepoints', 'Come va il mio umore?', 'come sto di umore']) assert.equal((await new Assistant(env).handle(q)).handled, true, q);
   assert.equal((await new Assistant(env).handle('invia 10 lifepoints a giulia')).text.includes('Hai 10 LifePoints'), false);
 });
+
+test('«con il nome X» dà il titolo esatto, senza «nome»', async () => {
+  const { env, st } = mkEnv(); const a = new Assistant(env);
+  await a.handle('Aggiungi un appuntamento domani alle 10 con il nome Colloquio Paradiso');
+  assert.ok(st.events['2026-10-08']?.some((e) => e.title === 'Colloquio Paradiso' && e.time === '10:00'), JSON.stringify(st.events));
+});

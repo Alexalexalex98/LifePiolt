@@ -57,7 +57,7 @@ function execute(a: ActionDef, s: Slots, say: Say) {
       say(t('Fatto: messaggio inviato a {0}.', s.to), { ext: { actions: [{ kind: 'open', label: t('Apri la chat'), page: 'conversationPage', params: { id: `dm:${s.to}` } }] } });
       return;
     }
-    case 'open': { go(s.page); say(t('Ecco la pagina.')); return; }
+    case 'open': { go(s.page); return; }
   }
 }
 
