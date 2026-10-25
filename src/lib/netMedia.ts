@@ -8,21 +8,15 @@ const READ_FAIL = /FailedToRead|representation|heic|PHPhotos|3164|couldn.?t be c
 const READ_MSG = 'Non riesco a leggere questa foto dal telefono. Di solito succede quando la memoria è quasi piena o la foto è su iCloud e non è ancora scaricata: libera un po\' di spazio (Impostazioni > Generali > Spazio iPhone), aspetta che si scarichi e riprova, oppure scegline un\'altra.';
 /** Apre la libreria; se la lettura della foto fallisce (errori di Foto, iCloud, poco spazio) riprova senza conversione e poi con il file originale. */
 async function launchLibrary(opts: ImagePicker.ImagePickerOptions): Promise<ImagePicker.ImagePickerResult> {
-  const modes = [ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current, ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Automatic];
+  /* prima la strada piu' semplice (nessuna conversione imposta dall'app); solo se la lettura fallisce, una seconda scelta con il file originale */
+  const tries: Partial<ImagePicker.ImagePickerOptions>[] = [{}, { preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current, quality: 1 }];
   let last: unknown;
-  for (let i = 0; i < modes.length; i++) {
-    try {
-      return await ImagePicker.launchImageLibraryAsync({ ...opts, preferredAssetRepresentationMode: modes[i], ...(i > 0 ? { quality: 1 } : {}) });
-    } catch (e) {
-      last = e;
-      if (!READ_FAIL.test(e instanceof Error ? e.message : String(e))) break;
-    }
+  for (const extra of tries) {
+    try { return await ImagePicker.launchImageLibraryAsync({ ...opts, ...extra }); }
+    catch (e) { last = e; if (!READ_FAIL.test(e instanceof Error ? e.message : String(e))) break; }
   }
-  /* ultimo tentativo, il piu' semplice possibile (nessuna opzione speciale): se anche questo fallisce, si dice il motivo vero */
-  try { return await ImagePicker.launchImageLibraryAsync({ mediaTypes: opts.mediaTypes, allowsMultipleSelection: opts.allowsMultipleSelection, selectionLimit: opts.selectionLimit }); }
-  catch (e) { last = e; }
   const why = last instanceof Error ? last.message : String(last);
-  throw new Error(`${READ_FAIL.test(why) ? READ_MSG : 'Non riesco ad aprire la libreria foto.'} (${why.slice(0, 120)})`);
+  throw new Error(`${READ_FAIL.test(why) ? READ_MSG : 'Non riesco ad aprire la libreria foto.'} (${why.slice(0, 160)})`);
 }
 
 export type NetMedia = { media: 'photo' | 'video'; uri: string; name?: string; durationMs?: number };
