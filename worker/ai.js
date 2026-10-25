@@ -131,16 +131,65 @@ function wikiRes(text, lang) {
   } catch { return []; }
 }
 const SKIP_WEB = /^\s*(ciao|salve|grazie|ok|s[iì]|no|va bene|perfetto)\b[^?]{0,20}$/i;
-/** Decide se serve cercare sul web e con quale frase GENERICA (niente nomi, importi, salute o altri dati personali). */
+/** Decide se serve cercare sul web e con quali frasi GENERICHE (fino a 3, da angoli diversi; niente nomi, importi, salute o altri dati personali). */
 export async function planSearch(env, q) {
   if (!q || q.length < 10 || SKIP_WEB.test(q)) return null;
   try {
-    const { text } = await run(env, LITE, { messages: msgs('Decidi se per rispondere a questa domanda serve cercare sul web: fatti aggiornati, luoghi, orari, prezzi, notizie, eventi, procedure, cose che potresti non sapere o non ricordare con certezza. NON cercare per: saluti, conversazione, calcoli, richieste sui dati personali dell\'utente (soldi, salute, agenda, task), consigli generali, cose che sai con certezza. Rispondi SOLO con JSON: {"search":true|false,"query":"frase di ricerca breve"}. La query deve essere generica e anonima: niente nomi di persone private, importi, indirizzi, dati di salute o finanziari.', String(q).slice(0, 600)) }, 120);
+    const { text } = await run(env, LITE, { messages: msgs('Decidi se per rispondere a questa domanda serve cercare sul web: fatti aggiornati, luoghi, orari, prezzi, notizie, eventi, procedure, persone pubbliche, aziende, scienza, cose che potresti non sapere o non ricordare con certezza. NON cercare per: saluti, conversazione, calcoli, richieste sui dati personali dell\'utente (soldi, salute, agenda, task), consigli generali, cose che sai con certezza. Rispondi SOLO con JSON: {"search":true|false,"queries":["frase di ricerca 1","frase 2","frase 3"]}: da 1 a 3 ricerche brevi che guardano il tema da angoli diversi (per esempio una in italiano e una in inglese, o una sul fatto e una sull\'esito). Le query devono essere generiche e anonime: niente nomi di persone private, importi, indirizzi, dati di salute o finanziari.', String(q).slice(0, 600)) }, 200);
     const m = /\{[\s\S]*\}/.exec(text);
     const j = m ? JSON.parse(m[0]) : null;
-    return j?.search === true && typeof j.query === 'string' && j.query.trim() ? j.query.trim().slice(0, 160) : null;
+    if (j?.search !== true) return null;
+    const list = (Array.isArray(j.queries) ? j.queries : [j.query]).filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim().slice(0, 160)).slice(0, 3);
+    return list.length ? list : null;
   } catch { return null; }
 }
+
+/* ---------- affidabilita' delle fonti (come un buon motore di risposte: si fidano di piu' agenzie, enti, enciclopedie e testate note) ---------- */
+const HIGH = /(^|\.)(wikipedia\.org|britannica\.com|reuters\.com|apnews\.com|bbc\.(com|co\.uk)|ansa\.it|agi\.it|adnkronos\.com|ilsole24ore\.com|corriere\.it|repubblica\.it|lastampa\.it|ilpost\.it|rainews\.it|rai\.it|theguardian\.com|nytimes\.com|washingtonpost\.com|aljazeera\.com|france24\.com|dw\.com|euronews\.com|lemonde\.fr|elpais\.com|bloomberg\.com|ft\.com|economist\.com|nature\.com|science\.org|thelancet\.com|nih\.gov|who\.int|un\.org|europa\.eu|nasa\.gov|iss\.it|salute\.gov\.it|istat\.it|oecd\.org|worldbank\.org|imf\.org)$|(^|\.)(gov|edu)(\.[a-z]{2})?$|\.gov\.[a-z]{2}$|\.gob\.[a-z]{2}$/i;
+const LOW = /(^|\.)(facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|pinterest\.[a-z.]+|quora\.com|reddit\.com|yahoo\.com|answers\.[a-z.]+|blogspot\.[a-z.]+|wordpress\.com|tumblr\.com|medium\.com|substack\.com|telegram\.(me|org)|youtube\.com|linkedin\.com|ebay\.[a-z.]+|alibaba\.com|aliexpress\.com)$/i;
+/** 3 fonte molto affidabile, 2 normale, 0.5 social, forum, blog personali, contenuti non verificabili. */
+export function credibility(url) {
+  const h = host(url);
+  if (!h) return 1;
+  if (LOW.test(h)) return 0.5;
+  if (HIGH.test(h)) return 3;
+  return 2;
+}
+/** Ordina i risultati per affidabilita' della fonte e freschezza, toglie i doppioni e le fonti poco affidabili se ce ne sono abbastanza di meglio. */
+export function rankResults(list, now = Date.now()) {
+  const seen = new Set();
+  const uniq = list.filter((x) => { const k = (x.url.split('#')[0].replace(/\/$/, '') + '|' + x.title.toLowerCase().slice(0, 50)); if (seen.has(k)) return false; seen.add(k); return true; });
+  const scored = uniq.map((x, i) => {
+    const days = x.when ? (now - new Date(x.when).getTime()) / 86400000 : null;
+    const fresh = days !== null && days >= 0 ? (days <= 3 ? 0.8 : days <= 14 ? 0.4 : 0) : 0;
+    return { ...x, trust: credibility(x.url), score: credibility(x.url) + fresh - i * 0.01 };
+  }).sort((a, b) => b.score - a.score);
+  const good = scored.filter((x) => x.trust >= 2);
+  return good.length >= 4 ? scored.filter((x) => x.trust >= 1) : scored;
+}
+/** Legge il testo di una pagina tramite un lettore pubblico (non pesa sul server): le prime righe utili, al massimo `max` caratteri. */
+export async function readPage(url, fetcher = fetch, max = 2200) {
+  if (/news\.google\.com/.test(url)) return '';
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 6000);
+  try {
+    const r = await fetcher(`https://r.jina.ai/${url}`, { headers: { 'user-agent': UA, accept: 'text/plain', 'x-return-format': 'text' }, signal: ac.signal });
+    if (!r.ok) return '';
+    const t = await r.text();
+    const body = t.includes('Markdown Content:') ? t.split('Markdown Content:').slice(1).join(' ') : t;
+    return body.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[#*_>`|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+  } catch { return ''; } finally { clearTimeout(timer); }
+}
+/** Ricerca completa: piu' ricerche in parallelo, classifica per affidabilita', legge le pagine migliori. */
+export async function research(queries, fetcher = fetch) {
+  const lists = await Promise.all(queries.map((qq) => webSearch(qq, fetcher)));
+  const ranked = rankResults(lists.flat()).slice(0, 10);
+  const toRead = ranked.filter((x) => !/news\.google\.com/.test(x.url) && !/wikipedia\.org/.test(x.url)).slice(0, 3);
+  const texts = await Promise.all(toRead.map((x) => readPage(x.url, fetcher)));
+  toRead.forEach((x, i) => { if (texts[i] && texts[i].length > 200) x.page = texts[i]; });
+  return ranked;
+}
+const TRUST_LABEL = (n) => (n >= 3 ? 'fonte molto affidabile' : n >= 2 ? 'fonte normale' : 'fonte poco affidabile (social, forum, blog)');
 const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
 
 const msgs = (system, user, extra = []) => [{ role: 'system', content: system }, ...extra, { role: 'user', content: user }];
@@ -162,17 +211,18 @@ async function handle(path, b, env, lite = false) {
     let message = String(b.message ?? '').slice(0, 24000);
     let sources = [];
     if (b.web !== false && b.q) {
-      const query = await planSearch(env, String(b.q));
-      if (query) {
-        const found = await webSearch(query, env.__fetch ?? fetch);
+      const queries = await planSearch(env, String(b.q));
+      if (queries) {
+        const found = await research(queries, env.__fetch ?? fetch);
         if (found.length) {
-          sources = found.slice(0, 6).map((x) => host(x.url)).filter(Boolean);
-          message += `\n\nRisultati di una ricerca sul web per «${query}» (le notizie hanno la data: dai la precedenza alle più recenti e confronta più testate; riporta i fatti e l'esito se è nei risultati; se non bastano dillo con onestà; non inventare):\n` + found.map((x, i) => `[${i + 1}] ${x.title} (${host(x.url)}): ${x.snippet}`).join('\n');
+          const used = found.slice(0, 8);
+          sources = used.map((x) => host(x.url)).filter(Boolean);
+          message += `\n\nRICERCA SUL WEB (oggi e' ${new Date().toISOString().slice(0, 10)}; ricerche: ${queries.map((x) => `«${x}»`).join(', ')}). Come rispondere: usa SOLO queste fonti per i fatti; scarta quelle irrilevanti rispetto alla domanda; dai piu' peso alle fonti affidabili e alle piu' recenti; un fatto e' solido se lo confermano almeno due fonti indipendenti, altrimenti dillo ("secondo una sola fonte"); se le fonti si contraddicono o sono dubbie o poco affidabili, dillo con chiarezza e non presentare come certo cio' che non lo e'; diffida di titoli sensazionalistici e di notizie senza fonte; indica fra parentesi quadre il numero delle fonti che usi, per esempio [1][3]; se non trovi la risposta dillo onestamente senza inventare. Rispondi per primo alla domanda, in modo diretto.\n` + used.map((x, i) => `[${i + 1}] ${x.title} (${host(x.url)}, ${TRUST_LABEL(x.trust)}${x.when ? `, ${x.when}` : ''}): ${x.page ? x.page : x.snippet}`).join('\n');
         }
       }
     }
     const { text } = await run(env, TEXT, { messages: msgs(SYSTEM, message, history) }, cap(1500));
-    return { reply: sources.length ? `${text}\n\nFonti: ${[...new Set(sources)].join(', ')}.` : text };
+    return { reply: sources.length ? `${text}\n\nFonti: ${sources.map((h, i) => `[${i + 1}] ${h}`).join(', ')}.` : text };
   }
   if (path === '/vision') {
     if (String(b.mime || '').includes('pdf')) {

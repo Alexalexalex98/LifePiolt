@@ -93,12 +93,12 @@ test('/chat con domanda di fatti: cerca sul web, risponde con le fonti; saluti e
   const seen = [];
   const ai = async (m, input) => {
     const last = input.messages.at(-1).content, sys = input.messages[0].content;
-    if (/Decidi se/.test(sys)) return { response: /louvre/i.test(last) ? '{"search":true,"query":"louvre ingresso migliore"}' : '{"search":false}' };
+    if (/Decidi se/.test(sys)) return { response: /louvre/i.test(last) ? '{"search":true,"queries":["louvre ingresso migliore"]}' : '{"search":false}' };
     seen.push(last); return { response: 'Meglio il Carrousel.' };
   };
   const env = { ...envWith(ai), __fetch: async () => new Response(DDG) };
   const a = await (await worker.fetch(req('/chat', { message: 'PROMPT', q: 'In che ingresso sarebbe meglio entrare nel Louvre?' }), env)).json();
-  assert.match(a.reply, /Meglio il Carrousel\./); assert.match(a.reply, /Fonti: louvre\.fr, example\.org\./); assert.match(seen[0], /Risultati di una ricerca sul web/);
+  assert.match(a.reply, /Meglio il Carrousel\./); assert.match(a.reply, /Fonti: \[1\] louvre\.fr, \[2\] example\.org\./); assert.match(seen[0], /RICERCA SUL WEB/);
   const b = await (await worker.fetch(req('/chat', { message: 'PROMPT', q: 'quanto ho speso ieri?' }), env)).json();
   assert.equal(b.reply, 'Meglio il Carrousel.'); assert.doesNotMatch(seen[1], /ricerca sul web/);
   const c = await (await worker.fetch(req('/chat', { message: 'PROMPT', q: 'ciao', web: true }), env)).json();
@@ -118,4 +118,21 @@ test('ricerca web: le notizie (RSS) hanno data e testata e vengono prima, le piÃ
   const f = async (url) => (String(url).includes('news.google') ? new Response(rss) : new Response('', { status: 503 }));
   const w = await webSearch('elezioni serbia', f);
   assert.equal(w[0].url, 'https://example.com/a');
+});
+
+test('ricerca: affidabilita delle fonti, ordine, pagine lette e istruzioni anti fake news', async () => {
+  const { credibility, rankResults, research } = await import('../worker/ai.js');
+  assert.equal(credibility('https://www.ansa.it/x'), 3);
+  assert.equal(credibility('https://it.wikipedia.org/wiki/X'), 3);
+  assert.equal(credibility('https://www.salute.gov.it/a'), 3);
+  assert.equal(credibility('https://www.facebook.com/p'), 0.5);
+  assert.equal(credibility('https://blog-qualunque.example/p'), 2);
+  const l = [{ url: 'https://www.facebook.com/a', title: 'Shock' , snippet: '' }, { url: 'https://blog1.example/a', title: 'Uno', snippet: '' }, { url: 'https://www.reuters.com/a', title: 'Due', snippet: '' }, { url: 'https://blog2.example/a', title: 'Tre', snippet: '' }, { url: 'https://blog3.example/a', title: 'Quattro', snippet: '' }, { url: 'https://www.reuters.com/a', title: 'Due', snippet: '' }];
+  const r = rankResults(l);
+  assert.equal(r[0].url, 'https://www.reuters.com/a');
+  assert.equal(r.filter((x) => x.url.includes('reuters')).length, 1);
+  assert.ok(!r.some((x) => x.url.includes('facebook')));
+  const f = async (url) => (String(url).startsWith('https://r.jina.ai/') ? new Response('Title: x\nMarkdown Content:\n' + 'Il testo della pagina letta. '.repeat(20)) : new Response(DDG));
+  const res = await research(['louvre'], f);
+  assert.ok(res.some((x) => x.page && /testo della pagina letta/.test(x.page)));
 });

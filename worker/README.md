@@ -18,3 +18,7 @@ Cloudflare Worker con **modelli aperti su Workers AI** (niente Google). Pubblica
 ## Ricerca sul web
 - Per `/chat` l'app manda anche `q` (la sola domanda) e `web` (attivo di base, si spegne in Intelligenza di Theia). Un primo passaggio leggero decide se serve cercare e produce una frase GENERICA (niente nomi, importi, salute); poi si cerca su DuckDuckGo (pagina semplice) e, se non risponde, su Wikipedia (it, poi en). I risultati (titolo + frase) vanno al modello, che risponde con «Fonti: sito, sito».
 - Non si aprono le pagine dei risultati (la CPU dei Worker gratuiti e' limitata). Non provato dal vivo dal mio ambiente: serve un controllo dal telefono. Se DuckDuckGo blocca l'indirizzo del Worker, resta Wikipedia.
+
+## Ricerca sul web (stile motore di risposte)
+
+Theia pianifica fino a 3 ricerche generiche e anonime, le esegue in parallelo (Google News, Bing News, DuckDuckGo, Wikipedia), classifica le fonti per affidabilita' (agenzie, enti, enciclopedie in alto; social, forum, blog in basso) e freschezza, legge il testo delle pagine migliori tramite il lettore pubblico r.jina.ai e risponde citando [1][2]. Se le fonti si contraddicono o sono poco affidabili lo dice. Nessuna chiave richiesta.
