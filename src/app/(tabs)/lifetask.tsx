@@ -23,8 +23,9 @@ export default function LifeTask() {
   return (
     <Page id="lifetask" title="LifeTask" back>
       <Card><Row><Stat l="Attivi" v={active} /><Stat l="Completati" v={done} /><Stat l="Ore pianificate" v={`${hours}h`} /></Row></Card>
-      <Row style={{ justifyContent: 'flex-start', marginBottom: 14 }} gap={8}><Btn small ghost title="+ Task" onPress={() => setSheet(true)} /><Btn small icon="tasks" title="Progetti ad albero" onPress={() => go('projects')} /></Row>
-      <Seg options={['Tutti', 'Attivi', 'Completati']} value={filter} onChange={setFilter} />
+      <Row style={{ justifyContent: 'flex-start', marginBottom: 8 }} gap={8}><Btn small icon="plus" title="Nuovo task" onPress={() => setSheet(true)} /><Btn small ghost icon="tasks" title="Progetti con sotto-attività" onPress={() => go('projects')} /></Row>
+      <Body small muted style={{ marginBottom: 12 }}>Tocca il quadratino per segnare un task come fatto. Con i tre puntini scegli timer, scadenza, urgenza o elimini. «Progetti con sotto-attività» serve per elenchi grandi a più livelli, importabili da un file.</Body>
+      <Seg plain options={['Tutti', 'Attivi', 'Completati']} value={filter} onChange={setFilter} />
       <Card>
         {list.length === 0 ? <Empty text="Ancora nessun task qui: aggiungine uno quando vuoi." /> : list.map((t) => <TaskRow key={t.id} task={t} onOpen={setOpen} />)}
       </Card>

@@ -51,7 +51,10 @@ const driveRows: [string, string, string, number][] = [
   ['Foto serata con gli amici.jpg', '4.5 MB', 'Foto', 2], ['Foto viaggio Zermatt.jpg', '6.1 MB', 'Foto', 1], ['Foto domenica al parco.jpg', '3.3 MB', 'Foto', 5],
   ['Foto weekend in famiglia.jpg', '2.7 MB', 'Foto', 0],
 ];
-export const demoDrive = (): DriveFile[] => driveRows.map(([n, s, folder, ago]) => ({ id: uid(), n, s, folder, date: shortDate(ago) }));
+/** Nessun file o foto finta: LifeDrive mostra solo quello che carichi tu. I nomi servono a ripulire i file di prova rimasti da versioni precedenti. */
+export const demoDrive = (): DriveFile[] => [];
+const DEMO_DRIVE_NAMES = new Set(driveRows.map((r) => r[0]));
+export const isFakeDriveFile = (f: { n: string; uri?: string }): boolean => !f.uri && DEMO_DRIVE_NAMES.has(f.n);
 
 /** Plan dei prossimi 7 giorni: impegni quotidiani con fasce libere evidenti (pomeriggi e sere in parte vuoti). */
 export const demoEvents = (): Record<string, CalEvent[]> => {

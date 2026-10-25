@@ -449,11 +449,11 @@ const LABEL_ICONS: Record<string, string> = {
 };
 const baseLabel = (o: string) => o.replace(/\s·\s.*$/, '');
 
-export function Seg({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
+export function Seg({ options, value, onChange, plain }: { options: string[]; value: string; onChange: (v: string) => void; /** solo testo, senza icone */ plain?: boolean }) {
   const t = useTheme();
   const icons = options.map((o) => LABEL_ICONS[baseLabel(o)]);
   /* con 2-5 voci che hanno tutte un'icona: scheda a icone, la scelta mostra anche il nome */
-  if (options.length >= 2 && options.length <= 5 && icons.every(Boolean)) {
+  if (!plain && options.length >= 2 && options.length <= 5 && icons.every(Boolean)) {
     return <IconSeg value={value} onChange={onChange} options={options.map((o, i) => ({ id: o, icon: icons[i], label: o }))} />;
   }
   return (

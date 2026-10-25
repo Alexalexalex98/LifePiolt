@@ -23,15 +23,17 @@ import { t as tl, translateText } from '@/i18n/core';
 import { fmtDate } from '@/i18n/format';
 
 /* ---------- riga task (Plan e LifeTask) ---------- */
+
+function MoreBtn({ onPress }: { onPress: () => void }) {
+  const t = useTheme();
+  return <Pressable accessibilityRole="button" accessibilityLabel={tl('Altre azioni')} onPress={onPress} hitSlop={10} style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}><Icon name="more" size={20} color={t.muted} /></Pressable>;
+}
+
 export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
   const t = useTheme();
   const { toggleTask, delTask, restoreTask, patchTask } = useLife();
   const [actOpen, setActOpen] = useState(false);
-  const urgentBtn = (
-    <Pressable onPress={() => { patchTask(task.id, { urgent: !task.urgent }); toast(!task.urgent ? 'Segnato urgente: lo propongo per primo' : 'Non più urgente'); }} hitSlop={8} accessibilityLabel={translateText(task.urgent ? 'Togli urgenza' : 'Segna come urgente')}>
-      <Icon name="alert" size={19} color={task.urgent ? t.danger : t.muted} />
-    </Pressable>
-  );
+  const [menuOpen, setMenuOpen] = useState(false);
   const dueLabel = task.due ? (() => { const d = Math.round((new Date(task.due + 'T00:00:00').getTime() - new Date(dayKey() + 'T00:00:00').getTime()) / 86400000); return d < 0 ? 'in ritardo' : d === 0 ? 'scade oggi' : d === 1 ? 'scade domani' : `scade tra ${d} giorni`; })() : null;
   const cycleDue = () => {
     // tocco: nessuna scadenza -> oggi -> domani -> tra 3 giorni -> tra una settimana -> nessuna
@@ -43,16 +45,22 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
     patchTask(task.id, { due: next == null ? undefined : dayKey(d) });
     toast(next == null ? 'Scadenza tolta' : next === 0 ? 'Scade oggi' : next === 1 ? 'Scade domani' : `Scade tra ${next} giorni`);
   };
-  const dueBtn = (
-    <Pressable onPress={cycleDue} hitSlop={8} accessibilityLabel={translateText(task.due ? 'Cambia scadenza' : 'Imposta scadenza')}>
-      <Icon name="calendar" size={18} color={task.due ? t.accent : t.muted} />
-    </Pressable>
-  );
   const remove = () => {
     let removed: Task | null = null;
     let idx = -1;
     confirmDelete(tl('il task «{0}»', task.t), () => { idx = useLife.getState().tasks.findIndex((x) => x.id === task.id); removed = delTask(task.id); }, () => { const r = removed as Task | null; if (r) restoreTask(r, idx); }, { undoMessage: 'Task eliminato' });
   };
+  const running = isRunning(task.timer);
+  const menuSheet = (
+    <Sheet visible={menuOpen} title={task.t} onClose={() => setMenuOpen(false)}>
+      <View style={{ gap: 8 }}>
+        {task.subtasks?.length || task.done ? null : <Btn icon={running ? 'pause' : 'play'} title={running ? 'Apri il timer in corso' : 'Concentrati su questo task (timer)'} onPress={() => { setMenuOpen(false); go('focus', { id: task.id }); }} />}
+        <Btn ghost icon="calendar" title={task.due ? `Scadenza: ${dueLabel}: tocca per cambiarla` : 'Imposta una scadenza (oggi, domani, tra 3 giorni…)'} onPress={cycleDue} />
+        <Btn ghost icon="alert" title={task.urgent ? 'Togli l’urgenza' : 'Segna come urgente: lo propongo per primo'} onPress={() => { patchTask(task.id, { urgent: !task.urgent }); toast(!task.urgent ? 'Segnato urgente: lo propongo per primo' : 'Non più urgente'); }} />
+        <Btn ghost danger icon="trash" title="Elimina il task" onPress={() => { setMenuOpen(false); remove(); }} />
+      </View>
+    </Sheet>
+  );
   if (task.subtasks?.length) {
     const dc = task.subtasks.filter((s) => s.done).length;
     const totalH = task.subtasks.reduce((s, x) => s + x.h, 0);
@@ -62,21 +70,14 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
           <Body style={{ flex: 1, textDecorationLine: dc === task.subtasks.length ? 'line-through' : 'none', opacity: dc === task.subtasks.length ? 0.45 : 1 }}>{task.t}</Body>
           <Row gap={8}>
             <Body small muted>{dc}/{task.subtasks.length} · {totalH}h</Body>
-            {dueBtn}
-            {urgentBtn}
-            <XBtn onPress={remove} />
+            <MoreBtn onPress={() => setMenuOpen(true)} />
           </Row>
         </Row>
+        {menuSheet}
       </Item>
     );
   }
-  const running = isRunning(task.timer);
   const smart = taskIntent(task.t).kind !== 'none';
-  const timerBtn = task.done ? null : (
-    <Pressable onPress={() => go('focus', { id: task.id })} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText(running ? 'Apri il timer in corso' : 'Concentrati su questo task')}>
-      <Icon name={running ? 'pause' : 'play'} size={18} color={running ? t.accent : t.muted} fill={running ? t.accent : 'none'} />
-    </Pressable>
-  );
   return (
     <Item>
       <Row>
@@ -89,18 +90,17 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
           <Pressable style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }} onPress={() => { if (smart) { setActOpen(true); return; } const n = toggleTask(task.id, !task.done); if (n) toast(n); }} accessibilityRole="button" accessibilityLabel={smart ? tl('Apri le azioni di {0}', task.t) : task.t}>
           <Body style={{ flex: 1, textDecorationLine: task.done ? 'line-through' : 'none', opacity: task.done ? 0.45 : 1 }}>
             {task.t}
+            {task.urgent ? <Text style={{ color: t.danger, fontSize: 12, fontWeight: '700' }}>{'  · '}{tl('Urgente')}</Text> : null}
             {dueLabel ? <Text style={{ color: task.due && dueLabel === 'in ritardo' ? t.danger : t.muted, fontSize: 12 }}>{'  · '}{dueLabel}</Text> : null}
             {task.recurring && task.recurring !== 'none' ? <Text style={{ color: t.muted, fontSize: 12 }}>{'  · '}{task.recurring === 'daily' ? 'ogni giorno' : 'ogni settimana'}</Text> : null}
           </Body>
           {smart ? <Icon name="sparkle" size={14} color={t.accent} /> : null}
           </Pressable>
         </View>
-        {timerBtn}
-        {dueBtn}
-        {urgentBtn}
-        <Btn small ghost title="" label="Rimuovi" icon="x" onPress={remove} />
+        <MoreBtn onPress={() => setMenuOpen(true)} />
       </Row>
       {smart ? <TaskActionSheet taskId={actOpen ? task.id : null} onClose={() => setActOpen(false)} /> : null}
+      {menuSheet}
     </Item>
   );
 }

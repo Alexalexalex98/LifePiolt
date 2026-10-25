@@ -3,7 +3,8 @@ import { openDocument } from '@/lib/openDoc';
 import { go } from '@/lib/nav';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, Share, View } from 'react-native';
 import { Text } from '@/components/T';
 
@@ -32,6 +33,14 @@ export default function LifeDrive() {
   const [tab, setTab] = useState('File');
   const [folder, setFolder] = useState('Tutti');
   const [preview, setPreview] = useState<DriveFile | null>(null);
+  const [hl, setHl] = useState<string | null>(null);
+  /* da «Apri documento» / «Mostra» / ricerca: si arriva sul file giusto, evidenziato e aperto */
+  const params = useLocalSearchParams<{ file?: string; folder?: string }>();
+  useEffect(() => {
+    const f = params.file ? drive.find((x) => x.id === params.file) : undefined;
+    if (f) { setTab(f.folder === 'Foto' ? 'Foto' : 'File'); setFolder('Tutti'); setQ(''); setHl(f.id); setPreview(f); const h = setTimeout(() => setHl(null), 4000); return () => clearTimeout(h); }
+    if (params.folder && fileFolders.includes(params.folder)) { setTab('File'); setFolder(params.folder); }
+  }, [params.file, params.folder]); // eslint-disable-line react-hooks/exhaustive-deps
   const [upload, setUpload] = useState(false);
   const [name, setName] = useState('');
   const [shareTo, setShareTo] = useState<DriveFile | null>(null);
@@ -87,7 +96,7 @@ export default function LifeDrive() {
     const g = gradients[i % gradients.length];
     return (
       <Pressable onPress={() => setPreview(f)} style={{ width: '33.33%', padding: 1.5 }}>
-        <View style={{ aspectRatio: 1, borderRadius: 6, overflow: 'hidden' }}>
+        <View style={{ aspectRatio: 1, borderRadius: 6, overflow: 'hidden', borderWidth: hl === f.id ? 3 : 0, borderColor: t.accent }}>
           {f.uri ? <Image source={{ uri: f.uri }} style={{ flex: 1 }} /> : <LinearGradient colors={g} style={{ flex: 1 }} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />}
         </View>
       </Pressable>
@@ -116,7 +125,7 @@ export default function LifeDrive() {
                 const color = driveFolderColors[f.folder] ?? '#8e98a8';
                 return (
                   <Item key={f.id} last={i === list.length - 1}>
-                    <Row>
+                    <Row style={hl === f.id ? { backgroundColor: t.accent + '22', borderRadius: 12, borderWidth: 1, borderColor: t.accent, padding: 4 } : undefined}>
                       <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }} onPress={() => setPreview(f)}>
                         <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: color + '33', borderWidth: 1, borderColor: color + '33', alignItems: 'center', justifyContent: 'center' }}>
                           <Text style={{ color: ink(color), fontWeight: '800', fontSize: 15 }}>{f.folder[0]}</Text>

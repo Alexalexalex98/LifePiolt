@@ -11,6 +11,7 @@ import { confirmDelete } from '@/lib/confirm';
 import { weekdayShortDate } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
+import { openDocument } from '@/lib/openDoc';
 import { childrenOf, isDone, isLeaf, pathOf, progressOf, toOutline, type PNode } from '@/lib/projectTree';
 import { pdfToText } from '@/lib/pdfText';
 import { readUriBytes } from '@/lib/readUri';
@@ -127,7 +128,7 @@ export default function Projects() {
             <Row style={{ justifyContent: 'flex-start', marginTop: 8, flexWrap: 'wrap' }} gap={8}>
               <Btn small icon="share" title="Condividi" onPress={() => setShare(true)} />
               <Btn small ghost title="Copia come testo" onPress={() => { void Clipboard.setStringAsync(outlineOf(root.id)); toast('Copiato: lo puoi incollare in un file o importare altrove'); }} />
-              <Btn small ghost icon="lifedrive" title="Apri i file" onPress={() => go('lifedrive')} />
+              <Btn small ghost icon="lifedrive" title="Apri i file" onPress={() => go('lifedrive', { folder: 'Progetti' })} />
             </Row>
           </Card>
           <Card><Row_ n={root} depth={0} /></Card>
@@ -191,7 +192,7 @@ export default function Projects() {
             {menuFiles.length ? (
               <View style={{ gap: 4 }}>
                 <Body small muted>{tl('File di questa attività:')}</Body>
-                {menuFiles.map((f) => <Row key={f.id}><Body small numberOfLines={1} style={{ flex: 1 }}>{f.n}</Body><Btn small ghost title="Togli" onPress={() => { P().detach(menu.id, f.id); setMenu({ ...menu, files: menu.files.filter((x) => x !== f.id) }); }} /></Row>)}
+                {menuFiles.map((f) => <Row key={f.id}><Body small numberOfLines={1} style={{ flex: 1 }}>{f.n}</Body><Btn small icon="eye" title="Apri" onPress={() => void openDocument({ uri: f.uri, name: f.n })} /><Btn small ghost title="Togli" onPress={() => { P().detach(menu.id, f.id); setMenu({ ...menu, files: menu.files.filter((x) => x !== f.id) }); }} /></Row>)}
                 <Body small muted>{tl('Restano anche in LifeDrive, nella cartella Progetti.')}</Body>
               </View>
             ) : null}

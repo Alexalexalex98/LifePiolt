@@ -27,7 +27,7 @@ function open(h: SearchHit) {
     case 'bill': return go('billDetail', { id: h.id });
     case 'idea': return go('ideaProfile', { id: h.id });
     case 'post': return go('lifenetwork');
-    case 'file': return go('lifedrive');
+    case 'file': return go('lifedrive', { file: h.id });
   }
 }
 

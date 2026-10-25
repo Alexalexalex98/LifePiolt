@@ -1,5 +1,5 @@
 {
- "count": 14420,
+ "count": 14423,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -67,7 +67,7 @@
   "src/app/(tabs)/lifenetwork.tsx": 42,
   "src/app/(tabs)/lifenotes.tsx": 3,
   "src/app/(tabs)/lifepointsPage.tsx": 36,
-  "src/app/(tabs)/lifetask.tsx": 6,
+  "src/app/(tabs)/lifetask.tsx": 7,
   "src/app/(tabs)/lifetravel.tsx": 102,
   "src/app/(tabs)/liveRoom.tsx": 88,
   "src/app/(tabs)/lpStatement.tsx": 20,
@@ -283,7 +283,7 @@
   "src/components/pet/FoodArt.tsx": 1,
   "src/components/photo/EditSlider.tsx": 1,
   "src/components/photo/PhotoEditor.tsx": 36,
-  "src/components/plan.tsx": 109,
+  "src/components/plan.tsx": 111,
   "src/components/profile/CardFace.tsx": 11,
   "src/components/profile/ProfileParts.tsx": 60,
   "src/components/profile/QaVote.tsx": 11,
@@ -645,5 +645,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1797
+ "withPlaceholders": 1798
 }

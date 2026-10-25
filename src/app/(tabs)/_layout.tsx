@@ -13,6 +13,8 @@ import { settleEscrow } from '@/lib/escrow';
 import { ensureSampleParticipants, ensureSampleRecordings, ensureSampleShops } from '@/lib/shopSeed';
 import { settleIdeas } from '@/lib/ideasActions';
 import { TAB_SCREENS } from '@/lib/tabScreens';
+import { isFakeDriveFile } from '@/data/seed';
+import { useLife } from '@/store/life';
 
 import { DiscoverHost } from '@/components/Discover';
 import { LifePayFab, LifePayHost, useWalletTouch } from '@/components/LifePay';
@@ -35,6 +37,8 @@ export default function TabsLayout() {
   const notifications = useNet((s) => s.notifications);
   const setBadges = useUI((s) => s.setBadges);
 
+  /* via i file e le foto finti di prova rimasti sul telefono */
+  useEffect(() => { useLife.setState((st) => (st.drive.some(isFakeDriveFile) ? { drive: st.drive.filter((f) => !isFakeDriveFile(f)) } : st)); }, []);
   useEffect(() => { ensureSampleShops(); ensureSampleParticipants(useApp.getState().account.name, useApp.getState().demo); ensureSampleRecordings(useApp.getState().account.name, useApp.getState().demo); settleIdeas(); settleEscrow(); }, []);
   useEffect(() => {
     setBadges({ msg: unreadMessages(me), notif: notifications.filter((n) => !n.read).length });
