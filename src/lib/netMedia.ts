@@ -15,10 +15,14 @@ async function launchLibrary(opts: ImagePicker.ImagePickerOptions): Promise<Imag
       return await ImagePicker.launchImageLibraryAsync({ ...opts, preferredAssetRepresentationMode: modes[i], ...(i > 0 ? { quality: 1 } : {}) });
     } catch (e) {
       last = e;
-      if (!READ_FAIL.test(e instanceof Error ? e.message : String(e))) throw e;
+      if (!READ_FAIL.test(e instanceof Error ? e.message : String(e))) break;
     }
   }
-  throw new Error(READ_MSG + (last instanceof Error && __DEV__ ? ` (${last.message.slice(0, 80)})` : ''));
+  /* ultimo tentativo, il piu' semplice possibile (nessuna opzione speciale): se anche questo fallisce, si dice il motivo vero */
+  try { return await ImagePicker.launchImageLibraryAsync({ mediaTypes: opts.mediaTypes, allowsMultipleSelection: opts.allowsMultipleSelection, selectionLimit: opts.selectionLimit }); }
+  catch (e) { last = e; }
+  const why = last instanceof Error ? last.message : String(last);
+  throw new Error(`${READ_FAIL.test(why) ? READ_MSG : 'Non riesco ad aprire la libreria foto.'} (${why.slice(0, 120)})`);
 }
 
 export type NetMedia = { media: 'photo' | 'video'; uri: string; name?: string; durationMs?: number };
