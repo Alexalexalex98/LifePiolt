@@ -16,6 +16,8 @@ import { pickNetMedia, takeNetPhoto } from '@/lib/netMedia';
 import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { useNet } from '@/store/network';
+import { useFriends } from '@/store/friends';
+import { peoplePool } from '@/lib/network';
 import { usePantry } from '@/store/pantry';
 import { toast } from '@/store/toast';
 
@@ -38,7 +40,23 @@ export default function Fridge() {
   const [busy, setBusy] = useState(false);
   const chats = useChat((s) => s.chats);
   const following = useNet((s) => s.following);
-  const people = useMemo(() => [...new Set([...Object.values(chats).filter((c) => c.type === 'dm').map((c) => c.id.replace(/^dm:/, '')), ...following])].filter((n) => n && n !== me), [chats, following, me]);
+  const msgs = useChat((s) => s.messages);
+  const friends = useFriends((s) => s.friends);
+  const [who, setWho] = useState('');
+  /* i contatti con cui scrivi di piu' vengono per primi; chi non e' tra questi si trova con la ricerca */
+  const known = useMemo(() => {
+    const names = new Set<string>();
+    Object.values(chats).filter((c) => c.type === 'dm').forEach((c) => names.add(c.id.replace(/^dm:/, '')));
+    following.forEach((n) => names.add(n));
+    friends.filter((f) => f.status === 'accepted').forEach((f) => names.add(f.chat || f.name));
+    const all = [...names].filter((n) => n && n !== me);
+    const score = (n: string) => (msgs[`dm:${n}`]?.length ?? 0);
+    return all.sort((a, b) => score(b) - score(a) || a.localeCompare(b));
+  }, [chats, following, friends, msgs, me]);
+  const pool = useMemo(() => { try { return peoplePool(me).filter((n) => n && n !== me && !known.includes(n)); } catch { return [] as string[]; } }, [me, known]);
+  const q = who.trim().toLowerCase();
+  const shown = q ? [...known, ...pool].filter((n) => n.toLowerCase().includes(q)).slice(0, 40) : known.slice(0, 12);
+  const toggle = (n: string) => p.setShared(p.shared.includes(n) ? p.shared.filter((x) => x !== n) : [...p.shared, n]);
   const low = lowStock(p.items);
 
   async function scan(camera: boolean, what: 'receipt' | 'fridge' = 'receipt') {
@@ -61,18 +79,8 @@ export default function Fridge() {
   const addReview = () => { if (!review) return; const n = p.addLines(review.filter((l) => l.name.trim() && l.qty > 0)); setReview(null); toast(tl('Aggiunti {0} prodotti al frigo', n)); };
 
   return (
-    <Page id="fitnessFridge" back title={tl('Frigo e spesa')}>
+    <Page id="fitnessFridge" back title={tl('Frigo e spesa')} backRight={<Btn small icon="share" title={p.shared.length ? tl('Condiviso con {0}', p.shared.length) : tl('Condividi frigo')} onPress={() => setShare(true)} />}>
       <TabRow options={['Frigo', 'Lista della spesa']} value={tab} onChange={setTab} />
-      <Card accent={FIT}>
-        <Row gap={10}>
-          <Icon name="people" size={22} color={FIT} />
-          <View style={{ flex: 1 }}>
-            <Body bold>{p.shared.length ? tl('Condiviso con {0}', p.shared.join(', ')) : tl('Solo tuo')}</Body>
-            <Body small muted>{tl('Se lo condividi, la lista della spesa arriva a loro in chat quando qualcosa sta finendo.')}</Body>
-          </View>
-          <Btn small ghost title={tl('Scegli')} onPress={() => setShare(true)} />
-        </Row>
-      </Card>
 
       {tab === 'Frigo' ? (
         <>
@@ -155,8 +163,12 @@ export default function Fridge() {
         ) : null}
       </Sheet>
 
-      <Sheet visible={share} title={tl('Condividi con')} onClose={() => setShare(false)}>
-        {people.length ? <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>{people.map((n) => <Pill key={n} label={n} on={p.shared.includes(n)} onPress={() => p.setShared(p.shared.includes(n) ? p.shared.filter((x) => x !== n) : [...p.shared, n])} />)}</Row> : <Body muted>{tl('Non hai ancora contatti: aggiungi qualcuno dalle chat.')}</Body>}
+      <Sheet visible={share} title={tl('Condividi il frigo')} onClose={() => { setShare(false); setWho(''); }}>
+        <Body small muted>{tl('Chi scegli riceve la lista della spesa in chat quando qualcosa sta finendo. Prima i contatti con cui scrivi di più.')}</Body>
+        <Input placeholder={tl('Cerca un contatto per nome')} value={who} onChangeText={setWho} />
+        {p.shared.length ? <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 6 }} gap={8}>{p.shared.map((n) => <Pill key={`s-${n}`} label={`${n}  ✕`} on onPress={() => toggle(n)} />)}</Row> : null}
+        {shown.length ? <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>{shown.map((n) => <Pill key={n} label={n} on={p.shared.includes(n)} onPress={() => toggle(n)} />)}</Row> : <Body muted>{tl('Non hai ancora contatti.')}</Body>}
+        {q && !shown.some((n) => n.toLowerCase() === q) ? <Btn style={{ marginTop: 10 }} ghost icon="plus" title={tl('Condividi con «{0}»', who.trim())} onPress={() => { if (!p.shared.includes(who.trim())) toggle(who.trim()); setWho(''); }} /> : null}
         <Body small muted style={{ marginTop: 10 }}>{tl('Per ora la lista arriva a loro nella chat. Il frigo vero e proprio resta sul tuo telefono.')}</Body>
       </Sheet>
     </Page>

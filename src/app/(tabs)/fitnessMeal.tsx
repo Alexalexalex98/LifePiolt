@@ -110,8 +110,8 @@ export default function FitnessMeal() {
     const aiUsed = rows.filter((r) => r.food.id.startsWith('ai-')).map((r) => r.food);
     if (aiUsed.length) fit.set({ aiFoods: [...aiUsed, ...fit.aiFoods.filter((f) => !aiUsed.some((u) => u.id === f.id))].slice(0, 300) });
     if (editId) fit.delMeal(editId);
-    fit.addMeal({ ts: editId ? editTs : Date.now(), name: name ?? mealTitle(rows.map((r) => r.food.name)), foodId: one ? rows[0].food.id : undefined, grams: Math.round(total), macros: preview, photo: photo ?? undefined, items: rows.map((r) => ({ foodId: r.food.id, name: r.food.name, grams: r.g })) });
-    toast(editId ? tl('Pasto aggiornato: {0} kcal', preview.kcal) : tl('Aggiunto: {0} kcal', preview.kcal)); setPlate([]); setPhoto(null); setQ(''); setEditId(null); setReport(null); setManualOpen(false);
+    const newId = fit.addMeal({ ts: editId ? editTs : Date.now(), name: name ?? mealTitle(rows.map((r) => r.food.name)), foodId: one ? rows[0].food.id : undefined, grams: Math.round(total), macros: preview, photo: photo ?? undefined, items: rows.map((r) => ({ foodId: r.food.id, name: r.food.name, grams: r.g })) });
+    toast(editId ? tl('Pasto aggiornato: {0} kcal', preview.kcal) : tl('Aggiunto: {0} kcal', preview.kcal)); setPlate([]); setPhoto(null); setQ(''); setEditId(null); setReport(null); setManualOpen(false); go('fitnessMealCard', { id: newId });
   };
   const editMeal = (m: (typeof fit.meals)[number]) => {
     const items = m.items?.length ? m.items : m.foodId ? [{ foodId: m.foodId, name: m.name, grams: m.grams }] : [];
@@ -123,8 +123,8 @@ export default function FitnessMeal() {
   const confirmRecipe = (r: Recipe) => {
     const rows2 = r.items.flatMap((i) => { const f = FOOD(i.foodId); return f ? [{ f, g: i.grams }] : []; });
     const m = sumMacros(rows2.map((x) => macrosFor(x.f, x.g)));
-    fit.addMeal({ ts: Date.now(), name: r.name, grams: Math.round(rows2.reduce((a, x) => a + x.g, 0)), macros: m, photo: photo ?? undefined, items: rows2.map((x) => ({ foodId: x.f.id, name: x.f.name, grams: x.g })) });
-    toast(tl('Aggiunto: {0} kcal', m.kcal)); setCookOpen(false); setCookSel(null); setCookQ(''); setPhoto(null);
+    const newId = fit.addMeal({ ts: Date.now(), name: r.name, grams: Math.round(rows2.reduce((a, x) => a + x.g, 0)), macros: m, photo: photo ?? undefined, items: rows2.map((x) => ({ foodId: x.f.id, name: x.f.name, grams: x.g })) });
+    toast(tl('Aggiunto: {0} kcal', m.kcal)); setCookOpen(false); setCookSel(null); setCookQ(''); setPhoto(null); go('fitnessMealCard', { id: newId });
   };
   const num = (k: 'age' | 'weightKg' | 'heightCm', v: string) => setBody({ ...body, [k]: Number(v.replace(',', '.')) || 0 });
 
@@ -161,7 +161,7 @@ export default function FitnessMeal() {
         ))}
         {preview ? <Body bold style={{ marginTop: 8 }}>{preview.kcal} kcal · P {preview.p} g · C {preview.c} g · G {preview.f} g</Body> : null}
         {preview ? <Body small muted style={{ marginTop: 2 }}>{tl('zuccheri {0} g · grassi saturi {1} g · fibre {2} g · sale {3} g', preview.sug ?? 0, preview.sat ?? 0, preview.fib ?? 0, preview.salt ?? 0)} · {tl('stima')}</Body> : null}
-        <Btn style={{ marginTop: 8 }} title={editId ? 'Salva le modifiche' : 'Aggiungi al diario'} onPress={() => add()} />
+        <Btn style={{ marginTop: 8 }} title={editId ? 'Salva le modifiche' : 'Salva e vedi il resoconto del pasto'} onPress={() => add()} />
         {editId ? <Btn style={{ marginTop: 6 }} ghost title="Annulla la modifica" onPress={cancelEdit} /> : null}
       </View>
       ) : null;
@@ -177,13 +177,7 @@ export default function FitnessMeal() {
     <Btn style={{ marginTop: 12 }} ghost icon="plus" title="Aggiungi o cerca alimenti a mano" onPress={() => setManualOpen(true)} />
   );
   return (
-    <Page id="fitnessMeal" back title="Pasti e calorie">
-      <Card accent={FIT}>
-        <Row><H>Oggi</H><Btn small ghost title={target ? 'Obiettivo' : 'Imposta l\'obiettivo'} onPress={() => setBodyOpen(true)} /></Row>
-        <DaySummary meals={today} micro={sumMicro(today.map((m) => microOfMeal(m)))} waterMl={(fit.water ?? {})[dayOf(Date.now())]} body={fit.body} />
-        <Btn style={{ marginTop: 10 }} ghost small title="Resoconto di oggi con l'analisi" onPress={() => go('fitnessDay', { day: dayOf(Date.now()) })} />
-      </Card>
-
+    <Page id="fitnessMeal" back title="Aggiungi un pasto">
       <Card>
         <H>Aggiungi un pasto</H>
         <Row style={{ marginTop: 8 }} gap={8}>
@@ -211,25 +205,8 @@ export default function FitnessMeal() {
         {!editId ? manual : null}
       </Card>
 
-      {today.length ? (
-        <Card>
-          <H>I pasti di oggi</H>
-          {today.map((m, i) => (
-            <Item key={m.id} last={i === today.length - 1}>
-              <Row gap={10}>
-                {m.photo ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Apri la foto')} onPress={() => setViewer(m.photo ?? null)}><Image source={{ uri: m.photo }} style={{ width: 44, height: 44, borderRadius: 10 }} contentFit="cover" /></Pressable> : null}
-                <View style={{ flex: 1 }}><Body bold>{displayName(m)}</Body><Body small muted>{m.grams} g · {m.macros.kcal} kcal</Body></View>
-                <Pressable accessibilityRole="button" accessibilityLabel={tl('Modifica')} onPress={() => editMeal(m)} hitSlop={10}><Icon name="edit" size={18} color={t.muted} /></Pressable>
-                <Pressable accessibilityRole="button" accessibilityLabel={tl('Elimina')} onPress={() => fit.delMeal(m.id)} hitSlop={10}><Icon name="trash" size={18} color={t.muted} /></Pressable>
-              </Row>
-            </Item>
-          ))}
-        </Card>
-      ) : null}
       <PhotoViewer uri={viewer} onClose={() => setViewer(null)} />
-      <Card accent={FIT} onPress={() => go('fitnessDiary')}>
-        <Row><View style={{ flex: 1 }}><H>Storico: pasti, acqua e analisi</H><Body small muted>Giorno per giorno, con le foto, l'acqua e l'analisi di Theia su come mangi.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
-      </Card>
+      <Btn small ghost style={{ alignSelf: 'flex-start' }} title={target ? 'Il tuo obiettivo giornaliero' : 'Imposta l\'obiettivo giornaliero'} onPress={() => setBodyOpen(true)} />
       <Body small muted>I valori sono medie indicative e il fabbisogno è una stima: non è un consiglio medico né nutrizionale.</Body>
 
       <Sheet visible={cookOpen} title="Ho preparato…" onClose={() => { setCookOpen(false); setCookSel(null); }}>

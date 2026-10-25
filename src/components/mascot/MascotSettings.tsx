@@ -17,8 +17,8 @@ const MODES: { id: 'everywhere' | 'useful' | 'off'; title: string; body: string;
   { id: 'useful', title: 'Solo dove serve', body: 'Compare dove aiuta: nella chat, quando pensa, sul pulsante e negli adesivi.', mood: 'happy' },
   { id: 'off', title: 'Da nessuna parte', body: 'Niente personaggio: Theia resta la stessa assistente, con la sua icona a scintilla.', mood: 'sleepy' },
 ];
-type Tab = 'color' | 'expr' | 'move' | 'where';
-const TABS: { id: Tab; label: string }[] = [{ id: 'color', label: 'Colore' }, { id: 'expr', label: 'Espressione' }, { id: 'move', label: 'Movimento' }, { id: 'where', label: 'Dove' }];
+type Tab = 'color' | 'expr' | 'move';
+const TABS: { id: Tab; label: string }[] = [{ id: 'color', label: 'Colore' }, { id: 'expr', label: 'Espressione' }, { id: 'move', label: 'Movimento' }];
 
 /** La scheda di Theia, la mascotte: una sola Theia grande e, sotto, menù a scorrimento per cambiare colore, espressione, movimento e dove compare: tutto in una schermata. */
 export function MascotSettings() {
@@ -45,12 +45,25 @@ export function MascotSettings() {
           {tab === 'color' ? ACCENTS.map((a) => <Pressable key={a.id} accessibilityRole="button" accessibilityLabel={a.label} accessibilityState={{ selected: custom?.accent === a.hex }} onPress={() => set({ custom: { ...custom, accent: a.hex } })} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: a.hex, borderWidth: custom?.accent === a.hex ? 3 : 0, borderColor: t.text }} />) : null}
           {tab === 'expr' ? EXPRESSIONS.map((e) => <Pill key={e.id} label={tl(e.label)} on={expr === e.id} onPress={() => { setExpr(e.id); play('nod'); }} />) : null}
           {tab === 'move' ? MOTIONS.map((m) => <Pill key={m.id} label={tl(m.label)} on={mv.id === m.id && mv.n > 0} onPress={() => play(m.id)} />) : null}
-          {tab === 'where' ? MODES.map((m) => <Pill key={m.id} label={tl(m.title)} on={mode === m.id} onPress={() => { set({ mascot: m.id }); setExpr(m.mood); play('bounce'); }} />) : null}
         </ScrollView>
         <Body small muted style={{ textAlign: 'center', minHeight: 36 }}>
-          {tab === 'color' ? tl('Il colore di Theia è il colore dell\'app: cambialo e guarda la piccola scena.') : tab === 'expr' ? tl('Scegli lo stato d\'animo e guarda Theia cambiare.') : tab === 'move' ? tl('Tocca un movimento e guarda Theia farlo.') : tl(MODES.find((m) => m.id === mode)!.body)}
+          {tab === 'color' ? tl('Il colore di Theia è il colore dell\'app: cambialo e guarda la piccola scena.') : tab === 'expr' ? tl('Scegli lo stato d\'animo e guarda Theia cambiare.') : tl('Tocca un movimento e guarda Theia farlo.')}
         </Body>
         {tab === 'color' && custom?.accent ? <Btn small ghost style={{ alignSelf: 'center' }} title="Torna al colore originale" onPress={() => set({ custom: { ...custom, accent: undefined } })} /> : null}
+      </Card>
+
+      <Card>
+        <H>{tl('Dove compare Theia')}</H>
+        <Body small muted style={{ marginBottom: 6 }}>{tl('Scegli in quali pagine vedere la mascotte.')}</Body>
+        {MODES.map((m) => {
+          const on = mode === m.id;
+          return (
+            <Pressable key={m.id} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => { set({ mascot: m.id }); setExpr(m.mood); play('bounce'); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: t.border }}>
+              <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: on ? t.accent : t.border, alignItems: 'center', justifyContent: 'center' }}>{on ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: t.accent }} /> : null}</View>
+              <View style={{ flex: 1 }}><Text style={{ color: t.text, fontWeight: '700' }}>{tl(m.title)}</Text><Body small muted>{tl(m.body)}</Body></View>
+            </Pressable>
+          );
+        })}
       </Card>
 
       {!off ? (

@@ -125,8 +125,8 @@ const KEEP_SCROLL = ['ai', 'conversationPage'];
 
 const MAIN_TABS = ['index', 'home', 'ai', 'lifenetwork', 'lifefinance', 'profile'];
 
-export function Page({ id, title, back, children, right, scroll = true, noTop, background }: {
-  id: string; title?: string; back?: boolean; children: ReactNode; right?: ReactNode; scroll?: boolean; noTop?: boolean; /** sfondo fermo dietro a tutta la pagina (la pagina scorre sopra) */ background?: ReactNode;
+export function Page({ id, title, back, onBack, children, right, backRight, scroll = true, noTop, background }: {
+  id: string; title?: string; back?: boolean; /** al posto di tornare alla pagina precedente (es. da una sotto-pagina alla lista) */ onBack?: () => void; children: ReactNode; right?: ReactNode; /** pulsante a destra, sulla stessa riga di «Indietro» */ backRight?: ReactNode; scroll?: boolean; noTop?: boolean; /** sfondo fermo dietro a tutta la pagina (la pagina scorre sopra) */ background?: ReactNode;
 }) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -156,14 +156,15 @@ export function Page({ id, title, back, children, right, scroll = true, noTop, b
   const body = (
     <>
       {!noTop && <TopBar page={id} fallback={title ? translateText(title) : undefined} />}
-      {(showBack || (sameAsTag && right)) && (
+      {(showBack || (sameAsTag && right) || backRight) && (
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, marginBottom: sameAsTag ? 10 : 0, gap: 10 }}>
           {showBack ? (
-            <Press onPress={goBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 14 }} accessibilityLabel="Indietro" style={{ alignSelf: 'flex-start' }}>
+            <Press onPress={onBack ?? goBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 14 }} accessibilityLabel="Indietro" style={{ alignSelf: 'flex-start' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: t.chip }}><Icon name="arrow-left" size={16} color={t.text} stroke={2.2} /><Text style={{ color: t.text, fontSize: fs.small, fontWeight: '600' }}>Indietro</Text></View>
             </Press>
           ) : <View />}
           {sameAsTag ? right : null}
+          {backRight}
         </View>
       )}
       {title && !sameAsTag && (

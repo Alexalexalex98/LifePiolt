@@ -1,5 +1,5 @@
 {
- "count": 14423,
+ "count": 14434,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -28,15 +28,15 @@
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
   "src/app/(tabs)/fitnessCook.tsx": 27,
-  "src/app/(tabs)/fitnessDay.tsx": 23,
+  "src/app/(tabs)/fitnessDay.tsx": 35,
   "src/app/(tabs)/fitnessDiary.tsx": 56,
   "src/app/(tabs)/fitnessExercise.tsx": 31,
-  "src/app/(tabs)/fitnessFridge.tsx": 52,
+  "src/app/(tabs)/fitnessFridge.tsx": 53,
   "src/app/(tabs)/fitnessGroup.tsx": 39,
   "src/app/(tabs)/fitnessGroups.tsx": 53,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 39,
-  "src/app/(tabs)/fitnessMeal.tsx": 87,
+  "src/app/(tabs)/fitnessMeal.tsx": 80,
   "src/app/(tabs)/fitnessMealCard.tsx": 30,
   "src/app/(tabs)/fitnessMealPlan.tsx": 55,
   "src/app/(tabs)/fitnessPass.tsx": 27,
@@ -273,7 +273,7 @@
   "src/components/market.tsx": 54,
   "src/components/mascot/ExerciseRunner.tsx": 19,
   "src/components/mascot/Mascot.tsx": 4,
-  "src/components/mascot/MascotSettings.tsx": 19,
+  "src/components/mascot/MascotSettings.tsx": 20,
   "src/components/mascot/TypingDots.tsx": 1,
   "src/components/money/Fundamentals.tsx": 45,
   "src/components/money/InvestTab.tsx": 58,
@@ -320,7 +320,7 @@
   "src/components/theia/useVoiceNote.ts": 1,
   "src/components/tour/TourHost.tsx": 15,
   "src/components/tour/TourOverlay.tsx": 8,
-  "src/components/tour/TutorialSettings.tsx": 11,
+  "src/components/tour/TutorialSettings.tsx": 13,
   "src/components/ui.tsx": 12,
   "src/data/areas.ts": 8,
   "src/data/clubSeed.ts": 100,
@@ -645,5 +645,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1798
+ "withPlaceholders": 1801
 }

@@ -1,15 +1,16 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { DaySummary } from '@/components/fitness/DaySummary';
 import { FIT } from '@/components/fitness/kit';
-import { Body, Btn, Card, H, Item, Page, Pill, Row } from '@/components/ui';
+import { Body, Btn, Card, H, Item, Page, Pill, Row, Seg } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { withMicro } from '@/lib/fitness/mealMicro';
 import { NUTRITION_LEGAL } from '@/lib/fitness/micro';
-import { dayOf, displayName, dayStats, groupByDay, quality, slotOf, waterGoal } from '@/lib/fitness/mealInsights';
+import { dayOf, displayName, dayStats, groupByDay, periodStats, quality, slotOf, waterGoal } from '@/lib/fitness/mealInsights';
 import { waterLevel } from '@/lib/fitness/waterInsights';
 import { dailyTargets } from '@/lib/fitness/nutrition';
 import { Icon } from '@/lib/icons';
@@ -28,6 +29,7 @@ export default function FitnessDay() {
   const t = useTheme();
   const fit = useFitness();
   const { day } = useLocalSearchParams<{ day?: string }>();
+  const [per, setPer] = useState('Giorno');
   const key = day && /^\d{4}-\d{2}-\d{2}$/.test(String(day)) ? String(day) : dayOf(Date.now());
   const g = groupByDay(withMicro(fit.meals)).find((x) => x.key === key);
   const water = (fit.water ?? {})[key] ?? 0;
@@ -39,8 +41,37 @@ export default function FitnessDay() {
   const isToday = key === dayOf(Date.now());
   const wl = waterLevel(water, goal);
   const qCol = q ? (q.level === 'ok' ? '#5fd39a' : q.level === 'attenzione' ? '#ffb020' : t.danger) : FIT;
+
+  /* settimana, mese, anno, da sempre: media al giorno sui giorni con pasti registrati */
+  if (per !== 'Giorno') {
+    const meals = withMicro(fit.meals);
+    const end = new Date(); end.setHours(23, 59, 59, 0);
+    const first = meals.length ? Math.min(...meals.map((x) => x.ts)) : end.getTime();
+    const days = per === 'Settimana' ? 7 : per === 'Mese' ? 30 : per === 'Anno' ? 365 : Math.max(1, Math.ceil((end.getTime() - first) / 86400000));
+    const st = periodStats(meals, fit.water ?? {}, end.getTime(), days);
+    const since = dayOf(end.getTime() - days * 86400000);
+    const inRange = meals.filter((x) => dayOf(x.ts) >= since);
+    const totalKcal = inRange.reduce((a, x) => a + x.macros.kcal, 0);
+    return (
+      <Page id="fitnessDay" back title="Pasti e calorie">
+        <Seg plain options={['Giorno', 'Settimana', 'Mese', 'Anno', 'Sempre']} value={per} onChange={setPer} />
+        <Card accent={FIT}>
+          <H>{per === 'Sempre' ? tl('Da sempre') : per === 'Settimana' ? tl('Ultima settimana') : per === 'Mese' ? tl('Ultimo mese') : tl('Ultimo anno')}</H>
+          {st.days ? (
+            <>
+              <Body small muted>{tl('Media al giorno sui {0} giorni con pasti registrati ({1} pasti, {2} kcal in tutto).', st.days, inRange.length, totalKcal)}</Body>
+              <DaySummary meals={[]} avg={st.avg} micro={st.micro} waterMl={st.waterMl} body={fit.body} />
+            </>
+          ) : <Body muted>Nessun pasto registrato in questo periodo.</Body>}
+        </Card>
+        <Btn ghost title="Giorno per giorno, con foto e analisi di Theia" onPress={() => go('fitnessDiary')} />
+        <Body small muted>{NUTRITION_LEGAL}</Body>
+      </Page>
+    );
+  }
   return (
-    <Page id="fitnessDay" back title="Resoconto del giorno">
+    <Page id="fitnessDay" back title="Pasti e calorie">
+      <Seg plain options={['Giorno', 'Settimana', 'Mese', 'Anno', 'Sempre']} value={per} onChange={setPer} />
       <Card accent={FIT}>
         <H style={{ textTransform: 'capitalize' }}>{title}</H>
         <DaySummary meals={g?.meals ?? []} micro={g?.micro} waterMl={water} body={fit.body} />

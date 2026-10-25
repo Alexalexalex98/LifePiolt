@@ -1,6 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
-import { useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { InfoTip } from '@/components/InfoTip';
 import { refreshRadarNotifications } from '@/lib/theia/notifyRadar';
 import { useRadar } from '@/store/radar';
@@ -73,6 +74,8 @@ export default function Settings() {
   const app = useApp();
   const { set } = app;
   const [cat, setCat] = useState<string | null>(null);
+  /* uscendo da Impostazioni si riparte dall'elenco, non dall'ultima sotto-pagina */
+  useFocusEffect(useCallback(() => () => setCat(null), []));
   const radarN = useRadar((x) => x.notify);
   const setRadarN = useRadar((x) => x.setNotify);
   const [edit, setEdit] = useState<null | 'name' | 'email' | 'assistant'>(null);
@@ -181,7 +184,7 @@ export default function Settings() {
   };
 
   return (
-    <Page id="settings" title={names.settings} back>
+    <Page id="settings" title={names.settings} back onBack={cat ? () => setCat(null) : undefined}>
       {cat === null ? (
         <Card accent={t.accent} onPress={() => setCat('mascot')}>
           <Row gap={14}>

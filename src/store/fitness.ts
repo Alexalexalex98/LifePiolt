@@ -63,7 +63,8 @@ type State = {
   finishDay: (date: string, key: string, total: number) => void;
   set: (p: Partial<Omit<State, 'set'>>) => void;
   logWorkout: (w: Omit<Workout, 'id'>) => void;
-  addMeal: (m: Omit<Meal, 'id'>) => void;
+  /** salva un pasto e ne restituisce l'id */
+  addMeal: (m: Omit<Meal, 'id'>) => string;
   delMeal: (id: string) => void;
   addWater: (ml: number, day?: string) => number;
   setWaterRemind: (p: Partial<State['waterRemind']>) => void;
@@ -109,7 +110,7 @@ export const useFitness = create<State>()(
     finishDay: (date, key, total) => set((s) => ({ exDone: { ...(s.exDone ?? {}), [date]: { key, idx: Array.from({ length: total }, (_, i) => i) } } })),
     set: (p) => set(p),
     logWorkout: (w) => set((s) => ({ history: [...s.history, { ...w, id: uid() }].slice(-1000) })),
-    addMeal: (m) => { set((s) => ({ meals: [{ ...m, id: uid() }, ...s.meals].slice(0, 2000) })); try { usePantry.getState().consumeMeal({ foodId: m.foodId, grams: m.grams, items: m.items }); } catch { /* frigo non disponibile */ } },
+    addMeal: (m) => { const id = uid(); set((s) => ({ meals: [{ ...m, id }, ...s.meals].slice(0, 2000) })); try { usePantry.getState().consumeMeal({ foodId: m.foodId, grams: m.grams, items: m.items }); } catch { /* frigo non disponibile */ } return id; },
     delMeal: (id) => set((s) => ({ meals: s.meals.filter((m) => m.id !== id) })),
     addWater: (ml, day) => {
       const k = day ?? dayOf(Date.now());
