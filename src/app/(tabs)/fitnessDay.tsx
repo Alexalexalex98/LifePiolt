@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { DaySummary } from '@/components/fitness/DaySummary';
+import { RecapStats } from '@/components/fitness/RecapStats';
 import { FIT } from '@/components/fitness/kit';
 import { Body, Btn, Card, H, Item, Page, Pill, Row, TabRow } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -64,6 +65,7 @@ export default function FitnessDay() {
             </>
           ) : <Body muted>Nessun pasto registrato in questo periodo.</Body>}
         </Card>
+        <RecapStats meals={meals} days={days} targetKcal={tg?.kcal} sugarMax={tg?.sugarMax} now={end.getTime()} />
         <Btn ghost title="Giorno per giorno, con foto e analisi di Theia" onPress={() => go('fitnessDiary')} />
         <Body small muted>{NUTRITION_LEGAL}</Body>
       </Page>
@@ -94,6 +96,8 @@ export default function FitnessDay() {
       </Card>
 
       {focus === 'water' ? null : waterCard}
+
+      <RecapStats meals={withMicro(fit.meals)} days={1} now={new Date(y, m - 1, d, 12).getTime()} targetKcal={tg?.kcal} sugarMax={tg?.sugarMax} />
 
       {q ? (
         <Card>

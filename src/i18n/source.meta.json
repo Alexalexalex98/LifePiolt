@@ -1,5 +1,5 @@
 {
- "count": 14500,
+ "count": 14529,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -253,6 +253,7 @@
   "src/components/fitness/GymPay.tsx": 20,
   "src/components/fitness/LunchBanner.tsx": 9,
   "src/components/fitness/NutrientSheet.tsx": 16,
+  "src/components/fitness/RecapStats.tsx": 39,
   "src/components/fitness/WaterBanner.tsx": 14,
   "src/components/fitness/kit.tsx": 1,
   "src/components/formKit.tsx": 2,
@@ -648,5 +649,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1815
+ "withPlaceholders": 1823
 }
