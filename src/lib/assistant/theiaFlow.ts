@@ -146,6 +146,8 @@ const BILL_ADD = /\b(aggiung|carica|caricare|inserisc|registr|nuov|metti|mettere
 
 const TIPO = /^\s*TIPO:\s*(\w+)\s*$/im;
 const FILE_SUFFIX = '\n\nSe nel file riconosci una bolletta o una fattura da pagare, chiudi la risposta con una riga a parte: TIPO: bolletta';
+/** La riga sulle bollette si aggiunge solo se l'utente parla di bollette o fatture: per una foto qualsiasi non se ne deve nemmeno parlare. */
+const BILL_TALK = /\b(bollett\w*|fattur\w*|pagare|scadenz\w*|importo|ricevut\w*|bill|invoice|receipt)\b/i;
 
 /** Legge file e foto con l'AI, solo dopo il consenso. Se e' una bolletta propone di aggiungerla; non inserisce nulla senza conferma. */
 export async function readFilesWithAi(question: string, files: { uri: string; mime: string; name?: string }[]): Promise<void> {
@@ -158,7 +160,7 @@ export async function readFilesWithAi(question: string, files: { uri: string; mi
   }
   logSend('files', 0, files.map((f) => f.mime));
   try {
-    const { reply, result } = await askTheiaFiles(`${question || t('Dimmi di cosa si tratta e cosa mi consigli di farne.')}${FILE_SUFFIX}`, files);
+    const { reply, result } = await askTheiaFiles(`${question || t('Dimmi di cosa si tratta.')}${BILL_TALK.test(`${question} ${files.map((f) => f.name ?? '').join(' ')}`) ? FILE_SUFFIX : ''}`, files);
     const first = files[0];
     const d = describeAnalysis(result);
     if (d) {
@@ -172,8 +174,11 @@ export async function readFilesWithAi(question: string, files: { uri: string; mi
     const kind = TIPO.exec(reply)?.[1] ?? '';
     const bill = /^bollett|fattur/i.test(kind);
     const text = reply.replace(TIPO, '').trim();
-    { const pa = parseAiActions(text); const acts = filterActions(question, pa.actions); if (pa.actions.length) { pushParsed(splitReply(pa.text).join('\n\n') || pa.text, acts); return; } }
-    pushAi(text || t('Risposta vuota dal server.'), bill && first ? { ext: { actions: [{ kind: 'bill', label: t('Aggiungi alle bollette'), uri: first.uri, mime: first.mime, name: first.name ?? t('Bolletta') }, { kind: 'dismiss', label: t('No, grazie') }] } } : undefined);
+    if (bill && first) {
+      pushAi(splitReply(text).join('\n\n') || t('Risposta vuota dal server.'), { ext: { actions: [{ kind: 'bill', label: t('Aggiungi alle bollette'), uri: first.uri, mime: first.mime, name: first.name ?? t('Bolletta') }, { kind: 'dismiss', label: t('No, grazie') }] } });
+      return;
+    }
+    await pushReply(text || t('Risposta vuota dal server.'), question);
   } catch (e) {
     pushAi(e instanceof Error ? e.message : t('Errore del server AI.'));
   }

@@ -1,5 +1,5 @@
 {
- "count": 14434,
+ "count": 14442,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -373,7 +373,8 @@
   "src/lib/analytics.ts": 64,
   "src/lib/analyticsData.ts": 32,
   "src/lib/arrival.ts": 8,
-  "src/lib/assistant/aiActions.ts": 38,
+  "src/lib/assistant/aiActions.ts": 39,
+  "src/lib/assistant/aiActionsCore.ts": 8,
   "src/lib/assistant/appActionCore.ts": 42,
   "src/lib/assistant/appActions.ts": 17,
   "src/lib/assistant/dictionary.ts": 51,
@@ -584,7 +585,7 @@
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
-  "src/lib/theia.ts": 103,
+  "src/lib/theia.ts": 104,
   "src/lib/theia/appContext.ts": 7,
   "src/lib/theia/ask.ts": 58,
   "src/lib/theia/collect.ts": 1,
@@ -645,5 +646,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1801
+ "withPlaceholders": 1803
 }

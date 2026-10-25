@@ -9,6 +9,7 @@ import { moodOf } from '@/lib/mascot';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { sessionFromOf, setHistoryOpen } from '@/lib/assistant/session';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/T';
@@ -70,13 +71,9 @@ export default function LifeChat() {
   const folders = useMemo(() => foldersOf(log), [log]);
   const [showAll, setShowAll] = useState(false);
   // "Generale" riparte pulito se manca da un paio d'ore, ma l'assistente ricorda tutto: lo storico resta a un tocco e nella ricerca
-  const sessionFrom = useMemo(() => {
-    if (!log.length) return 0;
-    if (Date.now() - log[log.length - 1].ts > 2 * 3600000) return log.length;
-    let i = log.length - 1;
-    while (i > 0 && log[i].ts - log[i - 1].ts < 2 * 3600000) i--;
-    return i;
-  }, [log]);
+  const sessionFrom = useMemo(() => sessionFromOf(log), [log]);
+  /* «Storico» aperto: il passato puo' essere ripreso nelle risposte, ma solo se la domanda c'entra */
+  useEffect(() => { setHistoryOpen(showAll); return () => setHistoryOpen(false); }, [showAll]);
   const shown = useMemo(() => (section === GENERALE ? (showAll ? log : log.slice(sessionFrom)) : log.filter((m) => m.topic === section)), [log, section, showAll, sessionFrom]);
   const hidden = section === GENERALE && !showAll ? sessionFrom : 0;
   const results = useMemo(() => (searching && q.trim() ? searchLog(log, q) : []), [log, q, searching]);
