@@ -5,6 +5,7 @@ import { Pressable, View } from 'react-native';
 
 import { DaySummary } from '@/components/fitness/DaySummary';
 import { RecapStats } from '@/components/fitness/RecapStats';
+import { addDays } from '@/lib/fitness/dayPlan';
 import { FIT } from '@/components/fitness/kit';
 import { Body, Btn, Card, H, Item, Page, Pill, Row, TabRow } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -31,7 +32,8 @@ export default function FitnessDay() {
   const fit = useFitness();
   const { day, focus } = useLocalSearchParams<{ day?: string; focus?: string }>();
   const [per, setPer] = useState('Giorno');
-  const key = day && /^\d{4}-\d{2}-\d{2}$/.test(String(day)) ? String(day) : dayOf(Date.now());
+  const [sel, setSel] = useState<string | null>(null);
+  const key = sel ?? (day && /^\d{4}-\d{2}-\d{2}$/.test(String(day)) ? String(day) : dayOf(Date.now()));
   const g = groupByDay(withMicro(fit.meals)).find((x) => x.key === key);
   const water = (fit.water ?? {})[key] ?? 0;
   const tg = fit.body ? dailyTargets(fit.body) : null;
@@ -89,6 +91,12 @@ export default function FitnessDay() {
   return (
     <Page id="fitnessDay" back title="Pasti e calorie">
       <TabRow options={['Giorno', 'Settimana', 'Mese', 'Anno', 'Sempre']} value={per} onChange={setPer} />
+      <Row gap={8}>
+        <Btn small ghost icon="arrow-left" title="Giorno prima" onPress={() => setSel(addDays(key, -1))} />
+        {!isToday ? <Btn small ghost title="Oggi" onPress={() => setSel(dayOf(Date.now()))} /> : null}
+        <View style={{ flex: 1 }} />
+        <Btn small ghost disabled={isToday} title="Giorno dopo" onPress={() => setSel(addDays(key, 1))} />
+      </Row>
       {focus === 'water' ? waterCard : null}
       <Card accent={FIT}>
         <H style={{ textTransform: 'capitalize' }}>{title}</H>

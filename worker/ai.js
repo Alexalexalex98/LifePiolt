@@ -89,22 +89,46 @@ export function parseDdg(html, max = 6) {
   }
   return out;
 }
-/** Cerca sul web: prima DuckDuckGo, se non risponde Wikipedia (italiano, poi inglese). */
-export async function webSearch(q, fetcher = fetch) {
-  try {
-    const r = await fetcher('https://html.duckduckgo.com/html/', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': UA }, body: `q=${encodeURIComponent(q)}&kl=it-it` });
-    if (r.ok) { const res = parseDdg(await r.text()); if (res.length) return res; }
-  } catch { /* si prova Wikipedia */ }
-  for (const lang of ['it', 'en']) {
-    try {
-      const r = await fetcher(`https://${lang}.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrlimit=4&prop=extracts&exintro=1&explaintext=1&exchars=700&format=json&origin=*`, { headers: { 'user-agent': UA } });
-      if (!r.ok) continue;
-      const pages = Object.values((await r.json())?.query?.pages ?? {});
-      const res = pages.map((p) => ({ title: p.title, url: `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(String(p.title).replace(/ /g, '_'))}`, snippet: clean(p.extract) })).filter((p) => p.snippet);
-      if (res.length) return res;
-    } catch { /* prossima lingua */ }
+/** Estrae le notizie da un feed RSS (Google News, Bing News): titolo, indirizzo, data, testata e frase. */
+export function parseRss(xml, max = 8) {
+  const out = [];
+  for (const it of String(xml).split('<item>').slice(1)) {
+    const tag = (n) => { const m = new RegExp(`<${n}[^>]*>([\\s\\S]*?)</${n}>`).exec(it); return m ? clean(String(m[1]).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')) : ''; };
+    const title = tag('title'), url = tag('link'), date = tag('pubDate'), source = tag('source') || tag('News:Source');
+    let snippet = tag('description');
+    if (!title || !/^https?:/.test(url)) continue;
+    if (snippet.startsWith(title)) snippet = snippet.slice(title.length).trim();
+    const d = date ? new Date(date) : null;
+    const when = d && !isNaN(+d) ? d.toISOString().slice(0, 10) : '';
+    out.push({ title: source && !title.includes(source) ? `${title} - ${source}` : title, url, snippet: [when, snippet].filter(Boolean).join(': '), when });
+    if (out.length >= max) break;
   }
-  return [];
+  return out;
+}
+const tryFetch = async (fetcher, url, init, parse) => { try { const r = await fetcher(url, { ...init, headers: { 'user-agent': UA, ...(init?.headers ?? {}) } }); return r.ok ? parse(await r.text()) : []; } catch { return []; } };
+/**
+ * Cerca sul web in parallelo su più fonti: notizie di Google News e Bing News (le più recenti, tantissime testate), DuckDuckGo
+ * e Wikipedia (italiano, poi inglese). Le notizie vengono prima, con la data; poi le pagine; poi l'enciclopedia.
+ */
+export async function webSearch(q, fetcher = fetch) {
+  const enc = encodeURIComponent(q);
+  const [gn, bn, dd, wi, we] = await Promise.all([
+    tryFetch(fetcher, `https://news.google.com/rss/search?q=${enc}&hl=it&gl=IT&ceid=IT:it`, undefined, (x) => parseRss(x, 8)),
+    tryFetch(fetcher, `https://www.bing.com/news/search?q=${enc}&format=rss&setlang=it`, undefined, (x) => parseRss(x, 6)),
+    tryFetch(fetcher, 'https://html.duckduckgo.com/html/', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: `q=${enc}&kl=it-it` }, (x) => parseDdg(x, 6)),
+    tryFetch(fetcher, `https://it.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${enc}&gsrlimit=3&prop=extracts&exintro=1&explaintext=1&exchars=700&format=json&origin=*`, undefined, (x) => wikiRes(x, 'it')),
+    tryFetch(fetcher, `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${enc}&gsrlimit=2&prop=extracts&exintro=1&explaintext=1&exchars=700&format=json&origin=*`, undefined, (x) => wikiRes(x, 'en')),
+  ]);
+  const news = [...gn, ...bn].sort((a, b) => (b.when ?? '').localeCompare(a.when ?? '')).slice(0, 7);
+  const seen = new Set();
+  const all = [...news, ...dd.slice(0, 4), ...wi.slice(0, 2), ...(wi.length ? [] : we.slice(0, 2))].filter((x) => { const k = x.title.toLowerCase().slice(0, 60); if (seen.has(k)) return false; seen.add(k); return true; });
+  return all.slice(0, 12);
+}
+function wikiRes(text, lang) {
+  try {
+    const pages = Object.values(JSON.parse(text)?.query?.pages ?? {});
+    return pages.map((p) => ({ title: p.title, url: `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(String(p.title).replace(/ /g, '_'))}`, snippet: clean(p.extract) })).filter((p) => p.snippet);
+  } catch { return []; }
 }
 const SKIP_WEB = /^\s*(ciao|salve|grazie|ok|s[iì]|no|va bene|perfetto)\b[^?]{0,20}$/i;
 /** Decide se serve cercare sul web e con quale frase GENERICA (niente nomi, importi, salute o altri dati personali). */
@@ -142,8 +166,8 @@ async function handle(path, b, env, lite = false) {
       if (query) {
         const found = await webSearch(query, env.__fetch ?? fetch);
         if (found.length) {
-          sources = found.slice(0, 4).map((x) => host(x.url)).filter(Boolean);
-          message += `\n\nRisultati di una ricerca sul web per «${query}» (usali per rispondere ai fatti; se non bastano dillo con onestà; non inventare):\n` + found.map((x, i) => `[${i + 1}] ${x.title} (${host(x.url)}): ${x.snippet}`).join('\n');
+          sources = found.slice(0, 6).map((x) => host(x.url)).filter(Boolean);
+          message += `\n\nRisultati di una ricerca sul web per «${query}» (le notizie hanno la data: dai la precedenza alle più recenti e confronta più testate; riporta i fatti e l'esito se è nei risultati; se non bastano dillo con onestà; non inventare):\n` + found.map((x, i) => `[${i + 1}] ${x.title} (${host(x.url)}): ${x.snippet}`).join('\n');
         }
       }
     }

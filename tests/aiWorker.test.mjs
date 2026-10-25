@@ -106,3 +106,16 @@ test('/chat con domanda di fatti: cerca sul web, risponde con le fonti; saluti e
   const d = await (await worker.fetch(req('/chat', { message: 'PROMPT', q: 'In che ingresso del Louvre?', web: false }), env)).json();
   assert.doesNotMatch(d.reply, /Fonti/);
 });
+
+test('ricerca web: le notizie (RSS) hanno data e testata e vengono prima, le più recenti in cima', async () => {
+  const { parseRss, webSearch } = await import('../worker/ai.js');
+  const rss = `<rss><channel><item><title>Elezioni in Serbia: vince il partito di Vucic</title><link>https://example.com/a</link><pubDate>Mon, 26 Oct 2026 08:00:00 GMT</pubDate><source url="https://x">ANSA</source><description>&lt;a&gt;Elezioni&lt;/a&gt; Il partito ottiene la maggioranza.</description></item><item><title><![CDATA[Seggi aperti]]></title><link>https://example.com/b</link><pubDate>Sun, 25 Oct 2026 08:00:00 GMT</pubDate></item></channel></rss>`;
+  const r = parseRss(rss);
+  assert.equal(r.length, 2);
+  assert.equal(r[0].title, 'Elezioni in Serbia: vince il partito di Vucic - ANSA');
+  assert.match(r[0].snippet, /^2026-10-26: /);
+  assert.equal(r[1].title, 'Seggi aperti');
+  const f = async (url) => (String(url).includes('news.google') ? new Response(rss) : new Response('', { status: 503 }));
+  const w = await webSearch('elezioni serbia', f);
+  assert.equal(w[0].url, 'https://example.com/a');
+});
