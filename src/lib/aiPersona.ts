@@ -89,10 +89,16 @@ export function toBlocks(text: string): Block[] {
   return out.filter((b, i, a) => !(b.kind === 'p' && !b.text && (i === 0 || i === a.length - 1 || (a[i - 1].kind === 'p' && !a[i - 1].text))));
 }
 
-/** Pezzi di una riga con il **grassetto**. */
-export function inlineBold(text: string): { t: string; b: boolean }[] {
-  const parts: { t: string; b: boolean }[] = [];
-  text.split(/(\*\*[^*]+\*\*)/g).forEach((x) => { if (!x) return; const m = x.match(/^\*\*([^*]+)\*\*$/); parts.push(m ? { t: m[1], b: true } : { t: x, b: false }); });
+/** Pezzi di una riga con il **grassetto** e i link [testo](https://indirizzo), che restano scritti con il solo testo breve. */
+export function inlineBold(text: string): { t: string; b: boolean; href?: string }[] {
+  const parts: { t: string; b: boolean; href?: string }[] = [];
+  text.split(/(\*\*[^*]+\*\*|\[[^\]]{1,60}\]\(https?:\/\/[^)\s]+\))/g).forEach((x) => {
+    if (!x) return;
+    const l = x.match(/^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/);
+    if (l) { parts.push({ t: l[1], b: false, href: l[2] }); return; }
+    const m = x.match(/^\*\*([^*]+)\*\*$/);
+    parts.push(m ? { t: m[1], b: true } : { t: x, b: false });
+  });
   return parts;
 }
 

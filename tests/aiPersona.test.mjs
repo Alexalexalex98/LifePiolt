@@ -52,3 +52,7 @@ test('onestà: le regole ci sono e le finte azioni vengono smentite', () => {
   assert.equal(guardClaims('Non ho questo dato: usa un\'app di mappe.').flagged, false);
   assert.equal(guardClaims('Ho mandato un messaggio a Marco').flagged, true);
 });
+
+test('inlineBold: i link restano con il solo testo breve e l\'indirizzo a parte', () => {
+  assert.deepEqual(inlineBold('vedi [ansa.it](https://www.ansa.it/a?x=1) e **ok**'), [{ t: 'vedi ', b: false }, { t: 'ansa.it', b: false, href: 'https://www.ansa.it/a?x=1' }, { t: ' e ', b: false }, { t: 'ok', b: true }]);
+});

@@ -203,26 +203,38 @@ async function pdfText(env, f) {
   } catch { return ''; }
 }
 
+/** I numeri delle fonti [1][2] diventano link brevi con il nome del sito; in fondo l'elenco dei siti (uno solo per sito), anche questo con i link. */
+export function withSources(text, used) {
+  const link = (x) => `[${host(x.url)}](${x.url})`;
+  const body = String(text).replace(/(?:\[\d{1,2}\])+/g, (grp) => {
+    const ids = [...grp.matchAll(/\[(\d{1,2})\]/g)].map((m) => Number(m[1]) - 1);
+    if (ids.some((i) => !used[i])) return grp;
+    const hs = new Set(); return ids.filter((i) => { const h = host(used[i].url); if (hs.has(h)) return false; hs.add(h); return true; }).map((i) => link(used[i])).join(' ');
+  });
+  const seen = new Set(); const foot = [];
+  for (const x of used) { const h = host(x.url); if (h && !seen.has(h) && foot.length < 6) { seen.add(h); foot.push(link(x)); } }
+  return foot.length ? `${body}\n\nFonti: ${foot.join(', ')}` : body;
+}
+
 async function handle(path, b, env, lite = false) {
   const TEXT = lite ? LITE : SMART;
   const cap = (n) => (lite ? Math.min(n, LITE_TOKENS) : n);
   if (path === '/chat') {
     const history = Array.isArray(b.history) ? b.history.slice(-12).filter((m) => m && (m.role === 'user' || m.role === 'assistant')).map((m) => ({ role: m.role, content: String(m.content ?? '').slice(0, 4000) })) : [];
     let message = String(b.message ?? '').slice(0, 24000);
-    let sources = [];
+    let used = [];
     if (b.web !== false && b.q) {
       const queries = await planSearch(env, String(b.q));
       if (queries) {
         const found = await research(queries, env.__fetch ?? fetch);
         if (found.length) {
-          const used = found.slice(0, 8);
-          sources = used.map((x) => host(x.url)).filter(Boolean);
-          message += `\n\nRICERCA SUL WEB (oggi e' ${new Date().toISOString().slice(0, 10)}; ricerche: ${queries.map((x) => `«${x}»`).join(', ')}). Come rispondere: usa SOLO queste fonti per i fatti; scarta quelle irrilevanti rispetto alla domanda; dai piu' peso alle fonti affidabili e alle piu' recenti; un fatto e' solido se lo confermano almeno due fonti indipendenti, altrimenti dillo ("secondo una sola fonte"); se le fonti si contraddicono o sono dubbie o poco affidabili, dillo con chiarezza e non presentare come certo cio' che non lo e'; diffida di titoli sensazionalistici e di notizie senza fonte; indica fra parentesi quadre il numero delle fonti che usi, per esempio [1][3]; se non trovi la risposta dillo onestamente senza inventare. Rispondi per primo alla domanda, in modo diretto.\n` + used.map((x, i) => `[${i + 1}] ${x.title} (${host(x.url)}, ${TRUST_LABEL(x.trust)}${x.when ? `, ${x.when}` : ''}): ${x.page ? x.page : x.snippet}`).join('\n');
+          used = found.slice(0, 8);
+          message += `\n\nRICERCA SUL WEB (oggi e' ${new Date().toISOString().slice(0, 10)}; ricerche: ${queries.map((x) => `«${x}»`).join(', ')}). Come rispondere: usa SOLO queste fonti per i fatti; scarta quelle irrilevanti rispetto alla domanda; dai piu' peso alle fonti affidabili e alle piu' recenti; un fatto e' solido se lo confermano almeno due fonti indipendenti, altrimenti dillo ("secondo una sola fonte"); se le fonti si contraddicono o sono dubbie o poco affidabili, dillo con chiarezza e non presentare come certo cio' che non lo e'; diffida di titoli sensazionalistici e di notizie senza fonte; indica fra parentesi quadre il numero delle fonti che usi, per esempio [1][3]; se non trovi tutto non dire mai «non ho altre informazioni» e non mandare l'utente a cercare su internet: di' cosa hai trovato e, se manca qualcosa, dillo in una frase breve e invita a chiedere se vuole approfondire un punto preciso; non inventare. Rispondi per primo alla domanda, in modo diretto.\n` + used.map((x, i) => `[${i + 1}] ${x.title} (${host(x.url)}, ${TRUST_LABEL(x.trust)}${x.when ? `, ${x.when}` : ''}): ${x.page ? x.page : x.snippet}`).join('\n');
         }
       }
     }
     const { text } = await run(env, TEXT, { messages: msgs(SYSTEM, message, history) }, cap(1500));
-    return { reply: sources.length ? `${text}\n\nFonti: ${sources.map((h, i) => `[${i + 1}] ${h}`).join(', ')}.` : text };
+    return { reply: used.length ? withSources(text, used) : text };
   }
   if (path === '/vision') {
     if (String(b.mime || '').includes('pdf')) {

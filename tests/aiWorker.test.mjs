@@ -98,7 +98,7 @@ test('/chat con domanda di fatti: cerca sul web, risponde con le fonti; saluti e
   };
   const env = { ...envWith(ai), __fetch: async () => new Response(DDG) };
   const a = await (await worker.fetch(req('/chat', { message: 'PROMPT', q: 'In che ingresso sarebbe meglio entrare nel Louvre?' }), env)).json();
-  assert.match(a.reply, /Meglio il Carrousel\./); assert.match(a.reply, /Fonti: \[1\] louvre\.fr, \[2\] example\.org\./); assert.match(seen[0], /RICERCA SUL WEB/);
+  assert.match(a.reply, /Meglio il Carrousel\./); assert.match(a.reply, /Fonti: \[louvre\.fr\]\(https:\/\/www\.louvre\.fr\/visita\), \[example\.org\]\(https:\/\/example\.org\/guida\)/); assert.match(seen[0], /RICERCA SUL WEB/);
   const b = await (await worker.fetch(req('/chat', { message: 'PROMPT', q: 'quanto ho speso ieri?' }), env)).json();
   assert.equal(b.reply, 'Meglio il Carrousel.'); assert.doesNotMatch(seen[1], /ricerca sul web/);
   const c = await (await worker.fetch(req('/chat', { message: 'PROMPT', q: 'ciao', web: true }), env)).json();
@@ -135,4 +135,13 @@ test('ricerca: affidabilita delle fonti, ordine, pagine lette e istruzioni anti 
   const f = async (url) => (String(url).startsWith('https://r.jina.ai/') ? new Response('Title: x\nMarkdown Content:\n' + 'Il testo della pagina letta. '.repeat(20)) : new Response(DDG));
   const res = await research(['louvre'], f);
   assert.ok(res.some((x) => x.page && /testo della pagina letta/.test(x.page)));
+});
+
+test('withSources: i numeri diventano link brevi, fonti uniche in fondo', async () => {
+  const { withSources } = await import('../worker/ai.js');
+  const used = [{ url: 'https://www.ansa.it/a' }, { url: 'https://www.ansa.it/b' }, { url: 'https://it.wikipedia.org/wiki/X' }];
+  const r = withSources('Vince X [1][2]. Conferma [3] e [9].', used);
+  assert.match(r, /Vince X \[ansa\.it\]\(https:\/\/www\.ansa\.it\/a\)\./);
+  assert.match(r, /Conferma \[it\.wikipedia\.org\]\(https:\/\/it\.wikipedia\.org\/wiki\/X\) e \[9\]\./);
+  assert.match(r, /\n\nFonti: \[ansa\.it\]\(https:\/\/www\.ansa\.it\/a\), \[it\.wikipedia\.org\]/);
 });

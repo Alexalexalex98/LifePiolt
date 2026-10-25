@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 
 import { Text } from '@/components/T';
 import { inlineBold, toBlocks } from '@/lib/aiPersona';
@@ -7,7 +7,7 @@ import { inlineBold, toBlocks } from '@/lib/aiPersona';
 export function RichText({ text, color, size = 15, accent }: { text: string; color: string; size?: number; accent?: string }) {
   const blocks = toBlocks(text);
   const line = Math.round(size * 1.45);
-  const run = (s: string, base: object) => <Text selectable style={base}>{inlineBold(s).map((p, i) => <Text key={i} style={p.b ? { fontWeight: '800', color: accent ?? color } : undefined}>{p.t}</Text>)}</Text>;
+  const run = (s: string, base: object) => <Text selectable style={base}>{inlineBold(s).map((p, i) => <Text key={i} onPress={p.href ? () => { Linking.openURL(p.href!).catch(() => {}); } : undefined} accessibilityRole={p.href ? 'link' : undefined} style={p.href ? { color: '#7db2ff', textDecorationLine: 'underline' } : p.b ? { fontWeight: '800', color: accent ?? color } : undefined}>{p.t}</Text>)}</Text>;
   return (
     <View>
       {blocks.map((b, i) => {
