@@ -42,6 +42,22 @@ const Gloss = ({ x, y, w, h, o = 0.3 }: { x: number; y: number; w: number; h: nu
 
 /** Mobili disegnati a mano (immagini) in VISTA FRONTALE: dove c'è lo sprite si usa quello, altrimenti il disegno vettoriale (anch'esso frontale). x/y/w/h = riquadro nella stanza, appoggiato al pavimento. */
 const SPRITES: Record<string, { src: number; x: number; y: number; w: number; h: number }> = {
+  'bed:0': { src: require('../../../assets/pet/bed-0.png'), x: 23.8, y: 342.0, w: 112.4, h: 120.0 },
+  'bed:1': { src: require('../../../assets/pet/bed-1.png'), x: 18.0, y: 366.3, w: 124.0, h: 95.7 },
+  'bed:2': { src: require('../../../assets/pet/bed-2.png'), x: 30.4, y: 342.0, w: 99.3, h: 120.0 },
+  'table:0': { src: require('../../../assets/pet/table-0.png'), x: 5.0, y: 371.7, w: 150.0, h: 90.3 },
+  'table:1': { src: require('../../../assets/pet/table-1.png'), x: 14.0, y: 342.0, w: 132.1, h: 120.0 },
+  'table:2': { src: require('../../../assets/pet/table-2.png'), x: 11.5, y: 342.0, w: 137.1, h: 120.0 },
+  'desk:0': { src: require('../../../assets/pet/desk-0.png'), x: 17.2, y: 342.0, w: 125.5, h: 120.0 },
+  'desk:1': { src: require('../../../assets/pet/desk-1.png'), x: 15.0, y: 342.0, w: 130.1, h: 120.0 },
+  'desk:2': { src: require('../../../assets/pet/desk-2.png'), x: 5.0, y: 356.5, w: 150.0, h: 105.5 },
+  'bench:0': { src: require('../../../assets/pet/bench-0.png'), x: 6.0, y: 355.5, w: 148.0, h: 106.5 },
+  'bench:1': { src: require('../../../assets/pet/bench-1.png'), x: 6.0, y: 349.1, w: 148.0, h: 112.9 },
+  'bench:2': { src: require('../../../assets/pet/bench-2.png'), x: 7.5, y: 342.0, w: 144.9, h: 120.0 },
+  'armchair:0': { src: require('../../../assets/pet/armchair-0.png'), x: 167.0, y: 384.5, w: 76.0, h: 77.5 },
+  'armchair:1': { src: require('../../../assets/pet/armchair-1.png'), x: 167.0, y: 388.7, w: 76.0, h: 73.3 },
+  'armchair:2': { src: require('../../../assets/pet/armchair-2.png'), x: 168.6, y: 376.0, w: 72.9, h: 86.0 },
+  'wardrobe:0': { src: require('../../../assets/pet/wardrobe-0.png'), x: 241.0, y: 303.6, w: 110.0, h: 158.4 },
   'sofa:0': { src: require('../../../assets/pet/sofa-0.png'), x: 2, y: 375, w: 150, h: 87 },
   'sofa:1': { src: require('../../../assets/pet/sofa-1.png'), x: 0, y: 372, w: 156, h: 90 },
   'sofa:2': { src: require('../../../assets/pet/sofa-2.png'), x: 0, y: 387, w: 156, h: 75 },
