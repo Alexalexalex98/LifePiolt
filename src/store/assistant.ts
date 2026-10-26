@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { uid } from '@/lib/format';
 import { t } from '@/i18n/core';
 import { norm, topicOf } from '@/lib/assistant/nlp';
+import { closeSession, consolidate, type Memo } from '@/lib/assistant/memory';
 import { useLife } from './life';
 import type { TheiaExt } from '@/lib/assistant/theiaExt';
 import { persisted } from './persist';
@@ -17,6 +18,10 @@ type AState = {
   log: AMsg[];
   /** argomento attivo (continua finché non si parla d'altro) */
   current: string;
+  /** memoria compatta delle conversazioni chiuse (vedi lib/assistant/memory.ts): resta anche quando i messaggi vecchi non ci sono più */
+  memos: Memo[];
+  /** i messaggi fino a questo istante sono già stati compattati */
+  compactedTo: number;
   push: (m: Omit<AMsg, 'id' | 'ts' | 'topic'> & { topic?: string }) => AMsg;
   setChips: (id: string, chips: string[] | undefined) => void;
   patchMsg: (id: string, p: Partial<AMsg>) => void;
@@ -60,9 +65,19 @@ export const useAssistant = create<AState>()(
   persisted<AState>('assistant', (set, get) => ({
     log: [],
     current: GENERALE,
+    memos: [],
+    compactedTo: 0,
     push: (m) => {
-      const st = get();
+      let st = get();
       const last = st.log[st.log.length - 1];
+      /* una pausa di piu' di due ore chiude la conversazione: la compatto in memoria prima di aprirne un'altra */
+      if (last && Date.now() - last.ts > 2 * 3600000 && last.ts > st.compactedTo) {
+        try {
+          const add = closeSession(st.log, st.compactedTo, uid);
+          set({ memos: consolidate([...st.memos, ...add]).slice(-400), compactedTo: last.ts });
+        } catch { /* la memoria è un di più: la chat funziona lo stesso */ }
+        st = get();
+      }
       const topic = m.topic ?? (m.who === 'me' ? topicFor(m.text, last) : st.current);
       const msg: AMsg = { ...m, id: uid(), ts: Date.now(), topic };
       set({ log: [...st.log.slice(-1999), msg], current: topic });
@@ -71,8 +86,8 @@ export const useAssistant = create<AState>()(
     patchMsg: (id, p) => set((s) => ({ log: s.log.map((x) => (x.id === id ? { ...x, ...p } : x)) })),
     setChips: (id, chips) => set((s) => ({ log: s.log.map((x) => (x.id === id ? { ...x, chips } : x)) })),
     delMsg: (id) => set((s) => ({ log: s.log.filter((x) => x.id !== id) })),
-    clearTopic: (topic) => set((s) => ({ log: s.log.filter((x) => x.topic !== topic) })),
-    reset: () => set({ log: [], current: GENERALE }),
+    clearTopic: (topic) => set((s) => ({ log: s.log.filter((x) => x.topic !== topic), memos: s.memos.filter((m) => m.topic !== topic) })),
+    reset: () => set({ log: [], current: GENERALE, memos: [], compactedTo: 0 }),
   })),
 );
 
