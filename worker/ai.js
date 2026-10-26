@@ -4,6 +4,8 @@
  * Accesso: il token di accesso dell'utente su Supabase (ognuno ha il suo) oppure, per le prove, APP_TOKEN.
  * Non registra mai il contenuto delle richieste. Variabili: SUPABASE_URL, SUPABASE_KEY (chiave pubblica), AI (binding Workers AI), APP_TOKEN (facoltativo).
  */
+import { detectDomain, expertPrompt, isDeep, isOfficial, officialQueries } from './domains.js';
+
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'POST, GET, OPTIONS' };
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...CORS } });
 
@@ -132,13 +134,13 @@ function wikiRes(text, lang) {
 }
 const SKIP_WEB = /^\s*(ciao|salve|grazie|ok|s[iì]|no|va bene|perfetto)\b[^?]{0,20}$/i;
 /** Decide se serve cercare sul web e con quali frasi GENERICHE (fino a 3, da angoli diversi; niente nomi, importi, salute o altri dati personali). */
-export async function planSearch(env, q) {
+export async function planSearch(env, q, force = false) {
   if (!q || q.length < 10 || SKIP_WEB.test(q)) return null;
   try {
-    const { text } = await run(env, LITE, { messages: msgs('Decidi se per rispondere a questa domanda serve cercare sul web: fatti aggiornati, luoghi, orari, prezzi, notizie, eventi, procedure, persone pubbliche, aziende, scienza, cose che potresti non sapere o non ricordare con certezza. NON cercare per: saluti, conversazione, calcoli, richieste sui dati personali dell\'utente (soldi, salute, agenda, task), consigli generali, cose che sai con certezza. Rispondi SOLO con JSON: {"search":true|false,"queries":["frase di ricerca 1","frase 2","frase 3"]}: da 1 a 3 ricerche brevi che guardano il tema da angoli diversi (per esempio una in italiano e una in inglese, o una sul fatto e una sull\'esito). Le query devono essere generiche e anonime: niente nomi di persone private, importi, indirizzi, dati di salute o finanziari.', String(q).slice(0, 600)) }, 200);
+    const { text } = await run(env, LITE, { messages: msgs('Decidi se per rispondere a questa domanda serve cercare sul web: fatti aggiornati, luoghi, orari, prezzi, notizie, eventi, procedure, persone pubbliche, aziende, scienza, cose che potresti non sapere o non ricordare con certezza. NON cercare per: saluti, conversazione, calcoli, richieste sui dati personali dell\'utente (soldi, salute, agenda, task), consigli generali, cose che sai con certezza. ' + (force ? 'Qui la ricerca SERVE: rispondi sempre con search true. ' : '') + 'Rispondi SOLO con JSON: {"search":true|false,"queries":["frase di ricerca 1","frase 2","frase 3"]}: da 1 a 3 ricerche brevi che guardano il tema da angoli diversi (per esempio una in italiano e una in inglese, o una sul fatto e una sull\'esito). Le query devono essere generiche e anonime: niente nomi di persone private, importi, indirizzi, dati di salute o finanziari.', String(q).slice(0, 600)) }, 200);
     const m = /\{[\s\S]*\}/.exec(text);
     const j = m ? JSON.parse(m[0]) : null;
-    if (j?.search !== true) return null;
+    if (j?.search !== true && !force) return null;
     const list = (Array.isArray(j.queries) ? j.queries : [j.query]).filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim().slice(0, 160)).slice(0, 3);
     return list.length ? list : null;
   } catch { return null; }
@@ -148,21 +150,22 @@ export async function planSearch(env, q) {
 const HIGH = /(^|\.)(wikipedia\.org|britannica\.com|reuters\.com|apnews\.com|bbc\.(com|co\.uk)|ansa\.it|agi\.it|adnkronos\.com|ilsole24ore\.com|corriere\.it|repubblica\.it|lastampa\.it|ilpost\.it|rainews\.it|rai\.it|theguardian\.com|nytimes\.com|washingtonpost\.com|aljazeera\.com|france24\.com|dw\.com|euronews\.com|lemonde\.fr|elpais\.com|bloomberg\.com|ft\.com|economist\.com|nature\.com|science\.org|thelancet\.com|nih\.gov|who\.int|un\.org|europa\.eu|nasa\.gov|iss\.it|salute\.gov\.it|istat\.it|oecd\.org|worldbank\.org|imf\.org)$|(^|\.)(gov|edu)(\.[a-z]{2})?$|\.gov\.[a-z]{2}$|\.gob\.[a-z]{2}$/i;
 const LOW = /(^|\.)(facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|pinterest\.[a-z.]+|quora\.com|reddit\.com|yahoo\.com|answers\.[a-z.]+|blogspot\.[a-z.]+|wordpress\.com|tumblr\.com|medium\.com|substack\.com|telegram\.(me|org)|youtube\.com|linkedin\.com|ebay\.[a-z.]+|alibaba\.com|aliexpress\.com)$/i;
 /** 3 fonte molto affidabile, 2 normale, 0.5 social, forum, blog personali, contenuti non verificabili. */
-export function credibility(url) {
+export function credibility(url, dom) {
   const h = host(url);
   if (!h) return 1;
   if (LOW.test(h)) return 0.5;
-  if (HIGH.test(h)) return 3;
+  if (HIGH.test(h) || isOfficial(dom, h)) return 3;
   return 2;
 }
 /** Ordina i risultati per affidabilita' della fonte e freschezza, toglie i doppioni e le fonti poco affidabili se ce ne sono abbastanza di meglio. */
-export function rankResults(list, now = Date.now()) {
+export function rankResults(list, now = Date.now(), dom = null) {
   const seen = new Set();
   const uniq = list.filter((x) => { const k = (x.url.split('#')[0].replace(/\/$/, '') + '|' + x.title.toLowerCase().slice(0, 50)); if (seen.has(k)) return false; seen.add(k); return true; });
   const scored = uniq.map((x, i) => {
     const days = x.when ? (now - new Date(x.when).getTime()) / 86400000 : null;
     const fresh = days !== null && days >= 0 ? (days <= 3 ? 0.8 : days <= 14 ? 0.4 : 0) : 0;
-    return { ...x, trust: credibility(x.url), score: credibility(x.url) + fresh - i * 0.01 };
+    const tr = credibility(x.url, dom);
+    return { ...x, trust: tr, score: tr + (isOfficial(dom, host(x.url)) ? 0.6 : 0) + fresh - i * 0.01 };
   }).sort((a, b) => b.score - a.score);
   const good = scored.filter((x) => x.trust >= 2);
   return good.length >= 4 ? scored.filter((x) => x.trust >= 1) : scored;
@@ -181,11 +184,12 @@ export async function readPage(url, fetcher = fetch, max = 2200) {
   } catch { return ''; } finally { clearTimeout(timer); }
 }
 /** Ricerca completa: piu' ricerche in parallelo, classifica per affidabilita', legge le pagine migliori. */
-export async function research(queries, fetcher = fetch) {
+export async function research(queries, fetcher = fetch, opts = {}) {
+  const { dom = null, deep = false } = opts;
   const lists = await Promise.all(queries.map((qq) => webSearch(qq, fetcher)));
-  const ranked = rankResults(lists.flat()).slice(0, 10);
-  const toRead = ranked.filter((x) => !/news\.google\.com/.test(x.url) && !/wikipedia\.org/.test(x.url)).slice(0, 3);
-  const texts = await Promise.all(toRead.map((x) => readPage(x.url, fetcher)));
+  const ranked = rankResults(lists.flat(), Date.now(), dom).slice(0, deep ? 14 : 10);
+  const toRead = ranked.filter((x) => !/news\.google\.com/.test(x.url) && !/wikipedia\.org/.test(x.url)).slice(0, deep ? 5 : 3);
+  const texts = await Promise.all(toRead.map((x) => readPage(x.url, fetcher, deep ? 3600 : 2200)));
   toRead.forEach((x, i) => { if (texts[i] && texts[i].length > 200) x.page = texts[i]; });
   return ranked;
 }
@@ -217,21 +221,30 @@ export function withSources(text, used) {
 }
 
 /** Prepara la richiesta di chat: conversazione recente e, se serve, la ricerca sul web con le fonti. */
+/** Domande sui propri dati dell'app (soldi, task, agenda): le risponde l'app con i suoi numeri, non serve forzare una ricerca. */
+const PERSONAL = /\b(ho speso|quanto ho|i miei|le mie|il mio|la mia|mio saldo|mia agenda|miei task|ho in cassa|mi rimane|mi resta)\b/i;
 async function prepChat(b, env) {
     const history = Array.isArray(b.history) ? b.history.slice(-12).filter((m) => m && (m.role === 'user' || m.role === 'assistant')).map((m) => ({ role: m.role, content: String(m.content ?? '').slice(0, 4000) })) : [];
     let message = String(b.message ?? '').slice(0, 24000);
     let used = [];
-    if (b.web !== false && b.q) {
-      const queries = await planSearch(env, String(b.q));
+    const q = String(b.q ?? '');
+    /* l'esperto del campo: istruzioni, fonti ufficiali e, se chiesto, l'approfondimento */
+    const dom = q ? detectDomain(q.replace(/^\s*approfondisci\s*:?/i, '')) : null;
+    const deep = isDeep(q);
+    if (dom) message += expertPrompt(dom, deep);
+    if (b.web !== false && q) {
+      const must = (deep || !!dom?.serious) && !PERSONAL.test(q);
+      let queries = await planSearch(env, q, must);
+      if (queries && dom) queries = [...queries, ...officialQueries(dom, queries[0], deep ? 2 : 1)].slice(0, deep ? 5 : 4);
       if (queries) {
-        const found = await research(queries, env.__fetch ?? fetch);
+        const found = await research(queries, env.__fetch ?? fetch, { dom, deep });
         if (found.length) {
-          used = found.slice(0, 8);
-          message += `\n\nRICERCA SUL WEB (oggi e' ${new Date().toISOString().slice(0, 10)}; ricerche: ${queries.map((x) => `«${x}»`).join(', ')}). Come rispondere: usa SOLO queste fonti per i fatti; scarta quelle irrilevanti rispetto alla domanda; dai piu' peso alle fonti affidabili e alle piu' recenti; un fatto e' solido se lo confermano almeno due fonti indipendenti, altrimenti dillo ("secondo una sola fonte"); se le fonti si contraddicono o sono dubbie o poco affidabili, dillo con chiarezza e non presentare come certo cio' che non lo e'; diffida di titoli sensazionalistici e di notizie senza fonte; indica fra parentesi quadre il numero delle fonti che usi, per esempio [1][3]; se non trovi tutto non dire mai «non ho altre informazioni» e non mandare l'utente a cercare su internet: di' cosa hai trovato e, se manca qualcosa, dillo in una frase breve e invita a chiedere se vuole approfondire un punto preciso; non inventare. Rispondi per primo alla domanda, in modo diretto.\n` + used.map((x, i) => `[${i + 1}] ${x.title} (${host(x.url)}, ${TRUST_LABEL(x.trust)}${x.when ? `, ${x.when}` : ''}): ${x.page ? x.page : x.snippet}`).join('\n');
+          used = found.slice(0, deep ? 10 : 8);
+          message += `\n\nRICERCA SUL WEB (oggi e' ${new Date().toISOString().slice(0, 10)}; ricerche: ${queries.map((x) => `\u00ab${x}\u00bb`).join(', ')}). Come rispondere: usa SOLO queste fonti per i fatti; scarta quelle irrilevanti rispetto alla domanda; dai piu' peso alle fonti affidabili e alle piu' recenti; un fatto e' solido se lo confermano almeno due fonti indipendenti, altrimenti dillo ("secondo una sola fonte"); se le fonti si contraddicono o sono dubbie o poco affidabili, dillo con chiarezza e non presentare come certo cio' che non lo e'; diffida di titoli sensazionalistici e di notizie senza fonte; indica fra parentesi quadre il numero delle fonti che usi, per esempio [1][3]; se non trovi tutto non dire mai \u00abnon ho altre informazioni\u00bb e non mandare l'utente a cercare su internet: di' cosa hai trovato e, se manca qualcosa, dillo in una frase breve e invita a chiedere se vuole approfondire un punto preciso; non inventare. Rispondi per primo alla domanda, in modo diretto.\n` + used.map((x, i) => `[${i + 1}] ${x.title} (${host(x.url)}, ${TRUST_LABEL(x.trust)}${x.when ? `, ${x.when}` : ''}): ${x.page ? x.page : x.snippet}`).join('\n');
         }
       }
     }
-  return { message, history, used };
+  return { message, history, used, domain: dom ? { id: dom.id, name: dom.name } : null, deep };
 }
 
 /** Come `run` ma a flusso: chiama onDelta con il testo che si aggiunge (senza i pensieri interni del modello). Se un modello non risponde passa al successivo. */
@@ -281,9 +294,9 @@ export function streamChat(b, env, lite, info) {
   const send = (o) => w.write(enc.encode(JSON.stringify(o) + '\n')).catch(() => {});
   (async () => {
     try {
-      const { message, history, used } = await prepChat(b, env);
-      const { text } = await streamRun(env, lite ? LITE : SMART, { messages: msgs(SYSTEM, message, history) }, lite ? Math.min(1500, LITE_TOKENS) : 1500, (d) => { send({ d }); });
-      await send({ done: true, reply: used.length ? withSources(text, used) : text, ...info });
+      const { message, history, used, domain, deep } = await prepChat(b, env);
+      const { text } = await streamRun(env, lite ? LITE : SMART, { messages: msgs(SYSTEM, message, history) }, lite ? Math.min(deep ? 900 : LITE_TOKENS, 1500) : (deep ? 2800 : 1500), (d) => { send({ d }); });
+      await send({ done: true, reply: used.length ? withSources(text, used) : text, ...(domain ? { domain } : {}), ...info });
     } catch (e) {
       await send(e?.quota ? { error: 'Il limite gratuito di oggi dell\'intelligenza artificiale \u00e8 finito: riprova domani.', code: 'quota' } : { error: 'Il servizio AI non ha risposto: riprova tra poco.' });
     } finally { await w.close().catch(() => {}); }
@@ -295,9 +308,9 @@ async function handle(path, b, env, lite = false) {
   const TEXT = lite ? LITE : SMART;
   const cap = (n) => (lite ? Math.min(n, LITE_TOKENS) : n);
   if (path === '/chat') {
-    const { message, history, used } = await prepChat(b, env);
-    const { text } = await run(env, TEXT, { messages: msgs(SYSTEM, message, history) }, cap(1500));
-    return { reply: used.length ? withSources(text, used) : text };
+    const { message, history, used, domain, deep } = await prepChat(b, env);
+    const { text } = await run(env, TEXT, { messages: msgs(SYSTEM, message, history) }, cap(deep ? 2800 : 1500));
+    return { reply: used.length ? withSources(text, used) : text, ...(domain ? { domain } : {}) };
   }
   if (path === '/vision') {
     if (String(b.mime || '').includes('pdf')) {

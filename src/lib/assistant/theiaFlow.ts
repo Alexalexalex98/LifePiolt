@@ -15,6 +15,7 @@ import { useNet } from '@/store/network';
 import { helpAnswer, looksLikeHelp, searchHelp } from '@/lib/helpKb';
 import { routeRequest, type RouteResult } from '@/lib/aiRouter';
 import { aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
+import * as aiServer from '@/lib/aiServer';
 import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
 import { askTheiaChat, askTheiaChatStream, askTheiaFiles } from '@/lib/theia';
 import { filterActions, liveParts, parseAiActions, splitReply } from './aiActionsCore';
@@ -116,6 +117,17 @@ async function pushReply(reply: string, userText?: string): Promise<void> {
   }
 }
 
+/** Se Theia ha risposto da esperta di un campo (salute, diritto, fisco…), sotto la risposta compare «Approfondisci»: stessa domanda, più fonti e risposta completa. */
+function addDeepAction(question: string): void {
+  const dom = aiServer.lastAiDomain;
+  if (!dom || /^\s*approfondisci/i.test(question)) return;
+  const log = store().log;
+  const last = [...log].reverse().find((m) => m.who === 'ai');
+  if (!last || last.ext?.actions?.some((a) => a.kind === 'ai-do')) return;
+  const actions = [...(last.ext?.actions ?? []), { kind: 'say', label: t('Approfondisci'), text: `Approfondisci: ${question.replace(/\s+/g, ' ').slice(0, 160)}` } as TheiaAction];
+  store().patchMsg(last.id, { ext: { ...(last.ext ?? {}), actions } });
+}
+
 async function aiChatReply(text: string): Promise<void> {
   const plain = !text.includes('\n\n'); // solo una domanda scritta (senza allegati): l'unico caso in cui si impara o si ricorda
   const kb = useTheiaMemory.getState();
@@ -151,6 +163,7 @@ async function aiChatReply(text: string): Promise<void> {
       });
       live.slice(parts.length).forEach((id) => store().delMsg(id));
     } else await pushReply(reply, text);
+    addDeepAction(text);
     if (plain) { const { text: parsed, actions } = parseAiActions(reply); const clean = splitReply(parsed).join('\n\n'); if (!actions.length && isLearnable(text, clean)) kb.learn(text, clean); }
   } catch (e) {
     pushAi(`${t(friendlyAiError(e instanceof Error ? e.message : 'Errore del server AI.'))}\n\n${t('I comandi sul tuo piano, i task e i report funzionano comunque.')}`, { ext: { actions: [{ kind: 'say', label: t('Riprova'), text }, { kind: 'dismiss', label: t('Lascia stare') }] } });

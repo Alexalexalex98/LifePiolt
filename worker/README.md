@@ -22,3 +22,7 @@ Cloudflare Worker con **modelli aperti su Workers AI** (niente Google). Pubblica
 ## Ricerca sul web (stile motore di risposte)
 
 Theia pianifica fino a 3 ricerche generiche e anonime, le esegue in parallelo (Google News, Bing News, DuckDuckGo, Wikipedia), classifica le fonti per affidabilita' (agenzie, enti, enciclopedie in alto; social, forum, blog in basso) e freschezza, legge il testo delle pagine migliori tramite il lettore pubblico r.jina.ai e risponde citando [1][2]. Se le fonti si contraddicono o sono poco affidabili lo dice. Nessuna chiave richiesta.
+
+## Esperti per campo (worker/domains.js)
+
+20 campi (salute, mente, alimentazione, fitness, finanza, fisco, diritto, lavoro, casa, viaggi, famiglia, auto, animali, studio, tecnologia, business, scienza e attualita', pratiche, sicurezza, ambiente). Per ogni domanda il worker riconosce il campo, aggiunge le istruzioni dell'esperto, cerca anche sulle fonti ufficiali del campo (site:) e le classifica per prime. «Approfondisci» (o «nel dettaglio») attiva la modalita' lunga: piu' ricerche, 5 pagine lette, risposta in piu' messaggi. La risposta include `domain` e l'app mostra il pulsante «Approfondisci».

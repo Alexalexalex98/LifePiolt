@@ -55,6 +55,9 @@ async function userToken(refresh = false): Promise<string> {
 /** Piano e messaggi "completi" rimasti oggi, come li ha detti il server nell'ultima risposta (finiti, Theia risponde in modo piu' breve). */
 export let lastAiInfo: { plan: string; lite: boolean; left?: number; limit?: number } | null = null;
 
+/** Il campo («medicina e salute», «diritto e contratti»…) in cui Theia ha risposto da esperta all'ultima domanda, se c'è. */
+export let lastAiDomain: { id: string; name: string } | null = null;
+
 export class AiServerError extends Error {
   status: number;
   constructor(message: string, status = 0) { super(message); this.status = status; }
@@ -114,6 +117,7 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
     /* l'accesso puo' essere scaduto: lo rinnovo e riprovo una volta */
     if (r.status === 401) ({ r } = await post(`${URL_BASE}${path}`, JSON.stringify(body), ctl.signal, true));
     const j = r.json as { error?: string; details?: { error?: { message?: string } }; plan?: string; lite?: boolean; left?: number; limit?: number };
+    if (path === '/chat') lastAiDomain = (j as { domain?: { id: string; name: string } }).domain ?? null;
     if (r.ok && j.plan) lastAiInfo = { plan: j.plan, lite: !!j.lite, left: j.left, limit: j.limit };
     if (!r.ok) {
       const why = j.details?.error?.message ?? j.error ?? `errore ${r.status}`;
@@ -134,6 +138,7 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
  */
 export async function aiChatStream(message: string, q: string | undefined, onText: (acc: string) => void): Promise<string> {
   if (!aiServerConfigured) throw new AiServerError('Il server AI non è collegato: manca l\'indirizzo del server.');
+  lastAiDomain = null;
   const body = JSON.stringify({ message, stream: true, ...(q ? { q, web: useAiServerCfg.getState().web !== false } : {}) });
   const once = async (refresh: boolean): Promise<string | 401> => {
     const url = `${URL_BASE}/chat`;
@@ -152,9 +157,9 @@ export async function aiChatStream(message: string, q: string | undefined, onTex
           const line = t.slice(off, nl).trim(); off = nl + 1;
           if (!line) continue;
           try {
-            const j = JSON.parse(line) as { d?: string; done?: boolean; reply?: string; error?: string; code?: string; plan?: string; lite?: boolean; left?: number; limit?: number };
+            const j = JSON.parse(line) as { domain?: { id: string; name: string }; d?: string; done?: boolean; reply?: string; error?: string; code?: string; plan?: string; lite?: boolean; left?: number; limit?: number };
             if (j.d) { acc += j.d; onText(acc); }
-            else if (j.done) { final = String(j.reply ?? acc); if (j.plan) lastAiInfo = { plan: j.plan, lite: !!j.lite, left: j.left, limit: j.limit }; }
+            else if (j.done) { final = String(j.reply ?? acc); lastAiDomain = j.domain ?? null; if (j.plan) lastAiInfo = { plan: j.plan, lite: !!j.lite, left: j.left, limit: j.limit }; }
             else if (j.error) err = { m: j.error, code: j.code };
           } catch { /* riga non completa */ }
         }
