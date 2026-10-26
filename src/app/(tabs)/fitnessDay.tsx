@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { DaySummary } from '@/components/fitness/DaySummary';
+import { MealCalendar } from '@/components/fitness/MealCalendar';
 import { RecapStats } from '@/components/fitness/RecapStats';
 import { addDays } from '@/lib/fitness/dayPlan';
 import { FIT } from '@/components/fitness/kit';
@@ -33,6 +34,7 @@ export default function FitnessDay() {
   const { day, focus } = useLocalSearchParams<{ day?: string; focus?: string }>();
   const [per, setPer] = useState('Giorno');
   const [sel, setSel] = useState<string | null>(null);
+  const [cal, setCal] = useState(false);
   const key = sel ?? (day && /^\d{4}-\d{2}-\d{2}$/.test(String(day)) ? String(day) : dayOf(Date.now()));
   const g = groupByDay(withMicro(fit.meals)).find((x) => x.key === key);
   const water = (fit.water ?? {})[key] ?? 0;
@@ -95,8 +97,10 @@ export default function FitnessDay() {
         <Btn small ghost icon="arrow-left" title="Giorno prima" onPress={() => setSel(addDays(key, -1))} />
         {!isToday ? <Btn small ghost title="Oggi" onPress={() => setSel(dayOf(Date.now()))} /> : null}
         <View style={{ flex: 1 }} />
+        <Btn small ghost icon="calendar" title="Calendario" onPress={() => setCal(!cal)} />
         <Btn small ghost disabled={isToday} title="Giorno dopo" onPress={() => setSel(addDays(key, 1))} />
       </Row>
+      {cal ? <MealCalendar meals={fit.meals} target={tg?.kcal} selected={key} onPick={(d) => { setSel(d); setCal(false); }} /> : null}
       {focus === 'water' ? waterCard : null}
       <Card accent={FIT}>
         <H style={{ textTransform: 'capitalize' }}>{title}</H>
