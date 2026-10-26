@@ -47,6 +47,10 @@ export default function LifeChat() {
   const aiBg = useChatBg((s) => s.ai);
   const [q, setQ] = useState('');
   const list = useRef<FlatList<AMsg>>(null);
+  /* la chat segue la risposta solo se sei in fondo: se scorri verso l'alto resta ferma e compare la freccia per tornare giù */
+  const follow = useRef(true);
+  const [showDown, setShowDown] = useState(false);
+  const toEnd = (animated: boolean) => { follow.current = true; setShowDown(false); list.current?.scrollToEnd({ animated }); };
 
   useEffect(() => { migrateOldChat(); }, []);
   // quando la tastiera si apre (o cambia altezza) l'ultimo messaggio resta in vista, sopra la barra di scrittura
@@ -56,7 +60,7 @@ export default function LifeChat() {
     const doScroll = shouldScrollToEnd(prevKb.current, kb);
     prevKb.current = { visible: kb.visible, height: kb.height };
     if (!doScroll) return;
-    const tm = setTimeout(() => list.current?.scrollToEnd({ animated: true }), 120);
+    const tm = setTimeout(() => { if (follow.current) list.current?.scrollToEnd({ animated: true }); }, 120);
     return () => clearTimeout(tm);
   }, [kb.visible, kb.height]); // eslint-disable-line react-hooks/exhaustive-deps
   // una scheda (es. suggerimento di Theia) può aprire la chat già con un comando da eseguire
@@ -91,14 +95,14 @@ export default function LifeChat() {
       await sendTheia({ text: m.text, lang: m.lang, appLang, forced: m.forced, source: m.source, images: m.images, attachments: m.attachments, voiceNote: m.voiceNote, topic: section !== GENERALE ? section : undefined });
     } finally { setBusy(false); }
     // se la domanda cambia argomento resto in Generale, che mostra tutto
-    setTimeout(() => list.current?.scrollToEnd({ animated: true }), 60);
+    setTimeout(() => toEnd(true), 60);
   }
   const send = (v: string) => deliver({ text: v, images: [], source: 'typed', lang: appLang, forced: false });
   async function act(id: string, a: Parameters<typeof runAction>[1]) {
     if (busy) return;
     setBusy(true);
     try { await runAction(id, a); } finally { setBusy(false); }
-    setTimeout(() => list.current?.scrollToEnd({ animated: true }), 60);
+    setTimeout(() => toEnd(true), 60);
   }
 
   return (
@@ -146,16 +150,19 @@ export default function LifeChat() {
               <Pill label="Svuota" onPress={() => { clearTopic(section); setSection(GENERALE); toast('Cartella svuotata'); }} />
             </Row>
           )}
+          <View style={{ flex: 1 }}>
           <FlatList
             ref={list}
             style={{ flex: 1 }}
+            onScroll={(e) => { const { contentOffset: o, contentSize: c, layoutMeasurement: l } = e.nativeEvent; const d = c.height - l.height - o.y; follow.current = d < 90; setShowDown(d > 260); }}
+            scrollEventThrottle={64}
             data={shown}
             keyExtractor={(m) => m.id}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             removeClippedSubviews={false}
-            onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
-            onLayout={() => list.current?.scrollToEnd({ animated: false })}
+            onContentSizeChange={() => { if (follow.current) list.current?.scrollToEnd({ animated: false }); }}
+            onLayout={() => { if (follow.current) list.current?.scrollToEnd({ animated: false }); }}
             contentContainerStyle={shown.length === 0 ? { flexGrow: 1, justifyContent: 'center' } : undefined}
             ListEmptyComponent={
               <View style={{ alignItems: 'center', paddingHorizontal: 4, paddingBottom: 8 }}>
@@ -196,6 +203,12 @@ export default function LifeChat() {
               );
             }}
           />
+          {showDown ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={translateText('Vai in fondo')} onPress={() => toEnd(true)} style={{ position: 'absolute', end: 12, bottom: 10, width: 42, height: 42, borderRadius: 21, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 }}>
+              <Icon name="chevron" size={20} color={t.onText} stroke={2.6} />
+            </Pressable>
+          ) : null}
+          </View>
           <AiNote compact style={{ paddingHorizontal: 4 }} />
           <Composer openAttach={attach} appLang={appLang} busy={busy} placeholder={section === GENERALE ? 'Scrivi a Theia…' : `Scrivi in ${section}…`} onSend={(m) => void deliver(m)} />
         </>

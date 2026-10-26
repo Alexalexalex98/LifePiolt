@@ -118,6 +118,19 @@ async function pushReply(reply: string, userText?: string): Promise<void> {
 }
 
 /** Se Theia ha risposto da esperta di un campo (salute, diritto, fisco…), sotto la risposta compare «Approfondisci»: stessa domanda, più fonti e risposta completa. */
+const DOMAIN_TOPIC: Record<string, string> = { salute: 'Salute', alimentazione: 'Salute', mente: 'Mente', fitness: 'Fitness', finanza: 'Finanze', fisco: 'Finanze', diritto: 'Legale', lavoro: 'Lavoro', business: 'Lavoro', casa: 'Casa', viaggi: 'Viaggi', studio: 'Studio', tecnologia: 'Tecnologia' };
+/** Quando Theia risponde da esperta di un campo (per esempio la salute), la domanda e le risposte vanno nella cartella di quell'argomento. */
+function tagByDomain(): void {
+  const dom = aiServer.lastAiDomain; const topic = dom ? DOMAIN_TOPIC[dom.id] : undefined;
+  if (!topic) return;
+  const log = store().log;
+  let i = log.length - 1;
+  while (i >= 0 && log[i].who !== 'me') i--;
+  if (i < 0) return;
+  for (let k = i; k < log.length; k++) if (log[k].topic !== topic) store().patchMsg(log[k].id, { topic });
+  useAssistant.setState({ current: topic });
+}
+
 function addDeepAction(question: string): void {
   const dom = aiServer.lastAiDomain;
   if (!dom || /^\s*approfondisci/i.test(question)) return;
@@ -163,6 +176,7 @@ async function aiChatReply(text: string): Promise<void> {
       });
       live.slice(parts.length).forEach((id) => store().delMsg(id));
     } else await pushReply(reply, text);
+    tagByDomain();
     addDeepAction(text);
     if (plain) { const { text: parsed, actions } = parseAiActions(reply); const clean = splitReply(parsed).join('\n\n'); if (!actions.length && isLearnable(text, clean)) kb.learn(text, clean); }
   } catch (e) {
