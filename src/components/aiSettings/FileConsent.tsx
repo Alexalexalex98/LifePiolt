@@ -6,10 +6,27 @@ import { View } from 'react-native';
 
 import { Body, Btn, Card, H, Input, Pill, Row } from '@/components/ui';
 import { useAiServerCfg } from '@/store/aiServerCfg';
+import { useApp } from '@/store/app';
 import { toast } from '@/store/toast';
 import { aiServerConfigured, aiServerHost, pingAiServer } from '@/lib/aiServer';
 import { useAiRouter } from '@/store/aiRouter';
 import { go } from '@/lib/nav';
+
+/** Il pulsante di Theia che si muove sullo schermo: si può togliere (Theia resta nella chat e nel menu). */
+export function FabCard() {
+  const on = useApp((s) => s.theiaFab !== false);
+  const set = useApp((s) => s.set);
+  return (
+    <Card>
+      <H>Pulsante di Theia sullo schermo</H>
+      <Body small muted style={{ marginTop: 4 }}>Il pulsante che si sposta sullo schermo e ti fa chiedere a Theia di una pagina, di una foto o di un testo copiato. Se lo togli, Theia resta sempre disponibile dalla chat e dal menu.</Body>
+      <Row gap={8} style={{ marginTop: 8 }}>
+        <Pill label="Mostra" on={on} onPress={() => set({ theiaFab: true })} />
+        <Pill label="Nascondi" on={!on} onPress={() => set({ theiaFab: false })} />
+      </Row>
+    </Card>
+  );
+}
 
 /** Ricerca sul web: se Theia non sa una cosa la cerca online. Parte solo la tua domanda, resa generica, senza i tuoi dati. */
 export function WebSearchCard() {

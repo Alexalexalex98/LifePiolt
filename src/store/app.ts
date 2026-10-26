@@ -48,6 +48,8 @@ type AppState = {
   assistantName: string;
   /** dove compare la mascotte di Theia: ovunque, solo dove serve, o da nessuna parte */
   mascot: 'everywhere' | 'useful' | 'off';
+  /** il pulsante di Theia che si muove sullo schermo (si può togliere dalle impostazioni dell'intelligenza di Theia) */
+  theiaFab: boolean;
   dismissedNav: string[];
   workHours: { start: string; end: string };
   devices: Device[];
@@ -83,6 +85,7 @@ const initial = {
   visitHours: {} as Record<string, number[]>,
   assistantName: 'Theia',
   mascot: 'everywhere' as const,
+  theiaFab: true,
   dismissedNav: [] as string[],
   workHours: { start: '09:00', end: '18:00' },
   devices: [{ name: 'Questo dispositivo', detail: 'Sessione attuale', current: true }] as Device[],

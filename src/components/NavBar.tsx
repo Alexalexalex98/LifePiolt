@@ -234,11 +234,26 @@ export function MenuSheet() {
   const language = useApp((s) => s.language);
   const sn = sectionNamesFor(language);
   const tourMode = useTour((s) => s.mode), tourLevel = useTour((s) => s.level), tourAll = useTour((s) => s.allUnlocked);
-  const groups = [
-    { label: 'Principali', items: [['ai', 'LifeChat'], ['home', sn.home], ['plan', sn.plan]] },
-    { label: 'Le tue sezioni', items: [['lifehealth', 'LifeHealth'], ['lifefitness', 'LifeFitness'], ['lifenetwork', 'LifeNetwork'], ['lifefinance', 'LifeFinance'], ['lifenotes', 'LifeNotes'], ['lifetravel', 'LifeTravel'], ['lifedrive', 'LifeDrive'], ['lifetask', 'LifeTask'], ['projects', 'Progetti'], ['lifepointsPage', 'LifePoints'], ['theiaPet', 'Theia, il gioco'], ['myServices', 'I tuoi servizi'], ['myClubs', 'I tuoi LifeClub']] },
-    { label: 'Account', items: [['activity', 'La tua attività'], ['creatorStats', 'Le tue statistiche'], ['orders', 'I miei ordini'], ['savedPosts', 'Post salvati'], ['importSocial', 'Importa da un altro social'], ['help', 'Aiuto e domande'], ['settings', sn.settings]] },
+  type Sub = [string, string, string];
+  type Row_ = { id: string; label: string; sub?: Sub[] };
+  /* le voci dell'account stanno sotto la sezione a cui appartengono, in un menu a tendina; «I miei ordini» resta fuori per trovarlo subito */
+  const groups: { label: string; items: Row_[] }[] = [
+    { label: 'Principali', items: [{ id: 'ai', label: 'LifeChat' }, { id: 'home', label: sn.home }, { id: 'plan', label: sn.plan }] },
+    { label: 'Le tue sezioni', items: [
+      { id: 'lifehealth', label: 'LifeHealth' },
+      { id: 'lifefitness', label: 'LifeFitness', sub: [['fitnessDay', 'Pasti e calorie', 'meal'], ['fitnessFridge', 'Frigo e spesa', 'orders'], ['fitnessBody', 'Foto del corpo', 'camera']] },
+      { id: 'lifenetwork', label: 'LifeNetwork', sub: [['activity', 'La tua attività', 'activity'], ['creatorStats', 'Le tue statistiche', 'chart'], ['savedPosts', 'Contenuti salvati', 'savedPosts'], ['myServices', 'I tuoi servizi', 'myServices'], ['myClubs', 'I tuoi LifeClub', 'myClubs'], ['importSocial', 'Importa da un altro social', 'importSocial']] },
+      { id: 'lifefinance', label: 'LifeFinance' },
+      { id: 'lifenotes', label: 'LifeNotes' },
+      { id: 'lifetravel', label: 'LifeTravel' },
+      { id: 'lifedrive', label: 'LifeDrive' },
+      { id: 'lifetask', label: 'LifeTask', sub: [['projects', 'Progetti', 'projects']] },
+      { id: 'lifepointsPage', label: 'LifePoints' },
+      { id: 'theiaPet', label: 'Theia, il gioco' },
+    ] },
+    { label: 'Account', items: [{ id: 'orders', label: 'I miei ordini' }, { id: 'help', label: 'Aiuto e domande' }, { id: 'settings', label: sn.settings }] },
   ];
+  const [openRows, setOpenRows] = useState<Record<string, boolean>>({});
   return (
     <Sheet visible={open} title={translate(language, 'menuTitle')} onClose={() => setMenu(false)}>
       <Press
@@ -252,19 +267,38 @@ export function MenuSheet() {
         <View key={g.label}>
           <Text style={{ color: t.muted, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 14, marginBottom: 6, marginStart: 2 }}>{g.label}</Text>
           <View style={{ backgroundColor: t.input, borderWidth: 1, borderColor: t.border, borderRadius: 16, overflow: 'hidden' }}>
-            {g.items.map(([id, label], i) => {
+            {g.items.map(({ id, label, sub }, i) => {
               const color = t.mode === 'light' ? t.accent : sectionColor(areaColors[id], t.accent);
               const locked = !isUnlocked({ mode: tourMode, level: tourLevel, allUnlocked: tourAll }, id);
+              const isOpen = !!sub && !!openRows[id];
+              const last = i === g.items.length - 1;
               return (
-                <Item key={id} last={i === g.items.length - 1} style={{ paddingHorizontal: 14, paddingVertical: 12 }} onPress={() => { setMenu(false); if (locked) requestUnlock(id); else go(id); }}>
-                  <Row style={{ justifyContent: 'flex-start', opacity: locked ? 0.5 : 1 }}>
-                    <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: color + '22', alignItems: 'center', justifyContent: 'center' }}>
-                      {id === 'theiaPet' ? <Mascot size={26} color={t.accent} animated={false} expression="happy" /> : <Icon name={id === 'creatorStats' ? 'chart' : id} size={17} color={color} stroke={1.9} />}
-                    </View>
-                    <Text style={{ color: t.text, fontWeight: '500', flex: 1 }}>{label}</Text>
-                    {locked ? <Icon name="lock" size={16} color={t.muted} stroke={2.2} /> : <Chev />}
-                  </Row>
-                </Item>
+                <View key={id}>
+                  <Item last={last && !isOpen} style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
+                    <Row style={{ justifyContent: 'flex-start', opacity: locked ? 0.5 : 1 }}>
+                      <Press accessibilityLabel={label} onPress={() => { setMenu(false); if (locked) requestUnlock(id); else go(id); }} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: color + '22', alignItems: 'center', justifyContent: 'center' }}>
+                          {id === 'theiaPet' ? <Mascot size={26} color={t.accent} animated={false} expression="happy" /> : <Icon name={id === 'creatorStats' ? 'chart' : id} size={17} color={color} stroke={1.9} />}
+                        </View>
+                        <Text style={{ color: t.text, fontWeight: '500', flex: 1 }}>{label}</Text>
+                      </Press>
+                      {locked ? <Icon name="lock" size={16} color={t.muted} stroke={2.2} /> : sub ? (
+                        <Press accessibilityLabel={isOpen ? `Chiudi ${label}` : `Apri le voci di ${label}`} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} onPress={() => setOpenRows((o) => ({ ...o, [id]: !o[id] }))} style={{ padding: 6 }}>
+                          <Icon name={isOpen ? 'chevron' : 'chevron-right'} size={18} color={t.muted} stroke={2} />
+                        </Press>
+                      ) : <Chev />}
+                    </Row>
+                  </Item>
+                  {isOpen ? sub!.map(([sid, slabel, sicon], j) => (
+                    <Item key={sid} last={last && j === sub!.length - 1} style={{ paddingStart: 28, paddingEnd: 14, paddingVertical: 10 }} onPress={() => { setMenu(false); go(sid); }}>
+                      <Row style={{ justifyContent: 'flex-start' }}>
+                        <View style={{ width: 26, height: 26, borderRadius: 8, backgroundColor: color + '18', alignItems: 'center', justifyContent: 'center' }}><Icon name={sicon} size={14} color={color} stroke={1.9} /></View>
+                        <Text style={{ color: t.text, flex: 1, fontSize: 14 }}>{slabel}</Text>
+                        <Chev />
+                      </Row>
+                    </Item>
+                  )) : null}
+                </View>
               );
             })}
           </View>

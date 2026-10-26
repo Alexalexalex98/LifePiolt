@@ -115,6 +115,7 @@ export function TheiaFab() {
   const [menu, setMenu] = useState(false);
   const [tickled, setTickled] = useState(false);
   const showMascot = useMascot('core');
+  const fabOn = useApp((s) => s.theiaFab !== false);
   const asking = useTheia((s) => s.open);
   // il pulsante si può trascinare dove non copre il contenuto
   const pos = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
@@ -127,7 +128,7 @@ export function TheiaFab() {
   const selecting = useSelect((x) => !!x.uri);
   const kb = useKeyboardInset();
   // nelle chat il pulsante coprirebbe il microfono e il campo messaggio: lì si usa il menu del messaggio
-  if (open || selecting || kb.visible || /conversationPage|liveRoom|postPage|storyView|storyCreate|swipeDeck|theiaPet|fitnessFridge|\/ai$/.test(pathname)) return null;
+  if (!fabOn || open || selecting || kb.visible || /conversationPage|liveRoom|postPage|storyView|storyCreate|swipeDeck|theiaPet|fitnessFridge|\/ai$/.test(pathname)) return null;
 
   async function shot() {
     // lo scatto è silenzioso: il pulsante sparisce per un attimo e l'utente vede subito la schermata "ferma", pronta per la selezione
