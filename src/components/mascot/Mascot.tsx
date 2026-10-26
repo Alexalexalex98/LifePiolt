@@ -1,19 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, type StyleProp, type ViewStyle } from 'react-native';
-import { Image as RNImage } from 'react-native';
-import { Asset } from 'expo-asset';
 import Svg, { Circle, Defs, Ellipse, G, Image as SvgImage, Mask, Path, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
+import { BODY_DATA } from './bodyData';
 import { EYES_OF, MOTIONS, bodyTones, mix, type Expression, type MotionId } from '@/lib/mascot';
 
 /* la vera Theia: corpo bianco perlato (assets/mascot/theia-body.png) con occhi neri ovali; gli occhi si ridisegnano sopra per ogni espressione */
-const BODY_MOD = require('../../../assets/mascot/theia-body.png');
-/** Il corpo come indirizzo: sul telefono il file nel pacchetto, sul web l'indirizzo dell'asset. */
-const BODY = ((): { uri: string } => {
-  try { const r = (RNImage as unknown as { resolveAssetSource?: (m: unknown) => { uri: string } | null }).resolveAssetSource?.(BODY_MOD); if (r?.uri) return r; } catch { /* si prova l'altro modo */ }
-  try { const a = Asset.fromModule(BODY_MOD); return { uri: a.localUri ?? a.uri }; } catch { return { uri: '' }; }
-})();
+const BODY = { uri: BODY_DATA };
 const LX = 76, RX = 124, EY = 118;
 const EYE_INK = '#0c0c12';
 const star = (x: number, y: number, r: number) => `M${x} ${y - r} Q${x + r * 0.18} ${y - r * 0.18} ${x + r} ${y} Q${x + r * 0.18} ${y + r * 0.18} ${x} ${y + r} Q${x - r * 0.18} ${y + r * 0.18} ${x - r} ${y} Q${x - r * 0.18} ${y - r * 0.18} ${x} ${y - r} Z`;
