@@ -38,7 +38,7 @@ export function searchFoods(q: string, max = 8): Food[] {
     if (hits) out.push({ f, hits, bonus: norm(f.name).startsWith(words[0]!) ? 1 : 0 });
   }
   if (!out.length) for (const f of FOODS) { const hay = norm(`${f.name} ${f.tags ?? ''}`); const hits = words.filter((w) => hay.includes(w)).length; if (hits) out.push({ f, hits, bonus: 0 }); }
-  return out.sort((a, b) => b.hits - a.hits || b.bonus - a.bonus || a.f.name.length - b.f.name.length).slice(0, max).map((x) => x.f);
+  return out.sort((a, b) => b.hits - a.hits).slice(0, max).map((x) => x.f);
 }
 
 export type Macros = { kcal: number; p: number; c: number; f: number; sat?: number; sug?: number; fib?: number; salt?: number; /** caffeina in mg */ caf?: number };
