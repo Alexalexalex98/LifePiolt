@@ -68,6 +68,7 @@ export const TAB_SCREENS: string[] = [
   'lifenotes',
   'lifepointsPage',
   'lifetask',
+  'lockScreenSettings',
   'lifetravel',
   'liveRoom',
   'lpStatement',

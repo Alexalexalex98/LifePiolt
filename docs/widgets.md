@@ -1,6 +1,18 @@
-# Widget e scorciatoie iOS (NON implementati)
+# Widget, blocco schermo e Live Activity iOS
 
-Stato: **non realizzati**. Un widget della schermata Home o una scorciatoia Siri/Azione rapida richiedono codice nativo
+Stato: **realizzati nel codice con `expo-widgets`** (iOS). Servono una nuova build di sviluppo/EAS (`npx expo prebuild` + build): non girano in Expo Go. Non verificati su dispositivo.
+
+- `src/widgets/now.tsx`: widget «LifePilotNow» (schermata Home piccolo/medio, blocco schermo rettangolare/inline/circolare) e Live Activity del turno in corso.
+- `src/lib/lockScreen.ts` (logica pura, testata): cosa mostrare e quando aggiornare. `src/lib/lockSync.ts`: scrive widget e Live Activity; parte da `_layout.tsx`.
+- Impostazioni: Settings › Orari e integrazioni › Blocco schermo e widget (scelta di turni, impegni, task, acqua, allenamento; modalità privacy senza nomi).
+- App Group: `group.com.lifepilot.app` (da registrare nell'account Apple Developer).
+- Android: non attivo (`enableAndroid: false`); l'alternativa prevista è una notifica fissa del turno con `createCustomNotification`.
+
+Di seguito la nota originale (storica).
+
+---
+
+Stato originale: **non realizzati**. Un widget della schermata Home o una scorciatoia Siri/Azione rapida richiedono codice nativo
 (un target WidgetKit in Swift) che Expo Go non può eseguire e che non si configura da `app.json` da solo.
 Questo documento descrive come farlo in futuro con una build di sviluppo/EAS.
 

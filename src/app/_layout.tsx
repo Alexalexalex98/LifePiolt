@@ -55,6 +55,7 @@ import { LockGate } from '@/components/security/LockGate';
 import { scheduleMaintenance } from '@/db/diagnostics';
 import { useSecurity } from '@/db/securityStore';
 import { startSearchSync } from '@/lib/search';
+import { startLockScreenSync, syncLockScreen } from '@/lib/lockSync';
 
 SplashScreen.preventAutoHideAsync();
 installGlobalErrors();
@@ -115,8 +116,9 @@ export default function RootLayout() {
     settleIncoming();
     startSearchSync();
     scheduleMaintenance();
-    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); onForeground(); /* riprogramma anche al cambio di fuso orario/ora legale */ useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
-    return () => sub.remove();
+    const stopLock = startLockScreenSync(); // blocco schermo e widget: turni, impegni, task
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); void syncLockScreen(); onForeground(); /* riprogramma anche al cambio di fuso orario/ora legale */ useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
+    return () => { sub.remove(); stopLock(); };
   }, [ready]);
 
   if (!ready) return null;

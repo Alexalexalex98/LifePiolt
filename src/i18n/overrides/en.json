@@ -1230,5 +1230,21 @@
   "Il pulsante che si sposta sullo schermo e ti fa chiedere a Theia di una pagina, di una foto o di un testo copiato. Se lo togli, Theia resta sempre disponibile dalla chat e dal menu.": "The button that moves around the screen and lets you ask Theia about a page, a photo or copied text. If you remove it, Theia is still always available from the chat and the menu.",
   "Mostra": "Show",
   "Chiudi {0}": "Close {0}",
-  "Apri le voci di {0}": "Open the items of {0}"
+  "Apri le voci di {0}": "Open the items of {0}",
+  "Blocco schermo e widget": "Lock screen and widgets",
+  "Scegli cosa mostrare": "Choose what to show",
+  "Mostra sul blocco schermo": "Show on the lock screen",
+  "Cosa mostrare": "What to show",
+  "Turni di lavoro": "Work shifts",
+  "Task di oggi": "Today's tasks",
+  "Anteprima": "Preview",
+  "Niente da mostrare adesso.": "Nothing to show right now.",
+  "Per ora i widget del blocco schermo funzionano su iPhone.": "For now lock screen widgets work on iPhone.",
+  "Salute, soldi e messaggi non compaiono mai.": "Health, money and messages never appear.",
+  "Turno di lavoro": "Work shift",
+  "Impegno": "Appointment",
+  "Allenamento fatto": "Workout done",
+  "Allenamento di oggi": "Today's workout",
+  "Niente di urgente": "Nothing urgent",
+  "Turni, impegni e task importanti sul blocco schermo dell'iPhone e nei widget, anche con l'app chiusa.": "Important shifts, appointments and tasks on the iPhone lock screen and in widgets, even with the app closed."
 }

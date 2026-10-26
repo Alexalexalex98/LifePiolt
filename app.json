@@ -186,6 +186,27 @@
             "minSdkVersion": 26
           }
         }
+      ],
+      [
+        "expo-widgets",
+        {
+          "groupIdentifier": "group.com.lifepilot.app",
+          "enableAndroid": false,
+          "widgets": [
+            {
+              "name": "LifePilotNow",
+              "displayName": "LifePilot",
+              "description": "Turni, impegni e task importanti, anche sul blocco schermo.",
+              "supportedFamilies": [
+                "systemSmall",
+                "systemMedium",
+                "accessoryRectangular",
+                "accessoryInline",
+                "accessoryCircular"
+              ]
+            }
+          ]
+        }
       ]
     ],
     "experiments": {

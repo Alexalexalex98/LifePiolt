@@ -406,6 +406,14 @@ export default function Settings() {
         </Card>
       ) : null}
 
+      {cat === 'work' ? (
+        <Card>
+          <H>Blocco schermo e widget</H>
+          <Body small muted style={{ marginBottom: 10 }}>Turni, impegni e task importanti sul blocco schermo dell'iPhone e nei widget, anche con l'app chiusa.</Body>
+          <Btn small ghost icon="lock" title="Scegli cosa mostrare" onPress={() => go('lockScreenSettings')} />
+        </Card>
+      ) : null}
+
       {cat === 'mascot' ? <MascotSettings /> : null}
 
       {cat === 'ai' ? (

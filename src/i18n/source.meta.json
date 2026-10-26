@@ -1,5 +1,5 @@
 {
- "count": 14549,
+ "count": 14573,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -71,6 +71,7 @@
   "src/app/(tabs)/lifetask.tsx": 7,
   "src/app/(tabs)/lifetravel.tsx": 102,
   "src/app/(tabs)/liveRoom.tsx": 88,
+  "src/app/(tabs)/lockScreenSettings.tsx": 11,
   "src/app/(tabs)/lpStatement.tsx": 20,
   "src/app/(tabs)/mascot.tsx": 1,
   "src/app/(tabs)/menuPage.tsx": 28,
@@ -104,7 +105,7 @@
   "src/app/(tabs)/security.tsx": 5,
   "src/app/(tabs)/seminarPage.tsx": 44,
   "src/app/(tabs)/servicePage.tsx": 31,
-  "src/app/(tabs)/settings.tsx": 177,
+  "src/app/(tabs)/settings.tsx": 180,
   "src/app/(tabs)/sharing.tsx": 2,
   "src/app/(tabs)/shifts.tsx": 30,
   "src/app/(tabs)/shopPage.tsx": 42,
@@ -505,6 +506,8 @@
   "src/lib/lifepay.ts": 10,
   "src/lib/liveRoom.ts": 39,
   "src/lib/liveTheme.ts": 4,
+  "src/lib/lockScreen.ts": 20,
+  "src/lib/lockSync.ts": 1,
   "src/lib/lpActions.ts": 5,
   "src/lib/lpIncomingActions.ts": 4,
   "src/lib/lpMoney.ts": 8,
@@ -648,7 +651,8 @@
   "src/sync/mockServer.ts": 9,
   "src/sync/registry.ts": 45,
   "src/sync/supabaseTransport.ts": 14,
-  "src/sync/transport.ts": 2
+  "src/sync/transport.ts": 2,
+  "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1831
+ "withPlaceholders": 1834
 }
