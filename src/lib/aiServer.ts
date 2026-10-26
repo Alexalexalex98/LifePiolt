@@ -128,6 +128,56 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
   } finally { clearTimeout(h); }
 }
 
+/**
+ * Chat a flusso: il server manda il testo man mano che lo scrive (una riga JSON per pezzo) e `onText` riceve tutto il testo fin qui.
+ * Alla fine restituisce la risposta completa (con i link alle fonti). Usa XMLHttpRequest, che in Expo Go e sul telefono consegna i dati a pezzi.
+ */
+export async function aiChatStream(message: string, q: string | undefined, onText: (acc: string) => void): Promise<string> {
+  if (!aiServerConfigured) throw new AiServerError('Il server AI non è collegato: manca l\'indirizzo del server.');
+  const body = JSON.stringify({ message, stream: true, ...(q ? { q, web: useAiServerCfg.getState().web !== false } : {}) });
+  const once = async (refresh: boolean): Promise<string | 401> => {
+    const url = `${URL_BASE}/chat`;
+    const ours = url.startsWith(DEFAULT_AI_URL);
+    const auth = (ours ? await userToken(refresh) : '') || TOKEN;
+    return new Promise<string | 401>((resolve, reject) => {
+      const x = new XMLHttpRequest();
+      x.open('POST', url);
+      x.setRequestHeader('Content-Type', 'application/json');
+      x.setRequestHeader('Authorization', `Bearer ${auth}`);
+      x.timeout = 75000;
+      let off = 0; let acc = ''; let final: string | null = null; let err: { m: string; code?: string } | null = null;
+      const eat = () => {
+        const t = x.responseText ?? '';
+        for (let nl = t.indexOf('\n', off); nl >= 0; nl = t.indexOf('\n', off)) {
+          const line = t.slice(off, nl).trim(); off = nl + 1;
+          if (!line) continue;
+          try {
+            const j = JSON.parse(line) as { d?: string; done?: boolean; reply?: string; error?: string; code?: string; plan?: string; lite?: boolean; left?: number; limit?: number };
+            if (j.d) { acc += j.d; onText(acc); }
+            else if (j.done) { final = String(j.reply ?? acc); if (j.plan) lastAiInfo = { plan: j.plan, lite: !!j.lite, left: j.left, limit: j.limit }; }
+            else if (j.error) err = { m: j.error, code: j.code };
+          } catch { /* riga non completa */ }
+        }
+      };
+      x.onprogress = eat;
+      x.onload = () => {
+        eat();
+        if (x.status === 401) { resolve(401); return; }
+        if (err) { reject(new AiServerError(err.m, err.code === 'quota' ? 429 : 502)); return; }
+        if (x.status < 200 || x.status >= 300) { reject(new AiServerError(`Il server AI ha risposto: errore ${x.status}`, x.status)); return; }
+        resolve(final ?? acc);
+      };
+      x.onerror = () => reject(new AiServerError('Non riesco a raggiungere il server AI.'));
+      x.ontimeout = () => reject(new AiServerError('Il servizio AI ci mette troppo a rispondere.', 504));
+      x.send(body);
+    });
+  };
+  let r = await once(false);
+  if (r === 401) r = await once(true);
+  if (r === 401) throw new AiServerError('Il server AI non riconosce il tuo accesso: esci e accedi di nuovo dal tuo account.', 401);
+  return r;
+}
+
 /** Come aiChat ma senza togliere il grassetto e gli elenchi (la chat li mostra bene). */
 /** `q` = la sola domanda dell'utente: il server puo' cercarla sul web (frase resa generica) se Theia non sa. */
 export const aiChatRaw = async (message: string, q?: string) => String((await call<{ reply: string }>('/chat', { message, ...(q ? { q, web: useAiServerCfg.getState().web !== false } : {}) })).reply ?? '');

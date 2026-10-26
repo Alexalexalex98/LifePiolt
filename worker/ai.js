@@ -216,10 +216,8 @@ export function withSources(text, used) {
   return foot.length ? `${body}\n\nFonti: ${foot.join(', ')}` : body;
 }
 
-async function handle(path, b, env, lite = false) {
-  const TEXT = lite ? LITE : SMART;
-  const cap = (n) => (lite ? Math.min(n, LITE_TOKENS) : n);
-  if (path === '/chat') {
+/** Prepara la richiesta di chat: conversazione recente e, se serve, la ricerca sul web con le fonti. */
+async function prepChat(b, env) {
     const history = Array.isArray(b.history) ? b.history.slice(-12).filter((m) => m && (m.role === 'user' || m.role === 'assistant')).map((m) => ({ role: m.role, content: String(m.content ?? '').slice(0, 4000) })) : [];
     let message = String(b.message ?? '').slice(0, 24000);
     let used = [];
@@ -233,6 +231,71 @@ async function handle(path, b, env, lite = false) {
         }
       }
     }
+  return { message, history, used };
+}
+
+/** Come `run` ma a flusso: chiama onDelta con il testo che si aggiunge (senza i pensieri interni del modello). Se un modello non risponde passa al successivo. */
+export async function streamRun(env, models, input, max, onDelta) {
+  let quota = false; let last = '';
+  for (const m of models) {
+    let raw = ''; let sent = 0;
+    const push = () => {
+      const vis = raw.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').replace(/<(t(h(i(n(k)?)?)?)?)?$/, '');
+      if (vis.length > sent) { onDelta(vis.slice(sent)); sent = vis.length; }
+    };
+    try {
+      const out = await env.AI.run(m, { ...input, max_tokens: max, stream: true });
+      if (out && typeof out.getReader === 'function') {
+        const rd = out.getReader(); const dec = new TextDecoder(); let buf = '';
+        for (;;) {
+          const { done, value } = await rd.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let nl;
+          while ((nl = buf.indexOf('\n')) >= 0) {
+            const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+            if (!line.startsWith('data:')) continue;
+            const pl = line.slice(5).trim();
+            if (!pl || pl === '[DONE]') continue;
+            try { const j = JSON.parse(pl); const d = j.response ?? j.choices?.[0]?.delta?.content ?? ''; if (typeof d === 'string' && d) { raw += d; push(); } } catch { /* riga non completa */ }
+          }
+        }
+      } else { raw = textOf(out); push(); }
+      const text = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      if (text) return { text, model: m };
+    } catch (e) {
+      if (isQuota(e)) quota = true; last = String(e?.message ?? e).slice(0, 160);
+      if (sent > 0) { const t = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim(); if (t) return { text: t, model: m }; }
+    }
+  }
+  const err = new Error(quota ? 'quota' : last || 'nessun modello ha risposto');
+  err.quota = quota;
+  throw err;
+}
+
+/** Chat a flusso (una riga JSON per evento): {"d":"testo"} mentre Theia scrive, poi {"done":true,"reply":"testo finale con i link alle fonti"}. */
+export function streamChat(b, env, lite, info) {
+  const enc = new TextEncoder();
+  const { readable, writable } = new TransformStream();
+  const w = writable.getWriter();
+  const send = (o) => w.write(enc.encode(JSON.stringify(o) + '\n')).catch(() => {});
+  (async () => {
+    try {
+      const { message, history, used } = await prepChat(b, env);
+      const { text } = await streamRun(env, lite ? LITE : SMART, { messages: msgs(SYSTEM, message, history) }, lite ? Math.min(1500, LITE_TOKENS) : 1500, (d) => { send({ d }); });
+      await send({ done: true, reply: used.length ? withSources(text, used) : text, ...info });
+    } catch (e) {
+      await send(e?.quota ? { error: 'Il limite gratuito di oggi dell\'intelligenza artificiale \u00e8 finito: riprova domani.', code: 'quota' } : { error: 'Il servizio AI non ha risposto: riprova tra poco.' });
+    } finally { await w.close().catch(() => {}); }
+  })();
+  return new Response(readable, { headers: { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store', ...CORS } });
+}
+
+async function handle(path, b, env, lite = false) {
+  const TEXT = lite ? LITE : SMART;
+  const cap = (n) => (lite ? Math.min(n, LITE_TOKENS) : n);
+  if (path === '/chat') {
+    const { message, history, used } = await prepChat(b, env);
     const { text } = await run(env, TEXT, { messages: msgs(SYSTEM, message, history) }, cap(1500));
     return { reply: used.length ? withSources(text, used) : text };
   }
@@ -306,6 +369,7 @@ export default {
     }
     let b;
     try { b = await req.json(); } catch { return json({ error: 'richiesta non valida' }, 400); }
+    if (path === '/chat' && b.stream === true) return streamChat(b, env, lite, info);
     try {
       const out = await handle(path, b, env, lite);
       return out ? json({ ...out, ...info }) : json({ error: 'percorso sconosciuto' }, 404);

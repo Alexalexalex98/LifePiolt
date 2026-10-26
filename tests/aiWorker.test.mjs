@@ -145,3 +145,19 @@ test('withSources: i numeri diventano link brevi, fonti uniche in fondo', async 
   assert.match(r, /Conferma \[it\.wikipedia\.org\]\(https:\/\/it\.wikipedia\.org\/wiki\/X\) e \[9\]\./);
   assert.match(r, /\n\nFonti: \[ansa\.it\]\(https:\/\/www\.ansa\.it\/a\), \[it\.wikipedia\.org\]/);
 });
+
+test('/chat a flusso: arrivano i pezzi di testo, poi la riga finale; i pensieri del modello non si vedono', async () => {
+  const sse = (...parts) => new ReadableStream({ start(c) { const e = new TextEncoder(); for (const p of parts) c.enqueue(e.encode(p)); c.close(); } });
+  const ai = async (m, input) => {
+    if (!input.stream) return { response: '{"search":false}' };
+    return sse('data: {"response":"<think>ragiono"}\n\n', 'data: {"response":"</think>Ciao"}\n\ndata: {"response":" mondo"}\n', '\ndata: [DONE]\n\n');
+  };
+  const r = await worker.fetch(req('/chat', { message: 'PROMPT', stream: true, q: 'ciao' }), envWith(ai));
+  assert.match(r.headers.get('content-type'), /ndjson/);
+  const lines = (await r.text()).trim().split('\n').map((l) => JSON.parse(l));
+  assert.equal(lines.filter((l) => l.d).map((l) => l.d).join(''), 'Ciao mondo');
+  assert.deepEqual(lines.at(-1).reply, 'Ciao mondo'); assert.equal(lines.at(-1).done, true);
+  const bad = await worker.fetch(req('/chat', { message: 'x', stream: true }), envWith(async () => { throw new Error('4006: daily free allocation'); }));
+  const e = (await bad.text()).trim().split('\n').map((l) => JSON.parse(l)).at(-1);
+  assert.equal(e.code, 'quota');
+});

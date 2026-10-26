@@ -16,7 +16,7 @@ import { t, translateText } from '@/i18n/core';
 import { HONESTY, guardClaims, humanize, styleHints, tidy } from '@/lib/aiPersona';
 import { relevantHistory, sessionFromOf } from '@/lib/assistant/session';
 import { useAssistant } from '@/store/assistant';
-import { aiChat, aiChatRaw, aiReadFilesFull, aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
+import { aiChat, aiChatRaw, aiChatStream, aiReadFilesFull, aiServerConfigured, aiVision, imageForAi } from '@/lib/aiServer';
 import { useLife } from '@/store/life';
 import { appContextParts, partsText } from '@/lib/theia/appContext';
 import { askData, logSend } from '@/lib/aiConsent';
@@ -310,6 +310,11 @@ async function theiaPrompt(question: string, selection?: string): Promise<string
 /** Domanda libera in chat: risponde il server AI come una persona (con la conversazione recente). */
 export async function askTheiaChat(question: string): Promise<string> {
   return guardClaims(tidy(await aiChatRaw(await theiaPrompt(question), question))).text;
+}
+
+/** Come askTheiaChat ma a flusso: `onText` riceve il testo man mano che Theia lo scrive. */
+export async function askTheiaChatStream(question: string, onText: (acc: string) => void): Promise<string> {
+  return guardClaims(tidy(await aiChatStream(await theiaPrompt(question), question, onText))).text;
 }
 
 /** Domanda su file o foto inviati (consenso gia' dato): risponde il server AI leggendo i file. `result` e' la lettura strutturata dei documenti. */

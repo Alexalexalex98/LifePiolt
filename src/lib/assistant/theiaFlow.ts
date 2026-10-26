@@ -16,8 +16,8 @@ import { helpAnswer, looksLikeHelp, searchHelp } from '@/lib/helpKb';
 import { routeRequest, type RouteResult } from '@/lib/aiRouter';
 import { aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { askSend, askSendRouted, logSend } from '@/lib/aiConsent';
-import { askTheiaChat, askTheiaFiles } from '@/lib/theia';
-import { filterActions, parseAiActions, splitReply } from './aiActionsCore';
+import { askTheiaChat, askTheiaChatStream, askTheiaFiles } from '@/lib/theia';
+import { filterActions, liveParts, parseAiActions, splitReply } from './aiActionsCore';
 import { pdfToText } from '@/lib/pdfText';
 import { readUriBytes } from '@/lib/readUri';
 import { useProjects } from '@/store/projects';
@@ -89,10 +89,14 @@ const aiOn = () => aiServerConfigured && !useAiRouter.getState().prefs.phoneOnly
 const SMALLTALK = /^(ciao|salve|hey|ehi|buongiorno|buonasera|buon pomeriggio|buonanotte|hi|hello|grazie|thanks|thank you)\b/;
 
 /** Risposta dell'AI: le azioni che propone diventano pulsanti di conferma, descritti dall'app (con i numeri calcolati da lei). */
-function pushParsed(text: string, actions: ReturnType<typeof parseAiActions>['actions']): AMsg {
-  if (!actions.length) return pushAi(text);
+function parsedContent(text: string, actions: ReturnType<typeof parseAiActions>['actions']): { text: string; ext?: TheiaExt } {
+  if (!actions.length) return { text };
   const lines = actions.map((a) => `• ${describe(a)}`).join('\n');
-  return pushAi(`${text}\n\n${t('Posso farlo io, se vuoi:')}\n${lines}`, { ext: { actions: [...actions.map((a): TheiaAction => ({ kind: 'ai-do', label: actions.length > 1 ? describe(a) : t('Sì, fallo'), act: a })), { kind: 'dismiss', label: t('No, grazie') }] } });
+  return { text: `${text}\n\n${t('Posso farlo io, se vuoi:')}\n${lines}`, ext: { actions: [...actions.map((a): TheiaAction => ({ kind: 'ai-do', label: actions.length > 1 ? describe(a) : t('Sì, fallo'), act: a })), { kind: 'dismiss', label: t('No, grazie') }] } };
+}
+function pushParsed(text: string, actions: ReturnType<typeof parseAiActions>['actions']): AMsg {
+  const c = parsedContent(text, actions);
+  return pushAi(c.text, c.ext ? { ext: c.ext } : {});
 }
 function pushWithActions(reply: string): AMsg {
   const { text, actions } = parseAiActions(reply);
@@ -122,8 +126,31 @@ async function aiChatReply(text: string): Promise<void> {
     return;
   }
   try {
-    const reply = await askTheiaChat(text) || t('Risposta vuota dal server.');
-    await pushReply(reply, text);
+    /* Theia scrive nel messaggio mentre il server genera: i pezzi separati da ||| diventano messaggi distinti */
+    const live: string[] = []; const shown: string[] = []; let last = 0;
+    const paint = (acc: string) => {
+      const now = Date.now(); if (now - last < 120) return; last = now;
+      liveParts(acc).forEach((p, i) => {
+        if (!live[i]) { live[i] = pushAi(p).id; shown[i] = p; }
+        else if (shown[i] !== p) { shown[i] = p; store().patchMsg(live[i], { text: p }); }
+      });
+    };
+    let reply = '';
+    try { reply = await askTheiaChatStream(text, paint); }
+    catch { live.splice(0).forEach((id) => store().delMsg(id)); reply = await askTheiaChat(text); }
+    reply = reply || t('Risposta vuota dal server.');
+    if (live.length) {
+      /* il testo finale (con i link alle fonti e le azioni) sostituisce quello provvisorio */
+      const parsed = parseAiActions(reply);
+      const actions = filterActions(text, parsed.actions);
+      const parts = splitReply(parsed.text);
+      if (!parts.length) parts.push(parsed.text);
+      parts.forEach((p, i) => {
+        const c = i === parts.length - 1 ? parsedContent(p, actions) : { text: p };
+        if (live[i]) store().patchMsg(live[i], c); else pushAi(c.text, c.ext ? { ext: c.ext } : {});
+      });
+      live.slice(parts.length).forEach((id) => store().delMsg(id));
+    } else await pushReply(reply, text);
     if (plain) { const { text: parsed, actions } = parseAiActions(reply); const clean = splitReply(parsed).join('\n\n'); if (!actions.length && isLearnable(text, clean)) kb.learn(text, clean); }
   } catch (e) {
     pushAi(`${t(friendlyAiError(e instanceof Error ? e.message : 'Errore del server AI.'))}\n\n${t('I comandi sul tuo piano, i task e i report funzionano comunque.')}`, { ext: { actions: [{ kind: 'say', label: t('Riprova'), text }, { kind: 'dismiss', label: t('Lascia stare') }] } });

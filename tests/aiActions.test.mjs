@@ -314,3 +314,13 @@ test('«Si ho una domanda…» non e\' un si all\'azione', async () => {
   const { filterActions } = await import('../src/lib/assistant/aiActionsCore.ts');
   assert.deepEqual(filterActions('Si ho una domanda com\'è nato l\'universo?', [{ type: 'open', page: 'lifefinance' }]), []);
 });
+
+test('liveParts: testo in arrivo senza separatori a meta e senza azioni', async () => {
+  const { liveParts } = await import('../src/lib/assistant/aiActionsCore.ts');
+  assert.deepEqual(liveParts('Ciao'), ['Ciao']);
+  assert.deepEqual(liveParts('Ciao\n|'), ['Ciao']);
+  assert.deepEqual(liveParts('Ciao\n||'), ['Ciao']);
+  assert.deepEqual(liveParts('Ciao\n|||\nSecondo mess'), ['Ciao', 'Secondo mess']);
+  assert.deepEqual(liveParts('Fatto.\n[[AZIONE {"type":"task_'), ['Fatto.']);
+  assert.deepEqual(liveParts(''), []);
+});

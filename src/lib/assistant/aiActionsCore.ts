@@ -85,6 +85,13 @@ export function splitReply(text: string): string[] {
   return String(text ?? '').split(/\n\s*\|\|\|\s*\n/).map((x) => x.replace(/\|\|\|/g, '').trim()).filter(Boolean).slice(0, 5);
 }
 
+/** Il testo che Theia sta scrivendo adesso: senza le azioni [[...]] e senza i separatori ||| a meta', diviso nei messaggi gia' aperti. */
+export function liveParts(acc: string): string[] {
+  const cut = acc.indexOf('[[');
+  const t = (cut >= 0 ? acc.slice(0, cut) : acc).replace(/\n?\s*\|{1,3}\s*$/, '').replace(/\[$/, '');
+  return t.split(/\n\s*\|\|\|\s*\n?/).map((x) => x.replace(/\|\|\|/g, '').trim()).filter(Boolean).slice(0, 5);
+}
+
 const ASK_OPEN = /\b(apri|aprimi|vai|portami|mostrami|mostra|fammi vedere|open|show|go to|take me)\b/i;
 const ASK_DO = /\b(aggiung|crea|segn|mett|cancell|elimin|toglie|sposta|imposta|inserisc|pianific|ricord|prenot|fissa|fai|fammi|registr|modific|cambia|distribui|add|create|delete|remove|set|remind|schedule|move|mark|change)\w*/i;
 /* un «si» vale solo se e' una risposta breve («sì», «sì fallo», «ok va bene»), non l'inizio di un'altra domanda */

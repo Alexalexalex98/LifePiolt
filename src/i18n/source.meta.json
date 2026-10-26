@@ -1,5 +1,5 @@
 {
- "count": 14538,
+ "count": 14544,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -371,7 +371,7 @@
   "src/lib/aiRouter/rewrite.ts": 41,
   "src/lib/aiRouter/runtime.ts": 5,
   "src/lib/aiRouter/select.ts": 18,
-  "src/lib/aiServer.ts": 16,
+  "src/lib/aiServer.ts": 22,
   "src/lib/analytics.ts": 64,
   "src/lib/analyticsData.ts": 32,
   "src/lib/arrival.ts": 8,
@@ -649,5 +649,5 @@
   "src/sync/supabaseTransport.ts": 14,
   "src/sync/transport.ts": 2
  },
- "withPlaceholders": 1828
+ "withPlaceholders": 1829
 }
