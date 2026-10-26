@@ -60,6 +60,7 @@ export default function LifeFitness() {
   const { buy: buyParam } = useLocalSearchParams<{ buy?: string }>();
   useEffect(() => { if (buyParam) { router.setParams({ buy: '' }); setTab('LifePass'); setBuy('ask'); } }, [buyParam]);
   useEffect(() => { fit.settle(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [calOpen, setCalOpen] = useState(false);
   const now = Date.now();
   const state = premiumState(fit.sub, now);
   const active = fit.activeProgram ? programById(fit.activeProgram) ?? null : null;
@@ -126,7 +127,7 @@ export default function LifeFitness() {
 
           {fit.profile && active ? (
             <Card>
-              <Row><H>La tua settimana</H><Btn small ghost title="Cambia" onPress={() => setSetup(true)} /></Row>
+              <Row><H>La tua settimana</H><Btn small ghost icon="calendar" title="Calendario" onPress={() => setCalOpen(true)} /><Btn small ghost title="Cambia" onPress={() => setSetup(true)} /></Row>
               <Row style={{ marginTop: 6, justifyContent: 'space-between' }} gap={4}>
                 {week.map((w) => { const d = dayInfo(w.date, { program: active, profile: fit.profile, history: fit.history, plans: fit.plans ?? {}, now: new Date() }); const dw = { ...d, weekday: w.weekday }; const missed = dw.planned && !dw.done && dw.date < todayIso; return (
                   <Pressable key={d.date} accessibilityRole="button" accessibilityLabel={tl('Apri la giornata del {0}', d.date)} onPress={() => go('fitnessPlanDay', { date: d.date })} style={{ flex: 1, alignItems: 'center', gap: 5 }}>
@@ -149,11 +150,9 @@ export default function LifeFitness() {
             </Card>
           ) : null}
 
-          <TrainingCalendar />
-
           {fit.profile ? (
             <Row gap={10} style={{ alignItems: 'stretch' }}>
-              <StatTile icon="lifefitness" value={st.week} label={tl('in settimana')} />
+              <StatTile icon="lifefitness" value={st.week} label={tl('in settimana')} onPress={() => setCalOpen(true)} />
               <StatTile icon="sparkle" value={st.streakDays} label={tl('giorni di fila')} />
               <StatTile icon="clock" value={st.minutesWeek} label={tl('minuti')} />
             </Row>
@@ -338,6 +337,9 @@ export default function LifeFitness() {
             <Body small muted style={{ textAlign: 'center' }}>Mostralo all'ingresso del centro. Il centro controlla che l'abbonamento sia attivo.</Body>
           </View>
         ) : null}
+      </Sheet>
+          <Sheet visible={calOpen} icon="calendar" title="I tuoi allenamenti" onClose={() => setCalOpen(false)}>
+        <TrainingCalendar bare onPick={() => setCalOpen(false)} />
       </Sheet>
     </Page>
   );

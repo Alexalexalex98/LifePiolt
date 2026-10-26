@@ -16,10 +16,11 @@ const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart
 const WD = ['L', 'M', 'M', 'G', 'V', 'S', 'D'];
 
 /** Il mese intero: i giorni in cui ti sei allenato sono pieni, quelli saltati hanno una croce; tocchi un giorno e lo apri (anche nel passato). */
-export function TrainingCalendar() {
+export function TrainingCalendar({ bare, onPick }: { bare?: boolean; onPick?: () => void }) {
   const t = useTheme();
   const fit = useFitness();
   const [off, setOff] = useState(0);
+  const Wrap = bare ? View : Card;
   const today = iso(new Date());
   const first = useMemo(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth() + off, 1); }, [off]);
   const active = fit.activeProgram ? programById(fit.activeProgram) ?? null : null;
@@ -31,7 +32,7 @@ export function TrainingCalendar() {
   const month = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   const doneN = cells.filter((d) => d && dayInfo(d, ctx).done).length;
   return (
-    <Card>
+    <Wrap>
       <Row>
         <Pressable accessibilityRole="button" accessibilityLabel={tl('Mese precedente')} hitSlop={10} onPress={() => setOff(off - 1)}><Icon name="arrow-left" size={20} color={t.text} /></Pressable>
         <View style={{ flex: 1, alignItems: 'center' }}><H style={{ marginBottom: 0, textTransform: 'capitalize' }}>{month}</H><Body small muted>{tl('{0} allenamenti fatti', doneN)}</Body></View>
@@ -48,7 +49,7 @@ export function TrainingCalendar() {
             const missed = i.planned && !i.done && d < today;
             const partial = !i.done && !!(fit.exDone ?? {})[d]?.idx.length;
             return (
-              <Pressable key={c} accessibilityRole="button" accessibilityLabel={tl('Apri la giornata del {0}', d)} onPress={() => go('fitnessPlanDay', { date: d })}
+              <Pressable key={c} accessibilityRole="button" accessibilityLabel={tl('Apri la giornata del {0}', d)} onPress={() => { onPick?.(); go('fitnessPlanDay', { date: d }); }}
                 style={{ flex: 1, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: i.done ? FIT : missed ? t.warn + '26' : i.planned ? FIT + '2e' : t.chip + '99', borderWidth: d === today ? 2 : 0, borderColor: FIT }}>
                 <Text style={{ color: i.done ? '#1c0b04' : t.text, fontWeight: '800', fontSize: 13 }}>{parseIso(d).getDate()}</Text>
                 {partial ? <View style={{ position: 'absolute', bottom: 3, width: 5, height: 5, borderRadius: 3, backgroundColor: FIT }} /> : null}
@@ -63,6 +64,6 @@ export function TrainingCalendar() {
         <Row gap={5}><View style={{ width: 12, height: 12, borderRadius: 4, backgroundColor: FIT + '2e' }} /><Body small muted>In programma</Body></Row>
         <Row gap={5}><Icon name="x" size={12} color={t.warn} stroke={3} /><Body small muted>Non fatto</Body></Row>
       </Row>
-    </Card>
+    </Wrap>
   );
 }

@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { Text } from '@/components/T';
 
@@ -48,14 +48,15 @@ export function Ring({ value, size = 96, stroke = 10, color = FIT, big, small }:
 }
 
 /** Riquadro con numero grande e etichetta. */
-export function StatTile({ value, label, icon, color = FIT }: { value: string | number; label: string; icon?: string; color?: string }) {
+export function StatTile({ value, label, icon, color = FIT, onPress }: { value: string | number; label: string; icon?: string; color?: string; onPress?: () => void }) {
   const t = useTheme();
+  const Wrap = onPress ? Pressable : View;
   return (
-    <View style={{ flex: 1, backgroundColor: t.card, borderColor: t.border, borderWidth: 1, borderRadius: 18, padding: 12, gap: 2 }}>
+    <Wrap {...(onPress ? { onPress, accessibilityRole: 'button' as const, accessibilityLabel: `${label}: ${value}` } : {})} style={{ flex: 1, backgroundColor: t.card, borderColor: t.border, borderWidth: 1, borderRadius: 18, padding: 12, gap: 2 }}>
       {icon ? <Icon name={icon} size={16} color={color} stroke={2.2} /> : null}
       <Text style={{ color: t.text, fontSize: 28, fontWeight: '900', letterSpacing: -0.5 }}>{value}</Text>
       <Text style={{ color: t.muted, fontSize: 11.5, fontWeight: '600' }}>{label}</Text>
-    </View>
+    </Wrap>
   );
 }
 
