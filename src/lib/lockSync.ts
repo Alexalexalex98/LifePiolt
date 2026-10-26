@@ -1,3 +1,4 @@
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { Platform } from 'react-native';
 
 import { dayOf, waterGoal } from '@/lib/fitness/mealInsights';
@@ -15,6 +16,8 @@ let mod: Mod | null | undefined;
 const widgets = (): Mod | null => {
   if (mod !== undefined) return mod;
   if (Platform.OS !== 'ios') return (mod = null);
+  /* senza il modulo nativo (build vecchia) non si prova nemmeno a caricarlo */
+  if (!requireOptionalNativeModule('ExpoWidgets')) return (mod = null);
   try { mod = require('@/widgets/now') as Mod; } catch { mod = null; }
   return mod;
 };
