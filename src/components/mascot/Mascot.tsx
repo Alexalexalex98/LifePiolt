@@ -228,8 +228,11 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
             <Stop offset="0.35" stopColor={tones.glow} stopOpacity="0.5" /><Stop offset="1" stopColor={tones.glow} stopOpacity="0" />
           </RadialGradient>
           <RadialGradient id="tint" cx="38%" cy="30%" rx="85%" ry="85%">
-            <Stop offset="0" stopColor={shown} stopOpacity="0.38" /><Stop offset="0.55" stopColor={shown} stopOpacity="0.7" /><Stop offset="1" stopColor={shown} stopOpacity="0.92" />
+            <Stop offset="0" stopColor={mix('#ffffff', shown, 0.35)} stopOpacity="0.55" /><Stop offset="0.6" stopColor={mix('#ffffff', shown, 0.55)} stopOpacity="0.7" /><Stop offset="1" stopColor={shown} stopOpacity="0.85" />
           </RadialGradient>
+          <Mask id="rimMask" x={8} y={22} width={184} height={175} maskUnits="userSpaceOnUse">
+            <SvgImage x={20 - 7} y={34 - 6.5} width={174} height={163.7} href={BODY} preserveAspectRatio="xMidYMid meet" />
+          </Mask>
           <Mask id="bodyMask" x={20} y={34} width={160} height={150.7} maskUnits="userSpaceOnUse">
             <SvgImage x={20} y={34} width={160} height={150.7} href={BODY} preserveAspectRatio="xMidYMid meet" />
           </Mask>
@@ -237,6 +240,8 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
         <Circle cx={100} cy={112} r={98} fill="url(#glow)" opacity={0.55} />
         <Ellipse cx={100} cy={184} rx={54} ry={7} fill="#000" opacity={0.2} />
         <G transform={`translate(100 0) scale(${1 - 0.05 * Math.abs(sin)} 1) translate(-100 0)`}>
+          {/* il contorno: la stessa sagoma un po' più grande, piena del colore dell'app */}
+          <Rect x={8} y={22} width={184} height={175} fill={shown} opacity={0.95} mask="url(#rimMask)" />
           <SvgImage x={20} y={34} width={160} height={150.7} href={BODY} preserveAspectRatio="xMidYMid meet" />
           <Rect x={20} y={34} width={160} height={150.7} fill="url(#tint)" mask="url(#bodyMask)" />
         </G>
