@@ -17,6 +17,7 @@ import { waterGoal } from '@/lib/fitness/mealInsights';
 import { recommend, sessionMinutes, stats, weekView, whyThis, type FitProfile } from '@/lib/fitness/plan';
 import { PREMIUM_PRICE_LP, daysLeft, passPayload, premiumState } from '@/lib/fitness/premium';
 import { TodayCard } from '@/components/fitness/TodayCard';
+import { TrainingCalendar } from '@/components/fitness/TrainingCalendar';
 import { ExerciseBrowser } from '@/components/fitness/ExerciseBrowser';
 import { ExercisePicker } from '@/components/fitness/ExercisePicker';
 import { Icon } from '@/lib/icons';
@@ -147,6 +148,8 @@ export default function LifeFitness() {
               </Row>
             </Card>
           ) : null}
+
+          <TrainingCalendar />
 
           {fit.profile ? (
             <Row gap={10} style={{ alignItems: 'stretch' }}>
