@@ -10,6 +10,9 @@ export type BodyReport = { id: string; ts: number; text: string; /** le 4 foto d
 type State = {
   photos: Partial<Record<BodySlot, string>>;
   reports: BodyReport[];
+  /** l'utente ha scelto di non fare le foto del corpo: niente schede e niente promemoria */
+  skip: boolean;
+  setSkip: (v: boolean) => void;
   setPhoto: (slot: BodySlot, uri: string | undefined) => void;
   addReport: (text: string, photos?: Partial<Record<BodySlot, string>>) => string;
   delReport: (id: string) => void;
@@ -19,6 +22,8 @@ type State = {
 export const useBodyCheck = create<State>()(persisted<State>('body-check', (set) => ({
   photos: {},
   reports: [],
+  skip: false,
+  setSkip: (v) => set({ skip: v }),
   setPhoto: (slot, uri) => set((s) => ({ photos: { ...s.photos, [slot]: uri } })),
   addReport: (text, photos) => { const id = uid(); set((s) => ({ reports: [{ id, ts: Date.now(), text, ...(photos ? { photos } : {}) }, ...s.reports].slice(0, 30), photos: photos ? {} : s.photos })); return id; },
   delReport: (id) => set((s) => ({ reports: s.reports.filter((r) => r.id !== id) })),

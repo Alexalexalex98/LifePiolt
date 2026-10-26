@@ -47,7 +47,7 @@ export function WaterSheet({ visible, onClose }: { visible: boolean; onClose: ()
       </Row>
       <Row style={{ marginTop: 14 }} gap={8}>
         {ml > 0 ? <Btn small ghost style={{ flex: 1 }} title="Togli 200 ml" onPress={() => add(-Math.min(200, ml))} /> : null}
-        <Btn small ghost style={{ flex: 1 }} title="Come va l'acqua" onPress={() => { onClose(); go('fitnessDay', { day: key, focus: 'water' }); }} />
+        <Btn small ghost style={{ flex: 1 }} title="Come va l'acqua" onPress={() => { onClose(); go('fitnessWater'); }} />
       </Row>
     </Sheet>
   );

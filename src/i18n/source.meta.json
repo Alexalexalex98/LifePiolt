@@ -1,5 +1,5 @@
 {
- "count": 14584,
+ "count": 14603,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -27,7 +27,7 @@
   "src/app/(tabs)/docView.tsx": 2,
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
-  "src/app/(tabs)/fitnessBody.tsx": 25,
+  "src/app/(tabs)/fitnessBody.tsx": 31,
   "src/app/(tabs)/fitnessCook.tsx": 27,
   "src/app/(tabs)/fitnessDay.tsx": 38,
   "src/app/(tabs)/fitnessDiary.tsx": 56,
@@ -43,6 +43,7 @@
   "src/app/(tabs)/fitnessPass.tsx": 27,
   "src/app/(tabs)/fitnessPlanDay.tsx": 30,
   "src/app/(tabs)/fitnessProgram.tsx": 36,
+  "src/app/(tabs)/fitnessWater.tsx": 17,
   "src/app/(tabs)/fitnessWorkout.tsx": 25,
   "src/app/(tabs)/focus.tsx": 27,
   "src/app/(tabs)/friendsPage.tsx": 39,
@@ -62,7 +63,7 @@
   "src/app/(tabs)/life.tsx": 23,
   "src/app/(tabs)/lifedrive.tsx": 47,
   "src/app/(tabs)/lifefinance.tsx": 105,
-  "src/app/(tabs)/lifefitness.tsx": 107,
+  "src/app/(tabs)/lifefitness.tsx": 126,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 113,
   "src/app/(tabs)/lifenetwork.tsx": 42,
@@ -655,5 +656,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1838
+ "withPlaceholders": 1839
 }

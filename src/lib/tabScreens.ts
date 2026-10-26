@@ -42,6 +42,7 @@ export const TAB_SCREENS: string[] = [
   'fitnessPass',
   'fitnessPlanDay',
   'fitnessProgram',
+  'fitnessWater',
   'fitnessWorkout',
   'focus',
   'friendsPage',

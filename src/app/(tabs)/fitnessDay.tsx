@@ -85,7 +85,7 @@ export default function FitnessDay() {
         {water >= goal ? <Body small style={{ marginTop: 6, color: '#5fd39a' }}>Obiettivo raggiunto per questo giorno.</Body> : null}
         {water > 0 && wl === 'troppa' ? <Body small style={{ marginTop: 6, color: '#ffb020' }}>Hai bevuto molta più acqua del necessario: ti conviene distribuirla nella giornata. Trovi cosa può succedere nello storico.</Body> : null}
         {water > 0 && !isToday && wl === 'poca' ? <Body small style={{ marginTop: 6, color: '#ffb020' }}>Quel giorno hai bevuto poco. Se succede spesso, nello storico trovi cosa può causare.</Body> : null}
-        <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} title="Come va l'acqua negli ultimi giorni" onPress={() => go('fitnessDiary')} />
+        <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} title="Come va l'acqua negli ultimi giorni" onPress={() => go('fitnessWater')} />
       </Card>
   );
   return (

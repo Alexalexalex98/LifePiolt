@@ -66,7 +66,7 @@ export function MissingW(p: WProps) {
   type R = TileRow & { go: string; params?: Record<string, string> };
   const raw: R[] = [
     { label: tl('Umore'), done: moods.some((m) => m.day === todayStr()), go: 'mood' },
-    { label: tl('Acqua'), value: `${(waterMl / 1000).toFixed(1).replace('.', ',')} L`, done: waterMl >= waterGoal(fit.body?.weightKg) * 0.8, go: 'fitnessDay', params: { focus: 'water', day: dayOf(now) } },
+    { label: tl('Acqua'), value: `${(waterMl / 1000).toFixed(1).replace('.', ',')} L`, done: waterMl >= waterGoal(fit.body?.weightKg) * 0.8, go: 'fitnessWater', params: undefined },
     { label: tl('Pasti segnati'), done: fit.meals.some((m) => dayOf(m.ts) === dayOf(now)), go: 'fitnessDay', params: { day: dayOf(now) } },
     ...(info.planned ? [{ label: tl('Allenamento'), done: info.done, go: 'fitnessPlanDay', params: { date: today } }] : []),
     { label: tl('Task di oggi'), value: openToday ? String(openToday) : undefined, done: openToday === 0, go: 'plan' },

@@ -15,7 +15,7 @@ import { confirmDelete } from '@/lib/confirm';
 import { askSend, logSend } from '@/lib/aiConsent';
 import { tidy } from '@/lib/aiPersona';
 import { AiServerError, aiReadFiles, aiServerConfigured } from '@/lib/aiServer';
-import { scheduleAt } from '@/lib/notify';
+import { cancel, scheduleAt } from '@/lib/notify';
 import { BODY_REPEAT_DAYS, BODY_SLOTS, BODY_TIPS, bodyPrompt, type BodySlot } from '@/lib/fitness/bodyCheck';
 import { persistFile } from '@/lib/chatMedia';
 import { Icon } from '@/lib/icons';
@@ -27,7 +27,7 @@ import { toast } from '@/store/toast';
 /** Controllo del corpo: 4 foto (davanti, dietro, lati) che l'AI guarda per dire cosa va bene e cosa migliorare con esercizi e alimentazione. */
 export default function FitnessBody() {
   const t = useTheme();
-  const { photos, reports, setPhoto, addReport, delReport, clearPhotos } = useBodyCheck();
+  const { photos, reports, setPhoto, addReport, delReport, clearPhotos, skip, setSkip } = useBodyCheck();
   const fit = useFitness();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -70,6 +70,13 @@ export default function FitnessBody() {
 
   return (
     <Page id="fitnessBody" back title="Controllo del corpo">
+      {skip ? (
+        <Card accent={FIT}>
+          <H>Hai scelto di non fare le foto</H>
+          <Body small muted style={{ marginTop: 4 }}>Va benissimo: non ti chiederò le foto e non compare nessun promemoria. Se cambi idea puoi riattivarle in qualsiasi momento.</Body>
+          <Btn style={{ marginTop: 10 }} title="Voglio farle" onPress={() => setSkip(false)} />
+        </Card>
+      ) : (<>
       <Card accent={FIT}>
         <H>Quattro foto, un parere sul tuo allenamento</H>
         <Body small muted style={{ marginTop: 2 }}>Scatta o scegli 4 foto: davanti, dietro e i due lati. Dopo circa 4 settimane ti chiedo di rifarle, così vedi i progressi. L'AI guarda cosa va bene e cosa si può migliorare con esercizi, alimentazione e abitudini. È una valutazione indicativa da foto, non una visita.</Body>
@@ -119,6 +126,11 @@ export default function FitnessBody() {
         </Card>
       ) : null}
       <PhotoViewer uri={viewer} onClose={() => setViewer(null)} />
+      <Card>
+        <Body small muted>Le foto sono facoltative: puoi anche scegliere di non farle.</Body>
+        <Btn small ghost style={{ marginTop: 8, alignSelf: 'flex-start' }} title="Non voglio fare le foto del corpo" onPress={() => { setSkip(true); void cancel('body-photos').catch(() => undefined); toast('Va bene, non te le chiederò'); }} />
+      </Card>
+      </>)}
     </Page>
   );
 }

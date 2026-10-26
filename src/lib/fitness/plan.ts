@@ -3,7 +3,7 @@ import { type Goal, type Level, type Place, type Program, type Step } from './da
 import { exById } from './exerciseDb.ts';
 import { ALL_PROGRAMS } from './programsExtra.ts';
 
-export type FitProfile = { goal: Goal; level: Level; place: Place; days: number; minutes: number; /** bisogni scelti (es. «schiena», «over60», «corsa») */ needs?: string[] };
+export type FitProfile = { goal: Goal; level: Level; place: Place; days: number; minutes: number; /** giorni della settimana scelti da te (0 = lunedì … 6 = domenica); se ci sono, valgono al posto di quelli proposti */ weekdays?: number[]; /** bisogni scelti (es. «schiena», «over60», «corsa») */ needs?: string[] };
 export type Workout = { id: string; date: string; programId: string; session: number; minutes: number; sets: number; /** messo da solo perché hai spuntato tutti gli esercizi */ auto?: boolean };
 
 const LV: Record<Level, number> = { principiante: 0, intermedio: 1, avanzato: 2 };
@@ -42,7 +42,9 @@ export function recommend(f: FitProfile, n = 3, all: Program[] = ALL_PROGRAMS): 
 }
 
 /** Giorni della settimana (0 = lunedì) in cui allenarsi, distribuiti con almeno un giorno di riposo quando si può. */
-export function trainingDays(days: number): number[] {
+export function trainingDays(days: number, custom?: number[]): number[] {
+  const mine = [...new Set((custom ?? []).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => a - b);
+  if (mine.length) return mine;
   const n = Math.max(1, Math.min(7, Math.round(days)));
   const table: Record<number, number[]> = { 1: [2], 2: [1, 4], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 4, 5], 6: [0, 1, 2, 3, 4, 5], 7: [0, 1, 2, 3, 4, 5, 6] };
   return table[n];
@@ -59,9 +61,9 @@ export function nextSessionIndex(p: Program, history: Workout[]): number {
 }
 export type Day = { date: string; weekday: number; planned: boolean; done: boolean; session?: number };
 /** La settimana del programma: giorni previsti, già fatti, e quale sessione tocca. */
-export function weekView(p: Program, f: Pick<FitProfile, 'days'>, history: Workout[], now: Date): Day[] {
+export function weekView(p: Program, f: Pick<FitProfile, 'days' | 'weekdays'>, history: Workout[], now: Date): Day[] {
   const start = weekStartOf(now);
-  const plan = trainingDays(Math.min(f.days, 7));
+  const plan = trainingDays(Math.min(f.days, 7), f.weekdays);
   const doneDates = new Set(history.filter((w) => w.programId === p.id).map((w) => w.date));
   let k = nextSessionIndex(p, history.filter((w) => w.date < iso(start)));
   return Array.from({ length: 7 }, (_, i) => {

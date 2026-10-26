@@ -44,6 +44,8 @@ export default function LifeFitness() {
   const fit = useFitness();
   const net = useNet();
     const [setup, setSetup] = useState(false);
+  const [daysOpen, setDays] = useState(false);
+  const [pickDays, setPickDays] = useState<number[]>([]);
   const [pass, setPass] = useState(false);
   const [tab, setTab] = useState('Oggi');
   const [quick, setQuick] = useState(false);
@@ -76,8 +78,10 @@ export default function LifeFitness() {
     </View>
   );
   const bodyReports = useBodyCheck((s) => s.reports);
+  const bodySkip = useBodyCheck((s) => s.skip);
+  const setBodySkip = useBodyCheck((s) => s.setSkip);
   const saveProfile = () => {
-    fit.set({ profile: draft, activeProgram: recommend(draft, 1)[0]?.id ?? null });
+    fit.set({ profile: draft.days === fit.profile?.days ? draft : { ...draft, weekdays: undefined }, activeProgram: recommend(draft, 1)[0]?.id ?? null });
     setSetup(false); toast('Ho preparato il tuo piano');
   };
 
@@ -102,7 +106,7 @@ export default function LifeFitness() {
 
           <TodayCard />
 
-          {fit.profile ? (() => {
+          {fit.profile && !bodySkip ? (() => {
             const d = daysToNextPhotos(bodyReports[0]?.ts);
             const due = d !== null && d <= 0;
             return (
@@ -113,7 +117,7 @@ export default function LifeFitness() {
                     <H style={{ marginBottom: 2 }}>{d === null ? 'Foto del corpo' : due ? 'È ora di nuove foto' : 'Foto del corpo'}</H>
                     <Body small muted>{d === null ? 'Aggiungi 4 foto: l\'AI vede cosa va bene e cosa migliorare con esercizi e alimentazione.' : due ? 'Sono passate 4 settimane: rifai le 4 foto per vedere i tuoi progressi.' : tl('Prossime foto tra {0} giorni, per vedere i progressi.', d)}</Body>
                   </View>
-                  <Icon name="chevron" size={18} color={t.muted} />
+                  <Icon name="chevron-right" size={18} color={t.muted} />
                 </Row>
               </Card>
             );
@@ -138,15 +142,15 @@ export default function LifeFitness() {
                 <Row gap={5}><Icon name="x" size={13} color={t.warn} stroke={3} /><Body small muted>Non fatto</Body></Row>
               </Row>
               <Row style={{ marginTop: 12 }} gap={8}>
-                <Btn small ghost style={{ flex: 1 }} icon="calendar" title="Giorni e allenamenti" onPress={() => go('fitnessPlanDay', { date: todayIso })} />
+                <Btn small ghost style={{ flex: 1 }} icon="calendar" title="Cambia giorni" onPress={() => { setPickDays(week.filter((d) => d.planned).map((d) => d.weekday)); setDays(true); }} />
                 <Btn small ghost style={{ flex: 1 }} title="Vedi il programma" onPress={() => go('fitnessProgram', { id: active.id })} />
               </Row>
             </Card>
           ) : null}
 
           {fit.profile ? (
-            <Row gap={10}>
-              <StatTile icon="lifefitness" value={st.week} label={tl('questa settimana')} />
+            <Row gap={10} style={{ alignItems: 'stretch' }}>
+              <StatTile icon="lifefitness" value={st.week} label={tl('in settimana')} />
               <StatTile icon="sparkle" value={st.streakDays} label={tl('giorni di fila')} />
               <StatTile icon="clock" value={st.minutesWeek} label={tl('minuti')} />
             </Row>
@@ -163,7 +167,7 @@ export default function LifeFitness() {
           <H style={{ marginTop: 8 }}>{fit.profile ? 'Programmi per te' : 'Programmi'}</H>
           {(fit.profile ? recs : ALL_PROGRAMS.slice(0, 4)).map((p) => (
             <Card key={p.id} onPress={() => go('fitnessProgram', { id: p.id })}>
-              <Row><View style={{ flex: 1 }}><Body bold>{p.name}</Body><Body small muted>{p.tagline}</Body>{fit.profile ? <Body small color={FIT} style={{ marginTop: 3 }}>{whyThis(p, fit.profile)[0]}</Body> : null}</View><Icon name="chevron" size={18} color={t.muted} /></Row>
+              <Row><View style={{ flex: 1 }}><Body bold>{p.name}</Body><Body small muted>{p.tagline}</Body>{fit.profile ? <Body small color={FIT} style={{ marginTop: 3 }}>{whyThis(p, fit.profile)[0]}</Body> : null}</View><Icon name="chevron-right" size={18} color={t.muted} /></Row>
               <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={6}>
                 <Pill label={cap(p.level)} off /><Pill label={cap(p.place)} off /><Pill label={`${p.days} gg/sett.`} off />{p.specialty ? <Pill label={p.specialty} off /> : null}
               </Row>
@@ -174,7 +178,7 @@ export default function LifeFitness() {
           )}
 
           {sub === 'Programmi' ? <Card accent={FIT} onPress={() => go('fitnessGroups')}>
-            <Row><View style={{ flex: 1 }}><H>Allenati in gruppo</H><Body small muted>Gruppi gratuiti e a pagamento, ognuno con la sua community. Puoi anche crearne uno.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+            <Row><View style={{ flex: 1 }}><H>Allenati in gruppo</H><Body small muted>Gruppi gratuiti e a pagamento, ognuno con la sua community. Puoi anche crearne uno.</Body></View><Icon name="chevron-right" size={18} color={t.muted} /></Row>
           </Card> : null}
             </>
           ) : null}
@@ -182,7 +186,7 @@ export default function LifeFitness() {
           {tab === 'Cibo' ? (
             <>
           <Card accent={FIT} onPress={() => go('fitnessMealPlan')}>
-            <Row gap={12}><Icon name="lifefitness" size={22} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 2 }}>Piano alimentare</H><Body small muted>Un piano su misura che cambi come vuoi, confrontato con ciò che mangi davvero.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+            <Row gap={12}><Icon name="lifefitness" size={22} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 2 }}>Piano alimentare</H><Body small muted>Un piano su misura che cambi come vuoi, confrontato con ciò che mangi davvero.</Body></View><Icon name="chevron-right" size={18} color={t.muted} /></Row>
           </Card>
           <Row gap={10}>
             <Card style={{ flex: 1 }} onPress={() => go('fitnessFridge')}><H style={{ marginBottom: 2 }}>Frigo e spesa</H><Body small muted>Scontrino, scorte, lista condivisa</Body></Card>
@@ -197,7 +201,7 @@ export default function LifeFitness() {
                 <Body small muted>{target ? tl('Obiettivo {0} kcal', target) : tl('Imposta il tuo obiettivo')}</Body>
                 <Body small muted style={{ marginTop: 4 }}>Oltre 2000 alimenti; con il Premium di LifePilot basta una foto.</Body>
               </View>
-              <Icon name="chevron" size={18} color={t.muted} />
+              <Icon name="chevron-right" size={18} color={t.muted} />
             </Row>
             </Pressable>
             <Btn style={{ marginTop: 12 }} icon="camera" title="Aggiungi un pasto" onPress={() => setQuick(true)} />
@@ -205,7 +209,7 @@ export default function LifeFitness() {
           </Card>
 
           <Card accent={FIT} onPress={() => go('fitnessDiary')}>
-            <Row><View style={{ flex: 1 }}><H>Storico: pasti, acqua e analisi</H><Body small muted>Giorno per giorno, con foto e acqua. Theia ti dice dove sei carente e cosa migliorare.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+            <Row><View style={{ flex: 1 }}><H>Storico: pasti, acqua e analisi</H><Body small muted>Giorno per giorno, con foto e acqua. Theia ti dice dove sei carente e cosa migliorare.</Body></View><Icon name="chevron-right" size={18} color={t.muted} /></Row>
           </Card>
 
             <Sheet visible={quick} title="Aggiungi un pasto" onClose={() => setQuick(false)}>
@@ -221,7 +225,7 @@ export default function LifeFitness() {
             <>
           {state === 'nessuno' || state === 'scaduto' ? (
             <Card accent={FIT}>
-              <Pressable onPress={() => go('fitnessPass')} accessibilityRole="button" accessibilityLabel="Apri la pagina LifePass"><Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass</H><Body small muted>{`${PREMIUM_PRICE_LP} LP ${tl('al mese')}`}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row></Pressable>
+              <Pressable onPress={() => go('fitnessPass')} accessibilityRole="button" accessibilityLabel="Apri la pagina LifePass"><Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass</H><Body small muted>{`${PREMIUM_PRICE_LP} LP ${tl('al mese')}`}</Body></View><Icon name="chevron-right" size={18} color={t.muted} /></Row></Pressable>
               <Body small muted style={{ marginVertical: 8 }}>Un solo pass per entrare in palestre, piscine e centri sportivi convenzionati.</Body>
               {['Accesso a tutti i centri convenzionati: palestre, piscine, centri sportivi', 'Un ingresso al giorno per centro, fino a 2 centri al giorno', 'Pass con codice QR da mostrare all\'ingresso', 'Disdici quando vuoi: resta attivo fino a fine periodo'].map((x) => <Row key={x} style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginBottom: 6 }} gap={8}><Icon name="check" size={15} color={FIT} stroke={2.6} /><Body small style={{ flex: 1 }}>{x}</Body></Row>)}
               {state === 'scaduto' ? <Body small color={t.warn} style={{ marginTop: 2 }}>Il tuo LifePass è scaduto.</Body> : null}
@@ -230,14 +234,14 @@ export default function LifeFitness() {
             </Card>
           ) : (
             <Card accent={FIT}>
-              <Pressable onPress={() => go('fitnessPass')} accessibilityRole="button" accessibilityLabel="Apri la pagina LifePass"><Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass attivo</H><Body small muted>{tl('Ancora {0} giorni', daysLeft(fit.sub, now))} · {state === 'attivo' ? 'si rinnova da solo' : 'non si rinnova'}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row></Pressable>
+              <Pressable onPress={() => go('fitnessPass')} accessibilityRole="button" accessibilityLabel="Apri la pagina LifePass"><Row gap={10}><Icon name="coin" size={30} color={FIT} /><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>LifePass attivo</H><Body small muted>{tl('Ancora {0} giorni', daysLeft(fit.sub, now))} · {state === 'attivo' ? 'si rinnova da solo' : 'non si rinnova'}</Body></View><Icon name="chevron-right" size={18} color={t.muted} /></Row></Pressable>
               <Btn style={{ marginTop: 10 }} icon="lifefitness" title="Mostra il pass d'ingresso" onPress={() => setPass(true)} />
               <Row style={{ marginTop: 10 }}><Body style={{ flex: 1 }}>Rinnovo automatico</Body><Switch value={!!fit.sub?.autoRenew} onValueChange={(v) => fit.setAutoRenew(v)} accessibilityLabel="Rinnovo automatico" /></Row>
             </Card>
           )}
 
           <Card accent={FIT} onPress={() => go('fitnessGyms')}>
-            <Row><View style={{ flex: 1 }}><H>Centri convenzionati</H><Body small muted>{tl('{0} centri: palestre, piscine, centri sportivi', PARTNER_GYMS.length + fit.approved.length)}</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+            <Row><View style={{ flex: 1 }}><H>Centri convenzionati</H><Body small muted>{tl('{0} centri: palestre, piscine, centri sportivi', PARTNER_GYMS.length + fit.approved.length)}</Body></View><Icon name="chevron-right" size={18} color={t.muted} /></Row>
           </Card>
           {fit.visits.length ? (
             <Card>
@@ -246,7 +250,7 @@ export default function LifeFitness() {
             </Card>
           ) : null}
           <Card onPress={() => go('fitnessGymRegister')}>
-            <Row><View style={{ flex: 1 }}><H>Sei una palestra o un centro sportivo?</H><Body small muted>Registrati gratis e chiedi di entrare nel programma: offri un servizio e ricevi una parte dei ricavi.</Body></View><Icon name="chevron" size={18} color={t.muted} /></Row>
+            <Row><View style={{ flex: 1 }}><H>Sei una palestra o un centro sportivo?</H><Body small muted>Registrati gratis e chiedi di entrare nel programma: offri un servizio e ricevi una parte dei ricavi.</Body></View><Icon name="chevron-right" size={18} color={t.muted} /></Row>
           </Card>
             </>
           ) : null}
@@ -269,9 +273,32 @@ export default function LifeFitness() {
         <View style={{ marginBottom: 10 }}>
           <Body bold style={{ marginBottom: 2 }}>Foto del corpo (facoltativo)</Body>
           <Body small muted style={{ marginBottom: 6 }}>4 foto (davanti, dietro, lati): l'AI vede cosa va bene e cosa migliorare con esercizi e alimentazione. Poi ti chiedo di rifarle dopo circa 4 settimane per vedere i progressi.</Body>
-          <Btn small ghost icon="camera" title={bodyReports.length ? 'Aggiungi nuove foto' : 'Aggiungi le 4 foto'} onPress={() => { saveProfile(); go('fitnessBody'); }} />
+          {bodySkip ? (
+            <Row gap={8} style={{ justifyContent: 'flex-start' }}><Body small muted style={{ flex: 1 }}>Hai scelto di non fare le foto.</Body><Btn small ghost title="Ci ripenso" onPress={() => setBodySkip(false)} /></Row>
+          ) : (
+            <Row gap={8} style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+              <Btn small ghost icon="camera" title={bodyReports.length ? 'Aggiungi nuove foto' : 'Aggiungi le 4 foto'} onPress={() => { saveProfile(); go('fitnessBody'); }} />
+              <Btn small ghost title="Non voglio farle" onPress={() => { setBodySkip(true); toast('Va bene, non te le chiederò'); }} />
+            </Row>
+          )}
         </View>
         <Btn title="Prepara il piano" onPress={saveProfile} />
+      </Sheet>
+      <Sheet visible={daysOpen} title="Giorni di allenamento" variant="dialog" onClose={() => setDays(false)}>
+        <Body small muted style={{ marginBottom: 12 }}>Scegli tu in quali giorni allenarti: il programma si adatta ai giorni che segni, uno stesso allenamento dopo l'altro.</Body>
+        <Row style={{ justifyContent: 'space-between' }} gap={4}>
+          {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((n, i) => {
+            const on = pickDays.includes(i);
+            return (
+              <Pressable key={i} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'][i]} onPress={() => setPickDays(on ? pickDays.filter((x) => x !== i) : [...pickDays, i].sort((a, b) => a - b))} style={{ flex: 1, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? FIT : t.chip, borderWidth: 1, borderColor: on ? FIT : t.border }}>
+                <Text style={{ color: on ? '#1c0b04' : t.text, fontWeight: '800', fontSize: 16 }}>{n}</Text>
+              </Pressable>
+            );
+          })}
+        </Row>
+        <Body small muted style={{ marginTop: 10 }}>{pickDays.length ? tl('{0} allenamenti a settimana', pickDays.length) : 'Scegli almeno un giorno.'}</Body>
+        <Btn style={{ marginTop: 12 }} title="Salva" disabled={!pickDays.length} onPress={() => { if (fit.profile) fit.set({ profile: { ...fit.profile, weekdays: pickDays, days: pickDays.length } }); setDays(false); toast('Giorni aggiornati'); }} />
+        <Btn ghost small style={{ marginTop: 8 }} title="Torna ai giorni consigliati" onPress={() => { if (fit.profile) fit.set({ profile: { ...fit.profile, weekdays: undefined } }); setDays(false); toast('Giorni consigliati ripristinati'); }} />
       </Sheet>
       <Sheet visible={buy !== 'off'} title="Conferma abbonamento" onClose={() => { if (buy !== 'busy') setBuy('off'); }}>
         {buy === 'done' || buy === 'fail' ? (

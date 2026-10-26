@@ -39,7 +39,7 @@ export function TodayCard() {
           <Body small muted>{sub}</Body>
           {pct !== null ? <View style={{ height: 6, borderRadius: 3, backgroundColor: t.chip, overflow: 'hidden', marginTop: 6 }}><View style={{ width: `${Math.max(3, Math.min(100, Math.round(pct * 100)))}%`, height: 6, backgroundColor: col }} /></View> : null}
         </View>
-        <Icon name="chevron" size={18} color={t.muted} />
+        <Icon name="chevron-right" size={18} color={t.muted} />
       </Row>
     </Pressable>
   );
@@ -51,7 +51,7 @@ export function TodayCard() {
     line('meal', 'Cibo',
       hasFood ? (tg ? tl('{0} su {1} kcal · {2} pasti', eaten.kcal, tg.kcal, todayMeals.length) : tl('{0} kcal · {1} pasti', eaten.kcal, todayMeals.length)) : tl('Nessun pasto registrato oggi'),
       tg && hasFood ? eaten.kcal / tg.kcal : null, () => go('fitnessDay', { day: todayIso })),
-    line('drop', 'Acqua', `${(water / 1000).toFixed(1).replace('.', ',')} / ${(wGoal / 1000).toFixed(1).replace('.', ',')} L`, water / wGoal, () => go('fitnessDay', { day: todayIso, focus: 'water' }), '#6aa8ff'),
+    line('drop', 'Acqua', `${(water / 1000).toFixed(1).replace('.', ',')} / ${(wGoal / 1000).toFixed(1).replace('.', ',')} L`, water / wGoal, () => go('fitnessWater'), '#6aa8ff'),
   ].filter(Boolean);
   return <Card><H>Il tuo oggi</H>{rows}</Card>;
 }
