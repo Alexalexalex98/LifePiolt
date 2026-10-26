@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { Body, Btn, Card, H, Input, Row, Sheet } from '@/components/ui';
 import { MIN_PASSWORD } from '@/db/crypto';
+import { exportServerData } from '@/lib/accountApi';
 import { exportBackup, openEncryptedBackup, pickBackup, restoreBackup, STORE_LABELS, type BackupPreview } from '@/lib/backup';
 import { fmtDate } from '@/i18n/format';
 import { toast } from '@/store/toast';
@@ -58,6 +59,7 @@ export function BackupSection() {
       <View style={{ gap: 8 }}>
         <Btn small ghost icon="lock" title="Esporta backup cifrato" onPress={() => { setPw(''); setPw2(''); setStep({ kind: 'export' }); }} />
         <Btn small ghost title="Importa backup (anche cifrato)" onPress={() => void doPick()} />
+        <Btn small ghost icon="send" title="Esporta i dati che ha il server" onPress={() => void exportServerData().then((r) => toast(r.message ?? ''))} />
       </View>
 
       <Sheet visible={step?.kind === 'export'} title="Backup cifrato" onClose={close}>

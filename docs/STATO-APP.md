@@ -22,7 +22,7 @@
 - [x] Migrazione 0009 applicata: funzioni più sicure e amicizie non spiabili
 - [ ] Mittente email con dominio proprio e SMTP (da fare)
 - [ ] Piano a pagamento prima di far entrare utenti veri (da fare)
-- [ ] Funzioni server per l'AI e per esportare i dati (da fare)
+- [x] Funzioni server per l'AI (server Cloudflare con limiti per piano, `ai_take`) e per esportare i dati (migrazione 0012: `export_my_data`, bottone in Impostazioni → Backup)
 
 ## 3. Social
 ### 3.1 Post

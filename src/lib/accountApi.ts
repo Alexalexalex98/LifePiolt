@@ -95,6 +95,24 @@ export async function signOutAccount(): Promise<void> {
   useAccount.getState().clear();
 }
 
+/** Esporta tutto ciò che il server sa di te (account, post, messaggi, amici, uso dell'AI, dati sincronizzati cifrati) in un file JSON da salvare o condividere. */
+export async function exportServerData(): Promise<Res> {
+  if (useAccount.getState().status !== 'verified') return { ok: false, message: 'Serve un account verificato: senza account il server non ha dati tuoi (quelli sul telefono si esportano dal backup).' };
+  try {
+    const data = await (await supa()).rpc<unknown>('export_my_data');
+    const text = JSON.stringify(data, null, 2);
+    const { File, Paths } = await import('expo-file-system');
+    const Sharing = await import('expo-sharing');
+    const file = new File(Paths.cache, `lifepilot-dati-server-${new Date().toISOString().slice(0, 10)}.json`);
+    if (file.exists) file.delete();
+    file.create();
+    file.write(text);
+    if (!(await Sharing.isAvailableAsync())) return { ok: false, message: 'La condivisione dei file non è disponibile su questo dispositivo.' };
+    await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'I tuoi dati sul server LifePilot', UTI: 'public.json' });
+    return { ok: true, message: 'Dati esportati' };
+  } catch (e) { return { ok: false, message: msg(e) }; }
+}
+
 /** Elimina l'account: prima dal server (profilo, consensi, dati sincronizzati), poi dal telefono. Se il server non risponde si ferma: niente account "a metà". */
 export async function deleteAccountEverywhere(): Promise<Res> {
   if (useAccount.getState().status !== 'verified') { useAccount.getState().clear(); return { ok: true }; }
