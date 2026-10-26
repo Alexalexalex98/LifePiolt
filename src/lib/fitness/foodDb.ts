@@ -5,10 +5,11 @@ import { D3 } from './db/d3.ts';
 import { D4 } from './db/d4.ts';
 import { D5 } from './db/d5.ts';
 import { D6 } from './db/d6.ts';
+import { B1 } from './db/b1.ts';
 import { R1 } from './db/r1.ts';
 import { R2 } from './db/r2.ts';
 
-export type DbFood = { id: string; name: string; kcal: number; p: number; c: number; f: number; fib: number; portion: number; tags?: string; cat: string; recipe?: boolean };
+export type DbFood = { id: string; name: string; kcal: number; p: number; c: number; f: number; fib: number; portion: number; tags?: string; cat: string; recipe?: boolean; /** zuccheri (g per 100) e caffeina (mg per 100): solo bevande */ sug?: number; caf?: number; /** bevanda: quanta parte conta come liquido (0-1) */ hyd?: number };
 export type Recipe = { id: string; name: string; method: string; items: { foodId: string; grams: number }[] };
 
 export const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’`]/g, ' ').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -16,17 +17,48 @@ const slug = (s: string) => norm(s).replace(/ /g, '-');
 const n = (s: string | undefined) => { const v = parseFloat((s ?? '').replace(',', '.')); return Number.isFinite(v) ? v : 0; };
 const r1 = (x: number) => Math.round(x * 10) / 10;
 
+/** Caffeina (mg per 100 ml) delle bevande che ne hanno, dal nome: valori tipici, indicativi. */
+export function caffeineOf(name: string): number {
+  const x = norm(name);
+  if (/orzo|ginseng|decaffein|senza caffein|infuso|tisana|camomilla|finocchio|zenzero e limone/.test(x)) return 0;
+  if (/red bull|monster|burn|rockstar|extra joss|guarana/.test(x)) return 32;
+  if (/celsius/.test(x)) return 60;
+  if (/nocco/.test(x)) return 55;
+  if (/cola|pepsi|dr pepper|mountain dew|vivi kola/.test(x)) return 10;
+  if (/espresso|ristretto|capsula|moka|caffe (lavazza|illy|kimbo|segafredo|borbone|vergnano|pellini|hausbrandt|mauro|trombetta|nespresso|dolce gusto|cafe royal)|cold brew|doubleshot/.test(x)) return /americano/.test(x) ? 50 : 210;
+  if (/caffe lungo|macchiato$|caffe macchiato|marocchino/.test(x)) return 160;
+  if (/americano/.test(x)) return 50;
+  if (/nescafe (classic|gold)|solubile/.test(x)) return 30;
+  if (/cappuccino|caffe latte|caffe con latte|latte macchiato|mocaccino|frappuccino|caramel macchiato|caffe freddo|caffe shakerato|caffe corretto|nescafe/.test(x)) return /latte macchiato/.test(x) ? 25 : 40;
+  if (/^caffe /.test(x)) return 210;
+  if (/matcha/.test(x)) return 20;
+  if (/the verde|te verde|tè verde/.test(x)) return 8;
+  if (/ice tea|estathe|nestea|fuze|lipton|tè (limone|pesca)|the (limone|pesca)|te (limone|pesca)/.test(x)) return 5;
+  if (/te nero|earl grey|english breakfast|pompadour te|chai|twinings|te in bustina/.test(x)) return 15;
+  if (/cioccolata|cioccolat|cacao|nesquik|ovomaltine/.test(x)) return 3;
+  return 0;
+}
+/** Zuccheri, caffeina e quota di liquido di una bevanda di marca. */
+function drinkExtras(d: DbFood): Pick<DbFood, 'sug' | 'caf' | 'hyd'> {
+  const alc = /alcol|birra|vino|prosecco|spumante|champagne|cava|crémant|cremant|sidro|aperol|campari|spritz|select|cynar|martini|cinzano|cocchi|negroni|mojito|caipirinha|margarita|daiquiri|cosmopolitan|mule|gin |whisk|vodka|rum |tequila|cognac|brandy|amaro|fernet|jagermeister|limoncello|sambuca|anice|baileys|amarula|disaronno|kahlua|cointreau|grand marnier|frangelico|strega|nocino|mirto|ratafia|porto|sherry|vermouth|pastis|ouzo|sake|soju|kirsch|williamine|grappa|bellini|mimosa|bloody|manhattan|old fashioned|sangria|brulè|brule|pina colada|tequila sunrise|sex on|long island|hugo|cuba libre|espresso martini|pornstar/.test(norm(d.name)) && !/senza alcol|analcolic|0 0|dealcol|virgin/.test(norm(d.name));
+  const sug = alc ? (d.c > 8 ? d.c : Math.min(d.c, 1.5)) : /proteic|whey|barretta|bcaa|creatina|polvere|maltodestrine|cacao|nesquik|ovomaltine|orzo solubile|nescafe cappuccino/.test(norm(d.name)) ? d.c * 0.7 : d.c;
+  const hyd = alc ? 0 : /espresso|caffe|cappuccino|latte|panna|cioccolata/.test(norm(d.name)) ? 0.9 : /polvere|barretta|condensato|cacao|nesquik|ovomaltine|creatina|bcaa|maltodestrine|elettroliti|sali/.test(norm(d.name)) ? 0 : /energy|red bull|monster|burn|rockstar|celsius|nocco/.test(norm(d.name)) ? 0.95 : 1;
+  return { sug: Math.round(sug * 10) / 10, caf: caffeineOf(d.name), hyd };
+}
+
 function parse(): DbFood[] {
   const out: DbFood[] = []; const seen = new Set<string>();
-  for (const src of [D1, D2, D3, D4, D5, D6]) {
-    let cat = 'Altro';
+  for (const src of [D1, D2, D3, D4, D5, D6, B1]) {
+    let cat = 'Altro'; const drinks = src === B1;
     for (const raw of src.split('\n')) {
       const line = raw.trim(); if (!line) continue;
-      if (line.startsWith('#')) { cat = line.slice(1).trim(); continue; }
+      if (line.startsWith('#')) { cat = (drinks ? 'Bevande · ' : '') + line.slice(1).trim(); continue; }
       const a = line.split('|'); if (a.length < 7) continue;
       const name = a[0].trim(); let id = slug(name); if (!id || seen.has(id)) continue; seen.add(id);
       const portion = n(a[6]) || 100; const tags = (a[7] ?? '').trim();
-      out.push({ id, name, kcal: n(a[1]), p: n(a[2]), c: n(a[3]), f: n(a[4]), fib: n(a[5]), portion, cat, ...(tags ? { tags } : {}) });
+      const d: DbFood = { id, name, kcal: n(a[1]), p: n(a[2]), c: n(a[3]), f: n(a[4]), fib: n(a[5]), portion, cat, ...(tags ? { tags } : {}) };
+      if (drinks) Object.assign(d, drinkExtras(d));
+      out.push(d);
     }
   }
   return out;

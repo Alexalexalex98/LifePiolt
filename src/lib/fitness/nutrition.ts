@@ -1,6 +1,6 @@
 /** Calorie e pasti (modulo PURO): tabella di alimenti, calcolo per porzione e fabbisogno giornaliero. */
 import { DB_FOODS } from './foodDb.ts';
-export type Food = { id: string; name: string; kcal: number; p: number; c: number; f: number; /** porzione tipica in grammi */ portion: number; tags?: string; fib?: number; /** grassi saturi, zuccheri e sale per 100 g (se noti) */ sat?: number; sug?: number; salt?: number; cat?: string; recipe?: boolean };
+export type Food = { id: string; name: string; kcal: number; p: number; c: number; f: number; /** caffeina (mg per 100 g) e quota di liquido, solo bevande */ caf?: number; hyd?: number; /** porzione tipica in grammi */ portion: number; tags?: string; fib?: number; /** grassi saturi, zuccheri e sale per 100 g (se noti) */ sat?: number; sug?: number; salt?: number; cat?: string; recipe?: boolean };
 const F = (id: string, name: string, kcal: number, p: number, c: number, f: number, portion: number, tags = ''): Food => ({ id, name, kcal, p, c, f, portion, ...(tags ? { tags } : {}) });
 /** Valori per 100 g (medie indicative). */
 const BASE_FOODS: Food[] = [
@@ -30,11 +30,18 @@ const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
 export function searchFoods(q: string, max = 8): Food[] {
   const words = norm(q).split(/\s+/).filter((w) => w.length >= 2);
   if (!words.length) return [];
-  const out: { f: Food; hits: number }[] = [];
-  for (const f of FOODS) { const hay = norm(`${f.name} ${f.tags ?? ''}`); const hs = hay.split(/\s+/); const hits = words.filter((w) => hay.includes(w) || hs.some((h) => h.startsWith(w))).length; if (hits) out.push({ f, hits }); }
-  return out.sort((a, b) => b.hits - a.hits).slice(0, max).map((x) => x.f);
+  const out: { f: Food; hits: number; bonus: number }[] = [];
+  for (const f of FOODS) {
+    const hay = norm(`${f.name} ${f.tags ?? ''}`); const hs = hay.split(/[\s-]+/);
+    /* conta solo le parole intere o all'inizio di una parola («cola» non trova «cioccolato»); la parte dentro una parola vale solo se non c'è altro */
+    const hits = words.filter((w) => hs.some((h) => h === w || h.startsWith(w))).length;
+    if (hits) out.push({ f, hits, bonus: norm(f.name).startsWith(words[0]!) ? 1 : 0 });
+  }
+  if (!out.length) for (const f of FOODS) { const hay = norm(`${f.name} ${f.tags ?? ''}`); const hits = words.filter((w) => hay.includes(w)).length; if (hits) out.push({ f, hits, bonus: 0 }); }
+  return out.sort((a, b) => b.hits - a.hits || b.bonus - a.bonus || a.f.name.length - b.f.name.length).slice(0, max).map((x) => x.f);
 }
-export type Macros = { kcal: number; p: number; c: number; f: number; sat?: number; sug?: number; fib?: number; salt?: number };
+
+export type Macros = { kcal: number; p: number; c: number; f: number; sat?: number; sug?: number; fib?: number; salt?: number; /** caffeina in mg */ caf?: number };
 const OPT = ['sat', 'sug', 'fib', 'salt'] as const;
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const has = (name: string, re: RegExp) => re.test(name.toLowerCase());
@@ -65,11 +72,13 @@ export function macrosFor(food: Food, grams: number): Macros {
   const m: Macros = { kcal: Math.round(food.kcal * k), p: r1(food.p * k), c: r1(food.c * k), f: r1(food.f * k) };
   const est = estimateExtras(food);
   for (const o of OPT) { const v = o === 'fib' ? food.fib : food[o]; m[o] = r1((typeof v === 'number' ? v : est[o]) * k); }
+  if (food.caf) m.caf = Math.round(food.caf * k);
   return m;
 }
 export const sumMacros = (list: Macros[]): Macros => {
   const out: Macros = list.reduce((a, m) => ({ kcal: a.kcal + m.kcal, p: r1(a.p + m.p), c: r1(a.c + m.c), f: r1(a.f + m.f) }), { kcal: 0, p: 0, c: 0, f: 0 });
   for (const o of OPT) if (list.some((m) => typeof m[o] === 'number')) out[o] = r1(list.reduce((a, m) => a + (m[o] ?? 0), 0));
+  if (list.some((m) => m.caf)) out.caf = Math.round(list.reduce((a, m) => a + (m.caf ?? 0), 0));
   return out;
 };
 
