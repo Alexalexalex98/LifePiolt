@@ -532,7 +532,11 @@ export function Avatar({ name, size = 30, uri }: { name: string; size?: number; 
 let lastModalClose = 0;
 const MODAL_GAP = 420;
 
-export function Sheet({ visible, title, onClose, children, lowerable }: { visible: boolean; title: string; onClose: () => void; children: ReactNode; /** si può abbassare per continuare a guardare il contenuto dietro */ lowerable?: boolean }) {
+/** I fogli che servono ad AGGIUNGERE o MODIFICARE qualcosa («Nuovo task», «Aggiungi…», «Modifica il turno») si aprono come scheda al centro dello schermo, non dal basso. */
+const FORM_TITLE = /^\s*(nuov[oai]\b|aggiung|crea\b|crea un|modific|registra|inserisci|incolla|scrivi cosa|new\b|add\b|create\b|edit\b)/i;
+const EDIT_TITLE = /^\s*(modific|edit\b)/i;
+
+export function Sheet({ visible, title, onClose, children, lowerable, variant }: { /** `dialog` = scheda al centro; `sheet` = dal basso. Se manca si sceglie dal titolo. */ variant?: 'sheet' | 'dialog'; visible: boolean; title: string; onClose: () => void; children: ReactNode; /** si può abbassare per continuare a guardare il contenuto dietro */ lowerable?: boolean }) {
   const t = useTheme();
   const ty = useRef(new Animated.Value(0)).current;
   const sheetH = useRef(0);
@@ -561,6 +565,39 @@ export function Sheet({ visible, title, onClose, children, lowerable }: { visibl
     return () => clearTimeout(h);
   }, [visible]);
   const close = safely(onClose) ?? onClose;
+  const dialog = !lowerable && (variant ? variant === 'dialog' : FORM_TITLE.test(String(title ?? '')));
+  const pop = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!dialog) return;
+    if (!shown || reduce) { pop.setValue(shown ? 1 : 0); return; }
+    pop.setValue(0);
+    Animated.spring(pop, { toValue: 1, useNativeDriver: true, bounciness: 5, speed: 18 }).start();
+  }, [shown, dialog, reduce, pop]);
+  if (dialog) {
+    return (
+      <Modal visible={shown} transparent animationType={reduce ? 'none' : 'fade'} onRequestClose={close} statusBarTranslucent>
+        <KeyboardDock style={{ justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16 }}>
+          <Pressable style={{ position: 'absolute', top: 0, bottom: 0, start: 0, end: 0, backgroundColor: t.overlay }} onPress={close} accessibilityRole="button" accessibilityLabel={translateText('Chiudi')} />
+          <Animated.View accessibilityViewIsModal style={{ width: '100%', maxWidth: 520, maxHeight: Math.max(220, win.height - kb.height - insets.top - insets.bottom - 40), backgroundColor: t.sheet, borderRadius: 28, borderWidth: 1, borderColor: t.sheetBorder, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 28, shadowOffset: { width: 0, height: 14 }, elevation: 18, opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }] }}>
+            <View style={{ height: 3, backgroundColor: t.accent, opacity: 0.9 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 6 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: t.accent + '26', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={EDIT_TITLE.test(String(title ?? '')) ? 'edit' : 'plus'} size={20} color={t.accent} stroke={2.2} />
+              </View>
+              <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.lead, fontWeight: '800', flex: 1, letterSpacing: -0.2 }} numberOfLines={2}>{title}</Text>
+              <Press onPress={close} accessibilityLabel={translateText('Chiudi')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="x" size={16} color={t.muted} stroke={2.4} />
+              </Press>
+            </View>
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 22 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+              {children}
+            </ScrollView>
+          </Animated.View>
+          <ModalToast />
+        </KeyboardDock>
+      </Modal>
+    );
+  }
   return (
     <Modal visible={shown} transparent animationType={reduce ? 'none' : 'slide'} onRequestClose={close} statusBarTranslucent>
       <KeyboardDock>

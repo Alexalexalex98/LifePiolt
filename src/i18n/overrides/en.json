@@ -1246,5 +1246,12 @@
   "Allenamento fatto": "Workout done",
   "Allenamento di oggi": "Today's workout",
   "Niente di urgente": "Nothing urgent",
-  "Turni, impegni e task importanti sul blocco schermo dell'iPhone e nei widget, anche con l'app chiusa.": "Important shifts, appointments and tasks on the iPhone lock screen and in widgets, even with the app closed."
+  "Turni, impegni e task importanti sul blocco schermo dell'iPhone e nei widget, anche con l'app chiusa.": "Important shifts, appointments and tasks on the iPhone lock screen and in widgets, even with the app closed.",
+  "+ Task": "+ Task",
+  "+ Impegno": "+ Event",
+  "Aggiungi un task": "Add a task",
+  "Aggiungi un impegno": "Add an event",
+  "Cosa devi fare?": "What do you need to do?",
+  "Ripetizione": "Repeat",
+  "Scomponi in passaggi con AI": "Break into steps with AI"
 }

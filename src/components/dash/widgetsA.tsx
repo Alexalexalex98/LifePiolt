@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
+
+import { DaySheet, SmartTaskSheet } from '@/components/plan';
 
 import { Tile, type TileRow } from '@/components/dash/Tile';
 import { useDashData } from '@/components/dash/data';
@@ -75,24 +78,45 @@ export function MissingW(p: WProps) {
 /* ---------------- Plan ---------------- */
 export function AgendaW(p: WProps) {
   const events = useLife((s) => s.events);
+  const [adding, setAdding] = useState(false);
   const day = dayKey();
   const list = [...(events[day] ?? [])].sort((a, b) => a.time.localeCompare(b.time));
   const hhmm = new Date().toTimeString().slice(0, 5);
   const next = list.find((e) => e.time >= hhmm) ?? null;
   const rows = list.map((e) => ({ label: e.title, value: e.time, onPress: () => go('plan', { day, idx: String((events[day] ?? []).indexOf(e)), at: String(Date.now()) }) }));
-  return <Tile {...base(p)} icon="calendar" label={tl('Agenda di oggi')} color={C.plan} value={next ? next.time : list.length ? tl('Finito') : undefined} sub={next ? next.title : list.length ? tl('Per oggi hai finito') : tl('Nessun impegno oggi')} rows={rows} unit={undefined} empty={tl('Nessun impegno oggi')} onPress={() => go('plan', { day, ...(next ? { idx: String((events[day] ?? []).indexOf(next)), at: String(Date.now()) } : {}) })} />;
+  const add = <QuickAdd label={tl('+ Impegno')} color={C.plan} a11y={tl('Aggiungi un impegno')} onPress={() => setAdding(true)} />;
+  return (<>
+    <Tile {...base(p)} icon="calendar" label={tl('Agenda di oggi')} color={C.plan} value={next ? next.time : list.length ? tl('Finito') : undefined} sub={next ? next.title : list.length ? tl('Per oggi hai finito') : tl('Nessun impegno oggi')} rows={rows} unit={undefined} extra={p.w * p.h > 1 ? add : undefined} empty={tl('Nessun impegno oggi')} onPress={() => go('plan', { day, ...(next ? { idx: String((events[day] ?? []).indexOf(next)), at: String(Date.now()) } : {}) })} />
+    <DaySheet day={adding ? day : null} onClose={() => setAdding(false)} />
+  </>);
 }
 
 export function TasksW(p: WProps) {
   const tasks = useLife((s) => s.tasks);
+  const [adding, setAdding] = useState(false);
   const today = dayKey();
   const open = tasks.filter((x) => !x.done);
   const due = open.filter((x) => x.urgent || (x.due && x.due <= today));
   const rows = (due.length ? due : open).slice(0, 8).map((x) => ({ label: x.t, done: false, value: x.due && x.due <= today ? tl('oggi') : undefined, onPress: () => go('plan', { task: x.id, at: String(Date.now()) }) }));
-  return <Tile {...base(p)} icon="tasks" label="Task" color={C.plan} value={String(open.length)} sub={due.length ? `${due.length} ${tl('in scadenza o urgenti')}` : tl('Nessuna scadenza')} rows={rows} progress={tasks.length ? 1 - open.length / tasks.length : undefined} onPress={() => { const first = (due.length ? due : open)[0]; go('plan', first ? { task: first.id, at: String(Date.now()) } : undefined); }} />;
+  /* si aggiunge subito da qui, senza cambiare pagina */
+  const add = <QuickAdd label={tl('+ Task')} color={C.plan} a11y={tl('Aggiungi un task')} onPress={() => setAdding(true)} />;
+  return (
+    <>
+      <Tile {...base(p)} icon="tasks" label="Task" color={C.plan} value={String(open.length)} sub={due.length ? `${due.length} ${tl('in scadenza o urgenti')}` : tl('Nessuna scadenza')} rows={rows} progress={tasks.length ? 1 - open.length / tasks.length : undefined} extra={p.w * p.h > 1 ? add : undefined} onPress={() => { const first = (due.length ? due : open)[0]; go('plan', first ? { task: first.id, at: String(Date.now()) } : undefined); }} />
+      <SmartTaskSheet visible={adding} onClose={() => setAdding(false)} />
+    </>
+  );
 }
 
-/* ---------------- Benessere: cibo e acqua ---------------- */
+/** Pulsantino «+» dentro un widget: aggiunge al volo senza lasciare la Dashboard. */
+function QuickAdd({ label, color, a11y, onPress }: { label: string; color: string; a11y: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={a11y} hitSlop={6} onPress={onPress} style={{ paddingHorizontal: 10, height: 30, borderRadius: 15, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: '#07090d', fontWeight: '800', fontSize: 12 }}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export function WaterW(p: WProps) {
   const t = useTheme();
   const fit = useFitness();
