@@ -11,7 +11,16 @@ export type Goal = { id: string; t: string; p: number; hist?: { d: string; p: nu
 export type AutoNotify = { kind: 'daily' | 'weekly'; hour: number; minute: number; weekday?: number; title: string; body: string };
 export type Automation = { id: string; t: string; on: boolean; rule?: { key: string; notify?: AutoNotify } };
 export type Note = { id: string; text: string; date: string };
-export type DriveFile = { id: string; n: string; s: string; folder: string; date: string; uri?: string; /** solo cartella «Progetti»: i titoli dalla radice alla task a cui appartiene il file */ path?: string[] };
+export type DriveFile = { id: string; n: string; s: string; folder: string; date: string; uri?: string; /** solo cartella «Progetti»: i titoli dalla radice alla task a cui appartiene il file */ path?: string[]; /** foto o video caricati nell'app: stanno tutti nella scheda «Foto», qualunque sia la cartella */ photo?: boolean; /** da dove arriva (Pasto, Frigo, Scontrino, Chat, Theia…) */ src?: string; /** il file originale (prima della copia in LifeDrive), per non salvarlo due volte */ orig?: string };
+/** Una foto o un video: la scheda «Foto» li raccoglie tutti. */
+export const isPhoto = (f: DriveFile): boolean => f.folder === 'Foto' || f.folder === 'Video' || !!f.photo;
+const PHOTO_SRC: Record<string, string> = { Pasto: 'Cibo', Frigo: 'Frigo', Scontrino: 'Scontrini', Chat: 'Chat', Theia: 'Caricate da Theia', Esercizio: 'Allenamento', Task: 'Task' };
+/** La categoria di una foto, per il menu di LifeDrive (anche per quelle vecchie, dal nome «Foto · Frigo · …»). */
+export function photoSource(f: DriveFile): string {
+  const raw = f.src ?? /^(?:Foto|Video) · ([^·]+) ·/.exec(f.n)?.[1]?.trim();
+  if (raw) return PHOTO_SRC[raw] ?? raw;
+  return 'Caricate da te';
+}
 /** dur = durata in minuti (se manca si assumono 60); ref = id dell'iscrizione/prenotazione che l'ha creato. */
 /** color = id della tavolozza (lib/calendarColors.ts), se manca vale il colore di default per urgenza/tipo. */
 export type CalEvent = { time: string; title: string; important?: boolean; place?: string; reminder?: boolean; dur?: number; ref?: string; color?: string };
