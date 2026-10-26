@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, type StyleProp, type ViewStyle } from 'react-native';
-import Svg, { Circle, Defs, Ellipse, G, Path, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
+import { Image as RNImage } from 'react-native';
+import { Asset } from 'expo-asset';
+import Svg, { Circle, Defs, Ellipse, G, Image as SvgImage, Path, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { EYES_OF, MOTIONS, bodyTones, mix, type Expression, type MotionId } from '@/lib/mascot';
 
-const LX = 76, RX = 124, EY = 128;
+/* la vera Theia: corpo bianco perlato (assets/mascot/theia-body.png) con occhi neri ovali; gli occhi si ridisegnano sopra per ogni espressione */
+const BODY_MOD = require('../../../assets/mascot/theia-body.png');
+/** Il corpo come indirizzo: sul telefono il file nel pacchetto, sul web l'indirizzo dell'asset. */
+const BODY = ((): { uri: string } => {
+  try { const r = (RNImage as unknown as { resolveAssetSource?: (m: unknown) => { uri: string } | null }).resolveAssetSource?.(BODY_MOD); if (r?.uri) return r; } catch { /* si prova l'altro modo */ }
+  try { const a = Asset.fromModule(BODY_MOD); return { uri: a.localUri ?? a.uri }; } catch { return { uri: '' }; }
+})();
+const LX = 76, RX = 124, EY = 118;
+const EYE_INK = '#0c0c12';
 const star = (x: number, y: number, r: number) => `M${x} ${y - r} Q${x + r * 0.18} ${y - r * 0.18} ${x + r} ${y} Q${x + r * 0.18} ${y + r * 0.18} ${x} ${y + r} Q${x - r * 0.18} ${y + r * 0.18} ${x - r} ${y} Q${x - r * 0.18} ${y - r * 0.18} ${x} ${y - r} Z`;
 
 const heart = (x: number, y: number, k = 1) => `M${x} ${y + 8 * k} C${x - 17 * k} ${y - 4 * k} ${x - 9 * k} ${y - 16 * k} ${x} ${y - 7 * k} C${x + 9 * k} ${y - 16 * k} ${x + 17 * k} ${y - 4 * k} ${x} ${y + 8 * k} Z`;
@@ -46,7 +56,7 @@ function Eyes({ e, ink, blink, glint }: { e: Expression; ink: string; blink: boo
     case 'nervous': return <G>{oval(LX, EY + 2, 7, 11, 0, true)}{oval(RX, EY + 2, 7, 11, 0, true)}</G>;
     case 'thanks': return <G><Path d={`M${LX - 12} ${EY + 8} Q${LX} ${EY - 4} ${LX + 12} ${EY + 8}`} stroke={ink} strokeWidth={4.5} strokeLinecap="round" fill="none" /><Path d={`M${RX - 12} ${EY + 8} Q${RX} ${EY - 4} ${RX + 12} ${EY + 8}`} stroke={ink} strokeWidth={4.5} strokeLinecap="round" fill="none" /></G>;
     case 'goodbye': return <G>{arc(LX, true)}{oval(RX, EY, 7, 12, 0, true)}</G>;
-    default: return <G>{oval(LX, EY, 8.5, 14.5)}{oval(RX, EY, 8.5, 14.5)}</G>;
+    default: return <G>{oval(LX, EY, 10.4, 17.6, 0, true)}{oval(RX, EY, 10.4, 17.6, 0, true)}</G>;
   }
 }
 
@@ -214,9 +224,6 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
     <Animated.View accessibilityRole="image" accessibilityLabel="Theia" style={[{ width: size, height: size }, style, { transform: [{ translateY: ty }, { rotate: wiggle.interpolate({ inputRange: [-1, 1], outputRange: ['-9deg', '9deg'] }) }, { scaleX: sx }, { scaleY: sy }] }]}>
       <Svg width={size} height={size} viewBox="0 0 200 200">
         <Defs>
-          <RadialGradient id="body" cx={`${38 - sin * 26}%`} cy="28%" rx="85%" ry="85%" fx={`${38 - sin * 26}%`} fy="28%">
-            <Stop offset="0" stopColor={tones.light} /><Stop offset="0.55" stopColor={tones.base} /><Stop offset="1" stopColor={tones.shade} />
-          </RadialGradient>
           <RadialGradient id="glow" cx="50%" cy="50%" rx="50%" ry="50%">
             <Stop offset="0.35" stopColor={tones.glow} stopOpacity="0.5" /><Stop offset="1" stopColor={tones.glow} stopOpacity="0" />
           </RadialGradient>
@@ -224,18 +231,11 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
         <Circle cx={100} cy={112} r={98} fill="url(#glow)" opacity={0.55} />
         <Ellipse cx={100} cy={184} rx={54} ry={7} fill="#000" opacity={0.2} />
         <G transform={`translate(100 0) scale(${1 - 0.05 * Math.abs(sin)} 1) translate(-100 0)`}>
-          <Path d="M91.0 35.0 C92.5 35.0 95.5 35.0 97.6 35.1 C99.7 35.2 101.7 35.4 103.7 35.6 C105.7 35.8 107.6 36.0 109.5 36.3 C111.4 36.6 113.3 36.9 115.2 37.3 C117.1 37.7 119.0 38.1 120.8 38.6 C122.6 39.1 124.4 39.6 126.2 40.2 C128.0 40.8 129.8 41.4 131.5 42.1 C133.2 42.8 134.9 43.5 136.6 44.2 C138.3 45.0 139.9 45.8 141.5 46.6 C143.1 47.4 144.7 48.3 146.2 49.2 C147.7 50.1 149.2 51.1 150.7 52.1 C152.1 53.1 153.5 54.2 154.9 55.3 C156.3 56.4 157.6 57.5 158.9 58.6 C160.2 59.8 161.4 61.0 162.6 62.2 C163.8 63.4 164.8 64.7 165.9 66.0 C167.0 67.3 168.0 68.6 169.0 69.9 C170.0 71.2 170.8 72.7 171.7 74.1 C172.5 75.5 173.4 76.9 174.1 78.4 C174.8 79.9 175.5 81.4 176.1 82.9 C176.7 84.4 177.2 86.0 177.7 87.6 C178.2 89.2 178.7 90.8 179.0 92.4 C179.3 94.0 179.6 95.7 179.8 97.4 C180.0 99.1 180.2 100.9 180.2 102.7 C180.2 104.5 180.1 105.9 180.0 108.5 C179.9 111.1 180.0 115.5 179.9 118.2 C179.8 120.9 179.7 122.8 179.5 124.8 C179.3 126.8 179.2 128.6 178.9 130.4 C178.7 132.2 178.3 133.9 178.0 135.5 C177.7 137.1 177.2 138.7 176.8 140.2 C176.4 141.7 175.9 143.2 175.4 144.6 C174.9 146.0 174.4 147.4 173.8 148.7 C173.2 150.0 172.6 151.3 171.9 152.5 C171.2 153.7 170.6 154.9 169.8 156.1 C169.1 157.2 168.2 158.3 167.4 159.4 C166.6 160.5 165.7 161.5 164.8 162.5 C163.9 163.5 162.9 164.5 161.9 165.4 C160.9 166.3 159.9 167.2 158.8 168.0 C157.7 168.8 156.6 169.6 155.4 170.4 C154.2 171.2 153.1 171.9 151.8 172.6 C150.6 173.3 149.2 174.0 147.9 174.6 C146.6 175.2 145.1 175.8 143.7 176.3 C142.3 176.8 140.8 177.3 139.3 177.8 C137.8 178.3 136.2 178.7 134.5 179.1 C132.8 179.5 131.2 179.8 129.4 180.1 C127.6 180.4 125.8 180.8 123.8 181.0 C121.8 181.2 119.9 181.3 117.7 181.5 C115.5 181.7 113.5 181.8 110.6 181.9 C107.6 182.0 103.5 182.0 100.0 182.0 C96.5 182.0 92.4 182.0 89.4 181.9 C86.5 181.8 84.5 181.7 82.3 181.5 C80.1 181.3 78.2 181.2 76.2 181.0 C74.2 180.8 72.4 180.4 70.6 180.1 C68.8 179.8 67.2 179.5 65.5 179.1 C63.9 178.7 62.2 178.3 60.7 177.8 C59.2 177.3 57.7 176.8 56.3 176.3 C54.9 175.8 53.5 175.2 52.1 174.6 C50.8 174.0 49.5 173.3 48.2 172.6 C47.0 171.9 45.8 171.2 44.6 170.4 C43.4 169.6 42.3 168.8 41.2 168.0 C40.1 167.2 39.1 166.3 38.1 165.4 C37.1 164.5 36.1 163.5 35.2 162.5 C34.3 161.5 33.4 160.5 32.6 159.4 C31.8 158.3 30.9 157.2 30.2 156.1 C29.4 154.9 28.8 153.7 28.1 152.5 C27.4 151.3 26.8 150.0 26.2 148.7 C25.6 147.4 25.1 146.0 24.6 144.6 C24.1 143.2 23.6 141.7 23.2 140.2 C22.8 138.7 22.4 137.1 22.0 135.5 C21.6 133.9 21.4 132.2 21.1 130.4 C20.9 128.6 20.7 126.8 20.5 124.8 C20.3 122.8 20.2 120.9 20.1 118.2 C20.0 115.5 20.0 110.5 20.0 108.5 C20.0 106.5 20.0 107.2 20.1 106.3 C20.2 105.4 20.3 104.3 20.5 103.2 C20.7 102.1 21.0 100.8 21.3 99.6 C21.6 98.3 22.1 97.0 22.5 95.7 C22.9 94.4 23.4 92.9 24.0 91.5 C24.6 90.1 25.1 88.7 25.8 87.2 C26.5 85.8 27.2 84.3 28.0 82.8 C28.8 81.3 29.7 79.9 30.6 78.4 C31.5 77.0 32.4 75.5 33.4 74.1 C34.4 72.7 35.5 71.2 36.6 69.8 C37.7 68.4 38.8 67.0 40.0 65.6 C41.2 64.2 42.4 62.8 43.7 61.5 C45.0 60.2 46.3 58.9 47.6 57.6 C48.9 56.4 50.2 55.2 51.6 54.0 C53.0 52.8 54.4 51.7 55.8 50.6 C57.2 49.5 58.6 48.5 60.1 47.5 C61.6 46.5 63.0 45.5 64.5 44.6 C66.0 43.7 67.4 42.9 68.9 42.1 C70.4 41.3 71.9 40.6 73.3 40.0 C74.7 39.4 76.1 38.7 77.5 38.2 C78.9 37.7 80.3 37.2 81.6 36.8 C82.9 36.4 84.1 36.1 85.3 35.8 C86.5 35.5 87.8 35.3 88.7 35.2 C89.7 35.1 89.5 35.0 91.0 35.0 Z" fill="url(#body)" />
+          <SvgImage x={20} y={34} width={160} height={150.7} href={BODY} preserveAspectRatio="xMidYMid meet" />
         </G>
         {front ? (
-          <G transform={`translate(${-sin * 20} 0)`} opacity={Math.min(1, cos * 2)}>
-            <Path d="M38 104 Q40 76 78 62" stroke="#fff" strokeWidth={9} strokeLinecap="round" fill="none" opacity={0.5} />
-            <Path d={star(56, 78, 12)} fill="#fff" opacity={0.98} />
-          </G>
-        ) : null}
-        <Ellipse cx={132} cy={150} rx={30} ry={11} fill="#fff" opacity={0.12} />
-        {front ? (
           <G transform={`translate(${100 + sin * 62} 0) scale(${Math.max(0.12, cos)} 1) translate(-100 0)`} opacity={Math.min(1, cos * 3)}>
-            <Eyes e={EYES_OF[expr] ?? expr} ink={tones.eye} blink={blink} glint="#fff" />
+            <Eyes e={EYES_OF[expr] ?? expr} ink={EYE_INK} blink={blink} glint="#fff" />
           </G>
         ) : null}
         {Math.abs(sin) < 0.35 ? <Extras e={expr} tone={tones.glow} ink={tones.eye} /> : null}

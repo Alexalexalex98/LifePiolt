@@ -1,5 +1,5 @@
 {
- "count": 14605,
+ "count": 14604,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -278,7 +278,7 @@
   "src/components/live/VideoSurface.tsx": 11,
   "src/components/market.tsx": 54,
   "src/components/mascot/ExerciseRunner.tsx": 19,
-  "src/components/mascot/Mascot.tsx": 4,
+  "src/components/mascot/Mascot.tsx": 3,
   "src/components/mascot/MascotSettings.tsx": 20,
   "src/components/mascot/TypingDots.tsx": 1,
   "src/components/money/Fundamentals.tsx": 45,
@@ -656,5 +656,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1840
+ "withPlaceholders": 1839
 }
