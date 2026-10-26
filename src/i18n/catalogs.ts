@@ -27,7 +27,9 @@ export function loadCatalog(lang: LangCode) {
   const c = readCatalog(lang);
   if (!c) return;
   loaded.add(lang);
-  registerCatalog(lang, { ...(c.base as Record<string, string>), ...(c.ov as Record<string, string>) });
+  // L'inglese è la lingua principale: le frasi non ancora tradotte in questa lingua escono in inglese, non in italiano.
+  const en = lang === 'en' ? null : readCatalog('en');
+  registerCatalog(lang, { ...(en ? { ...(en.base as Record<string, string>), ...(en.ov as Record<string, string>) } : {}), ...(c.base as Record<string, string>), ...(c.ov as Record<string, string>) });
 }
 
 /** Tutti i cataloghi (serve solo a strumenti e prove). */
