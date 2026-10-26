@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, type StyleProp, type ViewStyle } from 'react-native';
 import { Image as RNImage } from 'react-native';
 import { Asset } from 'expo-asset';
-import Svg, { Circle, Defs, Ellipse, G, Image as SvgImage, Path, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, G, Image as SvgImage, Mask, Path, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { EYES_OF, MOTIONS, bodyTones, mix, type Expression, type MotionId } from '@/lib/mascot';
@@ -227,11 +227,18 @@ export function Mascot({ size = 140, color, expression = 'neutral', animated = t
           <RadialGradient id="glow" cx="50%" cy="50%" rx="50%" ry="50%">
             <Stop offset="0.35" stopColor={tones.glow} stopOpacity="0.5" /><Stop offset="1" stopColor={tones.glow} stopOpacity="0" />
           </RadialGradient>
+          <RadialGradient id="tint" cx="38%" cy="30%" rx="85%" ry="85%">
+            <Stop offset="0" stopColor={shown} stopOpacity="0.38" /><Stop offset="0.55" stopColor={shown} stopOpacity="0.7" /><Stop offset="1" stopColor={shown} stopOpacity="0.92" />
+          </RadialGradient>
+          <Mask id="bodyMask" x={20} y={34} width={160} height={150.7} maskUnits="userSpaceOnUse">
+            <SvgImage x={20} y={34} width={160} height={150.7} href={BODY} preserveAspectRatio="xMidYMid meet" />
+          </Mask>
         </Defs>
         <Circle cx={100} cy={112} r={98} fill="url(#glow)" opacity={0.55} />
         <Ellipse cx={100} cy={184} rx={54} ry={7} fill="#000" opacity={0.2} />
         <G transform={`translate(100 0) scale(${1 - 0.05 * Math.abs(sin)} 1) translate(-100 0)`}>
           <SvgImage x={20} y={34} width={160} height={150.7} href={BODY} preserveAspectRatio="xMidYMid meet" />
+          <Rect x={20} y={34} width={160} height={150.7} fill="url(#tint)" mask="url(#bodyMask)" />
         </G>
         {front ? (
           <G transform={`translate(${100 + sin * 62} 0) scale(${Math.max(0.12, cos)} 1) translate(-100 0)`} opacity={Math.min(1, cos * 3)}>

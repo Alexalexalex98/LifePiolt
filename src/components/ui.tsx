@@ -536,7 +536,7 @@ const MODAL_GAP = 420;
 const FORM_TITLE = /^\s*(nuov[oai]\b|aggiung|crea\b|crea un|modific|registra|inserisci|incolla|scrivi cosa|new\b|add\b|create\b|edit\b)/i;
 const EDIT_TITLE = /^\s*(modific|edit\b)/i;
 
-export function Sheet({ visible, title, onClose, children, lowerable, variant }: { /** `dialog` = scheda al centro; `sheet` = dal basso. Se manca si sceglie dal titolo. */ variant?: 'sheet' | 'dialog'; visible: boolean; title: string; onClose: () => void; children: ReactNode; /** si può abbassare per continuare a guardare il contenuto dietro */ lowerable?: boolean }) {
+export function Sheet({ visible, title, onClose, children, lowerable, variant, icon }: { /** `dialog` = scheda al centro (default ovunque); `sheet` = dal basso, solo se richiesto. */ variant?: 'sheet' | 'dialog'; /** icona nell'intestazione della scheda al centro */ icon?: string; visible: boolean; title: string; onClose: () => void; children: ReactNode; /** si può abbassare per continuare a guardare il contenuto dietro */ lowerable?: boolean }) {
   const t = useTheme();
   const ty = useRef(new Animated.Value(0)).current;
   const sheetH = useRef(0);
@@ -565,7 +565,8 @@ export function Sheet({ visible, title, onClose, children, lowerable, variant }:
     return () => clearTimeout(h);
   }, [visible]);
   const close = safely(onClose) ?? onClose;
-  const dialog = !lowerable && (variant ? variant === 'dialog' : FORM_TITLE.test(String(title ?? '')));
+  const dialog = !lowerable && variant !== 'sheet';
+  const headIcon = icon ?? (EDIT_TITLE.test(String(title ?? '')) ? 'edit' : FORM_TITLE.test(String(title ?? '')) ? 'plus' : null);
   const pop = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!dialog) return;
@@ -581,9 +582,9 @@ export function Sheet({ visible, title, onClose, children, lowerable, variant }:
           <Animated.View accessibilityViewIsModal style={{ width: '100%', maxWidth: 520, maxHeight: Math.max(220, win.height - kb.height - insets.top - insets.bottom - 40), backgroundColor: t.sheet, borderRadius: 28, borderWidth: 1, borderColor: t.sheetBorder, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 28, shadowOffset: { width: 0, height: 14 }, elevation: 18, opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }] }}>
             <View style={{ height: 3, backgroundColor: t.accent, opacity: 0.9 }} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 6 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: t.accent + '26', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name={EDIT_TITLE.test(String(title ?? '')) ? 'edit' : 'plus'} size={20} color={t.accent} stroke={2.2} />
-              </View>
+              {headIcon ? <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: t.accent + '26', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={headIcon} size={20} color={t.accent} stroke={2.2} />
+              </View> : null}
               <Text accessibilityRole="header" style={{ color: t.text, fontSize: fs.lead, fontWeight: '800', flex: 1, letterSpacing: -0.2 }} numberOfLines={2}>{title}</Text>
               <Press onPress={close} accessibilityLabel={translateText('Chiudi')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="x" size={16} color={t.muted} stroke={2.4} />

@@ -160,7 +160,7 @@ export function TheiaFab() {
         {showMascot ? <Mascot size={56} color={t.accent} expression={asking ? 'doubtful' : 'happy'} shake={tickled} /> : <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: 0.92 }}><Icon name="sparkle" size={22} color={t.onText} /></View>}
       </Pressable>
     </Animated.View>
-    <Sheet visible={menu} title={`Chiedi a ${name}`} onClose={() => setMenu(false)}>
+    <Sheet visible={menu} icon="sparkle" title={`Chiedi a ${name}`} onClose={() => setMenu(false)}>
       <Body small muted style={{ marginBottom: 8 }}>Tutto finisce nella tua LifeChat, ordinato nella sezione giusta.</Body>
       {([
         ['edit', 'Scrivi a ' + name, 'Una domanda o un comando', () => { setMenu(false); go('ai'); }],
@@ -168,8 +168,8 @@ export function TheiaFab() {
         ['camera', 'Chiedi su questa schermata', 'Scatta e scegli cosa chiedere', () => { setMenu(false); setTimeout(() => void shot(), 200); }],
         ['copy', 'Usa il testo copiato', 'Riassunto, task, risposta…', () => { setMenu(false); void clip(); }],
       ] as [string, string, string, () => void][]).map(([icon, title, sub, fn]) => (
-        <Pressable key={title} onPress={fn} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: t.item, alignItems: 'center', justifyContent: 'center' }}><Icon name={icon} size={20} color={t.text} /></View>
+        <Pressable key={title} onPress={fn} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, marginBottom: 8, borderRadius: 18, backgroundColor: t.item, borderWidth: 1, borderColor: t.sheetBorder }}>
+          <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: t.accent + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={icon} size={20} color={t.accent} stroke={2.1} /></View>
           <View style={{ flex: 1 }}><Body bold>{title}</Body><Body small muted>{sub}</Body></View>
           <Icon name="chevron-right" size={16} color={t.muted} />
         </Pressable>
