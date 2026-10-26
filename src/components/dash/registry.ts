@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 
 import { AgendaW, ShiftW, UpcomingW, KcalW, LifeScoreW, MissingW, MoodW, TasksW, TrainW, WaterW, WeekW, metricW, type WProps } from '@/components/dash/widgetsA';
 import { RadarW, BalanceW, BillsW, LpW, MessagesW, NewsW, NotifsW, PortfolioW, SavingW, SpendW, StockW, TipW, TripW, WatchW, shortcutW } from '@/components/dash/widgetsB';
+import { FitTodayW, WaterQuickW, PantryW, BodyCheckW, DriveW, PetW, ScFridgeW, ScMealPlanW, ScBodyW, ScDriveW, ScPetW, ScVacationW, ScMonthW, ScProjectsW, ScPassW, ScLockW, ScWaterPageW, ScDiaryW } from '@/components/dash/widgetsC';
 
 export type CatId = 'oggi' | 'benessere' | 'finanza' | 'mercati' | 'notizie' | 'network' | 'plan' | 'viaggi' | 'theia' | 'scorciatoie';
 export const CATS: { id: CatId; label: string; icon: string; color: string }[] = [
@@ -49,6 +50,13 @@ export const WIDGETS: WidgetDef[] = [
   { type: 'stress', cat: 'benessere', sub: 'Salute e mente', title: 'Stress (stima)', desc: 'Una stima dal battito e dall\'HRV', icon: 'heart', color: '#ffb84f', sizes: NB, def: '2x1', Comp: metricW({ id: 'stress', label: 'Stress (stima)', icon: 'heart', page: 'mood' }) },
   { type: 'mindful', cat: 'benessere', sub: 'Salute e mente', title: 'Mindfulness', desc: 'Minuti di pausa e respirazione', icon: 'smile', color: MIND, sizes: NB, def: '2x1', Comp: metricW({ id: 'mindful', label: 'Mindfulness', icon: 'smile', page: 'mood' }) },
 
+  { type: 'fittoday', cat: 'benessere', sub: 'Fitness', title: 'Il tuo oggi', desc: 'Allenamento, cibo e acqua di oggi insieme: ognuno si tocca e apre la sua pagina', icon: 'lifefitness', color: FIT, sizes: ['2x2', '4x1', '4x2', '2x4'], def: '2x2', Comp: FitTodayW },
+  { type: 'waterquick', cat: 'benessere', sub: 'Cibo', title: 'Segna acqua', desc: 'Un tocco e si apre la scheda per segnare quanta ne hai bevuta', icon: 'drop', color: HEALTH, sizes: N, def: '2x1', Comp: WaterQuickW },
+  { type: 'pantry', cat: 'benessere', sub: 'Cibo', title: 'Frigo e spesa', desc: 'Cosa sta finendo e la lista della spesa', icon: 'orders', color: FOOD, sizes: ['1x1', '2x1', '2x2', '4x2'], def: '2x2', Comp: PantryW },
+  { type: 'bodycheck', cat: 'benessere', sub: 'Fitness', title: 'Foto del corpo', desc: 'Quando fare le prossime quattro foto per vedere i progressi', icon: 'camera', color: MIND, sizes: ['1x1', '2x1', '2x2'], def: '2x1', Comp: BodyCheckW },
+  { type: 'drive', cat: 'oggi', title: 'LifeDrive', desc: 'Quanti file e foto hai e l\'ultimo caricato', icon: 'lifedrive', color: '#b96bff', sizes: ['1x1', '2x1', '2x2'], def: '2x1', Comp: DriveW },
+  { type: 'pet', cat: 'theia', title: 'Theia, la mascotte', desc: 'Theia sulla Dashboard: tocchi e vai nella sua casa', icon: 'sparkle', color: '#8fa4ff', sizes: ['1x1', '2x2'], def: '2x2', Comp: PetW },
+
   { type: 'balance', cat: 'finanza', title: 'Saldo', desc: 'Quanto hai, entrate e uscite del mese', icon: 'wallet', color: MONEY, sizes: ['1x1', '2x1', '2x2', '4x1', '4x2', '4x3'], def: '2x2', Comp: BalanceW },
   { type: 'spend', cat: 'finanza', title: 'Spese del mese', desc: 'Quanto hai speso finora', icon: 'trend-down', color: '#ff9d9d', sizes: ['1x1', '2x1', '2x2', '4x1', '4x2'], def: '2x1', Comp: SpendW },
   { type: 'saving', cat: 'finanza', title: 'Risparmio', desc: 'Che parte del reddito metti da parte', icon: 'coin', color: MONEY, sizes: ['1x1', '2x1', '1x2', '2x2', '4x1'], def: '2x1', Comp: SavingW },
@@ -82,6 +90,18 @@ export const WIDGETS: WidgetDef[] = [
   { type: 'sc-task', cat: 'scorciatoie', title: 'Nuovo task', desc: 'Aggiungi una cosa da fare', icon: 'tasks', color: PLAN, sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'tasks', label: 'Nuovo task', page: 'lifetask', color: PLAN }) },
   { type: 'sc-week', cat: 'scorciatoie', title: 'Pianifica la settimana', desc: 'Theia propone allenamenti, task e sonno nei momenti liberi', icon: 'calendar', color: PLAN, sizes: S1, def: '2x1', Comp: shortcutW({ icon: 'calendar', label: 'Pianifica la settimana', page: 'weekPlan', color: PLAN }) },
   { type: 'sc-chat', cat: 'scorciatoie', title: 'Messaggi', desc: 'Apri le chat', icon: 'send', color: '#c9b6ff', sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'send', label: 'Messaggi', page: 'messagesPage', color: '#c9b6ff' }) },
+  { type: 'sc-fridge', cat: 'scorciatoie', title: 'Frigo e spesa', desc: 'Scontrino, scorte, lista condivisa', icon: 'orders', color: FOOD, sizes: S1, def: '1x1', Comp: ScFridgeW },
+  { type: 'sc-mealplan', cat: 'scorciatoie', title: 'Piano alimentare', desc: 'Il piano su misura e cosa mangi davvero', icon: 'meal', color: FOOD, sizes: S1, def: '1x1', Comp: ScMealPlanW },
+  { type: 'sc-diary', cat: 'scorciatoie', title: 'Storico dei pasti', desc: 'Giorno per giorno, con foto e analisi di Theia', icon: 'meal', color: FOOD, sizes: S1, def: '1x1', Comp: ScDiaryW },
+  { type: 'sc-waterpage', cat: 'scorciatoie', title: 'Pagina acqua', desc: 'Come va l\'acqua negli ultimi giorni', icon: 'drop', color: HEALTH, sizes: S1, def: '1x1', Comp: ScWaterPageW },
+  { type: 'sc-body', cat: 'scorciatoie', title: 'Foto del corpo', desc: 'Le quattro foto e l\'analisi', icon: 'camera', color: MIND, sizes: S1, def: '1x1', Comp: ScBodyW },
+  { type: 'sc-pass', cat: 'scorciatoie', title: 'LifePass', desc: 'Il tuo pass per palestre e centri', icon: 'lifefitness', color: FIT, sizes: S1, def: '1x1', Comp: ScPassW },
+  { type: 'sc-drive', cat: 'scorciatoie', title: 'LifeDrive', desc: 'Foto e documenti, divisi per categoria', icon: 'lifedrive', color: '#b96bff', sizes: S1, def: '1x1', Comp: ScDriveW },
+  { type: 'sc-pet', cat: 'scorciatoie', title: 'Casa di Theia', desc: 'Vai a trovare la mascotte', icon: 'sparkle', color: '#8fa4ff', sizes: S1, def: '1x1', Comp: ScPetW },
+  { type: 'sc-vacation', cat: 'scorciatoie', title: 'Piano vacanze', desc: 'Obiettivo e data, quanto mettere da parte', icon: 'lifetravel', color: '#e0c97b', sizes: S1, def: '1x1', Comp: ScVacationW },
+  { type: 'sc-month', cat: 'scorciatoie', title: 'Piano del mese', desc: 'Entrate, spese e cosa puoi mettere da parte', icon: 'calendar', color: PLAN, sizes: S1, def: '1x1', Comp: ScMonthW },
+  { type: 'sc-projects', cat: 'scorciatoie', title: 'Progetti', desc: 'Elenchi a più livelli, importabili da un file', icon: 'projects', color: PLAN, sizes: S1, def: '1x1', Comp: ScProjectsW },
+  { type: 'sc-lock', cat: 'scorciatoie', title: 'Blocco schermo', desc: 'Scegli cosa mostrare sul blocco schermo', icon: 'lock', color: '#8fa4ff', sizes: S1, def: '1x1', Comp: ScLockW },
 ];
 export const WBY: Record<string, WidgetDef> = Object.fromEntries(WIDGETS.map((w) => [w.type, w]));
 void MIND;
