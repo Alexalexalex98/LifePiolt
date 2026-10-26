@@ -3,19 +3,33 @@
  * Le stelline si GUADAGNANO facendo le cose vere dell'app (non si comprano con soldi veri, non sono LifePoints, non si convertono): niente acquisti, niente pressioni.
  * L'usura è solo estetica: un mobile consumato si può riparare o cambiare, ma non fa mai stare male Theia né toglie nulla.
  */
-export type Kind = 'sofa' | 'bed' | 'table' | 'desk' | 'bench' | 'rug' | 'plant' | 'lamp' | 'art' | 'shelf' | 'wardrobe';
+export type BaseKind = 'sofa' | 'bed' | 'table' | 'desk' | 'bench' | 'rug' | 'plant' | 'lamp' | 'art' | 'shelf' | 'wardrobe';
+/** Mobili e oggetti in più, tutti in vista frontale (disegnati in src/components/pet/extraArt.tsx). */
+export type ExtraKind = 'armchair' | 'chair' | 'pouf' | 'nightstand' | 'sidetable' | 'tvstand' | 'dresser' | 'stool' | 'basket' | 'aquarium' | 'dogbed' | 'fridge' | 'bookcase' | 'coatrack' | 'guitar' | 'cattree' | 'piano' | 'mirror' | 'clock' | 'poster' | 'wtv' | 'curtain' | 'sconce';
+export type Kind = BaseKind | ExtraKind;
+export const EXTRA_KINDS: ExtraKind[] = ['armchair', 'chair', 'pouf', 'nightstand', 'sidetable', 'tvstand', 'dresser', 'stool', 'basket', 'aquarium', 'dogbed', 'fridge', 'bookcase', 'coatrack', 'guitar', 'cattree', 'piano', 'mirror', 'clock', 'poster', 'wtv', 'curtain', 'sconce'];
+export const isExtra = (k: Kind): k is ExtraKind => (EXTRA_KINDS as string[]).includes(k);
+/** Nella stessa stanza, due oggetti della stessa zona occupano lo stesso punto: il nuovo prende il posto del vecchio. */
+const ZONE: Partial<Record<Kind, string>> = {
+  armchair: 'B', chair: 'B', pouf: 'B', nightstand: 'B', sidetable: 'B', tvstand: 'B', dresser: 'B', stool: 'B', basket: 'B', aquarium: 'B', dogbed: 'B',
+  plant: 'C', wardrobe: 'C', fridge: 'C', bookcase: 'C', coatrack: 'C', guitar: 'C', cattree: 'C', piano: 'C',
+  mirror: 'W', clock: 'W', poster: 'W', wtv: 'W',
+};
+export const zoneOf = (k: Kind): string => ZONE[k] ?? k;
 export type Quality = 0 | 1 | 2;
 export type RoomId = 'living' | 'bedroom' | 'kitchen' | 'studio' | 'terrace';
 export const ROOMS: { id: RoomId; name: string; slots: Kind[] }[] = [
-  { id: 'living', name: 'Salotto', slots: ['sofa', 'rug', 'plant', 'lamp', 'art', 'shelf'] },
-  { id: 'bedroom', name: 'Camera', slots: ['bed', 'wardrobe', 'rug', 'lamp', 'art'] },
-  { id: 'kitchen', name: 'Cucina', slots: ['table', 'rug', 'plant', 'art', 'shelf'] },
-  { id: 'studio', name: 'Studio', slots: ['desk', 'shelf', 'lamp', 'plant', 'art'] },
-  { id: 'terrace', name: 'Terrazza', slots: ['bench', 'plant', 'lamp', 'rug', 'art'] },
+  { id: 'living', name: 'Salotto', slots: ['sofa', 'rug', 'plant', 'lamp', 'art', 'shelf', 'armchair', 'pouf', 'sidetable', 'tvstand', 'basket', 'aquarium', 'dogbed', 'bookcase', 'guitar', 'cattree', 'piano', 'coatrack', 'wtv', 'mirror', 'clock', 'poster', 'sconce', 'curtain'] },
+  { id: 'bedroom', name: 'Camera', slots: ['bed', 'wardrobe', 'rug', 'lamp', 'art', 'nightstand', 'dresser', 'chair', 'stool', 'basket', 'coatrack', 'mirror', 'clock', 'poster', 'sconce', 'curtain'] },
+  { id: 'kitchen', name: 'Cucina', slots: ['table', 'rug', 'plant', 'art', 'shelf', 'chair', 'stool', 'basket', 'sidetable', 'fridge', 'coatrack', 'clock', 'poster', 'curtain'] },
+  { id: 'studio', name: 'Studio', slots: ['desk', 'shelf', 'lamp', 'plant', 'art', 'chair', 'stool', 'dresser', 'pouf', 'bookcase', 'guitar', 'piano', 'clock', 'poster', 'mirror', 'sconce', 'curtain'] },
+  { id: 'terrace', name: 'Terrazza', slots: ['bench', 'plant', 'lamp', 'rug', 'art', 'chair', 'stool', 'sidetable', 'basket', 'dogbed', 'cattree', 'clock'] },
 ];
-export const KIND_NAME: Record<Kind, string> = { sofa: 'Divano', bed: 'Letto', table: 'Tavolo', desk: 'Scrivania', bench: 'Panchina', rug: 'Tappeto', plant: 'Pianta', lamp: 'Lampada', art: 'Quadro', shelf: 'Mensola', wardrobe: 'Armadio' };
+export const KIND_NAME: Record<Kind, string> = { sofa: 'Divano', bed: 'Letto', table: 'Tavolo', desk: 'Scrivania', bench: 'Panchina', rug: 'Tappeto', plant: 'Pianta', lamp: 'Lampada', art: 'Quadro', shelf: 'Mensola', wardrobe: 'Armadio',
+  armchair: 'Poltrona', chair: 'Sedia', pouf: 'Pouf', nightstand: 'Comodino', sidetable: 'Tavolino', tvstand: 'Mobile TV', dresser: 'Cassettiera', stool: 'Sgabello', basket: 'Cesta', aquarium: 'Acquario', dogbed: 'Cuccia', fridge: 'Frigorifero', bookcase: 'Libreria', coatrack: 'Appendiabiti', guitar: 'Chitarra', cattree: 'Tiragraffi', piano: 'Pianoforte', mirror: 'Specchio', clock: 'Orologio', poster: 'Poster', wtv: 'Televisore', curtain: 'Tende', sconce: 'Applique' };
 export const QUALITY_NAME = ['Semplice', 'Bello', 'Di pregio'] as const;
-const BASE_PRICE: Record<Kind, number> = { sofa: 40, bed: 40, table: 30, desk: 30, bench: 25, rug: 20, plant: 12, lamp: 15, art: 15, shelf: 18, wardrobe: 35 };
+const BASE_PRICE: Record<Kind, number> = { sofa: 40, bed: 40, table: 30, desk: 30, bench: 25, rug: 20, plant: 12, lamp: 15, art: 15, shelf: 18, wardrobe: 35,
+  armchair: 28, chair: 14, pouf: 12, nightstand: 16, sidetable: 14, tvstand: 30, dresser: 32, stool: 10, basket: 8, aquarium: 34, dogbed: 18, fridge: 38, bookcase: 36, coatrack: 14, guitar: 26, cattree: 24, piano: 60, mirror: 16, clock: 12, poster: 10, wtv: 32, curtain: 20, sconce: 12 };
 const QMULT = [1, 3, 8], DURABILITY_DAYS = [14, 35, 80];
 
 export type Item = { id: string; kind: Kind; quality: Quality; name: string; price: number; days: number };
@@ -86,7 +100,9 @@ export function place(s: HomeState, room: RoomId, ownedUid: string): Result {
   if (!r.slots.includes(it.kind)) return { ok: false, state: s, reason: 'Non c\'è posto per questo oggetto qui' };
   const placed: HomeState['placed'] = {};
   for (const [rid, slots] of Object.entries(s.placed)) placed[rid] = Object.fromEntries(Object.entries(slots).filter(([, u]) => u !== ownedUid));
-  placed[room] = { ...(placed[room] ?? {}), [it.kind]: ownedUid };
+  /* se nella stanza c'e' gia' un oggetto nello stesso punto, lascia il posto al nuovo */
+  const here = Object.fromEntries(Object.entries(placed[room] ?? {}).filter(([k]) => k === it.kind || zoneOf(k as Kind) !== zoneOf(it.kind)));
+  placed[room] = { ...here, [it.kind]: ownedUid };
   return { ok: true, state: { ...s, placed } };
 }
 export function unplace(s: HomeState, room: RoomId, kind: Kind): HomeState {

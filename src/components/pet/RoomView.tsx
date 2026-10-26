@@ -3,7 +3,8 @@ import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, Image as SvgImage, Line, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import type { Phase } from '@/components/pet/PetScene';
-import type { Kind, Quality, RoomId } from '@/lib/petHome';
+import { isExtra, type Kind, type Quality, type RoomId } from '@/lib/petHome';
+import { extraBody } from '@/components/pet/extraArt';
 
 /**
  * Una stanza di Theia: pareti, pavimento e mobili disegnati in vettoriale. I mobili hanno tre qualità (semplice, bello, di pregio) e si consumano:
@@ -22,11 +23,11 @@ function mix(a: string, b: string, t: number): string {
 }
 const shade = (c: string, t: number) => mix(c, t >= 0 ? '#ffffff' : '#000000', Math.abs(t));
 /** Materiali: semplice (neutri), bello (nel colore di Theia), di pregio (colori ricchi e dettagli dorati). */
-const MAT: Record<Kind, [string, string | null, string]> = {
+const MAT: Partial<Record<Kind, [string, string | null, string]>> = {
   sofa: ['#9aa3ad', null, '#2f8f6b'], bed: ['#d4dae0', null, '#7a56b0'], table: ['#c8a074', null, '#ebe7de'], desk: ['#c8a074', null, '#6b4326'], bench: ['#b98f5f', null, '#f1efe8'],
   wardrobe: ['#c8a074', null, '#8a5a3a'], rug: ['#c9b79c', null, '#b34a4a'], plant: ['#c47a5a', null, '#e2b64a'], lamp: ['#d9c9a0', null, '#e2b64a'], art: ['#a8845a', null, '#e2b64a'], shelf: ['#c8a074', null, '#6b4326'],
 };
-const baseOf = (k: Kind, q: Quality, accent: string) => (q === 0 ? MAT[k][0] : q === 1 ? accent : MAT[k][2]);
+const baseOf = (k: Kind, q: Quality, accent: string) => { const m = MAT[k] ?? ['#c8a074', null, '#6b4326']; return q === 0 ? m[0] : q === 1 ? accent : m[2]; };
 
 /** Gradiente verticale chiaro→scuro con id univoco per oggetto. */
 function G2({ id, c, t = 0.28, b = 0.22 }: { id: string; c: string; t?: number; b?: number }) {
@@ -39,15 +40,11 @@ function G2({ id, c, t = 0.28, b = 0.22 }: { id: string; c: string; t?: number; 
 const Shadow = ({ cx, cy, rx }: { cx: number; cy: number; rx: number }) => <Ellipse cx={cx} cy={cy} rx={rx} ry={Math.max(6, rx * 0.1)} fill="#000" opacity={0.2} />;
 const Gloss = ({ x, y, w, h, o = 0.3 }: { x: number; y: number; w: number; h: number; o?: number }) => <Ellipse cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2} fill="#fff" opacity={o} />;
 
-/** Mobili disegnati a mano (immagini): dove c'è lo sprite si usa quello, altrimenti il disegno vettoriale. x/y/w/h = riquadro nella stanza, appoggiato al pavimento. */
+/** Mobili disegnati a mano (immagini) in VISTA FRONTALE: dove c'è lo sprite si usa quello, altrimenti il disegno vettoriale (anch'esso frontale). x/y/w/h = riquadro nella stanza, appoggiato al pavimento. */
 const SPRITES: Record<string, { src: number; x: number; y: number; w: number; h: number }> = {
-  'sofa:0': { src: require('../../../assets/pet/sofa-0.png'), x: 0, y: 330, w: 156, h: 132 },
-  'sofa:1': { src: require('../../../assets/pet/sofa-1.png'), x: 0, y: 330, w: 156, h: 132 },
-  'sofa:2': { src: require('../../../assets/pet/sofa-2.png'), x: 0, y: 330, w: 156, h: 132 },
-  'bed:0': { src: require('../../../assets/pet/bed-0.png'), x: 4, y: 316, w: 180, h: 146 },
-  'table:0': { src: require('../../../assets/pet/table-0.png'), x: 20, y: 360, w: 140, h: 102 },
-  'desk:0': { src: require('../../../assets/pet/desk-0.png'), x: 14, y: 356, w: 144, h: 106 },
-  'bench:0': { src: require('../../../assets/pet/bench-0.png'), x: 14, y: 352, w: 144, h: 110 },
+  'sofa:0': { src: require('../../../assets/pet/sofa-0.png'), x: 2, y: 375, w: 150, h: 87 },
+  'sofa:1': { src: require('../../../assets/pet/sofa-1.png'), x: 0, y: 372, w: 156, h: 90 },
+  'sofa:2': { src: require('../../../assets/pet/sofa-2.png'), x: 0, y: 387, w: 156, h: 75 },
 };
 
 function Art({ kind, q, accent, wear }: { kind: Kind; q: Quality; accent: string; wear: number }) {
@@ -65,6 +62,8 @@ function Art({ kind, q, accent, wear }: { kind: Kind; q: Quality; accent: string
         <SvgImage x={sp.x} y={sp.y} width={sp.w} height={sp.h} href={sp.src} preserveAspectRatio="xMidYMax meet" />
       </G>
     );
+  } else if (isExtra(kind)) {
+    body = extraBody(kind, { q, accent, base, gold, id, shade, Shadow, Gloss, G2 });
   } else switch (kind) {
     case 'sofa': body = (
       <G>
@@ -207,7 +206,7 @@ function Art({ kind, q, accent, wear }: { kind: Kind; q: Quality; accent: string
 export function RoomView({ room, phase, accent, placed, tier }: { room: RoomId; phase: Phase; accent: string; placed: Placed; tier: number }) {
   const night = phase === 'night', eve = phase === 'evening';
   const [w, setW] = useState(0);
-  const order: Kind[] = ['art', 'shelf', 'wardrobe', 'rug', 'bed', 'sofa', 'table', 'desk', 'bench', 'plant', 'lamp'];
+  const order: Kind[] = ['art', 'shelf', 'mirror', 'clock', 'poster', 'wtv', 'curtain', 'sconce', 'wardrobe', 'fridge', 'bookcase', 'piano', 'guitar', 'cattree', 'coatrack', 'rug', 'bed', 'sofa', 'table', 'desk', 'bench', 'armchair', 'chair', 'pouf', 'nightstand', 'sidetable', 'tvstand', 'dresser', 'stool', 'basket', 'aquarium', 'dogbed', 'plant', 'lamp'];
   if (room === 'living' || room === 'bedroom' || room === 'kitchen' || room === 'studio' || room === 'terrace') { /* tutte le stanze usano lo stesso riquadro */ }
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none" onLayout={(e) => setW(e.nativeEvent.layout.width)}>

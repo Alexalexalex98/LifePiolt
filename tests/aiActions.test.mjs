@@ -241,7 +241,7 @@ import { newHome, buy, repair, place, unplace, sell, upgrade, wearOf, itemOf, IT
 test('casa di Theia: si compra con le stelline, si piazza solo dove c\'è posto, si consuma e si ripara', () => {
   const t0 = Date.UTC(2026, 9, 1);
   let s = { ...newHome(), coins: 100 };
-  assert.equal(ITEMS.length, 33);
+  assert.equal(ITEMS.length, 102);
   assert.equal(buy(s, 'sofa:2', t0).ok, false);
   let r = buy(s, 'sofa:0', t0); assert.equal(r.ok, true); assert.equal(r.state.coins, 60);
   const u = r.state.owned[0].uid;
@@ -323,4 +323,17 @@ test('liveParts: testo in arrivo senza separatori a meta e senza azioni', async 
   assert.deepEqual(liveParts('Ciao\n|||\nSecondo mess'), ['Ciao', 'Secondo mess']);
   assert.deepEqual(liveParts('Fatto.\n[[AZIONE {"type":"task_'), ['Fatto.']);
   assert.deepEqual(liveParts(''), []);
+});
+
+test('casa di Theia: due oggetti nello stesso punto della stanza non coesistono, il nuovo prende il posto', async () => {
+  const { newHome, buy, place, EXTRA_KINDS, ROOMS, zoneOf } = await import('../src/lib/petHome.ts');
+  assert.ok(EXTRA_KINDS.length >= 20);
+  let s = { ...newHome(), coins: 500 };
+  const a = buy(s, 'armchair:0', 1); const b = buy(a.state, 'tvstand:0', 2);
+  const ua = b.state.owned[0].uid, ub = b.state.owned[1].uid;
+  let r = place(b.state, 'living', ua); assert.equal(r.ok, true);
+  r = place(r.state, 'living', ub); assert.equal(r.ok, true);
+  assert.deepEqual(Object.keys(r.state.placed.living), ['tvstand']);
+  assert.equal(zoneOf('armchair'), zoneOf('tvstand'));
+  assert.ok(ROOMS.every((x) => x.slots.length >= 10));
 });
