@@ -21,9 +21,10 @@ const OPTIONAL = new Set(['@shopify/react-native-skia', 'react-native-health-con
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // avvio rapido (LP_FAST=1): le traduzioni (circa 10 MB) non entrano nel pacchetto; l'app resta in italiano, che è la lingua originale
   // LP_LANGS=en,de tiene le lingue elencate (circa 1 MB l'una) e toglie le altre
-  const keep = (process.env.LP_LANGS ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  const FAST = process.env.LP_FULL !== '1' && (process.env.LP_FAST === '1' || process.env.NODE_ENV !== 'production');
+  const keep = (process.env.LP_LANGS ?? 'en').split(',').map((x) => x.trim()).filter(Boolean);
   const lang = /(^|[\\/])locales[\\/]([a-z]{2})\.json$/.exec(moduleName)?.[2];
-  if (process.env.LP_FAST === '1' && lang && !keep.includes(lang) && /[\\/]i18n[\\/]/.test(context.originModulePath)) {
+  if (FAST && lang && !keep.includes(lang) && /[\\/]i18n[\\/]/.test(context.originModulePath)) {
     return { type: 'sourceFile', filePath: path.join(__dirname, 'src', 'lib', 'shims', 'emptyCatalog.json') };
   }
   if (OPTIONAL.has(moduleName)) {
