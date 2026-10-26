@@ -216,10 +216,7 @@ export default function Settings() {
           ))}
         </>
       ) : (
-        <Pressable accessibilityRole="button" accessibilityLabel={tl('Torna alle impostazioni')} onPress={() => setCat(null)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <Icon name="arrow-left" size={18} color={t.accent} stroke={2.2} />
-          <Body bold color={t.accent}>{CATS.flatMap((g) => g.rows).find((c) => c.id === cat)?.title ?? (cat === 'mascot' ? 'Theia, la mascotte' : '')}</Body>
-        </Pressable>
+        <H style={{ marginBottom: 4 }}>{CATS.flatMap((g) => g.rows).find((c) => c.id === cat)?.title ?? (cat === 'mascot' ? 'Theia, la mascotte' : '')}</H>
       )}
 
       {cat === 'look' ? (
