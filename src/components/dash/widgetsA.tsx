@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { WaterSheet } from '@/components/fitness/WaterSheet';
 import { DaySheet, SmartTaskSheet } from '@/components/plan';
 
 import { Tile, type TileRow } from '@/components/dash/Tile';
@@ -118,17 +119,18 @@ function QuickAdd({ label, color, a11y, onPress }: { label: string; color: strin
 }
 
 export function WaterW(p: WProps) {
-  const t = useTheme();
   const fit = useFitness();
+  const [adding, setAdding] = useState(false);
   const ml = (fit.water ?? {})[dayOf(Date.now())] ?? 0;
   const goal = waterGoal(fit.body?.weightKg);
-  const add = (
-    <Pressable accessibilityRole="button" accessibilityLabel={tl('Aggiungi un bicchiere')} hitSlop={6} onPress={() => { fit.addWater(GLASS_ML); toast(tl('Segnato: 1 bicchiere')); }} style={{ paddingHorizontal: 10, height: 30, borderRadius: 15, backgroundColor: C.salute, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#07090d', fontWeight: '800', fontSize: 12 }}>+ 1</Text>
-    </Pressable>
+  /* tocco sul widget o su «+»: si apre la scheda con quanto hai bevuto finora e i tasti rapidi, senza lasciare la Dashboard */
+  const add = <QuickAdd label="+" color={C.salute} a11y={tl('Aggiungi acqua')} onPress={() => setAdding(true)} />;
+  return (
+    <>
+      <Tile {...base(p)} icon="drop" label={tl('Acqua')} color={C.salute} value={`${(ml / 1000).toFixed(1).replace('.', ',')} L`} sub={p.w >= 3 || p.h >= 2 ? `${tl('su')} ${(goal / 1000).toFixed(1).replace('.', ',')} L` : undefined} progress={ml / goal} extra={p.w * p.h > 1 ? add : undefined} onPress={() => setAdding(true)} />
+      <WaterSheet visible={adding} onClose={() => setAdding(false)} />
+    </>
   );
-  void t;
-  return <Tile {...base(p)} icon="drop" label={tl('Acqua')} color={C.salute} value={`${(ml / 1000).toFixed(1).replace('.', ',')} L`} sub={p.w >= 3 || p.h >= 2 ? `${tl('su')} ${(goal / 1000).toFixed(1).replace('.', ',')} L` : undefined} progress={ml / goal} extra={p.w * p.h > 1 ? add : undefined} onPress={() => go('fitnessDay', { day: dayOf(Date.now()), focus: 'water' })} />;
 }
 
 export function KcalW(p: WProps) {

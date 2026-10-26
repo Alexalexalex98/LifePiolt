@@ -1253,5 +1253,17 @@
   "Aggiungi un impegno": "Add an event",
   "Cosa devi fare?": "What do you need to do?",
   "Ripetizione": "Repeat",
-  "Scomponi in passaggi con AI": "Break into steps with AI"
+  "Scomponi in passaggi con AI": "Break into steps with AI",
+  "Aggiungi acqua": "Add water",
+  "Segnato: {0} ml": "Logged: {0} ml",
+  "Tolti {0} ml": "Removed {0} ml",
+  "su {0}": "of {0}",
+  "Obiettivo di oggi raggiunto": "Today's goal reached",
+  "Ti mancano ancora {0}": "{0} still to go",
+  "Quanta ne hai bevuta adesso?": "How much did you just drink?",
+  "Aggiungi {0} ml": "Add {0} ml",
+  "Altra quantità (ml)": "Other amount (ml)",
+  "Togli 200 ml": "Remove 200 ml",
+  "Come va l'acqua": "Water overview",
+  "Scrivi una quantità tra 1 e 3000 ml": "Enter an amount between 1 and 3000 ml"
 }
