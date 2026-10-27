@@ -1,3 +1,5 @@
+import { parseWater } from './mealInsights.ts';
+
 /** Banner «hai bevuto?» (modulo PURO): quando mostrarlo e cosa si può segnare. L'app non sa se bevi davvero: conta solo quello che segni. */
 export const GLASS_ML = 250;
 
@@ -33,3 +35,12 @@ export const DRINKS: Drink[] = [
   { id: 'birra', label: 'Birra', ml: 330, hydrate: 0, food: 'birra' },
   { id: 'vino', label: 'Vino', ml: 125, hydrate: 0, food: 'vino' },
 ];
+
+/** Una quantità scritta come capita («350», «1,5 l», «mezzo litro», «2 bicchieri», «33 cl») in millilitri. Un numero da solo vale ml. null se non è valida (1-5000 ml). */
+export function parseAmountMl(raw: string): number | null {
+  const t = String(raw ?? '').trim();
+  if (!t) return null;
+  const bare = /^\d+(?:[.,]\d+)?$/.exec(t);
+  const ml = bare ? Math.round(Number(t.replace(',', '.'))) : parseWater(t);
+  return ml !== null && Number.isFinite(ml) && ml >= 1 && ml <= 5000 ? ml : null;
+}

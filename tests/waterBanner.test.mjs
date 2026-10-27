@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bannerMinutes, DRINKS, GLASS_ML } from '../src/lib/fitness/waterBanner.ts';
+import { parseAmountMl, bannerMinutes, DRINKS, GLASS_ML } from '../src/lib/fitness/waterBanner.ts';
 
 const at = (h, m = 0) => new Date(2026, 9, 21, h, m).getTime();
 const base = { on: true, afterMin: 120, from: '09:00', to: '21:00', lastDrink: 0, snoozeUntil: 0, todayMl: 500, goalMl: 2000 };
@@ -28,4 +28,15 @@ test('bevande: valori sensati', () => {
 import { FOOD } from '../src/lib/fitness/nutrition.ts';
 test('bevande con calorie: ogni id esiste davvero nel database', () => {
   for (const d of DRINKS) if (d.food) assert.ok(FOOD(d.food), d.id);
+});
+
+test('quantità scritta a mano', () => {
+  assert.equal(parseAmountMl('350'), 350);
+  assert.equal(parseAmountMl('1,5 l'), 1500);
+  assert.equal(parseAmountMl('mezzo litro'), 500);
+  assert.equal(parseAmountMl('2 bicchieri'), 400);
+  assert.equal(parseAmountMl('33 cl'), 330);
+  assert.equal(parseAmountMl(''), null);
+  assert.equal(parseAmountMl('boh'), null);
+  assert.equal(parseAmountMl('9000'), null);
 });

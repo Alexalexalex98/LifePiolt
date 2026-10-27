@@ -4022,5 +4022,11 @@
  "Stress dai tuoi messaggi": "Stress from your messages",
  "Tasso di risparmio rispetto al 20% del reddito, bollette scadute da pagare, mesi di spese che copri con quello che hai (almeno 3) e andamento di saldo e spese.": "Savings rate against 20% of income, overdue bills still to pay, months of expenses you cover with what you have (at least 3) and the trend of balance and spending.",
  "Tono dei tuoi messaggi a Theia": "Tone of your messages to Theia",
- "Umore dei tuoi check-in (da 1 a 5) e tono dei messaggi che scrivi a Theia, rispetto a 3,5, più i minuti di mindfulness rispetto a 10. I messaggi sono analizzati sul telefono.": "Mood from your check-ins (1 to 5) and the tone of the messages you write to Theia, against 3.5, plus mindfulness minutes against 10. Messages are analysed on your phone."
+ "Umore dei tuoi check-in (da 1 a 5) e tono dei messaggi che scrivi a Theia, rispetto a 3,5, più i minuti di mindfulness rispetto a 10. I messaggi sono analizzati sul telefono.": "Mood from your check-ins (1 to 5) and the tone of the messages you write to Theia, against 3.5, plus mindfulness minutes against 10. Messages are analysed on your phone.",
+ "Altra quantità": "Other amount",
+ "Non capisco la quantità: scrivi per esempio 350 o 1,5 l (da 1 a 5000 ml).": "I don't understand the amount: write for example 350 or 1.5 l (1 to 5000 ml).",
+ "Quantità (facoltativa): 330, 1 l…": "Amount (optional): 330, 1 l…",
+ "Scrivi la quantità come ti viene: 350, 1,5 l, mezzo litro, 2 bicchieri. Un numero da solo vale millilitri.": "Write the amount however it comes: 350, 1.5 l, half a litre, 2 glasses. A bare number means millilitres.",
+ "Segna": "Log",
+ "Segno {0} ml": "Logging {0} ml"
 }
