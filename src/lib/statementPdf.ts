@@ -57,14 +57,28 @@ export const statementChunkPrompt = (lines: string[], year?: number) =>
 import type { PdfLayoutPage, PdfRun } from './bills/pdfText.ts';
 
 const H_DATE = /^(data|date|datum|data contabile|buchungsdatum|data operazione)$/i;
-const H_TEXT = /^(testo|text|descrizione|beschreibung|buchungstext|description|causale|dettagli)$/i;
-const H_DEBIT = /^(addebito|addebiti|debit|belastung|dare|uscite|soll)$/i;
-const H_CREDIT = /^(accredito|accrediti|credit|gutschrift|avere|entrate|haben)$/i;
+const H_TEXT = /^(testo|text|descrizione|beschreibung|buchungstext|description|causale|dettagli|movimento|operazione)$/i;
+const H_DEBIT = /^(addebito|addebiti|debit|belastung|dare|uscita|uscite|soll|withdrawal)$/i;
+const H_CREDIT = /^(accredito|accrediti|credit|gutschrift|avere|entrata|entrate|haben|deposit)$/i;
+const H_BALANCE = /^(saldo|balance|kontostand|saldo contabile)$/i;
+/** L'intestazione di colonna senza la valuta («Uscita CHF» → «Uscita») e, per «Testo / Descrizione», ognuna delle due parti. */
+const headParts = (s: string): string[] => s.replace(/\b(chf|eur|usd|gbp|fr\.?|sfr|€|\$)\b/gi, ' ').split('/').map((x) => x.replace(/[\s.:()]+/g, ' ').trim()).filter(Boolean);
+const colOf = (raw: string): Col | null => {
+  for (const p of headParts(raw)) {
+    if (H_DATE.test(p)) return 'date';
+    if (H_TEXT.test(p)) return 'text';
+    if (H_DEBIT.test(p)) return 'debit';
+    if (H_CREDIT.test(p)) return 'credit';
+    if (H_AMOUNT.test(p)) return 'amount';
+    if (H_BALANCE.test(p)) return 'balance';
+  }
+  return null;
+};
 const H_AMOUNT = /^(importo|betrag|amount)$/i;
 const FULL_DATE = /^(\d{1,2})[./](\d{1,2})[./](\d{2,4})$/;
 const SKIP = /^(saldo|totale|riporto|summe|saldovortrag|total)\b/i;
 
-type Col = 'date' | 'text' | 'debit' | 'credit' | 'amount';
+type Col = 'date' | 'text' | 'debit' | 'credit' | 'amount' | 'balance';
 type Cols = { col: Col; from: number; to: number }[];
 
 const isoOf = (s: string): string | null => {
@@ -86,15 +100,18 @@ function headerOf(runs: PdfRun[], rects: PdfLayoutPage['rects']): { y: number; c
   const byY = new Map<number, PdfRun[]>();
   for (const r of runs) { const k = Math.round(r.y); byY.set(k, [...(byY.get(k) ?? []), r]); }
   for (const [y, row] of byY) {
-    const named = row.map((r) => ({ r, col: H_DATE.test(r.text.trim()) ? 'date' : H_TEXT.test(r.text.trim()) ? 'text' : H_DEBIT.test(r.text.trim()) ? 'debit' : H_CREDIT.test(r.text.trim()) ? 'credit' : H_AMOUNT.test(r.text.trim()) ? 'amount' : null })).filter((x): x is { r: PdfRun; col: Col } => !!x.col);
+    const named = row.map((r) => ({ r, col: colOf(r.text) })).filter((x): x is { r: PdfRun; col: Col } => !!x.col);
     const has = (c: Col) => named.some((x) => x.col === c);
     if (!(has('date') && has('text') && (has('debit') || has('credit') || has('amount')))) continue;
     named.sort((a, b) => a.r.x - b.r.x);
     const cols: Cols = named.map((n, i) => {
-      const cell = rects.find((q) => n.r.x >= q.x - 1 && n.r.x <= q.x + q.w + 1 && Math.abs(q.y - n.r.y) < 14 && q.w > 10);
+      /* la cella disegnata sotto l'intestazione vale solo se contiene QUELLA intestazione e nessun'altra: le righe a strisce a tutta larghezza non sono celle */
+      const cell = rects.find((q) => n.r.x >= q.x - 1 && n.r.x <= q.x + q.w + 1 && Math.abs(q.y - n.r.y) < 14 && q.w > 10
+        && !named.some((o) => o !== n && o.r.x >= q.x - 1 && o.r.x <= q.x + q.w + 1));
       const next = named[i + 1];
-      const from = cell ? cell.x - 0.5 : i === 0 ? -1e9 : (named[i - 1].r.x + n.r.x) / 2;
-      const to = cell ? cell.x + cell.w + 0.5 : next ? (n.r.x + next.r.x) / 2 : 1e9;
+      /* senza celle: una colonna va dall'inizio della sua intestazione a quella della successiva (gli importi sono spesso allineati a destra, quindi iniziano dopo l'intestazione) */
+      const from = cell ? cell.x - 0.5 : i === 0 ? -1e9 : n.r.x - 8;
+      const to = cell ? cell.x + cell.w + 0.5 : next ? next.r.x - 8 : 1e9;
       return { col: n.col, from, to };
     });
     return { y, cols };
@@ -106,8 +123,18 @@ function headerOf(runs: PdfRun[], rects: PdfLayoutPage['rects']): { y: number; c
 export function parseTableStatement(pages: PdfLayoutPage[]): StatementMove[] {
   const out: StatementMove[] = [];
   let cols: Cols | null = null;
-  let cur: { date: string; label: string; amount: number | null } | null = null;
-  const commit = () => { if (cur && cur.amount !== null && cur.amount !== 0 && cur.label && !SKIP.test(cur.label)) out.push({ date: cur.date, label: clean(cur.label), amount: cur.amount }); cur = null; };
+  let cur: { date: string; label: string; amount: number | null; bal: number | null; fromAmountCol: boolean } | null = null;
+  let prevBal: number | null = null;
+  const commit = () => {
+    if (cur && cur.amount !== null && cur.amount !== 0 && cur.label && !SKIP.test(cur.label)) {
+      let amount = cur.amount;
+      /* una sola colonna importi: il segno si ricava dalla variazione del saldo, se c'è */
+      if (cur.fromAmountCol && cur.bal !== null && prevBal !== null) { const d = Math.round((cur.bal - prevBal) * 100) / 100; if (Math.abs(Math.abs(d) - Math.abs(amount)) < 0.05) amount = d; }
+      out.push({ date: cur.date, label: clean(cur.label), amount });
+    }
+    if (cur && cur.bal !== null) prevBal = cur.bal;
+    cur = null;
+  };
   for (const pg of pages) {
     const h = headerOf(pg.runs, pg.rects);
     let top = Infinity;
@@ -124,9 +151,12 @@ export function parseTableStatement(pages: PdfLayoutPage[]): StatementMove[] {
       let amount: number | null = null;
       for (const r of inCol('debit')) { const n = numOf(r.text); if (n !== null) amount = -Math.abs(n); }
       for (const r of inCol('credit')) { const n = numOf(r.text); if (n !== null) amount = Math.abs(n); }
-      for (const r of inCol('amount')) { const n = numOf(r.text); if (n !== null) amount = n; }
-      if (dateRun) { commit(); cur = { date: dateRun.iso!, label: textRuns[0]?.text.trim() ?? '', amount }; }
-      else if (cur) { if (cur.amount === null && amount !== null) cur.amount = amount; if (!cur.label && textRuns[0]) cur.label = textRuns[0].text.trim(); }
+      let fromAmountCol = false;
+      for (const r of inCol('amount')) { const n = numOf(r.text); if (n !== null) { amount = n; fromAmountCol = true; } }
+      let bal: number | null = null;
+      for (const r of inCol('balance')) { const n = numOf(r.text); if (n !== null) bal = n; }
+      if (dateRun) { commit(); cur = { date: dateRun.iso!, label: textRuns[0]?.text.trim() ?? '', amount, bal, fromAmountCol }; }
+      else if (cur) { if (cur.amount === null && amount !== null) { cur.amount = amount; cur.fromAmountCol = fromAmountCol; } if (cur.bal === null && bal !== null) cur.bal = bal; if (!cur.label && textRuns[0]) cur.label = textRuns[0].text.trim(); }
     }
   }
   commit();

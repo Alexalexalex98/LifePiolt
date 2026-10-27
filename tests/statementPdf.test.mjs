@@ -52,3 +52,46 @@ test('tabella con colonne Addebito/Accredito: il segno viene dalla colonna', () 
   assert.deepEqual(r, [{ date: '2026-10-18', label: 'Coop Lugano', amount: -33 }, { date: '2026-10-19', label: 'Accredito Acme SA', amount: 4200.5 }]);
   assert.deepEqual(parseTableStatement([{ runs: [{ x: 1, y: 1, text: 'niente' }], rects: [] }]), []);
 });
+
+test('tabella con «Uscita CHF», «Entrata CHF», «Saldo CHF» e «Testo / Descrizione»: il saldo non è un importo', () => {
+  const run = (x, y, text) => ({ x, y, text });
+  const page = {
+    runs: [run(40, 700, 'Data'), run(110, 700, 'Testo / Descrizione'), run(330, 700, 'Uscita CHF'), run(400, 700, 'Entrata CHF'), run(470, 700, 'Saldo CHF'),
+      run(40, 686, '01.01.2026'), run(110, 686, 'Prelievo contanti ATM'), run(335, 686, '244.39'), run(470, 686, "4'605.61"),
+      run(40, 672, '25.01.2026'), run(110, 672, 'Accredito salario mensile'), run(405, 672, "3'650.00"), run(470, 672, "6'619.92"),
+      run(40, 658, '26.01.2026'), run(110, 658, 'Bonifico - affitto'), run(335, 658, "1'315.63"), run(470, 658, "5'304.29")],
+    rects: [],
+  };
+  assert.deepEqual(parseTableStatement([page]), [
+    { date: '2026-01-01', label: 'Prelievo contanti ATM', amount: -244.39 },
+    { date: '2026-01-25', label: 'Accredito salario mensile', amount: 3650 },
+    { date: '2026-01-26', label: 'Bonifico - affitto', amount: -1315.63 },
+  ]);
+});
+
+test('una sola colonna importi con il saldo: il segno viene dalla variazione del saldo', () => {
+  const run = (x, y, text) => ({ x, y, text });
+  const page = {
+    runs: [run(40, 700, 'Data'), run(110, 700, 'Descrizione'), run(330, 700, 'Importo'), run(420, 700, 'Saldo'),
+      run(40, 686, '02.02.2026'), run(110, 686, 'Saldo precedente'), run(420, 686, '1000.00'),
+      run(40, 672, '03.02.2026'), run(110, 672, 'Coop'), run(335, 672, '40.00'), run(420, 672, '960.00'),
+      run(40, 658, '04.02.2026'), run(110, 658, 'Stipendio'), run(335, 658, '2000.00'), run(420, 658, '2960.00')],
+    rects: [],
+  };
+  assert.deepEqual(parseTableStatement([page]), [
+    { date: '2026-02-03', label: 'Coop', amount: -40 },
+    { date: '2026-02-04', label: 'Stipendio', amount: 2000 },
+  ]);
+});
+
+import fs from 'node:fs';
+import { extractPdfLayout } from '../src/lib/bills/pdfText.ts';
+test('estratto demo in PDF (tabella a strisce con importi a destra): 400 movimenti e saldo finale esatto', () => {
+  const lay = extractPdfLayout(new Uint8Array(fs.readFileSync(new URL('../docs/demo/estratto_demo_400_movimenti.pdf', import.meta.url))));
+  const mv = parseTableStatement(lay);
+  assert.equal(mv.length, 400);
+  const bal = mv.reduce((a, m) => a + m.amount, 6200);
+  assert.equal(bal.toFixed(2), '5866.54');
+  assert.ok(mv.some((m) => m.label.startsWith('Accredito salario') && m.amount === 4850));
+  assert.ok(mv.some((m) => m.label === 'Affitto appartamento' && m.amount === -1450));
+});
