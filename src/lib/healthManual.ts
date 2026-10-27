@@ -3,7 +3,7 @@
  * Servono all'analisi incrociata e al punteggio «La tua vita in un dato». Modulo PURO.
  */
 export type ManualKey = 'sleep' | 'hr' | 'steps' | 'weight' | 'stress' | 'hrv' | 'mindful' | 'energy' | 'exercise' | 'vo2' | 'spo2'
-  | 'distance' | 'flights' | 'resp' | 'fat' | 'stand' | 'hravg' | 'basal';
+  | 'distance' | 'flights' | 'resp' | 'fat' | 'stand' | 'hravg' | 'basal' | 'social';
 export type ManualField = { key: ManualKey; label: string; unit: string; placeholder: string; min: number; max: number; /** dato che vive nelle «altre» serie */ extra?: boolean };
 export type ManualGroup = { id: string; title: string; fields: ManualField[] };
 
@@ -20,7 +20,7 @@ export const MANUAL_GROUPS: ManualGroup[] = [
     f('spo2', 'Ossigeno nel sangue', '%', '97', 70, 100), f('resp', 'Respiri al minuto', '/min', '15', 4, 60, true), f('vo2', 'VO₂ max', 'ml/kg/min', '42', 10, 90),
   ] },
   { id: 'corpo', title: 'Corpo', fields: [f('weight', 'Peso', 'kg', '72.5', 20, 400), f('fat', 'Massa grassa', '%', '18', 2, 70, true), f('basal', 'Energia a riposo', 'kcal', '1600', 500, 6000, true)] },
-  { id: 'mente', title: 'Mente', fields: [f('stress', 'Stress (0-100)', '/100', '35', 0, 100), f('mindful', 'Mindfulness', 'min', '10', 0, 1440)] },
+  { id: 'mente', title: 'Mente', fields: [f('stress', 'Stress (0-100)', '/100', '35', 0, 100), f('mindful', 'Mindfulness', 'min', '10', 0, 1440), f('social', 'Persone con cui hai parlato', '', '3', 0, 200, true)] },
 ];
 export const MANUAL_FIELDS: ManualField[] = MANUAL_GROUPS.flatMap((g) => g.fields);
 

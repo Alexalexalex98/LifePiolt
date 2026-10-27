@@ -21,5 +21,5 @@ test('ultimi giorni', () => {
 });
 test('tutti i dati di salute sono inseribili', () => {
   const keys = MANUAL_FIELDS.map((f) => f.key);
-  for (const k of ['sleep', 'hr', 'steps', 'weight', 'stress', 'hrv', 'mindful', 'energy', 'exercise', 'vo2', 'spo2', 'distance', 'flights', 'resp', 'fat', 'stand', 'hravg', 'basal']) assert.ok(keys.includes(k), k);
+  for (const k of ['sleep', 'hr', 'steps', 'weight', 'stress', 'hrv', 'mindful', 'energy', 'exercise', 'vo2', 'spo2', 'distance', 'flights', 'resp', 'fat', 'stand', 'hravg', 'basal', 'social']) assert.ok(keys.includes(k), k);
 });

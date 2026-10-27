@@ -188,7 +188,7 @@ export default function LifeChat() {
               const me = item.who === 'me';
               return (
                 <View style={{ marginVertical: 4, flexDirection: 'row', alignItems: 'flex-end', gap: 6, justifyContent: me ? 'flex-end' : 'flex-start' }}>
-                  {!me && showM ? (() => { const av = avatarFor(item.topic, item.ext?.avatar); return av ? <TheiaFace id={av} size={36} /> : <Mascot size={34} color={t.accent} expression={moodOf(item.text)} animated={item.id === lastAi?.id} ritual={false} />; })() : null}
+                  {!me && showM ? (() => { const av = avatarFor(item.topic, item.ext?.avatar); return av ? <TheiaFace id={av} size={40} /> : <Mascot size={34} color={t.accent} expression={moodOf(item.text)} animated={item.id === lastAi?.id} ritual={false} />; })() : null}
                   <View style={{ flexShrink: 1, maxWidth: '88%' }}>
                   <View style={{ alignSelf: me ? 'flex-end' : 'flex-start', maxWidth: '100%', backgroundColor: me ? '#e6ebf3' : t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: me ? 0 : 1, borderRadius: 18, padding: 12 }}>
                     {item.image ? <Image source={{ uri: item.image }} style={{ width: 160, height: 100, borderRadius: 10, marginBottom: 6 }} contentFit="cover" /> : null}

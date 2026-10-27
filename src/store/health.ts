@@ -27,7 +27,7 @@ export const healthMeta: Record<Metric, { label: string; unit: string; color: st
 export const allMetrics = Object.keys(healthMeta) as Metric[];
 
 /** Altri dati dell'orologio (non hanno una scheda tutta loro): una serie al giorno, tenuta a parte così i dati già salvati non cambiano forma. */
-export type ExtraKey = 'distance' | 'flights' | 'resp' | 'fat' | 'stand' | 'hravg' | 'basal';
+export type ExtraKey = 'distance' | 'flights' | 'resp' | 'fat' | 'stand' | 'hravg' | 'basal' | 'social';
 export const extraMeta: Record<ExtraKey, { label: string; unit: string; dec: number; /** somma nel giorno (true) o media */ sum: boolean }> = {
   distance: { label: 'Distanza a piedi e di corsa', unit: 'km', dec: 1, sum: true },
   flights: { label: 'Piani saliti', unit: '', dec: 0, sum: true },
@@ -36,6 +36,8 @@ export const extraMeta: Record<ExtraKey, { label: string; unit: string; dec: num
   stand: { label: 'Tempo in piedi', unit: 'min', dec: 0, sum: true },
   hravg: { label: 'Battito medio', unit: 'bpm', dec: 0, sum: false },
   basal: { label: 'Energia a riposo', unit: 'kcal', dec: 0, sum: true },
+  /** inserito a mano: con quante persone hai parlato (non viene dall'orologio) */
+  social: { label: 'Persone con cui hai parlato', unit: '', dec: 0, sum: false },
 };
 
 export const moodOptions: [string, string][] = [['Felice', '#7be0b0'], ['Calmo', '#7bb8e0'], ['Neutro', '#8e98a8'], ['Stressato', '#e0c97b'], ['Triste', '#7c93c9'], ['Arrabbiato', '#ff9d9d']];

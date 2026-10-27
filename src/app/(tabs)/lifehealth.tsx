@@ -113,11 +113,11 @@ export default function LifeHealth() {
         <Btn small ghost style={{ marginTop: 10 }} title="Inserisci i dati a mano" onPress={() => { setToday({}); setSheet('today'); }} />
       </Card>
 
-      {(Object.keys(extraMeta) as ExtraKey[]).some((k) => (h.extra?.[k]?.length ?? 0) > 0) ? (
+      {(Object.keys(extraMeta) as ExtraKey[]).filter((k) => k !== 'social').some((k) => (h.extra?.[k]?.length ?? 0) > 0) ? (
         <Card>
           <H>Altri dati dall’orologio</H>
           <Body small muted style={{ marginBottom: 4 }}>Ultimo valore e media degli ultimi 7 giorni, come arrivano da {hub}.</Body>
-          {(Object.keys(extraMeta) as ExtraKey[]).filter((k) => (h.extra?.[k]?.length ?? 0) > 0).map((k, i) => {
+          {(Object.keys(extraMeta) as ExtraKey[]).filter((k) => k !== 'social').filter((k) => (h.extra?.[k]?.length ?? 0) > 0).map((k, i) => {
             const pts = h.extra[k]!, m = extraMeta[k], last = pts[pts.length - 1], w = pts.slice(-7), avg = w.reduce((a, b) => a + b.v, 0) / w.length;
             const f = (v: number) => `${v.toFixed(m.dec).replace('.', ',')}${m.unit ? ' ' + m.unit : ''}`;
             return <Row key={k} style={{ paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderTopColor: t.item }}><View style={{ flex: 1 }}><Body>{m.label}</Body><Body small muted>{tl('Media 7 giorni: {0}', f(avg))}</Body></View><Body bold>{f(last.v)}</Body></Row>;

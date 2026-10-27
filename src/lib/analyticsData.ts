@@ -10,6 +10,8 @@ import { categoryOf, useFin, monthEnd, type FinMonth } from '@/store/finance';
 import { healthMeta, pointsOf, useHealth, type Metric } from '@/store/health';
 import { useContext } from '@/store/context';
 import { useLife } from '@/store/life';
+import { useChat } from '@/store/chat';
+import { useApp } from '@/store/app';
 import { useFitness } from '@/store/fitness';
 import { dailyTargets } from '@/lib/fitness/nutrition';
 import { dietSeries, trainingSeries } from '@/lib/fitness/scoreInputs';
@@ -31,6 +33,7 @@ export const defs: Record<string, MetricDef> = {
   spo2: H('spo2', { better: 'range', range: [95, 100], label: 'Ossigeno' }),
   stress: H('stress', { domain: 'mente', better: 'down', target: 45, label: 'Stress (stimato)', derivedFrom: ['hrv', 'hr'] }),
   mindful: H('mindful', { domain: 'mente', target: 10 }),
+  social: { id: 'social', label: 'Persone con cui hai parlato', unit: '/giorno', domain: 'mente', better: 'up', target: 3, dec: 1, color: '#c9b6ff', period: 'day' },
   distance: { id: 'distance', label: 'Distanza a piedi e di corsa', unit: 'km', domain: 'salute', better: 'up', target: 5, dec: 1, color: '#7bb8e0', period: 'day' },
   flights: { id: 'flights', label: 'Piani saliti', unit: '', domain: 'salute', better: 'up', target: 10, dec: 0, color: '#6ec9dd', period: 'day' },
   resp: { id: 'resp', label: 'Respiri al minuto', unit: '/min', domain: 'salute', better: 'range', range: [12, 20], dec: 1, color: '#9be0e0', period: 'day' },
@@ -101,6 +104,27 @@ export function collect(today = todayStr()): Series[] {
     const pts = h.extra?.[k] ?? [];
     if (pts.length) out.push({ def: defs[k], pts, source: 'manuale' });
   });
+
+  /* relazioni: con quante persone hai parlato ogni giorno. Dalle chat (a chi hai scritto) e, se vuoi, inserito a mano (vale il più alto dei due) */
+  {
+    const me = useApp.getState().account.name;
+    const chat = useChat.getState();
+    const per = new Map<string, Set<string>>();
+    for (const [cid, msgs] of Object.entries(chat.messages)) {
+      const c = chat.chats[cid];
+      if (!c || c.type === 'club') continue;
+      for (const m of msgs) {
+        if (m.from !== me || m.kind === 'system' || Date.now() - m.ts > 40 * 86400000) continue;
+        const d = dayKey(new Date(m.ts));
+        (per.get(d) ?? per.set(d, new Set()).get(d)!).add(cid);
+      }
+    }
+    const byDay = new Map<string, number>();
+    per.forEach((set, d) => byDay.set(d, set.size));
+    (h.extra?.social ?? []).forEach((p) => byDay.set(p.d, Math.max(byDay.get(p.d) ?? 0, p.v)));
+    const pts = [...byDay.entries()].map(([d, v]) => ({ d, v })).sort((a, b) => a.d.localeCompare(b.d));
+    if (pts.length) out.push({ def: defs.social, pts, source: 'manuale' });
+  }
 
   const moods = h.moods.map((x) => ({ d: x.day ?? ddmmToDay(x.date, today), v: moodScore[x.mood] ?? 3 }));
   if (moods.length) {
