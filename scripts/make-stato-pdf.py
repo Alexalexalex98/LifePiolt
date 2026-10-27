@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Genera docs/STATO-APP.pdf da docs/STATO-APP.md: elenco numerato (1, 1.1, 1.1.1) che l'app sa importare in Progetti. Uso: python3 scripts/make-stato-pdf.py"""
-import re
+"""Genera docs/STATO-APP.pdf da docs/STATO-APP.md: elenco numerato (1, 1.1, 1.1.1) che l'app sa importare in Progetti. Uso: python3 scripts/make-stato-pdf.py [docs/ALTRO.md]"""
+import re, sys
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
@@ -8,7 +8,8 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab import rl_config
 
 rl_config.pageCompression = 0  # testo leggibile anche da lettori semplici
-SRC, OUT = 'docs/STATO-APP.md', 'docs/STATO-APP.pdf'
+SRC = sys.argv[1] if len(sys.argv) > 1 else 'docs/STATO-APP.md'
+OUT = SRC[:-3] + '.pdf'
 lines = open(SRC, encoding='utf8').read().split('\n')
 items, note, head = [], [], -1
 for ln in lines:

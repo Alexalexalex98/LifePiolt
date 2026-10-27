@@ -1,0 +1,968 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 10 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/Contents 11 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/Contents 12 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 9 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+7 0 obj
+<<
+/PageMode /UseNone /Pages 9 0 R /Type /Catalog
+>>
+endobj
+8 0 obj
+<<
+/Author (\(anonymous\)) /CreationDate (D:20261027072902+00'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20261027072902+00'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (\(unspecified\)) /Title (LifePilot - stato dell'app) /Trapped /False
+>>
+endobj
+9 0 obj
+<<
+/Count 3 /Kids [ 4 0 R 5 0 R 6 0 R ] /Type /Pages
+>>
+endobj
+10 0 obj
+<<
+/Length 6847
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 57.02362 768.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 4 Tm /F2 18 Tf 22 TL (LifePilot: tutte le sezioni) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 718.5354 cm
+q
+.333333 .333333 .333333 rg
+BT 1 0 0 1 0 40.5 Tm /F1 9.5 Tf 12.5 TL (Elenco di tutte le sezioni e schermate dell'app, nello stesso formato di STATO-APP.md. Qui non c'\350 lo stato di) Tj T* (verifica \(per quello vedi STATO-APP.md\): le caselle sono vuote e servono a spuntare le sezioni man mano che le) Tj T* (controlli. Importa questo file da Progetti -> Importa da file: ogni sezione diventa una task con le sue sotto-task.) Tj T* (Aggiornato il 27 ottobre 2026.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 712.5354 cm
+Q
+q
+1 0 0 1 57.02362 695.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (1 Primo avvio e account) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 681.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.1 Introduzione \(onboarding\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 667.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.2 Creare un account \(email e codice\) o esplorare con i dati demo) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 653.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.3 Verifica dell'identit\340 con documento) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 639.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.4 Modificare il profilo) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 625.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 1.5 Importare dati da un altro social) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 607.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (2 Home e Dashboard) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 593.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 2.1 Home \253La mia giornata\273 \(umore per primo, tutto cliccabile\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 579.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 2.2 Dashboard a widget \(griglia, forme, sfondo foto, notizie\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 565.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 2.3 Dashboard classica) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 551.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 2.4 Widget e blocco schermo \(Impostazioni del blocco schermo\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 537.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 2.5 Cerca in tutta l'app) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 523.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 2.6 Menu e barra di navigazione personalizzabile) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 506.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (3 Plan e organizzazione) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 492.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.1 Plan \(impegni, conflitti, vacanze\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 478.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.2 Agenda e agenda condivisa \(solo occupato / solo slot liberi\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 464.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.3 Settimana) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 450.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.4 Piano del mese) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 436.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.5 Turni di lavoro) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 422.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.6 Concentrazione \(timer\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 408.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.7 LifeTask \(task, urgenti, scadenze, ricorrenze\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 394.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.8 Progetti ad albero \(importa da file, percentuale\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 380.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.9 LifeNotes \(lista, modifica, appunti delle call\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 366.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.10 LifeDrive \(cartelle, anteprime, foto e video\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 352.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.11 LifeTravel) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 338.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.11.1 Viaggi salvati) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 324.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.11.2 Pianifica una vacanza) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 310.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 3.11.3 Risparmio per la vacanza) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 292.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (4 LifeFitness e cibo) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 278.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.1 Pagina LifeFitness) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 264.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.2 Allenamento: programmi, esercizi con scheda animata, fatto/non fatto) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 250.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.2.1 Allenamento del giorno e piano giornaliero) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 236.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.2.2 Tutti i programmi) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 222.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.2.3 Esercizio \(dettaglio\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 208.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.3 Pasti e calorie) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 194.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.3.1 Pasti del giorno) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 180.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.3.2 Aggiungi un pasto \(foto del piatto\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 166.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.3.3 Scheda del pasto) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 152.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.3.4 Piano dei pasti, pausa pranzo) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 138.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.3.5 Storico dei pasti) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 124.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.4 Frigo e spesa \(scontrino, scorte\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 110.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.5 Cosa cucino) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 96.53543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.6 Acqua) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 82.53543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.7 Controllo del corpo \(foto e progressi\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 68.53543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.8 Allenati insieme: gruppi e sfide) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 54.53543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.9 Centri e palestre) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+11 0 obj
+<<
+/Length 6698
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 57.02362 778.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.9.1 LifePass) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 764.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.9.2 Registra un centro) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 750.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 18 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 4.9.3 Cassa \(demo\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 732.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (5 LifeHealth e mente) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 718.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 5.1 LifeHealth \(sonno, movimento, battito, stress, Apple Health e Watch\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 704.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 5.2 Umore e analisi incrociata) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 690.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 5.3 Strumenti per la mente \(pensieri, CBT, respiro\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 673.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (6 LifeFinance) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 659.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.1 Conto in LifePoints, spese, budget, obiettivi, abbonamenti) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 645.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.2 Bollette \(dettaglio, controllo, QR\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 631.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.3 Fatture) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 617.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.4 Estratto conto e movimenti) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 603.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.5 Previsioni) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 589.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.6 Stock e analisi dei titoli) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 575.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.7 Portafoglio) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 561.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.8 Dichiarazione fiscale) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 547.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.9 Pagamenti, invia, richiedi e dividi) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 533.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 6.10 Ritira) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 515.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (7 LifePoints) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 501.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 7.1 Saldo e acquisto con carta) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 487.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 7.2 Rendiconto) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 473.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 7.3 Pagamenti ricevuti e inviati) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 459.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 7.4 Ordini e acquisti \(conferma acquisto\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 442.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (8 Theia) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 428.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 8.1 Theia, l'assistente \(chat, comandi, azioni con conferma\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 414.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 8.2 Intelligenza di Theia \(livelli e consensi AI\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 400.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 8.3 Theia, il gioco \(cibo, energia, casa, traguardi\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 386.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 8.4 La mascotte nelle pagine) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 372.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 8.5 Documenti e foto in chat con salvataggio in LifeDrive) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 354.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (9 Messaggi e chiamate) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 340.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.1 LifeChat: elenco chat per argomento) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 326.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.2 Conversazione \(testo, vocali, allegati, risposte, inoltro\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 312.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.3 Info chat e impostazioni chat) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 298.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.4 Messaggi importanti) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 284.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.5 Amici) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 270.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.6 Call di gruppo e stanza live) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 256.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 9.7 Appunti e registrazioni delle call) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 239.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (10 LifeNetwork) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 225.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.1 Feed, post, repost e post salvati) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 211.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.2 Storie \(crea e guarda\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 197.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.3 Profilo, modifica profilo, profilo di altri utenti) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 183.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.4 Biglietto da visita) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 169.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.5 Community) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 155.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.6 Notifiche) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 141.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 10.7 Segnalazioni e utenti bloccati) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 123.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (11 Servizi, seminari e LifeClub) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 109.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 11.1 Servizi \(pagina, i miei servizi, recensioni\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 95.53543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 11.2 Seminari) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 81.53543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 11.3 LifeClub \(pagina, contenuti, studio, i miei club\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 67.53543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 11.4 Attivit\340 \(crea, pagina, titolarit\340\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 53.53543 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 11.5 Men\371 di un locale e negozio) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+12 0 obj
+<<
+/Length 2824
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 57.02362 778.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 11.6 Statistiche del creatore) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 764.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 11.7 Idee e contributi) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 746.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (12 Lavoro) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 732.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 12.1 Offerte e candidature) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 718.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 12.2 Test di lavoro personalizzabili) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 704.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 12.3 Competenze verificate) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 690.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 12.4 Colloqui \(invito e vista\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 676.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 12.5 Verifica e richieste) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 659.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (13 Impostazioni) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 645.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.1 Impostazioni generali \(tema, colori, lingua, valuta, accessibilit\340, barra\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 631.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.2 Notifiche) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 617.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.3 Sincronizzazione) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 603.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.4 Sicurezza e backup) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 589.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.5 Privacy e Centro Privacy) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 575.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.6 Cosa condivido) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 561.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.7 Documenti legali \(Informativa e Termini\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 547.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.8 Aiuto) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 533.0354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 13.9 Diagnostica) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 515.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 9.5 Tf 12.5 TL (14 Lingue) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 501.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 14.1 Italiano e inglese) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 487.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 14.2 Tedesco, francese, spagnolo, portoghese, cinese) Tj T* ET
+Q
+Q
+q
+1 0 0 1 57.02362 473.5354 cm
+q
+0 0 0 rg
+BT 1 0 0 1 9 3 Tm /F1 9.5 Tf 12.5 TL ([ ] 14.3 Russo, giapponese, hindi, arabo, indonesiano) Tj T* ET
+Q
+Q
+ 
+endstream
+endobj
+xref
+0 13
+0000000000 65535 f 
+0000000061 00000 n 
+0000000102 00000 n 
+0000000209 00000 n 
+0000000321 00000 n 
+0000000525 00000 n 
+0000000729 00000 n 
+0000000933 00000 n 
+0000001001 00000 n 
+0000001294 00000 n 
+0000001365 00000 n 
+0000008264 00000 n 
+0000015014 00000 n 
+trailer
+<<
+/ID 
+[<ee524499c5fde6e10f9190a89200e54a><ee524499c5fde6e10f9190a89200e54a>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 8 0 R
+/Root 7 0 R
+/Size 13
+>>
+startxref
+17890
+%%EOF
