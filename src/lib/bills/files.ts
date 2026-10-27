@@ -106,7 +106,7 @@ export async function persistBillFile(f: PickedBill): Promise<string> {
 export async function storeBillFile(f: PickedBill): Promise<{ uri: string; driveId?: string }> {
   const uri = await persistBillFile(f);
   const life = useLife.getState();
-  life.addFile({ n: f.name, s: fmtBytes(f.size) || '—', folder: BILL_FOLDER, date: weekdayShortDate(), uri });
+  life.addFile({ n: f.name, s: fmtBytes(f.size) || '—', folder: BILL_FOLDER, date: weekdayShortDate(), uri, src: 'Bolletta', tag: 'Bollette' });
   const added = useLife.getState().drive.filter((d) => d.uri === uri).pop();
   return { uri, driveId: added?.id };
 }

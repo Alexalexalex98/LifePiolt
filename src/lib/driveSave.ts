@@ -1,6 +1,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { weekdayShortDate } from '@/lib/format';
 import { useLife } from '@/store/life';
+import { guessTagFromName, tagForSource } from '@/lib/driveTag';
 
 /** Dimensione leggibile (es. «1,2 MB»). */
 const sizeText = (b?: number) => (!b ? '—' : b >= 1048576 ? `${(b / 1048576).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
@@ -25,14 +26,14 @@ function keep(uri: string): string {
  * Le foto vanno nella scheda «Foto»; i video nella cartella «Video». Lo stesso file non si salva due volte.
  * `from` dice da dove arriva (finisce nel nome), `folder` permette di mettere una foto in un'altra cartella (per esempio «Ricevute»).
  */
-export function saveMediaToDrive(m: { uri?: string | null; media: 'photo' | 'video'; from: string; name?: string; size?: number; folder?: string }): boolean {
+export function saveMediaToDrive(m: { uri?: string | null; media: 'photo' | 'video'; from: string; name?: string; size?: number; folder?: string; tag?: string }): boolean {
   if (!m.uri) return false;
   try {
     const life = useLife.getState();
     if (life.drive.some((d) => d.uri === m.uri || d.orig === m.uri)) return false;
     const kept = keep(m.uri);
     const base = m.name && m.name.length > 2 ? m.name : `${m.media === 'video' ? 'Video' : 'Foto'} · ${m.from} · ${stamp()}`;
-    life.addFile({ n: base, s: sizeText(m.size), folder: m.folder ?? (m.media === 'video' ? 'Video' : 'Foto'), date: weekdayShortDate(), uri: kept, orig: m.uri, photo: true, src: m.from });
+    life.addFile({ n: base, s: sizeText(m.size), folder: m.folder ?? (m.media === 'video' ? 'Video' : 'Foto'), date: weekdayShortDate(), uri: kept, orig: m.uri, photo: true, src: m.from, tag: m.tag ?? tagForSource(m.from) });
     return true;
   } catch { return false; }
 }
@@ -65,4 +66,25 @@ export function livePhoto(uri?: string | null): string | undefined {
 export function keptCopy(uri: string): string {
   const hit = useLife.getState().drive.find((d) => d.orig === uri && d.uri);
   return hit?.uri ?? uri;
+}
+
+/**
+ * Un file (non foto) caricato da una sezione dell'app: finisce in LifeDrive con il tag della sezione (per esempio un estratto conto in CSV
+ * dalla Finanza personale prende «Finanza personale»). Lo stesso file non si salva due volte.
+ */
+export function saveFileToDrive(m: { uri?: string | null; name: string; size?: number; from: string; folder?: string; tag?: string }): boolean {
+  if (!m.uri) return false;
+  try {
+    const life = useLife.getState();
+    if (life.drive.some((d) => d.uri === m.uri || d.orig === m.uri)) return false;
+    const kept = keep(m.uri);
+    const tag = m.tag ?? tagForSource(m.from);
+    life.addFile({ n: m.name, s: sizeText(m.size), folder: m.folder ?? 'Documenti', date: weekdayShortDate(), uri: kept, orig: m.uri, src: m.from, tag: tag === 'Caricate da te' ? guessTagFromName(m.name) ?? tag : tag });
+    return true;
+  } catch { return false; }
+}
+
+/** Cambia il tag di un file di LifeDrive. */
+export function setDriveTag(id: string, tag: string, checked = true) {
+  useLife.setState((s) => ({ drive: s.drive.map((d) => (d.id === id ? { ...d, tag, tagChecked: checked } : d)) }));
 }

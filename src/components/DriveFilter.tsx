@@ -10,7 +10,7 @@ const META: Record<string, { icon: string; color: string }> = {
   Tutte: { icon: 'grid', color: '#8e98a8' }, Tutti: { icon: 'grid', color: '#8e98a8' },
   Cibo: { icon: 'meal', color: '#7be0b0' }, Frigo: { icon: 'archive', color: '#6ec9dd' }, Scontrini: { icon: 'euro', color: '#e0c97b' },
   Chat: { icon: 'comment', color: '#7bb8e0' }, 'Caricate da Theia': { icon: 'sparkle', color: '#b96bff' }, Allenamento: { icon: 'lifefitness', color: '#ff9d6e' },
-  Task: { icon: 'tasks', color: '#6bd0c0' }, 'Caricate da te': { icon: 'image', color: '#a8b4ff' },
+  Task: { icon: 'tasks', color: '#6bd0c0' }, 'Finanza personale': { icon: 'euro', color: '#7be0b0' }, Bollette: { icon: 'euro', color: '#e0b97b' }, Fisco: { icon: 'file', color: '#c9b6ff' }, Corpo: { icon: 'heart', color: '#ff9d9d' }, Viaggi: { icon: 'lifetravel', color: '#8fb3ff' }, Casa: { icon: 'home', color: '#e0a07b' }, 'Caricate da te': { icon: 'image', color: '#a8b4ff' },
   Documenti: { icon: 'file', color: driveFolderColors.Documenti }, Video: { icon: 'video', color: driveFolderColors.Video }, Ricevute: { icon: 'euro', color: driveFolderColors.Ricevute },
   'Bollette e fatture': { icon: 'euro', color: driveFolderColors['Bollette e fatture'] ?? '#e0b97b' }, Salute: { icon: 'heart', color: driveFolderColors.Salute }, Lavoro: { icon: 'briefcase', color: driveFolderColors.Lavoro },
   Progetti: { icon: 'projects', color: driveFolderColors.Progetti }, 'Chat con Theia': { icon: 'sparkle', color: '#b96bff' }, 'Creazioni di Theia': { icon: 'sparkle', color: '#d98bff' }, Altro: { icon: 'file', color: '#8e98a8' },

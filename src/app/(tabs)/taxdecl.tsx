@@ -116,7 +116,7 @@ export default function TaxDecl() {
       if (old) dropDrive(old.uri);
       const rec: TaxDocFile = { name: picked.name, uri, size: picked.size, mime: picked.mime, checkedAt: new Date().toISOString(), status: res.status === 'ok' ? 'ok' : 'dubbio' };
       setTaxDoc(active.key, rec);
-      if (!useLife.getState().drive.some((f) => f.uri === uri)) addFile({ n: picked.name, s: fmtBytes(picked.size) || '—', folder: taxDocFolder(active.key), date: weekdayShortDate(), uri });
+      if (!useLife.getState().drive.some((f) => f.uri === uri)) addFile({ n: picked.name, s: fmtBytes(picked.size) || '—', folder: taxDocFolder(active.key), date: weekdayShortDate(), uri, src: 'Fisco', tag: 'Fisco' });
       toast('Documento confermato e salvato in LifeDrive');
       closeSheet();
     } finally { setBusy(false); }

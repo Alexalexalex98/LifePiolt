@@ -75,7 +75,7 @@ export default function Projects() {
       const r = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
       if (r.canceled || !r.assets[0]) return;
       const a = r.assets[0]; const id = uid();
-      useLife.getState().addFile({ id, n: a.name, s: sizeLabel(a.size), folder: 'Progetti', date: weekdayShortDate(), uri: a.uri, path: pathOf(P().nodes, n.id) });
+      useLife.getState().addFile({ id, n: a.name, s: sizeLabel(a.size), folder: 'Progetti', date: weekdayShortDate(), uri: a.uri, src: 'Progetti', tag: 'Progetti', path: pathOf(P().nodes, n.id) });
       P().attach(n.id, id);
       toast('File caricato: lo trovi anche in LifeDrive, cartella Progetti');
     } catch { toast('Impossibile aprire i file'); }

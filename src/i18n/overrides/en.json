@@ -3769,5 +3769,16 @@
  "Tutti i dati di questa categoria sono nei valori consigliati.": "All the data in this category is within the recommended values.",
  "Umore dei check-in e minuti di mindfulness.": "Mood from your check-ins and mindfulness minutes.",
  "Un battito a riposo alto può dipendere da stress, poco sonno, caffeina o poco allenamento: lavora prima su sonno e movimento leggero costante.": "A high resting heart rate can come from stress, little sleep, caffeine or too little training: start with sleep and steady light movement.",
- "Un livello di ossigeno basso va controllato: se è ripetuto o hai sintomi, parlane con il medico.": "A low oxygen level should be checked: if it keeps happening or you have symptoms, talk to your doctor."
+ "Un livello di ossigeno basso va controllato: se è ripetuto o hai sintomi, parlane con il medico.": "A low oxygen level should be checked: if it keeps happening or you have symptoms, talk to your doctor.",
+ "(riconosciuto dal contenuto)": "(recognised from the content)",
+ "Analizza e tagga": "Analyse and tag",
+ "Corpo": "Body",
+ "Estratti conto": "Bank statements",
+ "Fisco": "Tax",
+ "Finanza personale": "Personal finance",
+ "Bollette": "Bills",
+ "Guardo cos'è…": "Looking at what it is…",
+ "Non sono riuscito a capire cos'è: lo lascio com'è.": "I couldn't tell what it is: I'll leave it as it is.",
+ "Tag: {0}": "Tag: {0}",
+ "Tag: {0}{1}": "Tag: {0}{1}"
 }

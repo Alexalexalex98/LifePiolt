@@ -22,6 +22,7 @@ import { readPickedText } from '@/lib/readPicked';
 import { useFin } from '@/store/finance';
 import { showUndoToast, toast } from '@/store/toast';
 import { formatMoney } from '@/i18n/format';
+import { saveFileToDrive } from '@/lib/driveSave';
 
 /** Importa movimenti da un CSV/estratto conto: scelta del file, anteprima con categorie modificabili, conferma. */
 export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -63,6 +64,7 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       const r = await DocumentPicker.getDocumentAsync({ type: ['text/csv', 'text/comma-separated-values', 'text/plain', 'application/vnd.ms-excel', '*/*'], copyToCacheDirectory: true });
       if (r.canceled || !r.assets[0]) return;
       const a = r.assets[0];
+      saveFileToDrive({ uri: a.uri, name: a.name ?? 'Estratto conto', size: a.size, from: 'Estratto conto', folder: 'Estratti conto' });
       const isPdf = a.mimeType === 'application/pdf' || /\.pdf$/i.test(a.name ?? '');
       const isImage = (a.mimeType ?? '').startsWith('image/');
       let text: string;

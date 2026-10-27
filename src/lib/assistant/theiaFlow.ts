@@ -189,7 +189,7 @@ function saveToDrive(atts: Att[]) {
   const life = useLife.getState();
   for (const a of atts) {
     if (a.kind !== 'document' || !a.uri || life.drive.some((d) => d.uri === a.uri)) continue;
-    life.addFile({ n: a.name, s: fmtBytes(a.size) || '—', folder: a.billish ? BILL_FOLDER : 'Chat con Theia', date: weekdayShortDate(), uri: a.uri });
+    life.addFile({ n: a.name, s: fmtBytes(a.size) || '—', folder: a.billish ? BILL_FOLDER : 'Chat con Theia', date: weekdayShortDate(), uri: a.uri, src: a.billish ? 'Bolletta' : 'Theia', tag: a.billish ? 'Bollette' : 'Caricate da Theia' });
   }
 }
 

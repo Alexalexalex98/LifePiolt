@@ -1,5 +1,5 @@
 {
- "count": 14776,
+ "count": 14786,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -61,7 +61,7 @@
   "src/app/(tabs)/jobTest.tsx": 47,
   "src/app/(tabs)/legalDoc.tsx": 2,
   "src/app/(tabs)/life.tsx": 23,
-  "src/app/(tabs)/lifedrive.tsx": 49,
+  "src/app/(tabs)/lifedrive.tsx": 56,
   "src/app/(tabs)/lifefinance.tsx": 105,
   "src/app/(tabs)/lifefitness.tsx": 128,
   "src/app/(tabs)/lifeforecast.tsx": 23,
@@ -119,7 +119,7 @@
   "src/app/(tabs)/storyView.tsx": 3,
   "src/app/(tabs)/swipeDeck.tsx": 4,
   "src/app/(tabs)/syncSettings.tsx": 2,
-  "src/app/(tabs)/taxdecl.tsx": 76,
+  "src/app/(tabs)/taxdecl.tsx": 77,
   "src/app/(tabs)/theiaPet.tsx": 131,
   "src/app/(tabs)/userProfile.tsx": 51,
   "src/app/(tabs)/vacationPlan.tsx": 32,
@@ -136,7 +136,7 @@
   "src/components/CalendarImportSheet.tsx": 18,
   "src/components/CalendarViews.tsx": 47,
   "src/components/ConfirmBadge.tsx": 4,
-  "src/components/CsvImportSheet.tsx": 49,
+  "src/components/CsvImportSheet.tsx": 50,
   "src/components/DataChart.tsx": 2,
   "src/components/Discover.tsx": 21,
   "src/components/ErrorBanner.tsx": 5,
@@ -399,7 +399,7 @@
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 132,
+  "src/lib/assistant/theiaFlow.ts": 134,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -411,7 +411,7 @@
   "src/lib/backupCore.ts": 34,
   "src/lib/bills/calendar.ts": 2,
   "src/lib/bills/demo.ts": 7,
-  "src/lib/bills/files.ts": 14,
+  "src/lib/bills/files.ts": 16,
   "src/lib/bills/form.ts": 8,
   "src/lib/bills/index.ts": 2,
   "src/lib/bills/parse.ts": 70,
@@ -455,7 +455,9 @@
   "src/lib/diagnosticsReport.ts": 14,
   "src/lib/docAnalysis.ts": 5,
   "src/lib/docCheck.ts": 42,
-  "src/lib/driveSave.ts": 4,
+  "src/lib/driveSave.ts": 5,
+  "src/lib/driveTag.ts": 20,
+  "src/lib/driveTagAi.ts": 1,
   "src/lib/e2eModel.ts": 37,
   "src/lib/enroll.ts": 31,
   "src/lib/errorLog.ts": 3,
@@ -662,5 +664,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1859
+ "withPlaceholders": 1862
 }

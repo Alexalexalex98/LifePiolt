@@ -19,6 +19,8 @@ import { useChat } from '@/store/chat';
 import { Icon } from '@/lib/icons';
 import { libraryPermission } from '@/lib/mediaPerm';
 import { DriveFilter } from '@/components/DriveFilter';
+import { aiTagFile } from '@/lib/driveTagAi';
+import { guessTagFromName } from '@/lib/driveTag';
 import { ProjectFiles } from '@/components/ProjectFiles';
 
 const fileFolders = ['Documenti', 'Video', 'Ricevute', 'Bollette e fatture', 'Salute', 'Lavoro', 'Progetti', 'Altro'];
@@ -75,6 +77,12 @@ export default function LifeDrive() {
   const photos = drive.filter(isPhoto);
   const files = drive.filter((f) => !isPhoto(f));
   const [cat, setCat] = useState('Tutte');
+  const [ftag, setFtag] = useState('Tutti');
+  const [tagging, setTagging] = useState(false);
+  const tagOf = (f: DriveFile) => f.tag ?? (isPhoto(f) ? photoSource(f) : 'Altro');
+  const fileTags: Record<string, number> = {};
+  files.forEach((f) => { const g = tagOf(f); fileTags[g] = (fileTags[g] || 0) + 1; });
+  const activeFtag = ftag === 'Tutti' || fileTags[ftag] ? ftag : 'Tutti';
   const photoCats: Record<string, number> = {};
   photos.forEach((f) => { const c = photoSource(f); photoCats[c] = (photoCats[c] || 0) + 1; });
   const photoCatList = Object.keys(photoCats).sort((a, b) => photoCats[b]! - photoCats[a]!);
@@ -85,7 +93,7 @@ export default function LifeDrive() {
 
   function put(n: string, size: string, uri?: string) {
     const f = detectFileFolder(n);
-    addFile({ n, s: size, folder: f, date: weekdayShortDate(), uri });
+    addFile({ n, s: size, folder: f, date: weekdayShortDate(), uri, tag: guessTagFromName(n) ?? 'Caricate da te' });
     setUpload(false);
     toast(`Aggiunto e raccolto in "${f}" dall'AI`);
   }
@@ -103,7 +111,7 @@ export default function LifeDrive() {
       if (!r.canceled && r.assets[0]) {
         const a = r.assets[0];
         const n = a.fileName ?? `Foto ${weekdayShortDate().replace('/', '-')}.jpg`;
-        addFile({ n, s: sizeLabel(a.fileSize), folder: 'Foto', date: weekdayShortDate(), uri: a.uri });
+        addFile({ n, s: sizeLabel(a.fileSize), folder: 'Foto', date: weekdayShortDate(), uri: a.uri, tag: 'Caricate da te' });
         setUpload(false);
         toast('Foto aggiunta');
       }
@@ -133,9 +141,10 @@ export default function LifeDrive() {
       ) : (
         <>
           <DriveFilter value={folder} onChange={setFolder} items={[{ id: 'Tutti', count: files.length }, ...Object.keys(counts).sort((a, b) => counts[b]! - counts[a]!).map((c) => ({ id: c, count: counts[c]! }))]} />
+          {Object.keys(fileTags).length > 1 ? <DriveFilter value={activeFtag} onChange={setFtag} items={[{ id: 'Tutti', count: files.length }, ...Object.keys(fileTags).sort((a, b) => fileTags[b]! - fileTags[a]!).map((c) => ({ id: c, count: fileTags[c]! }))]} /> : null}
           {folder === 'Progetti' ? <Card><ProjectFiles files={files.filter((f) => f.folder === 'Progetti' && f.n.toLowerCase().includes(lq))} onOpen={setPreview} onDelete={askDel} /></Card> : <Card>
             {(() => {
-              const list = files.filter((f) => (folder === 'Tutti' || f.folder === folder) && f.n.toLowerCase().includes(lq));
+              const list = files.filter((f) => (folder === 'Tutti' || f.folder === folder) && (activeFtag === 'Tutti' || tagOf(f) === activeFtag) && f.n.toLowerCase().includes(lq));
               if (!list.length) return <Empty text="Nessun file trovato." />;
               return list.map((f, i) => {
                 const color = driveFolderColors[f.folder] ?? '#8e98a8';
@@ -151,7 +160,7 @@ export default function LifeDrive() {
                           <Body small muted>{f.s} · {f.date}</Body>
                         </View>
                       </Pressable>
-                      <View style={{ backgroundColor: color + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: ink(color), fontSize: 10, fontWeight: '700' }}>{f.folder}</Text></View>
+                      <View style={{ backgroundColor: color + '22', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: ink(color), fontSize: 10, fontWeight: '700' }}>{tagOf(f) !== 'Altro' ? tagOf(f) : f.folder}</Text></View>
                       <XBtn onPress={() => askDel(f)} />
                     </Row>
                   </Item>
@@ -171,6 +180,8 @@ export default function LifeDrive() {
               <View style={{ paddingVertical: 36, alignItems: 'center', backgroundColor: t.input, borderRadius: 16, marginBottom: 14 }}><Icon name="file" size={40} color={t.muted} /></View>
             )}
             <Body small muted>{preview.folder} · {preview.s} · {preview.date}</Body>
+            <Body small muted style={{ marginTop: 4 }}>{`Tag: ${tagOf(preview)}${preview.tagChecked ? ' (riconosciuto dal contenuto)' : ''}`}</Body>
+            <Btn small ghost style={{ marginTop: 10 }} icon="sparkle" disabled={tagging} title={tagging ? 'Guardo cos\'è…' : 'Analizza e tagga'} onPress={async () => { const p = preview; setTagging(true); const g = await aiTagFile(p.id, true); setTagging(false); if (g) { setPreview({ ...p, tag: g, tagChecked: true }); toast(`Tag: ${g}`); } else toast('Non sono riuscito a capire cos\'è: lo lascio com\'è.'); }} />
             <Btn small style={{ marginTop: 14 }} icon="eye" title="Apri e leggi" onPress={() => { const p = preview; setPreview(null); void openDocument({ uri: p.uri, name: p.n, mime: isPhoto(p) ? 'image/jpeg' : undefined }); }} />
             <Btn small style={{ marginTop: 8 }} icon="send" title="Condividi con una persona" onPress={() => { const p = preview; setPreview(null); setShareTo(p); }} />
             <Btn small ghost style={{ marginTop: 8 }} title="Condividi con altre app" onPress={() => Share.share({ message: `File: ${preview.n}`, url: preview.uri })} />
