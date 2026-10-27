@@ -199,6 +199,22 @@ const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } 
 const msgs = (system, user, extra = []) => [{ role: 'system', content: system }, ...extra, { role: 'user', content: user }];
 const imageMsg = (text, images) => [{ role: 'system', content: SYSTEM }, { role: 'user', content: [{ type: 'text', text }, ...images.map((im) => ({ type: 'image_url', image_url: { url: `data:${im.mime || 'image/jpeg'};base64,${im.data}` } }))] }];
 
+/** Foto lette da Google Gemini: SOLO se l'app lo chiede (`google: true`, dopo il tuo tocco su «Rifai con Google»). Serve il segreto GEMINI_API_KEY sul Worker. */
+export const GEMINI_MODEL = 'gemini-2.5-flash';
+export async function geminiVision(env, prompt, images, fetcher = fetch) {
+  if (!env.GEMINI_API_KEY) { const e = new Error('google_not_configured'); e.google = true; throw e; }
+  const parts = [{ text: prompt }, ...images.map((im) => ({ inline_data: { mime_type: im.mime || 'image/jpeg', data: im.data } }))];
+  const r = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+    method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+    body: JSON.stringify({ system_instruction: { parts: [{ text: SYSTEM }] }, contents: [{ role: 'user', parts }], generationConfig: { maxOutputTokens: 1500, temperature: 0.2 } }),
+  });
+  if (!r.ok) { const e = new Error(`gemini ${r.status}`); e.google = true; throw e; }
+  const j = await r.json();
+  const text = (j?.candidates?.[0]?.content?.parts ?? []).map((x) => x.text ?? '').join('').trim();
+  if (!text) { const e = new Error('gemini vuoto'); e.google = true; throw e; }
+  return { text, model: GEMINI_MODEL };
+}
+
 async function pdfText(env, f) {
   try {
     const bytes = Uint8Array.from(atob(f.data), (c) => c.charCodeAt(0));
@@ -318,6 +334,10 @@ async function handle(path, b, env, lite = false) {
       const { text } = await run(env, TEXT, { messages: msgs(SYSTEM, `${String(b.prompt ?? '')}\n\nTesto del documento:\n${t || '(vuoto)'}`) }, cap(1500));
       return { reply: text };
     }
+    if (b.google === true) {
+      const { text } = await geminiVision(env, String(b.prompt ?? 'Descrivi l\'immagine.'), [{ data: b.image, mime: b.mime }]);
+      return { reply: text, via: 'google' };
+    }
     const { text } = await run(env, VISION, { messages: imageMsg(String(b.prompt ?? 'Descrivi l\'immagine.'), [{ data: b.image, mime: b.mime }]) }, 1200);
     return { reply: text };
   }
@@ -328,6 +348,12 @@ async function handle(path, b, env, lite = false) {
     const pdfs = files.filter((f) => String(f.mime).includes('pdf'));
     let doc = '';
     for (const f of pdfs) doc += `\n\n--- documento ---\n${await pdfText(env, f)}`;
+    if (b.google === true && images.length) {
+      const g = await geminiVision(env, `${question}${doc}`, images);
+      let result = null;
+      try { const m = g.text.match(/[[{][\s\S]*[\]}]/); if (m) result = JSON.parse(m[0]); } catch { /* testo libero */ }
+      return { reply: g.text, result, via: 'google' };
+    }
     const { text } = images.length
       ? await run(env, VISION, { messages: imageMsg(`${question}${doc}`, images) }, 1500)
       : await run(env, TEXT, { messages: msgs(SYSTEM, `${question}${doc}`) }, cap(1500));
@@ -387,6 +413,7 @@ export default {
       const out = await handle(path, b, env, lite);
       return out ? json({ ...out, ...info }) : json({ error: 'percorso sconosciuto' }, 404);
     } catch (e) {
+      if (e?.google) return json({ error: e.message === 'google_not_configured' ? 'Google Gemini non è ancora collegato a questo server.' : 'Google Gemini non ha risposto: riprova tra poco.', code: e.message === 'google_not_configured' ? 'google_not_configured' : 'google_down' }, e.message === 'google_not_configured' ? 501 : 502);
       if (e?.quota) return json({ error: 'Il limite gratuito di oggi dell\'intelligenza artificiale è finito: riprova domani.', code: 'quota' }, 429);
       return json({ error: 'Il servizio AI non ha risposto: riprova tra poco.' }, 502);
     }

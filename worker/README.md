@@ -26,3 +26,8 @@ Theia pianifica fino a 3 ricerche generiche e anonime, le esegue in parallelo (G
 ## Esperti per campo (worker/domains.js)
 
 20 campi (salute, mente, alimentazione, fitness, finanza, fisco, diritto, lavoro, casa, viaggi, famiglia, auto, animali, studio, tecnologia, business, scienza e attualita', pratiche, sicurezza, ambiente). Per ogni domanda il worker riconosce il campo, aggiunge le istruzioni dell'esperto, cerca anche sulle fonti ufficiali del campo (site:) e le classifica per prime. «Approfondisci» (o «nel dettaglio») attiva la modalita' lunga: piu' ricerche, 5 pagine lette, risposta in piu' messaggi. La risposta include `domain` e l'app mostra il pulsante «Approfondisci».
+
+## Google Gemini (solo se lo chiedi tu)
+- Le foto vanno ai modelli aperti di Cloudflare. A Google Gemini vanno SOLO se l'app manda `google: true` su `/vision` o `/analyze`, cioè quando tocchi «Rifai con Google» (oggi dopo la lettura di frigo e scontrino, e solo se la lettura sembra incompleta: `googleMayBeBetter` in `pantry.ts`).
+- Serve il segreto `GEMINI_API_KEY` sul Worker (`wrangler secret put GEMINI_API_KEY`); senza, risponde 501 `google_not_configured`. Modello: `GEMINI_MODEL` in `ai.js`.
+- Ogni invio a Google mostra un avviso («Sto inviando la foto a Google Gemini») e compare in Impostazioni → «Cosa è stato inviato» con fornitore «Google Gemini».

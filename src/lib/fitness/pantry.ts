@@ -78,6 +78,20 @@ export function parseReceiptItems(text: string): Line[] {
   } catch { return []; }
 }
 
+/**
+ * Dopo la lettura con i modelli aperti: conviene proporre di rifarla con Google Gemini? Solo se la lettura sembra debole
+ * (pochi prodotti per un frigo, tante voci generiche o doppie). Se la lettura è buona non si propone niente.
+ */
+const GENERIC = /^(altro|altri|cibo|cibi|alimento|alimenti|prodotto|prodotti|vari|varie|roba|confezione|scatola|barattolo|bottiglia|contenitore|sacchetto)$/i;
+export function googleMayBeBetter(what: 'receipt' | 'fridge', lines: Line[]): boolean {
+  const names = lines.map((l) => l.name.trim().toLowerCase()).filter(Boolean);
+  const minItems = what === 'fridge' ? 4 : 3;
+  if (names.length < minItems) return true;
+  const generic = names.filter((n) => GENERIC.test(n)).length;
+  const dup = names.length - new Set(names).size;
+  return generic / names.length >= 0.25 || dup / names.length >= 0.3;
+}
+
 /** Una lista scritta a mano («2 latte, 500 g pasta, uova») -> righe. */
 export function parseTypedList(text: string): Line[] {
   return text.split(/[\n,;]+/).map((p) => p.trim()).filter(Boolean).map((p) => {

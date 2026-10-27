@@ -13,6 +13,8 @@ import { bytesToBase64, readUriBytes } from './readUri';
 import { useAccount } from '@/store/account';
 import { getSupabase } from '@/sync/supabaseClient';
 import { loadServerConfig } from '@/sync/secure';
+import { toast } from '@/store/toast';
+import { useAiRouter } from '@/store/aiRouter';
 /** Versione del collegamento al server AI: compare negli errori, cosi' si vede quale codice sta girando sul telefono. */
 export const AI_BUILD = 'ai-v5';
 /* Indirizzo e token: prima quelli inseriti nell'app (Impostazioni > Intelligenza di Theia), altrimenti quelli della build. I valori cambiano da soli quando li modifichi. */
@@ -188,7 +190,13 @@ export async function aiChatStream(message: string, q: string | undefined, onTex
 export const aiChatRaw = async (message: string, q?: string) => String((await call<{ reply: string }>('/chat', { message, ...(q ? { q, web: useAiServerCfg.getState().web !== false } : {}) })).reply ?? '');
 export const aiChat = async (message: string) => humanize((await call<{ reply: string }>('/chat', { message })).reply);
 export const aiVision = async (image: string, mime: string, prompt: string) => humanize((await call<{ reply: string }>('/vision', { image, mime, prompt }, 90000)).reply);
-export const aiAnalyze = (files: { data: string; mime: string }[], question?: string, context?: string) => call<{ reply: string; result: unknown }>('/analyze', { files, question, context }, 90000);
+export const aiAnalyze = (files: { data: string; mime: string }[], question?: string, context?: string, google = false) => call<{ reply: string; result: unknown }>('/analyze', { files, question, context, ...(google ? { google: true } : {}) }, 90000);
+
+/** Ogni volta che una foto parte verso Google Gemini te lo diciamo subito e lo scriviamo in «Cosa è stato inviato». */
+function noteGoogleSend(photos: number) {
+  toast(photos > 1 ? `Sto inviando ${photos} foto a Google Gemini` : 'Sto inviando la foto a Google Gemini');
+  useAiRouter.getState().addLog({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ts: Date.now(), kind: 'vision_read', provider: 'Google Gemini', bytes: 0, parts: Array(photos).fill('image/jpeg'), redacted: 0 });
+}
 export const aiTranslate = async (lang: string, texts: string[]) => {
   const r = await call<{ reply: string }>('/translate', { lang, texts });
   try { const a = JSON.parse(r.reply) as unknown; return Array.isArray(a) ? a.map(String) : []; } catch { return []; }
@@ -240,13 +248,15 @@ async function prepFiles(files: { uri: string; mime: string }[], maxW = 1280): P
  * Legge immagini (anche piu' d'una) o un PDF con il server AI. Una sola immagine va su /vision (testo libero),
  * il resto su /analyze (risposta strutturata in `result`, con `reply` in JSON). Il testo e' grezzo (senza humanize).
  */
-export async function aiReadFilesFull(prompt: string, files: { uri: string; mime: string }[], timeoutMs = 45000, maxW = 1280): Promise<{ reply: string; result?: unknown }> {
+export async function aiReadFilesFull(prompt: string, files: { uri: string; mime: string }[], timeoutMs = 45000, maxW = 1280, google = false): Promise<{ reply: string; result?: unknown }> {
   const ready = await prepFiles(files, maxW);
-  if (ready.length === 1 && ready[0].mime.startsWith('image/')) return { reply: (await call<{ reply: string }>('/vision', { image: ready[0].data, mime: ready[0].mime, prompt }, timeoutMs)).reply };
-  return aiAnalyze(ready, prompt);
+  const photos = ready.filter((f) => f.mime.startsWith('image/')).length;
+  if (google && photos) noteGoogleSend(photos);
+  if (ready.length === 1 && ready[0].mime.startsWith('image/')) return { reply: (await call<{ reply: string }>('/vision', { image: ready[0].data, mime: ready[0].mime, prompt, ...(google ? { google: true } : {}) }, timeoutMs)).reply };
+  return aiAnalyze(ready, prompt, undefined, google);
 }
 
-export const aiReadFiles = async (prompt: string, files: { uri: string; mime: string }[], timeoutMs?: number, maxW?: number): Promise<string> => (await aiReadFilesFull(prompt, files, timeoutMs, maxW)).reply;
+export const aiReadFiles = async (prompt: string, files: { uri: string; mime: string }[], timeoutMs?: number, maxW?: number, google = false): Promise<string> => (await aiReadFilesFull(prompt, files, timeoutMs, maxW, google)).reply;
 
 /** Un PDF letto in testo libero (niente schema fisso): serve quando la risposta e' un elenco o un JSON deciso da noi. */
 export async function aiReadPdfFree(prompt: string, uri: string, timeoutMs = 90000): Promise<string> {

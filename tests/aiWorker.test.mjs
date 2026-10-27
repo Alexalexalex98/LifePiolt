@@ -161,3 +161,15 @@ test('/chat a flusso: arrivano i pezzi di testo, poi la riga finale; i pensieri 
   const e = (await bad.text()).trim().split('\n').map((l) => JSON.parse(l)).at(-1);
   assert.equal(e.code, 'quota');
 });
+
+test('Google Gemini: senza chiave non parte, con la chiave manda solo la foto richiesta', async () => {
+  const { geminiVision } = await import('../worker/ai.js');
+  await assert.rejects(() => geminiVision({}, 'x', [{ data: 'QQ==', mime: 'image/jpeg' }]), /google_not_configured/);
+  let seen;
+  const f = async (url, init) => { seen = { url, key: init.headers['x-goog-api-key'], body: JSON.parse(init.body) }; return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'ok' }] } }] }) }; };
+  const r = await geminiVision({ GEMINI_API_KEY: 'k' }, 'leggi', [{ data: 'QQ==', mime: 'image/jpeg' }], f);
+  assert.equal(r.text, 'ok');
+  assert.match(seen.url, /generativelanguage\.googleapis\.com/);
+  assert.equal(seen.key, 'k');
+  assert.equal(seen.body.contents[0].parts[1].inline_data.data, 'QQ==');
+});

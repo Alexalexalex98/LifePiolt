@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addStock, consume, lowStock, syncShopping, parseReceiptItems, parseTypedList, compareDay, matchFood, stockGrams } from '../src/lib/fitness/pantry.ts';
+import { addStock, consume, lowStock, syncShopping, parseReceiptItems, googleMayBeBetter, parseTypedList, compareDay, matchFood, stockGrams } from '../src/lib/fitness/pantry.ts';
 import { balanceDay, TEMPLATES, generatePlan, dayKcal, needsFor, kcalOf } from '../src/lib/fitness/mealPlan.ts';
 import { FOOD } from '../src/lib/fitness/nutrition.ts';
 
@@ -69,4 +69,11 @@ test('obiettivo impossibile: troppo alto per pochi pasti -> low; troppo basso ->
 });
 test('scontrino: chiavi compatte', () => {
   assert.deepEqual(parseReceiptItems('{"p":[{"n":"Latte","q":2,"u":"pz"}]}'), [{ name: 'Latte', qty: 2, unit: 'pz' }]);
+});
+test('Google: si propone solo se la lettura sembra debole', () => {
+  const L = (...n) => n.map((name) => ({ name, qty: 1, unit: 'pz' }));
+  assert.equal(googleMayBeBetter('fridge', L('Latte', 'Uova')), true);
+  assert.equal(googleMayBeBetter('fridge', L('Latte', 'Uova', 'Burro', 'Yogurt', 'Mele')), false);
+  assert.equal(googleMayBeBetter('fridge', L('Latte', 'Altro', 'Cibo', 'Vari', 'Mele')), true);
+  assert.equal(googleMayBeBetter('receipt', L('Pane', 'Latte', 'Pasta')), false);
 });

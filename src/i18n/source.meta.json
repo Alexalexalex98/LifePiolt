@@ -1,5 +1,5 @@
 {
- "count": 14681,
+ "count": 14688,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -32,7 +32,7 @@
   "src/app/(tabs)/fitnessDay.tsx": 39,
   "src/app/(tabs)/fitnessDiary.tsx": 56,
   "src/app/(tabs)/fitnessExercise.tsx": 31,
-  "src/app/(tabs)/fitnessFridge.tsx": 53,
+  "src/app/(tabs)/fitnessFridge.tsx": 57,
   "src/app/(tabs)/fitnessGroup.tsx": 39,
   "src/app/(tabs)/fitnessGroups.tsx": 53,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
@@ -379,7 +379,7 @@
   "src/lib/aiRouter/rewrite.ts": 41,
   "src/lib/aiRouter/runtime.ts": 5,
   "src/lib/aiRouter/select.ts": 18,
-  "src/lib/aiServer.ts": 22,
+  "src/lib/aiServer.ts": 25,
   "src/lib/analytics.ts": 64,
   "src/lib/analyticsData.ts": 32,
   "src/lib/arrival.ts": 8,
@@ -660,5 +660,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1845
+ "withPlaceholders": 1846
 }

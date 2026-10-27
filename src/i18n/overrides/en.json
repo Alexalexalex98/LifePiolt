@@ -3666,5 +3666,11 @@
  "Un po' sopra": "A bit above",
  "Un tocco e si apre la scheda per segnare quanta ne hai bevuta": "One tap opens the card to log how much you've drunk",
  "Vai a trovare la mascotte": "Go and visit the mascot",
- "Vai in fondo": "Scroll to the bottom"
+ "Vai in fondo": "Scroll to the bottom",
+ "Anche Google non ha riconosciuto prodotti: scrivi tu la lista.": "Google didn't recognise any products either: type the list yourself.",
+ "Google non ha risposto: riprova tra poco.": "Google didn't respond: try again shortly.",
+ "La lettura sembra incompleta. Google Gemini potrebbe leggerla meglio, ma per farlo la foto va a Google (fuori da UE e Svizzera): lo fai solo se tocchi qui sotto.": "The reading looks incomplete. Google Gemini might read it better, but the photo would go to Google (outside the EU and Switzerland): this only happens if you tap below.",
+ "Rifai con Google": "Redo with Google",
+ "Sto inviando {0} foto a Google Gemini": "Sending {0} photos to Google Gemini",
+ "Sto inviando la foto a Google Gemini": "Sending the photo to Google Gemini"
 }

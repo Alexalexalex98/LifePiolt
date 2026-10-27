@@ -10,7 +10,7 @@ import { t as tl } from '@/i18n/core';
 import { askSend, logSend } from '@/lib/aiConsent';
 import { aiReadFiles, aiServerConfigured } from '@/lib/aiServer';
 import { saveMediaToDrive } from '@/lib/driveSave';
-import { FRIDGE_PROMPT, RECEIPT_ITEMS_PROMPT, lowStock, parseReceiptItems, parseTypedList, type Line, type PantryItem } from '@/lib/fitness/pantry';
+import { FRIDGE_PROMPT, RECEIPT_ITEMS_PROMPT, lowStock, googleMayBeBetter, parseReceiptItems, parseTypedList, type Line, type PantryItem } from '@/lib/fitness/pantry';
 import { Icon } from '@/lib/icons';
 import { pickNetMedia, takeNetPhoto } from '@/lib/netMedia';
 import { useApp } from '@/store/app';
@@ -59,6 +59,18 @@ export default function Fridge() {
   const toggle = (n: string) => p.setShared(p.shared.includes(n) ? p.shared.filter((x) => x !== n) : [...p.shared, n]);
   const low = lowStock(p.items);
 
+  /* l'ultima foto letta, per poterla rifare con Google se la lettura sembra debole */
+  const [again, setAgain] = useState<{ uri: string; what: 'receipt' | 'fridge' } | null>(null);
+  async function redoWithGoogle() {
+    if (!again || busy) return;
+    setBusy(true);
+    try {
+      toast(tl('Sto leggendo la foto: può volerci fino a un minuto.'));
+      const lines = parseReceiptItems(await aiReadFiles(again.what === 'fridge' ? FRIDGE_PROMPT : RECEIPT_ITEMS_PROMPT, [{ uri: again.uri, mime: 'image/jpeg' }], 90000, 1000, true));
+      if (!lines.length) { toast(tl('Anche Google non ha riconosciuto prodotti: scrivi tu la lista.')); setTyped(true); return; }
+      setReview(lines); setAgain(null);
+    } catch (e) { toast(e instanceof Error && e.message ? e.message : tl('Google non ha risposto: riprova tra poco.')); } finally { setBusy(false); }
+  }
   async function scan(camera: boolean, what: 'receipt' | 'fridge' = 'receipt') {
     setBusy(true);
     try {
@@ -72,6 +84,7 @@ export default function Fridge() {
       const lines = parseReceiptItems(await aiReadFiles(what === 'fridge' ? FRIDGE_PROMPT : RECEIPT_ITEMS_PROMPT, [{ uri: m.uri, mime: 'image/jpeg' }], 90000, 1000));
       if (!lines.length) { toast(tl('Non ho riconosciuto prodotti in questa foto: riprova più da vicino o scrivi tu la lista.')); setTyped(true); return; }
       setReview(lines);
+      setAgain(googleMayBeBetter(what, lines) ? { uri: m.uri, what } : null);
     } catch (e) { const msg = e instanceof Error ? e.message : ''; toast(/tempo|time|abort/i.test(msg) ? tl('La lettura ha impiegato troppo tempo. Riprova con una foto più vicina e nitida, oppure scrivi tu la lista.') : msg || tl('Non riesco ad aprire la fotocamera')); setTyped(true); } finally { setBusy(false); }
   }
   const setLine = (i: number, patch: Partial<Line>) => setReview((r) => (r ?? []).map((l, k) => (k === i ? { ...l, ...patch } : l)));
@@ -124,7 +137,7 @@ export default function Fridge() {
       )}
       <AiNote />
 
-      <Sheet visible={!!review} title={tl('Cosa ho letto')} onClose={() => setReview(null)}>
+      <Sheet visible={!!review} title={tl('Cosa ho letto')} onClose={() => { setReview(null); setAgain(null); }}>
         <Body small muted style={{ marginBottom: 6 }}>{tl('Controlla prima di salvare: l\'AI può sbagliare nomi e quantità. Puoi cambiare il nome, la quantità e l\'unità, togliere le righe che non vanno e aggiungere altri alimenti.')}</Body>
         {(review ?? []).map((l, i) => (
           <View key={i} style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: t.border, gap: 6 }}>
@@ -140,6 +153,12 @@ export default function Fridge() {
             </Row>
           </View>
         ))}
+        {again ? (
+          <View style={{ marginTop: 10, gap: 6 }}>
+            <Body small muted>{tl('La lettura sembra incompleta. Google Gemini potrebbe leggerla meglio, ma per farlo la foto va a Google (fuori da UE e Svizzera): lo fai solo se tocchi qui sotto.')}</Body>
+            <Btn small ghost icon="rotate" title={tl('Rifai con Google')} disabled={busy} onPress={() => void redoWithGoogle()} />
+          </View>
+        ) : null}
         <Btn style={{ marginTop: 10 }} small ghost icon="plus" title={tl('Aggiungi un alimento')} onPress={() => setReview((r) => [...(r ?? []), { name: '', qty: 1, unit: 'pz' } as Line])} />
         <Btn style={{ marginTop: 10 }} title={tl('Aggiungi al frigo')} disabled={!review?.some((l) => l.name.trim() && l.qty > 0)} onPress={addReview} />
       </Sheet>
