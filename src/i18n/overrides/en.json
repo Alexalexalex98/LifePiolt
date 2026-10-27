@@ -4034,5 +4034,9 @@
  "Entrate, spese fisse e quanto ti resta da vivere": "Income, fixed costs and what's left to live on",
  "Piano mese": "Month plan",
  "Quanto mettere da parte ogni mese per arrivarci": "How much to set aside each month to get there",
- "Bolletta": "Bill"
+ "Bolletta": "Bill",
+ "Questo estratto non c’entra con il precedente": "This statement doesn’t seem related to the previous one",
+ "Il periodo o i movimenti non coincidono con l’estratto già caricato (può essere un altro conto o un altro anno). Vuoi eliminare tutti i dati del vecchio estratto e ripartire da questo? Se è la continuazione (es. il mese dopo) scegli “Aggiungi”.": "The period or transactions don’t match the statement already loaded (it may be another account or another year). Do you want to delete all data from the old statement and start from this one? If it is a continuation (e.g. the next month) choose “Add anyway”.",
+ "Aggiungi comunque": "Add anyway",
+ "Elimina e riparti": "Delete and start over"
 }

@@ -20,6 +20,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { movementLabel, parseCsv, splitDuplicates, toAppDate, monthLabelOfIso, type CsvRow } from '@/lib/csvImport';
 import { readPickedText } from '@/lib/readPicked';
 import { useFin } from '@/store/finance';
+import { statementRelation } from '@/lib/statementRelation';
 import { showUndoToast, toast } from '@/store/toast';
 import { formatMoney } from '@/i18n/format';
 import { saveFileToDrive } from '@/lib/driveSave';
@@ -139,12 +140,29 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
   function importAll() {
     const all = allRows();
     if (!all.length) { toast('Nessun movimento selezionato'); return; }
+    if (bankMode) {
+      const existingIso = useFin.getState().months.flatMap((m) => m.movements.filter((x) => x.src === 'bank').map((x) => `${m.label.split(' ').pop()}-${x.date.slice(3, 5)}-${x.date.slice(0, 2)}`));
+      const rel = statementRelation(existingIso, [...chosen, ...dupRows].map((r) => r.date), dupRows.length);
+      if (rel === 'unrelated') {
+        alertT('Questo estratto non c’entra con il precedente', 'Il periodo o i movimenti non coincidono con l’estratto già caricato (può essere un altro conto o un altro anno). Vuoi eliminare tutti i dati del vecchio estratto e ripartire da questo? Se è la continuazione (es. il mese dopo) scegli “Aggiungi”.', [
+          { text: 'Annulla', style: 'cancel' },
+          { text: 'Aggiungi comunque', onPress: () => doImport(all, false) },
+          { text: 'Elimina e riparti', style: 'destructive', onPress: () => doImport(all, true) },
+        ]);
+        return;
+      }
+    }
+    doImport(all, false);
+  }
+  function doImport(all: { date: string; label: string; amount: number }[], clearFirst: boolean) {
+    const st0 = useFin.getState();
+    const snap = clearFirst ? st0.clearPersonalFinance() : null;
     const st = useFin.getState();
     const prev = { months: st.months, bills: st.bills, budget: st.budget, info: st.statementInfo };
     const bal = Number(balance.replace(/['’\s]/g, '').replace(',', '.'));
     const opts = { balance: balance.trim() && Number.isFinite(bal) ? bal : null };
     let msg: string; let months = 1;
-    if (bankMode) {
+    if (bankMode && !clearFirst) {
       const r = st.mergeStatement(all, opts);
       msg = `Aggiunti ${r.added} movimenti mancanti · ${r.known} erano già presenti${r.confirmedManual ? ` · ${r.confirmedManual} inserimenti a mano confermati dall’estratto` : ''}`;
     } else {
@@ -157,7 +175,7 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
     useFin.getState().recomputeStatement({ apply: updateFixed, balance: opts.balance });
     if (updateFixed) { const f = useFin.getState(); f.setBudget(defaultBudget(f.budget.salary, f.budget.saveToEmergency, f.categories, f.months)); }
     announceStatement({ added: all.length, months });
-    showUndoToast(msg, () => { const f = useFin.getState(); f.restoreMonths(prev.months); f.replaceBills(prev.bills.map(({ id: _id, ...b }) => b)); f.setBudget(prev.budget); f.setStatementInfo(prev.info); });
+    showUndoToast(msg, () => { const f = useFin.getState(); if (snap) { f.restoreFinance(snap); reset(); return; } f.restoreMonths(prev.months); f.replaceBills(prev.bills.map(({ id: _id, ...b }) => b)); f.setBudget(prev.budget); f.setStatementInfo(prev.info); });
     reset(); onClose();
   }
   const total = chosen.reduce((s, r) => s + r.amount, 0);
