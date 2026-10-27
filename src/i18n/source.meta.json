@@ -1,5 +1,5 @@
 {
- "count": 14710,
+ "count": 14776,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -154,6 +154,7 @@
   "src/components/JobsHub.tsx": 20,
   "src/components/KnowledgeHub.tsx": 59,
   "src/components/LanguagePicker.tsx": 7,
+  "src/components/LifeBalanceCard.tsx": 11,
   "src/components/LifePay.tsx": 51,
   "src/components/LogoLoader.tsx": 1,
   "src/components/MediaPickerField.tsx": 14,
@@ -509,6 +510,7 @@
   "src/lib/jobFiles.ts": 2,
   "src/lib/jobFit.ts": 3,
   "src/lib/knowledge.ts": 14,
+  "src/lib/lifeBalance.ts": 61,
   "src/lib/lifepay.ts": 10,
   "src/lib/liveRoom.ts": 39,
   "src/lib/liveTheme.ts": 4,
@@ -660,5 +662,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1852
+ "withPlaceholders": 1859
 }

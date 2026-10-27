@@ -3,6 +3,7 @@ import { AppState, Platform, Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { TodayCard } from '@/components/fitness/TodayCard';
+import { LifeBalanceCard } from '@/components/LifeBalanceCard';
 import { WeeklyReportButton } from '@/components/WeeklyReportButton';
 import { Flame, LineChart } from '@/components/charts';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Progress, Row, SectionLabel, Sheet, Tag, XBtn } from '@/components/ui';
@@ -85,6 +86,7 @@ export default function LifeHealth() {
 
   return (
     <Page id="lifehealth" title="LifeHealth" back>
+      <LifeBalanceCard />
       <TodayCard />
       <Card>
         <H>{droid ? 'Health Connect e Galaxy Watch' : 'Apple Health e Apple Watch'}</H>
