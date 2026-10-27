@@ -18,8 +18,8 @@ export const levelOf = (score: number): BalanceLevel => (score >= 75 ? 'ok' : sc
 type CatDef = { id: string; label: string; about: string; metrics: string[]; weight: number };
 export const CATS: CatDef[] = [
   { id: 'sonno', label: 'Sonno', about: 'Quanto dormi, in media, rispetto alle 7-9 ore consigliate.', metrics: ['sleep'], weight: 1.3 },
-  { id: 'movimento', label: 'Movimento', about: 'Passi, minuti di esercizio, calorie attive e allenamenti.', metrics: ['steps', 'exercise', 'energy', 'training'], weight: 1.1 },
-  { id: 'cuore', label: 'Cuore e recupero', about: 'Battito a riposo, HRV, ossigeno e forma fisica: dicono quanto il corpo recupera.', metrics: ['hr', 'hrv', 'vo2', 'spo2'], weight: 1 },
+  { id: 'movimento', label: 'Movimento', about: 'Passi, minuti di esercizio, calorie attive e allenamenti.', metrics: ['steps', 'distance', 'flights', 'exercise', 'energy', 'training'], weight: 1.1 },
+  { id: 'cuore', label: 'Cuore e recupero', about: 'Battito a riposo, HRV, ossigeno e forma fisica: dicono quanto il corpo recupera.', metrics: ['hr', 'hrv', 'vo2', 'spo2', 'resp'], weight: 1 },
   { id: 'stress', label: 'Stress', about: 'Livello di stress stimato da battito e HRV.', metrics: ['stress'], weight: 1.3 },
   { id: 'mente', label: 'Mente e umore', about: 'Umore dei check-in e minuti di mindfulness.', metrics: ['mood', 'mindful'], weight: 1.2 },
   { id: 'cibo', label: 'Alimentazione', about: 'Qualità di quello che mangi (calorie, proteine, fibre, zuccheri, sale).', metrics: ['diet'], weight: 1 },
@@ -59,6 +59,9 @@ const TIPS: Record<string, { low?: string[]; high?: string[] }> = {
   hr: { high: ['Un battito a riposo alto può dipendere da stress, poco sonno, caffeina o poco allenamento: lavora prima su sonno e movimento leggero costante.'] },
   hrv: { low: ['La HRV sale con sonno regolare, allenamento aerobico moderato e respirazione lenta: prova 5 minuti di respiro lento ogni sera.', 'Meno alcol e cene tardive aiutano il recupero notturno.'] },
   vo2: { low: ['La forma aerobica migliora con 2-3 uscite a settimana di cammino veloce, corsa leggera o bici.'] },
+  distance: { low: ['Una camminata veloce di 30-40 minuti sono circa 3-4 km: aggiungila alla routine.'] },
+  flights: { low: ['Scegli le scale al posto dell\'ascensore quando puoi: ogni piano conta.'] },
+  resp: { high: ['Un respiro più veloce a riposo può dipendere da stress o poco allenamento: prova 5 minuti di respiro lento.'], low: ['Un respiro molto lento a riposo va guardato insieme al resto: se hai sintomi, parlane con il medico.'] },
   spo2: { low: ['Un livello di ossigeno basso va controllato: se è ripetuto o hai sintomi, parlane con il medico.'] },
   stress: { high: ['Fai 3-5 minuti di respirazione lenta (4 secondi dentro, 6 fuori) nei momenti di picco.', 'Blocca nel Plan almeno una pausa vera al giorno, senza telefono.', 'Scrivi in «Mente» che pensiero ti pesa di più e scegli un solo passo piccolo.', 'Muoviti: una camminata riduce la tensione più di scrollare il telefono.'] },
   mood: { low: ['Fai il check-in dell\'umore ogni giorno: aiuta a vedere cosa lo alza o lo abbassa.', 'Pianifica una cosa piacevole al giorno, anche piccola, e una persona da sentire questa settimana.'] },

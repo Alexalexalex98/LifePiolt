@@ -30,6 +30,13 @@ export const defs: Record<string, MetricDef> = {
   spo2: H('spo2', { better: 'range', range: [95, 100], label: 'Ossigeno' }),
   stress: H('stress', { domain: 'mente', better: 'down', target: 45, label: 'Stress (stimato)', derivedFrom: ['hrv', 'hr'] }),
   mindful: H('mindful', { domain: 'mente', target: 10 }),
+  distance: { id: 'distance', label: 'Distanza a piedi e di corsa', unit: 'km', domain: 'salute', better: 'up', target: 5, dec: 1, color: '#7bb8e0', period: 'day' },
+  flights: { id: 'flights', label: 'Piani saliti', unit: '', domain: 'salute', better: 'up', target: 10, dec: 0, color: '#6ec9dd', period: 'day' },
+  resp: { id: 'resp', label: 'Respiri al minuto', unit: '/min', domain: 'salute', better: 'range', range: [12, 20], dec: 1, color: '#9be0e0', period: 'day' },
+  fat: { id: 'fat', label: 'Massa grassa', unit: '%', domain: 'salute', better: 'none', dec: 1, color: '#e0c97b', period: 'day' },
+  stand: { id: 'stand', label: 'Tempo in piedi', unit: 'min', domain: 'salute', better: 'none', dec: 0, color: '#8fb3ff', period: 'day' },
+  hravg: { id: 'hravg', label: 'Battito medio', unit: 'bpm', domain: 'salute', better: 'none', dec: 0, color: '#ff9d9d', period: 'day' },
+  basal: { id: 'basal', label: 'Energia a riposo', unit: 'kcal', domain: 'salute', better: 'none', dec: 0, color: '#ff8a5b', period: 'day' },
   mood: { id: 'mood', label: 'Umore', unit: '/5', domain: 'mente', better: 'up', target: 3.5, dec: 1, color: '#c9b6ff', period: 'day' },
   balance: { id: 'balance', label: 'Saldo a fine mese', unit: 'CHF', domain: 'finanza', better: 'up', dec: 0, color: '#7be0b0', period: 'month' },
   savings: { id: 'savings', label: 'Tasso di risparmio', unit: '%', domain: 'finanza', better: 'up', target: 20, dec: 0, color: '#7be0b0', period: 'month' },
@@ -87,6 +94,11 @@ export function collect(today = todayStr()): Series[] {
   (['sleep', 'steps', 'hr', 'hrv', 'weight', 'energy', 'exercise', 'vo2', 'spo2', 'stress', 'mindful'] as Metric[]).forEach((m) => {
     const pts = pointsOf(h, m);
     if (pts.length) out.push({ def: defs[m], pts, source: h.sources[m] ?? 'manuale' });
+  });
+  /* gli altri dati di salute (distanza, piani, respiro…): inseriti a mano o dall'orologio, entrano nell'analisi incrociata */
+  (['distance', 'flights', 'resp', 'fat', 'stand', 'hravg', 'basal'] as const).forEach((k) => {
+    const pts = h.extra?.[k] ?? [];
+    if (pts.length) out.push({ def: defs[k], pts, source: 'manuale' });
   });
 
   const moods = h.moods.map((x) => ({ d: x.day ?? ddmmToDay(x.date, today), v: moodScore[x.mood] ?? 3 }));

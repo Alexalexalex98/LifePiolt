@@ -3780,5 +3780,17 @@
  "Guardo cos'è…": "Looking at what it is…",
  "Non sono riuscito a capire cos'è: lo lascio com'è.": "I couldn't tell what it is: I'll leave it as it is.",
  "Tag: {0}": "Tag: {0}",
- "Tag: {0}{1}": "Tag: {0}{1}"
+ "Tag: {0}{1}": "Tag: {0}{1}",
+ "«{0}»: deve stare tra {1} e {2}": "«{0}»: must be between {1} and {2}",
+ "«{0}»: scrivi un numero": "«{0}»: enter a number",
+ "Compila solo quello che vuoi, anche per i giorni passati. Più dati inserisci, più l'analisi incrociata e «La tua vita in un dato» sono precisi.": "Fill in only what you want, even for past days. The more data you enter, the more accurate the cross analysis and «Your life in one number» are.",
+ "Cuore e respiro": "Heart and breathing",
+ "Inserisci i dati a mano": "Enter data manually",
+ "Ore dormite": "Hours slept",
+ "Salvati {0} dati": "{0} values saved",
+ "Salvato 1 dato": "1 value saved",
+ "Scegli le scale al posto dell'ascensore quando puoi: ogni piano conta.": "Take the stairs instead of the lift when you can: every flight counts.",
+ "Un respiro molto lento a riposo va guardato insieme al resto: se hai sintomi, parlane con il medico.": "A very slow resting breath should be looked at together with the rest: if you have symptoms, talk to your doctor.",
+ "Un respiro più veloce a riposo può dipendere da stress o poco allenamento: prova 5 minuti di respiro lento.": "A faster resting breath can come from stress or too little training: try 5 minutes of slow breathing.",
+ "Una camminata veloce di 30-40 minuti sono circa 3-4 km: aggiungila alla routine.": "A brisk 30-40 minute walk is about 3-4 km: add it to your routine."
 }

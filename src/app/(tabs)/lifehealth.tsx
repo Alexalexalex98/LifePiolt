@@ -4,6 +4,7 @@ import { Text } from '@/components/T';
 
 import { TodayCard } from '@/components/fitness/TodayCard';
 import { LifeBalanceCard } from '@/components/LifeBalanceCard';
+import { ManualHealthSheet } from '@/components/ManualHealthSheet';
 import { WeeklyReportButton } from '@/components/WeeklyReportButton';
 import { Flame, LineChart } from '@/components/charts';
 import { Body, Btn, Card, Empty, H, Input, Item, Link, Metric, Page, Progress, Row, SectionLabel, Sheet, Tag, XBtn } from '@/components/ui';
@@ -109,7 +110,7 @@ export default function LifeHealth() {
           </>
         )}
         <WeeklyReportButton small style={{ marginTop: 10 }} />
-        <Btn small ghost style={{ marginTop: 10 }} title="Registra i dati di oggi a mano" onPress={() => { setToday({}); setSheet('today'); }} />
+        <Btn small ghost style={{ marginTop: 10 }} title="Inserisci i dati a mano" onPress={() => { setToday({}); setSheet('today'); }} />
       </Card>
 
       {(Object.keys(extraMeta) as ExtraKey[]).some((k) => (h.extra?.[k]?.length ?? 0) > 0) ? (
@@ -248,13 +249,7 @@ export default function LifeHealth() {
           ))}
         </View>
       </Sheet>
-      <Sheet visible={sheet === 'today'} title="Dati di oggi" onClose={() => setSheet(null)}>
-        <Body small muted style={{ marginBottom: 8 }}>Compila solo quello che vuoi: aggiorna i valori di oggi.</Body>
-        {([['sleep', 'Sonno (ore)', '7.5'], ['hr', 'Frequenza a riposo (bpm)', '58'], ['steps', 'Passi', '8000'], ['stress', 'Stress (0-100)', '35'], ['hrv', 'HRV (ms)', '54'], ['mindful', 'Mindfulness (min)', '10']] as [M, string, string][]).map(([k, label, ph]) => (
-          <View key={k}><Body small muted>{label}</Body><Input keyboardType="decimal-pad" placeholder={ph} value={today[k] ?? ''} onChangeText={(v) => setToday({ ...today, [k]: v })} /></View>
-        ))}
-        <Btn title="Salva" onPress={() => { let n = 0; (Object.keys(today) as M[]).forEach((k) => { const v = num(today[k] ?? ''); if (v != null) { h.logMetric(k, v); n++; } }); setSheet(null); toast(n ? 'Dati aggiornati' : 'Niente da salvare'); }} />
-      </Sheet>
+      <ManualHealthSheet visible={sheet === 'today'} onClose={() => setSheet(null)} />
     </Page>
   );
 }
