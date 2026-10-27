@@ -37,3 +37,33 @@ export function dietSeries(meals: StoredMeal[], water: Record<string, number>, t
   }
   return out.sort((a, b) => a.d.localeCompare(b.d)).slice(-30);
 }
+
+/**
+ * Ritmo dei pasti (0-100) per ogni giorno con pasti: colazione non troppo tardi, almeno tre pasti, niente cena dopo le 22:30.
+ * Il giorno in corso conta solo dopo le 20. Serve a vedere QUANDO mangi, non solo cosa.
+ */
+export function rhythmSeries(meals: { ts: number }[], today: string, hourNow: number): Pt[] {
+  const by = new Map<string, number[]>();
+  for (const m of meals) { const d = new Date(m.ts); const k = iso(d); (by.get(k) ?? by.set(k, []).get(k)!).push(d.getHours() + d.getMinutes() / 60); }
+  const out: Pt[] = [];
+  for (const [d, hs] of by) {
+    if (d === today && hourNow < 20) continue;
+    hs.sort((a, b) => a - b);
+    let v = 100;
+    if (hs[0] > 11) v -= 15;
+    if (hs.length === 1) v -= 30; else if (hs.length === 2) v -= 15;
+    if (hs[hs.length - 1] >= 22.5) v -= 25;
+    out.push({ d, v: Math.max(0, v) });
+  }
+  return out.sort((a, b) => a.d.localeCompare(b.d)).slice(-30);
+}
+
+/** Idratazione: litri bevuti rispetto al fabbisogno, in percentuale (massimo 100), per ogni giorno con acqua registrata. */
+export function hydrationSeries(water: Record<string, number>, goalMl: number, today: string, hourNow: number): Pt[] {
+  const out: Pt[] = [];
+  for (const [d, ml] of Object.entries(water)) {
+    if (!(ml > 0) || (d === today && hourNow < 20)) continue;
+    out.push({ d, v: Math.min(100, Math.round((ml / Math.max(1, goalMl)) * 100)) });
+  }
+  return out.sort((a, b) => a.d.localeCompare(b.d)).slice(-30);
+}

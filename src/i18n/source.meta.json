@@ -1,5 +1,5 @@
 {
- "count": 14987,
+ "count": 14998,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -384,7 +384,7 @@
   "src/lib/aiRouter/select.ts": 18,
   "src/lib/aiServer.ts": 25,
   "src/lib/analytics.ts": 64,
-  "src/lib/analyticsData.ts": 40,
+  "src/lib/analyticsData.ts": 47,
   "src/lib/arrival.ts": 8,
   "src/lib/assistant/aiActions.ts": 39,
   "src/lib/assistant/aiActionsCore.ts": 8,
@@ -516,7 +516,7 @@
   "src/lib/jobFiles.ts": 2,
   "src/lib/jobFit.ts": 3,
   "src/lib/knowledge.ts": 14,
-  "src/lib/lifeBalance.ts": 84,
+  "src/lib/lifeBalance.ts": 90,
   "src/lib/lifepay.ts": 10,
   "src/lib/liveRoom.ts": 39,
   "src/lib/liveTheme.ts": 4,

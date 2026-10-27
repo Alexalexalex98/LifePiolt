@@ -14,7 +14,10 @@ import { useChat } from '@/store/chat';
 import { useApp } from '@/store/app';
 import { useFitness } from '@/store/fitness';
 import { dailyTargets } from '@/lib/fitness/nutrition';
-import { dietSeries, trainingSeries } from '@/lib/fitness/scoreInputs';
+import { dietSeries, hydrationSeries, rhythmSeries, trainingSeries } from '@/lib/fitness/scoreInputs';
+import { waterGoal } from '@/lib/fitness/mealInsights';
+import { analyzeMessages } from '@/lib/chatSentiment';
+import { useAssistant } from '@/store/assistant';
 import { t } from '@/i18n/core';
 import { buildBalance, type Balance } from '@/lib/lifeBalance';
 
@@ -33,6 +36,12 @@ export const defs: Record<string, MetricDef> = {
   spo2: H('spo2', { better: 'range', range: [95, 100], label: 'Ossigeno' }),
   stress: H('stress', { domain: 'mente', better: 'down', target: 45, label: 'Stress (stimato)', derivedFrom: ['hrv', 'hr'] }),
   mindful: H('mindful', { domain: 'mente', target: 10 }),
+  moodChat: { id: 'moodChat', label: 'Tono dei tuoi messaggi a Theia', unit: '/5', domain: 'mente', better: 'up', target: 3.5, dec: 1, color: '#c9b6ff', period: 'day' },
+  stressChat: { id: 'stressChat', label: 'Stress dai tuoi messaggi', unit: '/100', domain: 'mente', better: 'down', target: 45, dec: 0, color: '#ffb84f', period: 'day', derivedFrom: ['mood'] },
+  mealRhythm: { id: 'mealRhythm', label: 'Ritmo dei pasti', unit: '/100', domain: 'salute', better: 'up', target: 80, dec: 0, color: '#5fd39a', period: 'day' },
+  hydration: { id: 'hydration', label: 'Idratazione', unit: '%', domain: 'salute', better: 'up', target: 90, dec: 0, color: '#7bb8e0', period: 'day' },
+  billsLate: { id: 'billsLate', label: 'Bollette scadute', unit: '', domain: 'finanza', better: 'down', target: 0.5, dec: 0, color: '#ff9d9d', period: 'month' },
+  runway: { id: 'runway', label: 'Mesi di spese coperti', unit: 'mesi', domain: 'finanza', better: 'up', target: 3, dec: 1, color: '#7be0b0', period: 'month' },
   social: { id: 'social', label: 'Persone con cui hai parlato', unit: '/giorno', domain: 'mente', better: 'up', target: 3, dec: 1, color: '#c9b6ff', period: 'day' },
   distance: { id: 'distance', label: 'Distanza a piedi e di corsa', unit: 'km', domain: 'salute', better: 'up', target: 5, dec: 1, color: '#7bb8e0', period: 'day' },
   flights: { id: 'flights', label: 'Piani saliti', unit: '', domain: 'salute', better: 'up', target: 10, dec: 0, color: '#6ec9dd', period: 'day' },
@@ -119,6 +128,12 @@ export function collect(today = todayStr()): Series[] {
         (per.get(d) ?? per.set(d, new Set()).get(d)!).add(cid);
       }
     }
+    /* gli incontri segnati nel calendario (cena con amici, caffè, famiglia…) contano come persone viste */
+    const SOC = /\b(cena|pranzo|aperitivo|caff[eè]|amic[hoi]+|famiglia|nonn[oi]|genitori|compleanno|festa|serata|passeggiata con|incontro con|visita a|uscita)\b/i;
+    for (const [day, evs] of Object.entries(useLife.getState().events)) {
+      if (day > today || !/^\d{4}-\d{2}-\d{2}$/.test(day)) continue;
+      for (const ev of evs) if (SOC.test(ev.title ?? '')) (per.get(day) ?? per.set(day, new Set()).get(day)!).add(`ev:${ev.title}`);
+    }
     const byDay = new Map<string, number>();
     per.forEach((set, d) => byDay.set(d, set.size));
     (h.extra?.social ?? []).forEach((p) => byDay.set(p.d, Math.max(byDay.get(p.d) ?? 0, p.v)));
@@ -148,6 +163,13 @@ export function collect(today = todayStr()): Series[] {
     if (!partial && spent > 0) spe.push({ d: ms, v: Math.round(spent) });
   });
   if (bal.length) out.push({ def: defs.balance, pts: bal, source: 'manuale' });
+  /* serenità economica: bollette scadute e quanti mesi di spese copre quello che hai */
+  const lateN = useFin.getState().invoices.filter((i) => i.state === 'open' && i.dueDate && i.dueDate < today && !i.estimated).length;
+  if (useFin.getState().invoices.length) out.push({ def: defs.billsLate, pts: [{ d: today, v: lateN }], source: 'Bollette' });
+  if (spe.length && bal.length) {
+    const recent = spe.slice(-3).map((p) => p.v); const avgSpend = recent.reduce((a, b) => a + b, 0) / recent.length;
+    if (avgSpend > 0) out.push({ def: defs.runway, pts: [{ d: today, v: Math.round((Math.max(0, bal[bal.length - 1].v) / avgSpend) * 10) / 10 }], source: 'manuale' });
+  }
   if (sav.length) out.push({ def: defs.savings, pts: sav, source: 'manuale' });
   if (spe.length) out.push({ def: defs.spending, pts: spe, source: 'manuale' });
   const ds = dailySpend(fin.months, today);
@@ -171,6 +193,18 @@ export function collect(today = todayStr()): Series[] {
   if (tr) out.push({ def: { ...defs.training, target: tr.target }, pts: tr.pts, source: 'LifeFitness' });
   const diet = dietSeries(fit.meals ?? [], fit.water ?? {}, fit.body ? dailyTargets(fit.body) : null, today, new Date().getHours());
   if (diet.length) out.push({ def: defs.diet, pts: diet, source: 'LifeFitness' });
+  const hourNow = new Date().getHours();
+  const rh = rhythmSeries(fit.meals ?? [], today, hourNow);
+  if (rh.length) out.push({ def: defs.mealRhythm, pts: rh, source: 'LifeFitness' });
+  const hy = hydrationSeries(fit.water ?? {}, waterGoal(fit.body?.weightKg), today, hourNow);
+  if (hy.length) out.push({ def: defs.hydration, pts: hy, source: 'LifeFitness' });
+  /* umore e stress da quello che scrivi a Theia: analizzati sul telefono, niente esce */
+  {
+    const mine = useAssistant.getState().log.filter((m) => m.who === 'me' && Date.now() - m.ts < 60 * 86400000).map((m) => ({ ts: m.ts, text: m.text }));
+    const sent = analyzeMessages(mine, (ts) => dayKey(new Date(ts)));
+    if (sent.mood.length) out.push({ def: defs.moodChat, pts: sent.mood, source: 'chat' });
+    if (sent.stress.length) out.push({ def: defs.stressChat, pts: sent.stress, source: 'chat' });
+  }
   life.goals.forEach((g) => {
     if ((g.hist?.length ?? 0) >= 2) out.push({ def: { id: `goal:${g.id}`, label: g.t, unit: '%', domain: 'crescita', better: 'up', dec: 0, color: '#8fa4ff', period: 'day' }, pts: g.hist!.map((x) => ({ d: x.d, v: x.p })), source: 'manuale' });
   });

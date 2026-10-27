@@ -4007,5 +4007,20 @@
  "Media di 7 giorni delle persone con cui parli ogni giorno: quelle a cui scrivi nelle chat e, se vuoi, quelle che inserisci a mano. Obiettivo: almeno 3 al giorno.": "7-day average of the people you talk to each day: those you write to in chats and, if you like, those you enter by hand. Goal: at least 3 a day.",
  "Persone con cui hai parlato": "People you talked to",
  "Relazioni": "Relationships",
- "Scrivi o chiama oggi una persona a cui tieni: bastano due minuti.": "Write to or call someone you care about today: two minutes is enough."
+ "Scrivi o chiama oggi una persona a cui tieni: bastano due minuti.": "Write to or call someone you care about today: two minutes is enough.",
+ "Bollette scadute": "Overdue bills",
+ "Costruisci un fondo di emergenza: l'obiettivo sono almeno 3 mesi di spese messe da parte.": "Build an emergency fund: aim for at least 3 months of expenses set aside.",
+ "Dai tuoi messaggi si legge tensione: prova 5 minuti di respiro lento e scegli una sola cosa da togliere dalla lista di oggi.": "Your messages show tension: try 5 minutes of slow breathing and pick one thing to take off today's list.",
+ "Hai bollette scadute: pagale per prime o chiedi una rateizzazione, ogni giorno di ritardo costa e pesa sulla testa.": "You have overdue bills: pay them first or ask for an instalment plan, every day of delay costs money and weighs on your mind.",
+ "Idratazione": "Hydration",
+ "Il tono dei tuoi messaggi è basso: scrivi a Theia cosa ti pesa di più e scegli un solo passo piccolo, oppure parlane con una persona di fiducia.": "The tone of your messages is low: tell Theia what weighs on you most and choose one small step, or talk to someone you trust.",
+ "Mangia a orari regolari: colazione entro metà mattina, almeno tre pasti e niente cena dopo le 22.": "Eat at regular times: breakfast by mid-morning, at least three meals and no dinner after 10 pm.",
+ "Media di 7 giorni dello stress (0-100): dall'orologio (battito e HRV), inserito da te o ricavato dalle parole che scrivi a Theia, analizzate sul telefono. 100 se resta sotto 45 (sopra, il punteggio scende).": "7-day average of stress (0-100): from your watch (heart rate and HRV), entered by you or taken from the words you write to Theia, analysed on your phone. 100 if it stays under 45 (above that, the score drops).",
+ "Mesi di spese coperti": "Months of expenses covered",
+ "Qualità dei pasti registrati in LifeFitness (calorie, proteine, fibre, zuccheri, grassi saturi, sale — il cibo spazzatura lo abbassa), ritmo dei pasti (orari regolari, niente cena tardissima) e acqua bevuta rispetto al fabbisogno.": "Quality of the meals logged in LifeFitness (calories, protein, fibre, sugar, saturated fat, salt — junk food lowers it), meal rhythm (regular times, no very late dinners) and water drunk against your needs.",
+ "Ritmo dei pasti": "Meal rhythm",
+ "Stress dai tuoi messaggi": "Stress from your messages",
+ "Tasso di risparmio rispetto al 20% del reddito, bollette scadute da pagare, mesi di spese che copri con quello che hai (almeno 3) e andamento di saldo e spese.": "Savings rate against 20% of income, overdue bills still to pay, months of expenses you cover with what you have (at least 3) and the trend of balance and spending.",
+ "Tono dei tuoi messaggi a Theia": "Tone of your messages to Theia",
+ "Umore dei tuoi check-in (da 1 a 5) e tono dei messaggi che scrivi a Theia, rispetto a 3,5, più i minuti di mindfulness rispetto a 10. I messaggi sono analizzati sul telefono.": "Mood from your check-ins (1 to 5) and the tone of the messages you write to Theia, against 3.5, plus mindfulness minutes against 10. Messages are analysed on your phone."
 }
