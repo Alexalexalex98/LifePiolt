@@ -8,23 +8,23 @@ import { attainment, type Analysis } from './analytics.ts';
 export type BalanceLevel = 'ok' | 'attenzione' | 'carenza';
 export type BalanceLine = { label: string; value: string; goal?: string; trend?: string; level: BalanceLevel };
 export type BalanceCat = {
-  id: string; label: string; /** da cosa è fatta (spiegazione breve) */ about: string;
+  id: string; label: string; /** da cosa è fatta (spiegazione breve) */ about: string; /** come si calcola, in parole semplici */ how: string; /** valori di riferimento */ ref: string; /** quanto pesa sul punteggio complessivo (1 = normale) */ weight: number;
   score: number; level: BalanceLevel; lines: BalanceLine[]; /** perché il punteggio è questo */ why: string; /** cosa fare, dal più utile */ tips: string[];
 };
 export type Balance = { score: number | null; level: BalanceLevel; headline: string; cats: BalanceCat[]; weakest: BalanceCat[]; missing: string[] };
 
 export const levelOf = (score: number): BalanceLevel => (score >= 75 ? 'ok' : score >= 50 ? 'attenzione' : 'carenza');
 
-type CatDef = { id: string; label: string; about: string; metrics: string[]; weight: number };
+type CatDef = { id: string; label: string; about: string; how: string; ref: string; metrics: string[]; weight: number };
 export const CATS: CatDef[] = [
-  { id: 'sonno', label: 'Sonno', about: 'Quanto dormi, in media, rispetto alle 7-9 ore consigliate.', metrics: ['sleep'], weight: 1.3 },
-  { id: 'movimento', label: 'Movimento', about: 'Passi, minuti di esercizio, calorie attive e allenamenti.', metrics: ['steps', 'distance', 'flights', 'exercise', 'energy', 'training'], weight: 1.1 },
-  { id: 'cuore', label: 'Cuore e recupero', about: 'Battito a riposo, HRV, ossigeno e forma fisica: dicono quanto il corpo recupera.', metrics: ['hr', 'hrv', 'vo2', 'spo2', 'resp'], weight: 1 },
-  { id: 'stress', label: 'Stress', about: 'Livello di stress stimato da battito e HRV.', metrics: ['stress'], weight: 1.3 },
-  { id: 'mente', label: 'Mente e umore', about: 'Umore dei check-in e minuti di mindfulness.', metrics: ['mood', 'mindful'], weight: 1.2 },
-  { id: 'cibo', label: 'Alimentazione', about: 'Qualità di quello che mangi (calorie, proteine, fibre, zuccheri, sale).', metrics: ['diet'], weight: 1 },
-  { id: 'soldi', label: 'Soldi e serenità', about: 'Risparmio, saldo e spese: i soldi pesano sulla testa più di quanto sembri.', metrics: ['savings', 'balance', 'spending', 'dailyspend'], weight: 0.9 },
-  { id: 'organizzazione', label: 'Organizzazione', about: 'Task completati: sentirsi «in pari» riduce la tensione.', metrics: ['tasks'], weight: 0.8 },
+  { id: 'sonno', label: 'Sonno', about: 'Quanto dormi, in media, rispetto alle 7-9 ore consigliate.', how: 'Media delle ultime 7 notti. 100 se stai tra 7 e 9 ore, più ti allontani, più scende.', ref: '7-9 ore a notte.', metrics: ['sleep'], weight: 1.3 },
+  { id: 'movimento', label: 'Movimento', about: 'Passi, minuti di esercizio, calorie attive e allenamenti.', how: 'Per ogni dato (passi, distanza, piani, esercizio, energia attiva, allenamenti) si confronta la media di 7 giorni con l\'obiettivo. Il punteggio è la media dei dati che hai.', ref: '10.000 passi, 30 minuti di esercizio, 400 kcal attive, 3 allenamenti a settimana.', metrics: ['steps', 'distance', 'flights', 'exercise', 'energy', 'training'], weight: 1.1 },
+  { id: 'cuore', label: 'Cuore e recupero', about: 'Battito a riposo, HRV, ossigeno e forma fisica: dicono quanto il corpo recupera.', how: 'Media di 7 giorni di battito a riposo (più basso è meglio), HRV, ossigeno e respiri al minuto rispetto ai valori sani. Servono dati da orologio o inseriti a mano.', ref: 'Ossigeno 95-100%, respiri 12-20 al minuto. Battito e HRV migliorano nel tempo.', metrics: ['hr', 'hrv', 'vo2', 'spo2', 'resp'], weight: 1 },
+  { id: 'stress', label: 'Stress', about: 'Livello di stress stimato da battito e HRV.', how: 'Media di 7 giorni dello stress (0-100, stimato da battito e HRV o inserito da te). 100 se resta sotto 45 (sopra, il punteggio scende).', ref: 'Sotto 45 su 100.', metrics: ['stress'], weight: 1.3 },
+  { id: 'mente', label: 'Mente e umore', about: 'Umore dei check-in e minuti di mindfulness.', how: 'Umore dei tuoi check-in (da 1 a 5) rispetto a 3,5 e minuti di mindfulness al giorno rispetto a 10: media dei due.', ref: 'Umore almeno 3,5 su 5 e 10 minuti di mindfulness al giorno.', metrics: ['mood', 'mindful'], weight: 1.2 },
+  { id: 'cibo', label: 'Alimentazione', about: 'Qualità di quello che mangi (calorie, proteine, fibre, zuccheri, sale).', how: 'Punteggio di qualità dei pasti registrati in LifeFitness (calorie, proteine, fibre, zuccheri, grassi saturi, sale — il cibo spazzatura lo abbassa), rispetto a 85.', ref: '85 su 100 o più.', metrics: ['diet'], weight: 1 },
+  { id: 'soldi', label: 'Soldi e serenità', about: 'Risparmio, saldo e spese: i soldi pesano sulla testa più di quanto sembri.', how: 'Tasso di risparmio degli ultimi mesi rispetto al 20% del reddito, insieme a saldo e spese del mese.', ref: 'Risparmio almeno il 20% di quanto entra.', metrics: ['savings', 'balance', 'spending', 'dailyspend'], weight: 0.9 },
+  { id: 'organizzazione', label: 'Organizzazione', about: 'Task completati: sentirsi «in pari» riduce la tensione.', how: 'Quante task completi in media al giorno negli ultimi 7 giorni, rispetto a 2 al giorno. Se non ne completi nessuna, il punteggio è 0.', ref: '2 task completate al giorno.', metrics: ['tasks'], weight: 0.8 },
 ];
 
 const num = (v: number, dec: number) => String(Math.round(v * 10 ** dec) / 10 ** dec).replace('.', ',');
@@ -103,7 +103,7 @@ export function buildBalance(list: Analysis[]): Balance {
     const why = worst
       ? `${worst.a.def.label} è il punto più debole: ${num(val(worst.a), worst.a.def.dec)} ${worst.a.def.unit}${goalText(worst.a) ? ` contro un obiettivo di ${goalText(worst.a)}` : ''}.`
       : 'Tutti i dati di questa categoria sono nei valori consigliati.';
-    cats.push({ id: c.id, label: c.label, about: c.about, score, level: levelOf(score), lines, why, tips: [...new Set(tips)].slice(0, 6) });
+    cats.push({ id: c.id, label: c.label, about: c.about, how: c.how, ref: c.ref, weight: c.weight, score, level: levelOf(score), lines, why, tips: [...new Set(tips)].slice(0, 6) });
     weights[c.id] = c.weight;
   }
   if (!cats.length) return { score: null, level: 'attenzione', headline: 'Non ho ancora abbastanza dati: collega Apple Health o registra sonno, umore e pasti per qualche giorno.', cats: [], weakest: [], missing };

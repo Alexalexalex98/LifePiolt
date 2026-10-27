@@ -14,6 +14,7 @@ import { useFitness } from '@/store/fitness';
 import { dailyTargets } from '@/lib/fitness/nutrition';
 import { dietSeries, trainingSeries } from '@/lib/fitness/scoreInputs';
 import { t } from '@/i18n/core';
+import { buildBalance, type Balance } from '@/lib/lifeBalance';
 
 /* ---------- definizioni delle metriche ---------- */
 const H = (id: Metric, over: Partial<MetricDef>): MetricDef => ({ id, label: healthMeta[id].label, unit: healthMeta[id].unit, dec: healthMeta[id].dec, color: healthMeta[id].color, domain: 'salute', better: 'up', period: 'day', ...over });
@@ -207,7 +208,7 @@ function financeInsights(today: string): Insight[] {
 export type Dashboard = {
   today: string; list: Analysis[]; byId: Record<string, Analysis>; corrs: Correlation[]; insights: Insight[];
   scores: { salute: number | null; mente: number | null; finanza: number | null; crescita: number | null; total: number | null };
-  lifeSeries: Pt[]; lifeForecast: Forecast | null; lifeDelta: number | null;
+  lifeSeries: Pt[]; lifeForecast: Forecast | null; lifeDelta: number | null; balance: Balance;
   dataDays: number; sources: Record<string, number>;
 };
 
@@ -240,7 +241,10 @@ export function computeDashboard(): Dashboard {
 
   const sc = { salute: domainScore(list, 'salute'), mente: domainScore(list, 'mente'), finanza: domainScore(list, 'finanza'), crescita: domainScore(list, 'crescita') };
   const vals = Object.values(sc).filter((v): v is number => v != null);
-  const total = vals.length ? Math.round(mean(vals)) : null;
+  const oldTotal = vals.length ? Math.round(mean(vals)) : null;
+  /* il Life Score è quello di «La tua vita in un dato»: tutte le categorie insieme, così widget, scheda e LifeHealth mostrano lo stesso numero */
+  const balance = buildBalance(list);
+  const total = balance.score ?? oldTotal;
 
   // storico del Life Score: indice giornaliero salute+mente, con finanza e crescita attuali come costanti
   const idx = dailyIndex(series, today);
@@ -255,7 +259,7 @@ export function computeDashboard(): Dashboard {
   series.forEach((s) => { if (s.def.period === 'day') s.pts.forEach((p) => days.add(p.d)); });
   const sources: Record<string, number> = {};
   series.forEach((s) => { sources[s.source] = (sources[s.source] ?? 0) + 1; });
-  return { today, list, byId, corrs, insights, scores: { ...sc, total }, lifeSeries, lifeForecast, lifeDelta, dataDays: days.size, sources };
+  return { today, list, byId, corrs, insights, balance, scores: { ...sc, total }, lifeSeries, lifeForecast, lifeDelta, dataDays: days.size, sources };
 }
 
 /** Hook: ricalcola l'analisi quando cambiano i dati. */
