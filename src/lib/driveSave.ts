@@ -36,3 +36,33 @@ export function saveMediaToDrive(m: { uri?: string | null; media: 'photo' | 'vid
     return true;
   } catch { return false; }
 }
+
+/** Cartella dei documenti com'e' adesso: dopo una nuova installazione o build il percorso assoluto delle vecchie foto non vale piu'. */
+const rebase = (uri: string) => {
+  try {
+    const i = uri.indexOf('/Documents/');
+    return i > 0 && /^file:/i.test(uri) ? `${Paths.document.uri.replace(/\/+$/, '')}/${uri.slice(i + '/Documents/'.length)}` : uri;
+  } catch { return uri; }
+};
+const exists = (uri: string) => { try { return new File(uri).exists; } catch { return false; } };
+
+/**
+ * L'indirizzo da mostrare per una foto salvata tempo fa: quello originale se c'e' ancora, altrimenti lo stesso file nella cartella
+ * dei documenti di adesso, altrimenti la copia in LifeDrive (le foto della fotocamera stanno in una cartella temporanea che iOS svuota).
+ */
+export function livePhoto(uri?: string | null): string | undefined {
+  if (!uri) return undefined;
+  if (!/^file:/i.test(uri)) return uri;
+  if (exists(uri)) return uri;
+  const moved = rebase(uri);
+  if (moved !== uri && exists(moved)) return moved;
+  const hit = useLife.getState().drive.find((d) => d.orig === uri && d.uri);
+  if (hit?.uri) { if (exists(hit.uri)) return hit.uri; const r = rebase(hit.uri); if (exists(r)) return r; }
+  return uri;
+}
+
+/** La copia permanente di una foto appena scattata (quella in LifeDrive), da tenere al posto dell'originale temporaneo. */
+export function keptCopy(uri: string): string {
+  const hit = useLife.getState().drive.find((d) => d.orig === uri && d.uri);
+  return hit?.uri ?? uri;
+}

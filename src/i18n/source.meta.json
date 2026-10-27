@@ -1,5 +1,5 @@
 {
- "count": 14688,
+ "count": 14710,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -30,7 +30,7 @@
   "src/app/(tabs)/fitnessBody.tsx": 31,
   "src/app/(tabs)/fitnessCook.tsx": 27,
   "src/app/(tabs)/fitnessDay.tsx": 39,
-  "src/app/(tabs)/fitnessDiary.tsx": 56,
+  "src/app/(tabs)/fitnessDiary.tsx": 54,
   "src/app/(tabs)/fitnessExercise.tsx": 31,
   "src/app/(tabs)/fitnessFridge.tsx": 57,
   "src/app/(tabs)/fitnessGroup.tsx": 39,
@@ -391,7 +391,7 @@
   "src/lib/assistant/engine.ts": 224,
   "src/lib/assistant/env.ts": 7,
   "src/lib/assistant/followup.ts": 4,
-  "src/lib/assistant/foodTheia.ts": 39,
+  "src/lib/assistant/foodTheia.ts": 76,
   "src/lib/assistant/nlp.ts": 13,
   "src/lib/assistant/phrases.ts": 101,
   "src/lib/assistant/phrasesMore.ts": 128,
@@ -660,5 +660,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1846
+ "withPlaceholders": 1852
 }

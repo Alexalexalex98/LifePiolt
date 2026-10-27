@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { livePhoto } from '@/lib/driveSave';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
@@ -6,7 +7,7 @@ import { FIT, Ring } from '@/components/fitness/kit';
 import { AiNote } from '@/components/AiNote';
 import { RichText } from '@/components/RichText';
 import { Body, Btn, Card, H, Item, Page, Pill, Row, Sheet, Switch } from '@/components/ui';
-import { deepAnalysisText, recapText } from '@/lib/assistant/foodTheia';
+import { deepAnalysisText, fullAnalysisText } from '@/lib/assistant/foodTheia';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { DaySummary } from '@/components/fitness/DaySummary';
@@ -43,6 +44,7 @@ export default function FitnessDiary() {
   const [period, setPeriod] = useState<7 | 30>(7);
   const [recap, setRecap] = useState(false);
   const [deep, setDeep] = useState<{ busy: boolean; text?: string; ok?: boolean }>({ busy: false });
+  const askAi = async () => { setDeep({ busy: true }); const r = await deepAnalysisText(); setDeep({ busy: false, text: r.text, ok: r.ok }); };
   const groups = groupByDay(withMicro(fit.meals));
   const target = fit.body ? dailyTarget(fit.body) : null;
   const st = periodStats(withMicro(fit.meals), fit.water ?? {}, Date.now(), period);
@@ -71,8 +73,8 @@ export default function FitnessDiary() {
     <Page id="fitnessDiary" back title="Storico dei pasti">
       <Card accent={FIT}>
         <H>Come mangi</H>
-        <Body small muted style={{ marginTop: 2 }}>Theia guarda gli ultimi 7 giorni e ti dice dove sei carente e cosa migliorare, in una scheda qui. L'analisi si fa sul telefono, senza AI esterna.</Body>
-        <Btn style={{ marginTop: 10 }} icon="sparkle" title="Fai analizzare a Theia" onPress={() => { setDeep({ busy: false }); setRecap(true); }} />
+        <Body small muted style={{ marginTop: 2 }}>Un parere breve dell'AI e, sotto, l'analisi di Theia su tutti i nutrienti degli ultimi 7 giorni. L'analisi di Theia si fa sul telefono; il parere dell'AI parte solo se consenti.</Body>
+        <Btn style={{ marginTop: 10 }} icon="sparkle" title="Approfondimento" onPress={() => { setRecap(true); void askAi(); }} />
       </Card>
 
       <Card>
@@ -178,7 +180,7 @@ export default function FitnessDiary() {
             <Item key={m.id} last={i === g.meals.length - 1}>
               <Pressable accessibilityRole="button" accessibilityLabel={m.name} onPress={() => go('fitnessMealCard', { id: m.id })}>
                 <Row gap={10}>
-                  {m.photo ? <Image source={{ uri: m.photo }} style={{ width: 52, height: 52, borderRadius: 12 }} contentFit="cover" /> : <View style={{ width: 52, height: 52, borderRadius: 12, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name="lifefitness" size={22} color={t.muted} /></View>}
+                  {m.photo ? <Image source={{ uri: livePhoto(m.photo) }} style={{ width: 52, height: 52, borderRadius: 12 }} contentFit="cover" /> : <View style={{ width: 52, height: 52, borderRadius: 12, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name="lifefitness" size={22} color={t.muted} /></View>}
                   <View style={{ flex: 1 }}><Body bold numberOfLines={1}>{displayName(m)}</Body><Body small muted>{`${tl(SLOT[slotOf(m.ts)])} · ${hhmm(m.ts)} · ${m.macros.kcal} kcal`}</Body></View>
                   <Icon name="chevron" size={18} color={t.muted} />
                 </Row>
@@ -189,16 +191,16 @@ export default function FitnessDiary() {
       ))}
       {groups.length > shown ? <Btn ghost title={tl('Mostra altri giorni ({0})', groups.length - shown)} onPress={() => setShown(shown + 10)} /> : null}
       <Body small muted style={{ marginTop: 8 }}>{NUTRITION_LEGAL}</Body>
-      <Sheet visible={recap} title="Come mangi, secondo Theia" onClose={() => setRecap(false)}>
-        <RichText text={recapText()} color={t.text} accent={t.text} />
-        {deep.text ? (
-          <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.border }}>
-            <Body bold>{deep.ok ? 'Il parere dell\'AI' : 'Parere dell\'AI'}</Body>
-            <View style={{ marginTop: 6 }}><RichText text={deep.text} color={t.text} accent={t.text} /></View>
-            {deep.ok ? <AiNote /> : null}
-          </View>
-        ) : null}
-        <Btn style={{ marginTop: 14 }} icon="sparkle" ghost={!!deep.text} disabled={deep.busy} title={deep.busy ? 'Chiedo all\'AI…' : deep.text ? 'Chiedi di nuovo all\'AI' : 'Chiedi all\'AI di approfondire'} onPress={async () => { setDeep({ busy: true }); const r = await deepAnalysisText(); setDeep({ busy: false, text: r.text, ok: r.ok }); }} />
+      <Sheet visible={recap} title="Approfondimento" onClose={() => setRecap(false)}>
+        <Body bold>Il parere dell'AI</Body>
+        {deep.busy ? <Body small muted style={{ marginTop: 6 }}>Chiedo all'AI…</Body> : deep.text ? <View style={{ marginTop: 6 }}><RichText text={deep.text} color={t.text} accent={t.text} /></View> : <Body small muted style={{ marginTop: 6 }}>Nessun parere ancora.</Body>}
+        {deep.ok ? <AiNote /> : null}
+        <Btn style={{ marginTop: 10 }} icon="sparkle" ghost disabled={deep.busy} title={deep.busy ? 'Chiedo all\'AI…' : 'Chiedi di nuovo all\'AI'} onPress={() => void askAi()} />
+        <View style={{ marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.border }}>
+          <Body bold>Analisi di Theia</Body>
+          <View style={{ marginTop: 6 }}><RichText text={fullAnalysisText()} color={t.text} accent={t.text} /></View>
+        </View>
+        <Body small muted style={{ marginTop: 10 }}>{NUTRITION_LEGAL}</Body>
         <Btn style={{ marginTop: 8 }} ghost title="Continua in chat con Theia" onPress={() => { setRecap(false); go('ai', { ask: 'Analizza come mangio' }); }} />
       </Sheet>
     </Page>

@@ -4,6 +4,7 @@ import { tidy } from '@/lib/aiPersona';
 import { AiServerError, aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { analysisAiPrompt, analysisText, dayOf, findings, groupByDay, mealOpinion, parseWater, periodStats, quality, waterGoal } from '@/lib/fitness/mealInsights';
 import { withMicro } from '@/lib/fitness/mealMicro';
+import { microRows } from '@/lib/fitness/micro';
 import { dailyTarget, dailyTargets } from '@/lib/fitness/nutrition';
 import { refreshFoodReminders } from '@/lib/foodNotify';
 import { useApp } from '@/store/app';
@@ -85,6 +86,62 @@ export function recapText(): string {
   return analysisText(s, findings(s, ctx()), useApp.getState().account.name?.split(' ')[0]);
 }
 
+/**
+ * «Analisi di Theia»: calcolata sul telefono, su tutto e su tutti i nutrienti degli ultimi 7 giorni (media al giorno rispetto al tuo obiettivo o limite),
+ * con vitamine e minerali stimati e il giorno per giorno. Niente AI esterna.
+ */
+export function fullAnalysisText(): string {
+  const fit = useFitness.getState();
+  const meals = withMicro(fit.meals);
+  const s = periodStats(meals, fit.water ?? {}, Date.now(), 7);
+  const head = recapText();
+  if (!s.days) return head;
+  const tg = fit.body ? dailyTargets(fit.body) : null;
+  const a = s.avg;
+  const num = (n: number | undefined) => String(Math.round((n ?? 0) * 10) / 10).replace('.', ',');
+  const pct = (v: number, goal: number) => `${Math.round((v / Math.max(1, goal)) * 100)}%`;
+  const low = (label: string, v: number | undefined, goal: number, unit: string, why: string) => {
+    const r = (v ?? 0) / Math.max(1, goal);
+    return `• ${label}: ${num(v)} ${unit} su ${num(goal)} (${pct(v ?? 0, goal)}) · ${r >= 0.9 ? t('in linea') : r >= 0.6 ? t('un po\' sotto') : t('sotto')}. ${why}`;
+  };
+  const high = (label: string, v: number | undefined, max: number, unit: string, why: string) => {
+    const r = (v ?? 0) / Math.max(1, max);
+    return `• ${label}: ${num(v)} ${unit}, massimo ${num(max)} (${pct(v ?? 0, max)}) · ${r <= 1 ? t('nei limiti') : r <= 1.3 ? t('un po\' sopra') : t('troppo alto')}. ${why}`;
+  };
+  const out: string[] = [head];
+  const macros: string[] = [`${t('Energia e macronutrienti (media al giorno)')}`];
+  macros.push(tg ? low(t('Calorie'), a.kcal, tg.kcal, 'kcal', t('Il fabbisogno dipende da età, peso e attività.')) : `• ${t('Calorie')}: ${num(a.kcal)} kcal.`);
+  macros.push(tg ? low(t('Proteine'), a.p, tg.protein, 'g', t('Servono a muscoli, pelle e difese.')) : `• ${t('Proteine')}: ${num(a.p)} g.`);
+  macros.push(tg ? low(t('Carboidrati'), a.c, tg.carbs, 'g', t('Sono la principale fonte di energia per cervello e muscoli.')) : `• ${t('Carboidrati')}: ${num(a.c)} g.`);
+  macros.push(tg ? low(t('Grassi totali'), a.f, tg.fat, 'g', t('Contano il tipo e la qualità, non solo la quantità.')) : `• ${t('Grassi totali')}: ${num(a.f)} g.`);
+  if (tg) {
+    macros.push(high(t('Zuccheri'), a.sug, tg.sugarMax, 'g', t('Qui sono contati tutti gli zuccheri, anche quelli naturali di frutta e latte. Quelli aggiunti (bibite, dolci, succhi) vanno limitati.')));
+    macros.push(high(t('Grassi saturi'), a.sat, tg.satMax, 'g', t('Sono i grassi di burro, formaggi grassi, salumi e carni grasse: in eccesso fanno salire il colesterolo «cattivo».')));
+    macros.push(low(t('Fibre'), a.fib, tg.fibre, 'g', t('Sono nella frutta intera, verdura, legumi e cereali integrali: aiutano sazietà e intestino.')));
+    macros.push(high(t('Sale'), a.salt, tg.saltMax, 'g', t('Tieni presente salumi, formaggi, pane e piatti pronti.')));
+  } else {
+    macros.push(`• ${t('Zuccheri')}: ${num(a.sug)} g · ${t('Grassi saturi')}: ${num(a.sat)} g · ${t('Fibre')}: ${num(a.fib)} g · ${t('Sale')}: ${num(a.salt)} g.`);
+    macros.push(t('Inserisci peso, altezza ed età in LifeFitness per confrontarli con il tuo obiettivo.'));
+  }
+  const goalW = waterGoal(fit.body?.weightKg);
+  macros.push(s.waterMl !== null ? low(t('Acqua'), s.waterMl / 1000, goalW / 1000, 'L', t('Conta anche l\'acqua che arriva da frutta, verdura e minestre.')) : `• ${t('Acqua')}: ${t('non hai segnato quanta ne bevi.')}`);
+  out.push(macros.join('\n'));
+  if (s.micro) {
+    const rows = microRows(s.micro);
+    const mic = [t('Vitamine e minerali (stima, media al giorno rispetto al riferimento)')];
+    for (const r of rows) mic.push(`• ${r.label}: ${num(r.value)} ${r.unit} su ${num(r.ref)} (${r.pct}%) · ${r.level === 'ok' ? t('in linea') : r.level === 'basso' ? t('basso') : t('molto basso')}${r.level === 'ok' ? '' : `. ${t('Dove trovarla')}: ${r.sources}.`}`);
+    mic.push(t('Sono stime, non un dato medico: vitamine e minerali sono calcolati per categoria di alimento.'));
+    out.push(mic.join('\n'));
+  }
+  const days = groupByDay(meals).filter((g) => g.ts >= Date.now() - 7 * 86400000).slice(0, 7);
+  if (days.length) {
+    const rows = [t('Giorno per giorno')];
+    for (const g of days) rows.push(`• ${new Date(g.ts).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'numeric' })}: ${g.total.kcal} kcal · P ${num(g.total.p)} g · C ${num(g.total.c)} g · G ${num(g.total.f)} g · ${t('zuccheri')} ${num(g.total.sug)} g · ${t('fibre')} ${num(g.total.fib)} g · ${t('sale')} ${num(g.total.salt)} g (${g.meals.length} ${t('pasti')})`);
+    out.push(rows.join('\n'));
+  }
+  return out.join('\n\n');
+}
+
 /** Parere dettagliato dell'AI sulle medie (solo numeri), dopo il consenso. `ok` = è arrivato davvero il parere dell'AI. */
 export async function deepAnalysisText(): Promise<{ ok: boolean; text: string }> {
   if (!aiServerConfigured) return { ok: false, text: t('L\'AI non è collegata in questa app: resta l\'analisi fatta sul telefono.') };
@@ -95,7 +152,7 @@ export async function deepAnalysisText(): Promise<{ ok: boolean; text: string }>
   const c = ctx();
   const tg = fit.body ? dailyTargets(fit.body) : null;
   const q = tg ? quality(s, tg) : null;
-  const prompt = analysisAiPrompt(s, findings(s, c), c, q);
+  const prompt = `${analysisAiPrompt(s, findings(s, c), c, q)}\n\nIMPORTANTE: sii BREVE. Una frase di giudizio e al massimo 3 punti molto corti (circa 60 parole in tutto). L'analisi dettagliata su ogni nutriente la scrive già l'app.`;
   try {
     logSend('summary', prompt.length, ['testo']);
     return { ok: true, text: `${tidy(await aiChatRaw(prompt))}\n\n${t('Parere dell\'AI: può sbagliare, controlla su una fonte affidabile. Non è un consiglio medico.')}` };

@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { livePhoto } from '@/lib/driveSave';
 import { File } from 'expo-file-system';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -115,7 +116,7 @@ export default function FitnessBody() {
               </Pressable>
               {openId === r.id ? (
                 <View style={{ marginTop: 6 }}>
-                  {r.photos ? <Row gap={6} style={{ marginBottom: 8 }}>{BODY_SLOTS.map((sl) => r.photos?.[sl.id] ? <Pressable key={sl.id} accessibilityRole="button" accessibilityLabel={sl.label} onPress={() => setViewer(r.photos![sl.id]!)} style={{ flex: 1 }}><Image source={{ uri: r.photos[sl.id]! }} style={{ width: '100%', aspectRatio: 3 / 4, borderRadius: 10 }} contentFit="cover" /></Pressable> : <View key={sl.id} style={{ flex: 1 }} />)}</Row> : null}
+                  {r.photos ? <Row gap={6} style={{ marginBottom: 8 }}>{BODY_SLOTS.map((sl) => r.photos?.[sl.id] ? <Pressable key={sl.id} accessibilityRole="button" accessibilityLabel={sl.label} onPress={() => setViewer(livePhoto(r.photos![sl.id]) ?? r.photos![sl.id]!)} style={{ flex: 1 }}><Image source={{ uri: livePhoto(r.photos[sl.id]) }} style={{ width: '100%', aspectRatio: 3 / 4, borderRadius: 10 }} contentFit="cover" /></Pressable> : <View key={sl.id} style={{ flex: 1 }} />)}</Row> : null}
                   <RichText text={r.text} color={t.text} accent={t.text} />
                   <AiNote />
                   <Btn small ghost danger style={{ marginTop: 8, alignSelf: 'flex-start' }} icon="trash" title="Elimina questa analisi" onPress={() => delReport(r.id)} />

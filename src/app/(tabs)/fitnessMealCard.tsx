@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { livePhoto } from '@/lib/driveSave';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -45,8 +46,8 @@ export default function FitnessMealCard() {
   const items = m.items?.length ? m.items : [{ foodId: m.foodId ?? '', name: m.name, grams: m.grams }];
   return (
     <Page id="fitnessMealCard" back title={displayName(m)}>
-      {m.photo ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Apri la foto')} onPress={() => setViewer(true)}><Image source={{ uri: m.photo }} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 18 }} contentFit="cover" cachePolicy="disk" /></Pressable> : null}
-      <PhotoViewer uri={viewer ? m.photo ?? null : null} onClose={() => setViewer(false)} />
+      {m.photo ? <Pressable accessibilityRole="button" accessibilityLabel={tl('Apri la foto')} onPress={() => setViewer(true)}><Image source={{ uri: livePhoto(m.photo) }} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 18 }} contentFit="cover" cachePolicy="disk" /></Pressable> : null}
+      <PhotoViewer uri={viewer ? livePhoto(m.photo) ?? null : null} onClose={() => setViewer(false)} />
       <Card>
         <H>{displayName(m)}</H>
         <Body small muted style={{ textTransform: 'capitalize' }}>{`${tl(SLOT[slotOf(m.ts)])} · ${when}`}</Body>
