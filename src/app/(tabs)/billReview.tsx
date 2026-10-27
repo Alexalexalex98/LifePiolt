@@ -187,7 +187,7 @@ export default function BillReview() {
           const s = await storeBillFile(file);
           fileInfo = { fileUri: s.uri, fileId: s.driveId, fileName: file.name, fileMime: file.mime };
         }
-        const installments = rate > 1 ? splitInstallments(v.amount, rate, v.dueDate) : undefined;
+        const installments = draft?.plan ? draft.plan.installments : rate > 1 ? splitInstallments(v.amount, rate, v.dueDate) : undefined;
         const how = text ? (file ? 'Aggiunta da file' : 'Aggiunta da testo incollato') : file ? 'Aggiunta dal documento (compilata a mano)' : 'Aggiunta a mano';
         const id = st.addInvoice({ ...v, ...fileInfo, ...((qrPayload ?? swissQrFrom(text)) ? { qr: (qrPayload ?? swissQrFrom(text))! } : {}), ...(installments ? { installments } : {}), remind, calendar: false }, installments ? `${how} · rateizzata in ${rate} rate` : how);
         if (calendar) {
@@ -351,7 +351,16 @@ export default function BillReview() {
                 )}
               </Card>
 
-              {!isEdit && (
+              {!isEdit && draft?.plan ? (
+                <Card accent={th.accent}>
+                  <H>{t('Piano di pagamento riconosciuto')}</H>
+                  <Body small muted style={{ marginBottom: 6 }}>{t('{0} rate, in tutto {1}. Le salvo tutte con le loro scadenze e ti avviso prima di ognuna.', draft.plan.installments.length, money(draft.plan.statedTotal ?? draft.plan.total, form.currency || undefined))}</Body>
+                  {[...draft.plan.installments.slice(0, 3), ...(draft.plan.installments.length > 4 ? [null] : []), ...draft.plan.installments.slice(-1)].map((x, i) => (
+                    x ? <Row key={i}><Body small muted>{t('Rata {0}: {1}', draft.plan!.installments.indexOf(x) + 1, fmtDay(x.dueDate))}</Body><Body small bold>{money(x.amount, form.currency || undefined)}</Body></Row> : <Body key={i} small muted>…</Body>
+                  ))}
+                </Card>
+              ) : null}
+              {!isEdit && !draft?.plan && (
                 <Card>
                   <H>{t('Come vuoi pagarla')}</H>
                   <Body small muted style={{ marginBottom: 6 }}>Se hai concordato una rateizzazione, scegli quante rate: la divido in rate mensili.</Body>

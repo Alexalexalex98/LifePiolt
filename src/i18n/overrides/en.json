@@ -3982,5 +3982,22 @@
  "Umore almeno 3,5 su 5 e 10 minuti di mindfulness al giorno.": "Mood at least 3.5 out of 5 and 10 minutes of mindfulness a day.",
  "Umore dei tuoi check-in (da 1 a 5) rispetto a 3,5 e minuti di mindfulness al giorno rispetto a 10: media dei due.": "Mood from your check-ins (1 to 5) against 3.5, and mindfulness minutes a day against 10: the average of the two.",
  "un po' meno": "a bit less",
- "Valore di riferimento": "Reference value"
+ "Valore di riferimento": "Reference value",
+ "{0} di {1} task": "{0} of {1} tasks",
+ "{0} rate, in tutto {1}. Le salvo tutte con le loro scadenze e ti avviso prima di ognuna.": "{0} instalments, {1} in total. I'll save them all with their due dates and remind you before each one.",
+ "Come stimo il tempo": "How I estimate the time",
+ "Controlla: è ricavato dal sito web del documento": "Check: taken from the website in the document",
+ "Impossibile leggere il file{0}. Esporta di nuovo l’estratto in formato CSV e riprova.": "Couldn't read the file{0}. Export the statement as CSV again and retry.",
+ "IN CORSO": "IN PROGRESS",
+ "IN PAUSA": "PAUSED",
+ "La somma delle {0} rate è {1}, ma il documento indica un totale di {2}: controlla.": "The {0} instalments add up to {1}, but the document states a total of {2}: please check.",
+ "La somma delle rate è {0}, il documento dice {1}: controlla": "The instalments add up to {0}, the document says {1}: check",
+ "Oggi: {0} fatte": "Today: {0} done",
+ "Piano di pagamento riconosciuto": "Payment plan recognised",
+ "Piano di pagamento: {0} rate": "Payment plan: {0} instalments",
+ "Prima rata del piano di pagamento": "First instalment of the payment plan",
+ "Salta a {0}": "Skip to {0}",
+ "Sito web nel documento": "Website in the document",
+ "Adesso": "Now",
+ "Dopo": "Next"
 }

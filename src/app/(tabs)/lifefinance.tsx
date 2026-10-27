@@ -114,8 +114,8 @@ export default function LifeFinance() {
         <>
           {hasStatement ? (
             <Row gap={8}>
-              <Btn small ghost icon="file" title="Carica un file" onPress={() => setCsvSheet(true)} style={{ flex: 1 }} />
-              <Btn small ghost icon="plus" title="Aggiungi un movimento" onPress={() => setMvSheet(true)} style={{ flex: 1 }} />
+              <Btn small ghost icon="file" title="Carica file" onPress={() => setCsvSheet(true)} style={{ flex: 1 }} />
+              <Btn small ghost icon="plus" title="Nuovo movimento" onPress={() => setMvSheet(true)} style={{ flex: 1 }} />
               <InfoTip title="Carica un file e aggiungi un movimento" body={['Estratto conto (CSV o PDF): ha la precedenza su tutto il resto. Qualsiasi altro file lo guarda Theia e ti dice cos’è.', 'Un movimento si aggiunge a mano o con la foto dello scontrino, appena paghi. Quando carichi l’estratto, si allinea da solo.']} />
             </Row>
           ) : (

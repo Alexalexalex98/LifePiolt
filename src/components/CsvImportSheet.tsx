@@ -12,9 +12,9 @@ import { go } from '@/lib/nav';
 import { AiNote } from '@/components/AiNote';
 import { aiChat, aiReadFiles, aiServerConfigured, AiServerError } from '@/lib/aiServer';
 import { readBytes, readLocally } from '@/lib/bills/files';
-import { extractPdfLayout } from '@/lib/bills/pdfText';
+import { extractPdfLayout, extractPdfText } from '@/lib/bills/pdfText';
 import { askSend, logSend } from '@/lib/aiConsent';
-import { STATEMENT_PDF_PROMPT, chunkLines, parseTableStatement, movesToCsv, parseStatementReply, statementChunkPrompt, statementLines, type StatementMove } from '@/lib/statementPdf';
+import { STATEMENT_PDF_PROMPT, chunkLines, parseFlatStatement, parseTableStatement, movesToCsv, parseStatementReply, statementChunkPrompt, statementLines, type StatementMove } from '@/lib/statementPdf';
 import { announceStatement } from '@/lib/statementReport';
 import { useTheme } from '@/hooks/use-theme';
 import { movementLabel, parseCsv, splitDuplicates, toAppDate, monthLabelOfIso, type CsvRow } from '@/lib/csvImport';
@@ -71,12 +71,22 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       /* PDF con tabella (Data, Testo, Addebito, Accredito): si legge tutto SUL TELEFONO, senza AI e senza inviare niente */
       let localText: string | null = null;
       if (isPdf) {
+        let bytes: Uint8Array | null = null;
         try {
           setProgress('Leggo il PDF…');
-          const layout = extractPdfLayout(await readBytes({ uri: a.uri, file: (a as { file?: unknown }).file }));
+          bytes = await readBytes({ uri: a.uri, file: (a as { file?: unknown }).file });
+          const layout = extractPdfLayout(bytes);
           const mv = layout ? parseTableStatement(layout) : [];
           if (mv.length) localText = movesToCsv(mv);
         } catch { /* si prova in altri modi */ }
+        /* senza posizioni delle colonne: si legge il testo (anche con ogni cella a capo) e il segno si ricava dal saldo o dalle parole */
+        if (!localText && bytes) {
+          try {
+            const r = extractPdfText(bytes);
+            const mv = r.ok ? parseFlatStatement(r.text) : [];
+            if (mv.length) localText = movesToCsv(mv);
+          } catch { /* si prova con l'AI */ }
+        }
       }
       if (localText) { text = localText; setAiRead(false); }
       else if (isPdf || isImage) {
@@ -112,8 +122,9 @@ export function CsvImportSheet({ visible, onClose }: { visible: boolean; onClose
       setFileName(a.name); setRows(fresh); setOff({}); setInfo(parsed.warnings); setSkipped(parsed.skipped); setDups(duplicates.length); setDupRows(duplicates);
     } catch (e) {
       if (e instanceof AiServerError) { setInfo([e.message]); return; }
+      const why = e instanceof Error && e.message ? ` (${e.message.slice(0, 100)})` : '';
       toast('Impossibile leggere il file');
-      setInfo(['Impossibile leggere il file. Esporta di nuovo l’estratto in formato CSV e riprova.']);
+      setInfo([`Impossibile leggere il file${why}. Esporta di nuovo l’estratto in formato CSV e riprova.`]);
     } finally { setBusy(false); setProgress(''); }
   }
 

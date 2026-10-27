@@ -95,3 +95,102 @@ test('estratto demo in PDF (tabella a strisce con importi a destra): 400 movimen
   assert.ok(mv.some((m) => m.label.startsWith('Accredito salario') && m.amount === 4850));
   assert.ok(mv.some((m) => m.label === 'Affitto appartamento' && m.amount === -1450));
 });
+
+import { parseFlatStatement } from '../src/lib/statementPdf.ts';
+const FLAT_CELLS = `FITTIZIO — SOLO TEST SOFTWARE
+Pagina 1
+BANCA DEMO
+Estratto conto dettagliato  Conto privato demo  Valuta CHF
+Intestatario
+Cliente Demo
+Numero conto
+DEMO-2026-001
+IBAN
+CH00 0000 0000 0000 0000 0 (fittizio)
+Periodo
+01.01.2026 – 21.10.2026
+Saldo iniziale
+CHF 4'850.00
+Data di riferimento
+21.10.2026
+ DOCUMENTO FITTIZIO — SOLO PER TEST SOFTWARE. Banca, intestatario, identificativi e movimenti sono inventati. Non è emesso da un istituto
+ finanziario e non è valido come prova di reddito o di saldo.
+Gennaio 2026
+ Data
+Testo / Descrizione
+Uscita CHF
+Entrata CHF
+Saldo CHF
+01.01.2026
+Prelievo contanti ATM
+244.39
+4'605.61
+01.01.2026
+Pagamento bolletta elettricità
+67.18
+4'538.43
+03.01.2026
+Incasso TWINT / QR
+76.49
+4'614.92
+03.01.2026
+Pagamento carta - caffè e pasti
+34.33
+4'580.59
+04.01.2026
+Incasso TWINT / QR
+134.69
+4'715.28
+05.01.2026
+Rimborso acquisto
+55.92
+4'771.20
+05.01.2026
+Premio assicurazione
+86.46
+4'684.74
+05.01.2026
+Pagamento palestra
+84.24
+4'600.50
+07.01.2026
+Pagamento carburante
+94.59
+4'505.91
+07.01.2026
+Pagamento bolletta elettricità
+61.00
+4'444.91
+07.01.2026
+Versamento contanti
+129.16
+4'574.07
+09.01.2026
+Addebito telefonia e internet
+91.64
+4'482.43
+09.01.2026
+Pagamento carburante
+81.20
+4'401.23
+10.01.2026
+Addebito telefonia e internet
+74.77
+4'326.46
+10.01.2026
+Bonifico - affitto
+1'315.63
+3'010.83`;
+test('testo semplice con ogni cella su una riga: date, descrizioni, importi e saldo', () => {
+  const mv = parseFlatStatement(FLAT_CELLS);
+  assert.ok(mv.length >= 14, String(mv.length));
+  assert.deepEqual(mv[0], { date: '2026-01-01', label: 'Prelievo contanti ATM', amount: -244.39 });
+  assert.deepEqual(mv[2], { date: '2026-01-03', label: 'Incasso TWINT / QR', amount: 76.49 });
+  assert.ok(mv.every((m) => !/pagina|fittizio/i.test(m.label)));
+});
+test('testo semplice a una riga per movimento, senza saldo', () => {
+  const t = '05.03.2026 Coop Lugano 45.90\n06.03.2026 Accredito stipendio Acme SA 4\'200.00\n07.03.2026 Swisscom fattura 49.00\n08.03.2026 Rimborso spese 12.50';
+  const mv = parseFlatStatement(t);
+  assert.deepEqual(mv.map((m) => m.amount), [-45.9, 4200, -49, 12.5]);
+  assert.deepEqual(parseFlatStatement('niente da vedere qui'), []);
+});

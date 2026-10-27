@@ -20,7 +20,7 @@ export function UpcomingBillsCard({ onOpen }: { onOpen: () => void }) {
     <Card accent={plan.totalOverdue > 0 ? th.danger : undefined}>
       <Row>
         <View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>{t('Prossime scadenze')}</H></View>
-        <Btn small ghost icon="plus" title="Carica bolletta" onPress={onOpen} />
+        <Btn small ghost icon="plus" title="Carica" onPress={onOpen} />
       </Row>
       {items.length === 0 ? (
         <Body small muted style={{ marginTop: 6 }}>Carica una bolletta o una fattura: la leggo sul telefono, ti preparo il piano di pagamento e ti avviso prima della scadenza, così eviti i solleciti.</Body>

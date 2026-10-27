@@ -162,3 +162,60 @@ export function parseTableStatement(pages: PdfLayoutPage[]): StatementMove[] {
   commit();
   return out;
 }
+
+/* ---------------------------------------------------------------- testo semplice (senza posizioni): ogni riga o ogni cella a capo */
+const FLAT_DATE = /^(\d{1,2})[./](\d{1,2})[./](\d{4})$/;
+const FLAT_AMOUNT = /^[-+]?\d{1,3}(?:['’ʼ]\d{3})*[.,]\d{2}-?$|^[-+]?\d+[.,]\d{2}-?$/;
+const POSITIVE = /(accredit|entrat|stipend|salari|rimbors|versament|incass|interess|storno|gutschrift|credit|deposit|refund|vendita)/i;
+
+/**
+ * Legge un estratto conto dal solo testo (anche quando ogni cella della tabella sta su una riga a parte): una riga comincia con una data,
+ * poi viene la descrizione e gli importi. Con la colonna «saldo» il segno si ricava dalla variazione del saldo; altrimenti dalle parole
+ * (accredito, stipendio, rimborso… = entrata) o da un segno meno. Senza almeno 3 movimenti restituisce [].
+ */
+export function parseFlatStatement(text: string): StatementMove[] {
+  const lines = String(text ?? '').replace(/\r/g, '').split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  type Row = { date: string; label: string[]; amounts: string[] };
+  const rows: Row[] = [];
+  let cur: Row | null = null;
+  /* righe che non sono movimenti: intestazioni di colonna (da sole), numeri di pagina, totali, avvisi */
+  const NOISE = /^(pagina|page|seite)\b|^(data|date|datum|testo|text|descrizione|uscita|entrata|addebito|accredito|saldo|importo|valuta)(\s*\/\s*\w+)?(\s+(chf|eur|usd))?$|^(totale|riporto|total|summe)\b|fittizio|^iban\b|^periodo\b/i;
+  for (const line of lines) {
+    const toks = line.split(' ');
+    const d = FLAT_DATE.exec(toks[0] ?? '');
+    if (d) {
+      const iso = isoOf(toks[0]);
+      if (!iso) { cur = null; continue; }
+      let rest = toks.slice(1);
+      if (rest[0] && FLAT_DATE.test(rest[0])) rest = rest.slice(1); // data valuta
+      cur = { date: iso, label: [], amounts: [] };
+      rows.push(cur);
+      for (const tk of rest) { if (FLAT_AMOUNT.test(tk)) cur.amounts.push(tk); else if (!cur.amounts.length) cur.label.push(tk); }
+      continue;
+    }
+    if (!cur) continue;
+    if (NOISE.test(line) && cur.amounts.length) { cur = null; continue; }
+    if (toks.every((tk) => FLAT_AMOUNT.test(tk))) { cur.amounts.push(...toks); continue; }
+    if (!cur.amounts.length) { if (NOISE.test(line)) { cur = null; continue; } cur.label.push(line); continue; }
+    cur = null; // testo dopo gli importi: fine della riga
+  }
+  const valid = rows.filter((r) => r.amounts.length >= 1 && r.label.join(' ').trim().length >= 2 && !SKIP.test(r.label.join(' ').trim()));
+  if (valid.length < 3) return [];
+  const opening = /saldo\s+iniziale[^\d-]{0,20}(-?\d[\d'’ʼ]*[.,]\d{2})/i.exec(text);
+  let prev: number | null = opening ? numOf(opening[1]) : null;
+  const out: StatementMove[] = [];
+  for (const r of valid) {
+    const nums = r.amounts.map((a) => numOf(a)).filter((n): n is number => n !== null);
+    if (!nums.length) continue;
+    let amount = nums[0];
+    const bal = nums.length >= 2 ? nums[nums.length - 1] : null;
+    const label = clean(r.label.join(' '));
+    if (bal !== null && prev !== null) {
+      const dlt = Math.round((bal - prev) * 100) / 100;
+      amount = Math.abs(Math.abs(dlt) - Math.abs(amount)) < 0.05 ? dlt : (POSITIVE.test(label) ? Math.abs(amount) : amount < 0 ? amount : -Math.abs(amount));
+    } else amount = amount < 0 ? amount : POSITIVE.test(label) ? Math.abs(amount) : -Math.abs(amount);
+    if (bal !== null) prev = bal;
+    if (amount !== 0) out.push({ date: r.date, label, amount });
+  }
+  return out;
+}

@@ -4,6 +4,8 @@ import { Pressable, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 import { Text } from '@/components/T';
+import { InfoTip } from '@/components/InfoTip';
+import { Icon, areaColors } from '@/lib/icons';
 import { Body, Btn, Card, Empty, H, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
@@ -82,9 +84,11 @@ export default function ProjectWork() {
     const ratio = el / Math.max(1, estMs);
     const left = estMs - el;
     const over = left < 0;
-    const col = over ? t.warn : ratio > 0.85 ? t.warn : t.accent;
+    const area = areaColors.lifetask ?? t.accent;
+    const col = over || ratio > 0.85 ? t.warn : area;
     const path = pathOf(nodes, session.nodeId).slice(1, -1);
     const next = groups.flatMap((g) => g.items).find((n) => n.id !== session.nodeId);
+    const pr = progressOf(nodes, rootNode.id);
     const finish = () => {
       const min = W().finish();
       useProjects.getState().toggle(session.nodeId);
@@ -92,39 +96,83 @@ export default function ProjectWork() {
       toast(tl('Fatto in {0} min: bravo!', min));
     };
     const stop = () => { W().cancel(); void cancelNotif(NOTIF); };
+    const frac = Math.min(1, Math.max(0, ratio));
+    const ang = -Math.PI / 2 + 2 * Math.PI * frac;
+    const dot = { x: SIZE / 2 + R * Math.cos(ang), y: SIZE / 2 + R * Math.sin(ang) };
+    const Round = ({ icon, label, onPress, big, filled }: { icon: string; label: string; onPress: () => void; big?: boolean; filled?: boolean }) => (
+      <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={6}
+        style={{ width: big ? 78 : 52, height: big ? 78 : 52, borderRadius: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: filled ? col : t.card, borderWidth: filled ? 0 : 1, borderColor: t.border }}>
+        <Icon name={icon} size={big ? 32 : 22} color={filled ? t.bg : t.text} stroke={2.2} />
+      </Pressable>
+    );
     return (
       <Page id="projectWork" back title={tl('Sto lavorando')}>
-        <Text style={{ color: t.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' }}>{path.length ? path.join(' › ') : rootNode.title}</Text>
-        <Text style={{ color: t.text, fontSize: 26, fontWeight: '800', marginTop: 6 }}>{session.title}</Text>
+        <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={8}>
+          <Pill label={rootNode.title} on color={area} />
+          <Pill label={tl('{0} di {1} task', pr.done, pr.total)} />
+          {doneToday ? <Pill label={tl('Oggi: {0} fatte', doneToday)} /> : null}
+        </Row>
 
-        <View style={{ alignItems: 'center', marginVertical: 22 }}>
+        <Card accent={area} style={{ marginTop: 12 }}>
+          <Text style={{ color: area, fontSize: 11, fontWeight: '900', letterSpacing: 1 }}>{tl('Adesso').toUpperCase()}</Text>
+          <Text style={{ color: t.text, fontSize: 22, fontWeight: '800', marginTop: 4 }}>{session.title}</Text>
+          {path.length ? <Body small muted style={{ marginTop: 4 }}>{path.join(' › ')}</Body> : null}
+        </Card>
+
+        <View style={{ alignItems: 'center', marginTop: 18, marginBottom: 8 }}>
           <View style={{ width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center' }} accessible accessibilityLabel={`${fmtElapsed(el)}. ${over ? tl('Oltre la stima') : tl('Restano {0}', fmtElapsed(left))}`}>
             <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }}>
-              <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke={t.chip} strokeWidth={14} fill="none" />
-              <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke={col} strokeWidth={14} fill="none" strokeLinecap="round" strokeDasharray={`${C}`} strokeDashoffset={C * Math.min(1, Math.max(0, ratio))} transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`} opacity={running ? 1 : 0.55} />
+              <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke={col} strokeOpacity={0.12} strokeWidth={26} fill="none" />
+              <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke={t.chip} strokeWidth={10} fill="none" />
+              <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke={col} strokeWidth={12} fill="none" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`} opacity={running ? 1 : 0.5} />
+              {frac > 0.01 ? <Circle cx={dot.x} cy={dot.y} r={9} fill={col} stroke={t.bg} strokeWidth={3} opacity={running ? 1 : 0.6} /> : null}
             </Svg>
-            <Text style={{ color: t.text, fontSize: 52, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{fmtElapsed(el)}</Text>
-            <Text style={{ color: over ? t.warn : t.muted, fontSize: 15, fontWeight: '700', marginTop: 2 }}>{over ? tl('+{0} oltre la stima', fmtElapsed(-left)) : tl('restano {0}', fmtElapsed(left))}</Text>
-            <Text style={{ color: t.muted, fontSize: 12, marginTop: 2 }}>{tl('stima {0}', fmtMin(session.est))}</Text>
+            <Text style={{ color: t.muted, fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>{running ? tl('IN CORSO') : tl('IN PAUSA')}</Text>
+            <Text style={{ color: t.text, fontSize: 54, fontWeight: '800', fontVariant: ['tabular-nums'], marginVertical: 2 }}>{fmtElapsed(el)}</Text>
+            <View style={{ backgroundColor: col + '22', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 4 }}>
+              <Text style={{ color: col, fontSize: 14, fontWeight: '800' }}>{over ? tl('+{0} oltre la stima', fmtElapsed(-left)) : tl('restano {0}', fmtElapsed(left))}</Text>
+            </View>
           </View>
         </View>
 
-        <Card>
-          <Body style={{ textAlign: 'center' }}>{tl(nudge(ratio, running))}</Body>
+        <Row style={{ justifyContent: 'center', alignItems: 'center' }} gap={10}>
+          <Pill label="−5" onPress={() => W().addMinutes(-5)} />
+          <Row gap={4} style={{ alignItems: 'center' }}>
+            <Text style={{ color: t.muted, fontSize: 13, fontWeight: '700' }}>{tl('stima {0}', fmtMin(session.est))}</Text>
+            <InfoTip title={tl('Come stimo il tempo')} body={tl('Il tempo è una stima dal testo della task e da quanto ci hai messo in passato: lo puoi cambiare mentre lavori.')} size={16} />
+          </Row>
+          <Pill label="+5" onPress={() => W().addMinutes(5)} />
+        </Row>
+
+        <Row style={{ justifyContent: 'space-evenly', alignItems: 'center', marginTop: 18 }}>
+          <Round icon="rotate" label={tl('Cambia task')} onPress={stop} />
+          <Round big filled icon={running ? 'pause' : 'play'} label={running ? tl('Pausa') : tl('Riprendi')} onPress={() => (running ? W().pause() : W().resume())} />
+          {next ? <Round icon="forward" label={tl('Salta')} onPress={() => { stop(); begin(next); }} /> : <View style={{ width: 52 }} />}
+        </Row>
+
+        <Btn style={{ marginTop: 18 }} icon="check" title={tl('Fatto')} onPress={finish} />
+
+        <Card style={{ marginTop: 14 }}>
+          <Row style={{ alignItems: 'flex-start' }} gap={10}>
+            <Icon name="sparkle" size={18} color={area} />
+            <Body style={{ flex: 1 }}>{tl(nudge(ratio, running))}</Body>
+          </Row>
         </Card>
 
-        <Btn style={{ marginTop: 14 }} icon="check" title={tl('Fatto')} onPress={finish} />
-        <Row style={{ marginTop: 10 }} gap={8}>
-          <View style={{ flex: 1 }}><Btn ghost title={running ? tl('Pausa') : tl('Riprendi')} onPress={() => (running ? W().pause() : W().resume())} /></View>
-          <View style={{ flex: 1 }}><Btn ghost title={tl('+5 min')} onPress={() => W().addMinutes(5)} /></View>
-          <View style={{ flex: 1 }}><Btn ghost title={tl('−5 min')} onPress={() => W().addMinutes(-5)} /></View>
-        </Row>
-        <Row style={{ marginTop: 10 }} gap={8}>
-          <View style={{ flex: 1 }}><Btn small ghost title={tl('Cambia task')} onPress={stop} /></View>
-          {next ? <View style={{ flex: 1 }}><Btn small ghost title={tl('Salta')} onPress={() => { stop(); begin(next); }} /></View> : null}
-        </Row>
-        <Body small muted style={{ textAlign: 'center', marginTop: 16 }}>{doneToday ? tl('Oggi hai finito {0} task con «Inizia a lavorare». Continua così.', doneToday) : tl('Una cosa alla volta: quando finisci la prima, ti propongo la prossima.')}</Body>
-        {next ? <Body small muted style={{ textAlign: 'center', marginTop: 4 }}>{tl('Dopo: {0} (~{1})', next.title, fmtMin(estimateMinutes(next.title, history)))}</Body> : null}
+        {next ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={tl('Salta a {0}', next.title)} onPress={() => { stop(); begin(next); }}>
+            <Card style={{ marginTop: 4 }}>
+              <Row>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: t.muted, fontSize: 11, fontWeight: '800', letterSpacing: 0.8 }}>{tl('Dopo').toUpperCase()}</Text>
+                  <Body numberOfLines={2} style={{ marginTop: 2 }}>{next.title}</Body>
+                </View>
+                <Pill label={`~${fmtMin(estimateMinutes(next.title, history))}`} />
+                <Icon name="chevron" size={16} color={t.muted} />
+              </Row>
+            </Card>
+          </Pressable>
+        ) : null}
       </Page>
     );
   }

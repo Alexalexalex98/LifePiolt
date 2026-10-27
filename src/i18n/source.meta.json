@@ -1,5 +1,5 @@
 {
- "count": 14973,
+ "count": 14982,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -7,7 +7,7 @@
   "src/app/(tabs)/aiSettings.tsx": 7,
   "src/app/(tabs)/applicantView.tsx": 101,
   "src/app/(tabs)/billDetail.tsx": 93,
-  "src/app/(tabs)/billReview.tsx": 104,
+  "src/app/(tabs)/billReview.tsx": 106,
   "src/app/(tabs)/businessCard.tsx": 6,
   "src/app/(tabs)/businessCreate.tsx": 42,
   "src/app/(tabs)/businessPage.tsx": 19,
@@ -62,7 +62,7 @@
   "src/app/(tabs)/legalDoc.tsx": 2,
   "src/app/(tabs)/life.tsx": 23,
   "src/app/(tabs)/lifedrive.tsx": 56,
-  "src/app/(tabs)/lifefinance.tsx": 105,
+  "src/app/(tabs)/lifefinance.tsx": 107,
   "src/app/(tabs)/lifefitness.tsx": 128,
   "src/app/(tabs)/lifeforecast.tsx": 23,
   "src/app/(tabs)/lifehealth.tsx": 102,
@@ -95,7 +95,7 @@
   "src/app/(tabs)/profile.tsx": 52,
   "src/app/(tabs)/profileContent.tsx": 14,
   "src/app/(tabs)/profileMore.tsx": 8,
-  "src/app/(tabs)/projectWork.tsx": 31,
+  "src/app/(tabs)/projectWork.tsx": 34,
   "src/app/(tabs)/projects.tsx": 57,
   "src/app/(tabs)/purchaseConfirm.tsx": 9,
   "src/app/(tabs)/recordingPlayer.tsx": 8,
@@ -417,7 +417,7 @@
   "src/lib/bills/files.ts": 16,
   "src/lib/bills/form.ts": 8,
   "src/lib/bills/index.ts": 2,
-  "src/lib/bills/parse.ts": 70,
+  "src/lib/bills/parse.ts": 76,
   "src/lib/bills/pdfText.ts": 6,
   "src/lib/bills/reminders.ts": 18,
   "src/lib/bills/types.ts": 20,
@@ -669,5 +669,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1876
+ "withPlaceholders": 1882
 }

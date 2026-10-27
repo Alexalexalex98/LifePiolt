@@ -6,6 +6,7 @@
 import { t } from '../../i18n/core.ts';
 import { checkIban, checkPagoPa, checkQrr, checkScor, compact, formatIban, formatPagoPa, formatQrr } from './checks.ts';
 import { addDays, diffDays, isIso, mkIso, validYmd } from './dates.ts';
+import { detectPaymentPlan } from './paymentPlan.ts';
 import type { BillDraft, BillKind, BillLang, Confidence, Field, Recurrence } from './types.ts';
 
 export type ParseOptions = {
@@ -363,6 +364,7 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
   const all = fl.join('\n');
   const today = opts.today && isIso(opts.today) ? opts.today : undefined;
   const lang = detectLang(all);
+  const plan = detectPaymentPlan(text);
   const warnings: string[] = [];
   const ambiguities: string[] = [];
 
@@ -474,7 +476,7 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
     const pick = pool[0];
     dueDate = dateField(pick, pick.lbl.strong ? 'alta' : 'media');
     const others = [...new Set(pool.map((c) => c.hit.iso))].filter((x) => x !== pick.hit.iso);
-    if (others.length) {
+    if (others.length && !plan) {
       if (dueDate.confidence === 'alta') dueDate.confidence = 'media';
       ambiguities.push(t('Ho trovato più scadenze ({0}): ho scelto {1}, controlla.', [pick.hit.iso, ...others].join(', '), pick.hit.iso));
     }
@@ -731,7 +733,7 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
   if (reminderNotice) warnings.push(t('Sembra un sollecito di pagamento: paga il prima possibile per evitare altre spese.'));
 
   // ---- emittente, tipo
-  const issuer = findIssuer(lines, fl, qr?.name);
+  let issuer = findIssuer(lines, fl, qr?.name);
   const head = fl.slice(0, 12).join('\n');
   const kind = classifyKind(all, head, fold(issuer?.value ?? ''));
 
@@ -756,6 +758,19 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
     }
   }
 
+  // ---- piano di pagamento a rate: totale e prima rata valgono più delle date sparse nel documento (es. «firma entro il…»)
+  if (plan) {
+    const first = plan.installments[0];
+    const total = plan.statedTotal ?? plan.total;
+    amount = field(total, plan.statedTotal !== undefined && Math.abs(plan.statedTotal - plan.total) < 0.05 ? 'alta' : 'media', t('Piano di pagamento: {0} rate', plan.installments.length), String(total),
+      plan.statedTotal !== undefined && Math.abs(plan.statedTotal - plan.total) >= 0.05 ? t('La somma delle rate è {0}, il documento dice {1}: controlla', String(plan.total), String(plan.statedTotal)) : undefined);
+    dueDate = field(first.dueDate, 'alta', t('Prima rata del piano di pagamento'), first.dueDate);
+    /* in un piano di pagamento il primo nome in cima è spesso il debitore: chi emette si riconosce meglio dal sito web nel documento */
+    const web = /\bwww\.([a-z0-9-]{3,30})\.[a-z]{2,}/i.exec(text);
+    if (web) { const nm = web[1].charAt(0).toUpperCase() + web[1].slice(1); issuer = field(nm, 'media', t('Sito web nel documento'), web[0], t('Controlla: è ricavato dal sito web del documento')); }
+    if (plan.statedTotal !== undefined && Math.abs(plan.statedTotal - plan.total) >= 0.05) ambiguities.push(t('La somma delle {0} rate è {1}, ma il documento indica un totale di {2}: controlla.', plan.installments.length, String(plan.total), String(plan.statedTotal)));
+  }
+
   // ---- controlli di coerenza
   if (!amount) warnings.push(t('Non trovo l\'importo da pagare: inseriscilo a mano.'));
   if (!dueDate) warnings.push(t('Non trovo la scadenza: inseriscila a mano, senza non posso programmare i promemoria.'));
@@ -771,7 +786,7 @@ export function parseBillText(rawText: string, opts: ParseOptions = {}): BillDra
     ...(issueDate ? { issueDate } : {}), ...(dueDate ? { dueDate } : {}), ...(pFrom ? { periodFrom: pFrom } : {}), ...(pTo ? { periodTo: pTo } : {}),
     ...(number ? { number } : {}), ...(iban ? { iban } : {}), ...(reference ? { reference, referenceType } : {}), ...(qrIban ? { qrIban } : {}),
     ...(pagopa ? { pagopa } : {}), ...(taxId ? { taxId } : {}), ...(recurrence ? { recurrence } : {}),
-    ...(lateFee ? { lateFee } : {}), ...(lateInterestPct ? { lateInterestPct } : {}), ...(reminderNotice ? { reminderNotice } : {}),
+    ...(lateFee ? { lateFee } : {}), ...(lateInterestPct ? { lateInterestPct } : {}), ...(reminderNotice ? { reminderNotice } : {}), ...(plan ? { plan } : {}),
   };
   out.empty = !out.amount && !out.dueDate && !out.iban && !out.number && !(out.issuer && out.issuer.confidence !== 'bassa');
   return out;

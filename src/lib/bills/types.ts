@@ -42,6 +42,8 @@ export type BillDraft = {
   lateInterestPct?: Field<number>;
   /** True se il documento sembra gia' un sollecito (livello 1-3). */
   reminderNotice?: Field<number>;
+  /** Piano di pagamento a rate trovato nel documento (rate con data e importo). */
+  plan?: { installments: Installment[]; total: number; statedTotal?: number; everyMonths?: number; source: string };
   /** Importi alternativi visti nel testo (per scegliere quello giusto). */
   amountAlternatives: { value: number; source: string; score: number }[];
   warnings: string[];
