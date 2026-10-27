@@ -50,4 +50,6 @@ export type TheiaExt = {
   voice?: boolean;
   /** dettaglio piccolo sotto il testo (es. messaggio del router) */
   detail?: string;
+  /** il campo con cui ha risposto l'esperta: decide la faccia di Theia accanto al messaggio (vedi lib/theiaAvatarIds.ts) */
+  avatar?: string;
 };

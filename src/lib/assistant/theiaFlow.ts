@@ -124,12 +124,15 @@ const DOMAIN_TOPIC: Record<string, string> = { salute: 'Salute', alimentazione: 
 /** Quando Theia risponde da esperta di un campo (per esempio la salute), la domanda e le risposte vanno nella cartella di quell'argomento. */
 function tagByDomain(): void {
   const dom = aiServer.lastAiDomain; const topic = dom ? DOMAIN_TOPIC[dom.id] : undefined;
-  if (!topic) return;
+  if (!dom || !topic) return;
   const log = store().log;
   let i = log.length - 1;
   while (i >= 0 && log[i].who !== 'me') i--;
   if (i < 0) return;
-  for (let k = i; k < log.length; k++) if (log[k].topic !== topic) store().patchMsg(log[k].id, { topic });
+  for (let k = i; k < log.length; k++) {
+    if (log[k].topic !== topic) store().patchMsg(log[k].id, { topic });
+    if (log[k].who === 'ai') store().patchMsg(log[k].id, { ext: { ...(log[k].ext ?? {}), avatar: dom.id } });
+  }
   useAssistant.setState({ current: topic });
 }
 

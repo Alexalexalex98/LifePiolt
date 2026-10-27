@@ -5,6 +5,8 @@ import { RichText } from '@/components/RichText';
 import { useMascot } from '@/hooks/use-mascot';
 import { TypingDots } from '@/components/mascot/TypingDots';
 import { Mascot } from '@/components/mascot/Mascot';
+import { TheiaFace } from '@/components/mascot/TheiaFace';
+import { avatarFor } from '@/lib/theiaAvatarIds';
 import { moodOf } from '@/lib/mascot';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -146,6 +148,7 @@ export default function LifeChat() {
           )}
           {section !== GENERALE && (
             <Row style={{ marginBottom: 6 }}>
+              {avatarFor(section, undefined) ? <View style={{ marginEnd: 10 }}><TheiaFace id={avatarFor(section, undefined)!} size={44} /></View> : null}
               <Body muted small style={{ flex: 1 }}>Sei nella sezione «{section}»: quello che scrivi qui resta qui e compare anche in Generale.</Body>
               <Pill label="Svuota" onPress={() => { clearTopic(section); setSection(GENERALE); toast('Cartella svuotata'); }} />
             </Row>
@@ -185,7 +188,7 @@ export default function LifeChat() {
               const me = item.who === 'me';
               return (
                 <View style={{ marginVertical: 4, flexDirection: 'row', alignItems: 'flex-end', gap: 6, justifyContent: me ? 'flex-end' : 'flex-start' }}>
-                  {!me && showM ? <Mascot size={34} color={t.accent} expression={moodOf(item.text)} animated={item.id === lastAi?.id} ritual={false} /> : null}
+                  {!me && showM ? (() => { const av = avatarFor(item.topic, item.ext?.avatar); return av ? <TheiaFace id={av} size={36} /> : <Mascot size={34} color={t.accent} expression={moodOf(item.text)} animated={item.id === lastAi?.id} ritual={false} />; })() : null}
                   <View style={{ flexShrink: 1, maxWidth: '88%' }}>
                   <View style={{ alignSelf: me ? 'flex-end' : 'flex-start', maxWidth: '100%', backgroundColor: me ? '#e6ebf3' : t.aiMsg, borderColor: t.aiMsgBorder, borderWidth: me ? 0 : 1, borderRadius: 18, padding: 12 }}>
                     {item.image ? <Image source={{ uri: item.image }} style={{ width: 160, height: 100, borderRadius: 10, marginBottom: 6 }} contentFit="cover" /> : null}
