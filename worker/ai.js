@@ -199,20 +199,38 @@ const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } 
 const msgs = (system, user, extra = []) => [{ role: 'system', content: system }, ...extra, { role: 'user', content: user }];
 const imageMsg = (text, images) => [{ role: 'system', content: SYSTEM }, { role: 'user', content: [{ type: 'text', text }, ...images.map((im) => ({ type: 'image_url', image_url: { url: `data:${im.mime || 'image/jpeg'};base64,${im.data}` } }))] }];
 
-/** Foto lette da Google Gemini: SOLO se l'app lo chiede (`google: true`, dopo il tuo tocco su «Rifai con Google»). Serve il segreto GEMINI_API_KEY sul Worker. */
+/**
+ * Foto lette da Google Gemini: SOLO se l'app lo chiede (`google: true`, dopo il tuo tocco su «Rifai con Google»).
+ * La chiave di Gemini sta sul vecchio Worker `lifepilot-api` (GEMINI_API_KEY): questo Worker gli inoltra la foto con la parola d'ordine
+ * (GOOGLE_PROXY_TOKEN, altrimenti APP_TOKEN). Se invece ha la propria GEMINI_API_KEY chiama Google direttamente.
+ */
 export const GEMINI_MODEL = 'gemini-2.5-flash';
+export const GOOGLE_PROXY = 'https://lifepilot-api.alex-stefanovic1998.workers.dev';
+const googleFail = (m) => { const e = new Error(m); e.google = true; return e; };
 export async function geminiVision(env, prompt, images, fetcher = fetch) {
-  if (!env.GEMINI_API_KEY) { const e = new Error('google_not_configured'); e.google = true; throw e; }
-  const parts = [{ text: prompt }, ...images.map((im) => ({ inline_data: { mime_type: im.mime || 'image/jpeg', data: im.data } }))];
-  const r = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
-    method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-    body: JSON.stringify({ system_instruction: { parts: [{ text: SYSTEM }] }, contents: [{ role: 'user', parts }], generationConfig: { maxOutputTokens: 1500, temperature: 0.2 } }),
+  if (env.GEMINI_API_KEY) {
+    const parts = [{ text: prompt }, ...images.map((im) => ({ inline_data: { mime_type: im.mime || 'image/jpeg', data: im.data } }))];
+    const r = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+      body: JSON.stringify({ system_instruction: { parts: [{ text: SYSTEM }] }, contents: [{ role: 'user', parts }], generationConfig: { maxOutputTokens: 1500, temperature: 0.2 } }),
+    });
+    if (!r.ok) throw googleFail(`gemini ${r.status}`);
+    const j = await r.json();
+    const text = (j?.candidates?.[0]?.content?.parts ?? []).map((x) => x.text ?? '').join('').trim();
+    if (!text) throw googleFail('gemini vuoto');
+    return { text, model: GEMINI_MODEL };
+  }
+  const token = env.GOOGLE_PROXY_TOKEN || env.APP_TOKEN;
+  if (!token) throw googleFail('google_not_configured');
+  const r = await fetcher(`${env.GOOGLE_PROXY_URL || GOOGLE_PROXY}/analyze`, {
+    method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({ question: prompt, files: images.map((im) => ({ data: im.data, mime: im.mime || 'image/jpeg' })) }),
   });
-  if (!r.ok) { const e = new Error(`gemini ${r.status}`); e.google = true; throw e; }
-  const j = await r.json();
-  const text = (j?.candidates?.[0]?.content?.parts ?? []).map((x) => x.text ?? '').join('').trim();
-  if (!text) { const e = new Error('gemini vuoto'); e.google = true; throw e; }
-  return { text, model: GEMINI_MODEL };
+  if (!r.ok) throw googleFail(r.status === 401 ? 'google_not_configured' : `gemini ${r.status}`);
+  const j = await r.json().catch(() => ({}));
+  const text = String(j?.reply ?? '').trim();
+  if (!text) throw googleFail('gemini vuoto');
+  return { text, model: 'gemini' };
 }
 
 async function pdfText(env, f) {

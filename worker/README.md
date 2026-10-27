@@ -29,5 +29,5 @@ Theia pianifica fino a 3 ricerche generiche e anonime, le esegue in parallelo (G
 
 ## Google Gemini (solo se lo chiedi tu)
 - Le foto vanno ai modelli aperti di Cloudflare. A Google Gemini vanno SOLO se l'app manda `google: true` su `/vision` o `/analyze`, cioè quando tocchi «Rifai con Google» (oggi dopo la lettura di frigo e scontrino, e solo se la lettura sembra incompleta: `googleMayBeBetter` in `pantry.ts`).
-- Serve il segreto `GEMINI_API_KEY` sul Worker (`wrangler secret put GEMINI_API_KEY`); senza, risponde 501 `google_not_configured`. Modello: `GEMINI_MODEL` in `ai.js`.
+- La chiave di Gemini sta già sul vecchio Worker `lifepilot-api`: `lifepilot-ai2` gli inoltra la foto (`/analyze`) con la parola d'ordine, presa da `GOOGLE_PROXY_TOKEN` o, se manca, da `APP_TOKEN` (deve valere quella di `lifepilot-api`; altrimenti: `wrangler secret put GOOGLE_PROXY_TOKEN`). Se metti una `GEMINI_API_KEY` anche su questo Worker, chiama Google direttamente. Senza nessuna delle due risponde 501 `google_not_configured`.
 - Ogni invio a Google mostra un avviso («Sto inviando la foto a Google Gemini») e compare in Impostazioni → «Cosa è stato inviato» con fornitore «Google Gemini».

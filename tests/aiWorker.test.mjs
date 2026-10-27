@@ -173,3 +173,14 @@ test('Google Gemini: senza chiave non parte, con la chiave manda solo la foto ri
   assert.equal(seen.key, 'k');
   assert.equal(seen.body.contents[0].parts[1].inline_data.data, 'QQ==');
 });
+
+test('Google Gemini: senza chiave ma con la parola d\'ordine inoltra al vecchio server', async () => {
+  const { geminiVision } = await import('../worker/ai.js');
+  let seen;
+  const f = async (url, init) => { seen = { url, auth: init.headers.authorization, body: JSON.parse(init.body) }; return { ok: true, json: async () => ({ reply: 'letto' }) }; };
+  const r = await geminiVision({ APP_TOKEN: 't' }, 'leggi', [{ data: 'QQ==', mime: 'image/jpeg' }], f);
+  assert.equal(r.text, 'letto');
+  assert.match(seen.url, /lifepilot-api.*\/analyze$/);
+  assert.equal(seen.auth, 'Bearer t');
+  assert.equal(seen.body.files[0].data, 'QQ==');
+});
