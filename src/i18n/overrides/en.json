@@ -198,7 +198,7 @@
  "Agenda": "Calendar",
  "Obiettivo": "Goal reached",
  "Compleanno": "Birthday",
- "Vacanza": "Vacation",
+ "Vacanza": "Holiday",
  "Dove vuoi Theia?": "Where do you want Theia?",
  "Theia è ovunque": "Theia is everywhere",
  "Solo dove serve": "Only where it helps",
@@ -1080,7 +1080,7 @@
  "Alimento": "Food",
  "Quantità": "Quantity",
  "Aggiungi un alimento": "Add a food",
- "Movimento": "Movement",
+ "Movimento": "Transaction",
  "Fame": "Hunger",
  "Salute": "Health",
  "Allegria": "Joy",
@@ -4028,5 +4028,11 @@
  "Quantità (facoltativa): 330, 1 l…": "Amount (optional): 330, 1 l…",
  "Scrivi la quantità come ti viene: 350, 1,5 l, mezzo litro, 2 bicchieri. Un numero da solo vale millilitri.": "Write the amount however it comes: 350, 1.5 l, half a litre, 2 glasses. A bare number means millilitres.",
  "Segna": "Log",
- "Segno {0} ml": "Logging {0} ml"
+ "Segno {0} ml": "Logging {0} ml",
+ "{0} caricati · {1} spesi": "{0} topped up · {1} spent",
+ "AZIONI RAPIDE": "QUICK ACTIONS",
+ "Entrate, spese fisse e quanto ti resta da vivere": "Income, fixed costs and what's left to live on",
+ "Piano mese": "Month plan",
+ "Quanto mettere da parte ogni mese per arrivarci": "How much to set aside each month to get there",
+ "Bolletta": "Bill"
 }

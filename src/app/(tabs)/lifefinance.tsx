@@ -31,6 +31,7 @@ import { go } from '@/lib/nav';
 import { useNet } from '@/store/network';
 import { translateText } from '@/i18n/core';
 import { formatMoney } from '@/i18n/format';
+import { t as tl } from '@/i18n/core';
 import { endAlign } from '@/lib/rtl';
 
 export default function LifeFinance() {
@@ -57,6 +58,7 @@ export default function LifeFinance() {
   // form movimento
   const [mvType, setMvType] = useState<'out' | 'in'>('out');
   const [mvLabel, setMvLabel] = useState('');
+  const [more, setMore] = useState(false);
   const [mvAmount, setMvAmount] = useState('');
   const [mvDate, setMvDate] = useState('');
   // form bolletta
@@ -112,30 +114,20 @@ export default function LifeFinance() {
 
       {tab === 'Quadro' && (
         <>
-          {hasStatement ? (
-            <Row gap={8}>
-              <Btn small ghost icon="file" title="Carica file" onPress={() => setCsvSheet(true)} style={{ flex: 1 }} />
-              <Btn small ghost icon="plus" title="Nuovo movimento" onPress={() => setMvSheet(true)} style={{ flex: 1 }} />
-              <InfoTip title="Carica un file e aggiungi un movimento" body={['Estratto conto (CSV o PDF): ha la precedenza su tutto il resto. Qualsiasi altro file lo guarda Theia e ti dice cos’è.', 'Un movimento si aggiunge a mano o con la foto dello scontrino, appena paghi. Quando carichi l’estratto, si allinea da solo.']} />
-            </Row>
-          ) : (
-            <>
-          <Card onPress={() => setCsvSheet(true)}>
-            <Row gap={10}>
-              <Icon name="file" size={20} color={t.accent} />
-              <View style={{ flex: 1 }}><Body bold>Carica un file</Body><Body small muted>Estratto conto (CSV o PDF): ha la precedenza su tutto il resto. Qualsiasi altro file lo guarda Theia e ti dice cos’è.</Body></View>
-              <Icon name="chevron-right" size={18} color={t.muted} />
-            </Row>
-          </Card>
-          <Card onPress={() => setMvSheet(true)}>
-            <Row gap={10}>
-              <Icon name="plus" size={20} color={t.accent} />
-              <View style={{ flex: 1 }}><Body bold>Aggiungi un movimento</Body><Body small muted>A mano o con la foto dello scontrino, appena paghi. Quando carichi l’estratto, si allinea da solo.</Body></View>
-              <Icon name="chevron-right" size={18} color={t.muted} />
-            </Row>
-          </Card>
-            </>
-          )}
+          <Row style={{ marginBottom: 2 }}>
+            <Body small bold muted>{tl('AZIONI RAPIDE')}</Body>
+            <InfoTip title="Carica un file e aggiungi un movimento" body={['Estratto conto (CSV o PDF): ha la precedenza su tutto il resto. Qualsiasi altro file lo guarda Theia e ti dice cos’è.', 'Un movimento si aggiunge a mano o con la foto dello scontrino, appena paghi. Quando carichi l’estratto, si allinea da solo.']} />
+          </Row>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+            {([['file', 'Carica file', () => setCsvSheet(true), '#8fb3ff'], ['plus', 'Movimento', () => setMvSheet(true), '#7be0b0'], ['alert', 'Bolletta', () => setTab('Bollette'), '#ffb84f'], ['calendar', 'Piano mese', () => go('monthPlan'), '#c9b6ff']] as [string, string, () => void, string][]).map(([ic, label, fn, col]) => (
+              <Pressable key={label} accessibilityRole="button" accessibilityLabel={tl(label)} onPress={fn} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+                <View style={{ width: 54, height: 54, borderRadius: 18, backgroundColor: col + '26', borderWidth: 1, borderColor: col + '55', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name={ic} size={24} color={col} stroke={2} />
+                </View>
+                <Text numberOfLines={1} style={{ color: t.text, fontSize: 12, fontWeight: '700' }}>{tl(label)}</Text>
+              </Pressable>
+            ))}
+          </View>
           <FinanceOverview h={{ onAlerts: () => setAlertSheet(true), onBills: () => setTab('Bollette'), onEmergency: () => setTab('Budget'), onImport: () => setCsvSheet(true), onMovements: (i) => setHist(i), initialEx: (['saldo', 'in', 'out', 'save'] as const).find((x) => x === exParam) }} />
       <MonthCalcCard />
       {alerts.length > 0 && (
@@ -150,28 +142,15 @@ export default function LifeFinance() {
           </Row>
         </Card>
       )}
-      <Card onPress={() => go('monthPlan')}>
-        <Row gap={10}>
-          <Icon name="calendar" size={24} color={t.accent} />
-          <View style={{ flex: 1 }}><H style={{ marginBottom: 2 }}>Piano del mese</H><Body small muted>Quanto entra, spese fisse, soldi da mettere da parte e quanto ti resta da vivere. Anche fatture grosse distribuite su più mesi.</Body></View>
-          <Icon name="chevron-right" size={18} color={t.muted} />
-        </Row>
-      </Card>
-      <Card onPress={() => go('vacationPlan')}>
-        <Row gap={10}>
-          <Icon name="lifetravel" size={24} color={t.positive} />
-          <View style={{ flex: 1 }}><H style={{ marginBottom: 2 }}>Risparmio per la vacanza</H><Body small muted>Quanto mettere da parte ogni mese, e da quale stipendio, per arrivarci senza pesare su un mese solo.</Body></View>
-          <Icon name="chevron-right" size={18} color={t.muted} />
-        </Row>
-      </Card>
-      <Card onPress={() => go('lifepointsPage')}>
-        <H>LifePoints</H>
-        <Row>
-          <View style={{ flex: 1, alignItems: 'center' }}><Body small muted>Caricati in totale</Body><Row gap={2}><Body bold>{formatCHF(lpTop)}</Body><LpTag size={14} /></Row></View>
-          <View style={{ flex: 1, alignItems: 'center', borderStartWidth: 1, borderStartColor: t.item }}><Body small muted>Spesi in totale</Body><Row gap={2}><Body bold>{formatCHF(lpSpent)}</Body><LpTag size={14} /></Row></View>
-        </Row>
-        <Body small muted style={{ marginTop: 10 }}>tocca per il dettaglio</Body>
-      </Card>
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+        {([['calendar', 'Piano del mese', 'Entrate, spese fisse e quanto ti resta da vivere', () => go('monthPlan'), t.accent], ['lifetravel', 'Vacanza', 'Quanto mettere da parte ogni mese per arrivarci', () => go('vacationPlan'), t.positive], ['coin', 'LifePoints', `${formatCHF(lpTop)} caricati · ${formatCHF(lpSpent)} spesi`, () => go('lifepointsPage'), '#c9b6ff']] as [string, string, string, () => void, string][]).map(([ic, title, sub, fn, col]) => (
+          <Pressable key={title} accessibilityRole="button" accessibilityLabel={tl(title)} onPress={fn} style={{ flex: 1, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, borderRadius: 20, padding: 12, gap: 6 }}>
+            <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: col + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={ic} size={18} color={col} stroke={2} /></View>
+            <Text numberOfLines={1} style={{ color: t.text, fontSize: 14, fontWeight: '800' }}>{tl(title)}</Text>
+            <Text numberOfLines={3} style={{ color: t.muted, fontSize: 11.5 }}>{tl(sub)}</Text>
+          </Pressable>
+        ))}
+      </View>
 
       {f.insights.length > 0 && (
         <Card>
@@ -195,6 +174,10 @@ export default function LifeFinance() {
         ))}
       </Card>
 
+          <Pressable accessibilityRole="button" onPress={() => setMore((v) => !v)} style={{ paddingVertical: 10 }}>
+            <Row><Body small bold muted>{tl('Altro').toUpperCase()}</Body><Body small muted>{more ? tl('Nascondi') : tl('Mostra')}</Body></Row>
+          </Pressable>
+          {more ? (
           <Card>
             <H>Ricomincia da zero</H>
             <Body small muted style={{ marginTop: 2 }}>Cancella tutti i dati di finanza personale (movimenti, budget, spese fisse, bollette e fatture, dati fiscali, estratto). I LifePoints e gli investimenti restano. Poi ricarichi l’estratto e l’app rifà tutto da quello.</Body>
@@ -203,6 +186,7 @@ export default function LifeFinance() {
               { text: 'Cancella tutto', style: 'destructive', onPress: () => { const snap = useFin.getState().clearPersonalFinance(); void refreshBillReminders().catch(() => {}); showUndoToast('Dati di finanza cancellati', () => { useFin.getState().restoreFinance(snap); void refreshBillReminders().catch(() => {}); }); } },
             ])} />
           </Card>
+          ) : null}
 
         </>
       )}
