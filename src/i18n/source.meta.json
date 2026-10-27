@@ -1,5 +1,5 @@
 {
- "count": 14790,
+ "count": 14958,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -95,7 +95,8 @@
   "src/app/(tabs)/profile.tsx": 52,
   "src/app/(tabs)/profileContent.tsx": 14,
   "src/app/(tabs)/profileMore.tsx": 8,
-  "src/app/(tabs)/projects.tsx": 56,
+  "src/app/(tabs)/projectWork.tsx": 31,
+  "src/app/(tabs)/projects.tsx": 57,
   "src/app/(tabs)/purchaseConfirm.tsx": 9,
   "src/app/(tabs)/recordingPlayer.tsx": 8,
   "src/app/(tabs)/reports.tsx": 1,
@@ -397,10 +398,11 @@
   "src/lib/assistant/nlp.ts": 13,
   "src/lib/assistant/phrases.ts": 101,
   "src/lib/assistant/phrasesMore.ts": 128,
+  "src/lib/assistant/projectCore.ts": 138,
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 134,
+  "src/lib/assistant/theiaFlow.ts": 139,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -626,6 +628,7 @@
   "src/lib/weather.ts": 15,
   "src/lib/wellbeing.ts": 12,
   "src/lib/when.ts": 11,
+  "src/lib/workEstimate.ts": 8,
   "src/schemas/change.ts": 3,
   "src/schemas/collections.ts": 3,
   "src/social/dmSync.ts": 2,
@@ -666,5 +669,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1865
+ "withPlaceholders": 1876
 }

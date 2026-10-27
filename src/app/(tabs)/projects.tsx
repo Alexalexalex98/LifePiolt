@@ -125,6 +125,7 @@ export default function Projects() {
             <Row><H style={{ flex: 1 }}>{root.title}</H><Text style={{ color: t.accent, fontWeight: '800', fontSize: 24 }}>{`${progressOf(nodes, root.id).pct}%`}</Text></Row>
             <Pct pct={progressOf(nodes, root.id).pct} color={done(root.id) ? t.positive : t.accent} />
             <Body small muted style={{ marginTop: 6 }}>{tl('{0} su {1} attività fatte.', progressOf(nodes, root.id).done, progressOf(nodes, root.id).total)}{root.shared.length ? ` · ${tl('Condiviso con')} ${root.shared.join(', ')}` : ''}</Body>
+            <Btn style={{ marginTop: 10 }} icon="play" title={tl('Inizia a lavorare')} onPress={() => go('projectWork', { root: root.id })} />
             <Row style={{ justifyContent: 'flex-start', marginTop: 8, flexWrap: 'wrap' }} gap={8}>
               <Btn small icon="share" title="Condividi" onPress={() => setShare(true)} />
               <Btn small ghost title="Copia come testo" onPress={() => { void Clipboard.setStringAsync(outlineOf(root.id)); toast('Copiato: lo puoi incollare in un file o importare altrove'); }} />

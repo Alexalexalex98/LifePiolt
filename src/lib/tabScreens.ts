@@ -95,6 +95,7 @@ export const TAB_SCREENS: string[] = [
   'profileContent',
   'profileMore',
   'projects',
+  'projectWork',
   'purchaseConfirm',
   'recordingPlayer',
   'reports',

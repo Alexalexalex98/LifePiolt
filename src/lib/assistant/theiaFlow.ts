@@ -21,6 +21,8 @@ import { askTheiaChat, askTheiaChatStream, askTheiaFiles } from '@/lib/theia';
 import { filterActions, liveParts, parseAiActions, splitReply } from './aiActionsCore';
 import { pdfToText } from '@/lib/pdfText';
 import { readUriBytes } from '@/lib/readUri';
+import { cleanAiOutline, fallbackOutline, parseProjectRequest, projectPrompt, withRoot } from '@/lib/assistant/projectCore';
+import { parseOutline, buildTree } from '@/lib/projectTree';
 import { useProjects } from '@/store/projects';
 import { CRISIS_RESOURCES, CRISIS_TEXT, detectCrisis } from '@/lib/safety';
 import { isLearnable, recall } from '@/lib/theiaMemory';
@@ -349,6 +351,12 @@ export async function sendTheia(i: SendInput): Promise<void> {
     return;
   }
 
+  // «creami un progetto chiamato business plan e dividilo in tutte le task»: lo creo ad albero (sotto-progetti e task), di qualsiasi tipo
+  if (!pending && !useLearned.getState().teaching && (u.status === 'passthrough' || u.status === 'translated')) {
+    const pr = parseProjectRequest(u.text) ?? parseProjectRequest(text);
+    if (pr) { await createProjectFromRequest(pr); return; }
+  }
+
   // domande sui tuoi dati (soldi, agenda, turni, task, sonno, passi, acqua, calorie): risposta calcolata dal codice, con le fonti; se il dato manca lo dico
   if (!pending && !useLearned.getState().teaching && (u.status === 'passthrough' || u.status === 'translated')) {
     try {
@@ -463,6 +471,29 @@ export async function sendTheia(i: SendInput): Promise<void> {
   if (!pending && looksLikeCommand(text) && text.trim().split(/\s+/).length <= 9) { offerTeach(text, u.lang, i.source); return; }
   if (aiOn() && !pending) { await aiChatReply([text, payload].filter(Boolean).join('\n\n')); return; }
   clarify(text, u.lang, i.source, [text, payload].filter(Boolean).join('\n\n'));
+}
+
+/** Crea il progetto chiesto in chat. Con l'AI collegata (e il tuo consenso) lo scompone su misura; altrimenti usa un modello adatto al tipo. */
+async function createProjectFromRequest(pr: { name: string; split: boolean; original: string }): Promise<void> {
+  let body: string | null = null;
+  let viaAi = false;
+  if (aiOn() && (await askSend('summary', t('Il titolo del progetto e la tua richiesta, per scomporlo in sotto-progetti e task. Niente file, foto o dati personali.')))) {
+    try {
+      logSend('summary', 0, ['titolo del progetto']);
+      body = cleanAiOutline(await aiChatRaw(projectPrompt(pr)));
+      viaAi = !!body;
+    } catch { body = null; }
+  }
+  if (!body) body = fallbackOutline(pr.name);
+  const { items } = parseOutline(withRoot(pr.name, body));
+  const { nodes: parsed } = buildTree(items);
+  if (parsed.length < 2) { pushAi(t('Non sono riuscita a creare il progetto: riprova con un altro nome.')); return; }
+  const r = useProjects.getState().importText(withRoot(pr.name, body));
+  const subs = parsed.filter((n) => n.parentIndex === 0).length;
+  pushAi(
+    t('Fatto: ho creato il progetto «{0}» con {1} sotto-progetti e {2} task in tutto{3}. Lo trovi in Progetti: spunta le task man mano e la percentuale si aggiorna da sola.', pr.name, subs, r.count - 1 - subs, viaAi ? '' : t(' (modello adatto al tipo di progetto: collega l\'AI per averlo su misura)')),
+    { ext: { actions: [{ kind: 'open', label: t('Apri Progetti'), page: 'projects' }, { kind: 'dismiss', label: t('Ok, grazie') }] } },
+  );
 }
 
 /** Modifiche alle finanze e comandi imparati. true = gestita. */
