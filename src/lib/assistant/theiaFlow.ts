@@ -50,6 +50,7 @@ import { friendlyAiError, isAddFollowUp, taskCommand, todoSubject } from './foll
 import { useLearned } from '@/store/learned';
 import { shareLearned, voteSharedCommand } from '@/social/sharedCommands';
 import { handleFood } from '@/lib/assistant/foodTheia';
+import { deliverPlans, takePlans } from '@/lib/assistant/planDelivery';
 import { useAssistant, type AMsg } from '@/store/assistant';
 import { usePrefs } from '@/store/prefs';
 import { topicOf } from './nlp';
@@ -169,6 +170,8 @@ async function aiChatReply(text: string): Promise<void> {
     try { reply = await askTheiaChatStream(text, paint); }
     catch { live.splice(0).forEach((id) => store().delMsg(id)); reply = await askTheiaChat(text); }
     reply = reply || t('Risposta vuota dal server.');
+    /* il piano alimentare o l'allenamento scritti da Theia: si tolgono dal testo e si consegnano come file */
+    const held = takePlans(reply); reply = held.text || t('Ecco fatto.');
     if (live.length) {
       /* il testo finale (con i link alle fonti e le azioni) sostituisce quello provvisorio */
       const parsed = parseAiActions(reply);
@@ -181,6 +184,7 @@ async function aiChatReply(text: string): Promise<void> {
       });
       live.slice(parts.length).forEach((id) => store().delMsg(id));
     } else await pushReply(reply, text);
+    deliverPlans(held, (txt, extra) => pushAi(txt, extra));
     tagByDomain();
     addDeepAction(text);
     if (plain) { const { text: parsed, actions } = parseAiActions(reply); const clean = splitReply(parsed).join('\n\n'); if (!actions.length && isLearnable(text, clean)) kb.learn(text, clean); }

@@ -13,6 +13,7 @@ import { dayOf, mealTitle } from '@/lib/fitness/mealInsights';
 import { FOOD, NUTRITION_DISCLAIMER, dailyTarget, searchFoods } from '@/lib/fitness/nutrition';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
+import { sendToAssistant } from '@/lib/assistant/run';
 import { useFitness } from '@/store/fitness';
 import { usePantry } from '@/store/pantry';
 import { toast } from '@/store/toast';
@@ -27,7 +28,7 @@ const todayIdx = () => (new Date().getDay() + 6) % 7;
 export default function MealPlan() {
   const t = useTheme();
   const fit = useFitness();
-  const { plan, prefs, setPrefs, makePlan, setPlan, items, addShop } = usePantry();
+  const { plan, planMeta, prefs, setPrefs, makePlan, setPlan, items, addShop } = usePantry();
   const [day, setDay] = useState(todayIdx());
   const [edit, setEdit] = useState<{ d: number; m: PlanMeal } | null>(null);
   const [q, setQ] = useState('');
@@ -62,14 +63,24 @@ export default function MealPlan() {
   };
   const missingForWeek = () => {
     if (!plan) return;
-    const need = needsFor(plan, todayIdx(), 3); const people = prefs.people ?? 1;
-    let n = 0;
-    need.forEach((g, id) => { const have = items.filter((x) => x.foodId === id).reduce((a, x) => a + (x.unit === 'pz' ? x.qty * (FOOD(id)?.portion ?? 100) : x.qty), 0); if (g * people - have > 20) { addShop(FOOD(id)?.name ?? id, Math.round(g * people - have), 'g'); n++; } });
-    toast(tl('Aggiunti {0} ingredienti alla lista della spesa', n));
+    const n = usePantry.getState().shopForPlan(7).length;
+    toast(n ? tl('Aggiunti {0} ingredienti alla lista della spesa', n) : tl('In frigo hai già tutto per 7 giorni'));
   };
 
   return (
     <Page id="fitnessMealPlan" back title={tl('Piano alimentare')}>
+      <Card accent={FIT}>
+        <Row gap={10}>
+          <View style={{ flex: 1 }}>
+            <H style={{ marginBottom: 2 }}>{planMeta?.title ?? tl('Crealo con Theia')}</H>
+            <Body small muted>{planMeta ? (planMeta.notes ?? tl('Piano scritto con Theia. Se qualcosa non ti piace, dimmelo in chat e lo cambio.')) : tl('Parlane con Theia: ti chiede come stai, cosa non mangi e cosa vuoi ottenere, poi scrive il piano su misura e lo trovi qui.')}</Body>
+          </View>
+        </Row>
+        <Row gap={8} style={{ marginTop: 10, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+          <Btn small icon="chat" title={plan ? tl('Cambia con Theia') : tl('Parla con Theia')} onPress={() => { void sendToAssistant(plan ? 'Vorrei cambiare qualcosa nel piano alimentare' : 'Vorrei un piano alimentare su misura per me'); go('ai'); }} />
+          {plan ? <Btn small ghost icon="note" title={tl('Lista della spesa')} onPress={missingForWeek} /> : null}
+        </Row>
+      </Card>
       <Card accent={FIT}>
         <H>{tl('Le tue esigenze')}</H>
         <Body small muted style={{ marginBottom: 8 }}>{tl('Fabbisogno indicativo: {0} kcal al giorno', target)}</Body>
@@ -118,7 +129,7 @@ export default function MealPlan() {
           ) : null}
           {meals.map((m) => (
             <Card key={m.id} onPress={() => setEdit({ d: day, m })}>
-              <Row><View style={{ flex: 1 }}><Body small color={FIT}>{tl(SLOT[m.slot])} · {kcalOf(m.items)} kcal</Body><Body bold>{m.name}</Body><Body small muted>{m.items.map((i) => `${FOOD(i.foodId)?.name ?? i.foodId} ${i.grams} g`).join(' · ')}</Body></View><Icon name="edit" size={18} color={t.muted} /></Row>
+              <Row><View style={{ flex: 1 }}><Body small color={FIT}>{tl(SLOT[m.slot])} · {kcalOf(m.items)} kcal</Body><Body bold>{m.name}</Body>{(m as { note?: string }).note ? <Body small muted>{(m as { note?: string }).note}</Body> : null}<Body small muted>{m.items.map((i) => `${FOOD(i.foodId)?.name ?? i.foodId} ${i.grams} g`).join(' · ')}</Body></View><Icon name="edit" size={18} color={t.muted} /></Row>
             </Card>
           ))}
 
@@ -132,7 +143,7 @@ export default function MealPlan() {
             </Card>
           ) : null}
 
-          <Btn ghost icon="plus" title={tl('Aggiungi alla spesa ciò che manca (3 giorni)')} onPress={missingForWeek} />
+          <Btn ghost icon="plus" title={tl('Aggiungi alla spesa ciò che manca (7 giorni)')} onPress={missingForWeek} />
           <Row gap={8}><Btn style={{ flex: 1 }} ghost icon="people" title={tl('Frigo e spesa')} onPress={() => go('fitnessFridge')} /><Btn style={{ flex: 1 }} ghost icon="lifefitness" title={tl('Cosa cucino?')} onPress={() => go('fitnessCook')} /></Row>
         </>
       ) : null}

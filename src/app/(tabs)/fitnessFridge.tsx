@@ -19,7 +19,8 @@ import { useNet } from '@/store/network';
 import { useFriends } from '@/store/friends';
 import { peoplePool } from '@/lib/network';
 import { usePantry } from '@/store/pantry';
-import { toast } from '@/store/toast';
+import { showUndoToast, toast } from '@/store/toast';
+import { confirmDelete } from '@/lib/confirm';
 
 const UNITS = { g: 'g', ml: 'ml', pz: 'pz' } as const;
 const fmt = (q: number, u: string) => `${Math.round(q * 10) / 10} ${u}`;
@@ -102,6 +103,7 @@ export default function Fridge() {
             <Btn small icon="camera" title={tl('Foto del frigo')} disabled={busy} onPress={() => void scan(true, 'fridge')} />
             <Btn small ghost icon="image" title={tl('Da galleria')} disabled={busy} onPress={() => void scan(false)} />
             <Btn small ghost icon="edit" title={tl('Scrivi la lista')} onPress={() => setTyped(true)} />
+            {p.items.length ? <Btn small ghost danger icon="trash" title={tl('Svuota il frigo')} onPress={() => confirmDelete(tl('tutto il frigo ({0} voci)', p.items.length), () => { const before = p.clearItems(); showUndoToast(tl('Frigo svuotato'), () => p.restoreItems(before)); }, undefined, { title: tl('Svuotare il frigo?'), okLabel: tl('Svuota') })} /> : null}
           </Row>
           {low.length ? (
             <Card accent={t.warn}>
@@ -130,6 +132,7 @@ export default function Fridge() {
               {s.qty ? <Body small muted>{fmt(s.qty, s.unit ?? '')}</Body> : null}
             </Pressable>
           )) : <Card><Body muted>{tl('La lista è vuota. Ciò che sta finendo nel frigo compare qui da solo.')}</Body></Card>}
+          {p.plan ? <Btn ghost icon="note" title={tl('Prepara la lista dal piano alimentare')} onPress={() => { const n = p.shopForPlan(7).length; toast(n ? tl('Aggiunti {0} prodotti: ciò che serve per 7 giorni e non hai in frigo', n) : tl('In frigo hai già tutto per 7 giorni')); }} /> : null}
           <Body small muted>{tl('Tieni premuto su una voce per toglierla.')}</Body>
           {p.shop.some((s) => s.done) ? <Btn icon="check" title={tl('Spesa fatta: metti nel frigo')} onPress={() => toast(tl('Aggiunti {0} prodotti al frigo', p.finishShopping()))} /> : null}
           {p.shared.length && p.shop.some((s) => !s.done) ? <Btn ghost icon="share" title={tl('Manda la lista a chi condividi')} onPress={() => { p.shareShopping(); toast(tl('Lista inviata')); }} /> : null}

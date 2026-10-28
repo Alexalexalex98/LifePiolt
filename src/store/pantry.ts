@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
-import { addStock, consume, norm, syncShopping, type Line, type PantryItem, type ShopItem, type Unit } from '@/lib/fitness/pantry';
+import { addStock, consume, norm, stockGrams, syncShopping, type Line, type PantryItem, type ShopItem, type Unit } from '@/lib/fitness/pantry';
+import { shoppingList } from '@/lib/fitness/aiPlan';
 import { generatePlan, type PlanDay, type PlanPrefs } from '@/lib/fitness/mealPlan';
 import { uid } from '@/lib/format';
 import { useApp } from './app';
@@ -11,6 +12,8 @@ type State = {
   items: PantryItem[];
   shop: ShopItem[];
   plan: PlanDay[] | null;
+  /** chi ha scritto il piano e quando (se l'ha scritto Theia) */
+  planMeta: { title: string; notes?: string; by: 'theia'; at: number } | null;
   prefs: PlanPrefs;
   seed: number;
   /** con chi condividi frigo e lista della spesa */
@@ -31,6 +34,12 @@ type State = {
   setPrefs: (p: Partial<PlanPrefs>) => void;
   makePlan: (again?: boolean) => string[];
   setPlan: (p: PlanDay[]) => void;
+  setPlanMeta: (m: State['planMeta']) => void;
+  /** svuota il frigo e restituisce le scorte di prima (per annullare) */
+  clearItems: () => PantryItem[];
+  restoreItems: (items: PantryItem[]) => void;
+  /** mette nella lista della spesa ciò che serve per il piano dei prossimi giorni e non c'è in frigo */
+  shopForPlan: (days?: number) => { foodId: string; name: string; grams: number }[];
   setShared: (names: string[]) => void;
   setAutoConsume: (v: boolean) => void;
   /** manda la lista della spesa a chi condividi (in chat) */
@@ -45,7 +54,7 @@ export const usePantry = create<State>()(persisted<State>('pantry', (set, get) =
     if (r.added.length) { set({ shop: r.shop }); if (get().shared.length) get().shareShopping(); }
   };
   return {
-    items: [], shop: [], plan: null, shared: [], autoConsume: true, seed: 0,
+    items: [], shop: [], plan: null, planMeta: null, shared: [], autoConsume: true, seed: 0,
     prefs: { diet: 'onnivoro', avoid: [], meals: 4, kcal: 2000 },
     addLines: (lines) => {
       let items = get().items;
@@ -79,6 +88,17 @@ export const usePantry = create<State>()(persisted<State>('pantry', (set, get) =
     setPrefs: (p) => set({ prefs: { ...get().prefs, ...p } }),
     makePlan: (again) => { const seed = again ? get().seed + 1 : get().seed; const r = generatePlan(get().prefs, seed); set({ plan: r.days, seed }); return r.warnings; },
     setPlan: (p) => set({ plan: p }),
+    setPlanMeta: (m) => set({ planMeta: m }),
+    clearItems: () => { const before = get().items; set({ items: [] }); return before; },
+    restoreItems: (items) => set({ items }),
+    shopForPlan: (days = 7) => {
+      const plan = get().plan; if (!plan) return [];
+      const have = new Map<string, number>();
+      for (const it of get().items) if (it.foodId) have.set(it.foodId, (have.get(it.foodId) ?? 0) + stockGrams(it));
+      const list = shoppingList(plan, (new Date().getDay() + 6) % 7, Math.min(7, Math.max(1, days)), get().prefs.people ?? 1, have);
+      for (const x of list) get().addShop(x.name, x.grams, 'g');
+      return list;
+    },
     setShared: (names) => set({ shared: names }),
     setAutoConsume: (v) => set({ autoConsume: v }),
     shareShopping: () => {

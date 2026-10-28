@@ -9,6 +9,7 @@ import { dailyTarget, dailyTargets } from '@/lib/fitness/nutrition';
 import { refreshFoodReminders } from '@/lib/foodNotify';
 import { useApp } from '@/store/app';
 import { useFitness } from '@/store/fitness';
+import { usePantry } from '@/store/pantry';
 import type { TheiaAction } from './theiaExt';
 
 type Push = (text: string, actions?: TheiaAction[]) => void;
@@ -172,6 +173,22 @@ const WATER_REMIND = /\b(promemoria|avvis\w*|ricord\w*|notific\w*)\b.*\bacqua\b|
 const OFF = /\b(disattiv\w*|spegn\w*|togli\w*|non voglio|basta)\b/;
 const EVENING_OFF = /\b(domanda|notifica|avviso)\b.*\b(serale|sera|cibo)\b|\b(serale|sera)\b.*\b(notifica|avviso)\b/;
 
+const SHOP_LIST = /\b(lista della spesa|lista spesa|cosa devo comprare|cosa (?:mi )?(?:manca|serve) (?:da )?comprare|cosa compro|prepar\w* la spesa|fammi la spesa)\b/;
+const EMPTY_FRIDGE = /\b(svuota|svuotare|butta|buttare|elimina|eliminare|cancella|cancellare|togli|toglimi)\b.*\b(frigo|dispensa|scorte)\b/;
+const CONFIRM_EMPTY = /^s[iì]\b.*\bsvuota\b.*\bfrigo\b.*\bdavvero\b/;
+const RESTORE_FRIDGE = /\b(rimetti|ripristina|rimettere|riporta)\b.*\b(frigo|cose|tutto|scorte)\b/;
+let lastCleared: import('@/lib/fitness/pantry').PantryItem[] | null = null;
+
+/** La lista della spesa dal piano alimentare, meno ciò che c'è già in frigo. */
+function shoppingFromPlan(push: Push) {
+  const pantry = usePantry.getState();
+  if (!pantry.plan) { push(t('Non hai ancora un piano alimentare: dimmi cosa vuoi mangiare e come ti senti e lo creiamo insieme, poi ti preparo la lista di ciò che devi comprare.'), [{ kind: 'say', label: t('Creiamo il piano'), text: 'vorrei un piano alimentare' }, { kind: 'dismiss', label: t('Più tardi') }]); return; }
+  const list = pantry.shopForPlan(7);
+  if (!list.length) { push(t('Hai già in frigo tutto quello che serve per i prossimi 7 giorni del piano: non devi comprare niente.'), [{ kind: 'open', label: t('Apri Frigo e spesa'), page: 'fitnessFridge' }]); return; }
+  const g = (n: number) => (n >= 1000 ? `${Math.round(n / 100) / 10} kg` : `${n} g`);
+  push(`${t('Per i prossimi 7 giorni del piano ti serve questo (ho già tolto quello che hai in frigo):')}\n\n${list.slice(0, 40).map((x) => `• ${x.name} · ${g(x.grams)}`).join('\n')}\n\n${t('L\'ho messa nella tua lista della spesa: la spunti mentre compri.')}`, [{ kind: 'open', label: t('Apri la lista della spesa'), page: 'fitnessFridge' }, { kind: 'dismiss', label: t('Ok') }]);
+}
+
 /** Frasi sul cibo e sull'acqua. true = gestita (nessuna AI esterna: è tutto calcolato sul telefono). */
 export async function handleFood(text: string, push: Push, open: (page: string, params?: Record<string, string>) => void): Promise<boolean> {
   const n = norm(text);
@@ -201,6 +218,10 @@ export async function handleFood(text: string, push: Push, open: (page: string, 
     const ml = parseWater(text);
     if (ml !== null && ml > 0 && ml <= 5000) { logWater(push, ml); return true; }
   }
+  if (SHOP_LIST.test(n)) { shoppingFromPlan(push); return true; }
+  if (CONFIRM_EMPTY.test(n)) { const before = usePantry.getState().clearItems(); push(before.length ? t('Fatto: ho svuotato il frigo ({0} voci). Se ti sei sbagliato puoi rimetterle.', before.length) : t('Il frigo era già vuoto.'), before.length ? [{ kind: 'say', label: t('Rimetti tutto'), text: 'rimetti le cose nel frigo' }, { kind: 'dismiss', label: t('Ok') }] : undefined); if (before.length) lastCleared = before; return true; }
+  if (RESTORE_FRIDGE.test(n) && lastCleared) { usePantry.getState().restoreItems(lastCleared); push(t('Fatto: ho rimesso le {0} voci nel frigo.', lastCleared.length)); lastCleared = null; return true; }
+  if (EMPTY_FRIDGE.test(n)) { push(t('Vuoi davvero svuotare tutto il frigo? Tolgo tutte le scorte che hai segnato; la lista della spesa non cambia.'), [{ kind: 'say', label: t('Sì, svuota il frigo'), text: 'sì svuota il frigo davvero' }, { kind: 'dismiss', label: t('No, lascia') }]); return true; }
   if (AI_DEEP.test(n) && /\b(mang\w*|alimentazion\w*)\b/.test(n)) { await deepAnalysis(push); return true; }
   if (EAT.test(n)) { eatingAnalysis(push); return true; }
   return false;

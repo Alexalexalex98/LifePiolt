@@ -23,7 +23,7 @@ import { LogoLoader } from '@/components/LogoLoader';
 import { AiNote } from '@/components/AiNote';
 import { Composer, type ComposerSend } from '@/components/theia/Composer';
 import { MessageAttachments } from '@/components/theia/AttachChips';
-import { MessageFooter, MessageImages } from '@/components/theia/MessageExtras';
+import { MessageCard, MessageFooter, MessageImages } from '@/components/theia/MessageExtras';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { shouldScrollToEnd } from '@/lib/keyboardInset';
 import { Icon } from '@/lib/icons';
@@ -194,6 +194,7 @@ export default function LifeChat() {
                     {item.image ? <Image source={{ uri: item.image }} style={{ width: 160, height: 100, borderRadius: 10, marginBottom: 6 }} contentFit="cover" /> : null}
                     {item.ext?.images?.length ? <MessageImages uris={item.ext.images} me={me} /> : null}
                     {item.ext?.attachments?.length ? <MessageAttachments items={item.ext.attachments} me={me} /> : null}
+                    {item.ext?.card ? <MessageCard card={item.ext.card} /> : null}
                     {item.text ? (me ? <Text selectable style={{ color: '#111', fontSize: 15, lineHeight: 21 }}>{item.text}</Text> : <RichText text={item.text} color={t.text} accent={t.text} />) : null}
                     <MessageFooter ext={item.id === lastAi?.id ? item.ext : item.ext} me={me} onAction={(a) => void act(item.id, a)} />
                     {item.source === 'theia' && <Text style={{ color: me ? '#556' : t.muted, fontSize: 10, marginTop: 4 }}>da {name} sulla schermata</Text>}

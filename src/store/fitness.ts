@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
-import type { Gym, Step } from '@/lib/fitness/data';
+import type { Gym, Program, Step } from '@/lib/fitness/data';
+import { ALL_PROGRAMS } from '@/lib/fitness/programsExtra';
 import type { ExerciseX } from '@/lib/fitness/exerciseDb';
 import { registerFood, type Body, type Food, type Macros } from '@/lib/fitness/nutrition';
 import type { FitProfile, Workout } from '@/lib/fitness/plan';
@@ -37,6 +38,8 @@ type State = {
   invites: Invite[];
   /** esercizi creati da te */
   customEx: ExerciseX[];
+  /** programmi di allenamento scritti da Theia (si aggiungono alle schede dell'app) */
+  aiPrograms: Program[];
   /** alimenti stimati dall'AI dalle foto dei piatti (servono per rileggere i pasti salvati) */
   aiFoods: Food[];
   /** ingressi pagati in LifePoints con il QR */
@@ -91,7 +94,7 @@ const uid = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice
 /** Dati di LifeFitness: restano sul telefono (sono dati di salute). */
 export const useFitness = create<State>()(
   persisted<State>('fitness', (set, get) => ({
-    profile: null, body: null, activeProgram: null, history: [], meals: [], water: {}, waterRemind: { on: false, everyMin: 120, from: '09:00', to: '21:00' }, eveningCheck: { on: true, at: '20:45' }, sub: null, visits: [], requests: [], approved: [], invites: [], customEx: [], aiFoods: [], purchases: [], edits: {}, plans: {}, exDone: {}, waterBanner: { on: true, afterMin: 120, snoozeUntil: 0 }, lastDrink: 0, lunch: DEFAULT_LUNCH, lunchLog: {}, lunchSnooze: 0,
+    aiPrograms: [], profile: null, body: null, activeProgram: null, history: [], meals: [], water: {}, waterRemind: { on: false, everyMin: 120, from: '09:00', to: '21:00' }, eveningCheck: { on: true, at: '20:45' }, sub: null, visits: [], requests: [], approved: [], invites: [], customEx: [], aiFoods: [], purchases: [], edits: {}, plans: {}, exDone: {}, waterBanner: { on: true, afterMin: 120, snoozeUntil: 0 }, lastDrink: 0, lunch: DEFAULT_LUNCH, lunchLog: {}, lunchSnooze: 0,
     setLunch: (p) => set((s) => ({ lunch: { ...(s.lunch ?? DEFAULT_LUNCH), ...p } })),
     answerLunch: (day, a, snoozeMin) => set((s) => ({ lunchLog: { ...(s.lunchLog ?? {}), [day]: a }, lunchSnooze: snoozeMin ? Date.now() + snoozeMin * 60000 : 0 })),
     setWaterBanner: (p) => set((s) => ({ waterBanner: { ...(s.waterBanner ?? { on: true, afterMin: 120, snoozeUntil: 0 }), ...p } })),
@@ -179,3 +182,10 @@ export const useFitness = create<State>()(
 /** Gli alimenti stimati dall'AI tornano disponibili per id appena lo store e' caricato (e a ogni nuova stima). */
 useFitness.subscribe((s) => { for (const f of s.aiFoods ?? []) registerFood(f); });
 for (const f of useFitness.getState().aiFoods ?? []) registerFood(f);
+
+/** I programmi di Theia si aggiungono alle schede dell'app (e si aggiornano quando lei li cambia). */
+const registerPrograms = (list: Program[]) => {
+  for (const p of list) { const i = ALL_PROGRAMS.findIndex((x) => x.id === p.id); if (i >= 0) ALL_PROGRAMS[i] = p; else ALL_PROGRAMS.push(p); }
+};
+useFitness.subscribe((s) => registerPrograms(s.aiPrograms ?? []));
+registerPrograms(useFitness.getState().aiPrograms ?? []);

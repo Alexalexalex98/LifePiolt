@@ -15,6 +15,7 @@ import { editKey, equipmentOf, newStep, nextSessionIndex, sessionMinutes, stepsO
 import { ALL_PROGRAMS, NEEDS, programById, searchPrograms } from '@/lib/fitness/programsExtra';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
+import { sendToAssistant } from '@/lib/assistant/run';
 import { useFitness } from '@/store/fitness';
 import { toast } from '@/store/toast';
 
@@ -102,6 +103,13 @@ export default function FitnessProgram() {
           {[`${p.days} gg/sett.`, tl('{0} settimane', p.weeks), ...(p.specialty ? [p.specialty] : [])].map((x) => <View key={x} style={{ backgroundColor: 'rgba(28,11,4,0.2)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}><Text style={{ color: '#1c0b04', fontSize: 12, fontWeight: '800' }}>{x}</Text></View>)}
         </Row>
       </FitHero>
+      {p.id.startsWith('ai-') ? (
+        <Card accent={FIT}>
+          <H style={{ marginBottom: 2 }}>{tl('Creato con Theia')}</H>
+          <Body small muted>{tl('Se un esercizio è troppo duro, ti fa male o non ti piace, dimmelo in chat: lo cambio e il programma si aggiorna qui.')}</Body>
+          <Btn small icon="chat" style={{ marginTop: 10, alignSelf: 'flex-start' }} title={tl('Cambia con Theia')} onPress={() => { void sendToAssistant('Vorrei cambiare qualcosa nel programma di allenamento'); go('ai'); }} />
+        </Card>
+      ) : null}
       {p.who || p.why ? (
         <Card>
           {p.who ? <><H style={{ marginBottom: 2 }}>Per chi è</H><Body small>{p.who}</Body></> : null}

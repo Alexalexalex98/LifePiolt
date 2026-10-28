@@ -1,5 +1,5 @@
 {
- "count": 15051,
+ "count": 15098,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -32,17 +32,17 @@
   "src/app/(tabs)/fitnessDay.tsx": 39,
   "src/app/(tabs)/fitnessDiary.tsx": 54,
   "src/app/(tabs)/fitnessExercise.tsx": 31,
-  "src/app/(tabs)/fitnessFridge.tsx": 57,
+  "src/app/(tabs)/fitnessFridge.tsx": 65,
   "src/app/(tabs)/fitnessGroup.tsx": 39,
   "src/app/(tabs)/fitnessGroups.tsx": 53,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 39,
   "src/app/(tabs)/fitnessMeal.tsx": 80,
   "src/app/(tabs)/fitnessMealCard.tsx": 31,
-  "src/app/(tabs)/fitnessMealPlan.tsx": 55,
+  "src/app/(tabs)/fitnessMealPlan.tsx": 64,
   "src/app/(tabs)/fitnessPass.tsx": 27,
   "src/app/(tabs)/fitnessPlanDay.tsx": 30,
-  "src/app/(tabs)/fitnessProgram.tsx": 36,
+  "src/app/(tabs)/fitnessProgram.tsx": 40,
   "src/app/(tabs)/fitnessWater.tsx": 17,
   "src/app/(tabs)/fitnessWorkout.tsx": 25,
   "src/app/(tabs)/focus.tsx": 27,
@@ -395,15 +395,16 @@
   "src/lib/assistant/engine.ts": 224,
   "src/lib/assistant/env.ts": 7,
   "src/lib/assistant/followup.ts": 4,
-  "src/lib/assistant/foodTheia.ts": 76,
+  "src/lib/assistant/foodTheia.ts": 94,
   "src/lib/assistant/nlp.ts": 13,
   "src/lib/assistant/phrases.ts": 101,
   "src/lib/assistant/phrasesMore.ts": 128,
+  "src/lib/assistant/planDelivery.ts": 24,
   "src/lib/assistant/projectCore.ts": 138,
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 139,
+  "src/lib/assistant/theiaFlow.ts": 140,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -672,5 +673,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1889
+ "withPlaceholders": 1898
 }

@@ -52,4 +52,6 @@ export type TheiaExt = {
   detail?: string;
   /** il campo con cui ha risposto l'esperta: decide la faccia di Theia accanto al messaggio (vedi lib/theiaAvatarIds.ts) */
   avatar?: string;
+  /** un file consegnato in chat (piano alimentare, programma): si tocca e si apre la pagina */
+  card?: { icon: string; title: string; sub: string; page: string; params?: Record<string, string> };
 };

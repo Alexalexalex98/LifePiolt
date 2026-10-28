@@ -1,11 +1,13 @@
 import { Image } from 'expo-image';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { Pill } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { translateText } from '@/i18n/core';
 import type { TheiaAction, TheiaExt } from '@/lib/assistant/theiaExt';
+import { Icon } from '@/lib/icons';
+import { go } from '@/lib/nav';
 
 /** Immagini allegate a un messaggio (restano sul telefono). */
 export function MessageImages({ uris, me }: { uris: string[]; me?: boolean }) {
@@ -44,5 +46,22 @@ export function MessageFooter({ ext, me, onAction }: { ext?: TheiaExt; me?: bool
         </View>
       ) : null}
     </View>
+  );
+}
+
+/** Un file consegnato da Theia (piano alimentare, programma di allenamento): tocchi e si apre nella sua sezione. */
+export function MessageCard({ card }: { card?: TheiaExt['card'] }) {
+  const t = useTheme();
+  if (!card) return null;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${card.title}. ${card.sub}`} onPress={() => go(card.page, card.params)}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: t.item, borderRadius: 16, borderWidth: 1, borderColor: t.border, padding: 12, marginTop: 8 }}>
+      <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: t.accent + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={card.icon} size={24} color={t.accent} stroke={2} /></View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: t.text, fontWeight: '800', fontSize: 15 }} numberOfLines={2}>{card.title}</Text>
+        <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }} numberOfLines={2}>{card.sub}</Text>
+      </View>
+      <Icon name="chevron-right" size={18} color={t.muted} />
+    </Pressable>
   );
 }
