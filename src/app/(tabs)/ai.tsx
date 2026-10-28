@@ -51,10 +51,18 @@ export default function LifeChat() {
   const list = useRef<FlatList<AMsg>>(null);
   /* la chat segue la risposta solo se sei in fondo: se scorri verso l'alto resta ferma e compare la freccia per tornare giù */
   const follow = useRef(true);
+  /* all'apertura (o cambio cartella) le misure dei messaggi lunghi arrivano a pezzi: finché non tocchi la lista, resta sempre in fondo */
+  const opening = useRef(true);
   const [showDown, setShowDown] = useState(false);
   const toEnd = (animated: boolean) => { follow.current = true; setShowDown(false); list.current?.scrollToEnd({ animated }); };
 
   useEffect(() => { migrateOldChat(); }, []);
+  useEffect(() => {
+    opening.current = true; follow.current = true;
+    const ts = [0, 120, 350, 800].map((ms) => setTimeout(() => list.current?.scrollToEnd({ animated: false }), ms));
+    const end = setTimeout(() => { opening.current = false; }, 1800);
+    return () => { ts.forEach(clearTimeout); clearTimeout(end); };
+  }, [section]);
   // quando la tastiera si apre (o cambia altezza) l'ultimo messaggio resta in vista, sopra la barra di scrittura
   const kb = useKeyboardInset();
   const prevKb = useRef({ visible: false, height: 0 });
@@ -157,15 +165,16 @@ export default function LifeChat() {
           <FlatList
             ref={list}
             style={{ flex: 1 }}
-            onScroll={(e) => { const { contentOffset: o, contentSize: c, layoutMeasurement: l } = e.nativeEvent; const d = c.height - l.height - o.y; follow.current = d < 90; setShowDown(d > 260); }}
+            onScroll={(e) => { const { contentOffset: o, contentSize: c, layoutMeasurement: l } = e.nativeEvent; const d = c.height - l.height - o.y; if (!opening.current) follow.current = d < 90; setShowDown(!opening.current && d > 260); }}
+            onScrollBeginDrag={() => { opening.current = false; }}
             scrollEventThrottle={64}
             data={shown}
             keyExtractor={(m) => m.id}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             removeClippedSubviews={false}
-            onContentSizeChange={() => { if (follow.current) list.current?.scrollToEnd({ animated: false }); }}
-            onLayout={() => { if (follow.current) list.current?.scrollToEnd({ animated: false }); }}
+            onContentSizeChange={() => { if (follow.current || opening.current) list.current?.scrollToEnd({ animated: false }); }}
+            onLayout={() => { if (follow.current || opening.current) list.current?.scrollToEnd({ animated: false }); }}
             contentContainerStyle={shown.length === 0 ? { flexGrow: 1, justifyContent: 'center' } : undefined}
             ListEmptyComponent={
               <View style={{ alignItems: 'center', paddingHorizontal: 4, paddingBottom: 8 }}>

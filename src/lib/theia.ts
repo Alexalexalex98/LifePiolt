@@ -291,6 +291,8 @@ async function toBase64(uri: string): Promise<string | null> {
   } catch { return null; }
 }
 
+/** L'ultimo prompt conteneva le istruzioni dei piani: niente esperto del campo né ricerca sul web (farebbero una risposta generica con fonti invece dell'intervista). */
+let planMode = false;
 /** Se si parla di piano alimentare o di allenamento: come intervistare, come scrivere il piano e cosa c'e' gia'. */
 function planPrompts(question: string, mine: string[]): string {
   const app = useApp.getState(); const fit = useFitness.getState(); const pantry = usePantry.getState();
@@ -306,6 +308,7 @@ function planPrompts(question: string, mine: string[]): string {
     const p = fit.profile;
     out += `\n${workoutPrompt({ body, goal: p?.goal, place: p?.place, days: p?.days, minutes: p?.minutes, needs: (p?.needs ?? []).map((n) => NEEDS.find((x) => x.id === n)?.label ?? n), current: workoutSummary(mineProg, fit.customEx) })}`;
   }
+  planMode = !!out;
   return out;
 }
 
@@ -345,13 +348,15 @@ DOMANDE DI CHIARIMENTO (volute, sono sempre sul tema della richiesta): se la ric
 
 /** Domanda libera in chat: risponde il server AI come una persona (con la conversazione recente). */
 export async function askTheiaChat(question: string): Promise<string> {
-  const h = holdBlocks(await aiChatRaw(await theiaPrompt(question), question));
+  const prompt = await theiaPrompt(question);
+  const h = holdBlocks(await aiChatRaw(prompt, planMode ? undefined : question));
   return releaseBlocks(guardClaims(tidy(h.text)).text, h.blocks);
 }
 
 /** Come askTheiaChat ma a flusso: `onText` riceve il testo man mano che Theia lo scrive. */
 export async function askTheiaChatStream(question: string, onText: (acc: string) => void): Promise<string> {
-  const h = holdBlocks(await aiChatStream(await theiaPrompt(question), question, onText));
+  const prompt = await theiaPrompt(question);
+  const h = holdBlocks(await aiChatStream(prompt, planMode ? undefined : question, onText));
   return releaseBlocks(guardClaims(tidy(h.text)).text, h.blocks);
 }
 

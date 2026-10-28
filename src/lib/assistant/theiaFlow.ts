@@ -52,6 +52,8 @@ import { shareLearned, voteSharedCommand } from '@/social/sharedCommands';
 import { handleFood } from '@/lib/assistant/foodTheia';
 import { deliverPlans, takePlans } from '@/lib/assistant/planDelivery';
 import { NUTRITIONIST_TALK, looksLikeDietPlan } from '@/lib/fitness/planPdf';
+import { mealPlanTalk } from '@/lib/fitness/aiPlan';
+import { workoutTalk } from '@/lib/fitness/aiWorkout';
 import { importPlanPdf } from '@/lib/fitness/planPdfRun';
 import { offerFor, routeAs, routePhotos } from '@/lib/assistant/photoRouting';
 import { usePantry } from '@/store/pantry';
@@ -86,6 +88,9 @@ export type SendInput = {
   /** audio registrato che non si può trascrivere: compare comunque nella chat */
   voiceNote?: { uri: string; durationMs: number };
 };
+
+/** Comandi sul cibo che restano locali (lista della spesa, frigo, avvisi): non vanno all'AI. */
+const ACTIONS_LOCAL = /\b(lista della spesa|lista spesa|cosa devo comprare|svuota\w*|avvis\w*|notific\w*|promemoria)\b/;
 
 /** Di cosa si sta parlando: serve a capire «mettila nei task» detto subito dopo «devo fare la spesa». */
 let lastSubject: { text: string; ts: number; added: boolean } | null = null;
@@ -425,15 +430,23 @@ export async function sendTheia(i: SendInput): Promise<void> {
     const n = norm(text);
     /* un «sì»/«no» dopo una domanda che ho fatto io con l'AI («Vuoi che ti aiuti a inserirli?») è la risposta a quella domanda: passa all'AI, che ha la conversazione */
     const lastAi = [...store().log].reverse().find((m) => m.who === 'ai');
-    const answersMyQuestion = !!lastAi && /\?\s*$/.test(lastAi.text.trim());
+    /* l'ultima cosa che ho detto era una domanda (anche con le «Fonti» in coda) o è recente: un «sì» o «no» risponde a quella */
+    const lastTxt = (lastAi?.text ?? '').replace(/\n*\s*Fonti:[\s\S]*$/i, '').trim();
+    const answersMyQuestion = !!lastAi && (/\?[^?]{0,160}$/.test(lastTxt) || Date.now() - (lastAi.ts ?? 0) < 15 * 60000);
     const loneAnswer = (isYes(text) || isNo(text)) && (n.split(' ').length > 3 || answersMyQuestion);
     if ((SMALLTALK.test(n) && n.split(' ').length <= 8) || loneAnswer) { await aiChatReply([text, payload].filter(Boolean).join('\n\n')); return; }
+  }
+  /* piano alimentare e allenamento: ne parla Theia con l'AI (domande, piano, modifiche) prima di qualsiasi scorciatoia locale («devo creare un piano alimentare» non è un task) */
+  if (aiOn() && !pending && !eng.pending && !ACTIONS_LOCAL.test(norm(text))) {
+    const recentMine = store().log.filter((m) => m.who === 'me').slice(-6, -1).map((m) => m.text);
+    if (mealPlanTalk(text, recentMine, !!usePantry.getState().plan) || workoutTalk(text, recentMine, !!useFitness.getState().aiPrograms[0])) { await aiChatReply([text, payload].filter(Boolean).join('\n\n')); return; }
   }
   // «devo fare la spesa»: è una cosa da fare, la metto nei task (con «Annulla»); «mettila nei task» subito dopo si riferisce a quella
   if (!pending) {
     const tc = taskCommand(text);
     if (tc) { lastSubject = { text: tc, ts: Date.now(), added: false }; if (await runLocal(`add task "${tc.replace(/"/g, '')}"`)) { if (lastSubject) lastSubject.added = true; return; } }
-    const subj = todoSubject(text);
+    /* con l'AI collegata una frase lunga o una domanda non è un promemoria: la capisce l'AI */
+    const subj = aiOn() && (text.includes('?') || text.trim().split(/\s+/).length > 7) ? null : todoSubject(text);
     if (subj) {
       lastSubject = { text: subj, ts: Date.now(), added: false };
       if (await runLocal(`add task "${subj.replace(/"/g, '')}"`)) { if (lastSubject) lastSubject.added = true; return; }

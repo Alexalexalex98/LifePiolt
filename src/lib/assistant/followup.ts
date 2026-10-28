@@ -14,6 +14,7 @@ export function todoSubject(raw: string): string | null {
   // dev'essere un'azione («fare…», «chiamare…», «comprare…»): l'infinito finisce in -are/-ere/-ire/-rre/-arsi
   if (!/^(?:\w+(?:are|ere|ire|rre|arsi|ersi|irsi)|\w+(?:arlo|erlo|irlo|arla|erla|irla))\b/i.test(rest)) return null;
   if (/^(?:vedere|guardare|sapere|capire|mostrare|aprire|conoscere|ascoltare|parlare|provare|leggere)\b/i.test(rest)) return null; // sono richieste, non cose da fare
+  if (/\b(piano alimentare|piano dei pasti|dieta|allenament\w*|programma di|scheda|ricett\w*|menu|workout|esercizi|nutrizion\w*|mangiare meglio|dimagrire|mettere massa)\b/i.test(rest)) return null; // sono richieste a Theia, non cose da fare
   // «voglio / vorrei / mi serve» valgono come task solo con verbi da fare davvero
   if (/^(?:vorrei|voglio|mi serve|ho bisogno di)\b/i.test(t) && !/^(?:fare|comprare|prenotare|chiamare|pagare|portare|ritirare|spedire|rinnovare|cercare|organizzare|preparare|ordinare)\b/i.test(rest)) return null;
   if (/\b(task|attivit[aà]|promemoria|compito)\b/i.test(rest) && /^(?:mett|aggiung|crea|segn|salv)/i.test(rest)) return null; // «devo mettere la task»: non è l'argomento

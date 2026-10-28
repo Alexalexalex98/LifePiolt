@@ -5,6 +5,8 @@ import { todoSubject, isAddFollowUp } from '../src/lib/assistant/followup.ts';
 test('«Devo fare la spesa» ha come argomento «Fare la spesa»', () => {
   assert.equal(todoSubject('Devo fare la spesa'), 'Fare la spesa');
   assert.equal(todoSubject('Ricordami di chiamare Marco'), 'Chiamare Marco');
+  assert.equal(todoSubject('Devo creare un piano alimentare'), null);
+  assert.equal(todoSubject('Vorrei preparare un programma di allenamento'), null);
   assert.equal(todoSubject('dovrei prenotare il dentista.'), 'Prenotare il dentista');
 });
 test('non sono argomenti: domande, saluti, richieste di salvare', () => {
