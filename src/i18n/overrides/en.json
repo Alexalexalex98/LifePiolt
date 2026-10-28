@@ -4220,5 +4220,7 @@
  "Rifai con Google (più preciso)": "Redo with Google (more accurate)",
  "Sì, aggiungili": "Yes, add them",
  "Sì, sostituisci": "Yes, replace",
- "turni di lavoro": "work shifts"
+ "turni di lavoro": "work shifts",
+ "Verranno tolte tutte le scorte che hai segnato ({0}). La lista della spesa non cambia. Subito dopo puoi annullare.": "All the stock you logged ({0}) will be removed. The shopping list does not change. You can undo right after.",
+ "Il frigo è già vuoto": "The fridge is already empty"
 }

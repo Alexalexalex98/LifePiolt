@@ -19,8 +19,8 @@ import { useNet } from '@/store/network';
 import { useFriends } from '@/store/friends';
 import { peoplePool } from '@/lib/network';
 import { usePantry } from '@/store/pantry';
-import { showUndoToast, toast } from '@/store/toast';
-import { confirmDelete } from '@/lib/confirm';
+import { toast } from '@/store/toast';
+import { confirmClearFridge } from '@/lib/clearData';
 
 const UNITS = { g: 'g', ml: 'ml', pz: 'pz' } as const;
 const fmt = (q: number, u: string) => `${Math.round(q * 10) / 10} ${u}`;
@@ -103,7 +103,7 @@ export default function Fridge() {
             <Btn small icon="camera" title={tl('Foto del frigo')} disabled={busy} onPress={() => void scan(true, 'fridge')} />
             <Btn small ghost icon="image" title={tl('Da galleria')} disabled={busy} onPress={() => void scan(false)} />
             <Btn small ghost icon="edit" title={tl('Scrivi la lista')} onPress={() => setTyped(true)} />
-            {p.items.length ? <Btn small ghost danger icon="trash" title={tl('Svuota il frigo')} onPress={() => confirmDelete(tl('tutto il frigo ({0} voci)', p.items.length), () => { const before = p.clearItems(); showUndoToast(tl('Frigo svuotato'), () => p.restoreItems(before)); }, undefined, { title: tl('Svuotare il frigo?'), okLabel: tl('Svuota') })} /> : null}
+            <Btn small ghost danger icon="trash" title={tl('Svuota il frigo')} disabled={!p.items.length} onPress={confirmClearFridge} />
           </Row>
           {low.length ? (
             <Card accent={t.warn}>

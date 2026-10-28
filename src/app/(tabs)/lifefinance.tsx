@@ -24,9 +24,8 @@ import { sectionColor } from '@/lib/liveTheme';
 import { alertsFor } from '@/lib/budgetState';
 import { detectRecurring, movementsToDated } from '@/lib/recurring';
 import { avgRecentNet, defaultBudget, emergencyByMonth, monthEnd, normBill, typicalCosts, useFin } from '@/store/finance';
-import { showUndoToast, toast } from '@/store/toast';
-import { alertT } from '@/lib/alert';
-import { refreshBillReminders } from '@/lib/bills/schedule';
+import { toast } from '@/store/toast';
+import { confirmClearFinance } from '@/lib/clearData';
 import { LpTag } from '@/components/network';
 import { go } from '@/lib/nav';
 import { useNet } from '@/store/network';
@@ -181,10 +180,7 @@ export default function LifeFinance() {
           <Card>
             <H>Ricomincia da zero</H>
             <Body small muted style={{ marginTop: 2 }}>Cancella tutti i dati di finanza personale (movimenti, budget, spese fisse, bollette e fatture, dati fiscali, estratto). I LifePoints e gli investimenti restano. Poi ricarichi l’estratto e l’app rifà tutto da quello.</Body>
-            <Btn style={{ marginTop: 10 }} ghost icon="trash" title="Cancella i dati di finanza" onPress={() => alertT('Cancellare tutti i dati di finanza?', 'Verranno tolti movimenti, budget, spese fisse, bollette, fatture, dati fiscali e i dati dell’estratto. I LifePoints e gli investimenti non si toccano. Subito dopo puoi annullare.', [
-              { text: 'Annulla', style: 'cancel' },
-              { text: 'Cancella tutto', style: 'destructive', onPress: () => { const snap = useFin.getState().clearPersonalFinance(); void refreshBillReminders().catch(() => {}); showUndoToast('Dati di finanza cancellati', () => { useFin.getState().restoreFinance(snap); void refreshBillReminders().catch(() => {}); }); } },
-            ])} />
+            <Btn style={{ marginTop: 10 }} ghost icon="trash" title="Cancella i dati di finanza" onPress={confirmClearFinance} />
           </Card>
           ) : null}
 
