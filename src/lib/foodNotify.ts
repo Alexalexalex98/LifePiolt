@@ -37,4 +37,5 @@ export async function refreshFoodReminders(): Promise<void> {
       }
     }
   } catch { /* mai bloccare l'app per una notifica */ }
+  try { await (await import('@/lib/mealAlerts')).refreshMealAlerts(); } catch { /* avvisi dei pasti non disponibili */ }
 }

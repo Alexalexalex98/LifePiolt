@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { FIT } from '@/components/fitness/kit';
-import { Body, Btn, Card, H, Input, Page, Pill, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Card, H, Input, Page, Pill, Row, Sheet, Switch } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { compareDay } from '@/lib/fitness/pantry';
@@ -13,6 +13,8 @@ import { dayOf, mealTitle } from '@/lib/fitness/mealInsights';
 import { FOOD, NUTRITION_DISCLAIMER, dailyTarget, searchFoods } from '@/lib/fitness/nutrition';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
+import { pickFile } from '@/lib/bills/files';
+import { importPlanPdf } from '@/lib/fitness/planPdfRun';
 import { sendToAssistant } from '@/lib/assistant/run';
 import { useFitness } from '@/store/fitness';
 import { usePantry } from '@/store/pantry';
@@ -28,7 +30,19 @@ const todayIdx = () => (new Date().getDay() + 6) % 7;
 export default function MealPlan() {
   const t = useTheme();
   const fit = useFitness();
-  const { plan, planMeta, prefs, setPrefs, makePlan, setPlan } = usePantry();
+  const { plan, planMeta, prefs, setPrefs, makePlan, setPlan, mealAlert, setMealAlert } = usePantry();
+  const [busyPdf, setBusyPdf] = useState(false);
+  async function loadPdf() {
+    if (busyPdf) return;
+    const pick = await pickFile();
+    if (!pick.ok) { if (!pick.canceled) toast(pick.message); return; }
+    setBusyPdf(true);
+    try {
+      toast(tl('Sto leggendo il piano: può volerci un minuto.'));
+      const r = await importPlanPdf(pick.file);
+      toast(r.ok ? tl('Piano caricato: {0}, circa {1} kcal al giorno', r.title, r.avg) : r.error);
+    } finally { setBusyPdf(false); }
+  }
   const [day, setDay] = useState(todayIdx());
   const [edit, setEdit] = useState<{ d: number; m: PlanMeal } | null>(null);
   const [q, setQ] = useState('');
@@ -73,13 +87,27 @@ export default function MealPlan() {
         <Row gap={10}>
           <View style={{ flex: 1 }}>
             <H style={{ marginBottom: 2 }}>{planMeta?.title ?? tl('Crealo con Theia')}</H>
-            <Body small muted>{planMeta ? (planMeta.notes ?? tl('Piano scritto con Theia. Se qualcosa non ti piace, dimmelo in chat e lo cambio.')) : tl('Parlane con Theia: ti chiede come stai, cosa non mangi e cosa vuoi ottenere, poi scrive il piano su misura e lo trovi qui.')}</Body>
+            <Body small muted>{planMeta ? (planMeta.notes ?? (planMeta.by === 'nutrizionista' ? tl('Piano caricato dal PDF del nutrizionista. Se qualcosa non torna, dimmelo in chat e lo sistemo.') : tl('Piano scritto con Theia. Se qualcosa non ti piace, dimmelo in chat e lo cambio.'))) : tl('Parlane con Theia: ti chiede come stai, cosa non mangi e cosa vuoi ottenere, poi scrive il piano su misura e lo trovi qui.')}</Body>
           </View>
         </Row>
         <Row gap={8} style={{ marginTop: 10, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
           <Btn small icon="chat" title={plan ? tl('Cambia con Theia') : tl('Parla con Theia')} onPress={() => { void sendToAssistant(plan ? 'Vorrei cambiare qualcosa nel piano alimentare' : 'Vorrei un piano alimentare su misura per me'); go('ai'); }} />
           {plan ? <Btn small ghost icon="note" title={tl('Lista della spesa')} onPress={missingForWeek} /> : null}
+          <Btn small ghost icon="file" title={busyPdf ? tl('Leggo il PDF…') : tl('PDF del nutrizionista')} disabled={busyPdf} onPress={() => void loadPdf()} />
         </Row>
+        <Body small muted style={{ marginTop: 8 }}>{tl('Hai il piano del tuo nutrizionista in PDF? Caricalo: leggo tutti i pasti e gli alimenti e li metto qui, come per l\'estratto conto.')}</Body>
+      </Card>
+      <Card>
+        <Row gap={10}>
+          <View style={{ flex: 1 }}><Body bold>{tl('Avvisami se mancano gli ingredienti')}</Body><Body small muted>{tl('Prima di un pasto del piano ti scrivo, come per l\'acqua, se in frigo non hai quello che serve. Serve almeno un alimento segnato nel frigo.')}</Body></View>
+          <Switch value={mealAlert.on} onValueChange={(v) => setMealAlert({ on: v })} accessibilityLabel={tl('Avvisami se mancano gli ingredienti')} />
+        </Row>
+        {mealAlert.on ? (
+          <Row gap={6} style={{ marginTop: 10, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+            <Body small muted>{tl('Quanto prima')}</Body>
+            {[30, 60, 120].map((m) => <Pill key={m} label={m === 60 ? tl('1 ora') : m === 120 ? tl('2 ore') : tl('{0} minuti', m)} on={mealAlert.leadMin === m} onPress={() => setMealAlert({ leadMin: m })} />)}
+          </Row>
+        ) : null}
       </Card>
       <Card accent={FIT}>
         <H>{tl('Le tue esigenze')}</H>

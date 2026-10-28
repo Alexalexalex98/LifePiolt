@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { addStock, consume, norm, stockGrams, syncShopping, type Line, type PantryItem, type ShopItem, type Unit } from '@/lib/fitness/pantry';
 import { shoppingList } from '@/lib/fitness/aiPlan';
+import { DEFAULT_MEAL_ALERT, type MealAlertCfg } from '@/lib/fitness/mealStock';
 import { generatePlan, type PlanDay, type PlanPrefs } from '@/lib/fitness/mealPlan';
 import { uid } from '@/lib/format';
 import { useApp } from './app';
@@ -13,7 +14,10 @@ type State = {
   shop: ShopItem[];
   plan: PlanDay[] | null;
   /** chi ha scritto il piano e quando (se l'ha scritto Theia) */
-  planMeta: { title: string; notes?: string; by: 'theia'; at: number } | null;
+  planMeta: { title: string; notes?: string; by: 'theia' | 'nutrizionista'; at: number } | null;
+  /** avvisi prima dei pasti se mancano gli ingredienti in frigo (si spengono qui o in chat) */
+  mealAlert: MealAlertCfg;
+  setMealAlert: (p: Partial<MealAlertCfg>) => void;
   prefs: PlanPrefs;
   seed: number;
   /** con chi condividi frigo e lista della spesa */
@@ -54,7 +58,7 @@ export const usePantry = create<State>()(persisted<State>('pantry', (set, get) =
     if (r.added.length) { set({ shop: r.shop }); if (get().shared.length) get().shareShopping(); }
   };
   return {
-    items: [], shop: [], plan: null, planMeta: null, shared: [], autoConsume: true, seed: 0,
+    items: [], shop: [], plan: null, planMeta: null, mealAlert: DEFAULT_MEAL_ALERT, shared: [], autoConsume: true, seed: 0,
     prefs: { diet: 'onnivoro', avoid: [], meals: 4, kcal: 2000 },
     addLines: (lines) => {
       let items = get().items;
@@ -89,6 +93,7 @@ export const usePantry = create<State>()(persisted<State>('pantry', (set, get) =
     makePlan: (again) => { const seed = again ? get().seed + 1 : get().seed; const r = generatePlan(get().prefs, seed); set({ plan: r.days, seed }); return r.warnings; },
     setPlan: (p) => set({ plan: p }),
     setPlanMeta: (m) => set({ planMeta: m }),
+    setMealAlert: (p) => set({ mealAlert: { ...(get().mealAlert ?? DEFAULT_MEAL_ALERT), ...p } }),
     clearItems: () => { const before = get().items; set({ items: [] }); return before; },
     restoreItems: (items) => set({ items }),
     shopForPlan: (days = 7) => {

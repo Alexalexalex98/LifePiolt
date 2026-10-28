@@ -34,24 +34,33 @@ export function deliverPlans(h: HeldPlans, push: Push): void {
   if (h.workout || h.workoutBroken) deliverWorkout(h.workout, push);
 }
 
-function deliverMeal(json: unknown, push: Push) {
+export type MealApplied = { ok: false } | { ok: true; days: number[]; avg: number; had: boolean; title: string; skipped: number };
+/** Imposta il piano alimentare nella sezione. `replaceAll` = un piano intero sostituisce quello di prima (PDF del nutrizionista). */
+export function applyMealPlan(json: unknown, by: 'theia' | 'nutrizionista', replaceAll = false): MealApplied {
   const r = json ? parseAiPlan(json) : null;
-  if (!r || !r.days.size) { push(t('Non sono riuscita a scrivere il piano nel formato giusto. Dimmi di rifarlo e lo riscrivo.'), { ext: { actions: retry(t('Ok'), 'rifai il piano alimentare') } }); return; }
+  if (!r || !r.days.size) return { ok: false };
   const fit = useFitness.getState(); const pantry = usePantry.getState();
   if (r.custom.length) fit.set({ aiFoods: [...r.custom, ...fit.aiFoods.filter((f) => !r.custom.some((c) => c.id === f.id))].slice(0, 300) });
-  const had = !!pantry.plan && r.days.size < 7;
-  const merged = mergePlan(pantry.plan, r.days);
+  const had = !replaceAll && !!pantry.plan && r.days.size < 7;
+  const merged = mergePlan(replaceAll ? null : pantry.plan, r.days);
   pantry.setPlan(merged);
   if (r.meta.kcal) pantry.setPrefs({ kcal: r.meta.kcal, kcalOverride: r.meta.kcal });
   const prev = pantry.planMeta;
-  pantry.setPlanMeta({ title: r.meta.title ?? prev?.title ?? t('Il tuo piano alimentare'), notes: r.meta.notes ?? prev?.notes, by: 'theia', at: Date.now() });
+  const title = r.meta.title ?? (replaceAll ? undefined : prev?.title) ?? (by === 'nutrizionista' ? t('Piano del nutrizionista') : t('Il tuo piano alimentare'));
+  pantry.setPlanMeta({ title, notes: r.meta.notes ?? (replaceAll ? undefined : prev?.notes), by, at: Date.now() });
   const avg = Math.round(merged.reduce((s, d) => s + dayKcal(d), 0) / Math.max(1, merged.filter((d) => d.length).length));
-  const changed = [...r.days.keys()].sort((a, b) => a - b).map((i) => WD[i]).join(', ');
+  return { ok: true, days: [...r.days.keys()].sort((a, b) => a - b), avg, had, title, skipped: r.warnings.length };
+}
+
+function deliverMeal(json: unknown, push: Push) {
+  const r = applyMealPlan(json, 'theia');
+  if (!r.ok) { push(t('Non sono riuscita a scrivere il piano nel formato giusto. Dimmi di rifarlo e lo riscrivo.'), { ext: { actions: retry(t('Ok'), 'rifai il piano alimentare') } }); return; }
+  const changed = r.days.map((i) => WD[i]).join(', ');
   /* il piano lo scrive Theia direttamente nella sezione: in chat solo una conferma breve; un piano nuovo si apre da solo */
-  push(had ? t('Fatto, ho cambiato il piano nella sezione: {0}.', changed) : t('Ho impostato il tuo piano alimentare nella sezione Piano alimentare: 7 giorni, circa {0} kcal al giorno. Se qualcosa non ti piace dimmelo qui e lo cambio direttamente lì.', avg), {
+  push(r.had ? t('Fatto, ho cambiato il piano nella sezione: {0}.', changed) : t('Ho impostato il tuo piano alimentare nella sezione Piano alimentare: 7 giorni, circa {0} kcal al giorno. Se qualcosa non ti piace dimmelo qui e lo cambio direttamente lì.', r.avg), {
     ext: { actions: [{ kind: 'open', label: t('Apri il piano'), page: 'fitnessMealPlan' }, { kind: 'say', label: t('Lista della spesa'), text: 'preparami la lista della spesa del piano' }] },
   });
-  if (!had) go('fitnessMealPlan');
+  if (!r.had) go('fitnessMealPlan');
 }
 
 function deliverWorkout(json: unknown, push: Push) {

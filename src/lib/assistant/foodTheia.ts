@@ -173,6 +173,7 @@ const WATER_REMIND = /\b(promemoria|avvis\w*|ricord\w*|notific\w*)\b.*\bacqua\b|
 const OFF = /\b(disattiv\w*|spegn\w*|togli\w*|non voglio|basta)\b/;
 const EVENING_OFF = /\b(domanda|notifica|avviso)\b.*\b(serale|sera|cibo)\b|\b(serale|sera)\b.*\b(notifica|avviso)\b/;
 
+const MEAL_ALERT = /\b(avvis\w*|notific\w*|promemoria)\b.*\b(ingredient\w*|mancano|mancanza)\b|\b(ingredient\w*|mancano)\b.*\b(avvis\w*|notific\w*|promemoria)\b/;
 const SHOP_LIST = /\b(lista della spesa|lista spesa|cosa devo comprare|cosa (?:mi )?(?:manca|serve) (?:da )?comprare|cosa compro|prepar\w* la spesa|fammi la spesa)\b/;
 const EMPTY_FRIDGE = /\b(svuota|svuotare|butta|buttare|elimina|eliminare|cancella|cancellare|togli|toglimi)\b.*\b(frigo|dispensa|scorte)\b/;
 const CONFIRM_EMPTY = /^s[iì]\b.*\bsvuota\b.*\bfrigo\b.*\bdavvero\b/;
@@ -217,6 +218,12 @@ export async function handleFood(text: string, push: Push, open: (page: string, 
   if (WATER_LOG.test(n)) {
     const ml = parseWater(text);
     if (ml !== null && ml > 0 && ml <= 5000) { logWater(push, ml); return true; }
+  }
+  if (MEAL_ALERT.test(n)) {
+    const off = OFF.test(n);
+    usePantry.getState().setMealAlert({ on: !off });
+    push(off ? t('Fatto: non ti avviso più se mancano gli ingredienti di un pasto. Puoi riattivarlo dal Piano alimentare.') : t('Fatto: prima di un pasto ti scrivo se in frigo mancano gli ingredienti.'));
+    return true;
   }
   if (SHOP_LIST.test(n)) { shoppingFromPlan(push); return true; }
   if (CONFIRM_EMPTY.test(n)) { const before = usePantry.getState().clearItems(); push(before.length ? t('Fatto: ho svuotato il frigo ({0} voci). Se ti sei sbagliato puoi rimetterle.', before.length) : t('Il frigo era già vuoto.'), before.length ? [{ kind: 'say', label: t('Rimetti tutto'), text: 'rimetti le cose nel frigo' }, { kind: 'dismiss', label: t('Ok') }] : undefined); if (before.length) lastCleared = before; return true; }

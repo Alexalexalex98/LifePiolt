@@ -15,7 +15,7 @@ const SRC = path.join(ROOT, 'src');
 const EXCLUDE_DIRS = ['src/lib/langLexicon', 'src/i18n/locales', 'src/i18n/source', 'tests', 'node_modules'];
 const EXCLUDE_FILES = new Set([
   'src/i18n/languages.ts', 'src/i18n/core.ts', 'src/i18n/apply.ts', 'src/i18n/catalogs.ts', 'src/lib/rn-shim.tsx', 'src/lib/rn-shim-pressable.tsx',
-  'src/data/seed.ts', 'src/lib/chatSentiment.ts', 'src/lib/fitness/aiPlan.ts', 'src/lib/fitness/aiWorkout.ts', 'src/lib/assistant/photoRouteCore.ts', 'src/lib/aiRouter/keywords.ts', 'src/data/marketSeed.ts', 'src/data/jobsSeed.ts', 'src/data/moodDemo.ts',
+  'src/data/seed.ts', 'src/lib/chatSentiment.ts', 'src/lib/fitness/aiPlan.ts', 'src/lib/fitness/aiWorkout.ts', 'src/lib/assistant/photoRouteCore.ts', 'src/lib/fitness/planPdf.ts', 'src/lib/fitness/mealStock.ts', 'src/lib/aiRouter/keywords.ts', 'src/data/marketSeed.ts', 'src/data/jobsSeed.ts', 'src/data/moodDemo.ts',
   'src/data/network-seed.json', 'src/data/translations.json', 'src/store/demo.ts',
 ]);
 

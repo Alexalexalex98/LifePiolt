@@ -51,6 +51,8 @@ import { useLearned } from '@/store/learned';
 import { shareLearned, voteSharedCommand } from '@/social/sharedCommands';
 import { handleFood } from '@/lib/assistant/foodTheia';
 import { deliverPlans, takePlans } from '@/lib/assistant/planDelivery';
+import { NUTRITIONIST_TALK, looksLikeDietPlan } from '@/lib/fitness/planPdf';
+import { importPlanPdf } from '@/lib/fitness/planPdfRun';
 import { offerFor, routeAs, routePhotos } from '@/lib/assistant/photoRouting';
 import { usePantry } from '@/store/pantry';
 import { useFitness } from '@/store/fitness';
@@ -326,6 +328,15 @@ export async function sendTheia(i: SendInput): Promise<void> {
     }
     for (const x of images) saveMediaToDrive({ uri: x.uri, media: 'photo', from: 'Theia' });
     if (!images.length && MAKE_TASKS.test(text) && (await importDocsAsProject(atts))) return;
+    /* il PDF del nutrizionista: i pasti e gli alimenti diventano il piano alimentare nella sua sezione */
+    const dietPdf = !images.length ? atts.find((a) => a.kind === 'document' && a.uri && (a.docType === 'pdf' || /\.pdf$/i.test(a.name)) && (NUTRITIONIST_TALK.test(`${text} ${a.name}`) || (a.text ? looksLikeDietPlan(a.text) : false))) : undefined;
+    if (dietPdf) {
+      pushAi(t('Leggo il piano del nutrizionista e lo metto nella sezione Piano alimentare: ci vuole un minuto.'));
+      const r = await importPlanPdf({ uri: dietPdf.uri!, name: dietPdf.name, mime: dietPdf.mime, size: dietPdf.size });
+      if (r.ok) { pushAi(t('Fatto: ho messo nel piano «{0}», circa {1} kcal al giorno. Se qualcosa non torna dimmelo e lo sistemo.', r.title, r.avg), { ext: { actions: [{ kind: 'open', label: t('Apri il piano'), page: 'fitnessMealPlan' }, { kind: 'say', label: t('Lista della spesa'), text: 'preparami la lista della spesa del piano' }] } }); go('fitnessMealPlan'); }
+      else pushAi(r.error);
+      return;
+    }
     if (aiOn()) {
       const list = [...images.map((x) => ({ uri: x.uri, mime: x.mime })), ...atts.filter((a) => a.kind === 'document' && a.uri && !a.text).map((a) => ({ uri: a.uri!, mime: a.mime ?? 'application/pdf', name: a.name }))];
       if (list.length) {

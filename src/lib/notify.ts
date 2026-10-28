@@ -368,6 +368,17 @@ export function startReminderSync(): void {
     });
     useLife.subscribe((s, p) => { if (s.tasks !== p.tasks || s.events !== p.events) { if (pinTimer) clearTimeout(pinTimer); pinTimer = setTimeout(() => { void refreshUrgentPin(); }, 1500); } });
     void refreshUrgentPin();
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { usePantry } = require('@/store/pantry') as typeof import('@/store/pantry');
+      let mealTimer: ReturnType<typeof setTimeout> | undefined;
+      usePantry.subscribe((s, p) => {
+        if (s.plan === p.plan && s.items === p.items && s.mealAlert === p.mealAlert) return;
+        if (mealTimer) clearTimeout(mealTimer);
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        mealTimer = setTimeout(() => { void (require('@/lib/mealAlerts') as typeof import('@/lib/mealAlerts')).refreshMealAlerts(); }, 2500);
+      });
+    } catch { /* avvisi dei pasti non disponibili */ }
     useInterests.subscribe((s, p) => { if (s.homeCity !== p.homeCity) later(); });
     useApp.subscribe((s, p) => { if (s.reminders !== p.reminders || s.notifKinds !== p.notifKinds) { later(); void refreshUrgentPin(); } });
   } catch { syncStarted = false; }

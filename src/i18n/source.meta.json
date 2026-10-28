@@ -1,5 +1,5 @@
 {
- "count": 15127,
+ "count": 15152,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -39,7 +39,7 @@
   "src/app/(tabs)/fitnessGyms.tsx": 39,
   "src/app/(tabs)/fitnessMeal.tsx": 80,
   "src/app/(tabs)/fitnessMealCard.tsx": 31,
-  "src/app/(tabs)/fitnessMealPlan.tsx": 64,
+  "src/app/(tabs)/fitnessMealPlan.tsx": 76,
   "src/app/(tabs)/fitnessPass.tsx": 27,
   "src/app/(tabs)/fitnessPlanDay.tsx": 30,
   "src/app/(tabs)/fitnessProgram.tsx": 40,
@@ -395,17 +395,17 @@
   "src/lib/assistant/engine.ts": 224,
   "src/lib/assistant/env.ts": 7,
   "src/lib/assistant/followup.ts": 4,
-  "src/lib/assistant/foodTheia.ts": 94,
+  "src/lib/assistant/foodTheia.ts": 96,
   "src/lib/assistant/nlp.ts": 13,
   "src/lib/assistant/photoRouting.ts": 38,
   "src/lib/assistant/phrases.ts": 101,
   "src/lib/assistant/phrasesMore.ts": 128,
-  "src/lib/assistant/planDelivery.ts": 19,
+  "src/lib/assistant/planDelivery.ts": 20,
   "src/lib/assistant/projectCore.ts": 138,
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 145,
+  "src/lib/assistant/theiaFlow.ts": 150,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -488,6 +488,7 @@
   "src/lib/fitness/nutrition.ts": 68,
   "src/lib/fitness/pantry.ts": 2,
   "src/lib/fitness/plan.ts": 15,
+  "src/lib/fitness/planPdfRun.ts": 7,
   "src/lib/fitness/poses.ts": 368,
   "src/lib/fitness/premium.ts": 3,
   "src/lib/fitness/programsExtra.ts": 31,
@@ -537,6 +538,7 @@
   "src/lib/markets/identify.ts": 1,
   "src/lib/markets/invest.ts": 6,
   "src/lib/mascot.ts": 63,
+  "src/lib/mealAlerts.ts": 8,
   "src/lib/menu.ts": 11,
   "src/lib/mindExercises.ts": 139,
   "src/lib/modRules.ts": 17,
@@ -612,7 +614,7 @@
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
-  "src/lib/theia.ts": 105,
+  "src/lib/theia.ts": 106,
   "src/lib/theia/appContext.ts": 7,
   "src/lib/theia/ask.ts": 58,
   "src/lib/theia/collect.ts": 1,
@@ -675,5 +677,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1904
+ "withPlaceholders": 1911
 }
