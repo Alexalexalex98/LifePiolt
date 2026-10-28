@@ -33,6 +33,9 @@ type State = {
   addShop: (name: string, qty?: number, unit?: Unit) => void;
   toggleShop: (id: string) => void;
   removeShop: (id: string) => void;
+  /** toglie tutta la lista della spesa e restituisce quella di prima (per annullare) */
+  clearShop: () => ShopItem[];
+  restoreShop: (shop: ShopItem[]) => void;
   /** la spesa è fatta: ciò che hai spuntato va nel frigo */
   finishShopping: () => number;
   setPrefs: (p: Partial<PlanPrefs>) => void;
@@ -83,6 +86,8 @@ export const usePantry = create<State>()(persisted<State>('pantry', (set, get) =
     addShop: (name, qty, unit) => { const n = name.trim(); if (!n || get().shop.some((s) => !s.done && norm(s.name) === norm(n))) return; set({ shop: [{ id: uid(), name: n.slice(0, 60), ...(qty ? { qty } : {}), ...(unit ? { unit } : {}), done: false }, ...get().shop] }); },
     toggleShop: (id) => set({ shop: get().shop.map((s) => (s.id === id ? { ...s, done: !s.done } : s)) }),
     removeShop: (id) => set({ shop: get().shop.filter((s) => s.id !== id) }),
+    clearShop: () => { const before = get().shop; set({ shop: [] }); return before; },
+    restoreShop: (shop) => set({ shop }),
     finishShopping: () => {
       const done = get().shop.filter((s) => s.done);
       const n = get().addLines(done.map((s) => ({ name: s.name, qty: s.qty ?? 1, unit: s.unit ?? 'pz' })));

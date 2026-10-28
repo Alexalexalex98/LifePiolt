@@ -20,7 +20,7 @@ import { useFriends } from '@/store/friends';
 import { peoplePool } from '@/lib/network';
 import { usePantry } from '@/store/pantry';
 import { toast } from '@/store/toast';
-import { confirmClearFridge } from '@/lib/clearData';
+import { confirmClearFridge, confirmClearShopping } from '@/lib/clearData';
 
 const UNITS = { g: 'g', ml: 'ml', pz: 'pz' } as const;
 const fmt = (q: number, u: string) => `${Math.round(q * 10) / 10} ${u}`;
@@ -134,6 +134,7 @@ export default function Fridge() {
           )) : <Card><Body muted>{tl('La lista è vuota. Ciò che sta finendo nel frigo compare qui da solo.')}</Body></Card>}
           {p.plan ? <Btn ghost icon="note" title={tl('Prepara la lista dal piano alimentare')} onPress={() => { const n = p.shopForPlan(7).length; toast(n ? tl('Aggiunti {0} prodotti: ciò che serve per 7 giorni e non hai in frigo', n) : tl('In frigo hai già tutto per 7 giorni')); }} /> : null}
           <Body small muted>{tl('Tieni premuto su una voce per toglierla.')}</Body>
+          <Btn small ghost danger icon="trash" style={{ alignSelf: 'flex-start' }} title={tl('Cancella tutta la lista')} disabled={!p.shop.length} onPress={confirmClearShopping} />
           {p.shop.some((s) => s.done) ? <Btn icon="check" title={tl('Spesa fatta: metti nel frigo')} onPress={() => toast(tl('Aggiunti {0} prodotti al frigo', p.finishShopping()))} /> : null}
           {p.shared.length && p.shop.some((s) => !s.done) ? <Btn ghost icon="share" title={tl('Manda la lista a chi condividi')} onPress={() => { p.shareShopping(); toast(tl('Lista inviata')); }} /> : null}
         </>

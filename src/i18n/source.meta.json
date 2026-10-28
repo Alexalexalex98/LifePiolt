@@ -1,5 +1,5 @@
 {
- "count": 15171,
+ "count": 15185,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -32,7 +32,7 @@
   "src/app/(tabs)/fitnessDay.tsx": 39,
   "src/app/(tabs)/fitnessDiary.tsx": 54,
   "src/app/(tabs)/fitnessExercise.tsx": 31,
-  "src/app/(tabs)/fitnessFridge.tsx": 61,
+  "src/app/(tabs)/fitnessFridge.tsx": 62,
   "src/app/(tabs)/fitnessGroup.tsx": 39,
   "src/app/(tabs)/fitnessGroups.tsx": 53,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
@@ -107,7 +107,7 @@
   "src/app/(tabs)/security.tsx": 5,
   "src/app/(tabs)/seminarPage.tsx": 44,
   "src/app/(tabs)/servicePage.tsx": 31,
-  "src/app/(tabs)/settings.tsx": 181,
+  "src/app/(tabs)/settings.tsx": 182,
   "src/app/(tabs)/sharing.tsx": 2,
   "src/app/(tabs)/shifts.tsx": 30,
   "src/app/(tabs)/shopPage.tsx": 42,
@@ -395,7 +395,7 @@
   "src/lib/assistant/engine.ts": 224,
   "src/lib/assistant/env.ts": 7,
   "src/lib/assistant/followup.ts": 4,
-  "src/lib/assistant/foodTheia.ts": 96,
+  "src/lib/assistant/foodTheia.ts": 104,
   "src/lib/assistant/nlp.ts": 13,
   "src/lib/assistant/photoRouting.ts": 38,
   "src/lib/assistant/phrases.ts": 101,
@@ -441,7 +441,7 @@
   "src/lib/chatMedia.ts": 10,
   "src/lib/chatShare.ts": 8,
   "src/lib/chatSim.ts": 8,
-  "src/lib/clearData.ts": 10,
+  "src/lib/clearData.ts": 15,
   "src/lib/club/anchors.ts": 2,
   "src/lib/club/chatPerms.ts": 13,
   "src/lib/club/limits.ts": 1,
@@ -679,5 +679,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1913
+ "withPlaceholders": 1916
 }

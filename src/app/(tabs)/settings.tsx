@@ -7,7 +7,7 @@ import { refreshRadarNotifications } from '@/lib/theia/notifyRadar';
 import { useRadar } from '@/store/radar';
 import { Pressable, Share, View } from 'react-native';
 import { alertT } from '@/lib/alert';
-import { confirmClearFinance, confirmClearFridge } from '@/lib/clearData';
+import { confirmClearFinance, confirmClearFridge, confirmClearShopping } from '@/lib/clearData';
 
 import { t as tl, translateText } from '@/i18n/core';
 import { LanguageList, CurrencyPicker } from '@/components/LanguagePicker';
@@ -446,6 +446,7 @@ export default function Settings() {
           <Btn small ghost title={demoAsk ? 'Tocca ancora per confermare: sostituisce i tuoi dati' : 'Carica i dati demo (chat, piano, finanze...)'} onPress={() => { if (!demoAsk) { setDemoAsk(true); toast('Sostituisce i dati attuali con quelli di esempio. Fai prima un backup se ti servono.'); return; } applyDemo(app.account.name || 'Alex', app.account.email); set({ demo: true }); setDemoAsk(false); toast('Dati demo caricati: guarda Messaggi, Plan e Finanze'); }} />
           <Btn small ghost danger icon="trash" title="Cancella i dati di finanza" onPress={confirmClearFinance} />
           <Btn small ghost danger icon="trash" title="Svuota il frigo" onPress={confirmClearFridge} />
+          <Btn small ghost danger icon="trash" title="Cancella la lista della spesa" onPress={confirmClearShopping} />
           <Btn small ghost danger title="Elimina tutti i miei dati" onPress={() => setDel(1)} />
         </View>
       </Card>

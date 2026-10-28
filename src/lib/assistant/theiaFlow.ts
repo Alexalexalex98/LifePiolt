@@ -93,7 +93,7 @@ export type SendInput = {
 };
 
 /** Comandi sul cibo che restano locali (lista della spesa, frigo, avvisi): non vanno all'AI. */
-const ACTIONS_LOCAL = /\b(lista della spesa|lista spesa|cosa devo comprare|svuota\w*|avvis\w*|notific\w*|promemoria)\b/;
+const ACTIONS_LOCAL = /\b(lista della spesa|lista spesa|cosa devo comprare|svuota\w*|cancella\w*|avvis\w*|notific\w*|promemoria)\b/;
 
 /** Di cosa si sta parlando: serve a capire «mettila nei task» detto subito dopo «devo fare la spesa». */
 let lastSubject: { text: string; ts: number; added: boolean } | null = null;

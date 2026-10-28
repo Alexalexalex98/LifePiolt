@@ -4224,5 +4224,17 @@
  "Verranno tolte tutte le scorte che hai segnato ({0}). La lista della spesa non cambia. Subito dopo puoi annullare.": "All the stock you logged ({0}) will be removed. The shopping list does not change. You can undo right after.",
  "Il frigo è già vuoto": "The fridge is already empty",
  "Caffeina": "Caffeine",
- "massimo circa 400 mg al giorno per un adulto sano": "up to about 400 mg a day for a healthy adult"
+ "massimo circa 400 mg al giorno per un adulto sano": "up to about 400 mg a day for a healthy adult",
+ "La lista della spesa è già vuota": "The shopping list is already empty",
+ "Cancellare la lista della spesa?": "Delete the shopping list?",
+ "Verranno tolte tutte le voci ({0}). Le scorte del frigo non cambiano. Subito dopo puoi annullare.": "All items ({0}) will be removed. The fridge stock does not change. You can undo right after.",
+ "Lista della spesa cancellata": "Shopping list deleted",
+ "Cancella tutta la lista": "Delete the whole list",
+ "Cancella la lista della spesa": "Delete the shopping list",
+ "Fatto: ho cancellato la lista della spesa ({0} voci).": "Done: I deleted the shopping list ({0} items).",
+ "La lista della spesa era già vuota.": "The shopping list was already empty.",
+ "Rimetti la lista": "Put the list back",
+ "Fatto: ho rimesso le {0} voci nella lista della spesa.": "Done: I put the {0} items back in the shopping list.",
+ "Vuoi davvero cancellare tutta la lista della spesa? Le scorte del frigo non cambiano.": "Do you really want to delete the whole shopping list? The fridge stock does not change.",
+ "Sì, cancella la lista": "Yes, delete the list"
 }

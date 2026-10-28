@@ -22,3 +22,13 @@ export function confirmClearFridge(): void {
     { text: 'Svuota', style: 'destructive', onPress: () => { const before = usePantry.getState().clearItems(); showUndoToast('Frigo svuotato', () => usePantry.getState().restoreItems(before)); } },
   ]);
 }
+
+/** Tutta la lista della spesa (le scorte del frigo non cambiano). */
+export function confirmClearShopping(): void {
+  const n = usePantry.getState().shop.length;
+  if (!n) { toast('La lista della spesa è già vuota'); return; }
+  alertT('Cancellare la lista della spesa?', `Verranno tolte tutte le voci (${n}). Le scorte del frigo non cambiano. Subito dopo puoi annullare.`, [
+    { text: 'Annulla', style: 'cancel' },
+    { text: 'Cancella', style: 'destructive', onPress: () => { const before = usePantry.getState().clearShop(); showUndoToast('Lista della spesa cancellata', () => usePantry.getState().restoreShop(before)); } },
+  ]);
+}

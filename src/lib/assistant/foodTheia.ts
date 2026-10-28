@@ -174,6 +174,10 @@ const OFF = /\b(disattiv\w*|spegn\w*|togli\w*|non voglio|basta)\b/;
 const EVENING_OFF = /\b(domanda|notifica|avviso)\b.*\b(serale|sera|cibo)\b|\b(serale|sera)\b.*\b(notifica|avviso)\b/;
 
 const MEAL_ALERT = /\b(avvis\w*|notific\w*|promemoria)\b.*\b(ingredient\w*|mancano|mancanza)\b|\b(ingredient\w*|mancano)\b.*\b(avvis\w*|notific\w*|promemoria)\b/;
+const EMPTY_SHOP = /\b(svuota\w*|cancell\w*|elimin\w*|togli\w*|butta\w*|azzera\w*)\b.*\blista (della )?spesa\b/;
+const CONFIRM_EMPTY_SHOP = /^s[iì]\b.*\bcancella\b.*\blista\b.*\bdavvero\b/;
+const RESTORE_SHOP = /\b(rimetti|ripristina|riporta)\b.*\blista (della )?spesa\b/;
+let lastShop: import('@/lib/fitness/pantry').ShopItem[] | null = null;
 const SHOP_LIST = /\b(lista della spesa|lista spesa|cosa devo comprare|cosa (?:mi )?(?:manca|serve) (?:da )?comprare|cosa compro|prepar\w* la spesa|fammi la spesa)\b/;
 const EMPTY_FRIDGE = /\b(svuota|svuotare|butta|buttare|elimina|eliminare|cancella|cancellare|togli|toglimi)\b.*\b(frigo|dispensa|scorte)\b/;
 const CONFIRM_EMPTY = /^s[iì]\b.*\bsvuota\b.*\bfrigo\b.*\bdavvero\b/;
@@ -219,6 +223,9 @@ export async function handleFood(text: string, push: Push, open: (page: string, 
     const ml = parseWater(text);
     if (ml !== null && ml > 0 && ml <= 5000) { logWater(push, ml); return true; }
   }
+  if (CONFIRM_EMPTY_SHOP.test(n)) { const before = usePantry.getState().clearShop(); push(before.length ? t('Fatto: ho cancellato la lista della spesa ({0} voci).', before.length) : t('La lista della spesa era già vuota.'), before.length ? [{ kind: 'say', label: t('Rimetti la lista'), text: 'rimetti la lista della spesa' }, { kind: 'dismiss', label: t('Ok') }] : undefined); if (before.length) lastShop = before; return true; }
+  if (RESTORE_SHOP.test(n) && lastShop) { usePantry.getState().restoreShop(lastShop); push(t('Fatto: ho rimesso le {0} voci nella lista della spesa.', lastShop.length)); lastShop = null; return true; }
+  if (EMPTY_SHOP.test(n)) { push(t('Vuoi davvero cancellare tutta la lista della spesa? Le scorte del frigo non cambiano.'), [{ kind: 'say', label: t('Sì, cancella la lista'), text: 'sì cancella la lista della spesa davvero' }, { kind: 'dismiss', label: t('No, lascia') }]); return true; }
   if (MEAL_ALERT.test(n)) {
     const off = OFF.test(n);
     usePantry.getState().setMealAlert({ on: !off });
