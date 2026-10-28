@@ -66,6 +66,7 @@ export function DaySummary({ meals, waterMl, body, avg, micro, single }: { /** u
         <Dose label={tl('Fibre')} onPress={() => setInfo('fibre')} eaten={g(sum.fib)} goal={tg?.fibre} state="ok" hint={!single && tg && (sum.fib ?? 0) < tg.fibre ? tl('ne servono almeno {0} g', tg.fibre) : undefined} />
         <Dose label={tl('Sale')} onPress={() => setInfo('salt')} eaten={g(sum.salt)} goal={tg?.saltMax} state={limitState(sum.salt ?? 0, tg?.saltMax)} hint={tg ? tl('massimo {0} g', tg.saltMax) : undefined} />
         {single ? null : <Dose label={tl('Acqua')} onPress={() => setInfo('water')} eaten={Math.round(((waterMl ?? 0) / 1000) * 10) / 10} goal={Math.round((wGoal / 1000) * 10) / 10} unit="L" state={wState} hint={(waterMl ?? 0) < wGoal * 0.7 ? tl('ne servirebbero circa {0}', L(wGoal)) : undefined} />}
+        {(sum.caf ?? 0) > 0 ? <Dose label={tl('Caffeina')} eaten={Math.round(sum.caf ?? 0)} goal={400} unit="mg" state={limitState(sum.caf ?? 0, 400)} hint={single ? undefined : tl('massimo circa 400 mg al giorno per un adulto sano')} /> : null}
       </View>
       {micro ? (
         <View style={{ marginTop: 12 }}>

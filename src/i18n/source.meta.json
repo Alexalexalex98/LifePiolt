@@ -1,5 +1,5 @@
 {
- "count": 15169,
+ "count": 15171,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -252,7 +252,7 @@
   "src/components/feed/TabCards.tsx": 21,
   "src/components/feed/ThreadPost.tsx": 20,
   "src/components/feed/useDeckCards.ts": 2,
-  "src/components/fitness/DaySummary.tsx": 23,
+  "src/components/fitness/DaySummary.tsx": 25,
   "src/components/fitness/ExerciseBrowser.tsx": 13,
   "src/components/fitness/ExerciseFigure.tsx": 3,
   "src/components/fitness/ExercisePhotos.tsx": 5,
