@@ -1,5 +1,5 @@
 {
- "count": 15098,
+ "count": 15130,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -27,7 +27,7 @@
   "src/app/(tabs)/docView.tsx": 2,
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
-  "src/app/(tabs)/fitnessBody.tsx": 31,
+  "src/app/(tabs)/fitnessBody.tsx": 23,
   "src/app/(tabs)/fitnessCook.tsx": 27,
   "src/app/(tabs)/fitnessDay.tsx": 39,
   "src/app/(tabs)/fitnessDiary.tsx": 54,
@@ -397,6 +397,7 @@
   "src/lib/assistant/followup.ts": 4,
   "src/lib/assistant/foodTheia.ts": 94,
   "src/lib/assistant/nlp.ts": 13,
+  "src/lib/assistant/photoRouting.ts": 38,
   "src/lib/assistant/phrases.ts": 101,
   "src/lib/assistant/phrasesMore.ts": 128,
   "src/lib/assistant/planDelivery.ts": 24,
@@ -404,7 +405,7 @@
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 140,
+  "src/lib/assistant/theiaFlow.ts": 145,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -471,6 +472,7 @@
   "src/lib/financeRecap.ts": 57,
   "src/lib/findPlace.ts": 55,
   "src/lib/fitness/bodyCheck.ts": 19,
+  "src/lib/fitness/bodyRun.ts": 9,
   "src/lib/fitness/data.ts": 203,
   "src/lib/fitness/exPhotos.ts": 145,
   "src/lib/fitness/execCheck.ts": 10,
@@ -673,5 +675,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1898
+ "withPlaceholders": 1906
 }

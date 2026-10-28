@@ -35,6 +35,12 @@ export type TheiaAction =
   | { kind: 'kb-redo'; label: string; id: string; text: string }
   /** risposta ricordata: non è giusta, dimenticala */
   | { kind: 'kb-forget'; label: string; id: string }
+  /** aggiunge al frigo i prodotti letti da una foto (dopo la conferma) */
+  | { kind: 'pantry-add'; label: string; lines: { name: string; qty: number; unit: 'g' | 'ml' | 'pz' }[] }
+  /** salva nel diario il piatto riconosciuto da una foto */
+  | { kind: 'meal-save'; label: string; items: { foodId: string; name: string; grams: number }[]; kcal: number; foods: import('../fitness/nutrition.ts').Food[]; photo?: string }
+  /** sposta le foto in una sezione (frigo, scontrino, piatto, corpo) e le analizza lì */
+  | { kind: 'photo-route'; label: string; to: 'corpo' | 'frigo' | 'piatto' | 'scontrino'; uris: string[] }
   | { kind: 'dismiss'; label: string };
 
 export type TheiaExt = {

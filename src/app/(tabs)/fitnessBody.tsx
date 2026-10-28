@@ -13,23 +13,18 @@ import { Body, Btn, Card, H, Page, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { confirmDelete } from '@/lib/confirm';
-import { askSend, logSend } from '@/lib/aiConsent';
-import { tidy } from '@/lib/aiPersona';
-import { AiServerError, aiReadFiles, aiServerConfigured } from '@/lib/aiServer';
-import { cancel, scheduleAt } from '@/lib/notify';
-import { BODY_REPEAT_DAYS, BODY_SLOTS, BODY_TIPS, bodyPrompt, type BodySlot } from '@/lib/fitness/bodyCheck';
-import { persistFile } from '@/lib/chatMedia';
+import { cancel } from '@/lib/notify';
+import { BODY_SLOTS, BODY_TIPS, type BodySlot } from '@/lib/fitness/bodyCheck';
+import { runBodyAnalysis } from '@/lib/fitness/bodyRun';
 import { Icon } from '@/lib/icons';
 import { pickNetMedia, takeNetPhoto } from '@/lib/netMedia';
 import { useBodyCheck } from '@/store/bodyCheck';
-import { useFitness } from '@/store/fitness';
 import { toast } from '@/store/toast';
 
 /** Controllo del corpo: 4 foto (davanti, dietro, lati) che l'AI guarda per dire cosa va bene e cosa migliorare con esercizi e alimentazione. */
 export default function FitnessBody() {
   const t = useTheme();
-  const { photos, reports, setPhoto, addReport, delReport, clearPhotos, skip, setSkip } = useBodyCheck();
-  const fit = useFitness();
+  const { photos, reports, setPhoto, delReport, clearPhotos, skip, setSkip } = useBodyCheck();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [viewer, setViewer] = useState<string | null>(null);
@@ -45,21 +40,11 @@ export default function FitnessBody() {
   async function analyze() {
     if (have < 4 || busy) return;
     setError('');
-    if (!aiServerConfigured) { setError('L\'AI non è collegata in questa app.'); return; }
-    if (!(await askSend('body', 'Davanti, dietro, lato sinistro e lato destro'))) { toast('Non invio niente: senza il tuo permesso l\'analisi non parte.'); return; }
     setBusy(true);
     try {
-      const files = BODY_SLOTS.map((s) => ({ uri: photos[s.id]!, mime: 'image/jpeg' }));
-      logSend('body', 0, ['4 foto del corpo']);
-      const b = fit.body;
-      const reply = await aiReadFiles(bodyPrompt({ sex: b?.sex, age: b?.age, weightKg: b?.weightKg, heightCm: b?.heightCm, goal: b?.goal, activity: b?.activity }, reports[0] ? { ts: reports[0].ts, text: reports[0].text } : undefined), files, 120000, 1100);
-      const text = tidy(reply);
-      if (!text) { setError('Non ho ricevuto una risposta: riprova tra poco.'); return; }
-      setOpenId(addReport(text, { ...photos }));
-      /* tra un po' ti ricordo di rifare le foto, per vedere i progressi */
-      void scheduleAt('body-photos', new Date(Date.now() + BODY_REPEAT_DAYS * 86400000), 'Foto del corpo', 'Sono passate 4 settimane: rifai le 4 foto per vedere i tuoi progressi.', undefined, 'promemoria').catch(() => undefined);
-    } catch (e) { setError(e instanceof AiServerError ? e.message : 'Non sono riuscito a contattare il servizio AI.'); }
-    finally { setBusy(false); }
+      const r = await runBodyAnalysis();
+      if (r.ok) setOpenId(r.id); else setError(r.error);
+    } finally { setBusy(false); }
   }
   function wipePhotos() {
     confirmDelete('le 4 foto del corpo', () => {

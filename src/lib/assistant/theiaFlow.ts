@@ -51,6 +51,11 @@ import { useLearned } from '@/store/learned';
 import { shareLearned, voteSharedCommand } from '@/social/sharedCommands';
 import { handleFood } from '@/lib/assistant/foodTheia';
 import { deliverPlans, takePlans } from '@/lib/assistant/planDelivery';
+import { offerFor, routeAs, routePhotos } from '@/lib/assistant/photoRouting';
+import { usePantry } from '@/store/pantry';
+import { useFitness } from '@/store/fitness';
+import { FOOD, macrosFor, sumMacros } from '@/lib/fitness/nutrition';
+import { mealTitle } from '@/lib/fitness/mealInsights';
 import { useAssistant, type AMsg } from '@/store/assistant';
 import { usePrefs } from '@/store/prefs';
 import { topicOf } from './nlp';
@@ -311,11 +316,23 @@ export async function sendTheia(i: SendInput): Promise<void> {
   if (images.length || atts.some(needsAnalysis)) {
     store().push({ who: 'me', text, source: 'chat', topic: i.topic, ext: { images: images.length ? images.map((x) => x.uri) : undefined, ...withAtts, lang: i.lang, voice: i.source === 'voice' } });
     saveToDrive(atts);
+    /* foto senza contesto: Theia ipotizza dove vanno (corpo, frigo, piatto, scontrino) e le sposta lì; con un discorso in corso al massimo lo propone dopo */
+    let offer: import('@/lib/assistant/photoRouteCore').PhotoKind | undefined;
+    if (images.length && !atts.some(needsAnalysis)) {
+      const recent = store().log.slice(-9, -1).map((m) => m.text);
+      const routed = await routePhotos(images, text, recent, (txt, extra) => pushAi(txt, extra));
+      if (routed.handled) return;
+      offer = routed.offer;
+    }
     for (const x of images) saveMediaToDrive({ uri: x.uri, media: 'photo', from: 'Theia' });
     if (!images.length && MAKE_TASKS.test(text) && (await importDocsAsProject(atts))) return;
     if (aiOn()) {
       const list = [...images.map((x) => ({ uri: x.uri, mime: x.mime })), ...atts.filter((a) => a.kind === 'document' && a.uri && !a.text).map((a) => ({ uri: a.uri!, mime: a.mime ?? 'application/pdf', name: a.name }))];
-      if (list.length) { await readFilesWithAi([text, payload].filter(Boolean).join('\n\n'), list); return; }
+      if (list.length) {
+        await readFilesWithAi([text, payload].filter(Boolean).join('\n\n'), list);
+        if (offer && images.length) { const acts = offerFor(offer, images.map((x) => x.uri)); if (acts.length) pushAi(t('Se vuoi, metto la foto anche nella sezione giusta.'), { ext: { actions: acts } }); }
+        return;
+      }
     }
     const files = atts.filter(needsAnalysis).length;
     if (!text && !images.length) {
@@ -783,6 +800,17 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
     case 'kb-forget': useTheiaMemory.getState().forget(action.id); pushAi(t('Fatto: ho dimenticato quella risposta.')); return;
     case 'kb-redo': useTheiaMemory.getState().forget(action.id); await aiChatReply(action.text); return;
     case 'ai-do': { const r = applyAiAction(action.act); if (r.message) pushAi(r.message); return; }
+    case 'pantry-add': { const n = usePantry.getState().addLines(action.lines.filter((l) => l.name.trim() && l.qty > 0)); pushAi(t('Fatto: ho aggiunto {0} prodotti al frigo.', n), { ext: { actions: [{ kind: 'open', label: t('Apri Frigo e spesa'), page: 'fitnessFridge' }] } }); return; }
+    case 'meal-save': {
+      const fit = useFitness.getState();
+      if (action.foods.length) fit.set({ aiFoods: [...action.foods, ...fit.aiFoods.filter((f) => !action.foods.some((u) => u.id === f.id))].slice(0, 300) });
+      const total = action.items.reduce((s, x) => s + x.grams, 0);
+      const macros = sumMacros(action.items.map((x) => { const f = FOOD(x.foodId); return f ? macrosFor(f, x.grams) : { kcal: 0, p: 0, c: 0, f: 0 }; }));
+      const id = fit.addMeal({ ts: Date.now(), name: mealTitle(action.items.map((x) => x.name)), grams: Math.round(total), macros, photo: action.photo, items: action.items });
+      pushAi(t('Salvato nel diario: circa {0} kcal.', Math.round(macros.kcal)), { ext: { actions: [{ kind: 'open', label: t('Apri il pasto'), page: 'fitnessMealCard', params: { id } }] } });
+      return;
+    }
+    case 'photo-route': store().push({ who: 'me', text: action.label, source: 'chat' }); await routeAs(action.to, action.uris, (txt, extra) => pushAi(txt, extra)); return;
     case 'bill': openBillReview({ uri: action.uri, mime: action.mime, name: action.name }); return;
     case 'read-files': store().push({ who: 'me', text: action.label, source: 'chat' }); await readFilesWithAi(action.text, action.files); return;
     case 'ask-ai': case 'retry':

@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { compareDay } from '@/lib/fitness/pantry';
 import { InfoTip } from '@/components/InfoTip';
-import { balanceDay, dayKcal, kcalOf, needsFor, type Avoid, type Diet, type PlanMeal } from '@/lib/fitness/mealPlan';
+import { balanceDay, dayKcal, kcalOf, type Avoid, type Diet, type PlanMeal } from '@/lib/fitness/mealPlan';
 import { dayOf, mealTitle } from '@/lib/fitness/mealInsights';
 import { FOOD, NUTRITION_DISCLAIMER, dailyTarget, searchFoods } from '@/lib/fitness/nutrition';
 import { Icon } from '@/lib/icons';
@@ -28,7 +28,7 @@ const todayIdx = () => (new Date().getDay() + 6) % 7;
 export default function MealPlan() {
   const t = useTheme();
   const fit = useFitness();
-  const { plan, planMeta, prefs, setPrefs, makePlan, setPlan, items, addShop } = usePantry();
+  const { plan, planMeta, prefs, setPrefs, makePlan, setPlan } = usePantry();
   const [day, setDay] = useState(todayIdx());
   const [edit, setEdit] = useState<{ d: number; m: PlanMeal } | null>(null);
   const [q, setQ] = useState('');
