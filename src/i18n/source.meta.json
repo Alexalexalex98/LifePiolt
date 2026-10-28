@@ -1,5 +1,5 @@
 {
- "count": 15152,
+ "count": 15168,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -37,7 +37,7 @@
   "src/app/(tabs)/fitnessGroups.tsx": 53,
   "src/app/(tabs)/fitnessGymRegister.tsx": 20,
   "src/app/(tabs)/fitnessGyms.tsx": 39,
-  "src/app/(tabs)/fitnessMeal.tsx": 80,
+  "src/app/(tabs)/fitnessMeal.tsx": 81,
   "src/app/(tabs)/fitnessMealCard.tsx": 31,
   "src/app/(tabs)/fitnessMealPlan.tsx": 76,
   "src/app/(tabs)/fitnessPass.tsx": 27,
@@ -405,7 +405,7 @@
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 150,
+  "src/lib/assistant/theiaFlow.ts": 161,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -599,6 +599,7 @@
   "src/lib/search/fts.ts": 8,
   "src/lib/seedMedia.ts": 191,
   "src/lib/shifts.ts": 7,
+  "src/lib/shiftsImportRun.ts": 6,
   "src/lib/shop.ts": 14,
   "src/lib/shopActions.ts": 8,
   "src/lib/shopSeed.ts": 56,
@@ -677,5 +678,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1911
+ "withPlaceholders": 1913
 }

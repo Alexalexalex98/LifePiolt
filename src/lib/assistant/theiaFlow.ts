@@ -53,6 +53,9 @@ import { handleFood } from '@/lib/assistant/foodTheia';
 import { deliverPlans, takePlans } from '@/lib/assistant/planDelivery';
 import { NUTRITIONIST_TALK, looksLikeDietPlan } from '@/lib/fitness/planPdf';
 import { mealPlanTalk } from '@/lib/fitness/aiPlan';
+import { SHIFT_TALK, shiftsSummary } from '@/lib/shiftsImport';
+import { readShiftsFile } from '@/lib/shiftsImportRun';
+import { useShifts } from '@/store/shifts';
 import { workoutTalk } from '@/lib/fitness/aiWorkout';
 import { importPlanPdf } from '@/lib/fitness/planPdfRun';
 import { offerFor, routeAs, routePhotos } from '@/lib/assistant/photoRouting';
@@ -319,6 +322,37 @@ export async function sendTheia(i: SendInput): Promise<void> {
   const payload = textPayload(atts);
   const withAtts = atts.length ? { attachments: atts } : {};
 
+  /* file e foto che sono piani (turni di lavoro, piano del nutrizionista): si leggono qui e finiscono nella loro sezione */
+  if (atts.length || images.length) {
+    const pushMine = () => store().push({ who: 'me', text, source: 'chat', topic: i.topic, ext: { images: images.length ? images.map((x) => x.uri) : undefined, ...withAtts, lang: i.lang, voice: i.source === 'voice' } });
+    const handled = await (async () => {
+    /* un file o una foto con i turni di lavoro: li leggo e chiedo conferma prima di cambiare quelli attuali */
+    const shiftFile = atts.find((a) => a.kind === 'document' && a.uri && SHIFT_TALK.test(`${text} ${a.name}`)) ?? (images.length && SHIFT_TALK.test(text) ? { uri: images[0].uri, name: t('Foto'), mime: images[0].mime, size: undefined as number | undefined } : undefined);
+    if (shiftFile) {
+      pushMine(); pushAi(t('Leggo i turni dal file: ci vuole un minuto.'));
+      const r = await readShiftsFile({ uri: shiftFile.uri!, name: shiftFile.name, mime: (shiftFile as { mime?: string }).mime, size: (shiftFile as { size?: number }).size });
+      if (!r.ok) { pushAi(r.error); return; }
+      const have = useShifts.getState().shifts.length;
+      const total = r.shifts.reduce((n, s) => n + s.dates.length, 0);
+      pushAi(`${t('Ho trovato {0} giorni di lavoro:', total)}\n\n${shiftsSummary(r.shifts)}\n\n${have ? t('Ora hai {0} turni salvati. Li sostituisco con questi?', have) : t('Li aggiungo ai tuoi turni?')}`, {
+        ext: { actions: have ? [{ kind: 'shifts-apply', label: t('Sì, sostituisci'), replace: true, shifts: r.shifts }, { kind: 'shifts-apply', label: t('Aggiungili agli altri'), replace: false, shifts: r.shifts }, { kind: 'dismiss', label: t('No, lascia i miei') }] : [{ kind: 'shifts-apply', label: t('Sì, aggiungili'), replace: false, shifts: r.shifts }, { kind: 'dismiss', label: t('No, grazie') }] },
+      });
+      return true;
+    }
+    /* il PDF del nutrizionista: i pasti e gli alimenti diventano il piano alimentare nella sua sezione */
+    const dietPdf = !images.length ? atts.find((a) => a.kind === 'document' && a.uri && (a.docType === 'pdf' || /\.pdf$/i.test(a.name)) && (NUTRITIONIST_TALK.test(`${text} ${a.name}`) || (a.text ? looksLikeDietPlan(a.text) : false))) : undefined;
+    if (dietPdf) {
+      pushMine(); pushAi(t('Leggo il piano del nutrizionista e lo metto nella sezione Piano alimentare: ci vuole un minuto.'));
+      const r = await importPlanPdf({ uri: dietPdf.uri!, name: dietPdf.name, mime: dietPdf.mime, size: dietPdf.size });
+      if (r.ok) { pushAi(t('Fatto: ho messo nel piano «{0}», circa {1} kcal al giorno. Se qualcosa non torna dimmelo e lo sistemo.', r.title, r.avg), { ext: { actions: [{ kind: 'open', label: t('Apri il piano'), page: 'fitnessMealPlan' }, { kind: 'say', label: t('Lista della spesa'), text: 'preparami la lista della spesa del piano' }] } }); go('fitnessMealPlan'); }
+      else pushAi(r.error);
+      return true;
+    }
+      return false;
+    })();
+    if (handled === true) return;
+  }
+
   // immagini o documenti che il telefono non sa leggere (PDF, Word, Excel): restano salvati e, se serve l'analisi, risponde il router (oggi non collegato)
   if (images.length || atts.some(needsAnalysis)) {
     store().push({ who: 'me', text, source: 'chat', topic: i.topic, ext: { images: images.length ? images.map((x) => x.uri) : undefined, ...withAtts, lang: i.lang, voice: i.source === 'voice' } });
@@ -333,15 +367,7 @@ export async function sendTheia(i: SendInput): Promise<void> {
     }
     for (const x of images) saveMediaToDrive({ uri: x.uri, media: 'photo', from: 'Theia' });
     if (!images.length && MAKE_TASKS.test(text) && (await importDocsAsProject(atts))) return;
-    /* il PDF del nutrizionista: i pasti e gli alimenti diventano il piano alimentare nella sua sezione */
-    const dietPdf = !images.length ? atts.find((a) => a.kind === 'document' && a.uri && (a.docType === 'pdf' || /\.pdf$/i.test(a.name)) && (NUTRITIONIST_TALK.test(`${text} ${a.name}`) || (a.text ? looksLikeDietPlan(a.text) : false))) : undefined;
-    if (dietPdf) {
-      pushAi(t('Leggo il piano del nutrizionista e lo metto nella sezione Piano alimentare: ci vuole un minuto.'));
-      const r = await importPlanPdf({ uri: dietPdf.uri!, name: dietPdf.name, mime: dietPdf.mime, size: dietPdf.size });
-      if (r.ok) { pushAi(t('Fatto: ho messo nel piano «{0}», circa {1} kcal al giorno. Se qualcosa non torna dimmelo e lo sistemo.', r.title, r.avg), { ext: { actions: [{ kind: 'open', label: t('Apri il piano'), page: 'fitnessMealPlan' }, { kind: 'say', label: t('Lista della spesa'), text: 'preparami la lista della spesa del piano' }] } }); go('fitnessMealPlan'); }
-      else pushAi(r.error);
-      return;
-    }
+
     if (aiOn()) {
       const list = [...images.map((x) => ({ uri: x.uri, mime: x.mime })), ...atts.filter((a) => a.kind === 'document' && a.uri && !a.text).map((a) => ({ uri: a.uri!, mime: a.mime ?? 'application/pdf', name: a.name }))];
       if (list.length) {
@@ -437,7 +463,7 @@ export async function sendTheia(i: SendInput): Promise<void> {
     if ((SMALLTALK.test(n) && n.split(' ').length <= 8) || loneAnswer) { await aiChatReply([text, payload].filter(Boolean).join('\n\n')); return; }
   }
   /* piano alimentare e allenamento: ne parla Theia con l'AI (domande, piano, modifiche) prima di qualsiasi scorciatoia locale («devo creare un piano alimentare» non è un task) */
-  if (aiOn() && !pending && !eng.pending && !ACTIONS_LOCAL.test(norm(text))) {
+  if (aiOn() && !pending && !eng.pending && !atts.length && !images.length && !ACTIONS_LOCAL.test(norm(text))) {
     const recentMine = store().log.filter((m) => m.who === 'me').slice(-6, -1).map((m) => m.text);
     if (mealPlanTalk(text, recentMine, !!usePantry.getState().plan) || workoutTalk(text, recentMine, !!useFitness.getState().aiPrograms[0])) { await aiChatReply([text, payload].filter(Boolean).join('\n\n')); return; }
   }
@@ -824,6 +850,13 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
     case 'kb-forget': useTheiaMemory.getState().forget(action.id); pushAi(t('Fatto: ho dimenticato quella risposta.')); return;
     case 'kb-redo': useTheiaMemory.getState().forget(action.id); await aiChatReply(action.text); return;
     case 'ai-do': { const r = applyAiAction(action.act); if (r.message) pushAi(r.message); return; }
+    case 'shifts-apply': {
+      const st = useShifts.getState();
+      if (action.replace) st.shifts.slice().forEach((x) => st.remove(x.id));
+      action.shifts.forEach((x) => useShifts.getState().save(x));
+      pushAi(action.replace ? t('Fatto: i turni di prima sono stati sostituiti con quelli del file.') : t('Fatto: ho aggiunto i turni del file.'), { ext: { actions: [{ kind: 'open', label: t('Apri i turni'), page: 'shifts' }] } });
+      return;
+    }
     case 'pantry-add': { const n = usePantry.getState().addLines(action.lines.filter((l) => l.name.trim() && l.qty > 0)); pushAi(t('Fatto: ho aggiunto {0} prodotti al frigo.', n), { ext: { actions: [{ kind: 'open', label: t('Apri Frigo e spesa'), page: 'fitnessFridge' }] } }); return; }
     case 'meal-save': {
       const fit = useFitness.getState();

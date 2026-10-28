@@ -41,6 +41,8 @@ export type TheiaAction =
   | { kind: 'meal-save'; label: string; items: { foodId: string; name: string; grams: number }[]; kcal: number; foods: import('../fitness/nutrition.ts').Food[]; photo?: string }
   /** sposta le foto in una sezione (frigo, scontrino, piatto, corpo) e le analizza lì */
   | { kind: 'photo-route'; label: string; to: 'corpo' | 'frigo' | 'piatto' | 'scontrino'; uris: string[] }
+  /** mette i turni letti da un file al posto (o accanto) a quelli di prima, dopo la conferma */
+  | { kind: 'shifts-apply'; label: string; replace: boolean; shifts: { name: string; start: string; end: string; weekdays: number[]; dates: string[] }[] }
   | { kind: 'dismiss'; label: string };
 
 export type TheiaExt = {

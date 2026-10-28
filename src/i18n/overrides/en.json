@@ -4204,5 +4204,21 @@
  "Quanto prima": "How early",
  "Sto leggendo il piano: può volerci un minuto.": "I'm reading the plan: it may take a minute.",
  "1 ora": "1 hour",
- "2 ore": "2 hours"
+ "2 ore": "2 hours",
+ "Aggiungili agli altri": "Add them to the others",
+ "Apri i turni": "Open shifts",
+ "Fatto: ho aggiunto i turni del file.": "Done: I added the shifts from the file.",
+ "Fatto: i turni di prima sono stati sostituiti con quelli del file.": "Done: your previous shifts were replaced with the ones from the file.",
+ "Ho trovato {0} giorni di lavoro:": "I found {0} working days:",
+ "Leggo i turni dal file: ci vuole un minuto.": "I'm reading the shifts from the file: it takes a minute.",
+ "Li aggiungo ai tuoi turni?": "Shall I add them to your shifts?",
+ "No, lascia i miei": "No, keep mine",
+ "Non invio il file: senza il permesso non posso leggere i turni.": "I won't send the file: without permission I can't read the shifts.",
+ "Non riesco a leggere i turni da questo file. Controlla che si veda il tuo nome e le date, oppure scrivimeli tu.": "I can't read the shifts from this file. Check that your name and the dates are visible, or write them to me.",
+ "Ora hai {0} turni salvati. Li sostituisco con questi?": "You now have {0} saved shifts. Shall I replace them with these?",
+ "Per leggere i turni serve il servizio AI, che qui non è collegato.": "Reading the shifts needs the AI service, which is not connected here.",
+ "Rifai con Google (più preciso)": "Redo with Google (more accurate)",
+ "Sì, aggiungili": "Yes, add them",
+ "Sì, sostituisci": "Yes, replace",
+ "turni di lavoro": "work shifts"
 }

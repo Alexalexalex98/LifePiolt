@@ -47,6 +47,7 @@ test('riassunto e spesa', () => {
 test('di cosa si parla', () => {
   assert.equal(mealPlanTalk('vorrei un piano alimentare', [], false), true);
   assert.equal(mealPlanTalk('ho il colesterolo alto', ['voglio una dieta'], false), true);
+  assert.equal(mealPlanTalk('questi sono i miei turni di lavoro, inseriscili nel piano', ['voglio una dieta'], false), false);
   assert.equal(mealPlanTalk('cambia la cena di martedì', [], true), true);
   assert.equal(mealPlanTalk('che ore sono', [], true), false);
   assert.equal(slotOf('Spuntino metà mattina'), 'spuntino');

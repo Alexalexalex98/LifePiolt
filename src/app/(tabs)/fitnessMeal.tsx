@@ -67,7 +67,7 @@ export default function FitnessMeal() {
     } catch (e) { toast(e instanceof Error ? e.message : 'Non riesco ad aprire la fotocamera'); }
   };
   const premium = hasPremiumFeature('meal-photo');
-  const analyze = async (uriArg?: string) => {
+  const analyze = async (uriArg?: string, google = false) => {
     const uri = uriArg ?? photo;
     if (!uri || busy) return;
     setBusy(true); setReport(null); if (!editId) setPlate([]);
@@ -80,7 +80,7 @@ export default function FitnessMeal() {
       if (aiServerConfigured) {
         if (!(await askSend('food'))) { setReport({ found: [], note: tl('Non invio la foto: senza il permesso non posso analizzare il piatto. Puoi comporlo tu qui sotto.') }); return; }
         logSend('food', 0, ['image/jpeg']);
-        reply = await aiReadFiles(MEAL_PROMPT, [{ uri, mime: 'image/jpeg' }], 70000, 1024);
+        reply = await aiReadFiles(MEAL_PROMPT, [{ uri, mime: 'image/jpeg' }], google ? 90000 : 70000, 1024, google);
       }
       else {
         const gate = await askSendRouted('food');
@@ -197,6 +197,7 @@ export default function FitnessMeal() {
             {report.found.filter((x) => !x.food).map((x, i) => <Body key={i} small>{tl('{0}: non lo trovo nel database, cercalo qui sotto', x.name)}</Body>)}
             {report.found.some((x) => x.food) ? (() => { const tot = sumMacros(report.found.flatMap((x) => (x.food ? [macrosFor(x.food, x.grams)] : []))); return <><Body bold style={{ marginTop: 4 }}>{tl('Totale stimato: {0} kcal · proteine {1} g · carboidrati {2} g · grassi {3} g', tot.kcal, tot.p, tot.c, tot.f)}</Body><Body small style={{ marginTop: 2 }}>{tl('di cui zuccheri {0} g · grassi saturi {1} g · fibre {2} g · sale {3} g', tot.sug ?? 0, tot.sat ?? 0, tot.fib ?? 0, tot.salt ?? 0)}</Body></>; })() : null}
             <AiNote />
+            {photo && aiServerConfigured ? <Btn small ghost icon="sparkle" style={{ marginTop: 8, alignSelf: 'flex-start' }} title={tl('Rifai con Google (più preciso)')} disabled={busy} onPress={() => void analyze(undefined, true)} /> : null}
             {report.found.some((x) => x.source === 'ai') ? <Body small muted>I valori con la stima dell'AI sono approssimativi: dipendono dalla porzione che vede nella foto.</Body> : null}
             {report.found.length ? <Body small muted style={{ marginTop: 4 }}>Ho riconosciuto questo dalla foto: è una stima. Qui sotto, in «Il tuo piatto», puoi correggere i grammi, duplicare o togliere un alimento, aggiungerne altri e scegliere quanto ne hai mangiato tu.</Body> : null}
           </View>
