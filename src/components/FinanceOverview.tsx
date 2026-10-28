@@ -16,7 +16,10 @@ import { UpcomingBillsCard } from '@/components/bills/UpcomingBillsCard';
 import { Icon } from '@/lib/icons';
 import { alertsFor } from '@/lib/budgetState';
 import { analyze, buildRecap, parseMonthLabel, rateZone, type Analysis, type MonthStat, type RecapAction } from '@/lib/financeRecap';
-import { categoryOf, emergencyByMonth, useFin } from '@/store/finance';
+import { categoryOf, emergencyByMonth, spendByCategory, useFin } from '@/store/finance';
+import { finWellbeing, WB_LEVEL } from '@/lib/finWellbeing';
+import { everyText, spendReport } from '@/lib/spendingReport';
+import { payeeKey } from '@/lib/statementAnalysis';
 import { chartCategory, dueFixed } from '@/lib/statementChecks';
 
 export type OverviewHandlers = {
@@ -232,19 +235,28 @@ function Hero({ a, onMovements, initialEx }: { a: Analysis; onMovements: () => v
   useEffect(() => { if (initialEx) setEx(initialEx); }, [initialEx]);
   const [balOpen, setBalOpen] = useState(false);
   const [balTxt, setBalTxt] = useState('');
-  const [W, onLayout] = useBox(300);
+  const [wbOpen, setWbOpen] = useState(false);
+  const invoices = useFin((s) => s.invoices);
+  const budget = useFin((s) => s.budget);
   const cur = a.cur;
+  const wb = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const open = invoices.filter((i) => i.state === 'open');
+    const paid = invoices.filter((i) => i.state === 'paid' && i.dueDate && i.paidAt);
+    const spent = spendByCategory(months.slice(0, 1), cats);
+    const exclude = 'Fondo emergenza';
+    const planned = Object.entries(budget.alloc).filter(([k]) => k !== exclude).reduce((x, [, v]) => x + (v || 0), 0);
+    const spentSum = Object.entries(spent).filter(([k]) => k !== exclude).reduce((x, [, v]) => x + v, 0);
+    return finWellbeing({
+      months: a.series.slice().reverse().map((m) => ({ income: m.income, expense: m.expense })),
+      budget: planned > 0 ? { planned, spent: spentSum } : null,
+      salary: info?.salary.monthly ?? 0, fixed: (info?.fixed ?? []).reduce((x, y) => x + y.monthly, 0),
+      bills: { overdue: open.filter((i) => i.dueDate && i.dueDate < today).length, paidLate: paid.filter((i) => i.paidAt!.slice(0, 10) > i.dueDate!).length, paidOnTime: paid.filter((i) => i.paidAt!.slice(0, 10) <= i.dueDate!).length },
+    });
+  }, [a.series, invoices, budget, months, cats, info]);
+  const wbColor = wb.score >= 80 ? '#6ff0b0' : wb.score >= 60 ? '#a8f0c8' : wb.score >= 40 ? '#ffd27a' : '#ff9a9a';
+  const worst = wb.factors.length ? wb.factors.slice().sort((x, y) => x.score - y.score)[0] : null;
   if (!cur) return null;
-  const bal = a.balance;
-  const prevEnd = bal.length > 1 ? bal[bal.length - 2] : null;
-  const delta = prevEnd != null ? cur.end - prevEnd : null;
-  const H = 54, pad = 4;
-  const all = bal.length > 1 ? bal : [cur.end, cur.end];
-  const mx = Math.max(...all), mn = Math.min(...all), span = mx - mn || 1;
-  const x = (i: number) => pad + ((W - 2 * pad) * i) / Math.max(1, all.length - 1);
-  const y = (v: number) => pad + (1 - (v - mn) / span) * (H - 2 * pad);
-  const pts = all.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
-  const area = `${x(0)},${H} ${pts} ${x(all.length - 1)},${H}`;
   const chip = (label: string, v: number, up: boolean | null, key: 'in' | 'out' | 'save') => (
     <Press key={label} onPress={() => setEx(key)} accessibilityLabel={translateText(label)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, paddingVertical: 9, paddingHorizontal: 10 }}>
       <Text style={{ color: '#ffffffb8', fontSize: 11.5 }}>{translateText(label)}</Text>
@@ -257,32 +269,46 @@ function Hero({ a, onMovements, initialEx }: { a: Analysis; onMovements: () => v
   return (
     <LinearGradient colors={['#0f1f4d', '#1b2f6e', '#16466b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 18, marginBottom: 14, overflow: 'hidden' }}>
       <Row>
-        <Text style={{ color: '#ffffffb8', fontSize: 13, fontWeight: '700', letterSpacing: 0.6 }}>{translateText('SALDO ATTUALE')}</Text>
+        <Text style={{ color: '#ffffffb8', fontSize: 13, fontWeight: '700', letterSpacing: 0.6 }}>{translateText('BENESSERE FINANZIARIO')}</Text>
         <Press onPress={onMovements} accessibilityLabel={translateText('Movimenti')} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.14)' }}>
           <Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '700' }}>{translateText('Movimenti')}</Text><Icon name="chevron-right" size={13} color="#fff" stroke={2.4} />
         </Press>
       </Row>
-      <Press onPress={() => setEx('saldo')} accessibilityLabel={translateText('Da dove arriva il saldo')}><Text style={{ color: '#fff', fontSize: 38, fontWeight: '800', letterSpacing: -1, marginTop: 6 }} numberOfLines={1} adjustsFontSizeToFit>{money(cur.end)}</Text></Press>
-      {info && !info.balanceKnown ? <Text style={{ color: '#ffd9a0', fontSize: 12, marginTop: 2 }}>{translateText('Calcolato solo dai movimenti dell’estratto: tocca per vedere come e impostare il saldo reale.')}</Text> : null}
-      {delta != null ? (
-        <Row gap={6} style={{ justifyContent: 'flex-start', marginTop: 2 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: delta >= 0 ? 'rgba(80,220,150,0.22)' : 'rgba(255,120,120,0.22)', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 8 }}>
-            <Icon name={delta >= 0 ? 'arrow-up' : 'arrow-down'} size={12} color={delta >= 0 ? '#6ff0b0' : '#ff9a9a'} stroke={2.8} />
-            <Text style={{ color: delta >= 0 ? '#6ff0b0' : '#ff9a9a', fontWeight: '800', fontSize: 12.5 }}>{money(Math.abs(delta))}</Text>
+      <Row gap={14} style={{ justifyContent: 'flex-start', marginTop: 8 }}>
+        <Press onPress={() => setWbOpen(true)} accessibilityLabel={translateText('Come si calcola il benessere finanziario')}>
+          <View style={{ width: 104, height: 104, alignItems: 'center', justifyContent: 'center', direction: 'ltr' }}>
+            <Svg width={104} height={104} style={{ position: 'absolute' }}>
+              <Circle cx={52} cy={52} r={44} stroke="rgba(255,255,255,0.16)" strokeWidth={9} fill="none" />
+              <Circle cx={52} cy={52} r={44} stroke={wbColor} strokeWidth={9} fill="none" strokeLinecap="round" strokeDasharray={`${(wb.score / 100) * 276.5} 276.5`} transform="rotate(-90 52 52)" />
+            </Svg>
+            <Text style={{ color: '#fff', fontSize: 34, fontWeight: '800', letterSpacing: -1 }}>{wb.factors.length ? wb.score : '–'}</Text>
           </View>
-          <Text style={{ color: '#ffffffa8', fontSize: 12.5 }}>{translateText('rispetto al mese scorso')}</Text>
-        </Row>
+        </Press>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: wbColor, fontSize: 20, fontWeight: '800' }}>{wb.factors.length ? translateText(WB_LEVEL[wb.level]) : translateText('Mancano i dati')}</Text>
+          <Text style={{ color: '#ffffffc0', fontSize: 13, marginTop: 2 }}>{wb.factors.length ? translateText(worst ? worst.tip : 'Ottimo equilibrio: continua così.') : translateText('Carica l’estratto conto: il punteggio nasce dal tuo comportamento, non dal saldo.')}</Text>
+        </View>
+      </Row>
+      {wb.factors.length ? (
+        <View style={{ marginTop: 14, gap: 8 }}>
+          {wb.factors.map((fc) => (
+            <Press key={fc.id} onPress={() => setWbOpen(true)} accessibilityLabel={`${translateText(fc.label)} ${fc.score}`}>
+              <Row><Text style={{ color: '#ffffffd0', fontSize: 12.5, fontWeight: '700' }}>{translateText(fc.label)}</Text><Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '800' }}>{fc.score}</Text></Row>
+              <View style={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.14)', marginTop: 3, overflow: 'hidden' }}><View style={{ width: `${fc.score}%`, height: 6, borderRadius: 3, backgroundColor: fc.score >= 70 ? '#6ff0b0' : fc.score >= 40 ? '#ffd27a' : '#ff9a9a' }} /></View>
+            </Press>
+          ))}
+        </View>
       ) : null}
-      <View onLayout={onLayout} style={{ marginTop: 12, direction: 'ltr' }}>
-        <Svg width={W} height={H}>
-          <Polygon points={area} fill="#ffffff" opacity={0.12} />
-          <Polyline points={pts} fill="none" stroke="#9fd0ff" strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" />
-          <Circle cx={x(all.length - 1)} cy={y(all[all.length - 1])} r={4} fill="#fff" />
-        </Svg>
-      </View>
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
         {chip('Entrate', cur.income, true, 'in')}{chip('Uscite', cur.expense, false, 'out')}{chip('Risparmio', cur.saved, cur.saved >= 0, 'save')}
       </View>
+      <Sheet visible={wbOpen} title="Benessere finanziario" onClose={() => setWbOpen(false)}>
+        <Body small muted style={{ marginBottom: 10 }}>{translateText('Un numero da 0 a 100 su come ti comporti con i soldi, non su quanti ne hai. Nasce dai tuoi movimenti, dal budget e dalle bollette. Non è consulenza finanziaria.')}</Body>
+        {wb.factors.map((fc) => (
+          <Item key={fc.id}><Row><Body bold>{fc.label}</Body><Body bold>{fc.score}/100</Body></Row><Body small muted>{fc.value}</Body><Body small style={{ marginTop: 2 }}>{fc.tip}</Body><Body small muted style={{ marginTop: 2 }}>{translateText('Pesa il')} {fc.weight}%</Body></Item>
+        ))}
+        {wb.missing.length ? <Body small muted style={{ marginTop: 10 }}>{translateText('Non ancora calcolati per mancanza di dati')}: {wb.missing.map((m) => translateText({ risparmio: 'Risparmio', budget: 'Budget del mese', bollette: 'Bollette puntuali', stabilita: 'Spese regolari', fisse: 'Peso delle spese fisse' }[m])).join(', ')}.</Body> : null}
+      </Sheet>
       <ExplainSheet visible={ex !== null} onClose={() => setEx(null)} {...(() => {
         const inMonth = (m: { label: string }) => m.label === cur.label;
         if (ex === 'in') { const rows = listMovements(months, (x, m) => inMonth(m) && x.amount > 0); return { title: `Entrate di ${cur.label}`, formula: 'Tutti gli accrediti dell’estratto in questo mese.', rows, total: sumRows(rows) }; }
@@ -343,6 +369,17 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
     return { a: an, recap: buildRecap(an, inp) };
   }, [f.months, f.categories, f.bills, f.budget, f.guidelines]);
 
+  const habits = useMemo(() => {
+    const rows = f.months.slice(0, 3).flatMap((m) => {
+      const p = parseMonthLabel(m.label);
+      return m.movements.filter((x) => x.amount < 0).map((x) => {
+        const d = Number(x.date.slice(0, 2)) || 1;
+        return { ts: p ? new Date(p.y, p.m, d).getTime() : 0, label: x.label, amount: x.amount, category: catC(x.label), payee: payeeKey(x.label) };
+      });
+    });
+    return spendReport(rows, { exclude: ['Fondo emergenza', 'Affitto', 'Cassa malati'], maxPayees: 8 });
+  }, [f.months, f.categories]);
+
   const monthIdx = (i: number) => a.series.length - 1 - i;
 
   function run(act: RecapAction) {
@@ -394,18 +431,6 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
         {enough ? <IncomeExpenseChart series={a.series} onPick={(i) => setSheet({ kind: 'month', i })} /> : <Empty text="Servono almeno 2 mesi di movimenti per il confronto." />}
       </Section>
 
-      {/* (d) andamento */}
-      <Section title="Andamento del saldo" hint="Saldo a fine mese e stima dei prossimi 3 mesi, ipotizzando che il risparmio medio recente resti simile.">
-        {a.hasEnough.trend && a.forecast.length ? (
-          <>
-            <BalanceChart a={a} onPick={(i) => setSheet({ kind: 'point', i })} />
-            <Body small muted style={{ marginTop: 8 }}>
-              {a.forecastStep >= 0 ? t('Variazione media recente: +{0} al mese. È una stima, la situazione reale può cambiare.', money(a.forecastStep)) : t('Variazione media recente: -{0} al mese. È una stima, la situazione reale può cambiare.', money(-a.forecastStep))}
-            </Body>
-          </>
-        ) : <Empty text="Servono almeno 2 mesi di movimenti per vedere l'andamento e la stima." />}
-      </Section>
-
       {/* (c) gauge */}
       <Section title="Tasso di risparmio" hint="Quanta parte delle entrate di questo mese resta dopo le uscite.">
         {a.rate != null ? <SavingsGauge rate={a.rate} onPress={() => setSheet({ kind: 'gauge' })} /> : <Empty text="Servono delle entrate nel mese per calcolare il tasso di risparmio." />}
@@ -436,6 +461,19 @@ export function FinanceOverview({ h }: { h: OverviewHandlers }) {
             ))}
           </View>
         ) : <Empty text="Nessuna spesa registrata in questo periodo: appena ci sono movimenti vedrai la ripartizione." />}
+      </Section>
+
+      {/* cosa compri e ogni quanto */}
+      <Section title="Cosa compri e ogni quanto" hint="Dove spendi più spesso negli ultimi 3 mesi, quanto lasci in media e ogni quanto torni.">
+        {habits.payees.length ? habits.payees.map((p, i) => (
+          <View key={p.name} style={{ paddingVertical: 9, borderTopWidth: i ? 1 : 0, borderTopColor: th.item }}>
+            <Row>
+              <Body bold style={{ flex: 1 }} numberOfLines={1}>{p.name}</Body>
+              <Body bold>{money(p.total)}</Body>
+            </Row>
+            <Body small muted>{p.count} {p.count === 1 ? t('acquisto') : t('acquisti')} · {t('in media')} {money(p.avg)} · {everyText(p.everyDays, p.count)}</Body>
+          </View>
+        )) : <Empty text="Appena ci sono abbastanza movimenti vedrai dove compri più spesso." />}
       </Section>
 
       {/* (e) chi pesa di più */}

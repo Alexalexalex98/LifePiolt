@@ -41,3 +41,11 @@ export function restoreBillEvents(list: { day: string; idx: number; ev: CalEvent
   const life = useLife.getState();
   list.slice().sort((a, b) => a.idx - b.idx).forEach((f) => life.restoreEvent(f.day, f.idx, f.ev));
 }
+
+/** Le bollette da pagare stanno sempre nel calendario del Plan; quelle pagate o contestate ne escono. Idempotente. */
+export function syncBillCalendar(invoices: Invoice[], amountText: (i: Invoice) => string): void {
+  for (const inv of invoices) {
+    if (inv.state === 'open') addBillToCalendar(inv, amountText(inv));
+    else if (isInCalendar(inv.id)) removeBillFromCalendar(inv.id);
+  }
+}

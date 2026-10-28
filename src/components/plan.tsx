@@ -301,7 +301,10 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
   if (!day) return <Sheet visible={false} title="" onClose={onClose}><View /></Sheet>;
   const d = new Date(day + 'T00:00:00');
   const titleStr = day === dayKey() ? `Oggi · ${fmtDate(d, { day: 'numeric', month: 'long' })}` : fmtDate(d, { day: 'numeric', month: 'long' });
-  const sorted = events.map((e, idx) => ({ e, idx })).sort((a, b) => a.e.time.localeCompare(b.e.time));
+  const all = events.map((e, idx) => ({ e, idx })).sort((a, b) => a.e.time.localeCompare(b.e.time));
+  const isBill = (e: CalEvent) => typeof e.ref === 'string' && e.ref.startsWith('bill:');
+  const dueBills = all.filter((x) => isBill(x.e));
+  const sorted = all.filter((x) => !isBill(x.e));
   const endOfMonth = dayKey(new Date(d.getFullYear(), d.getMonth() + 1, 0));
   const vacs = bandsOnDay(bands, day);
   return (
@@ -324,6 +327,27 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
           <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name="calendar" size={24} color={t.muted} stroke={1.8} /></View>
           <Body muted>Nessun impegno pianificato: giornata libera.</Body>
         </View>
+      ) : null}
+      {dueBills.length > 0 ? (
+        <>
+          <Body small bold muted style={{ marginTop: 4, marginBottom: 6 }}>{tl('DA PAGARE')}</Body>
+          {dueBills.map(({ e }) => {
+            const col = c.of(e);
+            const id = String(e.ref).slice(5);
+            return (
+              <RowCard key={e.ref + e.title} color={col}>
+                <Pressable accessibilityRole="button" accessibilityLabel={e.title} onPress={() => { onClose(); go('billDetail', { id }); }}>
+                  <Row gap={10}>
+                    <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: col + '33', alignItems: 'center', justifyContent: 'center' }}><Icon name="alert" size={18} color={col} stroke={2} /></View>
+                    <View style={{ flex: 1 }}><Body bold>{e.title}</Body><Body small muted>{tl('Tocca per aprire la bolletta')}</Body></View>
+                    <Icon name="chevron-right" size={18} color={t.muted} />
+                  </Row>
+                </Pressable>
+              </RowCard>
+            );
+          })}
+          {sorted.length > 0 ? <Body small bold muted style={{ marginTop: 10, marginBottom: 6 }}>{tl('IMPEGNI')}</Body> : null}
+        </>
       ) : null}
       {sorted.map(({ e, idx }) => {
         const col = c.of(e);

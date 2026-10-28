@@ -17,7 +17,9 @@ import { useApp } from '@/store/app';
 import { TRASH_DAYS, taskIsDone, useLife, type Goal, type Vacation } from '@/store/life';
 import { firstOpen } from '@/lib/taskTimer';
 import { toast } from '@/store/toast';
-import { fmtDate } from '@/i18n/format';
+import { fmtDate, formatMoney } from '@/i18n/format';
+import { syncBillCalendar } from '@/lib/bills/calendar';
+import { useFin } from '@/store/finance';
 import { t as tl } from '@/i18n/core';
 
 const dShort = (k: string) => fmtDate(parseKey(k), { day: 'numeric', month: 'short' });
@@ -41,6 +43,8 @@ export default function Plan() {
   const [calSheet, setCalSheet] = useState(false);
   const [vacId, setVacId] = useState<string | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
+  const invoices = useFin((x) => x.invoices);
+  useEffect(() => { syncBillCalendar(invoices, (i) => formatMoney(i.amount, { currency: i.currency, decimals: 2 })); }, [invoices]);
 
   const bandOf = (id: string) => vacationBands(vacations, vacRange).find((b) => b.id === id);
 

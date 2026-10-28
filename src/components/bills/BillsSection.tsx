@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/T';
-import { Body, Btn, Card, Empty, H, Item, Metric, Pill, Row } from '@/components/ui';
+import { Body, Btn, Card, H, Item, Metric, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n/core';
 import { readable } from '@/lib/a11y';
 import { diffDays } from '@/lib/bills/dates';
-import { nextDueDate, sortInvoices, statusOf, summarize, upcoming } from '@/lib/bills/plan';
-import { KIND_LABEL, STATUS_LABEL, type BillStatus } from '@/lib/bills/types';
+import { nextDueDate, sortInvoices, statusOf, upcoming } from '@/lib/bills/plan';
+import { KIND_LABEL } from '@/lib/bills/types';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { useFin } from '@/store/finance';
@@ -16,8 +16,6 @@ import { AddBillSheet } from './AddBillSheet';
 import { PlanCard } from './PlanCard';
 import { ReminderPrefsSheet } from './ReminderPrefsSheet';
 import { StatusPill, dueText, fmtDay, money, usePlan, useStatusTone } from './shared';
-
-const FILTERS: ('Tutte' | BillStatus)[] = ['Tutte', 'da_pagare', 'in_scadenza', 'scaduta', 'rateizzata', 'contestata', 'pagata'];
 
 /** Barra delle scadenze dei prossimi 30 giorni: ogni tacca e' una bolletta (scadute a sinistra). */
 function UpcomingBar({ today, items }: { today: string; items: ReturnType<typeof upcoming> }) {
@@ -49,69 +47,80 @@ export function BillsSection() {
   const invoices = useFin((s) => s.invoices);
   const prefs = useFin((s) => s.billPrefs);
   const { today, plan } = usePlan();
-  const [filter, setFilter] = useState<'Tutte' | BillStatus>('Tutte');
   const [add, setAdd] = useState(false);
   const [showPlan, setShowPlan] = useState(false);
   const [settings, setSettings] = useState(false);
 
-  const counts = useMemo(() => summarize(invoices, today, prefs.soonDays), [invoices, today, prefs.soonDays]);
-  const list = useMemo(() => sortInvoices(invoices).filter((i) => filter === 'Tutte' || statusOf(i, today, prefs.soonDays) === filter), [invoices, filter, today, prefs.soonDays]);
   const near = useMemo(() => upcoming(invoices.filter((i) => i.state === 'open'), today, 30), [invoices, today]);
   const open = invoices.filter((i) => i.state === 'open').length;
+  const groups = useMemo(() => {
+    const sorted = sortInvoices(invoices);
+    const rows = { late: [] as typeof sorted, soon: [] as typeof sorted, later: [] as typeof sorted, paid: [] as typeof sorted };
+    for (const i of sorted) {
+      if (i.state === 'paid') { rows.paid.push(i); continue; }
+      const nd = nextDueDate(i) ?? i.dueDate;
+      const d = nd ? diffDays(today, nd) : 999;
+      (d < 0 ? rows.late : d <= prefs.soonDays ? rows.soon : rows.later).push(i);
+    }
+    return [
+      { title: 'Scadute', tone: 'bad', list: rows.late }, { title: 'Da pagare a breve', tone: 'ok', list: rows.soon },
+      { title: 'Più avanti', tone: 'ok', list: rows.later }, { title: 'Pagate', tone: 'ok', list: rows.paid.slice(0, 5) },
+    ].filter((g) => g.list.length);
+  }, [invoices, today, prefs.soonDays]);
 
   return (
     <>
-      <Card>
-        <Row>
-          <View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>{t('Da pagare')}</H></View>
-          <Btn small ghost icon="settings" title="Promemoria" onPress={() => setSettings(true)} />
-        </Row>
-        <Body small muted style={{ marginTop: 2 }}>{t('Carica bollette e fatture: le leggo sul telefono, le inserisci tu con un controllo e ti avviso prima delle scadenze.')}</Body>
-        <View style={{ marginTop: 12 }}>
-          <Body small muted>{t('Da pagare nei prossimi 30 giorni')}</Body>
-          <Metric>{money(plan.totalNext30)}</Metric>
-          {plan.totalOverdue > 0 && (
-            <Row gap={6} style={{ justifyContent: 'flex-start', marginTop: 4 }}>
-              <Icon name="alert" size={15} color={th.danger} stroke={2.2} />
-              <Body small bold color={th.danger}>{t('Già scadute: {0}', money(plan.totalOverdue))}</Body>
-            </Row>
-          )}
-        </View>
-        <UpcomingBar today={today} items={near} />
-        <Btn style={{ marginTop: 14 }} icon="plus" title="Aggiungi bolletta o fattura" onPress={() => setAdd(true)} />
-      </Card>
-
-      {invoices.length > 0 && (
+      {invoices.length === 0 ? (
         <Card>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 }}>
-            {FILTERS.map((f) => {
-              const n = f === 'Tutte' ? invoices.length : counts[f];
-              if (f !== 'Tutte' && f !== filter && n === 0) return null;
-              return <Pill key={f} label={`${f === 'Tutte' ? t('Tutte') : t(STATUS_LABEL[f])} · ${n}`} on={filter === f} onPress={() => setFilter(f)} />;
-            })}
-          </View>
-          {list.length === 0 ? <Empty text="Nessuna bolletta con questo stato." /> : list.map((inv, i) => {
-            const st = statusOf(inv, today, prefs.soonDays);
-            const nd = nextDueDate(inv) ?? inv.dueDate;
-            const dd = nd ? diffDays(today, nd) : null;
-            return (
-              <Item key={`${inv.id}-${i}`} last={i === list.length - 1} onPress={() => go('billDetail', { id: inv.id })}>
-                <Row style={{ alignItems: 'flex-start' }}>
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Body bold numberOfLines={2}>{inv.issuer}</Body>
-                    <Body small muted>
-                      {t(KIND_LABEL[inv.kind])}
-                      {inv.state === 'paid' ? ` · ${t('pagata il {0}', fmtDay(inv.paidAt))}` : nd ? ` · ${t('scadenza {0}', fmtDay(nd))}` : ` · ${t('senza scadenza')}`}
-                    </Body>
-                    {inv.state === 'open' && dd != null ? <Text style={{ color: dd < 0 ? th.danger : th.muted, fontSize: 12, fontWeight: dd < 0 ? '700' : '400' }}>{dueText(dd)}{inv.estimated ? ` · ${t('stimata')}` : ''}</Text> : null}
-                    <StatusPill status={st} />
-                  </View>
-                  <Body bold>{money(inv.amount, inv.currency)}</Body>
-                </Row>
-              </Item>
-            );
-          })}
+          <Row><View style={{ flex: 1 }}><H style={{ marginBottom: 0 }}>{t('Cosa devi pagare')}</H></View><Btn small ghost icon="settings" title="Promemoria" onPress={() => setSettings(true)} /></Row>
+          <Body small muted style={{ marginTop: 6 }}>{t('Carica la prima bolletta o fattura: la leggo, ti preparo il piano di pagamento e ti avviso prima di ogni scadenza.')}</Body>
+          <Btn style={{ marginTop: 14 }} icon="plus" title="Aggiungi bolletta o fattura" onPress={() => setAdd(true)} />
         </Card>
+      ) : (
+        <>
+          <Card>
+            <Row>
+              <View style={{ flex: 1 }}>
+                <Body small muted>{t('Da pagare nei prossimi 30 giorni')}</Body>
+                <Metric>{money(plan.totalNext30 + plan.totalOverdue)}</Metric>
+              </View>
+              <Btn small ghost icon="settings" title="Promemoria" onPress={() => setSettings(true)} />
+            </Row>
+            {plan.totalOverdue > 0 && (
+              <Row gap={6} style={{ justifyContent: 'flex-start', marginTop: 4 }}>
+                <Icon name="alert" size={15} color={th.danger} stroke={2.2} />
+                <Body small bold color={th.danger}>{t('Già scadute: {0}', money(plan.totalOverdue))}</Body>
+              </Row>
+            )}
+            <UpcomingBar today={today} items={near} />
+            <Btn style={{ marginTop: 14 }} icon="plus" title="Aggiungi bolletta o fattura" onPress={() => setAdd(true)} />
+          </Card>
+          {groups.map((g) => (
+            <Card key={g.title}>
+              <Row><H style={{ marginBottom: 4, color: g.tone === 'bad' ? th.danger : undefined }}>{t(g.title)}</H><Body small muted>{g.list.length}</Body></Row>
+              {g.list.map((inv, i) => {
+                const st = statusOf(inv, today, prefs.soonDays);
+                const nd = nextDueDate(inv) ?? inv.dueDate;
+                const dd = nd ? diffDays(today, nd) : null;
+                return (
+                  <Item key={`${inv.id}-${i}`} last={i === g.list.length - 1} onPress={() => go('billDetail', { id: inv.id })}>
+                    <Row style={{ alignItems: 'flex-start' }}>
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <Body bold numberOfLines={2}>{inv.issuer}</Body>
+                        <Body small muted>
+                          {t(KIND_LABEL[inv.kind])}
+                          {inv.state === 'paid' ? ` · ${t('pagata il {0}', fmtDay(inv.paidAt))}` : nd ? ` · ${t('scadenza {0}', fmtDay(nd))}` : ` · ${t('senza scadenza')}`}
+                        </Body>
+                        {inv.state === 'open' && dd != null ? <Text style={{ color: dd < 0 ? th.danger : th.muted, fontSize: 12, fontWeight: dd < 0 ? '700' : '400' }}>{dueText(dd)}{inv.estimated ? ` · ${t('stimata')}` : ''}</Text> : <StatusPill status={st} />}
+                      </View>
+                      <Body bold>{money(inv.amount, inv.currency)}</Body>
+                    </Row>
+                  </Item>
+                );
+              })}
+            </Card>
+          ))}
+        </>
       )}
 
       {open > 0 && (
@@ -132,12 +141,6 @@ export function BillsSection() {
         </Card>
       )}
       {showPlan && open > 0 && <PlanCard plan={plan} />}
-      {invoices.length === 0 && (
-        <Card>
-          <Empty text="Nessuna bolletta da pagare. Aggiungine una e preparo il piano e i promemoria." />
-        </Card>
-      )}
-
       <AddBillSheet visible={add} onClose={() => setAdd(false)} />
       <ReminderPrefsSheet visible={settings} onClose={() => setSettings(false)} />
     </>

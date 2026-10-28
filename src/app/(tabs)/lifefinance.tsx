@@ -11,6 +11,7 @@ import { AddMovementSheet } from '@/components/AddMovementSheet';
 import { CsvImportSheet } from '@/components/CsvImportSheet';
 import { FinanceOverview } from '@/components/FinanceOverview';
 import { MonthCalcCard } from '@/components/MonthCalcCard';
+import { BudgetBar } from '@/components/BudgetBar';
 import { confirmDelete } from '@/lib/confirm';
 import { FinTabs } from '@/components/FinTabs';
 import { InvestTab } from '@/components/money/InvestTab';
@@ -129,7 +130,6 @@ export default function LifeFinance() {
             ))}
           </View>
           <FinanceOverview h={{ onAlerts: () => setAlertSheet(true), onBills: () => setTab('Bollette'), onEmergency: () => setTab('Budget'), onImport: () => setCsvSheet(true), onMovements: (i) => setHist(i), initialEx: (['saldo', 'in', 'out', 'save'] as const).find((x) => x === exParam) }} />
-      <MonthCalcCard />
       {alerts.length > 0 && (
         <Card accent={alerts.some((a) => a.level === 'over') ? t.danger : t.warn} onPress={() => setAlertSheet(true)}>
           <Row gap={10}>
@@ -192,7 +192,9 @@ export default function LifeFinance() {
       )}
       {tab === 'Budget' && (
         <>
+      <BudgetBar />
       <BudgetPlanCard />
+      <MonthCalcCard />
       <Card>
         <Toggle label={<Body bold style={{ fontSize: 17 }}>Fondo di emergenza</Body>} value={f.budget.saveToEmergency} onChange={(v) => {
           const alloc = v ? defaultBudget(f.budget.salary, true, f.categories, f.months).alloc['Fondo emergenza'] : 0;
@@ -240,10 +242,6 @@ export default function LifeFinance() {
       {tab === 'Bollette' && (
         <>
       <BillsSection />
-      <Card>
-        <Row><View style={{ flex: 1 }}><Body bold>Importa movimenti</Body><Body small muted>Da un CSV o estratto conto della tua banca</Body></View><Btn small ghost icon="plus" title="Importa CSV" onPress={() => setCsvSheet(true)} /></Row>
-      </Card>
-
       <Card>
         <Row><H>Bollette e abbonamenti</H><Btn small ghost title="+ Aggiungi" onPress={() => setBillSheet(true)} /></Row>
         <Btn small ghost icon="plus" title="Aggiungi costi tipici" style={{ marginBottom: 8 }} onPress={() => { openTyp(); }} />
