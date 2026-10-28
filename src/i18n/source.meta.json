@@ -1,5 +1,5 @@
 {
- "count": 15130,
+ "count": 15127,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -400,7 +400,7 @@
   "src/lib/assistant/photoRouting.ts": 38,
   "src/lib/assistant/phrases.ts": 101,
   "src/lib/assistant/phrasesMore.ts": 128,
-  "src/lib/assistant/planDelivery.ts": 24,
+  "src/lib/assistant/planDelivery.ts": 19,
   "src/lib/assistant/projectCore.ts": 138,
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
@@ -675,5 +675,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1906
+ "withPlaceholders": 1904
 }

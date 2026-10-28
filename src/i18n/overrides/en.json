@@ -4176,5 +4176,9 @@
  "Sono le 4 foto del corpo: le ho messe in Controllo del corpo (restano solo sul telefono). Le guardo adesso, ci vuole un minuto.": "These are the 4 body photos: I put them in Body check (they stay only on your phone). I'm looking at them now, it takes a minute.",
  "un frigo": "a fridge",
  "uno scontrino": "a receipt",
- "Servono tutte e 4 le foto: davanti, dietro, lato sinistro e lato destro.": "All 4 photos are needed: front, back, left side and right side."
+ "Servono tutte e 4 le foto: davanti, dietro, lato sinistro e lato destro.": "All 4 photos are needed: front, back, left side and right side.",
+ "Fatto, ho cambiato il piano nella sezione: {0}.": "Done, I changed the plan in the section: {0}.",
+ "Ho impostato il tuo piano alimentare nella sezione Piano alimentare: 7 giorni, circa {0} kcal al giorno. Se qualcosa non ti piace dimmelo qui e lo cambio direttamente lì.": "I set your meal plan in the Meal plan section: 7 days, about {0} kcal a day. If you don't like something tell me here and I'll change it directly there.",
+ "Fatto, ho cambiato il programma nella sezione.": "Done, I changed the program in the section.",
+ "Ho impostato il tuo programma di allenamento nella sezione Programmi: {0} sessioni, {1} giorni a settimana. Se qualcosa non va dimmelo qui e lo cambio direttamente lì.": "I set your workout program in the Programs section: {0} sessions, {1} days a week. If something isn't right tell me here and I'll change it directly there."
 }

@@ -1,5 +1,6 @@
 /** Piani scritti da Theia (alimentare e allenamento): si tolgono dalla risposta, si controllano, si salvano e si consegnano in chat come file. */
 import { t } from '@/i18n/core';
+import { go } from '@/lib/nav';
 import { extractMealPlan, mergePlan, parseAiPlan } from '@/lib/fitness/aiPlan';
 import { extractWorkout, parseAiWorkout } from '@/lib/fitness/aiWorkout';
 import { dayKcal } from '@/lib/fitness/mealPlan';
@@ -46,12 +47,11 @@ function deliverMeal(json: unknown, push: Push) {
   pantry.setPlanMeta({ title: r.meta.title ?? prev?.title ?? t('Il tuo piano alimentare'), notes: r.meta.notes ?? prev?.notes, by: 'theia', at: Date.now() });
   const avg = Math.round(merged.reduce((s, d) => s + dayKcal(d), 0) / Math.max(1, merged.filter((d) => d.length).length));
   const changed = [...r.days.keys()].sort((a, b) => a - b).map((i) => WD[i]).join(', ');
-  push(had ? t('Fatto, ho aggiornato il piano: {0}. Apri il file per vedere come è venuto.', changed) : t('Ecco il tuo piano alimentare: 7 giorni, circa {0} kcal al giorno. Aprilo per guardarlo giorno per giorno: se qualcosa non ti piace, dimmelo qui e lo sistemo.', avg), {
-    ext: {
-      card: { icon: 'note', title: pantry.planMeta?.title ?? t('Il tuo piano alimentare'), sub: t('7 giorni · circa {0} kcal al giorno · creato con Theia', avg), page: 'fitnessMealPlan' },
-      actions: [{ kind: 'open', label: t('Apri il piano'), page: 'fitnessMealPlan' }, { kind: 'say', label: t('Cambia qualcosa'), text: 'Vorrei cambiare qualcosa nel piano alimentare' }, { kind: 'say', label: t('Lista della spesa'), text: 'preparami la lista della spesa del piano' }],
-    },
+  /* il piano lo scrive Theia direttamente nella sezione: in chat solo una conferma breve; un piano nuovo si apre da solo */
+  push(had ? t('Fatto, ho cambiato il piano nella sezione: {0}.', changed) : t('Ho impostato il tuo piano alimentare nella sezione Piano alimentare: 7 giorni, circa {0} kcal al giorno. Se qualcosa non ti piace dimmelo qui e lo cambio direttamente lì.', avg), {
+    ext: { actions: [{ kind: 'open', label: t('Apri il piano'), page: 'fitnessMealPlan' }, { kind: 'say', label: t('Lista della spesa'), text: 'preparami la lista della spesa del piano' }] },
   });
+  if (!had) go('fitnessMealPlan');
 }
 
 function deliverWorkout(json: unknown, push: Push) {
@@ -63,10 +63,8 @@ function deliverWorkout(json: unknown, push: Push) {
   const program = update ? { ...r.program, id: existing.id } : r.program;
   r.custom.forEach((e) => fit.addCustomEx(e));
   fit.set({ aiPrograms: [program, ...fit.aiPrograms.filter((p) => p.id !== program.id)].slice(0, 20), activeProgram: program.id });
-  push(update ? t('Fatto, ho aggiornato il programma. Aprilo per vedere le sessioni.') : t('Ecco il tuo programma di allenamento: {0} sessioni, {1} giorni a settimana. Aprilo per vedere gli esercizi uno per uno: se qualcosa non va, dimmelo qui e lo cambio.', program.sessions.length, program.days), {
-    ext: {
-      card: { icon: 'lifefitness', title: program.name, sub: t('{0} sessioni · {1} giorni a settimana · {2} settimane · creato con Theia', program.sessions.length, program.days, program.weeks), page: 'fitnessProgram', params: { id: program.id } },
-      actions: [{ kind: 'open', label: t('Apri il programma'), page: 'fitnessProgram', params: { id: program.id } }, { kind: 'say', label: t('Cambia qualcosa'), text: 'Vorrei cambiare qualcosa nel programma di allenamento' }],
-    },
+  push(update ? t('Fatto, ho cambiato il programma nella sezione.') : t('Ho impostato il tuo programma di allenamento nella sezione Programmi: {0} sessioni, {1} giorni a settimana. Se qualcosa non va dimmelo qui e lo cambio direttamente lì.', program.sessions.length, program.days), {
+    ext: { actions: [{ kind: 'open', label: t('Apri il programma'), page: 'fitnessProgram', params: { id: program.id } }] },
   });
+  if (!update) go('fitnessProgram', { id: program.id });
 }
