@@ -190,7 +190,7 @@ export async function aiChatStream(message: string, q: string | undefined, onTex
 export const aiChatRaw = async (message: string, q?: string) => String((await call<{ reply: string }>('/chat', { message, ...(q ? { q, web: useAiServerCfg.getState().web !== false } : {}) })).reply ?? '');
 export const aiChat = async (message: string) => humanize((await call<{ reply: string }>('/chat', { message })).reply);
 export const aiVision = async (image: string, mime: string, prompt: string) => humanize((await call<{ reply: string }>('/vision', { image, mime, prompt }, 90000)).reply);
-export const aiAnalyze = (files: { data: string; mime: string }[], question?: string, context?: string, google = false) => call<{ reply: string; result: unknown }>('/analyze', { files, question, context, ...(google ? { google: true } : {}) }, 90000);
+export const aiAnalyze = (files: { data: string; mime: string }[], question?: string, context?: string, google = true) => call<{ reply: string; result: unknown }>('/analyze', { files, question, context, ...(google ? { google: true } : {}) }, 90000);
 
 /** Ogni volta che una foto parte verso Google Gemini te lo diciamo subito e lo scriviamo in «Cosa è stato inviato». */
 function noteGoogleSend(photos: number) {
@@ -248,7 +248,7 @@ async function prepFiles(files: { uri: string; mime: string }[], maxW = 1280): P
  * Legge immagini (anche piu' d'una) o un PDF con il server AI. Una sola immagine va su /vision (testo libero),
  * il resto su /analyze (risposta strutturata in `result`, con `reply` in JSON). Il testo e' grezzo (senza humanize).
  */
-export async function aiReadFilesFull(prompt: string, files: { uri: string; mime: string }[], timeoutMs = 45000, maxW = 1280, google = false): Promise<{ reply: string; result?: unknown }> {
+export async function aiReadFilesFull(prompt: string, files: { uri: string; mime: string }[], timeoutMs = 45000, maxW = 1280, google = true): Promise<{ reply: string; result?: unknown }> {
   const ready = await prepFiles(files, maxW);
   const photos = ready.filter((f) => f.mime.startsWith('image/')).length;
   if (google && photos) noteGoogleSend(photos);
@@ -256,7 +256,7 @@ export async function aiReadFilesFull(prompt: string, files: { uri: string; mime
   return aiAnalyze(ready, prompt, undefined, google);
 }
 
-export const aiReadFiles = async (prompt: string, files: { uri: string; mime: string }[], timeoutMs?: number, maxW?: number, google = false): Promise<string> => (await aiReadFilesFull(prompt, files, timeoutMs, maxW, google)).reply;
+export const aiReadFiles = async (prompt: string, files: { uri: string; mime: string }[], timeoutMs?: number, maxW?: number, google = true): Promise<string> => (await aiReadFilesFull(prompt, files, timeoutMs, maxW, google)).reply;
 
 /** Un PDF letto in testo libero (niente schema fisso): serve quando la risposta e' un elenco o un JSON deciso da noi. */
 export async function aiReadPdfFree(prompt: string, uri: string, timeoutMs = 90000): Promise<string> {
