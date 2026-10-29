@@ -58,8 +58,22 @@ export function syncShopping(shop: ShopItem[], items: PantryItem[], newId: () =>
 }
 
 /* ---------------------------------------------------------------- scontrino: righe dei prodotti */
-export const RECEIPT_ITEMS_PROMPT = 'Questo è uno scontrino di un supermercato (spesso svizzero o italiano: Coop, Migros, Denner, Lidl, Aldi, Esselunga…). Leggilo riga per riga e fai l\'elenco dei SOLI prodotti alimentari e bevande comprati, come li metteresti in frigo o in dispensa. Regole: 1) "n" è il nome del prodotto in italiano semplice, senza prezzi, codici, numeri di articolo, reparti, marchi inutili né abbreviazioni da scontrino (es. "Giofi al burro 41" → "Gioffi al burro"; "IPS Latte art 300 ml" → "Latte"; "Free from latte" → "Latte senza lattosio"; "Cupcake Zwicky 206" → "Cupcake"). Se non è chiaro cosa sia, descrivilo con una parola generica (es. "Biscotti") o salta la riga. 2) I numeri a fine riga sono prezzi o codici: ignorali, non sono quantità. 3) La quantità "q" è quella comprata: se la riga dice "2 x" o "x2" è 2 pezzi; se c\'è un peso o volume della confezione (500 g, 1 l, 300 ml) usa quello con unità "g" o "ml" (1 kg = 1000 g, 1 l = 1000 ml); altrimenti "pz" e 1. Per frutta e verdura venduta a peso usa i grammi/kg scritti. 4) Salta tutto ciò che non si mangia o non è un prodotto: totale, subtotale, IVA/MwSt, resto, contanti/carta, sacchetti, depositi, sconti e buoni, Cumulus/Supercard/punti, ora/data, indirizzo, detersivi, igiene, giornali. 5) Non inventare: se una riga è illeggibile saltala. Rispondi SOLO con JSON compatto, niente altro testo: {"p":[{"n":"nome","q":numero,"u":"g"|"ml"|"pz"}]}.';
+export const RECEIPT_ITEMS_PROMPT = 'Questo è uno scontrino di un supermercato (Coop, Migros, Denner, Lidl, Aldi, Esselunga…). Trascrivi i prodotti alimentari e le bevande RIGA PER RIGA, copiando il nome ESATTAMENTE come è stampato (puoi solo sciogliere le abbreviazioni ovvie, es. "affett" → "affettato"). NON inventare, NON correggere a tuo gusto, NON indovinare: se una riga non si legge con sicurezza, saltala. Regole: 1) il campo "n" contiene SOLO il nome del prodotto: mai prezzi, mai numeri, mai pesi o volumi (quelli vanno in "q" e "u"), mai codici articolo. 2) I numeri a fine riga sono prezzi o codici: ignorali, non sono quantità. 3) "q" è la quantità comprata: "2 x" o "x2" = 2 pezzi; se la riga dice il peso o volume (500 g, 750g, 1 kg, 1 l, 300 ml) usa quello con "g" o "ml" (1 kg = 1000 g, 1 l = 1000 ml); altrimenti 1 con "pz". 4) Salta le righe che non sono prodotti da mangiare o bere: totale, subtotale, IVA/MwSt, resto, contanti/carta, sacchetti, depositi, sconti, buoni, Cumulus/Supercard/punti, data, ora, indirizzo, detersivi, igiene. 5) Una riga = una voce: se lo stesso prodotto compare due volte, scrivilo due volte. Rispondi SOLO con JSON compatto, niente altro testo: {"p":[{"n":"nome","q":numero,"u":"g"|"ml"|"pz"}]}.';
 export const FRIDGE_PROMPT = 'Foto del contenuto di un frigo o di una dispensa. Elenca SOLO gli alimenti che vedi chiaramente. Rispondi SOLO con JSON compatto, niente altro testo: {"p":[{"n":"nome breve","q":numero stimato,"u":"g"|"ml"|"pz"}]}. Usa "pz" per ciò che si conta (uova, yogurt, mele) e una stima in g o ml per il resto. Non inventare ciò che non si vede.';
+
+/** Ripulisce il nome letto da uno scontrino: pesi e volumi diventano quantita', via prezzi, codici e sigle dei supermercati. */
+export function tidyReceiptLine(name: string, qty: number, unit: Unit): { name: string; qty: number; unit: Unit } {
+  let n = name.replace(/\s+/g, ' ').trim(); let q = qty; let u = unit;
+  const w = /(?:^|\s)(\d+(?:[.,]\d+)?)\s?(kg|g|gr|ml|cl|l|lt)\b/i.exec(n);
+  if (w) {
+    const v = Number(w[1]!.replace(',', '.')); const k = w[2]!.toLowerCase();
+    const grams = k === 'kg' ? v * 1000 : k === 'g' || k === 'gr' ? v : 0; const mls = k === 'l' || k === 'lt' ? v * 1000 : k === 'cl' ? v * 10 : k === 'ml' ? v : 0;
+    if (u === 'pz' && q === 1 && (grams || mls)) { q = grams || mls; u = grams ? 'g' : 'ml'; }
+    n = n.replace(w[0], ' ');
+  }
+  n = n.replace(/^(kg|pz|x\d+|\d+\s?x)\s+/i, '').replace(/\b(prix garantie|free from|ips|m-budget|naturaplan|qualit[ay]|bio\s?:)\b\s*/gi, '').replace(/\s+\d+([.,]\d+)?\s*[a-z]?$/i, '').replace(/\s+/g, ' ').trim();
+  return { name: n ? n[0]!.toUpperCase() + n.slice(1) : n, qty: q, unit: u };
+}
 
 export function parseReceiptItems(text: string): Line[] {
   const m = /\{[\s\S]*\}/.exec(text ?? ''); if (!m) return [];
@@ -69,13 +83,13 @@ export function parseReceiptItems(text: string): Line[] {
     if (!Array.isArray(list)) return [];
     return list.slice(0, 80).map((x) => {
       let name = String(x.nome ?? x.name ?? x.n ?? '').replace(/\s+/g, ' ').trim().slice(0, 60);
-      name = name.replace(/\s+\d+([.,]\d+)?$/, '').trim(); /* prezzo o codice rimasto in fondo alla riga */
       const qty = Number(String(x.quantita ?? x.qty ?? x.q ?? 1).replace(',', '.'));
       const u = String(x.unita ?? x.unit ?? x.u ?? 'pz').toLowerCase();
       const unit: Unit = u === 'g' || u === 'kg' ? 'g' : u === 'ml' || u === 'l' || u === 'lt' ? 'ml' : 'pz';
       const mult = u === 'kg' || u === 'l' || u === 'lt' ? 1000 : 1;
-      return { name, qty: Number.isFinite(qty) && qty > 0 ? Math.min(100000, qty * mult) : 1, unit };
-    }).filter((l) => l.name.length >= 2);
+      const t = tidyReceiptLine(name, Number.isFinite(qty) && qty > 0 ? Math.min(100000, qty * mult) : 1, unit);
+      return t;
+    }).filter((l) => l.name.length >= 3 && /[a-zà-ú]{3}/i.test(l.name));
   } catch { return []; }
 }
 

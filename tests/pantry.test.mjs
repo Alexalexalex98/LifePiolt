@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addStock, consume, lowStock, syncShopping, parseReceiptItems, googleMayBeBetter, parseTypedList, compareDay, matchFood, stockGrams } from '../src/lib/fitness/pantry.ts';
+import { addStock, consume, lowStock, syncShopping, parseReceiptItems, tidyReceiptLine, googleMayBeBetter, parseTypedList, compareDay, matchFood, stockGrams } from '../src/lib/fitness/pantry.ts';
 import { balanceDay, TEMPLATES, generatePlan, dayKcal, needsFor, kcalOf } from '../src/lib/fitness/mealPlan.ts';
 import { FOOD } from '../src/lib/fitness/nutrition.ts';
 
@@ -76,4 +76,10 @@ test('Google: si propone solo se la lettura sembra debole', () => {
   assert.equal(googleMayBeBetter('fridge', L('Latte', 'Uova', 'Burro', 'Yogurt', 'Mele')), false);
   assert.equal(googleMayBeBetter('fridge', L('Latte', 'Altro', 'Cibo', 'Vari', 'Mele')), true);
   assert.equal(googleMayBeBetter('receipt', L('Pane', 'Latte', 'Pasta')), false);
+});
+
+test('scontrino: pesi e prezzi non restano nel nome', () => {
+  assert.deepEqual(tidyReceiptLine('Pane per toast 500g', 1, 'pz'), { name: 'Pane per toast', qty: 500, unit: 'g' });
+  assert.deepEqual(tidyReceiptLine('IPS Latte art 300 ml', 1, 'pz'), { name: 'Latte art', qty: 300, unit: 'ml' });
+  assert.equal(tidyReceiptLine('Uova 15', 1, 'pz').name, 'Uova');
 });
