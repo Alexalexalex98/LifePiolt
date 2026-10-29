@@ -11,6 +11,7 @@ import { DaySheet, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet }
 import { ChipBtn, Body, Btn, Card, Empty, H, Input, Item, Link, Page, Pill, Progress, Row, Sheet } from '@/components/ui';
 import { isKey, parseKey, vacationBands } from '@/lib/calendarLayout';
 import { confirmDelete } from '@/lib/confirm';
+import { sendToAssistant } from '@/lib/assistant/run';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { TRASH_DAYS, taskIsDone, useLife, type Goal, type Vacation } from '@/store/life';
@@ -116,7 +117,7 @@ export default function Plan() {
       </Card>
 
       <Card>
-        <Row><H>Obiettivi</H><Btn small ghost title="+ Obiettivo" onPress={() => setGoalSheet(true)} /></Row>
+        <Row><H>Obiettivi</H><Row gap={6}><Btn small icon="plus" title="Obiettivo" onPress={() => setGoalSheet(true)} /><Btn small ghost icon="sparkle" title="Con Theia" onPress={() => { void sendToAssistant('voglio aggiungere un obiettivo'); go('ai'); }} /></Row></Row>
         {goals.length === 0 && <Empty text="Nessun obiettivo attivo: definiamone uno insieme, anche piccolo." />}
         {goals.map((g) => (
           <Item key={g.id}>

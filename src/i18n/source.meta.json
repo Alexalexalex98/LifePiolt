@@ -1,5 +1,5 @@
 {
- "count": 15203,
+ "count": 15204,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -69,7 +69,7 @@
   "src/app/(tabs)/lifenetwork.tsx": 42,
   "src/app/(tabs)/lifenotes.tsx": 3,
   "src/app/(tabs)/lifepointsPage.tsx": 36,
-  "src/app/(tabs)/lifetask.tsx": 7,
+  "src/app/(tabs)/lifetask.tsx": 8,
   "src/app/(tabs)/lifetravel.tsx": 102,
   "src/app/(tabs)/liveRoom.tsx": 88,
   "src/app/(tabs)/lockScreenSettings.tsx": 11,
@@ -86,7 +86,7 @@
   "src/app/(tabs)/orders.tsx": 12,
   "src/app/(tabs)/payments.tsx": 35,
   "src/app/(tabs)/photoEdit.tsx": 5,
-  "src/app/(tabs)/plan.tsx": 47,
+  "src/app/(tabs)/plan.tsx": 48,
   "src/app/(tabs)/portfolio.tsx": 34,
   "src/app/(tabs)/posDemo.tsx": 8,
   "src/app/(tabs)/postPage.tsx": 33,

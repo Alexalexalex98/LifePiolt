@@ -4257,5 +4257,6 @@
  "Elimino la nota «{0}»": "Deleting the note “{0}”",
  "Elimino il file «{0}»": "Deleting the file “{0}”",
  "TASK DA FARE": "TASKS TO DO",
- "Tocca per aprire i task": "Tap to open tasks"
+ "Tocca per aprire i task": "Tap to open tasks",
+ "Con Theia": "With Theia"
 }
