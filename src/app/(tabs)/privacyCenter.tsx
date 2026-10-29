@@ -15,6 +15,7 @@ import { useFitness } from '@/store/fitness';
 import { useHealth } from '@/store/health';
 import { useTheiaMemory } from '@/store/theiaMemory';
 import { useWellbeing } from '@/store/wellbeing';
+import { useMemos } from '@/store/memos';
 import { WB_CONSENT_TEXT, WB_LIMITS } from '@/lib/assistant/wellbeingFlow';
 import { useLife } from '@/store/life';
 import { useMindSpace } from '@/store/mindSpace';
@@ -28,7 +29,7 @@ import { useTravel } from '@/store/travel';
 
 type AnyStore = { getState: () => unknown; setState: (s: never, replace: true) => void; getInitialState: () => unknown };
 const STORES: Record<CatId, AnyStore[]> = {
-  agenda: [useLife, useShifts] as unknown as AnyStore[],
+  agenda: [useLife, useShifts, useMemos] as unknown as AnyStore[],
   finance: [useFin, useLpMoney] as unknown as AnyStore[],
   health: [useHealth, useMindSpace, usePet, useWellbeing] as unknown as AnyStore[],
   fitness: [useFitness, usePantry] as unknown as AnyStore[],

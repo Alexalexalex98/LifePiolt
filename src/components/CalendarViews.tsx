@@ -16,6 +16,8 @@ import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { useCalPrefs, type CalView } from '@/store/calprefs';
 import { useLife } from '@/store/life';
+import { useMemos } from '@/store/memos';
+import { occursOn, timeStr } from '@/lib/memo';
 import { toast } from '@/store/toast';
 import { t as tl, translateText } from '@/i18n/core';
 import { fmtDate, monthName, weekdayNarrow } from '@/i18n/format';
@@ -231,6 +233,7 @@ function DayDetail({ sel, onPickDay, hideOpen }: { sel: string; onPickDay: (k: s
   const th = c.th;
   const events = useLife((s) => s.events);
   const dueTasks = useLife((s) => s.tasks).filter((x) => !x.done && x.due === sel);
+  const dueMemos = useMemos((s) => s.memos).filter((m) => occursOn(m, sel));
   const bands = useBands();
   const selList = layoutDay(events[sel]);
   const selItems = [...selList.placed.map((p) => ({ e: p.e, idx: p.idx })), ...selList.allDay];
@@ -248,7 +251,7 @@ function DayDetail({ sel, onPickDay, hideOpen }: { sel: string; onPickDay: (k: s
             <Icon name="compass" size={14} color={th.text} /><Text numberOfLines={1} style={{ color: th.text, fontWeight: '700', fontSize: 13, flex: 1 }}>{b.name}</Text>
           </Pressable>
         ))}
-        {selItems.length === 0 && selBands.length === 0 && dueTasks.length === 0 ? <Text style={{ color: th.muted, fontSize: 13, paddingVertical: 6 }}>Giornata libera.</Text> : selItems.map(({ e, idx }) => {
+        {selItems.length === 0 && selBands.length === 0 && dueTasks.length === 0 && dueMemos.length === 0 ? <Text style={{ color: th.muted, fontSize: 13, paddingVertical: 6 }}>Giornata libera.</Text> : selItems.map(({ e, idx }) => {
           const col = c.of(e, sel);
           const u = kindIsPlain(e) ? URGENCY_LABEL[c.urgency(e, sel)] : '';
           return (
@@ -262,6 +265,14 @@ function DayDetail({ sel, onPickDay, hideOpen }: { sel: string; onPickDay: (k: s
             </Pressable>
           );
         })}
+        {dueMemos.length ? <Text style={{ color: th.muted, fontSize: 11, fontWeight: '800', marginTop: 8, marginBottom: 4 }}>{tl('PROMEMORIA')}</Text> : null}
+        {dueMemos.map((m) => (
+          <Pressable key={m.id} onPress={() => go('reminders')} accessibilityRole="button" accessibilityLabel={m.text} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, backgroundColor: c.tint('#ffb84f', 0.16), marginBottom: 6 }}>
+            <Icon name="bell" size={16} color="#ffb84f" />
+            <Text numberOfLines={2} style={{ color: th.text, fontSize: 14, fontWeight: '700', flex: 1 }}>{m.text}</Text>
+            <Text style={{ color: th.muted, fontSize: 12, fontWeight: '700' }}>{timeStr(new Date(m.at))}</Text>
+          </Pressable>
+        ))}
         {dueTasks.length ? <Text style={{ color: th.muted, fontSize: 11, fontWeight: '800', marginTop: 8, marginBottom: 4 }}>{tl('TASK DA FARE')}</Text> : null}
         {dueTasks.map((x) => (
           <Pressable key={x.id} onPress={() => go('lifetask')} accessibilityRole="button" accessibilityLabel={x.t} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, backgroundColor: c.tint(th.accent, 0.14), marginBottom: 6 }}>

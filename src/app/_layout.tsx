@@ -118,6 +118,7 @@ export default function RootLayout() {
     startSearchSync();
     scheduleMaintenance();
     const wbTimer = setTimeout(() => { try { (require('@/lib/assistant/wellbeingFlow') as typeof import('@/lib/assistant/wellbeingFlow')).checkWellbeing(); } catch { /* senza benessere */ } }, 6000);
+    try { (require('@/lib/memoSync') as typeof import('@/lib/memoSync')).startMemoSync(); } catch { /* senza promemoria */ }
     const stopLock = startLockScreenSync(); // blocco schermo e widget: turni, impegni, task
     const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); void syncLockScreen(); onForeground(); /* riprogramma anche al cambio di fuso orario/ora legale */ useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
     return () => { sub.remove(); stopLock(); clearTimeout(wbTimer); };

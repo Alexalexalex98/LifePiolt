@@ -1,5 +1,5 @@
 {
- "count": 15280,
+ "count": 15312,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -86,7 +86,7 @@
   "src/app/(tabs)/orders.tsx": 12,
   "src/app/(tabs)/payments.tsx": 35,
   "src/app/(tabs)/photoEdit.tsx": 5,
-  "src/app/(tabs)/plan.tsx": 48,
+  "src/app/(tabs)/plan.tsx": 50,
   "src/app/(tabs)/portfolio.tsx": 34,
   "src/app/(tabs)/posDemo.tsx": 8,
   "src/app/(tabs)/postPage.tsx": 33,
@@ -99,6 +99,7 @@
   "src/app/(tabs)/projects.tsx": 57,
   "src/app/(tabs)/purchaseConfirm.tsx": 9,
   "src/app/(tabs)/recordingPlayer.tsx": 8,
+  "src/app/(tabs)/reminders.tsx": 23,
   "src/app/(tabs)/reports.tsx": 1,
   "src/app/(tabs)/repostFeed.tsx": 11,
   "src/app/(tabs)/requestDetail.tsx": 11,
@@ -234,11 +235,11 @@
   "src/components/dash/DashGrid.tsx": 4,
   "src/components/dash/Sheets.tsx": 26,
   "src/components/dash/data.tsx": 1,
-  "src/components/dash/registry.ts": 136,
+  "src/components/dash/registry.ts": 140,
   "src/components/dash/widgetsA.tsx": 54,
   "src/components/dash/widgetsB.tsx": 42,
   "src/components/dash/widgetsC.tsx": 33,
-  "src/components/dash/widgetsD.tsx": 15,
+  "src/components/dash/widgetsD.tsx": 17,
   "src/components/dashboard.tsx": 44,
   "src/components/diagnostics/LogCard.tsx": 14,
   "src/components/diagnostics/OutflowCard.tsx": 15,
@@ -389,7 +390,7 @@
   "src/lib/analytics.ts": 64,
   "src/lib/analyticsData.ts": 47,
   "src/lib/arrival.ts": 8,
-  "src/lib/assistant/aiActions.ts": 58,
+  "src/lib/assistant/aiActions.ts": 69,
   "src/lib/assistant/aiActionsCore.ts": 8,
   "src/lib/assistant/appActionCore.ts": 42,
   "src/lib/assistant/appActions.ts": 17,
@@ -407,7 +408,7 @@
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 164,
+  "src/lib/assistant/theiaFlow.ts": 167,
   "src/lib/assistant/wellbeingFlow.ts": 35,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
@@ -543,6 +544,8 @@
   "src/lib/markets/invest.ts": 6,
   "src/lib/mascot.ts": 63,
   "src/lib/mealAlerts.ts": 8,
+  "src/lib/memo.ts": 4,
+  "src/lib/memoSync.ts": 1,
   "src/lib/menu.ts": 11,
   "src/lib/mindExercises.ts": 139,
   "src/lib/modRules.ts": 17,
@@ -683,5 +686,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1940
+ "withPlaceholders": 1951
 }

@@ -14,6 +14,8 @@ import { ArrivalAdvice } from '@/components/ArrivalAdvice';
 import { decomposeTextToSteps } from '@/lib/taskDecompose';
 import { useApp } from '@/store/app';
 import { useLife, taskIsDone, type CalEvent, type Task } from '@/store/life';
+import { useMemos } from '@/store/memos';
+import { occursOn, timeStr } from '@/lib/memo';
 import { toast } from '@/store/toast';
 import { go } from '@/lib/nav';
 import { taskIntent } from '@/lib/taskIntent';
@@ -294,6 +296,7 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
   const events = useLife((s) => (day ? s.events[day] : undefined)) ?? [];
   const { addEvent, delEvent, restoreEvent, toggleReminder, patchEvent } = useLife();
   const dueTasks = useLife((s) => s.tasks).filter((x) => !x.done && !!day && x.due === day);
+  const dueMemos = useMemos((s) => s.memos).filter((m) => !!day && occursOn(m, day));
   const [time, setTime] = useState('09:00');
   const [title, setTitle] = useState('');
   const [place, setPlace] = useState('');
@@ -323,6 +326,22 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
           </Row>
         </RowCard>
       ))}
+      {dueMemos.length > 0 ? (
+        <>
+          <Body small bold muted style={{ marginTop: 4, marginBottom: 6 }}>{tl('PROMEMORIA')}</Body>
+          {dueMemos.map((m) => (
+            <RowCard key={m.id} color="#ffb84f">
+              <Pressable accessibilityRole="button" accessibilityLabel={m.text} onPress={() => { onClose(); go('reminders'); }}>
+                <Row gap={10}>
+                  <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#ffb84f33', alignItems: 'center', justifyContent: 'center' }}><Icon name="bell" size={18} color="#ffb84f" stroke={2} /></View>
+                  <View style={{ flex: 1 }}><Body bold>{m.text}</Body><Body small muted>{timeStr(new Date(m.at))}</Body></View>
+                  <Icon name="chevron-right" size={18} color={t.muted} />
+                </Row>
+              </Pressable>
+            </RowCard>
+          ))}
+        </>
+      ) : null}
       {dueTasks.length > 0 ? (
         <>
           <Body small bold muted style={{ marginTop: 4, marginBottom: 6 }}>{tl('TASK DA FARE')}</Body>
@@ -339,7 +358,7 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
           ))}
         </>
       ) : null}
-      {sorted.length === 0 && vacs.length === 0 && dueTasks.length === 0 ? (
+      {sorted.length === 0 && vacs.length === 0 && dueTasks.length === 0 && dueMemos.length === 0 ? (
         <View style={{ alignItems: 'center', paddingVertical: 22, gap: 8 }}>
           <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name="calendar" size={24} color={t.muted} stroke={1.8} /></View>
           <Body muted>Nessun impegno pianificato: giornata libera.</Body>

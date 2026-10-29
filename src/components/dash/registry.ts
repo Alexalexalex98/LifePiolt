@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 
 import { AgendaW, ShiftW, UpcomingW, KcalW, LifeScoreW, MissingW, MoodW, TasksW, TrainW, WaterW, WeekW, metricW, type WProps } from '@/components/dash/widgetsA';
 import { RadarW, BalanceW, BillsW, LpW, MessagesW, NewsW, NotifsW, PortfolioW, SavingW, SpendW, StockW, TipW, TripW, WatchW, shortcutW } from '@/components/dash/widgetsB';
-import { NextTaskW, GoalsW, NextEventW, NextPlanW } from '@/components/dash/widgetsD';
+import { NextTaskW, GoalsW, NextEventW, NextPlanW, NextMemoW } from '@/components/dash/widgetsD';
 import { FitTodayW, WaterQuickW, PantryW, BodyCheckW, DriveW, PetW, ScFridgeW, ScMealPlanW, ScBodyW, ScDriveW, ScPetW, ScVacationW, ScMonthW, ScProjectsW, ScPassW, ScLockW, ScWaterPageW, ScDiaryW } from '@/components/dash/widgetsC';
 
 export type CatId = 'oggi' | 'benessere' | 'finanza' | 'mercati' | 'notizie' | 'network' | 'plan' | 'viaggi' | 'theia' | 'scorciatoie';
@@ -80,6 +80,7 @@ export const WIDGETS: WidgetDef[] = [
   { type: 'goals', cat: 'plan', title: 'Obiettivi', desc: 'La percentuale di ogni obiettivo: con le frecce vedi il prossimo', icon: 'award', color: '#c9b6ff', sizes: ['2x1', '4x1', '2x2', '4x2', '2x4'], def: '2x2', Comp: GoalsW },
   { type: 'nextevent', cat: 'plan', title: 'Prossimo impegno', desc: 'Il prossimo appuntamento: con le frecce passi al successivo', icon: 'calendar', color: PLAN, sizes: ['2x1', '4x1', '2x2', '4x2', '2x4'], def: '2x1', Comp: NextEventW },
   { type: 'nextplan', cat: 'plan', title: 'Il tuo Piano', desc: 'Impegni e task con scadenza insieme, uno alla volta: con le frecce scorri', icon: 'calendar', color: PLAN, sizes: ['2x1', '4x1', '2x2', '4x2', '2x4'], def: '2x2', Comp: NextPlanW },
+  { type: 'nextmemo', cat: 'plan', title: 'Promemoria', desc: 'I prossimi promemoria, uno alla volta: con le frecce passi al successivo', icon: 'bell', color: '#ffb84f', sizes: ['2x1', '4x1', '2x2', '4x2', '2x4'], def: '2x1', Comp: NextMemoW },
   { type: 'tasks', cat: 'plan', title: 'Task', desc: 'Quanti ne hai aperti e quali scadono', icon: 'tasks', color: PLAN, sizes: ['1x1', '2x1', '2x2', '4x2', '2x4'], def: '2x2', Comp: TasksW },
 
   { type: 'trip', cat: 'viaggi', title: 'Prossimo viaggio', desc: 'Quanti giorni mancano', icon: 'lifetravel', color: '#e0c97b', sizes: ['2x1', '2x2', '4x1'], def: '2x1', Comp: TripW },
@@ -91,6 +92,7 @@ export const WIDGETS: WidgetDef[] = [
   { type: 'sc-meal', cat: 'scorciatoie', title: 'Scatta un pasto', desc: 'Foto del piatto e analisi', icon: 'camera', color: FOOD, sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'camera', label: 'Scatta un pasto', page: 'fitnessMeal', params: { start: 'camera' }, color: FOOD }) },
   { type: 'sc-move', cat: 'scorciatoie', title: 'Aggiungi un movimento', desc: 'Spesa o entrata', icon: 'plus', color: MONEY, sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'plus', label: 'Nuovo movimento', page: 'lifefinance', color: MONEY }) },
   { type: 'sc-train', cat: 'scorciatoie', title: 'Inizia un allenamento', desc: 'Apri LifeFitness', icon: 'lifefitness', color: FIT, sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'lifefitness', label: 'Allenati', page: 'lifefitness', color: FIT }) },
+  { type: 'sc-memo', cat: 'scorciatoie', title: 'Nuovo promemoria', desc: 'Ricordami di… con data e ora', icon: 'bell', color: '#ffb84f', sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'bell', label: 'Promemoria', page: 'reminders', color: '#ffb84f' }) },
   { type: 'sc-note', cat: 'scorciatoie', title: 'Nuova nota', desc: 'Scrivi al volo', icon: 'note', color: '#8fb3ff', sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'note', label: 'Nuova nota', page: 'noteedit', color: '#8fb3ff' }) },
   { type: 'sc-task', cat: 'scorciatoie', title: 'Nuovo task', desc: 'Aggiungi una cosa da fare', icon: 'tasks', color: PLAN, sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'tasks', label: 'Nuovo task', page: 'lifetask', color: PLAN }) },
   { type: 'sc-week', cat: 'scorciatoie', title: 'Pianifica la settimana', desc: 'Theia propone allenamenti, task e sonno nei momenti liberi', icon: 'calendar', color: PLAN, sizes: S1, def: '2x1', Comp: shortcutW({ icon: 'calendar', label: 'Pianifica la settimana', page: 'weekPlan', color: PLAN }) },

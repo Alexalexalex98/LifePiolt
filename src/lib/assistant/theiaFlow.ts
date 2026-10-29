@@ -26,6 +26,7 @@ import { parseOutline, buildTree } from '@/lib/projectTree';
 import { useProjects } from '@/store/projects';
 import { CRISIS_RESOURCES, CRISIS_TEXT, detectCrisis } from '@/lib/safety';
 import { runWb, startQuestionnaire } from './wellbeingFlow';
+import { looksLikeMemo, parseMemo, dayStr, timeStr } from '@/lib/memo';
 import { isLearnable, recall } from '@/lib/theiaMemory';
 import { useTheiaMemory } from '@/store/theiaMemory';
 import { applyAiAction, describe } from './aiActions';
@@ -331,6 +332,17 @@ export async function sendTheia(i: SendInput): Promise<void> {
   if (text && detectCrisis(text)) {
     store().push({ who: 'me', text, source: 'chat', topic: i.topic, ext: { lang: i.lang, voice: i.source === 'voice' } });
     pushAi(t(CRISIS_TEXT), { ext: { actions: [...CRISIS_RESOURCES.map((r): TheiaAction => ({ kind: 'open', label: t(r.label), url: `tel:${r.tel}` })), { kind: 'dismiss', label: t('Per ora sto bene, grazie') }] } });
+    return;
+  }
+  /* «ricordami di…»: si legge qui, subito, senza AI; se manca l'ora si chiede */
+  if (text && !atts.length && !images.length && looksLikeMemo(text)) {
+    store().push({ who: 'me', text, source: 'chat', topic: i.topic, ext: { lang: i.lang, voice: i.source === 'voice' } });
+    const r = parseMemo(text, Date.now());
+    if (!r) { pushAi(t('Cosa devo ricordarti, e quando?')); return; }
+    if ('missing' in r) { pushAi(t('Certo: «{0}». A che ora e in che giorno?', r.text)); return; }
+    const d = new Date(r.at);
+    const res = applyAiAction({ type: 'reminder_add', text: r.text, date: dayStr(d), time: timeStr(d), repeat: r.repeat === 'none' ? undefined : r.repeat });
+    pushAi(res.message, { ext: { actions: [{ kind: 'open', label: t('Apri i promemoria'), page: 'reminders' }] } });
     return;
   }
   /* i questionari brevi sul benessere (WHO-5, PHQ-9): domande e risposte in chat, dopo il consenso */

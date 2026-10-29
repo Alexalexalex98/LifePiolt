@@ -98,6 +98,7 @@ export const TAB_SCREENS: string[] = [
   'projectWork',
   'purchaseConfirm',
   'recordingPlayer',
+  'reminders',
   'reports',
   'repostFeed',
   'requestDetail',

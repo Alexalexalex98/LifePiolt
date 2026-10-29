@@ -9,7 +9,9 @@ import { t as tl } from '@/i18n/core';
 import { dayKey } from '@/lib/format';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
+import { sortedMemos, timeStr } from '@/lib/memo';
 import { taskIsDone, useLife } from '@/store/life';
+import { useMemos } from '@/store/memos';
 
 const PLAN = '#8fb3ff';
 const GOAL = '#c9b6ff';
@@ -117,4 +119,12 @@ export function NextPlanW(p: WProps) {
     .forEach((x) => all.push({ sort: `${x.due} 23:59`, item: { key: `t${x.id}`, title: x.t, sub: `${tl('Task')} · ${dayText(x.due!)}`, onPress: () => go('lifetask') } }));
   all.sort((a, b) => a.sort.localeCompare(b.sort));
   return <Cycler p={p} icon="calendar" label={tl('Il tuo Piano')} color={PLAN} items={all.map((x) => x.item)} empty={tl('Niente in programma nei prossimi giorni')} />;
+}
+
+/** I prossimi promemoria, uno alla volta (frecce per scorrere). */
+export function NextMemoW(p: WProps) {
+  const memos = useMemos((s) => s.memos);
+  const now = Date.now();
+  const items: Item[] = sortedMemos(memos, now).upcoming.slice(0, 30).map((m) => ({ key: m.id, title: m.text, sub: dayText(dayKey(new Date(m.next)), timeStr(new Date(m.next))), right: dayKey(new Date(m.next)) === dayKey() ? timeStr(new Date(m.next)) : undefined, onPress: () => go('reminders') }));
+  return <Cycler p={p} icon="bell" label={tl('Promemoria')} color="#ffb84f" items={items} empty={tl('Nessun promemoria: aggiungilo o chiedilo a Theia')} />;
 }

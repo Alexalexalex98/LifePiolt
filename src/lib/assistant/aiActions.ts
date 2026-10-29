@@ -6,6 +6,9 @@ import { useFin } from '@/store/finance';
 import { useLife } from '@/store/life';
 import { useMonthPlan } from '@/store/monthPlan';
 import { addMonths, estimateIncome, goalMonthly, monthsNeeded } from '@/lib/monthPlan';
+import { whenOf } from '@/lib/memo';
+import { ensureMemoPermission } from '@/lib/memoSync';
+import { useMemos } from '@/store/memos';
 import { OPEN_LABELS, findByText, isAll, type AiAct } from './aiActionsCore';
 
 const sum = (l: { monthly: number }[]) => l.reduce((a, x) => a + x.monthly, 0);
@@ -29,6 +32,10 @@ export function describe(a: AiAct): string {
     case 'note_delete': return t('Elimino la nota «{0}»', a.match);
     case 'file_rename': return t('Rinomino il file «{0}»', a.match);
     case 'file_delete': return t('Elimino il file «{0}»', a.match);
+    case 'reminder_add': return t('Ti ricordo «{0}» il {1} alle {2}', a.text, a.date, a.time);
+    case 'reminder_edit': return t('Modifico il promemoria «{0}»', a.match);
+    case 'reminder_delete': return t('Elimino il promemoria «{0}»', a.match);
+    case 'reminder_done': return t('Segno come fatto il promemoria «{0}»', a.match);
     case 'event_add': return t('Aggiungo all\'agenda «{0}» il {1} alle {2}', a.title, a.date, a.time);
     case 'event_delete': return t('Tolgo dall\'agenda «{0}»', a.match);
     case 'note_add': return t('Salvo una nota');
@@ -93,6 +100,25 @@ export function applyAiAction(a: AiAct): ActResult {
       if (hits.length > 1) return { ok: false, message: t('Ne trovo più di uno ({0}): dimmi quale.', hits.slice(0, 4).map((x) => `«${x.ev.title}» ${x.d}`).join(', ')) };
       const h = hits[0]!; life.delEvent(h.d, h.idx); return { ok: true, message: t('Fatto: «{0}» tolto dall\'agenda.', h.ev.title), undo: () => useLife.getState().addEvent(h.d, h.ev) };
     }
+    case 'reminder_add': {
+      const at = whenOf(a.date, a.time);
+      if (!Number.isFinite(at) || (!a.repeat && at <= Date.now())) return { ok: false, message: t('Quell\'ora è già passata: dimmi quando devo ricordartelo.') };
+      const m = useMemos.getState().add({ text: a.text, at, repeat: a.repeat });
+      ensureMemoPermission();
+      return { ok: true, message: t('Fatto: ti ricordo «{0}» il {1} alle {2}.', a.text, a.date, a.time), undo: () => { useMemos.getState().remove(m.id); } };
+    }
+    case 'reminder_edit': case 'reminder_delete': case 'reminder_done': {
+      const hit = findByText(useMemos.getState().memos.filter((x) => !x.done), (x) => x.text, a.match);
+      if (hit.length !== 1) return { ok: false, message: hit.length ? ambiguous(hit.map((x) => x.text)) : t('Non trovo un promemoria che somigli a «{0}».', a.match) };
+      const m = hit[0]!; const st = useMemos.getState();
+      if (a.type === 'reminder_delete') { st.remove(m.id); return { ok: true, message: t('Fatto: promemoria «{0}» eliminato.', m.text), undo: () => useMemos.getState().restore(m) }; }
+      if (a.type === 'reminder_done') { st.setDone(m.id, true); return { ok: true, message: t('Fatto: «{0}» è segnato come fatto.', m.text), undo: () => useMemos.getState().setDone(m.id, false) }; }
+      const cur = new Date(m.at); const pad2 = (n: number) => String(n).padStart(2, '0');
+      const at = whenOf(a.date ?? `${cur.getFullYear()}-${pad2(cur.getMonth() + 1)}-${pad2(cur.getDate())}`, a.time ?? `${pad2(cur.getHours())}:${pad2(cur.getMinutes())}`);
+      if (!Number.isFinite(at)) return { ok: false, message: t('Non ho capito quando: dimmi giorno e ora.') };
+      st.update(m.id, { text: a.text ?? m.text, at, repeat: a.repeat ?? m.repeat });
+      return { ok: true, message: t('Fatto: promemoria «{0}» aggiornato.', a.text ?? m.text), undo: () => useMemos.getState().update(m.id, { text: m.text, at: m.at, repeat: m.repeat }) };
+    }
     case 'note_add': life.saveNote(null, a.text); return { ok: true, message: t('Fatto: nota salvata.') };
     case 'note_edit': case 'note_delete': {
       const hit = findByText(life.notes, (n) => n.text, a.match);
@@ -140,5 +166,6 @@ export function editableContext(): string {
   const events = Object.entries(life.events).filter(([d]) => d >= today).sort(([x], [y]) => x.localeCompare(y)).flatMap(([d, l]) => l.map((e) => `${d} ${e.time} ${cut(e.title)}`)).slice(0, 40);
   const notes = life.notes.slice(0, 20).map((n) => cut(n.text, 50));
   const files = life.drive.filter((f) => !f.photo).slice(0, 20).map((f) => cut(f.n));
-  return `Elementi modificabili (usa questi titoli in match):\nTask aperti: ${tasks.join('; ') || 'nessuno'}\nImpegni da oggi: ${events.join('; ') || 'nessuno'}\nNote: ${notes.join(' | ') || 'nessuna'}\nFile Drive: ${files.join('; ') || 'nessuno'}`;
+  const rems = useMemos.getState().memos.filter((m) => !m.done).slice(0, 20).map((m) => `${cut(m.text)} (${new Date(m.at).toISOString().slice(0, 16).replace('T', ' ')})`);
+  return `Elementi modificabili (usa questi titoli in match):\nTask aperti: ${tasks.join('; ') || 'nessuno'}\nImpegni da oggi: ${events.join('; ') || 'nessuno'}\nNote: ${notes.join(' | ') || 'nessuna'}\nFile Drive: ${files.join('; ') || 'nessuno'}\nPromemoria: ${rems.join('; ') || 'nessuno'}`;
 }

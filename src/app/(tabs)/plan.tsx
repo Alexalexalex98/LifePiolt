@@ -79,6 +79,11 @@ export default function Plan() {
       </Card>
 
       <Card>
+        <Row><H>Promemoria</H><Btn small icon="bell" title="Apri" onPress={() => go('reminders')} /></Row>
+        <Body small muted style={{ marginTop: 4 }}>Ricordami di… con data, ora e ripetizione: ti arriva una notifica. Puoi anche scriverlo a Theia.</Body>
+      </Card>
+
+      <Card>
         <Row><H>Orari di lavoro</H><Btn small ghost title="Modifica" onPress={() => setWhSheet(true)} /></Row>
         <Body small>{wh.start} – {wh.end}</Body>
         <Body small muted style={{ marginTop: 4 }}>LifePilot usa questo intervallo per capire quando sei libero nel calendario e nella pianificazione della giornata.</Body>
