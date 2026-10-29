@@ -2,8 +2,6 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import { Platform } from 'react-native';
 
 import { dayOf, waterGoal } from '@/lib/fitness/mealInsights';
-import { programById } from '@/lib/fitness/programsExtra';
-import { weekView } from '@/lib/fitness/plan';
 import { activeShift, lockItems, lockTimeline, type LockSources } from '@/lib/lockScreen';
 import { useFitness } from '@/store/fitness';
 import { useLife } from '@/store/life';
@@ -27,6 +25,8 @@ function sources(now: number): LockSources {
   const key = dayOf(now);
   let workout: LockSources['workout'] = null;
   try {
+    const { programById } = require('@/lib/fitness/programsExtra') as typeof import('@/lib/fitness/programsExtra');
+    const { weekView } = require('@/lib/fitness/plan') as typeof import('@/lib/fitness/plan');
     const active = fit.activeProgram ? programById(fit.activeProgram) : null;
     const day = active && fit.profile ? weekView(active, fit.profile, fit.history, new Date(now)).find((d) => d.date === key) : null;
     if (active && day?.planned && day.session != null) workout = { name: active.sessions[day.session].name, done: day.done };

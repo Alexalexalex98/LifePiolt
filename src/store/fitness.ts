@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 
 import type { Gym, Program, Step } from '@/lib/fitness/data';
-import { ALL_PROGRAMS } from '@/lib/fitness/programsExtra';
 import type { ExerciseX } from '@/lib/fitness/exerciseDb';
-import { registerFood, type Body, type Food, type Macros } from '@/lib/fitness/nutrition';
+import type { Body, Food, Macros } from '@/lib/fitness/nutrition';
 import type { FitProfile, Workout } from '@/lib/fitness/plan';
 import { creditsLeft, makePurchase, payBlock, priceList, consumeCredit, type Purchase } from '@/lib/fitness/gymPay';
 import { checkIn, renewIfDue, startSub, PREMIUM_PRICE_LP, type Sub, type Visit } from '@/lib/fitness/premium';
@@ -179,13 +178,17 @@ export const useFitness = create<State>()(
   })),
 );
 
-/** Gli alimenti stimati dall'AI tornano disponibili per id appena lo store e' caricato (e a ogni nuova stima). */
-useFitness.subscribe((s) => { for (const f of s.aiFoods ?? []) registerFood(f); });
-for (const f of useFitness.getState().aiFoods ?? []) registerFood(f);
-
-/** I programmi di Theia si aggiungono alle schede dell'app (e si aggiornano quando lei li cambia). */
-const registerPrograms = (list: Program[]) => {
-  for (const p of list) { const i = ALL_PROGRAMS.findIndex((x) => x.id === p.id); if (i >= 0) ALL_PROGRAMS[i] = p; else ALL_PROGRAMS.push(p); }
+/** Alimenti e programmi di Theia tornano disponibili appena lo store e' caricato: i database pesanti si caricano solo allora, non all'avvio. */
+let seenFoods: unknown; let seenProgs: unknown;
+const syncAi = () => {
+  const s = useFitness.getState();
+  const newFoods = s.aiFoods !== seenFoods; const newProgs = s.aiPrograms !== seenProgs;
+  seenFoods = s.aiFoods; seenProgs = s.aiPrograms;
+  if (newFoods && s.aiFoods?.length) { const { registerFood } = require('@/lib/fitness/nutrition') as typeof import('@/lib/fitness/nutrition'); for (const f of s.aiFoods) registerFood(f); }
+  if (newProgs && s.aiPrograms?.length) {
+    const { ALL_PROGRAMS } = require('@/lib/fitness/programsExtra') as typeof import('@/lib/fitness/programsExtra');
+    for (const p of s.aiPrograms) { const i = ALL_PROGRAMS.findIndex((x) => x.id === p.id); if (i >= 0) ALL_PROGRAMS[i] = p; else ALL_PROGRAMS.push(p); }
+  }
 };
-useFitness.subscribe((s) => registerPrograms(s.aiPrograms ?? []));
-registerPrograms(useFitness.getState().aiPrograms ?? []);
+useFitness.subscribe(syncAi);
+syncAi();
