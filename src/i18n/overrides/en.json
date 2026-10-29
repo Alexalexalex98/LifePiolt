@@ -4258,5 +4258,20 @@
  "Elimino il file «{0}»": "Deleting the file “{0}”",
  "TASK DA FARE": "TASKS TO DO",
  "Tocca per aprire i task": "Tap to open tasks",
- "Con Theia": "With Theia"
+ "Con Theia": "With Theia",
+ "Prossimo task": "Next task",
+ "Il prossimo": "Next",
+ "Il precedente": "Previous",
+ "Nessun task da fare": "No tasks to do",
+ "Obiettivi": "Goals",
+ "Nessun obiettivo: aggiungilo dal Plan o chiedilo a Theia": "No goals: add one from Plan or ask Theia",
+ "Prossimo impegno": "Next event",
+ "Nessun impegno in arrivo": "No upcoming events",
+ "Il tuo Piano": "Your Plan",
+ "Niente in programma nei prossimi giorni": "Nothing planned in the coming days",
+ "in ritardo": "overdue",
+ "Il prossimo task da fare (solo quelli non fatti): con le frecce passi al successivo": "The next task to do (only unfinished ones): use the arrows to see the next",
+ "La percentuale di ogni obiettivo: con le frecce vedi il prossimo": "The percentage of each goal: use the arrows to see the next",
+ "Il prossimo appuntamento: con le frecce passi al successivo": "The next appointment: use the arrows to see the next",
+ "Impegni e task con scadenza insieme, uno alla volta: con le frecce scorri": "Events and due tasks together, one at a time: scroll with the arrows"
 }

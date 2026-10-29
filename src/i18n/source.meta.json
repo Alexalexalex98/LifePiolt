@@ -1,5 +1,5 @@
 {
- "count": 15204,
+ "count": 15217,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -233,10 +233,11 @@
   "src/components/dash/DashGrid.tsx": 4,
   "src/components/dash/Sheets.tsx": 26,
   "src/components/dash/data.tsx": 1,
-  "src/components/dash/registry.ts": 128,
+  "src/components/dash/registry.ts": 136,
   "src/components/dash/widgetsA.tsx": 54,
   "src/components/dash/widgetsB.tsx": 42,
   "src/components/dash/widgetsC.tsx": 33,
+  "src/components/dash/widgetsD.tsx": 15,
   "src/components/dashboard.tsx": 44,
   "src/components/diagnostics/LogCard.tsx": 14,
   "src/components/diagnostics/OutflowCard.tsx": 15,

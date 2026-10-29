@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 
 import { AgendaW, ShiftW, UpcomingW, KcalW, LifeScoreW, MissingW, MoodW, TasksW, TrainW, WaterW, WeekW, metricW, type WProps } from '@/components/dash/widgetsA';
 import { RadarW, BalanceW, BillsW, LpW, MessagesW, NewsW, NotifsW, PortfolioW, SavingW, SpendW, StockW, TipW, TripW, WatchW, shortcutW } from '@/components/dash/widgetsB';
+import { NextTaskW, GoalsW, NextEventW, NextPlanW } from '@/components/dash/widgetsD';
 import { FitTodayW, WaterQuickW, PantryW, BodyCheckW, DriveW, PetW, ScFridgeW, ScMealPlanW, ScBodyW, ScDriveW, ScPetW, ScVacationW, ScMonthW, ScProjectsW, ScPassW, ScLockW, ScWaterPageW, ScDiaryW } from '@/components/dash/widgetsC';
 
 export type CatId = 'oggi' | 'benessere' | 'finanza' | 'mercati' | 'notizie' | 'network' | 'plan' | 'viaggi' | 'theia' | 'scorciatoie';
@@ -75,6 +76,10 @@ export const WIDGETS: WidgetDef[] = [
   { type: 'shift', cat: 'plan', title: 'Prossimo turno', desc: 'Nome, giorno e ora del tuo prossimo turno di lavoro', icon: 'briefcase', color: PLAN, sizes: ['2x1', '4x1', '2x2', '4x2', '2x4'], def: '4x1', Comp: ShiftW },
   { type: 'upcoming', cat: 'plan', title: 'Prossimi impegni', desc: 'Gli impegni dei prossimi giorni, con giorno e ora', icon: 'calendar', color: PLAN, sizes: ['2x1', '4x1', '2x2', '4x2', '2x4', '4x3'], def: '2x2', Comp: UpcomingW },
   { type: 'agenda', cat: 'plan', title: 'Agenda di oggi', desc: 'Il prossimo impegno e la lista di oggi', icon: 'calendar', color: PLAN, sizes: ['2x1', '4x1', '2x2', '4x2', '2x4', '4x3'], def: '4x1', Comp: AgendaW },
+  { type: 'nexttask', cat: 'plan', title: 'Prossimo task', desc: 'Il prossimo task da fare (solo quelli non fatti): con le frecce passi al successivo', icon: 'tasks', color: PLAN, sizes: ['2x1', '4x1', '2x2', '4x2', '2x4'], def: '2x1', Comp: NextTaskW },
+  { type: 'goals', cat: 'plan', title: 'Obiettivi', desc: 'La percentuale di ogni obiettivo: con le frecce vedi il prossimo', icon: 'award', color: '#c9b6ff', sizes: ['2x1', '4x1', '2x2', '4x2', '2x4'], def: '2x2', Comp: GoalsW },
+  { type: 'nextevent', cat: 'plan', title: 'Prossimo impegno', desc: 'Il prossimo appuntamento: con le frecce passi al successivo', icon: 'calendar', color: PLAN, sizes: ['2x1', '4x1', '2x2', '4x2', '2x4'], def: '2x1', Comp: NextEventW },
+  { type: 'nextplan', cat: 'plan', title: 'Il tuo Piano', desc: 'Impegni e task con scadenza insieme, uno alla volta: con le frecce scorri', icon: 'calendar', color: PLAN, sizes: ['2x1', '4x1', '2x2', '4x2', '2x4'], def: '2x2', Comp: NextPlanW },
   { type: 'tasks', cat: 'plan', title: 'Task', desc: 'Quanti ne hai aperti e quali scadono', icon: 'tasks', color: PLAN, sizes: ['1x1', '2x1', '2x2', '4x2', '2x4'], def: '2x2', Comp: TasksW },
 
   { type: 'trip', cat: 'viaggi', title: 'Prossimo viaggio', desc: 'Quanti giorni mancano', icon: 'lifetravel', color: '#e0c97b', sizes: ['2x1', '2x2', '4x1'], def: '2x1', Comp: TripW },
