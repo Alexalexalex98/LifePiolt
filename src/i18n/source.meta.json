@@ -1,5 +1,5 @@
 {
- "count": 15218,
+ "count": 15280,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -91,7 +91,7 @@
   "src/app/(tabs)/posDemo.tsx": 8,
   "src/app/(tabs)/postPage.tsx": 33,
   "src/app/(tabs)/privacy.tsx": 2,
-  "src/app/(tabs)/privacyCenter.tsx": 48,
+  "src/app/(tabs)/privacyCenter.tsx": 58,
   "src/app/(tabs)/profile.tsx": 52,
   "src/app/(tabs)/profileContent.tsx": 14,
   "src/app/(tabs)/profileMore.tsx": 8,
@@ -408,6 +408,7 @@
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
   "src/lib/assistant/theiaFlow.ts": 164,
+  "src/lib/assistant/wellbeingFlow.ts": 35,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -639,6 +640,7 @@
   "src/lib/vacationPlan.ts": 7,
   "src/lib/weather.ts": 15,
   "src/lib/wellbeing.ts": 12,
+  "src/lib/wellbeing/questionnaires.ts": 29,
   "src/lib/when.ts": 11,
   "src/lib/workEstimate.ts": 8,
   "src/schemas/change.ts": 3,
@@ -681,5 +683,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1933
+ "withPlaceholders": 1940
 }

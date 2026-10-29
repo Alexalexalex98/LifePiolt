@@ -14,6 +14,8 @@ import { useFin } from '@/store/finance';
 import { useFitness } from '@/store/fitness';
 import { useHealth } from '@/store/health';
 import { useTheiaMemory } from '@/store/theiaMemory';
+import { useWellbeing } from '@/store/wellbeing';
+import { WB_CONSENT_TEXT, WB_LIMITS } from '@/lib/assistant/wellbeingFlow';
 import { useLife } from '@/store/life';
 import { useMindSpace } from '@/store/mindSpace';
 import { usePet } from '@/store/pet';
@@ -28,7 +30,7 @@ type AnyStore = { getState: () => unknown; setState: (s: never, replace: true) =
 const STORES: Record<CatId, AnyStore[]> = {
   agenda: [useLife, useShifts] as unknown as AnyStore[],
   finance: [useFin, useLpMoney] as unknown as AnyStore[],
-  health: [useHealth, useMindSpace, usePet] as unknown as AnyStore[],
+  health: [useHealth, useMindSpace, usePet, useWellbeing] as unknown as AnyStore[],
   fitness: [useFitness, usePantry] as unknown as AnyStore[],
   travel: [useTravel] as unknown as AnyStore[],
   network: [useNet, useClub] as unknown as AnyStore[],
@@ -42,6 +44,8 @@ export default function PrivacyCenter() {
   const { setDataConsent, revokeAllConsents } = useAiRouter.getState();
   const [showHist, setShowHist] = useState(false);
   const learned = useTheiaMemory((s) => s.entries.length);
+  const wbConsent = useWellbeing((s) => s.consent);
+  const wbResults = useWellbeing((s) => s.results.length);
 
   const exportCat = async (id: CatId) => {
     const data = Object.fromEntries(STORES[id].map((s, i) => [`parte${i + 1}`, s.getState()]));
@@ -93,6 +97,18 @@ export default function PrivacyCenter() {
         <Body small muted style={{ marginTop: 4 }}>Quando l'AI risponde a una domanda di conoscenza generale (non personale), Theia la ricorda sul telefono e la prossima volta risponde da sola. Non impara mai dai tuoi dati personali. Puoi cancellare tutto quando vuoi.</Body>
         <Body small style={{ marginTop: 6 }}>{`${tl('Risposte ricordate')}: ${learned}`}</Body>
         <Btn small ghost danger style={{ marginTop: 8 }} title="Cancella ciò che ha imparato" onPress={() => { useTheiaMemory.getState().clear(); toast('Memoria di Theia cancellata'); }} />
+      </Card>
+
+      <Card>
+        <H>Benessere e salute mentale</H>
+        <Body small muted style={{ marginTop: 4 }}>{tl(WB_CONSENT_TEXT)}</Body>
+        <Body small muted style={{ marginTop: 6 }}>{tl(WB_LIMITS)}</Body>
+        <Row style={{ marginTop: 10, justifyContent: 'flex-start' }} gap={8}>
+          <Pill label={tl('Acconsento')} on={wbConsent} onPress={() => { useWellbeing.getState().setConsent(true); toast(tl('Benessere attivato')); }} />
+          <Pill label={tl('Non acconsento')} on={!wbConsent} onPress={() => { useWellbeing.getState().setConsent(false); toast(tl('Benessere disattivato')); }} />
+        </Row>
+        <Body small muted style={{ marginTop: 8 }}>{wbResults ? tl('Questionari salvati: {0}', wbResults) : tl('Nessun questionario salvato.')}</Body>
+        <Btn small ghost icon="trash" style={{ marginTop: 8 }} title={tl('Cancella i dati del benessere')} onPress={() => confirmDelete(tl('tutti i dati del benessere (questionari e consenso)'), () => { useWellbeing.getState().clearAll(); toast(tl('Dati del benessere cancellati')); })} />
       </Card>
 
       <SendLog />

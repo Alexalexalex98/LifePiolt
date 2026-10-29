@@ -31,6 +31,8 @@ export type TheiaAction =
   | { kind: 'say'; label: string; text: string }
   /** azione proposta dall'AI e controllata dall'app: si esegue solo dopo il tocco dell'utente */
   | { kind: 'ai-do'; label: string; act: import('./aiActionsCore.ts').AiAct }
+  /** benessere: consenso, questionari brevi (WHO-5, PHQ-9) a domande e risposte in chat */
+  | { kind: 'wb'; label: string; op: 'consent' | 'start' | 'answer' | 'cancel'; q?: 'who5' | 'phq9'; v?: number }
   /** annulla ciò che Theia ha appena fatto */
   | { kind: 'ai-undo'; label: string; id: string }
   /** risposta ricordata: chiedi di nuovo all'AI (e dimentica quella vecchia) */

@@ -8,6 +8,7 @@ const ACUTE: RegExp[] = [
   /\b(voglio|vorrei|penso di|ho deciso di|sto per)\s+(morire|uccidermi|ammazzarmi|togliermi la vita|farla finita|suicidarmi)\b/,
   /\b(mi uccido|mi ammazzo|mi tolgo la vita|mi suicido|farla finita|non voglio piu vivere|non voglio vivere piu|meglio se non ci fossi|sparire per sempre)\b/,
   /\b(suicidio|suicidar\w*|autolesion\w*|farmi del male|farmi male di proposito|tagliarmi le vene|tagliarmi i polsi|mi taglio le vene|mi taglio i polsi|mi taglio per farmi male)\b/,
+  /\b(non ha (piu )?senso (vivere|andare avanti|continuare a vivere)|vorrei sparire|vorrei non svegliarmi|non voglio piu esistere|sarebbe meglio se morissi|meglio morire|non ce la faccio piu a vivere|vorrei essere morto|vorrei essere morta|stanco di vivere|stanca di vivere)\b/,
   /\b(i want to die|want to kill myself|kill myself|end my life|take my own life|suicid\w*|hurt myself|harm myself|cut myself|cut my wrists|self[- ]harm)\b/,
   /\b(ich will sterben|ich will mich umbringen|mich umbringen|suizid\w*|mir das leben nehmen|mich selbst verletzen)\b/,
   /\b(je veux mourir|me suicider|me tuer|mettre fin a mes jours|me faire du mal)\b/,

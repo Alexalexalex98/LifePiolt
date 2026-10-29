@@ -25,6 +25,7 @@ import { cleanAiOutline, fallbackOutline, parseProjectRequest, projectPrompt, wi
 import { parseOutline, buildTree } from '@/lib/projectTree';
 import { useProjects } from '@/store/projects';
 import { CRISIS_RESOURCES, CRISIS_TEXT, detectCrisis } from '@/lib/safety';
+import { runWb, startQuestionnaire } from './wellbeingFlow';
 import { isLearnable, recall } from '@/lib/theiaMemory';
 import { useTheiaMemory } from '@/store/theiaMemory';
 import { applyAiAction, describe } from './aiActions';
@@ -91,6 +92,9 @@ export type SendInput = {
   /** audio registrato che non si può trascrivere: compare comunque nella chat */
   voiceNote?: { uri: string; durationMs: number };
 };
+
+/** «fammi il questionario sul benessere», «WHO-5», «PHQ-9», «test dell'umore» */
+const WB_ASK = /\b(who-?5|phq-?9|questionario (del |sul |di |sullo )?(benessere|umore|stato d'animo)|test (del |dell'|sull')?\s?(umore|depressione|benessere))\b/i;
 
 /** Comandi sul cibo che restano locali (lista della spesa, frigo, avvisi): non vanno all'AI. */
 const ACTIONS_LOCAL = /\b(lista della spesa|lista spesa|cosa devo comprare|svuota\w*|cancella\w*|avvis\w*|notific\w*|promemoria)\b/;
@@ -327,6 +331,12 @@ export async function sendTheia(i: SendInput): Promise<void> {
   if (text && detectCrisis(text)) {
     store().push({ who: 'me', text, source: 'chat', topic: i.topic, ext: { lang: i.lang, voice: i.source === 'voice' } });
     pushAi(t(CRISIS_TEXT), { ext: { actions: [...CRISIS_RESOURCES.map((r): TheiaAction => ({ kind: 'open', label: t(r.label), url: `tel:${r.tel}` })), { kind: 'dismiss', label: t('Per ora sto bene, grazie') }] } });
+    return;
+  }
+  /* i questionari brevi sul benessere (WHO-5, PHQ-9): domande e risposte in chat, dopo il consenso */
+  if (text && !atts.length && !images.length && WB_ASK.test(text)) {
+    store().push({ who: 'me', text, source: 'chat', topic: i.topic, ext: { lang: i.lang, voice: i.source === 'voice' } });
+    startQuestionnaire(/phq/i.test(text) || /depressione/i.test(text) ? 'phq9' : 'who5');
     return;
   }
   const eng = getAssistant();
@@ -859,6 +869,7 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
     case 'ai-analysis': await deepStatementAnalysis(); return;
     case 'add-invoices': addInvoicesFromChat(action); return;
     case 'ai-undo': { const f = undos.get(action.id); undos.delete(action.id); if (f) { f.slice().reverse().forEach((u) => u()); pushAi(t('Annullato.')); } else pushAi(t('Non posso più annullare quella modifica.')); return; }
+    case 'wb': runWb(action); return;
     case 'kb-forget': useTheiaMemory.getState().forget(action.id); pushAi(t('Fatto: ho dimenticato quella risposta.')); return;
     case 'kb-redo': useTheiaMemory.getState().forget(action.id); await aiChatReply(action.text); return;
     case 'ai-do': { const r = applyAiAction(action.act); if (r.message) pushAi(r.message); return; }
