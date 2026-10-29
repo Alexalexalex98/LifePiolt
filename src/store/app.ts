@@ -58,6 +58,8 @@ type AppState = {
   /** una tantum: Theia vede per impostazione predefinita anche salute e finanze (poi si può disattivare) */
   privacyAllOn?: boolean;
   dataLocal: Record<string, boolean>;
+  /** il giorno (AAAA-MM-GG) in cui l'app ha già chiesto «Come ti senti?» all'apertura */
+  moodAskedDay: string;
   set: (patch: Partial<AppState>) => void;
   trackVisit: (p: string) => void;
   reset: () => void;
@@ -92,6 +94,7 @@ const initial = {
   integrations: { Calendario: true, Health: false, Email: false, Wearable: false, 'Smart Home': false } as Record<string, boolean>,
   privacy: { 'AI Memory': true, 'Dati salute': true, 'Dati finanziari': true, Posizione: false } as Record<string, boolean>,
   dataLocal: {} as Record<string, boolean>,
+  moodAskedDay: '',
 };
 
 export const useApp = create<AppState>()(

@@ -52,6 +52,7 @@ import { useLive } from '@/store/live';
 import { lockPortrait } from '@/lib/orientation';
 import { DbNoticeBanner } from '@/components/security/DbNoticeBanner';
 import { LockGate } from '@/components/security/LockGate';
+import { MoodCheckinPrompt } from '@/components/MoodCheckinPrompt';
 import { scheduleMaintenance } from '@/db/diagnostics';
 import { useSecurity } from '@/db/securityStore';
 import { startSearchSync } from '@/lib/search';
@@ -139,6 +140,7 @@ export default function RootLayout() {
       <ToastHost />
       <ErrorBanner />
       <DbNoticeBanner />
+      <MoodCheckinPrompt ready={ready} />
       <LockGate />
     </View>
   );

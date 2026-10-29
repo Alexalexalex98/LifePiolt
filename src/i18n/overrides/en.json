@@ -4273,5 +4273,8 @@
  "Il prossimo task da fare (solo quelli non fatti): con le frecce passi al successivo": "The next task to do (only unfinished ones): use the arrows to see the next",
  "La percentuale di ogni obiettivo: con le frecce vedi il prossimo": "The percentage of each goal: use the arrows to see the next",
  "Il prossimo appuntamento: con le frecce passi al successivo": "The next appointment: use the arrows to see the next",
- "Impegni e task con scadenza insieme, uno alla volta: con le frecce scorri": "Events and due tasks together, one at a time: scroll with the arrows"
+ "Impegni e task con scadenza insieme, uno alla volta: con le frecce scorri": "Events and due tasks together, one at a time: scroll with the arrows",
+ "Come ti senti?": "How are you feeling?",
+ "Un tocco al giorno: lo confronto con sonno, impegni e spese per capire cosa ti fa stare meglio.": "One tap a day: I compare it with sleep, events and spending to understand what makes you feel better.",
+ "Umore registrato: {0}": "Mood logged: {0}"
 }
