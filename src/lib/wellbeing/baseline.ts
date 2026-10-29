@@ -31,7 +31,7 @@ export function deviations(sigs: Sig[], today: string): Report {
     if ((s.bad === 'down' && z <= -1.2) || (s.bad === 'up' && z >= 1.2)) devs.push({ id: s.id, label: s.label, recent: r, base: m, z });
   }
   const ready = days >= BASE_MIN_DAYS;
-  const core = devs.filter((x) => ['mood', 'sleep', 'mealRhythm', 'social', 'energy'].includes(x.id)).length;
+  const core = devs.filter((x) => ['mood', 'sleep', 'mealRhythm', 'social', 'energy', 'functioning'].includes(x.id)).length;
   const level: Level = devs.length >= 3 && core >= 2 ? 'forte' : devs.length >= 2 ? 'attenzione' : devs.length === 1 ? 'lieve' : 'nessuno';
   return { ready, days, devs, level };
 }

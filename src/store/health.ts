@@ -8,7 +8,8 @@ export type Metric = 'sleep' | 'hr' | 'steps' | 'weight' | 'stress' | 'hrv' | 'm
 export type Source = 'manuale' | 'apple' | 'hc' | 'demo' | 'stimato';
 export type Workout = { id: string; type: string; date: string; duration: number; calories: number; source?: Source };
 export type MindSession = { id: string; type: string; date: string; duration: number };
-export type MoodEntry = { date: string; mood: string; day?: string };
+/** Il check-in del giorno: umore, e (rispondendo) energia e capacità di fare le cose da 1 a 5, e ogni tanto l'alcol della settimana (0 niente, 1 poco, 2 parecchio). */
+export type MoodEntry = { date: string; mood: string; day?: string; energy?: number; functioning?: number; alcohol?: number };
 export type Pt = { d: string; v: number };
 
 export const healthMeta: Record<Metric, { label: string; unit: string; color: string; dec: number }> = {
@@ -70,11 +71,18 @@ type HealthState = {
   logMood: (mood: string) => void;
   /** Sostituisce l'umore di oggi (o lo rimuove con null) senza aggiungerne un secondo. */
   setTodayMood: (mood: string | null) => void;
+  /** Aggiunge al check-in di oggi energia, capacità di fare le cose o alcol (serve che l'umore ci sia). */
+  setTodayCheckin: (patch: { energy?: number; functioning?: number; alcohol?: number }) => void;
   connect: (device: string | null) => void;
   setSync: (ts: number | null, err: string | null) => void;
   reset: () => void;
 };
 
+/** Cambiando l'umore di oggi non si perdono energia, capacità e alcol già dati. */
+const keepExtras = (before: MoodEntry[], after: MoodEntry[]): MoodEntry[] => {
+  const old = before.find((m) => m.day === dayKey());
+  return old ? after.map((m) => (m.day === dayKey() ? { ...m, ...(old.energy != null ? { energy: old.energy } : {}), ...(old.functioning != null ? { functioning: old.functioning } : {}), ...(old.alcohol != null ? { alcohol: old.alcohol } : {}) } : m)) : after;
+};
 const empty = <T,>(f: () => T): Record<Metric, T> => Object.fromEntries(allMetrics.map((m) => [m, f()])) as Record<Metric, T>;
 const emptySeries = (): Series => empty<number[]>(() => []);
 const emptyDates = (): Dates => empty<string[]>(() => []);
@@ -128,8 +136,9 @@ export const useHealth = create<HealthState>()(
     delWorkout: (id) => set((s) => ({ workouts: s.workouts.filter((w) => w.id !== id) })),
     addMind: (type, duration) => set((s) => ({ mindSessions: [{ id: uid(), type, date: weekdayShortDate(), duration }, ...s.mindSessions] })),
     delMind: (id) => set((s) => ({ mindSessions: s.mindSessions.filter((x) => x.id !== id) })),
-    logMood: (mood) => set((s) => ({ moods: replaceTodayMood(s.moods, mood, dayKey(), weekdayShortDate()) })),
-    setTodayMood: (mood) => set((s) => ({ moods: replaceTodayMood(s.moods, mood, dayKey(), weekdayShortDate()) })),
+    logMood: (mood) => set((s) => ({ moods: keepExtras(s.moods, replaceTodayMood(s.moods, mood, dayKey(), weekdayShortDate()) as MoodEntry[]) })),
+    setTodayMood: (mood) => set((s) => ({ moods: keepExtras(s.moods, replaceTodayMood(s.moods, mood, dayKey(), weekdayShortDate()) as MoodEntry[]) })),
+    setTodayCheckin: (patch) => set((s) => ({ moods: s.moods.map((m) => (m.day === dayKey() ? { ...m, ...patch } : m)) })),
     connect: (device) => set({ wearable: { connected: !!device, device } }),
     setSync: (lastSync, syncError) => set({ lastSync, syncError }),
     reset: () => set({ series: emptySeries(), dates: emptyDates(), sources: {}, lastLog: {}, workouts: [], mindSessions: [], moods: [], wearable: { connected: false, device: null }, lastSync: null, syncError: null, extra: {} }),

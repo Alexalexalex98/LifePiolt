@@ -52,3 +52,34 @@ test('sicurezza: frasi indirette sono riconosciute, i modi di dire no', () => {
   for (const f of ['non ha più senso vivere', 'vorrei sparire', 'voglio morire', 'penso al suicidio', 'I want to die']) assert.equal(detectCrisis(f), true, f);
   for (const f of ['muoio dal ridere', 'sono morto di sonno oggi', 'ho voglia di una pizza']) assert.equal(detectCrisis(f), false, f);
 });
+
+import { computeLifeScore } from '../src/lib/wellbeing/score.ts';
+import { analyze } from '../src/lib/analytics.ts';
+const D = (id, better, target, dec = 1, unit = '') => ({ id, label: id, unit, domain: 'salute', better, target, dec, color: '#fff', period: 'day' });
+const defs = { mood: D('mood', 'up', 3.5, 1, '/5'), sleep: D('sleep', 'range', undefined, 1, 'h'), social: D('social', 'up', 3, 1), steps: D('steps', 'up', 8000, 0), energyLvl: D('energyLvl', 'up', 3.5, 1, '/5') };
+defs.sleep.range = [7, 9];
+
+const mk = (id, vals, today = '2026-10-29') => {
+  const pts = vals.map((v, i) => ({ d: new Date(Date.parse(today + 'T00:00:00Z') - (vals.length - 1 - i) * 86400000).toISOString().slice(0, 10), v }));
+  return analyze({ def: defs[id], pts, source: 'manuale' }, today);
+};
+test('Life Score v2: senza dati non inventa un numero', () => {
+  const r = computeLifeScore({ list: [mk('mood', [4, 4, 4, 4, 4, 4, 4])], today: '2026-10-29', days: 7 });
+  assert.equal(r.score, null); assert.match(r.summary, /Mi mancano/);
+});
+test('Life Score v2: tutto bene e stabile = alto, con i motivi', () => {
+  const list = [mk('mood', steady(30, 4)), mk('sleep', steady(30, 7.8)), mk('social', steady(30, 3.5)), mk('steps', steady(30, 9000)), mk('energyLvl', steady(30, 4))];
+  const r = computeLifeScore({ list, today: '2026-10-29', days: 30 });
+  assert.ok(r.score >= 85, String(r.score)); assert.equal(r.deviation.level, 'nessuno'); assert.ok(r.factors.length >= 5);
+});
+test('Life Score v2: piu\' segnali che peggiorano insieme abbassano e limitano il punteggio, con il perche\'', () => {
+  const list = [mk('mood', [...steady(30, 4), 2.4, 2.5, 2.2, 2.6, 2.3]), mk('sleep', [...steady(30, 7.5), 5.4, 5.5, 5.3, 5.6, 5.4]), mk('social', [...steady(30, 3.5), 0.5, 0.4, 0.6, 0.5, 0.3]), mk('energyLvl', [...steady(30, 4), 2, 2, 1.5, 2, 2])];
+  const r = computeLifeScore({ list, today: '2026-10-29', days: 35 });
+  assert.ok(r.score < 65, String(r.score)); assert.equal(r.deviation.level, 'forte');
+  assert.ok(r.reasons.some((x) => /insieme/.test(x))); assert.ok(r.down.length >= 2); assert.match(r.limits, /non diagnostica/);
+});
+test('Life Score v2: WHO-5 molto basso limita il punteggio', () => {
+  const list = [mk('mood', steady(30, 4)), mk('sleep', steady(30, 7.8)), mk('social', steady(30, 3.5)), mk('steps', steady(30, 9000))];
+  const r = computeLifeScore({ list, today: '2026-10-29', days: 30, who5: { score: 20, ts: Date.parse('2026-10-25T10:00:00Z') }, now: Date.parse('2026-10-29T10:00:00Z') });
+  assert.ok(r.score <= 65, String(r.score)); assert.ok(r.who5);
+});

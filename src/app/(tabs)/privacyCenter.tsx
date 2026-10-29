@@ -14,7 +14,7 @@ import { useFin } from '@/store/finance';
 import { useFitness } from '@/store/fitness';
 import { useHealth } from '@/store/health';
 import { useTheiaMemory } from '@/store/theiaMemory';
-import { useWellbeing } from '@/store/wellbeing';
+import { NOTE_LABEL, useWellbeing } from '@/store/wellbeing';
 import { useMemos } from '@/store/memos';
 import { WB_CONSENT_TEXT, WB_LIMITS } from '@/lib/assistant/wellbeingFlow';
 import { useLife } from '@/store/life';
@@ -47,6 +47,7 @@ export default function PrivacyCenter() {
   const learned = useTheiaMemory((s) => s.entries.length);
   const wbConsent = useWellbeing((s) => s.consent);
   const wbResults = useWellbeing((s) => s.results.length);
+  const wbNotes = useWellbeing((s) => s.notes);
 
   const exportCat = async (id: CatId) => {
     const data = Object.fromEntries(STORES[id].map((s, i) => [`parte${i + 1}`, s.getState()]));
@@ -109,6 +110,17 @@ export default function PrivacyCenter() {
           <Pill label={tl('Non acconsento')} on={!wbConsent} onPress={() => { useWellbeing.getState().setConsent(false); toast(tl('Benessere disattivato')); }} />
         </Row>
         <Body small muted style={{ marginTop: 8 }}>{wbResults ? tl('Questionari salvati: {0}', wbResults) : tl('Nessun questionario salvato.')}</Body>
+        {wbNotes.length ? (
+          <View style={{ marginTop: 8, gap: 6 }}>
+            <Body small bold>{tl('Cose che mi hai raccontato (solo sul tuo telefono)')}</Body>
+            {wbNotes.map((n) => (
+              <Row key={n.id} gap={8}>
+                <Body small style={{ flex: 1 }}>{tl(NOTE_LABEL[n.kind])}: {n.note}</Body>
+                <Btn small ghost title={tl('Cancella')} onPress={() => useWellbeing.getState().removeNote(n.id)} />
+              </Row>
+            ))}
+          </View>
+        ) : null}
         <Btn small ghost icon="trash" style={{ marginTop: 8 }} title={tl('Cancella i dati del benessere')} onPress={() => confirmDelete(tl('tutti i dati del benessere (questionari e consenso)'), () => { useWellbeing.getState().clearAll(); toast(tl('Dati del benessere cancellati')); })} />
       </Card>
 

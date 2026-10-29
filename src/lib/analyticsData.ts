@@ -50,6 +50,10 @@ export const defs: Record<string, MetricDef> = {
   stand: { id: 'stand', label: 'Tempo in piedi', unit: 'min', domain: 'salute', better: 'none', dec: 0, color: '#8fb3ff', period: 'day' },
   hravg: { id: 'hravg', label: 'Battito medio', unit: 'bpm', domain: 'salute', better: 'none', dec: 0, color: '#ff9d9d', period: 'day' },
   basal: { id: 'basal', label: 'Energia a riposo', unit: 'kcal', domain: 'salute', better: 'none', dec: 0, color: '#ff8a5b', period: 'day' },
+  energyLvl: { id: 'energyLvl', label: 'Energia (il tuo check-in)', unit: '/5', domain: 'salute', better: 'up', target: 3.5, dec: 1, color: '#ffb84f', period: 'day' },
+  functioning: { id: 'functioning', label: 'Riesci a fare le cose (il tuo check-in)', unit: '/5', domain: 'mente', better: 'up', target: 3.5, dec: 1, color: '#8fb3ff', period: 'day' },
+  appMin: { id: 'appMin', label: 'Tempo nell\'app', unit: 'min', domain: 'mente', better: 'down', target: 120, dec: 0, color: '#a8b2c0', period: 'day' },
+  alcohol: { id: 'alcohol', label: 'Alcol (la tua risposta)', unit: '/2', domain: 'salute', better: 'down', target: 1, dec: 1, color: '#e0c97b', period: 'day' },
   mood: { id: 'mood', label: 'Umore', unit: '/5', domain: 'mente', better: 'up', target: 3.5, dec: 1, color: '#c9b6ff', period: 'day' },
   balance: { id: 'balance', label: 'Saldo a fine mese', unit: 'CHF', domain: 'finanza', better: 'up', dec: 0, color: '#7be0b0', period: 'month' },
   savings: { id: 'savings', label: 'Tasso di risparmio', unit: '%', domain: 'finanza', better: 'up', target: 20, dec: 0, color: '#7be0b0', period: 'month' },
@@ -147,6 +151,16 @@ export function collect(today = todayStr()): Series[] {
     moods.forEach((p) => byDay.set(p.d, [...(byDay.get(p.d) ?? []), p.v]));
     out.push({ def: defs.mood, pts: [...byDay.entries()].map(([d, v]) => ({ d, v: mean(v) })).sort((a, b) => a.d.localeCompare(b.d)), source: 'manuale' });
   }
+
+  /* gli altri dati del check-in: energia, capacità di fare le cose e alcol, dichiarati da te; il tempo nell'app arriva solo da questa app */
+  const ck = (pick: (m: (typeof h.moods)[number]) => number | undefined) => h.moods.map((x) => ({ d: x.day ?? ddmmToDay(x.date, today), v: pick(x) })).filter((p): p is Pt => typeof p.v === 'number').sort((a, b) => a.d.localeCompare(b.d));
+  const en = ck((m) => m.energy), fu = ck((m) => m.functioning), al = ck((m) => (m.alcohol != null && m.alcohol >= 0 ? m.alcohol : undefined));
+  if (en.length) out.push({ def: defs.energyLvl, pts: en, source: 'manuale' });
+  if (fu.length) out.push({ def: defs.functioning, pts: fu, source: 'manuale' });
+  if (al.length) out.push({ def: defs.alcohol, pts: al, source: 'manuale' });
+  const usage = useApp.getState().usageMin ?? {};
+  const um = Object.entries(usage).filter(([d]) => d <= today).map(([d, v]) => ({ d, v: Math.round(v) })).sort((a, b) => a.d.localeCompare(b.d)).slice(-60);
+  if (um.length >= 3) out.push({ def: defs.appMin, pts: um, source: 'Questa app' });
 
   const fin = useFin.getState();
   const months = fin.months.slice().reverse();
@@ -263,7 +277,13 @@ function financeInsights(today: string): Insight[] {
 }
 
 /* ---------- risultato completo per la Dashboard ---------- */
+import { computeLifeScore, type LifeScore } from '@/lib/wellbeing/score';
+import { buildLifeContext } from '@/lib/wellbeing/lifeContext';
+import { useWellbeing } from '@/store/wellbeing';
+
 export type Dashboard = {
+  /** Life Score v2: numero, fattori, motivi, contesto e limiti */
+  lifeScore: LifeScore;
   today: string; list: Analysis[]; byId: Record<string, Analysis>; corrs: Correlation[]; insights: Insight[];
   scores: { salute: number | null; mente: number | null; finanza: number | null; crescita: number | null; total: number | null };
   lifeSeries: Pt[]; lifeForecast: Forecast | null; lifeDelta: number | null; balance: Balance;
@@ -302,7 +322,11 @@ export function computeDashboard(): Dashboard {
   const oldTotal = vals.length ? Math.round(mean(vals)) : null;
   /* il Life Score è quello di «La tua vita in un dato»: tutte le categorie insieme, così widget, scheda e LifeHealth mostrano lo stesso numero */
   const balance = buildBalance(list);
-  const total = balance.score ?? oldTotal;
+  const daysSet = new Set<string>();
+  series.forEach((s) => { if (s.def.period === 'day') s.pts.forEach((p) => daysSet.add(p.d)); });
+  const who = useWellbeing.getState().results.find((r) => r.kind === 'who5');
+  const lifeScore = computeLifeScore({ list, today, days: daysSet.size, who5: who ? { score: who.score, ts: who.ts } : undefined, context: buildLifeContext(series, list, today) });
+  const total = lifeScore.score ?? balance.score ?? oldTotal;
 
   // storico del Life Score: indice giornaliero salute+mente, con finanza e crescita attuali come costanti
   const idx = dailyIndex(series, today);
@@ -317,7 +341,7 @@ export function computeDashboard(): Dashboard {
   series.forEach((s) => { if (s.def.period === 'day') s.pts.forEach((p) => days.add(p.d)); });
   const sources: Record<string, number> = {};
   series.forEach((s) => { sources[s.source] = (sources[s.source] ?? 0) + 1; });
-  return { today, list, byId, corrs, insights, balance, scores: { ...sc, total }, lifeSeries, lifeForecast, lifeDelta, dataDays: days.size, sources };
+  return { lifeScore, today, list, byId, corrs, insights, balance, scores: { ...sc, total }, lifeSeries, lifeForecast, lifeDelta, dataDays: days.size, sources };
 }
 
 /** Hook: ricalcola l'analisi quando cambiano i dati. */

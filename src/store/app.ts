@@ -60,6 +60,8 @@ type AppState = {
   dataLocal: Record<string, boolean>;
   /** il giorno (AAAA-MM-GG) in cui l'app ha già chiesto «Come ti senti?» all'apertura */
   moodAskedDay: string;
+  /** minuti di uso di QUESTA app per giorno (AAAA-MM-GG): solo l'app, niente altro sul telefono */
+  usageMin: Record<string, number>;
   set: (patch: Partial<AppState>) => void;
   trackVisit: (p: string) => void;
   reset: () => void;
@@ -95,6 +97,7 @@ const initial = {
   privacy: { 'AI Memory': true, 'Dati salute': true, 'Dati finanziari': true, Posizione: false } as Record<string, boolean>,
   dataLocal: {} as Record<string, boolean>,
   moodAskedDay: '',
+  usageMin: {} as Record<string, number>,
 };
 
 export const useApp = create<AppState>()(

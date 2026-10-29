@@ -9,6 +9,7 @@ import { addMonths, estimateIncome, goalMonthly, monthsNeeded } from '@/lib/mont
 import { whenOf } from '@/lib/memo';
 import { ensureMemoPermission } from '@/lib/memoSync';
 import { useMemos } from '@/store/memos';
+import { NOTE_LABEL, useWellbeing } from '@/store/wellbeing';
 import { OPEN_LABELS, findByText, isAll, type AiAct } from './aiActionsCore';
 
 const sum = (l: { monthly: number }[]) => l.reduce((a, x) => a + x.monthly, 0);
@@ -32,6 +33,7 @@ export function describe(a: AiAct): string {
     case 'note_delete': return t('Elimino la nota «{0}»', a.match);
     case 'file_rename': return t('Rinomino il file «{0}»', a.match);
     case 'file_delete': return t('Elimino il file «{0}»', a.match);
+    case 'wb_note': return t('Prendo nota: {0}', a.note);
     case 'reminder_add': return t('Ti ricordo «{0}» il {1} alle {2}', a.text, a.date, a.time);
     case 'reminder_edit': return t('Modifico il promemoria «{0}»', a.match);
     case 'reminder_delete': return t('Elimino il promemoria «{0}»', a.match);
@@ -99,6 +101,12 @@ export function applyAiAction(a: AiAct): ActResult {
       if (hits.length === 0) return { ok: false, message: t('Non trovo in agenda «{0}».', a.match) };
       if (hits.length > 1) return { ok: false, message: t('Ne trovo più di uno ({0}): dimmi quale.', hits.slice(0, 4).map((x) => `«${x.ev.title}» ${x.d}`).join(', ')) };
       const h = hits[0]!; life.delEvent(h.d, h.idx); return { ok: true, message: t('Fatto: «{0}» tolto dall\'agenda.', h.ev.title), undo: () => useLife.getState().addEvent(h.d, h.ev) };
+    }
+    case 'wb_note': {
+      /* solo con il consenso al benessere; senza, non si salva niente e non si dice niente */
+      if (!useWellbeing.getState().consent) return { ok: true, message: '' };
+      const n = useWellbeing.getState().addNote(a.kind, a.note);
+      return { ok: true, message: t('Ho preso nota ({0}): lo trovo solo io, sul tuo telefono. Puoi leggerlo e cancellarlo dal Centro Privacy.', t(NOTE_LABEL[a.kind])), undo: () => useWellbeing.getState().removeNote(n.id) };
     }
     case 'reminder_add': {
       const at = whenOf(a.date, a.time);

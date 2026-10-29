@@ -101,5 +101,11 @@ export function wellbeingContext(): string {
   if (last) lines.push(`Ultimo questionario ${last.kind === 'who5' ? 'WHO-5' : 'PHQ-9'}: ${last.score}/${last.max} (${last.label}), ${new Date(last.ts).toISOString().slice(0, 10)}.`);
   const d = wellbeingSignals();
   if (d) { const r = deviations(d.sigs, d.today); if (r.ready && r.devs.length) lines.push(`Cambiamenti recenti dal suo solito: ${r.devs.map((x) => x.label).join(', ')}.`); else if (!r.ready) lines.push('Dati ancora pochi per conoscere il suo solito.'); }
+  try {
+    const { computeDashboard } = require('@/lib/analyticsData') as typeof import('@/lib/analyticsData');
+    const ls = computeDashboard().lifeScore;
+    if (ls.score != null) lines.push(`Life Score ${ls.score}/100 (${ls.confidence === 'bassa' ? 'provvisorio' : 'affidabilità ' + ls.confidence}). Lo abbassano: ${ls.down.map((f) => f.label).join(', ') || 'niente di importante'}. Lo sostengono: ${ls.up.map((f) => f.label).join(', ') || 'niente di evidente'}.`);
+    for (const c of ls.context.slice(0, 6)) lines.push(`${c.label}: ${c.text}`);
+  } catch { /* senza Life Score */ }
   return lines.length ? `Benessere (consenso dato, dati sul telefono):\n${lines.join('\n')}` : '';
 }
