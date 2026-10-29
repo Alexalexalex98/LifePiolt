@@ -67,7 +67,7 @@ export default function Fridge() {
     setBusy(true);
     try {
       toast(tl('Sto leggendo la foto: può volerci fino a un minuto.'));
-      const lines = parseReceiptItems(await aiReadFiles(again.what === 'fridge' ? FRIDGE_PROMPT : RECEIPT_ITEMS_PROMPT, [{ uri: again.uri, mime: 'image/jpeg' }], 90000, 1000, true));
+      const lines = parseReceiptItems(await aiReadFiles(again.what === 'fridge' ? FRIDGE_PROMPT : RECEIPT_ITEMS_PROMPT, [{ uri: again.uri, mime: 'image/jpeg' }], 90000, again.what === 'fridge' ? 1000 : 2000, true));
       if (!lines.length) { toast(tl('Anche Google non ha riconosciuto prodotti: scrivi tu la lista.')); setTyped(true); return; }
       setReview(lines); setAgain(null);
     } catch (e) { toast(e instanceof Error && e.message ? e.message : tl('Google non ha risposto: riprova tra poco.')); } finally { setBusy(false); }
@@ -82,7 +82,7 @@ export default function Fridge() {
       if (!(await askSend('files', what === 'fridge' ? 'Foto del frigo' : 'Foto di uno scontrino'))) { toast(tl('Non invio la foto: scrivi tu la lista.')); setTyped(true); return; }
       logSend('files', 0, ['image/jpeg']);
       toast(tl('Sto leggendo la foto: può volerci fino a un minuto.'));
-      const lines = parseReceiptItems(await aiReadFiles(what === 'fridge' ? FRIDGE_PROMPT : RECEIPT_ITEMS_PROMPT, [{ uri: m.uri, mime: 'image/jpeg' }], 90000, 1000));
+      const lines = parseReceiptItems(await aiReadFiles(what === 'fridge' ? FRIDGE_PROMPT : RECEIPT_ITEMS_PROMPT, [{ uri: m.uri, mime: 'image/jpeg' }], 90000, what === 'fridge' ? 1000 : 2000, what !== 'fridge'));
       if (!lines.length) { toast(tl('Non ho riconosciuto prodotti in questa foto: riprova più da vicino o scrivi tu la lista.')); setTyped(true); return; }
       setReview(lines);
       setAgain(googleMayBeBetter(what, lines) ? { uri: m.uri, what } : null);

@@ -78,7 +78,7 @@ async function routeBody(list: { uri: string; view?: import('@/lib/fitness/bodyC
 async function routeList(ims: ExtImage[], kind: 'frigo' | 'scontrino', push: Push) {
   for (const x of ims) saveMediaToDrive({ uri: x.uri, media: 'photo', from: kind === 'frigo' ? 'Frigo' : 'Scontrino', ...(kind === 'scontrino' ? { folder: 'Ricevute' } : {}) });
   try {
-    const lines = parseReceiptItems(await aiReadFiles(kind === 'frigo' ? FRIDGE_PROMPT : RECEIPT_ITEMS_PROMPT, ims.map((x) => ({ uri: x.uri, mime: x.mime || 'image/jpeg' })), 90000, 1000));
+    const lines = parseReceiptItems(await aiReadFiles(kind === 'frigo' ? FRIDGE_PROMPT : RECEIPT_ITEMS_PROMPT, ims.map((x) => ({ uri: x.uri, mime: x.mime || 'image/jpeg' })), 90000, kind === 'scontrino' ? 2000 : 1000, kind === 'scontrino'));
     if (!lines.length) { push(t('Sembra {0} ma non riesco a leggere i prodotti: riprova più da vicino, oppure scrivimi la lista.', kind === 'frigo' ? t('un frigo') : t('uno scontrino'))); return; }
     const unit = (u: string) => (u === 'pz' ? '' : ` ${u}`);
     push(`${kind === 'frigo' ? t('È il tuo frigo: ho letto questi prodotti.') : t('È uno scontrino: ho letto questi prodotti.')}\n\n${lines.slice(0, 40).map((l) => `• ${l.name} · ${money(l.qty)}${unit(l.unit)}`).join('\n')}\n\n${t('Controlla: posso sbagliare nomi e quantità. Li aggiungo al frigo?')}`, {

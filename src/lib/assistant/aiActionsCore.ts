@@ -6,6 +6,12 @@ export type AiAct =
   | { type: 'task_add'; t: string; due?: string; urgent?: boolean }
   | { type: 'task_done'; match: string }
   | { type: 'task_delete'; match: string }
+  | { type: 'task_edit'; match: string; t?: string; due?: string; urgent?: boolean }
+  | { type: 'event_edit'; match: string; date?: string; newTitle?: string; newDate?: string; newTime?: string; dur?: number }
+  | { type: 'note_edit'; match: string; text: string }
+  | { type: 'note_delete'; match: string }
+  | { type: 'file_rename'; match: string; name: string }
+  | { type: 'file_delete'; match: string }
   | { type: 'event_add'; title: string; date: string; time: string; dur?: number }
   | { type: 'event_delete'; match: string; date?: string }
   | { type: 'note_add'; text: string }
@@ -39,6 +45,11 @@ export function validate(o: unknown): AiAct | null {
     case 'task_add': { const t = str(a.t); if (!t) return null; return { type: 'task_add', t, due: isDate(a.due) ? a.due : undefined, urgent: a.urgent === true ? true : undefined }; }
     case 'task_done': case 'task_delete': { const m = str(a.match, 80); return m ? { type: a.type, match: m } : null; }
     case 'event_add': { const title = str(a.title, 120); if (!title || !isDate(a.date) || !isTime(a.time)) return null; const dur = num(a.dur); return { type: 'event_add', title, date: a.date, time: a.time, dur: dur && dur > 0 && dur <= 1440 ? Math.round(dur) : undefined }; }
+    case 'task_edit': { const m = str(a.match, 80), nt = str(a.t), due = isDate(a.due) ? a.due : undefined, urgent = typeof a.urgent === 'boolean' ? a.urgent : undefined; return m && (nt || due || urgent !== undefined) ? { type: 'task_edit', match: m, t: nt ?? undefined, due, urgent } : null; }
+    case 'event_edit': { const m = str(a.match, 80), nt = str(a.newTitle, 120), nd = isDate(a.newDate) ? a.newDate : undefined, ntm = isTime(a.newTime) ? a.newTime : undefined, dur = num(a.dur); return m && (nt || nd || ntm || dur) ? { type: 'event_edit', match: m, date: isDate(a.date) ? a.date : undefined, newTitle: nt ?? undefined, newDate: nd, newTime: ntm, dur: dur && dur > 0 && dur <= 1440 ? Math.round(dur) : undefined } : null; }
+    case 'note_edit': { const m = str(a.match, 80), tx = str(a.text, 2000); return m && tx ? { type: 'note_edit', match: m, text: tx } : null; }
+    case 'note_delete': case 'file_delete': { const m = str(a.match, 80); return m ? { type: a.type, match: m } : null; }
+    case 'file_rename': { const m = str(a.match, 80), n = str(a.name, 120); return m && n ? { type: 'file_rename', match: m, name: n } : null; }
     case 'event_delete': { const m = str(a.match, 80); return m ? { type: 'event_delete', match: m, date: isDate(a.date) ? a.date : undefined } : null; }
     case 'note_add': { const t = str(a.text, 2000); return t ? { type: 'note_add', text: t } : null; }
     case 'goal_add': { const t = str(a.t, 120); return t ? { type: 'goal_add', t } : null; }
@@ -59,17 +70,19 @@ export function validate(o: unknown): AiAct | null {
   }
 }
 
-/** Separa il testo da leggere dalle azioni proposte (al massimo 4, valide). */
+/** Separa il testo da leggere dalle azioni proposte (al massimo 12, valide). */
 export function parseAiActions(reply: string): { text: string; actions: AiAct[] } {
   const actions: AiAct[] = [];
   const text = reply.replace(RE, (_m, j: string) => {
-    try { const raw = JSON.parse(j) as unknown; for (const o of Array.isArray(raw) ? raw : [raw]) { const v = validate(o); if (v && actions.length < 4) actions.push(v); } } catch { /* json non valido: ignorata */ }
+    try { const raw = JSON.parse(j) as unknown; for (const o of Array.isArray(raw) ? raw : [raw]) { const v = validate(o); if (v && actions.length < 12) actions.push(v); } } catch { /* json non valido: ignorata */ }
     return '';
   }).replace(/\n{3,}/g, '\n\n').trim();
   return { text, actions };
 }
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+/** «tutti», «tutte», «*»: vale per ogni voce. */
+export const isAll = (m: string): boolean => /^(\*|tutt[ei]|all|everything)$/.test(norm(m));
 /** Trova l'unica voce che corrisponde: [] = nessuna, più d'una = ambigua (si chiede all'utente, non si indovina). */
 export function findByText<T>(items: T[], text: (x: T) => string, match: string): T[] {
   const m = norm(match); if (!m) return [];
@@ -78,7 +91,7 @@ export function findByText<T>(items: T[], text: (x: T) => string, match: string)
 }
 
 /** Istruzioni per l'AI: cosa può proporre e come. */
-export const AI_ACTION_PROMPT = `Proponi un'azione SOLO se l'utente ti chiede esplicitamente di fare qualcosa nell'app o accetta una tua proposta: mai per un saluto, una domanda o una semplice conversazione, e mai l'azione open se non ti chiede di aprire una pagina. In quel caso NON spiegargli i passaggi da fare a mano: proponi l'azione aggiungendo in fondo alla risposta una riga esatta, una per azione, nel formato [[AZIONE {json}]]. L'app la mostra all'utente, che conferma. Azioni possibili: {"type":"task_add","t":"testo","due":"AAAA-MM-GG"} · {"type":"task_done","match":"parte del testo"} · {"type":"task_delete","match":"..."} · {"type":"event_add","title":"...","date":"AAAA-MM-GG","time":"HH:MM","dur":minuti} · {"type":"event_delete","match":"...","date":"AAAA-MM-GG"} · {"type":"note_add","text":"..."} · {"type":"goal_add","t":"..."} · {"type":"goal_progress","match":"...","p":0-100} · {"type":"vacation_set","name":"...","goal":importo,"month":"AAAA-MM","saved":già_messo} (piano di risparmio: l'importo mensile lo calcola l'app, non scriverlo tu) · {"type":"income_set","mode":"fixed|hourly|commission","amount":netto_mensile,"hours":ore,"rate":paga_oraria_netta,"overtimeHours":..,"overtimeRate":..,"revenue":incasso,"pct":percentuale,"extra":..,"next":quanto_arriva_il_mese_prossimo} (entrata prevista) · {"type":"fixed_add","name":"...","amount":importo_mensile} · {"type":"fixed_change","match":"nome della spesa fissa","amount":nuovo_importo} · {"type":"save_goal","name":"...","total":importo,"month":"AAAA-MM","saved":già_messo} (soldi da mettere da parte per acquisti/vacanze; il mensile lo calcola l'app) · {"type":"bill_spread","name":"fattura","total":importo,"months":mesi,"perMonth":importo_al_mese} (distribuire una fattura grossa su più mesi: dai mesi OPPURE l'importo mensile) · {"type":"open","page":"monthPlan|lifefinance|vacationPlan|privacyCenter|fitnessMealPlan|fitnessFridge|lifetask|plan|settings"}. Usa solo dati che l'utente ha detto o che stanno nel contesto; se manca un dato essenziale (importo, data, ora) chiedilo invece di inventarlo. Non dire mai di aver già fatto la cosa: dì che la proponi e che serve la conferma.`;
+export const AI_ACTION_PROMPT = `Tu PUOI fare tutto nell'app al posto dell'utente: task, impegni, note, file del Drive, obiettivi, finanze. Quando l'utente ti chiede di aggiungere, cambiare, spostare, segnare come fatto o cancellare qualcosa, FALLO: non dire mai che non puoi, non chiedere conferma e non spiegargli i passaggi a mano. Aggiungi in fondo alla risposta una riga esatta per ogni azione, nel formato [[AZIONE {json}]]: l'app la esegue subito e scrive lei il risultato (e l'utente può annullare), quindi tu rispondi solo con una frase breve (es. «Ok, fatto.»). Per più cose scrivi più righe (fino a 12). Non usare azioni per un saluto, una domanda o una semplice conversazione, e mai open se non ti chiede di aprire una pagina. Nel campo match scrivi parte del titolo ESATTO preso dall'elenco «Elementi modificabili» del contesto; per tutti i task aperti usa match "*". Azioni possibili: {"type":"task_add","t":"testo","due":"AAAA-MM-GG"} · {"type":"task_done","match":"parte del testo"} · {"type":"task_delete","match":"..."} · {"type":"task_edit","match":"...","t":"nuovo testo","due":"AAAA-MM-GG","urgent":true} · {"type":"event_edit","match":"...","date":"AAAA-MM-GG di ora","newTitle":"...","newDate":"AAAA-MM-GG","newTime":"HH:MM","dur":minuti} · {"type":"note_edit","match":"...","text":"testo nuovo completo"} · {"type":"note_delete","match":"..."} · {"type":"file_rename","match":"...","name":"..."} · {"type":"file_delete","match":"..."} · {"type":"event_add","title":"...","date":"AAAA-MM-GG","time":"HH:MM","dur":minuti} · {"type":"event_delete","match":"...","date":"AAAA-MM-GG"} · {"type":"note_add","text":"..."} · {"type":"goal_add","t":"..."} · {"type":"goal_progress","match":"...","p":0-100} · {"type":"vacation_set","name":"...","goal":importo,"month":"AAAA-MM","saved":già_messo} (piano di risparmio: l'importo mensile lo calcola l'app, non scriverlo tu) · {"type":"income_set","mode":"fixed|hourly|commission","amount":netto_mensile,"hours":ore,"rate":paga_oraria_netta,"overtimeHours":..,"overtimeRate":..,"revenue":incasso,"pct":percentuale,"extra":..,"next":quanto_arriva_il_mese_prossimo} (entrata prevista) · {"type":"fixed_add","name":"...","amount":importo_mensile} · {"type":"fixed_change","match":"nome della spesa fissa","amount":nuovo_importo} · {"type":"save_goal","name":"...","total":importo,"month":"AAAA-MM","saved":già_messo} (soldi da mettere da parte per acquisti/vacanze; il mensile lo calcola l'app) · {"type":"bill_spread","name":"fattura","total":importo,"months":mesi,"perMonth":importo_al_mese} (distribuire una fattura grossa su più mesi: dai mesi OPPURE l'importo mensile) · {"type":"open","page":"monthPlan|lifefinance|vacationPlan|privacyCenter|fitnessMealPlan|fitnessFridge|lifetask|plan|settings"}. Usa solo dati che l'utente ha detto o che stanno nel contesto; se manca un dato essenziale (importo, data, ora) chiedilo invece di inventarlo. Dì che l'hai fatto solo se hai scritto la riga [[AZIONE]]; se l'elemento non c'è nell'elenco, chiedi quale intende.`;
 
 /** Theia scrive come in una chat: i messaggi sono separati da una riga con solo |||. Al massimo 5, mai vuoti. */
 export function splitReply(text: string): string[] {
@@ -93,7 +106,7 @@ export function liveParts(acc: string): string[] {
 }
 
 const ASK_OPEN = /\b(apri|aprimi|vai|portami|mostrami|mostra|fammi vedere|open|show|go to|take me)\b/i;
-const ASK_DO = /\b(aggiung|crea|segn|mett|cancell|elimin|toglie|sposta|imposta|inserisc|pianific|ricord|prenot|fissa|fai|fammi|registr|modific|cambia|distribui|add|create|delete|remove|set|remind|schedule|move|mark|change)\w*/i;
+const ASK_DO = /\b(aggiung|rinomin|sposta|anticip|posticip|completa|salva|scrivi|aggiorna|rimuov|svuota|togli|ricordami|crea|segn|mett|cancell|elimin|sposta|imposta|inserisc|pianific|ricord|prenot|fissa|fai|fammi|registr|modific|cambia|distribui|add|create|delete|remove|set|remind|schedule|move|mark|change)\w*/i;
 /* un «si» vale solo se e' una risposta breve («sì», «sì fallo», «ok va bene»), non l'inizio di un'altra domanda */
 const SAYS_YES = /^\s*(s[iì]|ok|va bene|certo|esatto|fallo|procedi|yes|sure|do it)(?![\p{L}\d])[^\p{L}\d]*([\p{L}\d']+[^\p{L}\d]*){0,3}$/iu;
 /** L'AI propone un'azione solo se l'utente l'ha chiesta o ha detto di si: mai a un saluto o a una semplice domanda. */

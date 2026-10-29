@@ -1,5 +1,5 @@
 {
- "count": 15185,
+ "count": 15205,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -387,7 +387,7 @@
   "src/lib/analytics.ts": 64,
   "src/lib/analyticsData.ts": 47,
   "src/lib/arrival.ts": 8,
-  "src/lib/assistant/aiActions.ts": 39,
+  "src/lib/assistant/aiActions.ts": 58,
   "src/lib/assistant/aiActionsCore.ts": 8,
   "src/lib/assistant/appActionCore.ts": 42,
   "src/lib/assistant/appActions.ts": 17,
@@ -405,7 +405,7 @@
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
-  "src/lib/assistant/theiaFlow.ts": 161,
+  "src/lib/assistant/theiaFlow.ts": 164,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -487,7 +487,7 @@
   "src/lib/fitness/micro.ts": 35,
   "src/lib/fitness/nutrientInfo.ts": 444,
   "src/lib/fitness/nutrition.ts": 68,
-  "src/lib/fitness/pantry.ts": 2,
+  "src/lib/fitness/pantry.ts": 1,
   "src/lib/fitness/plan.ts": 15,
   "src/lib/fitness/planPdfRun.ts": 7,
   "src/lib/fitness/poses.ts": 368,
@@ -679,5 +679,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1916
+ "withPlaceholders": 1933
 }

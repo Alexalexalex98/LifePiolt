@@ -17,9 +17,9 @@ test('azioni non valide o inventate vengono scartate', () => {
   assert.equal(parseAiActions('ciao [[AZIONE {non json}]]').actions.length, 0);
 });
 
-test('al massimo 4 azioni per risposta', () => {
-  const l = Array.from({ length: 6 }, (_, i) => `[[AZIONE {"type":"note_add","text":"n${i}"}]]`).join('\n');
-  assert.equal(parseAiActions(l).actions.length, 4);
+test('al massimo 12 azioni per risposta', () => {
+  const l = Array.from({ length: 15 }, (_, i) => `[[AZIONE {"type":"note_add","text":"n${i}"}]]`).join('\n');
+  assert.equal(parseAiActions(l).actions.length, 12);
 });
 
 test('trovare una voce: unica, nessuna o ambigua', () => {

@@ -25,6 +25,7 @@ import { computedFacts } from '@/lib/theia/free';
 import { financeCheckFacts } from '@/lib/theia/financeChecks';
 import { collectSnap } from '@/lib/theia/collect';
 import { AI_ACTION_PROMPT } from '@/lib/assistant/aiActionsCore';
+import { editableContext } from '@/lib/assistant/aiActions';
 import { holdBlocks, releaseBlocks } from '@/lib/assistant/planDelivery';
 import { describeBody, mealPlanPrompt, mealPlanTalk, planSummary } from '@/lib/fitness/aiPlan';
 import { workoutPrompt, workoutSummary, workoutTalk } from '@/lib/fitness/aiWorkout';
@@ -326,6 +327,7 @@ async function theiaPrompt(question: string, selection?: string): Promise<string
       logSend('summary', ctx.length, use.map((p) => p.label));
     }
   }
+  if (app0.privacy['AI Memory']) { try { ctx = `${ctx}\n\n${editableContext()}`.trim(); } catch { /* senza elenco */ } }
   const log = useAssistant.getState().log;
   /* la chat riparte da zero: conta solo la conversazione di adesso; il passato solo con «Storico» e se la domanda c'entra */
   const nowLog = log.slice(sessionFromOf(log));

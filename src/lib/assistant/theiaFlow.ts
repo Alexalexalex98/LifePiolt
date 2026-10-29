@@ -107,11 +107,22 @@ const aiOn = () => aiServerConfigured && !useAiRouter.getState().prefs.phoneOnly
 /** Saluti, ringraziamenti, si/no senza domanda in sospeso e frasi libere: risponde l'AI come una persona. */
 const SMALLTALK = /^(ciao|salve|hey|ehi|buongiorno|buonasera|buon pomeriggio|buonanotte|hi|hello|grazie|thanks|thank you)\b/;
 
-/** Risposta dell'AI: le azioni che propone diventano pulsanti di conferma, descritti dall'app (con i numeri calcolati da lei). */
+/** Annullamenti delle azioni appena eseguite da Theia (restano finche' l'app e' aperta). */
+const undos = new Map<string, Array<() => void>>();
+/** Risposta dell'AI: le azioni controllate dall'app vengono eseguite subito; l'app scrive il risultato e offre «Annulla». «Apri» resta un pulsante. */
 function parsedContent(text: string, actions: ReturnType<typeof parseAiActions>['actions']): { text: string; ext?: TheiaExt } {
   if (!actions.length) return { text };
-  const lines = actions.map((a) => `• ${describe(a)}`).join('\n');
-  return { text: `${text}\n\n${t('Posso farlo io, se vuoi:')}\n${lines}`, ext: { actions: [...actions.map((a): TheiaAction => ({ kind: 'ai-do', label: actions.length > 1 ? describe(a) : t('Sì, fallo'), act: a })), { kind: 'dismiss', label: t('No, grazie') }] } };
+  const lines: string[] = []; const fns: Array<() => void> = []; const buttons: TheiaAction[] = [];
+  for (const a of actions) {
+    if (a.type === 'open') { buttons.push({ kind: 'ai-do', label: describe(a), act: a }); continue; }
+    let r: ReturnType<typeof applyAiAction>;
+    try { r = applyAiAction(a); } catch { r = { ok: false, message: t('Non sono riuscita a farlo: riprova o dimmi meglio cosa cambiare.') }; }
+    if (r.message) lines.push(r.message);
+    if (r.undo) fns.push(r.undo);
+  }
+  const body = [text, lines.join('\n')].filter(Boolean).join('\n\n');
+  if (fns.length) { const id = Math.random().toString(36).slice(2); undos.set(id, fns); buttons.push({ kind: 'ai-undo', label: t('Annulla'), id }); }
+  return { text: body, ...(buttons.length ? { ext: { actions: buttons } } : {}) };
 }
 function pushParsed(text: string, actions: ReturnType<typeof parseAiActions>['actions']): AMsg {
   const c = parsedContent(text, actions);
@@ -847,6 +858,7 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
     case 'say': await sendTheia({ text: action.text, lang: useApp.getState().language, appLang: useApp.getState().language, forced: false, source: 'typed' }); return;
     case 'ai-analysis': await deepStatementAnalysis(); return;
     case 'add-invoices': addInvoicesFromChat(action); return;
+    case 'ai-undo': { const f = undos.get(action.id); undos.delete(action.id); if (f) { f.slice().reverse().forEach((u) => u()); pushAi(t('Annullato.')); } else pushAi(t('Non posso più annullare quella modifica.')); return; }
     case 'kb-forget': useTheiaMemory.getState().forget(action.id); pushAi(t('Fatto: ho dimenticato quella risposta.')); return;
     case 'kb-redo': useTheiaMemory.getState().forget(action.id); await aiChatReply(action.text); return;
     case 'ai-do': { const r = applyAiAction(action.act); if (r.message) pushAi(r.message); return; }

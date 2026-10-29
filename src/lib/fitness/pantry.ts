@@ -58,7 +58,7 @@ export function syncShopping(shop: ShopItem[], items: PantryItem[], newId: () =>
 }
 
 /* ---------------------------------------------------------------- scontrino: righe dei prodotti */
-export const RECEIPT_ITEMS_PROMPT = 'Scontrino della spesa. Elenca SOLO i prodotti alimentari. Rispondi SOLO con JSON compatto, niente altro testo: {"p":[{"n":"nome breve","q":numero,"u":"g"|"ml"|"pz"}]}. Senza peso scritto usa "pz" e la quantità comprata. Non inventare: salta le righe illeggibili.';
+export const RECEIPT_ITEMS_PROMPT = 'Questo è uno scontrino di un supermercato (spesso svizzero o italiano: Coop, Migros, Denner, Lidl, Aldi, Esselunga…). Leggilo riga per riga e fai l\'elenco dei SOLI prodotti alimentari e bevande comprati, come li metteresti in frigo o in dispensa. Regole: 1) "n" è il nome del prodotto in italiano semplice, senza prezzi, codici, numeri di articolo, reparti, marchi inutili né abbreviazioni da scontrino (es. "Giofi al burro 41" → "Gioffi al burro"; "IPS Latte art 300 ml" → "Latte"; "Free from latte" → "Latte senza lattosio"; "Cupcake Zwicky 206" → "Cupcake"). Se non è chiaro cosa sia, descrivilo con una parola generica (es. "Biscotti") o salta la riga. 2) I numeri a fine riga sono prezzi o codici: ignorali, non sono quantità. 3) La quantità "q" è quella comprata: se la riga dice "2 x" o "x2" è 2 pezzi; se c\'è un peso o volume della confezione (500 g, 1 l, 300 ml) usa quello con unità "g" o "ml" (1 kg = 1000 g, 1 l = 1000 ml); altrimenti "pz" e 1. Per frutta e verdura venduta a peso usa i grammi/kg scritti. 4) Salta tutto ciò che non si mangia o non è un prodotto: totale, subtotale, IVA/MwSt, resto, contanti/carta, sacchetti, depositi, sconti e buoni, Cumulus/Supercard/punti, ora/data, indirizzo, detersivi, igiene, giornali. 5) Non inventare: se una riga è illeggibile saltala. Rispondi SOLO con JSON compatto, niente altro testo: {"p":[{"n":"nome","q":numero,"u":"g"|"ml"|"pz"}]}.';
 export const FRIDGE_PROMPT = 'Foto del contenuto di un frigo o di una dispensa. Elenca SOLO gli alimenti che vedi chiaramente. Rispondi SOLO con JSON compatto, niente altro testo: {"p":[{"n":"nome breve","q":numero stimato,"u":"g"|"ml"|"pz"}]}. Usa "pz" per ciò che si conta (uova, yogurt, mele) e una stima in g o ml per il resto. Non inventare ciò che non si vede.';
 
 export function parseReceiptItems(text: string): Line[] {
@@ -68,7 +68,8 @@ export function parseReceiptItems(text: string): Line[] {
     const list = (o.prodotti ?? o.items ?? (o as { p?: unknown }).p) as { nome?: unknown; name?: unknown; n?: unknown; quantita?: unknown; qty?: unknown; q?: unknown; unita?: unknown; unit?: unknown; u?: unknown }[] | undefined;
     if (!Array.isArray(list)) return [];
     return list.slice(0, 80).map((x) => {
-      const name = String(x.nome ?? x.name ?? x.n ?? '').replace(/\s+/g, ' ').trim().slice(0, 60);
+      let name = String(x.nome ?? x.name ?? x.n ?? '').replace(/\s+/g, ' ').trim().slice(0, 60);
+      name = name.replace(/\s+\d+([.,]\d+)?$/, '').trim(); /* prezzo o codice rimasto in fondo alla riga */
       const qty = Number(String(x.quantita ?? x.qty ?? x.q ?? 1).replace(',', '.'));
       const u = String(x.unita ?? x.unit ?? x.u ?? 'pz').toLowerCase();
       const unit: Unit = u === 'g' || u === 'kg' ? 'g' : u === 'ml' || u === 'l' || u === 'lt' ? 'ml' : 'pz';
