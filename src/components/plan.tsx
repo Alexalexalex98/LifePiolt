@@ -293,6 +293,7 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
   const bands = useBands();
   const events = useLife((s) => (day ? s.events[day] : undefined)) ?? [];
   const { addEvent, delEvent, restoreEvent, toggleReminder, patchEvent } = useLife();
+  const dueTasks = useLife((s) => s.tasks).filter((x) => !x.done && !!day && x.due === day);
   const [time, setTime] = useState('09:00');
   const [title, setTitle] = useState('');
   const [place, setPlace] = useState('');
@@ -322,7 +323,23 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
           </Row>
         </RowCard>
       ))}
-      {sorted.length === 0 && vacs.length === 0 ? (
+      {dueTasks.length > 0 ? (
+        <>
+          <Body small bold muted style={{ marginTop: 4, marginBottom: 6 }}>{tl('TASK DA FARE')}</Body>
+          {dueTasks.map((x) => (
+            <RowCard key={x.id} color={t.accent}>
+              <Pressable accessibilityRole="button" accessibilityLabel={x.t} onPress={() => { onClose(); go('lifetask'); }}>
+                <Row gap={10}>
+                  <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: t.accent + '33', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={18} color={t.accent} stroke={2} /></View>
+                  <View style={{ flex: 1 }}><Body bold>{x.t}</Body><Body small muted>{x.urgent ? tl('Urgente') : tl('Tocca per aprire i task')}</Body></View>
+                  <Icon name="chevron-right" size={18} color={t.muted} />
+                </Row>
+              </Pressable>
+            </RowCard>
+          ))}
+        </>
+      ) : null}
+      {sorted.length === 0 && vacs.length === 0 && dueTasks.length === 0 ? (
         <View style={{ alignItems: 'center', paddingVertical: 22, gap: 8 }}>
           <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name="calendar" size={24} color={t.muted} stroke={1.8} /></View>
           <Body muted>Nessun impegno pianificato: giornata libera.</Body>

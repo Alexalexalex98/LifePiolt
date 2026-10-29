@@ -4255,5 +4255,7 @@
  "Non trovo una nota che somigli a «{0}».": "I can't find a note like “{0}”.",
  "Rinomino il file «{0}»": "Renaming the file “{0}”",
  "Elimino la nota «{0}»": "Deleting the note “{0}”",
- "Elimino il file «{0}»": "Deleting the file “{0}”"
+ "Elimino il file «{0}»": "Deleting the file “{0}”",
+ "TASK DA FARE": "TASKS TO DO",
+ "Tocca per aprire i task": "Tap to open tasks"
 }

@@ -9,7 +9,6 @@ import { NotifBanner } from '@/components/NotifPrompt';
 import { GoalProgress } from '@/components/GoalProgress';
 import { DaySheet, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet } from '@/components/plan';
 import { ChipBtn, Body, Btn, Card, Empty, H, Input, Item, Link, Page, Pill, Progress, Row, Sheet } from '@/components/ui';
-import { sendToAssistant } from '@/lib/assistant/run';
 import { isKey, parseKey, vacationBands } from '@/lib/calendarLayout';
 import { confirmDelete } from '@/lib/confirm';
 import { go } from '@/lib/nav';
@@ -75,15 +74,6 @@ export default function Plan() {
       <Card>
         <CalendarPanel selectMode={selectMode} onPickDay={pick} onOpenBand={(id) => setVacId(id)} />
         <Btn style={{ marginTop: 12 }} icon="compass" title="Pianifica le vacanze" onPress={() => go('vacationPlanner')} />
-      </Card>
-
-      <Card>
-        <H>Pianificazione automatica</H>
-        <Body small muted style={{ marginVertical: 6 }}>Riempio il mese con i tuoi task (prima i più urgenti e quelli legati ai tuoi appuntamenti) e le tue abitudini, solo nel tuo orario di lavoro, lasciando liberi molti slot. Vedi l'anteprima e decidi tu.</Body>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          <Btn small icon="calendar" title="Pianifica il mese" onPress={() => { void sendToAssistant('pianificami il mese'); go('ai'); }} />
-          <Btn small ghost title="Solo questa settimana" onPress={() => { void sendToAssistant('pianifica la settimana'); go('ai'); }} />
-        </View>
         <Btn small ghost icon="calendar" style={{ marginTop: 8 }} title="Importa dal calendario del telefono" onPress={() => setCalSheet(true)} />
       </Card>
 

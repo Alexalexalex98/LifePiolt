@@ -161,6 +161,7 @@ function MonthView({ offset, selectMode, onPickDay, onOpenBand, hideOpen, below,
   const c = useCalColors();
   const th = c.th;
   const events = useLife((s) => s.events);
+  const tasks = useLife((s) => s.tasks);
   const bands = useBands();
   const vacRange = useLife((s) => s.vacRange);
   const [w, setW] = useState(0);
@@ -190,6 +191,7 @@ function MonthView({ offset, selectMode, onPickDay, onOpenBand, hideOpen, below,
               const isSel = k === sel;
               const list = (events[k] ?? []).map((e) => ({ e, r: rank(k, e) })).sort((a, b2) => a.r - b2.r);
               const top = list[0];
+              const nTasks = tasks.filter((x) => !x.done && x.due === k).length;
               const inSel = !!vacRange && k >= vacRange.start && k <= (vacRange.end ?? vacRange.start);
               const tintBg = top ? c.tint(c.of(top.e, k), top.r === 0 ? 0.2 : top.r === 1 ? 0.14 : 0.08) : inSel ? c.tint(c.vac, 0.1) : 'transparent';
               const label = fmtDate(parseKey(k), { weekday: 'long', day: 'numeric', month: 'long' });
@@ -200,8 +202,9 @@ function MonthView({ offset, selectMode, onPickDay, onOpenBand, hideOpen, below,
                     <Text style={{ color: isToday ? th.onAccent : th.text, fontSize: 13, fontWeight: isToday || top ? '800' : '500' }}>{Number(k.slice(8))}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 3, marginTop: 4, alignItems: 'center' }}>
-                    {list.slice(0, 4).map(({ e }, i) => <View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: c.of(e, k) }} />)}
-                    {list.length > 4 ? <Text style={{ color: th.muted, fontSize: 9, fontWeight: '700' }}>+</Text> : null}
+                    {list.slice(0, nTasks ? 2 : 3).map(({ e }, i) => <View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: c.of(e, k) }} />)}
+                    {nTasks ? <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: th.accent }} /> : null}
+                    {list.length > (nTasks ? 2 : 3) ? <Text style={{ color: th.muted, fontSize: 9, fontWeight: '700' }}>+</Text> : null}
                   </View>
                 </Pressable>
               );
@@ -227,6 +230,7 @@ function DayDetail({ sel, onPickDay, hideOpen }: { sel: string; onPickDay: (k: s
   const c = useCalColors();
   const th = c.th;
   const events = useLife((s) => s.events);
+  const dueTasks = useLife((s) => s.tasks).filter((x) => !x.done && x.due === sel);
   const bands = useBands();
   const selList = layoutDay(events[sel]);
   const selItems = [...selList.placed.map((p) => ({ e: p.e, idx: p.idx })), ...selList.allDay];
@@ -244,7 +248,7 @@ function DayDetail({ sel, onPickDay, hideOpen }: { sel: string; onPickDay: (k: s
             <Icon name="compass" size={14} color={th.text} /><Text numberOfLines={1} style={{ color: th.text, fontWeight: '700', fontSize: 13, flex: 1 }}>{b.name}</Text>
           </Pressable>
         ))}
-        {selItems.length === 0 && selBands.length === 0 ? <Text style={{ color: th.muted, fontSize: 13, paddingVertical: 6 }}>Giornata libera.</Text> : selItems.map(({ e, idx }) => {
+        {selItems.length === 0 && selBands.length === 0 && dueTasks.length === 0 ? <Text style={{ color: th.muted, fontSize: 13, paddingVertical: 6 }}>Giornata libera.</Text> : selItems.map(({ e, idx }) => {
           const col = c.of(e, sel);
           const u = kindIsPlain(e) ? URGENCY_LABEL[c.urgency(e, sel)] : '';
           return (
@@ -258,6 +262,14 @@ function DayDetail({ sel, onPickDay, hideOpen }: { sel: string; onPickDay: (k: s
             </Pressable>
           );
         })}
+        {dueTasks.length ? <Text style={{ color: th.muted, fontSize: 11, fontWeight: '800', marginTop: 8, marginBottom: 4 }}>{tl('TASK DA FARE')}</Text> : null}
+        {dueTasks.map((x) => (
+          <Pressable key={x.id} onPress={() => go('lifetask')} accessibilityRole="button" accessibilityLabel={x.t} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, backgroundColor: c.tint(th.accent, 0.14), marginBottom: 6 }}>
+            <Icon name="check" size={16} color={th.accent} />
+            <Text numberOfLines={2} style={{ color: th.text, fontSize: 14, fontWeight: '700', flex: 1 }}>{x.t}</Text>
+            {x.urgent ? <Text style={{ color: th.accent, fontSize: 11, fontWeight: '800' }}>{tl('Urgente')}</Text> : null}
+          </Pressable>
+        ))}
       </View>
     </>
   );
