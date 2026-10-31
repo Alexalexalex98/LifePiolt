@@ -118,7 +118,7 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
   const h = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     /* foto e documenti (google: true) vanno al server che ha la chiave di Gemini; tutto il resto al server di Theia */
-    const g = (path === '/vision' || path === '/analyze') && !!(body as { google?: boolean } | null)?.google;
+    const g = (path === '/vision' || path === '/analyze' || path === '/chat') && !!(body as { google?: boolean } | null)?.google;
     const base = g ? GOOGLE_AI_URL : URL_BASE;
     const payload = g ? JSON.stringify({ ...(body as object), google: undefined }) : JSON.stringify(body);
     let { r } = await post(`${base}${path}`, payload, ctl.signal);
@@ -147,6 +147,8 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
 export async function aiChatStream(message: string, q: string | undefined, onText: (acc: string) => void): Promise<string> {
   if (!aiServerConfigured) throw new AiServerError('Il server AI non è collegato: manca l\'indirizzo del server.');
   lastAiDomain = null;
+  /* con Gemini non c'e' il flusso: arriva la risposta intera */
+  if (geminiChat()) { const full = String((await call<{ reply: string }>('/chat', { message, google: true }, 75000)).reply ?? ''); onText(full); return full; }
   const body = JSON.stringify({ message, stream: true, ...(q ? { q, web: useAiServerCfg.getState().web !== false } : {}) });
   const once = async (refresh: boolean): Promise<string | 401> => {
     const url = `${URL_BASE}/chat`;
@@ -193,8 +195,10 @@ export async function aiChatStream(message: string, q: string | undefined, onTex
 
 /** Come aiChat ma senza togliere il grassetto e gli elenchi (la chat li mostra bene). */
 /** `q` = la sola domanda dell'utente: il server puo' cercarla sul web (frase resa generica) se Theia non sa. */
-export const aiChatRaw = async (message: string, q?: string) => String((await call<{ reply: string }>('/chat', { message, ...(q ? { q, web: useAiServerCfg.getState().web !== false } : {}) })).reply ?? '');
-export const aiChat = async (message: string) => humanize((await call<{ reply: string }>('/chat', { message })).reply);
+/** Le risposte le scrive Google Gemini se l'hai scelto nelle impostazioni (piu' precise; niente ricerca sul web). */
+const geminiChat = () => useAiServerCfg.getState().gemini === true;
+export const aiChatRaw = async (message: string, q?: string) => String((await call<{ reply: string }>('/chat', geminiChat() ? { message, google: true } : { message, ...(q ? { q, web: useAiServerCfg.getState().web !== false } : {}) })).reply ?? '');
+export const aiChat = async (message: string) => humanize((await call<{ reply: string }>('/chat', geminiChat() ? { message, google: true } : { message })).reply);
 export const aiVision = async (image: string, mime: string, prompt: string) => { if (mime.startsWith('image/')) noteGoogleSend(1); return humanize((await call<{ reply: string }>('/vision', { image, mime, prompt, google: true }, 90000)).reply); };
 export const aiAnalyze = (files: { data: string; mime: string }[], question?: string, context?: string, google = true) => call<{ reply: string; result: unknown }>('/analyze', { files, question, context, ...(google ? { google: true } : {}) }, 90000);
 

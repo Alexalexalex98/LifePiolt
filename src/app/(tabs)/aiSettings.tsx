@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { AiServerStatus, FabCard, FileConsentCard, WebSearchCard } from '@/components/aiSettings/FileConsent';
+import { AiServerStatus, FabCard, FileConsentCard, GeminiChatCard, WebSearchCard } from '@/components/aiSettings/FileConsent';
 import { LocalCapabilities } from '@/components/aiSettings/LocalCapabilities';
 import { PrivacyCard, ProvidersSection } from '@/components/aiSettings/ProvidersSection';
 import { SendLog } from '@/components/aiSettings/SendLog';
@@ -19,7 +19,7 @@ export default function AiSettings() {
     <Page id="aiSettings" title="Intelligenza di Theia" back>
       <Body small muted style={{ marginBottom: 10 }}>Theia fa da sola tutto ciò che si può fare sul telefono e delega a un'altra AI solo ciò che serve davvero, scegliendo la migliore per ogni compito. Le AI si collegheranno col server: oggi nessuna è collegata.</Body>
       <TabRow options={TABS} value={tab} onChange={setTab} />
-      {tab === 'Scelte' && (<><AiServerStatus /><ModeCard /><FileConsentCard /><WebSearchCard /><FabCard /><LocalCapabilities /><TaskChoices /></>)}
+      {tab === 'Scelte' && (<><AiServerStatus /><ModeCard /><FileConsentCard /><GeminiChatCard /><WebSearchCard /><FabCard /><LocalCapabilities /><TaskChoices /></>)}
       {tab === 'Limiti' && <UsageSection />}
       {tab === 'Fornitori' && (<><PrivacyCard /><ProvidersSection /></>)}
       {tab === 'Prova' && <Simulator />}

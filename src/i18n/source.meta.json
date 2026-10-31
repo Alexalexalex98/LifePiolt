@@ -1,5 +1,5 @@
 {
- "count": 15417,
+ "count": 15424,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -189,7 +189,7 @@
   "src/components/TheiaHost.tsx": 42,
   "src/components/TripCards.tsx": 20,
   "src/components/WeeklyReportButton.tsx": 2,
-  "src/components/aiSettings/FileConsent.tsx": 39,
+  "src/components/aiSettings/FileConsent.tsx": 41,
   "src/components/aiSettings/LocalCapabilities.tsx": 4,
   "src/components/aiSettings/ProvidersSection.tsx": 21,
   "src/components/aiSettings/SendLog.tsx": 9,
@@ -387,7 +387,7 @@
   "src/lib/aiRouter/rewrite.ts": 41,
   "src/lib/aiRouter/runtime.ts": 5,
   "src/lib/aiRouter/select.ts": 18,
-  "src/lib/aiServer.ts": 25,
+  "src/lib/aiServer.ts": 26,
   "src/lib/analytics.ts": 64,
   "src/lib/analyticsData.ts": 52,
   "src/lib/arrival.ts": 8,
@@ -410,7 +410,7 @@
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
   "src/lib/assistant/theiaFlow.ts": 167,
-  "src/lib/assistant/wellbeingFlow.ts": 35,
+  "src/lib/assistant/wellbeingFlow.ts": 39,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
   "src/lib/autoBg.ts": 3,
@@ -690,5 +690,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1970
+ "withPlaceholders": 1971
 }

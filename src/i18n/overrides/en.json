@@ -4472,5 +4472,7 @@
  "Umore": "Mood",
  "Un tocco al giorno": "One tap a day",
  "Prendo nota: {0}": "Taking note: {0}",
- "Ho preso nota ({0}): lo trovo solo io, sul tuo telefono. Puoi leggerlo e cancellarlo dal Centro Privacy.": "I've taken note ({0}): only I can find it, on your phone. You can read and delete it from the Privacy Center."
+ "Ho preso nota ({0}): lo trovo solo io, sul tuo telefono. Puoi leggerlo e cancellarlo dal Centro Privacy.": "I've taken note ({0}): only I can find it, on your phone. You can read and delete it from the Privacy Center.",
+ "Risposte più precise con Google": "More precise answers with Google",
+ "Con questa opzione le risposte di Theia le scrive Google Gemini: sono più precise e ragionate. In cambio arrivano tutte insieme (non a flusso), non c'è la ricerca sul web e la tua domanda con il contesto che serve va a Google. Foto e documenti vanno sempre a Google.": "With this option Theia's answers are written by Google Gemini: more precise and reasoned. In exchange they arrive all at once (not streamed), there is no web search, and your question with the needed context goes to Google. Photos and documents always go to Google."
 }

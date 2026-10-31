@@ -44,6 +44,22 @@ export function WebSearchCard() {
   );
 }
 
+/** Risposte più precise: le scrive Google Gemini invece dei nostri modelli aperti. */
+export function GeminiChatCard() {
+  const on = useAiServerCfg((s) => s.gemini === true);
+  const set = useAiServerCfg((s) => s.set);
+  return (
+    <Card>
+      <H>Risposte più precise con Google</H>
+      <Body small muted style={{ marginTop: 4 }}>Con questa opzione le risposte di Theia le scrive Google Gemini: sono più precise e ragionate. In cambio arrivano tutte insieme (non a flusso), non c'è la ricerca sul web e la tua domanda con il contesto che serve va a Google. Foto e documenti vanno sempre a Google.</Body>
+      <Row gap={8} style={{ marginTop: 8 }}>
+        <Pill label="Attiva" on={on} onPress={() => set({ gemini: true })} />
+        <Pill label="Disattiva" on={!on} onPress={() => set({ gemini: false })} />
+      </Row>
+    </Card>
+  );
+}
+
 /** Consenso a mandare foto e file al servizio AI: si cambia o si toglie quando si vuole. */
 export function FileConsentCard() {
   const c = useAiRouter((s) => s.fileConsent);
