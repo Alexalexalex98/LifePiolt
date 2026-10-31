@@ -129,7 +129,7 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
     if (r.ok && j.plan) lastAiInfo = { plan: j.plan, lite: !!j.lite, left: j.left, limit: j.limit };
     if (!r.ok) {
       const why = j.details?.error?.message ?? j.error ?? `errore ${r.status}`;
-      throw new AiServerError(r.status === 401 ? 'Il server AI non riconosce il tuo accesso: esci e accedi di nuovo dal tuo account. (' + aiServerHost + ')' : `Il server AI ha risposto: ${why}`, r.status);
+      throw new AiServerError(r.status === 401 ? (g ? 'Per leggere le foto con Google devi essere collegato al tuo account, e la tua sessione è scaduta: esci e accedi di nuovo dal Profilo. (' : 'Il server AI non riconosce il tuo accesso: esci e accedi di nuovo dal tuo account. (') + base.replace(/^https?:\/\//, '') + ')' : `Il server AI ha risposto: ${why}`, r.status);
     }
     return j as T;
   } catch (e) {
