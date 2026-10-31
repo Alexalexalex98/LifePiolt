@@ -189,7 +189,7 @@ export async function aiChatStream(message: string, q: string | undefined, onTex
 /** `q` = la sola domanda dell'utente: il server puo' cercarla sul web (frase resa generica) se Theia non sa. */
 export const aiChatRaw = async (message: string, q?: string) => String((await call<{ reply: string }>('/chat', { message, ...(q ? { q, web: useAiServerCfg.getState().web !== false } : {}) })).reply ?? '');
 export const aiChat = async (message: string) => humanize((await call<{ reply: string }>('/chat', { message })).reply);
-export const aiVision = async (image: string, mime: string, prompt: string) => humanize((await call<{ reply: string }>('/vision', { image, mime, prompt }, 90000)).reply);
+export const aiVision = async (image: string, mime: string, prompt: string) => { if (mime.startsWith('image/')) noteGoogleSend(1); return humanize((await call<{ reply: string }>('/vision', { image, mime, prompt, google: true }, 90000)).reply); };
 export const aiAnalyze = (files: { data: string; mime: string }[], question?: string, context?: string, google = true) => call<{ reply: string; result: unknown }>('/analyze', { files, question, context, ...(google ? { google: true } : {}) }, 90000);
 
 /** Ogni volta che una foto parte verso Google Gemini te lo diciamo subito e lo scriviamo in «Cosa è stato inviato». */
@@ -261,7 +261,7 @@ export const aiReadFiles = async (prompt: string, files: { uri: string; mime: st
 /** Un PDF letto in testo libero (niente schema fisso): serve quando la risposta e' un elenco o un JSON deciso da noi. */
 export async function aiReadPdfFree(prompt: string, uri: string, timeoutMs = 90000): Promise<string> {
   const [f] = await prepFiles([{ uri, mime: 'application/pdf' }]);
-  return (await call<{ reply: string }>('/vision', { image: f.data, mime: f.mime, prompt }, timeoutMs)).reply;
+  return (await call<{ reply: string }>('/vision', { image: f.data, mime: f.mime, prompt, google: true }, timeoutMs)).reply;
 }
 
 /** Prova il collegamento col server AI (nessun dato inviato): tempo di risposta o motivo dell'errore. */
