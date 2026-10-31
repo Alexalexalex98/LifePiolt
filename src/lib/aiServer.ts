@@ -20,6 +20,8 @@ export const AI_BUILD = 'ai-v5';
 /* Indirizzo e token: prima quelli inseriti nell'app (Impostazioni > Intelligenza di Theia), altrimenti quelli della build. I valori cambiano da soli quando li modifichi. */
 /** Il server IA di LifePilot (modelli aperti, niente Google). L'indirizzo è pubblico; l'accesso è col tuo account. */
 export const DEFAULT_AI_URL = 'https://lifepilot-ai2.alex-stefanovic1998.workers.dev';
+/** Il server che tiene la chiave di Google Gemini (vecchio `lifepilot-api`, ora accetta anche l'accesso con l'account): foto e documenti vanno qui. */
+export const GOOGLE_AI_URL = 'https://lifepilot-api.alex-stefanovic1998.workers.dev';
 const ENV_URL = process.env.EXPO_PUBLIC_AI_URL ?? DEFAULT_AI_URL;
 const ENV_TOKEN = process.env.EXPO_PUBLIC_AI_TOKEN ?? '';
 const OLD_SERVER = /lifepilot-api\./i;
@@ -100,7 +102,7 @@ function postXhr(url: string, headers: Record<string, string>, body: string, sig
 }
 async function post(url: string, body: string, signal: AbortSignal, refresh = false): Promise<{ r: Reply; via: string }> {
   /* l'accesso del tuo account va solo al nostro server: a un server scelto da te si manda solo la sua parola d'ordine */
-  const ours = url.startsWith(DEFAULT_AI_URL);
+  const ours = url.startsWith(DEFAULT_AI_URL) || url.startsWith(GOOGLE_AI_URL);
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${(ours ? await userToken(refresh) : '') || TOKEN}` };
   try {
     const r = await fetch(url, { method: 'POST', headers, body, signal });
@@ -115,9 +117,13 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
   const ctl = new AbortController();
   const h = setTimeout(() => ctl.abort(), timeoutMs);
   try {
-    let { r } = await post(`${URL_BASE}${path}`, JSON.stringify(body), ctl.signal);
+    /* foto e documenti (google: true) vanno al server che ha la chiave di Gemini; tutto il resto al server di Theia */
+    const g = (path === '/vision' || path === '/analyze') && !!(body as { google?: boolean } | null)?.google;
+    const base = g ? GOOGLE_AI_URL : URL_BASE;
+    const payload = g ? JSON.stringify({ ...(body as object), google: undefined }) : JSON.stringify(body);
+    let { r } = await post(`${base}${path}`, payload, ctl.signal);
     /* l'accesso puo' essere scaduto: lo rinnovo e riprovo una volta */
-    if (r.status === 401) ({ r } = await post(`${URL_BASE}${path}`, JSON.stringify(body), ctl.signal, true));
+    if (r.status === 401) ({ r } = await post(`${base}${path}`, payload, ctl.signal, true));
     const j = r.json as { error?: string; details?: { error?: { message?: string } }; plan?: string; lite?: boolean; left?: number; limit?: number };
     if (path === '/chat') lastAiDomain = (j as { domain?: { id: string; name: string } }).domain ?? null;
     if (r.ok && j.plan) lastAiInfo = { plan: j.plan, lite: !!j.lite, left: j.left, limit: j.limit };
