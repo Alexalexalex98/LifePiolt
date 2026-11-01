@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useAudioRecorder } from 'expo-audio';
 import { Animated, Easing, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,6 +12,7 @@ import { t as tl } from '@/i18n/core';
 import { sendTheia } from '@/lib/assistant/theiaFlow';
 import { Icon } from '@/lib/icons';
 import { createTransport, initialSpeech, liveText, localeFor, speechReducer, speechSupport, type SpeechErrorCode, type SpeechTransport } from '@/lib/speech';
+import { listenByRecording, REC_OPTIONS } from '@/lib/voice/recordListen';
 import { speak, type Speaking } from '@/lib/voice/speak';
 import { speakable, wantsToStop } from '@/lib/voice/voiceText';
 import { useApp } from '@/store/app';
@@ -42,6 +44,8 @@ function VoiceMode() {
   const [heard, setHeard] = useState('');
   const [reply, setReply] = useState('');
   const [note, setNote] = useState('');
+  const recorder = useAudioRecorder(REC_OPTIONS);
+  const rec = useRef<ReturnType<typeof listenByRecording> | null>(null);
   const alive = useRef(true);
   const tr = useRef<SpeechTransport | null>(null);
   const talking = useRef<Speaking | null>(null);
@@ -71,14 +75,15 @@ function VoiceMode() {
   const close = useCallback(() => {
     alive.current = false;
     try { tr.current?.cancel(); } catch { /* già fermo */ }
+    rec.current?.cancel();
     talking.current?.stop();
     hide();
   }, [hide]);
-  useEffect(() => () => { alive.current = false; try { tr.current?.cancel(); } catch { /* già fermo */ } talking.current?.stop(); }, []);
+  useEffect(() => () => { alive.current = false; try { tr.current?.cancel(); } catch { /* già fermo */ } rec.current?.cancel(); talking.current?.stop(); }, []);
 
   const fail = useCallback((code: SpeechErrorCode | 'text', text?: string) => {
     setPhase('error');
-    setNote(text ?? (code === 'denied' || code === 'denied_forever' ? tl('Per parlare con me serve il permesso del microfono: puoi darlo dalle impostazioni del telefono.') : code === 'needs_build' || code === 'unavailable' || code === 'service_missing' ? tl('Su questo telefono il riconoscimento vocale non c\'è ancora: in un\'app installata funziona. Intanto scrivimi in chat.') : tl('Non riesco ad ascoltarti adesso. Riprova tra poco.')));
+    setNote(text ?? (code === 'denied' || code === 'denied_forever' ? tl('Per ascoltarti mi serve il microfono: lo attivi dalle impostazioni del telefono. Intanto scrivimi in chat e ti rispondo subito.') : tl('Dammi un attimo e riproviamo: tocca il microfono. Se preferisci, scrivimi in chat e ti rispondo subito.')));
   }, []);
 
   const listen = useCallback(async () => {
@@ -87,9 +92,20 @@ function VoiceMode() {
     talking.current?.stop(); talking.current = null;
     setPhase('listening'); setReply(''); setNote('');
     const sup = speechSupport();
-    if (!sup.ok) { fail(sup.reason); return; }
-    const t = createTransport();
-    if (!t) { fail('unavailable'); return; }
+    const t = sup.ok ? createTransport() : null;
+    if (!t) {
+      // senza il riconoscimento vocale del telefono (es. Expo Go) si usa il microfono e Gemini trascrive
+      const r = listenByRecording(recorder, lang, (v) => dispatch({ type: 'level', value: v * 10 }));
+      rec.current = r;
+      dispatch({ type: 'start', locale: localeFor(lang) }); dispatch({ type: 'started' });
+      const end = await r.done;
+      if (!alive.current || rec.current !== r) return;
+      if ('text' in end) { setPhase('thinking'); dispatch({ type: 'final', text: end.text }); dispatch({ type: 'end' }); }
+      else if (end.error === 'denied') { dispatch({ type: 'cancel' }); fail('denied'); }
+      else if (end.error === 'no_speech') dispatch({ type: 'error', code: 'no_speech' });
+      else { dispatch({ type: 'cancel' }); fail('unknown'); }
+      return;
+    }
     tr.current = t;
     const locale = localeFor(lang);
     dispatch({ type: 'start', locale });
@@ -132,11 +148,18 @@ function VoiceMode() {
   }, [speech.phase]);
 
   const live = liveText(speech, lang);
-  const status = phase === 'listening' ? (speech.phase === 'starting' ? tl('Apro il microfono…') : tl('Ti ascolto…')) : phase === 'thinking' ? tl('Ci penso…') : phase === 'speaking' ? tl('Sto parlando… tocca per interrompermi') : tl('Qualcosa non va');
+  const status = phase === 'listening' ? (live ? tl('Ti ascolto…') : tl('Di cosa vuoi parlare?')) : phase === 'thinking' ? tl('Ci penso…') : phase === 'speaking' ? tl('Tocca per interrompermi') : tl('Di cosa vuoi parlare?');
   const expr = phase === 'listening' ? 'understood' : phase === 'thinking' ? 'thinking' : phase === 'speaking' ? 'happy' : 'doubtful';
   const ringScale = ring.interpolate({ inputRange: [0, 1], outputRange: [1, 1.28] });
   const breathe = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] });
-  const interrupt = () => { if (phase === 'speaking' || phase === 'thinking' || phase === 'error') void listen(); else tr.current?.stop(); };
+  const say = (text: string) => {
+    try { tr.current?.cancel(); } catch { /* già fermo */ }
+    rec.current?.cancel();
+    dispatch({ type: 'cancel' }); dispatch({ type: 'start', locale: localeFor(lang) }); dispatch({ type: 'started' });
+    dispatch({ type: 'final', text }); dispatch({ type: 'end' });
+  };
+  const ideas = [tl('Cosa devo fare oggi?'), tl('Com\'è andata la mia giornata?'), tl('Aiutami a organizzare domani')];
+  const interrupt = () => { if (phase === 'speaking' || phase === 'thinking' || phase === 'error') void listen(); else { tr.current?.stop(); rec.current?.finish(); } };
 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={close}>
@@ -152,6 +175,11 @@ function VoiceMode() {
               {phase === 'thinking' ? <View style={{ position: 'absolute', right: 8, top: 6 }}><ThinkingStars size={44} color="#FFFFFF" /></View> : null}
             </View>
             <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700', marginTop: 14 }}>{status}</Text>
+            {(phase === 'listening' && !live) || phase === 'error' ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 14 }}>
+                {ideas.map((x) => <Pressable key={x} accessibilityRole="button" onPress={() => say(x)} style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.14)' }}><Text style={{ color: '#fff', fontSize: 13.5, fontWeight: '600' }}>{x}</Text></Pressable>)}
+              </View>
+            ) : null}
             <ScrollView style={{ maxHeight: 190, marginTop: 14, alignSelf: 'stretch' }} contentContainerStyle={{ alignItems: 'center', gap: 10 }} showsVerticalScrollIndicator={false}>
               {phase === 'listening' && live ? <Text style={{ color: '#fff', fontSize: 22, fontWeight: '600', textAlign: 'center', lineHeight: 29 }}>{live}</Text> : null}
               {phase !== 'listening' && heard ? <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, textAlign: 'center' }}>{`“${heard}”`}</Text> : null}

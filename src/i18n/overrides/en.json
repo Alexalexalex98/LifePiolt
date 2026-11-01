@@ -4488,5 +4488,12 @@
  "Qualcosa non va": "Something's wrong",
  "Tocca per parlare o per interrompere": "Tap to talk or to interrupt",
  "Parla": "Talk",
- "Tutto quello che ci diciamo resta nella tua chat con {0}.": "Everything we say stays in your chat with {0}."
+ "Tutto quello che ci diciamo resta nella tua chat con {0}.": "Everything we say stays in your chat with {0}.",
+ "Per ascoltarti mi serve il microfono: lo attivi dalle impostazioni del telefono. Intanto scrivimi in chat e ti rispondo subito.": "To listen to you I need the microphone: you can turn it on in your phone's settings. Meanwhile, write to me in chat and I'll answer right away.",
+ "Dammi un attimo e riproviamo: tocca il microfono. Se preferisci, scrivimi in chat e ti rispondo subito.": "Give me a moment and let's try again: tap the microphone. If you prefer, write to me in chat and I'll answer right away.",
+ "Di cosa vuoi parlare?": "What would you like to talk about?",
+ "Tocca per interrompermi": "Tap to interrupt me",
+ "Cosa devo fare oggi?": "What do I have to do today?",
+ "Com'è andata la mia giornata?": "How was my day?",
+ "Aiutami a organizzare domani": "Help me plan tomorrow"
 }
