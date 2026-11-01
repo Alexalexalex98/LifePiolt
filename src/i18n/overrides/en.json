@@ -4495,5 +4495,17 @@
  "Tocca per interrompermi": "Tap to interrupt me",
  "Cosa devo fare oggi?": "What do I have to do today?",
  "Com'è andata la mia giornata?": "How was my day?",
- "Aiutami a organizzare domani": "Help me plan tomorrow"
+ "Aiutami a organizzare domani": "Help me plan tomorrow",
+ "Aggiunta da Theia: pagamento ricorrente non segnato": "Added by Theia: recurring payment not logged",
+ "Fatto: «{0}» è distribuita su {1} mesi: ogni rata è nel Piano alla sua data, sotto «Da pagare».": "Done: “{0}” is spread over {1} months: each installment is in the Plan on its date, under “To pay”.",
+ "Fatto: non aspetto più «{0}» e non te lo chiederò più.": "Done: I'm no longer expecting “{0}” and won't ask again.",
+ "Ho visto che la scadenza di {0} di {1} non risulta ancora segnata. Com'è andata?": "I noticed the {0} due date for {1} isn't logged yet. How did it go?",
+ "L'ho già pagata": "I already paid it",
+ "Non è ancora arrivata": "It hasn't arrived yet",
+ "Non la ricevo più": "I no longer receive it",
+ "Non trovo più quella scadenza: la trovi nelle Bollette.": "I can't find that due date anymore: look in Bills.",
+ "Perfetto, l'ho segnata come pagata. Ho preparato la scadenza del prossimo periodo: se l'importo cambia, aggiornalo quando arriva il documento.": "Perfect, marked as paid. I prepared the next period's due date: if the amount changes, update it when the document arrives.",
+ "Piano di pagamento creato da Theia": "Payment plan created by Theia",
+ "Ricorrenza tolta": "Recurrence removed",
+ "Va bene, nessun problema: te lo richiedo tra qualche giorno.": "No problem, I'll check back in a few days."
 }

@@ -7,6 +7,8 @@ import { useLife } from '@/store/life';
 import { useMonthPlan } from '@/store/monthPlan';
 import { addMonths, estimateIncome, goalMonthly, monthsNeeded } from '@/lib/monthPlan';
 import { whenOf } from '@/lib/memo';
+import { addMonths as addMonthsIso, todayIso } from '@/lib/bills/dates';
+import { splitInstallments } from '@/lib/bills/plan';
 import { ensureMemoPermission } from '@/lib/memoSync';
 import { useMemos } from '@/store/memos';
 import { NOTE_LABEL, useWellbeing } from '@/store/wellbeing';
@@ -160,7 +162,9 @@ export function applyAiAction(a: AiAct): ActResult {
       return { ok: true, message: t('Fatto: «{0}» ora è {1} al mese.', m[0]!.name, formatCHF(a.amount)) };
     }
     case 'save_goal': useMonthPlan.getState().addGoal({ name: a.name, kind: 'purchase', total: a.total, targetYm: a.month, saved: a.saved }); return { ok: true, message: t('Fatto: obiettivo «{0}» aggiunto al Piano del mese.', a.name) };
-    case 'bill_spread': { const n = a.perMonth ? monthsNeeded(a.total, a.perMonth) : a.months!; useMonthPlan.getState().addPlan({ name: a.name, total: a.total, startYm: addMonths(new Date().toISOString().slice(0, 7), 1), months: n }); return { ok: true, message: t('Fatto: «{0}» è distribuita su {1} mesi nel Piano del mese.', a.name, n) }; }
+    case 'bill_spread': { const n = a.perMonth ? monthsNeeded(a.total, a.perMonth) : a.months!; useMonthPlan.getState().addPlan({ name: a.name, total: a.total, startYm: addMonths(new Date().toISOString().slice(0, 7), 1), months: n });
+      /* ogni rata e' una scadenza vera: finisce nel Plan sotto «Da pagare», una per mese, con il suo promemoria */
+      { const first = addMonthsIso(todayIso(), 1); useFin.getState().addInvoice({ issuer: a.name, kind: 'altro', amount: a.total, currency: 'CHF', dueDate: first, installments: splitInstallments(a.total, n, first), remind: true }, 'Piano di pagamento creato da Theia'); } return { ok: true, message: t('Fatto: «{0}» è distribuita su {1} mesi: ogni rata è nel Piano alla sua data, sotto «Da pagare».', a.name, n) }; }
     case 'open': go(a.page); return { ok: true, message: '' };
   }
 }

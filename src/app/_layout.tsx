@@ -120,9 +120,11 @@ export default function RootLayout() {
     const wbTimer = setTimeout(() => { try { (require('@/lib/assistant/wellbeingFlow') as typeof import('@/lib/assistant/wellbeingFlow')).checkWellbeing(); } catch { /* senza benessere */ } }, 6000);
     try { (require('@/lib/memoSync') as typeof import('@/lib/memoSync')).startMemoSync(); } catch { /* senza promemoria */ }
     const stopUsage = (require('@/lib/appUsage') as typeof import('@/lib/appUsage')).startUsageTracking();
+    try { (require('@/lib/bills/calendarSync') as typeof import('@/lib/bills/calendarSync')).startBillCalendarSync(); } catch { /* senza calendario bollette */ }
+    const missTimer = setTimeout(() => { try { (require('@/lib/assistant/billMissing') as typeof import('@/lib/assistant/billMissing')).askMissingBills(); } catch { /* senza controllo */ } }, 9000);
     const stopLock = startLockScreenSync(); // blocco schermo e widget: turni, impegni, task
     const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); void syncLockScreen(); onForeground(); /* riprogramma anche al cambio di fuso orario/ora legale */ useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
-    return () => { sub.remove(); stopLock(); stopUsage(); clearTimeout(wbTimer); };
+    return () => { sub.remove(); stopLock(); stopUsage(); clearTimeout(wbTimer); clearTimeout(missTimer); };
   }, [ready]);
 
   if (!ready) return null;

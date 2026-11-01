@@ -26,6 +26,7 @@ import { parseOutline, buildTree } from '@/lib/projectTree';
 import { useProjects } from '@/store/projects';
 import { CRISIS_RESOURCES, CRISIS_TEXT, detectCrisis } from '@/lib/safety';
 import { runWb, startQuestionnaire } from './wellbeingFlow';
+import { runMissing } from './billMissing';
 import { looksLikeMemo, parseMemo, dayStr, timeStr } from '@/lib/memo';
 import { isLearnable, recall } from '@/lib/theiaMemory';
 import { useTheiaMemory } from '@/store/theiaMemory';
@@ -882,6 +883,7 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
     case 'add-invoices': addInvoicesFromChat(action); return;
     case 'ai-undo': { const f = undos.get(action.id); undos.delete(action.id); if (f) { f.slice().reverse().forEach((u) => u()); pushAi(t('Annullato.')); } else pushAi(t('Non posso più annullare quella modifica.')); return; }
     case 'wb': runWb(action); return;
+    case 'bill-missing': store().push({ who: 'me', text: action.label, source: 'chat' }); runMissing(action); return;
     case 'kb-forget': useTheiaMemory.getState().forget(action.id); pushAi(t('Fatto: ho dimenticato quella risposta.')); return;
     case 'kb-redo': useTheiaMemory.getState().forget(action.id); await aiChatReply(action.text); return;
     case 'ai-do': { const r = applyAiAction(action.act); if (r.message) pushAi(r.message); return; }

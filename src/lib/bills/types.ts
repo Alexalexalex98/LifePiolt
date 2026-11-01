@@ -86,6 +86,8 @@ export type Invoice = {
   lateInterestPct?: number;
   /** Scadenza stimata dalla ricorrenza (non e' ancora arrivato il documento). */
   estimated?: boolean;
+  /** L'ultima volta che l'app ha chiesto «com'è andata?» per una scadenza ricorrente non segnata (AAAA-MM-GG): non si insiste. */
+  askedAt?: string;
   /** Sollecito gia' ricevuto (livello). */
   reminderLevel?: number;
   notes?: string;

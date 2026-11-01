@@ -33,6 +33,8 @@ export type TheiaAction =
   | { kind: 'ai-do'; label: string; act: import('./aiActionsCore.ts').AiAct }
   /** benessere: consenso, questionari brevi (WHO-5, PHQ-9) a domande e risposte in chat */
   | { kind: 'wb'; label: string; op: 'consent' | 'start' | 'answer' | 'cancel'; q?: 'who5' | 'phq9'; v?: number }
+  /** scadenza ricorrente non segnata: «l'ho pagata», «non è arrivata», «non la ricevo più» */
+  | { kind: 'bill-missing'; label: string; op: 'paid' | 'wait' | 'stop' | 'open'; invoiceId: string; mkind: 'estimated' | 'gap'; due: string }
   /** annulla ciò che Theia ha appena fatto */
   | { kind: 'ai-undo'; label: string; id: string }
   /** risposta ricordata: chiedi di nuovo all'AI (e dimentica quella vecchia) */

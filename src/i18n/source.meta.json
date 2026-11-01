@@ -1,5 +1,5 @@
 {
- "count": 15440,
+ "count": 15451,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -392,10 +392,11 @@
   "src/lib/analytics.ts": 64,
   "src/lib/analyticsData.ts": 52,
   "src/lib/arrival.ts": 8,
-  "src/lib/assistant/aiActions.ts": 71,
+  "src/lib/assistant/aiActions.ts": 72,
   "src/lib/assistant/aiActionsCore.ts": 8,
   "src/lib/assistant/appActionCore.ts": 42,
   "src/lib/assistant/appActions.ts": 17,
+  "src/lib/assistant/billMissing.ts": 11,
   "src/lib/assistant/dictionary.ts": 51,
   "src/lib/assistant/engine.ts": 224,
   "src/lib/assistant/env.ts": 7,
@@ -693,5 +694,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1973
+ "withPlaceholders": 1975
 }
