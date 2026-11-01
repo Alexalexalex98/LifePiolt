@@ -24,6 +24,7 @@ import { useApp } from '@/store/app';
 import { useChat } from '@/store/chat';
 import { useLife } from '@/store/life';
 import { useTheia, askTheiaAbout } from '@/store/theia';
+import { useVoiceMode } from '@/store/voiceMode';
 import { toast } from '@/store/toast';
 import { Icon } from '@/lib/icons';
 import { translateText } from '@/i18n/core';
@@ -154,8 +155,8 @@ export function TheiaFab() {
     <>
     <Animated.View {...pan.panHandlers} style={{ position: 'absolute', end: 14, bottom: insets.bottom + 84, transform: pos.getTranslateTransform() }}>
       <Pressable
-        onPress={() => setMenu(true)} onLongPress={clip} delayLongPress={350}
-        accessibilityLabel={translateText(`Chiedi a ${name}: tocca per scrivere, mandare foto o documenti o chiedere sulla schermata. Tieni premuto per il testo copiato. Trascinalo per spostarlo`)}
+        onPress={() => setMenu(true)} onLongPress={() => useVoiceMode.getState().show()} delayLongPress={420}
+        accessibilityLabel={translateText(`Chiedi a ${name}: tocca per scrivere, mandare foto o documenti o chiedere sulla schermata. Tieni premuto per parlare a voce. Trascinalo per spostarlo`)}
         style={{ width: 56, height: 56, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 }}>
         {showMascot ? <Mascot size={56} color={t.accent} expression={asking ? 'doubtful' : 'happy'} shake={tickled} /> : <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: 0.92 }}><Icon name="sparkle" size={22} color={t.onText} /></View>}
       </Pressable>

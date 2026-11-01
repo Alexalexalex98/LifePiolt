@@ -118,7 +118,7 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
   const h = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     /* foto e documenti (google: true) vanno al server che ha la chiave di Gemini; tutto il resto al server di Theia */
-    const g = (path === '/vision' || path === '/analyze' || path === '/chat') && !!(body as { google?: boolean } | null)?.google;
+    const g = (path === '/vision' || path === '/analyze' || path === '/chat' || path === '/tts') && !!(body as { google?: boolean } | null)?.google;
     const base = g ? GOOGLE_AI_URL : URL_BASE;
     const payload = g ? JSON.stringify({ ...(body as object), google: undefined }) : JSON.stringify(body);
     let { r } = await post(`${base}${path}`, payload, ctl.signal);
@@ -200,6 +200,8 @@ const geminiChat = () => useAiServerCfg.getState().gemini === true;
 export const aiChatRaw = async (message: string, q?: string) => String((await call<{ reply: string }>('/chat', geminiChat() ? { message, google: true } : { message, ...(q ? { q, web: useAiServerCfg.getState().web !== false } : {}) })).reply ?? '');
 export const aiChat = async (message: string) => humanize((await call<{ reply: string }>('/chat', geminiChat() ? { message, google: true } : { message })).reply);
 export const aiVision = async (image: string, mime: string, prompt: string) => { if (mime.startsWith('image/')) noteGoogleSend(1); return humanize((await call<{ reply: string }>('/vision', { image, mime, prompt, google: true }, 90000)).reply); };
+/** La voce di Theia: Gemini trasforma il testo in audio (PCM a 16 bit, 24 kHz). */
+export const aiTts = (text: string) => call<{ audio: string; mime: string }>('/tts', { text, google: true }, 40000);
 export const aiAnalyze = (files: { data: string; mime: string }[], question?: string, context?: string, google = true) => call<{ reply: string; result: unknown }>('/analyze', { files, question, context, ...(google ? { google: true } : {}) }, 90000);
 
 /** Ogni volta che una foto parte verso Google Gemini te lo diciamo subito e lo scriviamo in «Cosa è stato inviato». */

@@ -4474,5 +4474,19 @@
  "Prendo nota: {0}": "Taking note: {0}",
  "Ho preso nota ({0}): lo trovo solo io, sul tuo telefono. Puoi leggerlo e cancellarlo dal Centro Privacy.": "I've taken note ({0}): only I can find it, on your phone. You can read and delete it from the Privacy Center.",
  "Risposte più precise con Google": "More precise answers with Google",
- "Con questa opzione le risposte di Theia le scrive Google Gemini: sono più precise e ragionate. In cambio arrivano tutte insieme (non a flusso), non c'è la ricerca sul web e la tua domanda con il contesto che serve va a Google. Foto e documenti vanno sempre a Google.": "With this option Theia's answers are written by Google Gemini: more precise and reasoned. In exchange they arrive all at once (not streamed), there is no web search, and your question with the needed context goes to Google. Photos and documents always go to Google."
+ "Con questa opzione le risposte di Theia le scrive Google Gemini: sono più precise e ragionate. In cambio arrivano tutte insieme (non a flusso), non c'è la ricerca sul web e la tua domanda con il contesto che serve va a Google. Foto e documenti vanno sempre a Google.": "With this option Theia's answers are written by Google Gemini: more precise and reasoned. In exchange they arrive all at once (not streamed), there is no web search, and your question with the needed context goes to Google. Photos and documents always go to Google.",
+ "Per parlare con me serve il permesso del microfono: puoi darlo dalle impostazioni del telefono.": "To talk to me I need microphone permission: you can grant it in your phone's settings.",
+ "Su questo telefono il riconoscimento vocale non c'è ancora: in un'app installata funziona. Intanto scrivimi in chat.": "Speech recognition isn't available on this phone yet: it works in an installed app. For now, write to me in chat.",
+ "Non riesco ad ascoltarti adesso. Riprova tra poco.": "I can't listen right now. Try again in a moment.",
+ "Non ti sento: chiudo. Tieni premuto quando vuoi parlare.": "I can't hear you: closing. Hold down when you want to talk.",
+ "Il resto lo trovi nella chat.": "You'll find the rest in the chat.",
+ "La voce non è disponibile adesso: la risposta è scritta qui e nella chat.": "The voice isn't available right now: the answer is written here and in the chat.",
+ "Apro il microfono…": "Opening the microphone…",
+ "Ti ascolto…": "I'm listening…",
+ "Ci penso…": "Let me think…",
+ "Sto parlando… tocca per interrompermi": "I'm speaking… tap to interrupt me",
+ "Qualcosa non va": "Something's wrong",
+ "Tocca per parlare o per interrompere": "Tap to talk or to interrupt",
+ "Parla": "Talk",
+ "Tutto quello che ci diciamo resta nella tua chat con {0}.": "Everything we say stays in your chat with {0}."
 }

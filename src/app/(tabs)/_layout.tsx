@@ -21,6 +21,7 @@ import { LifePayFab, LifePayHost, useWalletTouch } from '@/components/LifePay';
 import { MenuSheet, NavBar, navLabelFor } from '@/components/NavBar';
 import { NetSheetHost } from '@/components/NetSheets';
 import { TheiaFab, TheiaHost, TheiaSelect } from '@/components/TheiaHost';
+import { VoiceModeHost } from '@/components/VoiceMode';
 import { IncomingCallHost } from '@/components/call/IncomingCall';
 import { useUI } from '@/components/ui';
 import { unreadMessages } from '@/lib/network';
@@ -141,6 +142,7 @@ export default function TabsLayout() {
       <MenuSheet />
       <NetSheetHost />
       <TheiaFab />
+      <VoiceModeHost />
       <TheiaHost />
       <IncomingCallHost />
       <TheiaSelect />
