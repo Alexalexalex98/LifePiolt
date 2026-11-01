@@ -1,4 +1,5 @@
 import { askLocal } from '@/lib/theia/ask';
+import { LIFESCORE_Q, lifeScoreAnswer } from './lifeScoreTalk';
 import { askFree, askFreeOffline, looksLikeDataQuestion, type FreeResult } from '@/lib/theia/free';
 import { collectSnap } from '@/lib/theia/collect';
 import { Linking } from 'react-native';
@@ -455,6 +456,12 @@ export async function sendTheia(i: SendInput): Promise<void> {
   if (!pending && !useLearned.getState().teaching && (u.status === 'passthrough' || u.status === 'translated')) {
     const pr = parseProjectRequest(u.text) ?? parseProjectRequest(text);
     if (pr) { await createProjectFromRequest(pr); return; }
+  }
+
+  // Life Score e recap: lo leggo dall'app con i motivi, senza bisogno dell'AI
+  if (!pending && !useLearned.getState().teaching && LIFESCORE_Q.test(text)) {
+    const a = lifeScoreAnswer(text);
+    if (a) { pushAi(a, { ext: { actions: [{ kind: 'open', label: t('Apri LifeHealth'), page: 'lifehealth' }] } }); return; }
   }
 
   // domande sui tuoi dati (soldi, agenda, turni, task, sonno, passi, acqua, calorie): risposta calcolata dal codice, con le fonti; se il dato manca lo dico

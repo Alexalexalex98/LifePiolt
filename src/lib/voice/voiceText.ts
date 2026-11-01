@@ -4,8 +4,7 @@
  */
 
 /** Il testo di una risposta, pronto da leggere: senza markdown, link, «Fonti», elenchi puntati e simboli. Taglia a una frase intera. */
-export function speakable(texts: string[], opts: { max?: number; more?: string } = {}): string {
-  const max = opts.max ?? 650;
+export function cleanForSpeech(texts: string[]): string {
   let s = texts.map((x) => (x ?? '').replace(/^\s*(fonti|sources)\s*:.*$/gim, ' ').trim()).filter(Boolean).join('. ');
   s = s
     .replace(/\[\[[\s\S]*?\]\]/g, ' ')
@@ -19,6 +18,12 @@ export function speakable(texts: string[], opts: { max?: number; more?: string }
     .replace(/\.(\s*\.)+/g, '.')
     .replace(/\s+/g, ' ')
     .trim();
+  return s;
+}
+
+export function speakable(texts: string[], opts: { max?: number; more?: string } = {}): string {
+  const max = opts.max ?? 650;
+  const s = cleanForSpeech(texts);
   if (s.length <= max) return s;
   const cut = s.slice(0, max);
   const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '));
@@ -59,3 +64,44 @@ export function pcmToWav(pcm: Uint8Array, rate = 24000): Uint8Array {
 
 /** La frase dell'utente è un comando per chiudere la conversazione a voce? («basta», «grazie, ciao», «chiudi»). */
 export const wantsToStop = (text: string): boolean => /^\s*(basta|stop|chiudi|ciao theia|ciao|a dopo|grazie e ciao|grazie mille ciao|esci|fine)[\s.!]*$/i.test(text);
+
+
+/** Le frasi di un testo con la posizione di inizio (per evidenziare quella che Theia sta dicendo, come i testi di Spotify). */
+export function sentenceSpans(text: string): { text: string; start: number }[] {
+  const out: { text: string; start: number }[] = [];
+  const re = /[^.!?…]+(?:[.!?…]+["»”)]*|$)\s*/g;
+  for (let m = re.exec(text); m; m = re.exec(text)) { if (!m[0]) { re.lastIndex++; continue; } if (m[0].trim()) out.push({ text: m[0].trim(), start: m.index }); }
+  return out;
+}
+
+/**
+ * Mentre Theia scrive, la voce parte dopo le prime frasi: dal testo ripulito prende i pezzi da leggere (il primo corto per partire subito,
+ * gli altri più lunghi) senza mai tagliare una frase. `from` = quanti caratteri sono già stati consegnati; con `final` si consegna anche il resto.
+ */
+export function takeChunks(clean: string, from: number, final: boolean, first: boolean): { chunks: string[]; to: number } {
+  const chunks: string[] = [];
+  let buf = ''; let to = from; let pending = 0;
+  const rest = clean.slice(from);
+  const re = /[^.!?…]+(?:[.!?…]+["»”)]*\s+|[.!?…]+["»”)]*$)/g;
+  let eaten = 0;
+  for (let m = re.exec(rest); m; m = re.exec(rest)) {
+    buf += m[0]; pending += m[0].length; eaten = m.index + m[0].length;
+    const need = first && chunks.length === 0 ? 28 : 110;
+    if (buf.trim().length >= need) { chunks.push(buf.trim()); to = from + eaten; buf = ''; pending = 0; }
+  }
+  if (final) {
+    const tail = (buf + rest.slice(eaten)).trim();
+    if (tail) chunks.push(tail);
+    to = clean.length;
+  }
+  void pending;
+  return { chunks, to };
+}
+
+/** Le parole sentite sono (quasi) quelle che sta dicendo Theia? Allora è l'eco dell'altoparlante, non l'utente che parla. */
+export function isEcho(heard: string, spoken: string): boolean {
+  const w = (x: string) => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((a) => a.length > 1);
+  const h = w(heard); if (!h.length) return true;
+  const set = new Set(w(spoken));
+  return h.filter((a) => set.has(a)).length / h.length >= 0.6;
+}

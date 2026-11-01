@@ -36,3 +36,71 @@ export async function speak(text: string): Promise<Speaking> {
   setTimeout(end, 120000);
   return { done, stop: end };
 }
+
+export type SpeechStream = {
+  /** aggiunge un pezzo di testo da leggere (parte subito la richiesta della voce; si legge in ordine) */
+  push: (text: string) => void;
+  /** non arriveranno altri pezzi: `done` si chiude quando ha finito di leggere */
+  end: () => void;
+  stop: () => void;
+  done: Promise<void>;
+  /** è partito almeno un pezzo audio */
+  started: () => boolean;
+};
+
+type Prepared = { uri: string; file: File | null };
+async function prepare(text: string): Promise<Prepared> {
+  const r = await aiTts(text);
+  const wav = pcmToWav(base64ToBytes(r.audio), pcmRate(r.mime));
+  if (Platform.OS === 'web') return { uri: `data:audio/wav;base64,${bytesToBase64(wav)}`, file: null };
+  const file = new File(Paths.cache, `theia-voice-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}.wav`);
+  file.create({ overwrite: true }); file.write(wav);
+  return { uri: file.uri, file };
+}
+
+/**
+ * La voce di Theia a pezzi: ogni pezzo viene preparato appena arriva (anche mentre il testo si sta ancora scrivendo) e letto in ordine,
+ * così Theia inizia a parlare dopo le prime frasi. `onPos(i, frazione)` dice a che punto è: serve a far scorrere il testo con la voce.
+ */
+export function createSpeechStream(onPos: (chunk: number, frac: number) => void): SpeechStream {
+  const jobs: Promise<Prepared | null>[] = [];
+  let ended = false, stopped = false, began = false, wake: (() => void) | null = null;
+  let cur: { stop: () => void } | null = null;
+  const poke = () => { const w = wake; wake = null; w?.(); };
+  const done = (async () => {
+    try { await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true }); } catch { /* resta l'impostazione attuale */ }
+    for (let i = 0; !stopped; i++) {
+      while (i >= jobs.length && !ended && !stopped) await new Promise<void>((r) => { wake = r; });
+      if (stopped || i >= jobs.length) break;
+      const p = await jobs[i];
+      if (!p || stopped) { p?.file?.delete(); continue; }
+      began = true;
+      await new Promise<void>((res) => {
+        const player = createAudioPlayer(p.uri);
+        let over = false;
+        const fin = () => {
+          if (over) return; over = true; clearTimeout(guard);
+          try { sub.remove(); } catch { /* già tolto */ }
+          try { player.pause(); player.remove(); } catch { /* già fermo */ }
+          try { p.file?.delete(); } catch { /* la cache si svuota da sola */ }
+          cur = null; res();
+        };
+        const sub = player.addListener('playbackStatusUpdate', (st) => {
+          if (st.didJustFinish) { onPos(i, 1); fin(); return; }
+          if (st.duration > 0) onPos(i, Math.min(1, st.currentTime / st.duration));
+        });
+        const guard = setTimeout(fin, 90000);
+        cur = { stop: fin };
+        onPos(i, 0);
+        player.play();
+      });
+    }
+  })();
+  return {
+    push: (text) => { if (stopped || ended) return; jobs.push(prepare(text).catch(() => null)); poke(); },
+    end: () => { ended = true; poke(); },
+    stop: () => { stopped = true; cur?.stop(); poke(); jobs.forEach((j) => void j.then((p) => { try { p?.file?.delete(); } catch { /* cache */ } })); },
+    done,
+    started: () => began,
+  };
+}

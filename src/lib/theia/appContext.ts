@@ -10,6 +10,7 @@ import { useNet } from '@/store/network';
 import { usePantry } from '@/store/pantry';
 import { useShifts } from '@/store/shifts';
 import { useTravel } from '@/store/travel';
+import { lifeScoreFacts } from '@/lib/assistant/lifeScoreTalk';
 
 /**
  * Tutto ciò che c'è nell'app, in forma compatta, per Theia: i dati veri dell'utente (mai inventati).
@@ -44,6 +45,8 @@ const SECTIONS: Section[] = [
     get: () => { const f = useFin.getState(); const m = useLpMoney.getState(); return compact({ ...pick(f, ['savingsPct', 'vacation', 'budget', 'guidelines', 'bills', 'invoices', 'tax', 'cash', 'trades', 'plans', 'statementInfo', 'insights', 'checks', 'payeeFix', 'moveKind', 'fixedOverrides']), pianoDelMese: pick(useMonthPlan.getState(), ['income', 'extraFixed', 'goals', 'plans', 'savingsAccount', 'answers']), movimentiUltimiMesi: f.months.slice(-4), lifeMoney: pick(m, ['budgets', 'goals', 'roundUpGoal', 'subs', 'requests']) }, 5, 60, 90); } },
   { cat: 'health', id: 'Salute, umore, sonno, mente', re: /(salute|sonno|dorm|passi|umore|stress|mente|medit|cuore|battit|peso|energia|respir|apple|watch|benessere|allenament)/i,
     get: () => compact({ ...pick(useHealth.getState(), ['series', 'dates', 'workouts', 'mindSessions', 'moods', 'wearable', 'extra']), diarioAttivita: insightsOf(useMindSpace.getState().entries) }, 5, 30, 90) },
+  { cat: 'health', id: 'Life Score (punteggio, motivi, fattori)', re: /(life ?score|punteggio|score|recap|riepilogo|riassunto|come sto|benessere|analisi|dashboard|giornata)/i,
+    get: () => ({ lifeScore: lifeScoreFacts() }) },
   { cat: 'fitness', id: 'Fitness, cibo, frigo, piano alimentare', re: /(allenament|palestra|esercizi|scheda|programm|fitness|cibo|mangi|pranz|cena|colazion|ricett|frigo|dispensa|spesa|calorie|kcal|proteine|dieta|pasto|acqua|bere|peso)/i,
     get: () => { const f = useFitness.getState(); const p = usePantry.getState(); return compact({ ...pick(f, ['profile', 'body', 'activeProgram', 'history', 'meals', 'water', 'sub', 'visits', 'lunch', 'lunchLog', 'exDone']), frigo: pick(p, ['items', 'shop', 'plan', 'prefs']) }, 5, 30, 90); } },
   { cat: 'travel', id: 'Viaggi, hotel, turni', re: /(viagg|hotel|volo|vacanz|itinerar|citt|turno|turni|lavoro|orari)/i,

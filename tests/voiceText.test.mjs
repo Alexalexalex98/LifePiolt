@@ -29,3 +29,21 @@ test('base64 e frequenza', () => {
 test('comandi per chiudere', () => {
   assert.equal(wantsToStop('basta'), true); assert.equal(wantsToStop('Basta.'), true); assert.equal(wantsToStop('basta con le spese di ottobre'), false);
 });
+import { takeChunks, sentenceSpans, isEcho, cleanForSpeech } from '../src/lib/voice/voiceText.ts';
+test('takeChunks: il primo pezzo è corto, non taglia frasi, il resto arriva alla fine', () => {
+  const t = 'Certo, ci penso io. Ti dico subito i numeri di oggi: hai fatto 8000 passi e dormito sette ore. Poi ti consiglio una passeggiata serale per chiudere la giornata bene. E domani';
+  const a = takeChunks(t, 0, false, true);
+  assert.equal(a.chunks[0], 'Certo, ci penso io. Ti dico subito i numeri di oggi: hai fatto 8000 passi e dormito sette ore.');
+  const b = takeChunks(t, a.to, false, false);
+  assert.ok(b.chunks.every((c) => /[.!?]$/.test(c)));
+  const c = takeChunks(t, b.to, true, false);
+  assert.match(c.chunks.at(-1), /E domani$/);
+  assert.equal(c.to, t.length);
+});
+test('sentenceSpans e isEcho', () => {
+  const sp = sentenceSpans('Prima frase. Seconda frase! Terza');
+  assert.deepEqual(sp.map((x) => x.start), [0, 13, 28]);
+  assert.equal(isEcho('hai fatto ottomila passi', 'Oggi hai fatto ottomila passi e dormito bene'), true);
+  assert.equal(isEcho('basta Theia fermati', 'Oggi hai fatto ottomila passi'), false);
+  assert.equal(cleanForSpeech(['**Ciao** a tutti']), 'Ciao a tutti');
+});

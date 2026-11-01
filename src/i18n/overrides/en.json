@@ -4507,5 +4507,18 @@
  "Perfetto, l'ho segnata come pagata. Ho preparato la scadenza del prossimo periodo: se l'importo cambia, aggiornalo quando arriva il documento.": "Perfect, marked as paid. I prepared the next period's due date: if the amount changes, update it when the document arrives.",
  "Piano di pagamento creato da Theia": "Payment plan created by Theia",
  "Ricorrenza tolta": "Recurrence removed",
- "Va bene, nessun problema: te lo richiedo tra qualche giorno.": "No problem, I'll check back in a few days."
+ "Va bene, nessun problema: te lo richiedo tra qualche giorno.": "No problem, I'll check back in a few days.",
+ "Da dove partire: {0}": "Where to start: {0}",
+ "I motivi:": "The reasons:",
+ "Il tuo Life Score è {0} su 100 (affidabilità {1}).": "Your Life Score is {0} out of 100 (confidence: {1}).",
+ "Il tuo Life Score è {0} su 100, ma è ancora provvisorio: ho pochi dati.": "Your Life Score is {0} out of 100, but it's still provisional: I have little data.",
+ "Interrompi e parla": "Interrupt and talk",
+ "Lo abbassano: {0}.": "Pulling it down: {0}.",
+ "Lo sostengono: {0}.": "Supporting it: {0}.",
+ "Parlami sopra quando vuoi": "Talk over me whenever you like",
+ "Per calcolare il tuo Life Score mi servono ancora alcuni dati: umore, sonno, movimento. Segnali nei prossimi giorni e te lo mostro con tutti i motivi.": "To calculate your Life Score I still need some data: mood, sleep, movement. Log them over the next few days and I'll show it with all the reasons.",
+ "Riapri la conversazione con {0}": "Reopen the conversation with {0}",
+ "Riduci: continuo mentre usi l'app": "Minimize: I keep going while you use the app",
+ "Sto parlando…": "Speaking…",
+ "Ti sto rispondendo": "Answering you"
 }
