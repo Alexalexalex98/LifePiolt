@@ -21,6 +21,9 @@ export function computeForecast(startCapital: number, monthly: number, annualRet
   return { cash, inv };
 }
 
+/** Paragone storico: media annua dei mercati azionari negli ultimi 20 anni (circa 10% l'S&P 500 e circa 8% l'MSCI World, rendimenti totali nominali in dollari, prima di tasse e costi). Cifre arrotondate: è un riferimento, non una promessa. */
+export const MARKET_20Y = { sp500: 10, world: 8, avg: 9 };
+
 export default function LifeForecast() {
   const t = useTheme();
   const f = useFin();
@@ -29,6 +32,7 @@ export default function LifeForecast() {
   const [ret, setRet] = useState('4');
   const m = Math.max(0, parseFloat(monthly.replace(',', '.')) || 0), r = parseFloat(ret.replace(',', '.')) || 0;
   const { cash, inv } = computeForecast(monthEnd(f.months[0]), m, r);
+  const mk = computeForecast(monthEnd(f.months[0]), m, MARKET_20Y.avg);
   const diff = inv[10] - cash[10];
   /* con un saldo o un risparmio negativo non si può accantonare né investire: si dice chiaramente e non si mostra un'ipotesi priva di senso */
   const canSave = m > 0 && monthEnd(f.months[0]) >= 0;
@@ -78,6 +82,15 @@ export default function LifeForecast() {
         {canSave ? <Item><Row><Body muted>Investendo al rendimento indicato</Body><Body bold>{formatMoney(inv[10])}</Body></Row></Item> : null}
         {canSave ? <Item last><Row><Body muted>Differenza stimata</Body><Body bold color={t.positive}>{diff >= 0 ? '+' : ''}{formatMoney(diff)}</Body></Row></Item> : <Item last><Body small muted>L'ipotesi con investimento si vede quando il saldo è positivo e c'è un importo da accantonare.</Body></Item>}
       </Card>
+      {canSave ? (
+        <Card>
+          <H>Un paragone con il mercato</H>
+          <Body small muted style={{ marginBottom: 8 }}>Se tu avessi un rendimento pari alla media degli ultimi 20 anni dei mercati azionari: circa {MARKET_20Y.sp500}% l'anno per l'S&P 500 e circa {MARKET_20Y.world}% per l'MSCI World, in media {MARKET_20Y.avg}%.</Body>
+          <Item><Row><Body muted>Tra 10 anni con il {MARKET_20Y.avg}% medio</Body><Body bold>{formatMoney(mk.inv[10])}</Body></Row></Item>
+          <Item last><Row><Body muted>Rispetto al tuo {r}%</Body><Body bold color={mk.inv[10] - inv[10] >= 0 ? t.positive : t.danger}>{mk.inv[10] - inv[10] >= 0 ? '+' : ''}{formatMoney(mk.inv[10] - inv[10])}</Body></Row></Item>
+          <Body small muted style={{ marginTop: 8 }}>Il passato non garantisce il futuro: in alcuni anni il mercato ha perso anche il 30-40%. Le cifre sono rendimenti totali nominali, prima di tasse, costi e inflazione, arrotondate.</Body>
+        </Card>
+      ) : null}
       <Card>
         <H>Tappe intermedie</H>
         {[1, 5, 10].map((y, i) => <Item key={y} last={i === 2}><Row><Body muted>Tra {y} {y === 1 ? 'anno' : 'anni'}</Body><View style={{ alignItems: 'flex-end' }}><Body small muted>conto: {formatMoney(cash[y])}</Body>{canSave ? <Body bold>investendo: {formatMoney(inv[y])}</Body> : null}</View></Row></Item>)}
