@@ -25,8 +25,8 @@ export function listenByRecording(recorder: AudioRecorder, lang: string, onLevel
     let noise = -50, spoke = false, quietSince = 0, samples = 0;
     while (!cancelled) {
       await new Promise((r) => setTimeout(r, 110));
-      const st = recorder.getStatus();
-      const db = typeof st.metering === 'number' ? st.metering : -60;
+      let db = -60;
+      try { const st = recorder.getStatus(); db = typeof st.metering === 'number' ? st.metering : -60; } catch { cancelled = true; break; }
       onLevel(Math.max(0, Math.min(1, (db + 55) / 40)));
       const now = Date.now() - t0;
       if (now < 500) { noise = Math.max(noise, Math.min(db, -30)); samples++; continue; }

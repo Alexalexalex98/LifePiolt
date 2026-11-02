@@ -68,6 +68,7 @@ export function createSpeechStream(onPos: (chunk: number, frac: number) => void)
   let cur: { stop: () => void } | null = null;
   const poke = () => { const w = wake; wake = null; w?.(); };
   const done = (async () => {
+   try {
     try { await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true }); } catch { /* resta l'impostazione attuale */ }
     for (let i = 0; !stopped; i++) {
       while (i >= jobs.length && !ended && !stopped) await new Promise<void>((r) => { wake = r; });
@@ -76,7 +77,8 @@ export function createSpeechStream(onPos: (chunk: number, frac: number) => void)
       if (!p || stopped) { p?.file?.delete(); continue; }
       began = true;
       await new Promise<void>((res) => {
-        const player = createAudioPlayer(p.uri);
+        let player: ReturnType<typeof createAudioPlayer>;
+        try { player = createAudioPlayer(p.uri); } catch { try { p.file?.delete(); } catch { /* cache */ } res(); return; }
         let over = false;
         const fin = () => {
           if (over) return; over = true; clearTimeout(guard);
@@ -86,15 +88,18 @@ export function createSpeechStream(onPos: (chunk: number, frac: number) => void)
           cur = null; res();
         };
         const sub = player.addListener('playbackStatusUpdate', (st) => {
-          if (st.didJustFinish) { onPos(i, 1); fin(); return; }
-          if (st.duration > 0) onPos(i, Math.min(1, st.currentTime / st.duration));
+          try {
+            if (st.didJustFinish) { onPos(i, 1); fin(); return; }
+            if (st.duration > 0) onPos(i, Math.min(1, st.currentTime / st.duration));
+          } catch { /* aggiornamento perso */ }
         });
         const guard = setTimeout(fin, 90000);
         cur = { stop: fin };
         onPos(i, 0);
-        player.play();
+        try { player.play(); } catch { fin(); }
       });
     }
+   } catch { /* la voce si ferma: il testo resta scritto */ }
   })();
   return {
     push: (text) => { if (stopped || ended) return; jobs.push(prepare(text).catch(() => null)); poke(); },
