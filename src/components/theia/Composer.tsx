@@ -23,6 +23,7 @@ import { AttachSheet } from './AttachSheet';
 import { LangSheet } from './LangSheet';
 import { CommandSuggest } from './CommandSuggest';
 import { PrivacyBadge, PrivacySheet } from './PrivacyBadge';
+import { useVoiceMode } from '@/store/voiceMode';
 import { useVoiceNote } from './useVoiceNote';
 import { VoiceDiagSheet } from './VoiceDiagSheet';
 import { VoiceNotice } from './VoiceNotice';
@@ -255,7 +256,7 @@ export function Composer({ appLang, busy, placeholder, onSend, openAttach }: {
           </Pressable>
         ) : (
           <Pressable
-            onPress={active ? stopAll : () => void startVoice()}
+            onPress={active ? stopAll : () => useVoiceMode.getState().show()}
             onLongPress={() => setDiagOpen(true)}
             delayLongPress={500}
             accessibilityRole="button"

@@ -140,10 +140,9 @@ export default function LifeChat() {
         <>
           <View style={{ height: 44, marginBottom: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <ScrollView horizontal style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', gap: 8 }}>
-              {/* l'ultima categoria usata sta sempre per prima */}
-              {folders.slice(0, 1).map((f) => <Pill key={f.topic} label={`${f.topic} · ${f.count}`} on={section === f.topic} onPress={() => setSection(f.topic)} />)}
+              {/* «Generale» è sempre la prima voce, poi le altre categorie (l'ultima usata per prima) */}
               <Pill label="Generale" on={section === GENERALE} onPress={() => setSection(GENERALE)} />
-              {folders.slice(1).map((f) => <Pill key={f.topic} label={`${f.topic} · ${f.count}`} on={section === f.topic} onPress={() => setSection(f.topic)} />)}
+              {folders.map((f) => <Pill key={f.topic} label={`${f.topic} · ${f.count}`} on={section === f.topic} onPress={() => setSection(f.topic)} />)}
             </ScrollView>
             <Pressable onPress={() => setBgOpen(true)} accessibilityRole="button" accessibilityLabel={translateText('Sfondo della chat')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="image" size={20} color={t.text} /></Pressable>
             <Pressable onPress={() => { setSearching(true); setQ(''); }} accessibilityRole="button" accessibilityLabel={translateText('Cerca nelle conversazioni')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="search" size={22} color={t.text} /></Pressable>
