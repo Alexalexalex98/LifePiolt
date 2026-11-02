@@ -26,10 +26,11 @@ import { usePantry } from '@/store/pantry';
 import { useShifts } from '@/store/shifts';
 import { toast } from '@/store/toast';
 import { useTravel } from '@/store/travel';
+import { useCreations } from '@/store/creations';
 
 type AnyStore = { getState: () => unknown; setState: (s: never, replace: true) => void; getInitialState: () => unknown };
 const STORES: Record<CatId, AnyStore[]> = {
-  agenda: [useLife, useShifts, useMemos] as unknown as AnyStore[],
+  agenda: [useLife, useShifts, useMemos, useCreations] as unknown as AnyStore[],
   finance: [useFin, useLpMoney] as unknown as AnyStore[],
   health: [useHealth, useMindSpace, usePet, useWellbeing] as unknown as AnyStore[],
   fitness: [useFitness, usePantry] as unknown as AnyStore[],

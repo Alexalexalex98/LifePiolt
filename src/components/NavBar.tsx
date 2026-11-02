@@ -249,6 +249,7 @@ export function MenuSheet() {
       { id: 'lifedrive', label: 'LifeDrive' },
       { id: 'lifetask', label: 'LifeTask', sub: [['projects', 'Progetti', 'projects']] },
       { id: 'lifepointsPage', label: 'LifePoints' },
+      { id: 'creativity', label: 'Creatività' },
       { id: 'theiaPet', label: 'Theia, il gioco' },
     ] },
     { label: 'Account', items: [{ id: 'orders', label: 'I miei ordini' }, { id: 'help', label: 'Aiuto e domande' }, { id: 'settings', label: sn.settings }] },

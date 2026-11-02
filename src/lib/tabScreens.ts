@@ -20,6 +20,7 @@ export const TAB_SCREENS: string[] = [
   'clubStudio',
   'communityProfile',
   'conversationPage',
+  'creativity',
   'creatorStats',
   'dashboardClassic',
   'diagnostics',
