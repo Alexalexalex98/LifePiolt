@@ -6,7 +6,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n/core';
 import { readable } from '@/lib/a11y';
 import type { PlanItem, PlanResult } from '@/lib/bills/plan';
+import { leftAfter, planTotals } from '@/lib/bills/installments';
 import { Icon } from '@/lib/icons';
+import { useFin } from '@/store/finance';
 import { go } from '@/lib/nav';
 import { Note, adviceText, dueText, fmtDay, fmtWeekday, money, useStatusTone } from './shared';
 
@@ -14,6 +16,7 @@ import { Note, adviceText, dueText, fmtDay, fmtWeekday, money, useStatusTone } f
 export function PlanList({ plan, filterId, compact }: { plan: PlanResult; filterId?: string; compact?: boolean }) {
   const th = useTheme();
   const tone = useStatusTone();
+  const invoices = useFin((s) => s.invoices);
   const items = plan.items.filter((x) => !filterId || x.invoiceId === filterId);
   if (!items.length) return <Body small muted>{t('Nessuna scadenza da pianificare.')}</Body>;
   const warn = (it: PlanItem) => it.shortfall != null;
@@ -62,9 +65,15 @@ export function PlanList({ plan, filterId, compact }: { plan: PlanResult; filter
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <Body bold>{money(it.amount, it.currency)}</Body>
-                {!compact && it.balanceAfter != null && !it.foreign && (
-                  <Body small color={warn(it) ? th.danger : th.muted}>{t('Resta {0}', money(it.balanceAfter))}</Body>
-                )}
+                {(() => {
+                  const inv = invoices.find((x) => x.id === it.invoiceId);
+                  if (it.installment && inv?.installments?.length) {
+                    const tot = planTotals(inv);
+                    const k = inv.installments.findIndex((x) => !x.paidAt && x.dueDate === it.dueDate && Math.abs(x.amount - it.amount) < 0.005);
+                    return <Body small muted>{t('Dopo questa restano {0} su {1}', money(k >= 0 ? leftAfter(inv, k) : tot.left, it.currency), money(tot.total, it.currency))}</Body>;
+                  }
+                  return !compact && it.balanceAfter != null && !it.foreign ? <Body small color={warn(it) ? th.danger : th.muted}>{t('Saldo del conto dopo: {0}', money(it.balanceAfter))}</Body> : null;
+                })()}
               </View>
             </Row>
             {it.foreign && <Note>{t('Valuta diversa dal saldo: non conteggiata nella liquidità.')}</Note>}

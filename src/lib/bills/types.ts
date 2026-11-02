@@ -88,6 +88,8 @@ export type Invoice = {
   estimated?: boolean;
   /** L'ultima volta che l'app ha chiesto «com'è andata?» per una scadenza ricorrente non segnata (AAAA-MM-GG): non si insiste. */
   askedAt?: string;
+  /** Theia ha già chiesto delle rate passate non segnate */
+  pastAsked?: boolean;
   /** Sollecito gia' ricevuto (livello). */
   reminderLevel?: number;
   notes?: string;

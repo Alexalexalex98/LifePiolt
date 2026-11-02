@@ -4520,5 +4520,20 @@
  "Riapri la conversazione con {0}": "Reopen the conversation with {0}",
  "Riduci: continuo mentre usi l'app": "Minimize: I keep going while you use the app",
  "Sto parlando…": "Speaking…",
- "Ti sto rispondendo": "Answering you"
+ "Ti sto rispondendo": "Answering you",
+ "{0} rate hanno la scadenza già passata. Le hai già pagate?": "{0} installments are already past due. Have you already paid them?",
+ "Annullato": "Undone",
+ "Dopo questa restano {0} su {1}": "After this one, {0} of {1} remain",
+ "Nel piano di {0} {1} rate hanno la scadenza già passata. Le hai già pagate?": "In the {0} plan, {1} installments are already past due. Have you already paid them?",
+ "Nel piano di {0} una rata ha la scadenza già passata. L'hai già pagata?": "In the {0} plan, one installment is already past due. Have you already paid it?",
+ "Oppure tocca «Pagata» sulle singole rate.": "Or tap “Paid” on each installment.",
+ "Perfetto, le ho segnate come pagate. Le prossime rate restano nel Piano alle loro date.": "Perfect, marked as paid. The next installments stay in the Plan on their dates.",
+ "Saldo del conto dopo: {0}": "Account balance after: {0}",
+ "Scelgo io": "I'll choose",
+ "Segnate come pagate": "Marked as paid",
+ "Sì, è pagata": "Yes, it's paid",
+ "Sì, segnale pagate": "Yes, mark them paid",
+ "Sì, tutte pagate": "Yes, all paid",
+ "Totale {0} · pagate {1} su {2} · restano {3}": "Total {0} · paid {1} of {2} · {3} left",
+ "Una rata ha la scadenza già passata. L'hai già pagata?": "One installment is already past due. Have you already paid it?"
 }

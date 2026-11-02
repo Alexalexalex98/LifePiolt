@@ -1,6 +1,7 @@
 import { t } from '@/i18n/core';
 import { monthName } from '@/i18n/format';
 import { todayIso } from '@/lib/bills/dates';
+import { pastUnpaid } from '@/lib/bills/installments';
 import { findMissing, type Missing } from '@/lib/bills/missing';
 import { go } from '@/lib/nav';
 import { useAssistant } from '@/store/assistant';
@@ -21,14 +22,35 @@ export function askMissingBills(): number {
     // se la risposta non arriva, non si richiede prima di una settimana
     useFin.getState().patchInvoice(m.invoiceId, { askedAt: todayIso() });
   }
-  return list.length;
+  return list.length + askPastInstallments();
+}
+
+/** Piani a rate caricati dopo che alcune scadenze erano già passate: chiedo quali sono già state pagate (una volta sola per piano). */
+export function askPastInstallments(): number {
+  let past = 0;
+  for (const inv of useFin.getState().invoices) {
+    if (past >= 1 || inv.state === 'paid' || inv.pastAsked || !inv.installments?.length) continue;
+    const idx = pastUnpaid(inv, todayIso());
+    if (!idx.length) { useFin.getState().patchInvoice(inv.id, { pastAsked: true }); continue; }
+    const mk = (label: string, op: 'past-paid' | 'past-open'): TheiaAction => ({ kind: 'bill-missing', label, op, invoiceId: inv.id, mkind: 'past', due: inv.installments![idx[0]!]!.dueDate });
+    push(idx.length === 1 ? t('Nel piano di {0} una rata ha la scadenza già passata. L\'hai già pagata?', inv.issuer) : t('Nel piano di {0} {1} rate hanno la scadenza già passata. Le hai già pagate?', inv.issuer, idx.length), [mk(idx.length === 1 ? t('Sì, è pagata') : t('Sì, tutte pagate'), 'past-paid'), mk(t('Scelgo io'), 'past-open'), { kind: 'dismiss', label: t('Non ancora') }]);
+    useFin.getState().patchInvoice(inv.id, { pastAsked: true });
+    past++;
+  }
+  return past;
 }
 
 export function runMissing(a: Extract<TheiaAction, { kind: 'bill-missing' }>): void {
   const fin = useFin.getState();
   const inv = fin.invoices.find((i) => i.id === a.invoiceId);
   if (!inv) { push(t('Non trovo più quella scadenza: la trovi nelle Bollette.')); return; }
-  if (a.op === 'open') { go('billDetail', { id: inv.id }); return; }
+  if (a.op === 'open' || a.op === 'past-open') { go('billDetail', { id: inv.id }); return; }
+  if (a.op === 'past-paid') {
+    const idx = pastUnpaid(inv, todayIso());
+    idx.forEach((k) => useFin.getState().markInvoicePaid(inv.id, { installment: k, date: inv.installments![k]!.dueDate, amount: inv.installments![k]!.amount, record: false }));
+    push(t('Perfetto, le ho segnate come pagate. Le prossime rate restano nel Piano alle loro date.'));
+    return;
+  }
   if (a.op === 'wait') { fin.patchInvoice(inv.id, { askedAt: todayIso() }); push(t('Va bene, nessun problema: te lo richiedo tra qualche giorno.')); return; }
   if (a.op === 'stop') {
     if (a.mkind === 'estimated') fin.delInvoice(inv.id);

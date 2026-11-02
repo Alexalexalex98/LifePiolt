@@ -1,4 +1,5 @@
 import { formatMoney } from '@/i18n/format';
+import { askPastInstallments } from '@/lib/assistant/billMissing';
 import { useFin } from '@/store/finance';
 import { syncBillCalendar } from './calendar';
 
@@ -10,5 +11,5 @@ export function startBillCalendarSync(): void {
   const run = () => syncBillCalendar(useFin.getState().invoices, (i) => formatMoney(i.amount, { currency: i.currency, decimals: 2 }));
   run();
   let timer: ReturnType<typeof setTimeout> | undefined;
-  useFin.subscribe((s, p) => { if (s.invoices === p.invoices) return; if (timer) clearTimeout(timer); timer = setTimeout(run, 400); });
+  useFin.subscribe((s, p) => { if (s.invoices === p.invoices) return; if (timer) clearTimeout(timer); timer = setTimeout(() => { run(); try { askPastInstallments(); } catch { /* si chiede al prossimo avvio */ } }, 600); });
 }

@@ -25,11 +25,14 @@ export default function LifeForecast() {
   const t = useTheme();
   const f = useFin();
   const base = avgRecentNet(f.months);
-  const [monthly, setMonthly] = useState(String(Math.round(base)));
+  const [monthly, setMonthly] = useState(String(Math.max(0, Math.round(base))));
   const [ret, setRet] = useState('4');
-  const m = parseFloat(monthly.replace(',', '.')) || 0, r = parseFloat(ret.replace(',', '.')) || 0;
+  const m = Math.max(0, parseFloat(monthly.replace(',', '.')) || 0), r = parseFloat(ret.replace(',', '.')) || 0;
   const { cash, inv } = computeForecast(monthEnd(f.months[0]), m, r);
   const diff = inv[10] - cash[10];
+  /* con un saldo o un risparmio negativo non si può accantonare né investire: si dice chiaramente e non si mostra un'ipotesi priva di senso */
+  const canSave = m > 0 && monthEnd(f.months[0]) >= 0;
+  const losing = base < 0;
 
   const nonEss = f.categories.filter((c) => !['Affitto', 'Cassa malati', 'Alimentari/Casa'].includes(c.n)).sort((a, b) => b.p - a.p);
   const top = nonEss[0];
@@ -51,6 +54,12 @@ export default function LifeForecast() {
       <Card style={{ borderColor: '#3a2a1a' }}>
         <Body small><Body small bold>Non è una consulenza finanziaria.</Body> È un'ipotesi di come potrebbe evolvere la tua situazione nei prossimi 10 anni, calcolata sullo storico reale dei tuoi movimenti in LifeFinance, con assunzioni semplici (nessun imprevisto, stipendio costante, rendimento medio costante). La realtà sarà diversa: usala come spunto, non come piano.</Body>
       </Card>
+      {losing || monthEnd(f.months[0]) < 0 ? (
+        <Card style={{ borderColor: t.danger }}>
+          <Body bold>{monthEnd(f.months[0]) < 0 ? 'Il saldo è sotto zero: per ora non si può accantonare né investire.' : 'Negli ultimi 3 mesi hai speso più di quanto hai incassato: non c\'è nulla da accantonare.'}</Body>
+          <Body small muted style={{ marginTop: 4 }}>Prima serve rientrare: guarda dove puoi ridurre le spese (qui sotto qualche idea) e ricontrolla tra qualche settimana. Puoi comunque provare un importo che vorresti mettere da parte: lo calcolo solo come ipotesi.</Body>
+        </Card>
+      ) : null}
       <Card>
         <Body small muted style={{ marginBottom: 4 }}>Ipotesi di partenza</Body>
         <Item><Row><Body muted style={{ flex: 1 }}>Risparmio medio mensile (ultimi 3 mesi)</Body><Body bold>{base >= 0 ? '+' : ''}{formatMoney(base)}</Body></Row></Item>
@@ -66,12 +75,12 @@ export default function LifeForecast() {
       <Card>
         <H>Tra 10 anni</H>
         <Item><Row><Body muted>Solo risparmiando (conto)</Body><Body bold>{formatMoney(cash[10])}</Body></Row></Item>
-        <Item><Row><Body muted>Investendo al rendimento indicato</Body><Body bold>{formatMoney(inv[10])}</Body></Row></Item>
-        <Item last><Row><Body muted>Differenza stimata</Body><Body bold color={t.positive}>{diff >= 0 ? '+' : ''}{formatMoney(diff)}</Body></Row></Item>
+        {canSave ? <Item><Row><Body muted>Investendo al rendimento indicato</Body><Body bold>{formatMoney(inv[10])}</Body></Row></Item> : null}
+        {canSave ? <Item last><Row><Body muted>Differenza stimata</Body><Body bold color={t.positive}>{diff >= 0 ? '+' : ''}{formatMoney(diff)}</Body></Row></Item> : <Item last><Body small muted>L'ipotesi con investimento si vede quando il saldo è positivo e c'è un importo da accantonare.</Body></Item>}
       </Card>
       <Card>
         <H>Tappe intermedie</H>
-        {[1, 5, 10].map((y, i) => <Item key={y} last={i === 2}><Row><Body muted>Tra {y} {y === 1 ? 'anno' : 'anni'}</Body><View style={{ alignItems: 'flex-end' }}><Body small muted>conto: {formatMoney(cash[y])}</Body><Body bold>investendo: {formatMoney(inv[y])}</Body></View></Row></Item>)}
+        {[1, 5, 10].map((y, i) => <Item key={y} last={i === 2}><Row><Body muted>Tra {y} {y === 1 ? 'anno' : 'anni'}</Body><View style={{ alignItems: 'flex-end' }}><Body small muted>conto: {formatMoney(cash[y])}</Body>{canSave ? <Body bold>investendo: {formatMoney(inv[y])}</Body> : null}</View></Row></Item>)}
       </Card>
       <Card>
         <H>Qualche accortezza per averne di più</H>

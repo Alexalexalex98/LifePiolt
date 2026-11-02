@@ -13,6 +13,7 @@ import { currentCurrency, fmtDate } from '@/i18n/format';
 import { alertT } from '@/lib/alert';
 import { addBillToCalendar, isInCalendar, removeBillFromCalendar, restoreBillEvents } from '@/lib/bills/calendar';
 import { diffDays } from '@/lib/bills/dates';
+import { pastUnpaid, planTotals } from '@/lib/bills/installments';
 import { openBillFile, fileKind } from '@/lib/bills/files';
 import { inputToAmount, inputToIso, isoToInput } from '@/lib/bills/form';
 import { dueItemsOf, lateCost, nextDueDate, outstanding, splitInstallments, statusOf } from '@/lib/bills/plan';
@@ -207,6 +208,24 @@ export default function BillDetail() {
       {inv.installments?.length ? (
         <Card>
           <H>{t('Rate')}</H>
+          {(() => {
+            const tt = planTotals(inv);
+            const past = pastUnpaid(inv, today);
+            return (
+              <>
+                <Body small muted style={{ marginBottom: 8 }}>{t('Totale {0} · pagate {1} su {2} · restano {3}', money(tt.total, inv.currency), tt.paidCount, tt.count, money(tt.left, inv.currency))}</Body>
+                {open && past.length > 0 ? (
+                  <View style={{ backgroundColor: th.tile, borderRadius: 14, padding: 12, marginBottom: 10 }}>
+                    <Body>{past.length === 1 ? t('Una rata ha la scadenza già passata. L\'hai già pagata?') : t('{0} rate hanno la scadenza già passata. Le hai già pagate?', past.length)}</Body>
+                    <Row gap={8} style={{ justifyContent: 'flex-start', marginTop: 8 }}>
+                      <Btn small title={t('Sì, segnale pagate')} onPress={() => { const prev = inv.installments; past.forEach((k) => f.markInvoicePaid(inv.id, { installment: k, date: prev![k]!.dueDate, amount: prev![k]!.amount, record: false })); showUndoToast(t('Segnate come pagate'), () => f.patchInvoice(inv.id, { installments: prev, state: inv.state, paidAt: inv.paidAt, paidAmount: inv.paidAmount }, 'Annullato')); }} />
+                      <Body small muted style={{ flex: 1 }}>{t('Oppure tocca «Pagata» sulle singole rate.')}</Body>
+                    </Row>
+                  </View>
+                ) : null}
+              </>
+            );
+          })()}
           {inv.installments.map((x, i) => {
             const late = !x.paidAt && diffDays(today, x.dueDate) < 0;
             return (
