@@ -7,7 +7,7 @@ Metti qui i file audio (mp3, m4a, wav, ogg) e poi lancia `npm run sounds:build`:
 | Gruppo (prima di `__`) | Dove compare |
 |---|---|
 | `natura__`   | Suoni › Natura (pioggia, onde, bosco, ruscello…) |
-| `rumori__`   | Suoni › Rumori (bianco, rosa, bruno, ventilatore…) |
+| `rumori__`   | (non più usato: niente rumori bianco/rosa/bruno) |
 | `musica__`   | Suoni › Musica (musica per dormire, per concentrarsi, ambient) |
 | `meditazione__` | Meditazioni con musica o campane di sottofondo |
 | `focus__`    | Solo nella scheda Focus |

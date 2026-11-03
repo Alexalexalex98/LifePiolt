@@ -73,7 +73,4 @@ export const MANIFEST: Sound[] = [
   { id: 'natura__waterfall-ambience', label: "Waterfall ambience", group: 'natura', src: require('../../assets/sounds/natura__waterfall-ambience.mp3') },
   { id: 'natura__wind-in-the-forest-loop', label: "Wind in the forest loop", group: 'natura', src: require('../../assets/sounds/natura__wind-in-the-forest-loop.mp3') },
   { id: 'natura__winter-wind-loop', label: "Winter wind loop", group: 'natura', src: require('../../assets/sounds/natura__winter-wind-loop.mp3') },
-  { id: 'rumori__bianco', label: "Bianco", group: 'rumori', src: require('../../assets/sounds/rumori__bianco.mp3') },
-  { id: 'rumori__bruno', label: "Bruno", group: 'rumori', src: require('../../assets/sounds/rumori__bruno.mp3') },
-  { id: 'rumori__rosa', label: "Rosa", group: 'rumori', src: require('../../assets/sounds/rumori__rosa.mp3') },
 ];

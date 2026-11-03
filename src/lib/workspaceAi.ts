@@ -10,6 +10,7 @@ import { officeText } from '@/lib/officeText';
 import { readUriBytes } from '@/lib/readUri';
 import { WORKSPACE_PROMPT, contextFor, type Doc } from '@/lib/workspaceSearch';
 import { pageText } from '@/lib/workspaceCore';
+import { parseTaskLines } from '@/lib/workspaceViews';
 import { useLife, type DriveFile } from '@/store/life';
 import type { Att } from '@/lib/attachments';
 import { fmtBytes } from '@/lib/attachments';
@@ -176,3 +177,35 @@ export async function focusFile(id: string): Promise<void> {
   if (q) { chat.set({ pending: undefined }); await answerFrom(q, [id]); } else chat.push({ who: 'ai', text: t('Ok, parliamo di «{0}». Cosa vuoi sapere?', f?.n ?? '') });
 }
 export const clearFocus = () => useWorkspaceChat.getState().set({ focus: [], mode: 'ask' });
+
+/** Theia legge una pagina e la riassume (in cima alla pagina) o ne estrae i task in un database. */
+export async function pageAi(pid: string, op: 'summary' | 'tasks'): Promise<{ ok: boolean; msg: string; id?: string }> {
+  const ws = useWorkspace.getState(); const page = ws.pages.find((p) => p.id === pid);
+  if (!page) return { ok: false, msg: t('Pagina non trovata.') };
+  const body = pageText(page).slice(0, 14000);
+  if (body.trim().length < 20) return { ok: false, msg: t('La pagina è troppo corta: scrivi qualcosa e riprova.') };
+  if (!aiServerConfigured) return { ok: false, msg: t('Per questo serve il collegamento con l\'AI: lo attivi in Intelligenza di Theia.') };
+  if (!(await askSend('data', t('Solo il testo di questa pagina. Nessun altro dato dell\'app.')))) return { ok: false, msg: t('Va bene, non invio niente.') };
+  logSend('data', body.length, [page.title || 'pagina']);
+  try {
+    if (op === 'summary') {
+      const r = await aiChatRaw(`Riassumi in italiano, in massimo 5 punti brevi e chiari, il testo seguente. Un punto per riga, ognuno inizia con "- ". Nessuna introduzione.\n\n${body}`);
+      const lines = r.split('\n').map((l) => l.replace(/^\s*[-*•]\s*/, '').trim()).filter(Boolean).slice(0, 6);
+      if (!lines.length) return { ok: false, msg: t('Risposta vuota dal server.') };
+      lines.forEach((tx) => ws.addBlock(pid, 'bullet', tx));
+      ws.addBlock(pid, 'h', t('Riassunto di Theia'));
+      // il titolo va prima dei punti: riordina
+      const cur = useWorkspace.getState().pages.find((p) => p.id === pid)!; const n = lines.length;
+      const tail = cur.blocks.slice(-(n + 1)); const head = cur.blocks.slice(0, -(n + 1));
+      ws.patch(pid, { blocks: [tail[tail.length - 1]!, ...tail.slice(0, -1), ...head] });
+      return { ok: true, msg: t('Ho messo il riassunto in cima alla pagina.') };
+    }
+    const r = await aiChatRaw(`Dal testo seguente estrai i compiti da fare (azioni concrete). Rispondi solo con un elenco, un compito per riga nel formato "- compito | GG/MM" (la data solo se è scritta nel testo, altrimenti ometti il "|"). Massimo 20 righe.\n\n${body}`);
+    const items = parseTaskLines(r);
+    if (!items.length) return { ok: false, msg: t('Non ho trovato compiti in questa pagina.') };
+    const id = ws.fromTemplate(pid, 'compiti', page.teamId);
+    ws.patch(id, { title: t('Task da «{0}»', page.title || t('pagina')), rows: [] });
+    ws.addRows(id, items);
+    return { ok: true, msg: t('Ho creato {0} task in un database nelle sottopagine.', String(items.length)), id };
+  } catch (e) { return { ok: false, msg: e instanceof AiServerError ? e.message : t('Dammi un attimo e riproviamo.') }; }
+}

@@ -206,7 +206,7 @@ export default function Mindfulness() {
             <Body small muted style={{ marginBottom: 8 }}>{tl('Ti sei svegliato e ti agiti? Niente luce, niente ora: ti accompagno a calmarti.')}</Body>
             <Btn title={tl('Mi sono svegliato')} onPress={() => setPlay({ s: SESSION_BY_ID['s6-sos']!, color: '#6e7cff' })} />
           </Card>
-          <Sounds th={th} groups={['natura', 'rumori', 'musica', 'meditazione']} />
+          <Sounds th={th} groups={['natura', 'musica', 'meditazione']} />
           <Card>
             <H>{tl('Esercizi per dormire')}</H>
             {filterExercises({ cat: 'sonno' }).map((e, i, a) => exRow(e, i === a.length - 1))}
@@ -216,7 +216,7 @@ export default function Mindfulness() {
 
       {tab === 'focus' ? (
         <>
-          <Sounds th={th} groups={['focus', 'rumori', 'musica', 'natura']} title={tl('Suoni per concentrarti')} />
+          <Sounds th={th} groups={['focus', 'musica', 'natura']} title={tl('Suoni per concentrarti')} />
           <Card>
             <H>{tl('Playlist su Spotify')}</H>
             <Body small muted style={{ marginBottom: 8 }}>{tl('Ti porto alla ricerca su Spotify, gratis: scegli la playlist che preferisci.')}</Body>

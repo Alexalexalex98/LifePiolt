@@ -1,5 +1,5 @@
 {
- "count": 16694,
+ "count": 16749,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -134,7 +134,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 60,
+  "src/app/(tabs)/workspace.tsx": 75,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -686,9 +686,10 @@
   "src/lib/wellbeing/score.ts": 55,
   "src/lib/when.ts": 11,
   "src/lib/workEstimate.ts": 8,
-  "src/lib/workspaceAi.ts": 21,
+  "src/lib/workspaceAi.ts": 33,
   "src/lib/workspaceCore.ts": 4,
   "src/lib/workspaceSearch.ts": 4,
+  "src/lib/workspaceViews.ts": 51,
   "src/schemas/change.ts": 3,
   "src/schemas/collections.ts": 3,
   "src/social/dmSync.ts": 2,
@@ -731,5 +732,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2050
+ "withPlaceholders": 2055
 }

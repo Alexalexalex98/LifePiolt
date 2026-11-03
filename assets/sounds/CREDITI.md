@@ -2,7 +2,6 @@
 
 Tutti i file qui sotto vengono da **Mixkit** (https://mixkit.co), con la *Mixkit License*: uso gratuito, anche commerciale, senza citazione obbligatoria. I file sono stati accorciati e convertiti a mono per l'app. Licenza: https://mixkit.co/license/
 
-I tre «rumori» (`rumori__*`) sono sintetizzati da noi (scripts/make-sounds.py): nessuna licenza da citare.
 
 | File | Titolo originale | Fonte |
 |---|---|---|

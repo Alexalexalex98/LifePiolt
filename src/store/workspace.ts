@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { persisted } from './persist';
 
+import { TEMPLATES } from '@/lib/workspaceViews';
 import { STATUSES, childrenOf, descendants, type Block, type BlockType, type Col, type ColKind, type Row, type WsComment, type WsPage } from '@/lib/workspaceCore';
 export { STATUSES, childrenOf, descendants, pageText, pathOf, slashCommand } from '@/lib/workspaceCore';
 export type { Block, BlockType, Col, ColKind, Row, WsComment, WsPage } from '@/lib/workspaceCore';
@@ -18,6 +19,8 @@ type State = {
   moveBlock: (pid: string, bid: string, dir: -1 | 1) => void;
   addCol: (pid: string, name: string, kind: ColKind) => void;
   addRow: (pid: string) => string;
+  addRows: (pid: string, items: { title: string; date?: string }[]) => void;
+  fromTemplate: (parent: string | null, tplId: string, teamId?: string) => string;
   patchRow: (pid: string, rid: string, cell: string, v: string) => void;
   delRow: (pid: string, rid: string) => void;
   addComment: (pid: string, text: string) => void;
@@ -45,6 +48,21 @@ export const useWorkspace = create<State>()(
     moveBlock: (pid, bid, dir) => set((s) => upd(s, pid, (p) => { const i = p.blocks.findIndex((b) => b.id === bid); const j = i + dir; if (i < 0 || j < 0 || j >= p.blocks.length) return p; const a = p.blocks.slice(); [a[i], a[j]] = [a[j]!, a[i]!]; return { ...p, blocks: a.map((b, k) => (k === i || k === j ? { ...b, u: Date.now() } : b)) }; })),
     addCol: (pid, name, kind) => set((s) => upd(s, pid, (p) => ({ ...p, cols: [...(p.cols ?? []), { id: uid(), name: name.trim() || 'Colonna', kind, u: Date.now() }] }))),
     addRow: (pid) => { const id = uid(); set((s) => upd(s, pid, (p) => ({ ...p, rows: [...(p.rows ?? []), { id, cells: {}, u: Date.now() }] }))); return id; },
+    addRows: (pid, items) => set((s) => upd(s, pid, (p) => {
+      const cols = p.cols ?? []; const name = cols[0]?.id; const date = cols.find((c) => c.kind === 'date')?.id; const st = cols.find((c) => c.kind === 'status')?.id;
+      if (!name) return p;
+      return { ...p, rows: [...(p.rows ?? []), ...items.map((it) => ({ id: uid(), u: Date.now(), cells: { [name]: it.title, ...(date && it.date ? { [date]: it.date } : {}), ...(st ? { [st]: STATUSES[0]! } : {}) } }))] };
+    })),
+    fromTemplate: (parent, tplId, teamId) => {
+      const tpl = TEMPLATES.find((x) => x.id === tplId); if (!tpl) return get().addPage(parent, 'page', '', teamId);
+      const id = get().addPage(parent, tpl.kind, tpl.name, teamId);
+      if (tpl.kind === 'page') set((s) => upd(s, id, (p) => ({ ...p, blocks: tpl.blocks!.map((b) => ({ id: uid(), t: b.t, text: b.text, u: Date.now() })) })));
+      else {
+        set((s) => upd(s, id, (p) => ({ ...p, cols: tpl.cols!.map((c, i) => ({ id: i === 0 ? 'c1' : i === 1 && c.kind === 'status' ? 'c2' : uid(), name: c.name, kind: c.kind, u: Date.now() })), view: tpl.view ?? 'table' })));
+        get().addRows(id, (tpl.rows ?? []).map((title) => ({ title })));
+      }
+      return id;
+    },
     patchRow: (pid, rid, cell, v) => set((s) => upd(s, pid, (p) => ({ ...p, rows: (p.rows ?? []).map((r) => (r.id === rid ? { ...r, cells: { ...r.cells, [cell]: v }, u: Date.now() } : r)) }))),
     delRow: (pid, rid) => set((s) => upd(s, pid, (p) => ({ ...p, rows: (p.rows ?? []).filter((r) => r.id !== rid), ...(p.teamId ? { tomb: [...(p.tomb ?? []), { id: rid, u: Date.now(), k: 'r' as const }] } : {}) }))),
     addComment: (pid, text) => set((s) => upd(s, pid, (p) => ({ ...p, comments: [...p.comments, { id: uid(), ts: Date.now(), text: text.trim() }] }))),

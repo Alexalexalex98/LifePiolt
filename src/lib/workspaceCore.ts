@@ -7,7 +7,7 @@ export type Row = { id: string; cells: Record<string, string>; u?: number };
 export type WsComment = { id: string; ts: number; text: string };
 export type WsPage = {
   id: string; parent: string | null; title: string; kind: 'page' | 'db'; blocks: Block[];
-  cols?: Col[]; rows?: Row[]; view?: 'table' | 'kanban';
+  cols?: Col[]; rows?: Row[]; view?: 'table' | 'kanban' | 'calendar' | 'gallery'; /** filtro e ordinamento della vista (solo su questo telefono) */ flt?: { col: string; op: 'has' | 'is' | 'not' | 'gt' | 'lt'; v: string } | null; srt?: { col: string; dir: 1 | -1 } | null;
   comments: WsComment[]; /** id dei file di LifeDrive collegati */ files: string[]; updatedAt: number;
   /** pagina condivisa con un team (si sincronizza in tempo reale) */ teamId?: string; titleU?: number;
   /** elementi eliminati (blocchi, righe, colonne, file) da comunicare agli altri: k = b blocco, r riga, c colonna, f file */ tomb?: { id: string; u: number; k: 'b' | 'r' | 'c' | 'f' }[];
