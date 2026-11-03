@@ -63,6 +63,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
   const { addPage } = useWorkspace.getState();
   const [tab, setTab] = useState<Tab>('pagine');
   const [tplOpen, setTplOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [q, setQ] = useState('');
   const [hits, setHits] = useState<SearchHit[]>([]);
   useEffect(() => { let on = true; const h = setTimeout(() => { void searchWorkspace(q).then((r) => { if (on) setHits(r); }); }, 250); return () => { on = false; clearTimeout(h); }; }, [q, pages]);
@@ -105,7 +106,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
 
       <View style={{ flexDirection: 'row', backgroundColor: th.card, borderRadius: 16, padding: 4, borderWidth: 1, borderColor: th.border, marginTop: 12, marginBottom: 12 }}>
         {([['pagine', 'Pagine', 'note'], ['file', 'File', 'file'], ['theia', 'Theia Lavoro', 'sparkle']] as const).map(([id, l, ic]) => (
-          <Pressable key={id} onPress={() => setTab(id)} accessibilityRole="button" accessibilityState={{ selected: tab === id }} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 12, backgroundColor: tab === id ? th.text : 'transparent' }}>
+          <Pressable key={id} onPress={() => { setTab(id); if (id === 'theia') setChatOpen(true); }} accessibilityRole="button" accessibilityState={{ selected: tab === id }} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 12, backgroundColor: tab === id ? th.text : 'transparent' }}>
             <Icon name={ic} size={15} color={tab === id ? th.onText : th.muted} stroke={2.2} /><Text style={{ color: tab === id ? th.onText : th.muted, fontWeight: '800', fontSize: 13 }}>{tl(l)}</Text>
           </Pressable>
         ))}
@@ -139,11 +140,29 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
         </View>
       ) : null}
       {tab === 'file' ? <Files onChat={() => setTab('theia')} /> : null}
-      {tab === 'theia' ? <WorkChat /> : null}
+      {tab === 'theia' ? <WorkLauncher onOpen={() => setChatOpen(true)} /> : null}
+      {chatOpen ? <WorkChat onClose={() => setChatOpen(false)} /> : null}
       <Sheet visible={tplOpen} title={tl('Parti da un modello')} onClose={() => setTplOpen(false)}>
         <View style={{ gap: 8 }}>{TEMPLATES.map((x) => <Pressable key={x.id} onPress={() => { setTplOpen(false); onOpen(useWorkspace.getState().fromTemplate(null, x.id)); }} accessibilityRole="button" style={{ backgroundColor: th.card, borderRadius: 14, borderWidth: 1, borderColor: th.border, padding: 12 }}><Text style={{ color: th.text, fontWeight: '800' }}>{tl(x.name)}</Text><Text style={{ color: th.muted, fontSize: 12, marginTop: 2 }}>{tl(x.hint)}</Text></Pressable>)}</View>
       </Sheet>
     </Page>
+  );
+}
+
+function WorkLauncher({ onOpen }: { onOpen: () => void }) {
+  const th = useTheme();
+  const log = useWorkspaceChat((s) => s.log);
+  const last = [...log].reverse().find((m) => m.who === 'ai');
+  const n = workspaceFiles().length;
+  return (
+    <Pressable onPress={onOpen} accessibilityRole="button" style={{ backgroundColor: th.card, borderRadius: 22, borderWidth: 1, borderColor: th.border, padding: 18, gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Mascot size={52} color={th.accent} expression="happy" />
+        <View style={{ flex: 1 }}><Text style={{ color: th.text, fontSize: 18, fontWeight: '800' }}>Theia Lavoro</Text><Text style={{ color: th.muted, fontSize: 13 }}>{n ? tl('{0} file e tutte le tue pagine a portata di domanda', n) : tl('Leggo pagine, database e file del workspace')}</Text></View>
+      </View>
+      {last ? <Text numberOfLines={3} style={{ color: th.muted, fontSize: 13.5, lineHeight: 19 }}>{last.text}</Text> : null}
+      <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: th.text, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11 }}><Icon name="sparkle" size={15} color={th.onText} /><Text style={{ color: th.onText, fontWeight: '800' }}>{log.length ? tl('Riprendi la conversazione') : tl('Apri la chat')}</Text></View>
+    </Pressable>
   );
 }
 

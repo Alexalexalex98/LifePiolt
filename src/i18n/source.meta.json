@@ -1,5 +1,5 @@
 {
- "count": 16749,
+ "count": 16730,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -134,7 +134,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 75,
+  "src/app/(tabs)/workspace.tsx": 79,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -352,7 +352,7 @@
   "src/components/tour/TourOverlay.tsx": 8,
   "src/components/tour/TutorialSettings.tsx": 13,
   "src/components/ui.tsx": 12,
-  "src/components/workspace/WorkChat.tsx": 18,
+  "src/components/workspace/WorkChat.tsx": 20,
   "src/data/areas.ts": 8,
   "src/data/clubSeed.ts": 100,
   "src/data/features.ts": 103,
@@ -641,7 +641,7 @@
   "src/lib/shopActions.ts": 8,
   "src/lib/shopSeed.ts": 56,
   "src/lib/sleepSounds.ts": 5,
-  "src/lib/soundsManifest.ts": 73,
+  "src/lib/soundsManifest.ts": 47,
   "src/lib/speech.ts": 4,
   "src/lib/speechCore.ts": 29,
   "src/lib/spendingReport.ts": 6,
@@ -676,6 +676,7 @@
   "src/lib/urgentPin.ts": 3,
   "src/lib/vacationPlan.ts": 7,
   "src/lib/voice/recordListen.ts": 1,
+  "src/lib/voice/speechEngine.ts": 2,
   "src/lib/voice/voiceText.ts": 1,
   "src/lib/weather.ts": 15,
   "src/lib/wellbeing.ts": 12,
@@ -732,5 +733,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2055
+ "withPlaceholders": 2057
 }

@@ -86,11 +86,12 @@ async function prepare(text: string, style?: string): Promise<Prepared> {
  * La voce di Theia a pezzi: ogni pezzo viene preparato appena arriva (anche mentre il testo si sta ancora scrivendo) e letto in ordine,
  * così Theia inizia a parlare dopo le prime frasi. `onPos(i, frazione)` dice a che punto è: serve a far scorrere il testo con la voce.
  */
-export function createSpeechStream(onPos: (chunk: number, frac: number) => void, opts: { recording?: boolean; /** come leggere: vedi VOICE_STYLES */ style?: string } = {}): SpeechStream {
+export function createSpeechStream(onPos: (chunk: number, frac: number) => void, opts: { recording?: boolean; /** come leggere: vedi VOICE_STYLES */ style?: string; /** la voce Gemini non risponde (quota, rete): riceve l'indice del pezzo che è fallito */ onFail?: (index: number, why: string) => void } = {}): SpeechStream {
   type Job = { text?: string; pause?: number; p?: Promise<Prepared | null> };
   const jobs: Job[] = [];
+  let failed = false;
   const AHEAD = 3; // si preparano al massimo 3 frasi in anticipo (poche richieste alla volta, la voce parte subito)
-  const ensure = (i: number) => { for (let k = i; k <= i + AHEAD && k < jobs.length; k++) { const j = jobs[k]!; if (j.text !== undefined && !j.p) j.p = prepare(j.text, opts.style).catch(() => null); } };
+  const ensure = (i: number) => { for (let k = i; k <= i + AHEAD && k < jobs.length; k++) { const j = jobs[k]!; if (j.text !== undefined && !j.p) j.p = prepare(j.text, opts.style).catch((e: unknown) => { if (!failed) { failed = true; opts.onFail?.(k, e instanceof Error ? e.message : String(e)); } return null; }); } };
   let ended = false, stopped = false, began = false, wake: (() => void) | null = null;
   let cur: { stop: () => void } | null = null;
   const poke = () => { const w = wake; wake = null; w?.(); };
