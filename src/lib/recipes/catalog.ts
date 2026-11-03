@@ -5,8 +5,10 @@ import { itemName, parseBook, slug, stepsFromMethod, type FullRecipe, type RCat 
 import { C1 } from './data/c1.ts';
 import { C2 } from './data/c2.ts';
 import { C3 } from './data/c3.ts';
+import { C4 } from './data/c4.ts';
+import { C5 } from './data/c5.ts';
 
-const SOURCES: string[] = [C1, C2, C3];
+const SOURCES: string[] = [C1, C2, C3, C4, C5];
 
 const catOf = (name: string, items: string): RCat => {
   const x = (name + ' ' + items).toLowerCase();
