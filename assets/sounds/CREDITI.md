@@ -52,3 +52,7 @@ Tutti i file qui sotto vengono da **Mixkit** (https://mixkit.co), con la *Mixkit
 | musica__spirit-in-the-woods-2.mp3 | Spirit in the Woods 2 | https://assets.mixkit.co/music/147/147.mp3 |
 | musica__feedback-dreams.mp3 | Feedback Dreams | https://assets.mixkit.co/music/588/588.mp3 |
 | focus__relax-beat.mp3 | Relax Beat | https://assets.mixkit.co/music/292/292.mp3 |
+
+## Voce di Theia (assets/voice)
+
+Le frasi dei programmi e degli esercizi sono registrate con la voce italiana «paola» di Piper (https://github.com/rhasspy/piper), addestrata sul dataset di Paola Persico: modello pubblicato con licenza CC0 (pubblico dominio) in https://huggingface.co/paolapersico1/Piper-TTS-Italian. Generate con `scripts/voice/generate.py`.

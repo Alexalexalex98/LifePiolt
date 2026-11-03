@@ -4,6 +4,7 @@ import { checksum } from '@/db/checksum';
 import { Platform } from 'react-native';
 
 import { aiTts } from '@/lib/aiServer';
+import { bundledClip } from './bundled';
 import { bytesToBase64 } from '@/lib/readUri';
 import { base64ToBytes, pcmRate, pcmToWav } from './voiceText';
 
@@ -51,7 +52,7 @@ export type SpeechStream = {
   started: () => boolean;
 };
 
-type Prepared = { uri: string; file: File | null; /** file nella cache: non si cancella dopo l'ascolto */ keep?: boolean };
+type Prepared = { uri: string | number; file: File | null; /** file nella cache: non si cancella dopo l'ascolto */ keep?: boolean };
 
 /** Cache su disco delle frasi già lette da Gemini: riascoltare lo stesso esercizio non costa una nuova richiesta. Al massimo MAX_CACHE file. */
 const MAX_CACHE = 60;
@@ -64,6 +65,8 @@ function trimCache(dir: Directory) {
   } catch { /* senza pulizia */ }
 }
 async function prepare(text: string, style?: string): Promise<Prepared> {
+  const clip = bundledClip(text);
+  if (clip != null) return { uri: clip, file: null, keep: true };
   const key = checksum(`${style ?? ''}|${text}`).replace(/[^a-z0-9]/gi, '');
   if (Platform.OS !== 'web') {
     const dir = cacheDir();

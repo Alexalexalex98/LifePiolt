@@ -16,7 +16,7 @@ export const geminiIsDown = (): boolean => Date.now() < geminiDownUntil;
 export function makeSpeechStream(onPos: (chunk: number, frac: number) => void, opts: { style?: string; recording?: boolean; /** nessuna voce disponibile (né Gemini né telefono) */ onUnavailable?: (why: string) => void } = {}): SpeechStream {
   const engine = useVoicePrefs.getState().engine;
   const local = () => createLocalSpeech(localeFor(useApp.getState().language), onPos);
-  if ((engine === 'device' || geminiIsDown()) && localSpeechAvailable()) { const s = local(); if (s) return s; }
+  if (engine === 'device' && localSpeechAvailable()) { const s = local(); if (s) return s; }
   /* Gemini con ripiego: se il primo pezzo fallisce, i pezzi rimasti passano alla voce del telefono */
   type Item = { text?: string; ms?: number };
   const items: Item[] = []; let ended = false;

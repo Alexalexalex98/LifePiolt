@@ -164,12 +164,12 @@ export default function Mindfulness() {
           </Card>
           <Card>
             <H>{tl('Voce')}</H>
-            <Body small muted style={{ marginBottom: 8 }}>{tl('Con quale voce ti leggo gli esercizi e ti rispondo? Quella del telefono è gratis e funziona anche senza internet; Gemini è più naturale ma consuma il tuo piano (le frasi già lette restano salvate e non si pagano di nuovo).')}</Body>
+            <Body small muted style={{ marginBottom: 8 }}>{tl('Con quale voce ti leggo gli esercizi? La voce di Theia è registrata dentro l'app: funziona anche senza internet. Quella del telefono è più semplice.')}</Body>
             <Row gap={8} style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
               <Pill label={tl('Voce del telefono (gratis)')} on={engine === 'device'} onPress={() => setEngine('device')} />
-              <Pill label={tl('Voce Gemini')} on={engine === 'gemini'} onPress={() => setEngine('gemini')} />
+              <Pill label={tl('Voce di Theia (registrata)')} on={engine === 'gemini'} onPress={() => setEngine('gemini')} />
             </Row>
-            {engine === 'device' && !deviceVoiceAvailable() ? <Body small muted style={{ marginTop: 8 }}>{tl('La voce del telefono non è ancora installata in questa versione: per ora uso Gemini. Aggiorna l\'app (npm install) per attivarla.')}</Body> : null}
+            {engine === 'device' && !deviceVoiceAvailable() ? <Body small muted style={{ marginTop: 8 }}>{tl('La voce del telefono non è ancora installata in questa versione: uso la voce di Theia.')}</Body> : null}
           </Card>
           <Card>
             <H>{tl('Diario del benessere')}</H>
