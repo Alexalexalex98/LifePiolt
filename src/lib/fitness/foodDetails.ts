@@ -51,7 +51,7 @@ export function parseDetails(code: string, json: unknown): ProductDetails | null
   const name = (typeof p.product_name === 'string' && p.product_name.trim()) || (typeof p.generic_name === 'string' && p.generic_name.trim()) || '';
   if (!name) return null;
   const tag = (s: string) => s.replace(/^[a-z]{2}:/, '');
-  const adds: Additive[] = strs(p.additives_tags).map((t) => { const c = tag(t).toLowerCase(); const hit = ADDITIVES[c]; return { code: c.toUpperCase(), name: hit?.[0] ?? `E${c.slice(1).toUpperCase()}`, risk: hit?.[1] ?? 1 }; });
+  const adds: Additive[] = strs(p.additives_tags).map((t) => { const c0 = tag(t).toLowerCase(); const base = c0.replace(/(vii|vi|iv|iii|ii|i|v)$/, ''); const hit = ADDITIVES[c0] ?? (base !== c0 ? ADDITIVES[base] : undefined); const c = hit && !ADDITIVES[c0] ? base : c0; return { code: c.toUpperCase(), name: hit?.[0] ?? `E${c.slice(1).toUpperCase()}`, risk: hit?.[1] ?? 1 }; });
   const analysis = strs(p.ingredients_analysis_tags);
   const labels = [...new Set(strs(p.labels_tags).map((t) => LABEL_NAMES[t] ?? '').filter(Boolean))];
   const kcal100 = num(m['energy-kcal_100g']) ?? (num(m['energy_100g']) != null ? num(m['energy_100g'])! / 4.184 : undefined);
@@ -72,7 +72,7 @@ export function parseDetails(code: string, json: unknown): ProductDetails | null
     ingredients: text || undefined, ingredientsCount: num(p.ingredients_n), palmOil: analysis.includes('en:palm-oil') ? true : analysis.includes('en:palm-oil-free') ? false : undefined,
     vegan: analysis.includes('en:vegan') ? true : analysis.includes('en:non-vegan') ? false : undefined, vegetarian: analysis.includes('en:vegetarian') ? true : analysis.includes('en:non-vegetarian') ? false : undefined,
     additives: adds, allergens: strs(p.allergens_tags).map((t) => ALLERGEN_IT[tag(t)] ?? clean(t)), traces: strs(p.traces_tags).map((t) => ALLERGEN_IT[tag(t)] ?? clean(t)),
-    labels, organic: labels.some((l) => l.startsWith('Biologico')), origins: ps('origins'), places: ps('manufacturing_places'), countries: strs(p.countries_tags).map((t) => clean(t)).slice(0, 5), packaging: ps('packaging'), stores: ps('stores'),
+    labels, organic: labels.some((l) => l.startsWith('Biologico')), origins: ps('origins'), places: ps('manufacturing_places'), countries: strs(p.countries_tags).map((t) => clean(t)).slice(0, 5), packaging: /unknown|^$/i.test(ps('packaging') ?? '') ? undefined : ps('packaging'), stores: ps('stores'),
     ...(ns ? { nutriscore: { grade: ns, score: num(p.nutriscore_score) } } : {}), ...(nova && nova >= 1 && nova <= 4 ? { nova } : {}), ...(eg || num(p.ecoscore_score) != null ? { eco: { grade: eg, score: num(p.ecoscore_score) } } : {}),
     levels, micros,
     per100: { kcal: kcal100 != null ? Math.round(kcal100) : undefined, fat: per('fat'), sat: per('saturated-fat'), carbs: per('carbohydrates'), sugars: per('sugars'), fiber: per('fiber'), protein: per('proteins'), salt: per('salt'), sodium: per('sodium'), mono: per('monounsaturated-fat'), poly: per('polyunsaturated-fat'), chol: per('cholesterol') },
@@ -103,7 +103,7 @@ export function estimateNutrition(p: ProductDetails['per100']): number | undefin
   if (p.kcal != null) v -= clamp((p.kcal - 250) / 12, 0, 20);
   if (p.fiber != null) v += clamp(p.fiber * 3, 0, 15);
   if (p.protein != null) v += clamp(p.protein * 0.9, 0, 12);
-  return clamp(v);
+  return clamp(v, 6, 100);
 }
 
 export function healthScore(d: ProductDetails): Score {

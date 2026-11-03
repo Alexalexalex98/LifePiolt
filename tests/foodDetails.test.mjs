@@ -24,3 +24,7 @@ test('stima senza Nutri-Score e prodotto con additivo vietato', () => {
   const d = parseDetails('3', { status: 1, product: { product_name: 'Caramelle', additives_tags: ['en:e171'], ingredients_text: 'zucchero', nutriments: { 'energy-kcal_100g': 380, sugars_100g: 70 } } });
   const s = healthScore(d); assert.ok(s.score <= 54); assert.ok(s.confidence > 0 && s.confidence <= 100);
 });
+test('additivi con numeri romani e imballaggio sconosciuto', () => {
+  const d = parseDetails('4', { status: 1, product: { product_name: 'Biscotto', packaging: 'Unknown packaging', additives_tags: ['en:e450i', 'en:e500ii'], nutriments: { 'energy-kcal_100g': 480, sugars_100g: 30 } } });
+  assert.deepEqual(d.additives.map((a) => [a.code, a.risk]), [['E450', 2], ['E500', 0]]); assert.equal(d.packaging, undefined);
+});
