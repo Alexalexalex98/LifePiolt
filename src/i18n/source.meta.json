@@ -1,5 +1,5 @@
 {
- "count": 16729,
+ "count": 16804,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -25,6 +25,7 @@
   "src/app/(tabs)/creatorStats.tsx": 48,
   "src/app/(tabs)/dashboardClassic.tsx": 63,
   "src/app/(tabs)/diagnostics.tsx": 13,
+  "src/app/(tabs)/diary.tsx": 58,
   "src/app/(tabs)/docView.tsx": 2,
   "src/app/(tabs)/editProfile.tsx": 38,
   "src/app/(tabs)/extraCheck.tsx": 18,
@@ -80,7 +81,7 @@
   "src/app/(tabs)/mascot.tsx": 1,
   "src/app/(tabs)/menuPage.tsx": 28,
   "src/app/(tabs)/messagesPage.tsx": 37,
-  "src/app/(tabs)/mindfulness.tsx": 76,
+  "src/app/(tabs)/mindfulness.tsx": 77,
   "src/app/(tabs)/monthPlan.tsx": 73,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,
@@ -174,7 +175,7 @@
   "src/components/MonthCalcCard.tsx": 30,
   "src/components/MoodChart.tsx": 6,
   "src/components/MoodCheckinPrompt.tsx": 21,
-  "src/components/NavBar.tsx": 39,
+  "src/components/NavBar.tsx": 40,
   "src/components/NetSheets.tsx": 333,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 46,
@@ -246,7 +247,7 @@
   "src/components/dash/DashGrid.tsx": 4,
   "src/components/dash/Sheets.tsx": 26,
   "src/components/dash/data.tsx": 1,
-  "src/components/dash/registry.ts": 161,
+  "src/components/dash/registry.ts": 164,
   "src/components/dash/widgetsA.tsx": 54,
   "src/components/dash/widgetsB.tsx": 42,
   "src/components/dash/widgetsC.tsx": 33,
@@ -379,6 +380,7 @@
   "src/domain/handlers.ts": 4,
   "src/domain/operation.ts": 1,
   "src/domain/operations.ts": 10,
+  "src/hooks/use-dictation.ts": 4,
   "src/lib/a11y.ts": 1,
   "src/lib/accountApi.ts": 13,
   "src/lib/accountCore.ts": 13,
@@ -549,6 +551,9 @@
   "src/lib/invoice.ts": 21,
   "src/lib/jobFiles.ts": 2,
   "src/lib/jobFit.ts": 3,
+  "src/lib/journalAi.ts": 7,
+  "src/lib/journalCore.ts": 28,
+  "src/lib/journalShare.ts": 4,
   "src/lib/knowledge.ts": 14,
   "src/lib/lifeBalance.ts": 90,
   "src/lib/lifepay.ts": 10,
@@ -733,5 +738,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2057
+ "withPlaceholders": 2063
 }

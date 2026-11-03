@@ -171,6 +171,9 @@ export default function Mindfulness() {
             </Row>
             {engine === 'device' && !deviceVoiceAvailable() ? <Body small muted style={{ marginTop: 8 }}>{tl('La voce del telefono non è ancora installata in questa versione: uso la voce di Theia.')}</Body> : null}
           </Card>
+          <Card onPress={() => go('diary')}>
+            <Row gap={12}><Icon name="note" size={26} color={th.accent} /><View style={{ flex: 1 }}><H>{tl('Il tuo diario')}</H><Body small muted>{tl('Una pagina al giorno: scrivi o parla. Resta tra te e il diario; Theia lo legge solo per l\'analisi, se vuoi.')}</Body></View></Row>
+          </Card>
           <Card>
             <H>{tl('Diario del benessere')}</H>
             <Body small muted style={{ marginBottom: 8 }}>{tl('Un riepilogo di umore, energia, esercizi e questionari da condividere con uno psicologo, un medico o un nutrizionista. Lo mandi solo tu, a chi vuoi.')}</Body>

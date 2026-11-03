@@ -8,7 +8,10 @@ export function clipKey(text: string): string {
   return h.toString(16).padStart(8, '0');
 }
 /** La registrazione già inclusa nell'app per questa frase (voce italiana «Paola», Piper, CC0), se c'è. */
+/** Interruttore: le registrazioni si usano solo dopo che la voce è stata approvata all'ascolto. */
+export const BUNDLED_VOICE_ENABLED = false;
 export function bundledClip(text: string): number | null {
+  if (!BUNDLED_VOICE_ENABLED) return null;
   const m = VOICE_CLIPS[clipKey(text)];
   return m == null ? null : m;
 }

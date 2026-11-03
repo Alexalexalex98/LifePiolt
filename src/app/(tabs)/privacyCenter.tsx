@@ -19,6 +19,7 @@ import { useMemos } from '@/store/memos';
 import { WB_CONSENT_TEXT, WB_LIMITS } from '@/lib/assistant/wellbeingFlow';
 import { useLife } from '@/store/life';
 import { useMindSpace } from '@/store/mindSpace';
+import { useJournal } from '@/store/journal';
 import { usePet } from '@/store/pet';
 import { useLpMoney } from '@/store/lpMoney';
 import { useNet } from '@/store/network';
@@ -32,7 +33,7 @@ type AnyStore = { getState: () => unknown; setState: (s: never, replace: true) =
 const STORES: Record<CatId, AnyStore[]> = {
   agenda: [useLife, useShifts, useMemos, useCreations] as unknown as AnyStore[],
   finance: [useFin, useLpMoney] as unknown as AnyStore[],
-  health: [useHealth, useMindSpace, usePet, useWellbeing] as unknown as AnyStore[],
+  health: [useHealth, useMindSpace, usePet, useWellbeing, useJournal] as unknown as AnyStore[],
   fitness: [useFitness, usePantry] as unknown as AnyStore[],
   travel: [useTravel] as unknown as AnyStore[],
   network: [useNet, useClub] as unknown as AnyStore[],

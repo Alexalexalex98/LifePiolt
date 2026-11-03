@@ -24,6 +24,7 @@ export const TAB_SCREENS: string[] = [
   'creatorStats',
   'dashboardClassic',
   'diagnostics',
+  'diary',
   'docView',
   'editProfile',
   'extraCheck',
