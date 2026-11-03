@@ -6,6 +6,7 @@ import { applyTransport, ensureEngine, getTransport } from '@/sync/bindings';
 import { loadServerConfig } from '@/sync/secure';
 import { SupabaseTransport } from '@/sync/supabaseTransport';
 import { useAccount } from '@/store/account';
+import { useTrial } from '@/store/trial';
 import { useApp } from '@/store/app';
 import { stopDmSync } from '@/social/dmSync';
 
@@ -28,7 +29,7 @@ export async function backend(): Promise<Backend> {
   return __DEV__ || process.env.EXPO_PUBLIC_ACCOUNT_TEST === '1' ? 'test' : 'none';
 }
 
-async function supa(): Promise<SupabaseTransport> {
+export async function supa(): Promise<SupabaseTransport> {
   await ensureEngine();
   if (getTransport().name !== 'supabase') await applyTransport();
   const tr = getTransport();
@@ -121,4 +122,14 @@ export async function deleteAccountEverywhere(): Promise<Res> {
     await signOutAccount();
     return { ok: true };
   } catch (e) { return { ok: false, message: msg(e) }; }
+}
+
+/** La prova dei 14 giorni vive sul server (legata all'email): cambiare telefono o riscaricare l'app non la azzera. Senza rete resta l'ultimo valore noto. */
+export async function syncTrial(): Promise<void> {
+  try {
+    if ((await backend()) !== 'server' || useAccount.getState().status !== 'verified') return;
+    const r = await (await supa()).rpc<{ started_at?: string; plan?: string }>('trial_status');
+    const at = r?.started_at ? Date.parse(r.started_at) : NaN;
+    if (Number.isFinite(at)) useTrial.getState().set({ startedAt: at, plan: r?.plan ?? 'free', syncedAt: Date.now() });
+  } catch { /* offline o server non raggiungibile: si usa l'ultimo valore */ }
 }

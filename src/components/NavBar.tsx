@@ -252,7 +252,7 @@ export function MenuSheet() {
       { id: 'creativity', label: 'Creatività' },
       { id: 'theiaPet', label: 'Theia, il gioco' },
     ] },
-    { label: 'Account', items: [{ id: 'orders', label: 'I miei ordini' }, { id: 'help', label: 'Aiuto e domande' }, { id: 'settings', label: sn.settings }] },
+    { label: 'Account', items: [{ id: 'trial', label: 'I tuoi 14 giorni' }, { id: 'orders', label: 'I miei ordini' }, { id: 'help', label: 'Aiuto e domande' }, { id: 'settings', label: sn.settings }] },
   ];
   const [openRows, setOpenRows] = useState<Record<string, boolean>>({});
   return (

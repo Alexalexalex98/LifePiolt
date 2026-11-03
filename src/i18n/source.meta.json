@@ -1,5 +1,5 @@
 {
- "count": 15548,
+ "count": 15581,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -124,12 +124,13 @@
   "src/app/(tabs)/syncSettings.tsx": 2,
   "src/app/(tabs)/taxdecl.tsx": 77,
   "src/app/(tabs)/theiaPet.tsx": 131,
+  "src/app/(tabs)/trial.tsx": 8,
   "src/app/(tabs)/userProfile.tsx": 51,
   "src/app/(tabs)/vacationPlan.tsx": 32,
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/onboarding.tsx": 10,
+  "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 42,
   "src/components/AddMovementSheet.tsx": 29,
   "src/components/AiNote.tsx": 2,
@@ -168,7 +169,7 @@
   "src/components/MonthCalcCard.tsx": 30,
   "src/components/MoodChart.tsx": 6,
   "src/components/MoodCheckinPrompt.tsx": 21,
-  "src/components/NavBar.tsx": 36,
+  "src/components/NavBar.tsx": 37,
   "src/components/NetSheets.tsx": 333,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 46,
@@ -415,6 +416,7 @@
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
   "src/lib/assistant/theiaFlow.ts": 168,
+  "src/lib/assistant/trialNote.ts": 8,
   "src/lib/assistant/wellbeingFlow.ts": 39,
   "src/lib/assistantCommands.ts": 46,
   "src/lib/attachments.ts": 20,
@@ -646,6 +648,7 @@
   "src/lib/themeCustom.ts": 17,
   "src/lib/tour.ts": 47,
   "src/lib/travel.ts": 38,
+  "src/lib/trialJourney.ts": 16,
   "src/lib/tripPlanner.ts": 102,
   "src/lib/tutorials.ts": 161,
   "src/lib/urgentPin.ts": 3,
@@ -700,5 +703,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 1995
+ "withPlaceholders": 2001
 }
