@@ -102,11 +102,8 @@ def pad(chords, period, seed):
 SLEEP = [[110, 164.81, 220], [98, 146.83, 196], [87.31, 130.81, 174.61], [98, 146.83, 196]]
 CALM = [[130.81, 196, 261.63, 329.63], [110, 164.81, 220, 261.63], [87.31, 130.81, 174.61, 220], [98, 146.83, 196, 246.94]]
 
-SOUNDS = {
-    'pioggia': rain, 'onde': ocean, 'vento': wind, 'rumore-bruno': brown, 'rumore-rosa': pink, 'rumore-bianco': white,
-    'fuoco': fire, 'ruscello': stream, 'grilli': crickets,
-    'musica-sonno': lambda: pad(SLEEP, 10, 20), 'musica-calma': lambda: pad(CALM, 10, 21),
-}
+# Solo i rumori colorati (bianco, rosa, bruno) funzionano bene da sintetizzare. Pioggia, onde, musica ecc. vanno presi da registrazioni vere (vedi assets/sounds/LEGGIMI.md).
+SOUNDS = {'rumori__bruno': brown, 'rumori__rosa': pink, 'rumori__bianco': white}
 
 def write(name, x):
     os.makedirs(OUT, exist_ok=True)

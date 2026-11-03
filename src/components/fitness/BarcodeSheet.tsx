@@ -44,13 +44,16 @@ export function BarcodeSheet({ visible, onClose }: { visible: boolean; onClose: 
   };
 
   return (
-    <Sheet visible={visible} title={tl('Scansiona un prodotto')} onClose={close}>
+    <Sheet visible={visible} title={tl('Controlla o aggiungi un alimento')} onClose={close}>
       {food ? (
         <View style={{ gap: 10 }}>
           <H>{food.name}</H>
           <Body small muted>{tl('Per 100 g: {0} kcal · proteine {1} g · carboidrati {2} g · grassi {3} g', food.kcal, food.p, food.c, food.f)}</Body>
+          {food.sug != null || food.sat != null || food.salt != null || food.fib != null ? <Body small muted>{[food.sug != null ? tl('zuccheri {0} g', food.sug) : '', food.sat != null ? tl('grassi saturi {0} g', food.sat) : '', food.salt != null ? tl('sale {0} g', food.salt) : '', food.fib != null ? tl('fibre {0} g', food.fib) : ''].filter(Boolean).join(' · ')}</Body> : null}
+          {food.nutriscore ? <Body bold>{tl('Nutri-Score {0}', food.nutriscore)}{food.nova ? ` · ${tl('Lavorazione {0} su 4', food.nova)}` : ''}</Body> : null}
           <Input value={grams} onChangeText={setGrams} keyboardType="decimal-pad" placeholder={tl('Grammi')} />
           <Btn title={tl('Aggiungi al diario')} onPress={add} />
+          <Btn ghost title={tl('Solo controllo: non aggiungere')} onPress={close} />
           <Btn ghost small title={tl('Scansiona un altro')} onPress={() => { setFood(null); done.current = false; }} />
         </View>
       ) : (

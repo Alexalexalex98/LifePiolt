@@ -1,5 +1,6 @@
 /** La biblioteca completa di esercizi (quelli originali + i nuovi), con categoria e livello, e il copione per ascoltarli con la voce. Modulo PURO. */
 import { EXERCISES, type Exercise } from './mindExercises.ts';
+import { SCRIPTS } from './mindScripts.ts';
 import { CATS, LEVEL_LABEL, META as MORE_META, MORE, type Cat, type Level, type Meta } from './mindExercisesMore.ts';
 
 export { CATS, LEVEL_LABEL };
@@ -31,7 +32,8 @@ const SPEAK_CPS = 14; // caratteri al secondo, a voce calma
  * I passi che chiedono di scrivere o scegliere non si leggono (si fanno con «Fai»), tranne i respiri, che hanno una pausa.
  */
 export function narrationPlan(ex: Exercise, open?: string): NarrationPart[] {
-  const guided = ex.steps.filter((s) => s.kind === 'info' || s.kind === 'breath');
+  const script = SCRIPTS[ex.id];
+  const guided = script ? script.map((prompt) => ({ kind: 'info' as const, prompt })) : ex.steps.filter((s) => s.kind === 'info' || s.kind === 'breath');
   const parts: NarrationPart[] = [];
   if (open) parts.push({ kind: 'say', text: open }, { kind: 'pause', ms: 3000 });
   const total = Math.max(20, ex.minutes * 60);

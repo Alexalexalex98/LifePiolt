@@ -209,6 +209,7 @@ export default function LifeFitness() {
             </Row>
             </Pressable>
             <Btn style={{ marginTop: 12 }} icon="camera" title="Aggiungi un pasto" onPress={() => setQuick(true)} />
+            <Btn style={{ marginTop: 8 }} ghost icon="search" title="Controlla o aggiungi un alimento (codice a barre)" onPress={() => setBarcode(true)} />
             {todayMeals.slice(0, 3).map((m) => <Body key={m.id} small muted style={{ marginTop: 4 }}>{displayName(m)} · {m.macros.kcal} kcal</Body>)}
           </Card>
 
@@ -222,7 +223,6 @@ export default function LifeFitness() {
               <Btn style={{ marginTop: 12 }} icon="camera" title="Scatta una foto" onPress={() => { setQuick(false); go('fitnessMeal', { start: 'camera' }); }} />
               <Btn style={{ marginTop: 8 }} ghost icon="image" title="Scegli dalla galleria" onPress={() => { setQuick(false); go('fitnessMeal', { start: 'gallery' }); }} />
               <Btn style={{ marginTop: 8 }} ghost title="Compongo il piatto a mano" onPress={() => { setQuick(false); go('fitnessMeal'); }} />
-              <Btn style={{ marginTop: 8 }} ghost icon="search" title="Scansiono il codice a barre" onPress={() => { setQuick(false); setBarcode(true); }} />
               <Btn style={{ marginTop: 8 }} ghost title="Digiuno intermittente" onPress={() => { setQuick(false); go('fasting'); }} />
             </Sheet>
             </>

@@ -18,6 +18,7 @@ import { useHealth } from '@/store/health';
 import { useMindSpace } from '@/store/mindSpace';
 import { useVoicePrefs } from '@/store/voicePrefs';
 import { deviceVoiceAvailable } from '@/lib/voice/speechEngine';
+import { shareDiary } from '@/lib/wellbeing/diaryRun';
 import { toast } from '@/store/toast';
 
 type Tab = 'oggi' | 'esercizi' | 'sonno' | 'focus';
@@ -36,6 +37,8 @@ export default function Mindfulness() {
   const th = useTheme();
   const [tab, setTab] = useState<Tab>('oggi');
   const [run, setRun] = useState<Exercise | null>(null);
+  const [dDays, setDDays] = useState(30);
+  const [dNotes, setDNotes] = useState(false);
   const [playing, setPlaying] = useState<{ id: string; title: string } | null>(null);
   const [, bump] = useReducer((x: number) => x + 1, 0);
   const entries = useMindSpace((s) => s.entries);
@@ -111,6 +114,16 @@ export default function Mindfulness() {
             {engine === 'device' && !deviceVoiceAvailable() ? <Body small muted style={{ marginTop: 8 }}>{tl('La voce del telefono non è ancora installata in questa versione: per ora uso Gemini. Aggiorna l\'app (npm install) per attivarla.')}</Body> : null}
           </Card>
           <Card>
+            <H>{tl('Diario del benessere')}</H>
+            <Body small muted style={{ marginBottom: 8 }}>{tl('Un riepilogo di umore, energia, esercizi e questionari da condividere con uno psicologo, un medico o un nutrizionista. Lo mandi solo tu, a chi vuoi.')}</Body>
+            <Row gap={8} style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>{[30, 90, 365].map((n) => <Pill key={n} label={n === 365 ? tl('1 anno') : tl('{0} giorni', n)} on={dDays === n} onPress={() => setDDays(n)} />)}</Row>
+            <View style={{ marginTop: 8 }}><Pill label={tl('Includi le note che ho scritto a Theia')} on={dNotes} onPress={() => setDNotes(!dNotes)} /></View>
+            <Row gap={8} style={{ justifyContent: 'flex-start', marginTop: 10 }}>
+              <Btn small title={tl('Esporta PDF')} onPress={() => void shareDiary('pdf', dDays, dNotes).then((r) => { if (!r.ok && r.message) toast(r.message); })} />
+              <Btn small ghost title={tl('Esporta CSV')} onPress={() => void shareDiary('csv', dDays, dNotes).then((r) => { if (!r.ok && r.message) toast(r.message); })} />
+            </Row>
+          </Card>
+          <Card>
             <H>{tl('Il tuo percorso')}</H>
             <Body small muted>{tl('Hai fatto {0} esercizi su {1} disponibili.', new Set(entries.map((e) => e.ex)).size, ALL_EXERCISES.length)}</Body>
             <Row gap={8} style={{ justifyContent: 'flex-start', marginTop: 8 }}>
@@ -128,14 +141,14 @@ export default function Mindfulness() {
           <Card>
             <H>{tl('Wind Down')}</H>
             <Body small muted style={{ marginBottom: 8 }}>{tl('Una routine lenta per prepararti a dormire, con musica dolce.')}</Body>
-            <Btn title={tl('Inizia Wind Down')} onPress={() => { const e = exerciseById('s-winddown'); if (e) listen(e, 'musica-sonno'); mixer.setTimer(30); }} />
+            <Btn title={tl('Inizia Wind Down')} onPress={() => { const e = exerciseById('s-winddown'); if (e) listen(e, SOUNDS.find((x) => x.group === 'musica')?.id); mixer.setTimer(30); }} />
           </Card>
           <Card style={{ borderColor: th.accent }}>
             <H>{tl('SOS notturno')}</H>
             <Body small muted style={{ marginBottom: 8 }}>{tl('Ti sei svegliato e ti agiti? Niente luce, niente ora: ti accompagno a calmarti.')}</Body>
-            <Btn title={tl('Mi sono svegliato')} onPress={() => { const e = exerciseById('s-sos'); if (e) listen(e, 'pioggia'); mixer.setTimer(30); }} />
+            <Btn title={tl('Mi sono svegliato')} onPress={() => { const e = exerciseById('s-sos'); if (e) listen(e, SOUNDS.find((x) => x.group === 'natura')?.id ?? SOUNDS.find((x) => x.group === 'rumori')?.id); mixer.setTimer(30); }} />
           </Card>
-          <Sounds th={th} groups={['natura', 'rumori', 'musica']} />
+          <Sounds th={th} groups={['natura', 'rumori', 'musica', 'meditazione']} />
           <Card>
             <H>{tl('Esercizi per dormire')}</H>
             {filterExercises({ cat: 'sonno' }).map((e, i, a) => exRow(e, i === a.length - 1))}
@@ -145,7 +158,7 @@ export default function Mindfulness() {
 
       {tab === 'focus' ? (
         <>
-          <Sounds th={th} groups={['rumori', 'musica', 'natura']} title={tl('Suoni per concentrarti')} />
+          <Sounds th={th} groups={['focus', 'rumori', 'musica', 'natura']} title={tl('Suoni per concentrarti')} />
           <Card>
             <H>{tl('Playlist su Spotify')}</H>
             <Body small muted style={{ marginBottom: 8 }}>{tl('Ti porto alla ricerca su Spotify, gratis: scegli la playlist che preferisci.')}</Body>
@@ -194,8 +207,9 @@ function Sounds({ th, groups, title }: { th: ReturnType<typeof useTheme>; groups
   return (
     <Card>
       <H>{title ?? tl('Suoni')}</H>
-      <Body small muted style={{ marginBottom: 8 }}>{tl('Puoi mescolarne fino a tre. Sono creati da noi, funzionano anche senza internet.')}</Body>
-      {groups.map((g) => (
+      <Body small muted style={{ marginBottom: 8 }}>{tl('Puoi mescolarne fino a tre. Funzionano anche senza internet.')}</Body>
+      {SOUNDS.length === 0 ? <Body small muted>{tl('Ancora nessun suono: aggiungili in assets/sounds (vedi LEGGIMI.md).')}</Body> : null}
+      {groups.filter((g) => SOUNDS.some((s) => s.group === g)).map((g) => (
         <View key={g} style={{ marginBottom: 8 }}>
           <Text style={{ color: th.muted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{tl(GROUP_LABEL[g])}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
