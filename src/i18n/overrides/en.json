@@ -4660,5 +4660,21 @@
  "Puoi mangiare": "You can eat",
  "Sei in digiuno": "You're fasting",
  "Schema": "Schedule",
- "Esporta il diario (CSV)": "Export diary (CSV)"
+ "Esporta il diario (CSV)": "Export diary (CSV)",
+ "Cerca in pagine, database e file": "Search pages, databases and files",
+ "Nuova pagina": "New page",
+ "Nuovo database": "New database",
+ "Sottopagine": "Subpages",
+ "Commenti": "Comments",
+ "Assistente del workspace": "Workspace assistant",
+ "Carica file": "Upload file",
+ "File del workspace": "Workspace files",
+ "Pagina senza titolo": "Untitled page",
+ "Nuova riga": "New row",
+ "Tabella": "Table",
+ "Kanban": "Kanban",
+ "Diario del benessere": "Wellbeing diary",
+ "Esporta PDF": "Export PDF",
+ "Esporta CSV": "Export CSV",
+ "Controlla o aggiungi un alimento": "Check or add a food"
 }

@@ -1,0 +1,82 @@
+import { t } from '@/i18n/core';
+import { askSend, logSend } from '@/lib/aiConsent';
+import { AiServerError, aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
+import { readLocally } from '@/lib/bills/files';
+import { readTextFile } from '@/lib/chatMedia';
+import { docTypeOf } from '@/lib/attachments';
+import { officeText } from '@/lib/officeText';
+import { readUriBytes } from '@/lib/readUri';
+import { WORKSPACE_PROMPT, contextFor, type Doc } from '@/lib/workspaceSearch';
+import { pageText } from '@/lib/workspaceCore';
+import { useLife, type DriveFile } from '@/store/life';
+import { useWorkspace } from '@/store/workspace';
+import { useWorkspaceChat } from '@/store/workspaceChat';
+
+export const WORKSPACE_FOLDER = 'Workspace';
+const cache = new Map<string, string>();
+
+/** Tutti i file del workspace: quelli caricati qui (cartella «Workspace» di LifeDrive) e quelli collegati alle pagine. */
+export function workspaceFiles(): DriveFile[] {
+  const drive = useLife.getState().drive;
+  const linked = new Set(useWorkspace.getState().pages.flatMap((p) => p.files));
+  return drive.filter((f) => f.folder === WORKSPACE_FOLDER || linked.has(f.id));
+}
+
+/** Il testo di un file, letto sul telefono (testo, CSV, Excel, PowerPoint, Word, PDF con testo). null se non si legge. */
+export async function fileText(f: DriveFile): Promise<string | null> {
+  if (!f.uri) return null;
+  if (cache.has(f.uri)) return cache.get(f.uri)!;
+  let text: string | null = null;
+  try {
+    const dt = docTypeOf(f.n);
+    if (dt === 'txt' || dt === 'csv' || dt === 'md') text = await readTextFile(f.uri);
+    else if ((dt === 'xlsx' || dt === 'pptx' || dt === 'docx') && /\.(xlsx|pptx|docx)$/i.test(f.n)) text = officeText(await readUriBytes(f.uri), dt);
+    else if (dt === 'pdf') { const r = await readLocally({ uri: f.uri, name: f.n, mime: 'application/pdf' }); text = r.kind === 'text' ? r.text : null; }
+  } catch { text = null; }
+  if (text) cache.set(f.uri, text);
+  return text;
+}
+
+/** Tutto ciò che si può cercare e interrogare: pagine, database, commenti e file. */
+export async function workspaceDocs(): Promise<{ docs: Doc[]; unreadable: string[] }> {
+  const docs: Doc[] = useWorkspace.getState().pages.map((p) => ({ id: `p:${p.id}`, source: p.title || t('Pagina senza titolo'), text: pageText(p) })).filter((d) => d.text.trim());
+  const unreadable: string[] = [];
+  for (const f of workspaceFiles()) {
+    const tx = await fileText(f);
+    if (tx) docs.push({ id: `f:${f.id}`, source: f.n, text: tx }); else unreadable.push(f.n);
+  }
+  return { docs, unreadable };
+}
+
+export type SearchHit = { kind: 'page' | 'file'; id: string; title: string; snippet: string };
+/** Cerca in pagine e file (per nome subito, e per contenuto nei file già letti o leggibili). */
+export async function searchWorkspace(q: string): Promise<SearchHit[]> {
+  const needle = q.trim().toLowerCase(); if (needle.length < 2) return [];
+  const hits: SearchHit[] = [];
+  for (const p of useWorkspace.getState().pages) {
+    const tx = pageText(p); const i = tx.toLowerCase().indexOf(needle);
+    if (i >= 0) hits.push({ kind: 'page', id: p.id, title: p.title || t('Pagina senza titolo'), snippet: tx.slice(Math.max(0, i - 30), i + 80).replace(/\n/g, ' ') });
+  }
+  for (const f of workspaceFiles()) {
+    const inName = f.n.toLowerCase().includes(needle);
+    const tx = await fileText(f); const i = tx ? tx.toLowerCase().indexOf(needle) : -1;
+    if (inName || i >= 0) hits.push({ kind: 'file', id: f.id, title: f.n, snippet: i >= 0 && tx ? tx.slice(Math.max(0, i - 30), i + 80).replace(/\n/g, ' ') : '' });
+  }
+  return hits.slice(0, 40);
+}
+
+/** Domanda all'assistente del workspace. Separato da Theia: riceve solo i pezzi di documento che c'entrano, dopo il tuo consenso. */
+export async function askWorkspace(question: string): Promise<void> {
+  const chat = useWorkspaceChat.getState();
+  chat.push({ who: 'me', text: question });
+  if (!aiServerConfigured) { chat.push({ who: 'ai', text: t('Per rispondere serve il collegamento con l\'AI: lo attivi in Intelligenza di Theia.') }); return; }
+  const { docs, unreadable } = await workspaceDocs();
+  const ctx = contextFor(question, docs);
+  if (!ctx.text) { chat.push({ who: 'ai', text: t('Non trovo niente su questo nel workspace. Controlla che il file sia caricato e leggibile.') + (unreadable.length ? ` ${t('Non riesco a leggere: {0}.', unreadable.slice(0, 3).join(', '))}` : '') }); return; }
+  if (!(await askSend('data', t('Solo i brani dei documenti del workspace che c\'entrano con la domanda, più la domanda. Nessun dato personale dell\'app e nessun messaggio di Theia.')))) { chat.push({ who: 'ai', text: t('Va bene, non invio niente. I tuoi documenti restano sul telefono.') }); return; }
+  logSend('data', ctx.text.length, ctx.sources);
+  try {
+    const reply = await aiChatRaw(WORKSPACE_PROMPT(ctx.text, question));
+    chat.push({ who: 'ai', text: reply.trim() || t('Risposta vuota dal server.'), sources: ctx.sources });
+  } catch (e) { chat.push({ who: 'ai', text: e instanceof AiServerError ? e.message : t('Dammi un attimo e riproviamo.') }); }
+}

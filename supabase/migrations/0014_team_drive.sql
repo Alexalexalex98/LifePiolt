@@ -1,5 +1,5 @@
 -- Team di lavoro con Drive privato condiviso: oggetti nuovi, nessuna modifica a quelli esistenti.
--- NON ancora applicata sul progetto Lifepilot2 (l'applicazione è in attesa di conferma).
+-- Applicata sul progetto Lifepilot2 (migrazione «team_e_drive_condiviso»).
 create table if not exists public.teams (
   id uuid primary key default gen_random_uuid(),
   name text not null check (char_length(btrim(name)) between 1 and 80),
