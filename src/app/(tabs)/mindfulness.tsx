@@ -201,6 +201,7 @@ function Library({ exRow }: { exRow: (ex: Exercise, last: boolean) => React.Reac
 }
 
 function Sounds({ th, groups, title }: { th: ReturnType<typeof useTheme>; groups: SoundGroup[]; title?: string }) {
+  const [all, setAll] = useState<Record<string, boolean>>({});
   const active = mixer.active();
   const end = mixer.endsAt();
   const left = end ? Math.max(0, Math.round((end - Date.now()) / 60000)) : 0;
@@ -213,7 +214,8 @@ function Sounds({ th, groups, title }: { th: ReturnType<typeof useTheme>; groups
         <View key={g} style={{ marginBottom: 8 }}>
           <Text style={{ color: th.muted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{tl(GROUP_LABEL[g])}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {SOUNDS.filter((s) => s.group === g).map((s) => <Pill key={s.id} label={tl(s.label)} on={active.includes(s.id)} onPress={() => void mixer.toggle(s.id)} />)}
+            {SOUNDS.filter((s, i, a) => s.group === g && (all[g] || active.includes(s.id) || a.filter((x) => x.group === g).indexOf(s) < 8)).map((s) => <Pill key={s.id} label={tl(s.label)} on={active.includes(s.id)} onPress={() => void mixer.toggle(s.id)} />)}
+            {SOUNDS.filter((s) => s.group === g).length > 8 ? <Pill label={all[g] ? tl('Meno') : tl('Mostra tutti ({0})', SOUNDS.filter((s) => s.group === g).length)} onPress={() => setAll((x) => ({ ...x, [g]: !x[g] }))} /> : null}
           </View>
         </View>
       ))}
