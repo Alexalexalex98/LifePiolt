@@ -203,8 +203,8 @@ export default function LifeChat() {
                     {item.ext?.images?.length ? <MessageImages uris={item.ext.images} me={me} /> : null}
                     {item.ext?.attachments?.length ? <MessageAttachments items={item.ext.attachments} me={me} /> : null}
                     {item.ext?.card ? <MessageCard card={item.ext.card} /> : null}
-                    {item.ext?.cards?.map((c, ci) => <MessageCard key={`${c.page}-${ci}-${c.title}`} card={c} />)}
                     {item.text ? (me ? <Text selectable style={{ color: '#111', fontSize: 15, lineHeight: 21 }}>{item.text}</Text> : <RichText text={item.text} color={t.text} accent={t.text} />) : null}
+                    {item.ext?.cards?.map((c, ci) => <MessageCard key={`${c.page}-${ci}-${c.title}`} card={c} />)}
                     <MessageFooter ext={item.id === lastAi?.id ? item.ext : item.ext} me={me} onAction={(a) => void act(item.id, a)} />
                     {item.source === 'theia' && <Text style={{ color: me ? '#556' : t.muted, fontSize: 10, marginTop: 4 }}>da {name} sulla schermata</Text>}
                   </View>

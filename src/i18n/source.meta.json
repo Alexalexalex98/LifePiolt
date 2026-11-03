@@ -1,5 +1,5 @@
 {
- "count": 17174,
+ "count": 17176,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -426,7 +426,7 @@
   "src/lib/assistant/phrasesMore.ts": 128,
   "src/lib/assistant/planDelivery.ts": 20,
   "src/lib/assistant/projectCore.ts": 138,
-  "src/lib/assistant/recipeTheia.ts": 75,
+  "src/lib/assistant/recipeTheia.ts": 78,
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,

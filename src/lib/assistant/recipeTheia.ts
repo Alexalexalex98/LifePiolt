@@ -7,6 +7,7 @@ import { parseRecipeIntent, type RIntent } from '@/lib/recipes/intent';
 import { remindPlan } from '@/lib/recipes/plan';
 import { secLeft, startTimer, stopTimer } from '@/lib/recipes/timers';
 import { useFitness } from '@/store/fitness';
+import { useJournal, todayKey } from '@/store/journal';
 import { usePantry } from '@/store/pantry';
 import { useRecipes } from '@/store/recipes';
 import type { TheiaAction, TheiaExt } from './theiaExt';
@@ -84,7 +85,8 @@ function startCook(r: FullRecipe, servings: number, push: RPush) {
   lastId = r.id; chatCook = true;
   useRecipes.getState().startCooking({ recipeId: r.id, servings, step: 0, startedAt: Date.now(), checked: [] });
   const total = Math.round(estimateTotalSec(r) / 60);
-  push(`${t('Perfetto, cuciniamo «{0}» per {1} porzioni. Ci vogliono circa {2} minuti.', r.name, servings, total)}\n\n${t('Ingredienti')}:\n${list(r, servings)}\n\n${t('Appena sei pronto scrivi «avanti»: ti guido un passaggio alla volta e ti avvio i timer.')}`, { chips: [t('Avanti'), t('Esci')] });
+  push(`${t('Perfetto, cuciniamo «{0}» per {1} porzioni. Ci vogliono circa {2} minuti.', r.name, servings, total)}\n\n${t('Ingredienti')}:\n${list(r, servings)}\n\n${t('Ti guido un passaggio alla volta: quando hai finito scrivi «avanti» e ti avvio i timer.')}`, { chips: [t('Avanti'), t('Esci')] });
+  sayStep(r, push);
 }
 function stepCmd(op: Extract<RIntent, { k: 'step' }>['op'], push: RPush) {
   const c = useRecipes.getState().cooking!; const r = CATALOG_BY_ID.get(c.recipeId); if (!r) { chatCook = false; return; }
@@ -145,6 +147,7 @@ export function handleRecipes(text: string, push: RPush, open: (page: string, pa
       useRecipes.getState().setDiets(next.filter((d) => DIETS.includes(d)));
       push(it.off ? t('Fatto: ho tolto il filtro. Ora cerco ricette senza restrizioni.') : t('Fatto: da ora ti propongo solo ricette «{0}» e ti segnalo quelle che non le rispettano. Le diete sono stimate dai nomi degli ingredienti: con un\'allergia controlla sempre le etichette.', it.diets.join(', '))); return true;
     }
+    case 'diaryadd': useJournal.getState().append(todayKey(), it.text, 'typed'); push(t('Fatto: l\'ho scritto nella pagina di oggi del diario. Resta tra noi: non lo commento e non lo uso se non me lo chiedi tu.'), { cards: [{ icon: 'note', title: t('Il tuo diario'), sub: t('Apri la pagina di oggi'), page: 'diary' }] }); return true;
     case 'open': push(t('Apro «{0}».', t(it.label))); open(it.page); return true;
   }
 }

@@ -21,6 +21,7 @@ export type RIntent =
   | { k: 'cooked'; id?: string }
   | { k: 'diet'; diets: Diet[]; off: boolean }
   | { k: 'step'; op: 'next' | 'prev' | 'repeat' | 'ingredients' | 'timer' | 'stop' | 'where' }
+  | { k: 'diaryadd'; text: string }
   | { k: 'open'; page: string; label: string };
 export type RCtx = { cooking: boolean; last?: string };
 
@@ -141,6 +142,9 @@ export function parseRecipeIntent(text: string, ctx: RCtx): RIntent | null {
     const nn = n.match(/\b(\d{1,2})\s+ricette\b/);
     return { k: 'search', q, cat, diets, maxMin, diff: diff as 1 | undefined, region, fridge, fav, n: nn ? Math.min(10, +nn[1]!) : 5 };
   }
+  /* «scrivi nel diario: oggi è andata bene» */
+  const dm = text.match(/^\s*(?:scrivi|aggiungi|segna|metti|annota)\b[^:]{0,40}\b(?:nel|sul|al) (?:mio )?diario\s*[:,\-–]\s*([\s\S]{3,})$/i);
+  if (dm) return { k: 'diaryadd', text: dm[1]!.trim() };
   /* aprire sezioni collegate */
   if (/\b(apri|vai|mostrami|portami)\b.*\b(le )?ricette\b|\bapri il libro di ricette\b/.test(n)) return { k: 'open', page: 'recipes', label: 'Ricette' };
   if (/\b(apri|vai|mostrami|portami)\b.*\b(il mio )?diario\b|\b(scrivi|scrivere|voglio scrivere)\b.*\b(nel )?diario\b|\bil mio diario\b/.test(n)) return { k: 'open', page: 'diary', label: 'Diario' };

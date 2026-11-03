@@ -36,3 +36,4 @@ test('cucina guidata: comandi brevi solo quando attiva', () => {
   assert.equal(P('indietro', { cooking: true }).op, 'prev'); assert.equal(P('esci', { cooking: true }).op, 'stop');
 });
 test('sezioni', () => { assert.equal(P('apri il mio diario').page, 'diary'); assert.equal(P('scansiona un prodotto').page, 'foodScan'); });
+test('scrivi nel diario', () => { assert.deepEqual(P('scrivi nel diario: oggi è andata bene, sono sereno'), { k: 'diaryadd', text: 'oggi è andata bene, sono sereno' }); assert.equal(P('apri il mio diario').k, 'open'); });
