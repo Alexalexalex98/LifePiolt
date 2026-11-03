@@ -1,5 +1,5 @@
 {
- "count": 16804,
+ "count": 17010,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -268,7 +268,7 @@
   "src/components/feed/TabCards.tsx": 21,
   "src/components/feed/ThreadPost.tsx": 20,
   "src/components/feed/useDeckCards.ts": 2,
-  "src/components/fitness/BarcodeSheet.tsx": 21,
+  "src/components/fitness/BarcodeSheet.tsx": 49,
   "src/components/fitness/DaySummary.tsx": 25,
   "src/components/fitness/ExerciseBrowser.tsx": 13,
   "src/components/fitness/ExerciseFigure.tsx": 3,
@@ -508,6 +508,7 @@
   "src/lib/fitness/exerciseDb.ts": 2,
   "src/lib/fitness/fasting.ts": 1,
   "src/lib/fitness/foodDb.ts": 25,
+  "src/lib/fitness/foodDetails.ts": 204,
   "src/lib/fitness/groups.ts": 16,
   "src/lib/fitness/gymPay.ts": 11,
   "src/lib/fitness/labels.ts": 17,
@@ -738,5 +739,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2063
+ "withPlaceholders": 2087
 }

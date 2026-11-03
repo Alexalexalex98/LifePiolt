@@ -1,8 +1,9 @@
 /** Codice a barre -> alimento (modulo PURO). I dati vengono da Open Food Facts: archivio libero e gratuito, senza chiavi. Valori per 100 g, come nel nostro database. */
+import { OFF_FIELDS } from './foodDetails.ts';
 export type OffFood = { id: string; name: string; kcal: number; p: number; c: number; f: number; fib?: number; sat?: number; sug?: number; salt?: number; portion: number; cat: string; /** A–E, se Open Food Facts lo conosce */ nutriscore?: string; /** 1–4: quanto è lavorato */ nova?: number };
 
 export const isBarcode = (s: string) => /^\d{8,14}$/.test(s.trim());
-export const offUrl = (code: string) => `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code.trim())}.json?fields=product_name,brands,nutriments,serving_quantity,nutriscore_grade,nova_group`;
+export const offUrl = (code: string) => `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code.trim())}.json?fields=${OFF_FIELDS}`;
 
 const n = (v: unknown): number | undefined => { const x = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : typeof v === 'number' ? v : NaN; return Number.isFinite(x) ? x : undefined; };
 const r1 = (x: number) => Math.round(x * 10) / 10;
