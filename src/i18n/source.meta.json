@@ -1,5 +1,5 @@
 {
- "count": 16730,
+ "count": 16728,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -134,7 +134,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 79,
+  "src/app/(tabs)/workspace.tsx": 76,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -187,7 +187,7 @@
   "src/components/ProjectFiles.tsx": 2,
   "src/components/QrScanner.tsx": 4,
   "src/components/ReportsSheet.tsx": 17,
-  "src/components/SessionPlayer.tsx": 18,
+  "src/components/SessionPlayer.tsx": 19,
   "src/components/SharingView.tsx": 29,
   "src/components/StatementChecksCard.tsx": 18,
   "src/components/StatementForecastCard.tsx": 18,

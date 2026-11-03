@@ -13,7 +13,7 @@ export const geminiIsDown = (): boolean => Date.now() < geminiDownUntil;
  * Sceglie la voce: del telefono (gratis, predefinita) o Gemini (più naturale, con consumo). Se la voce del telefono non c'è
  * (modulo non installato) si usa Gemini. `cacheKey` serve solo a Gemini: i pezzi già letti si riascoltano senza rifare la richiesta.
  */
-export function makeSpeechStream(onPos: (chunk: number, frac: number) => void, opts: { style?: string; recording?: boolean } = {}): SpeechStream {
+export function makeSpeechStream(onPos: (chunk: number, frac: number) => void, opts: { style?: string; recording?: boolean; /** nessuna voce disponibile (né Gemini né telefono) */ onUnavailable?: (why: string) => void } = {}): SpeechStream {
   const engine = useVoicePrefs.getState().engine;
   const local = () => createLocalSpeech(localeFor(useApp.getState().language), onPos);
   if ((engine === 'device' || geminiIsDown()) && localSpeechAvailable()) { const s = local(); if (s) return s; }
@@ -24,7 +24,8 @@ export function makeSpeechStream(onPos: (chunk: number, frac: number) => void, o
   let resolveDone: () => void = () => undefined;
   const done = new Promise<void>((r) => { resolveDone = r; });
   const primary = createSpeechStream(onPos, { ...opts, onFail: (i, why) => {
-    if (swapped || stopped || !localSpeechAvailable()) return;
+    if (swapped || stopped) return;
+    if (!localSpeechAvailable()) { swapped = true; geminiDownUntil = Date.now() + 30 * 60000; primary.stop(); opts.onUnavailable?.(why); resolveDone(); return; }
     swapped = true; geminiDownUntil = Date.now() + 30 * 60000;
     const l = local(); if (!l) return;
     primary.stop(); active = l;

@@ -41,7 +41,8 @@ export function SessionPlayer({ session, color, onClose, next }: { session: Sess
   const glow = useRef(new Animated.Value(0)).current;
   const total = session ? sessionSeconds(session) : 0;
 
-  const stopAll = useCallback(() => { try { stream.current?.stop(); } catch { /* già fermo */ } stream.current = null; stopNarration(); }, []);
+  const reader = useRef(0);
+  const stopAll = useCallback(() => { reader.current++; try { stream.current?.stop(); } catch { /* già fermo */ } stream.current = null; stopNarration(); }, []);
   useEffect(() => { alive.current = true; return () => { alive.current = false; stopAll(); }; }, [stopAll]);
   useEffect(() => { if (session) { setPhase('before'); setBefore(undefined); setAfter(undefined); setPlaying(false); setLine(''); setElapsed(0); setFailed(false); beatIdx.current = 0; } }, [session?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -63,10 +64,24 @@ export function SessionPlayer({ session, color, onClose, next }: { session: Sess
   // il tempo scorre solo mentre si ascolta
   useEffect(() => { if (!playing) return; const h = setInterval(() => setElapsed((e) => e + 1), 1000); return () => clearInterval(h); }, [playing]);
 
+  /** senza voce: le frasi compaiono sullo schermo a tempo di lettura e le pause scorrono come nella sessione */
+  const readAlong = useCallback((from: number) => {
+    if (!session) return;
+    const id = ++reader.current;
+    void (async () => {
+      const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+      for (const b of session.beats.slice(from)) {
+        if (!alive.current || reader.current !== id) return;
+        if (b.say) { setLine(b.say); await wait(Math.max(3500, (b.say.length / 13.5) * 1000)); } else if (b.pause) await wait(b.pause * 1000);
+      }
+      if (alive.current && reader.current === id) { setPlaying(false); setPhase('after'); mixer.stopAll(); mixer.resetLevel(); }
+    })();
+  }, [session]);
+
   const startFrom = useCallback((from: number) => {
     if (!session) return;
-    stopAll();
-    const s = makeSpeechStream((i) => { if (alive.current) { setFailed(false); const say = session.beats.filter((b) => b.say); const k = say.findIndex((_, n) => n === i + sayOffset.current); setLine(say[k]?.say ?? ''); } }, { style: VOICE_STYLES[session.style] });
+    stopAll(); reader.current++;
+    const s = makeSpeechStream((i) => { if (alive.current) { setFailed(false); const say = session.beats.filter((b) => b.say); const k = say.findIndex((_, n) => n === i + sayOffset.current); setLine(say[k]?.say ?? ''); } }, { style: VOICE_STYLES[session.style], onUnavailable: () => { if (alive.current) { setFailed(true); toast(tl('La voce non è disponibile su questo telefono: ti accompagno con le frasi scritte.')); readAlong(from); } } });
     stream.current = s;
     // gli indici di Theia contano solo le frasi: li riporto alla posizione nella sessione
     sayOffset.current = session.beats.slice(0, from).filter((b) => b.say).length;
@@ -79,7 +94,7 @@ export function SessionPlayer({ session, color, onClose, next }: { session: Sess
       setPlaying(false); setPhase('after'); mixer.stopAll();
     });
     setPlaying(true);
-  }, [session, stopAll]);
+  }, [session, stopAll, readAlong]);
   const sayOffset = useRef(0);
 
   const begin = () => {

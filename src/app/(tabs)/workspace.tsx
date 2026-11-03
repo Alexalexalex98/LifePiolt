@@ -74,22 +74,8 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
   ));
   return (
     <Page id="workspace" title="LifeWorkspace" back>
-      <LinearGradient colors={[th.accent + '40', th.accent + '0d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 18, borderWidth: 1, borderColor: th.accent + '44' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: th.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.4 }}>{tl('Il tuo spazio di lavoro')}</Text>
-            <Text style={{ color: th.muted, fontSize: 13.5, marginTop: 4, lineHeight: 19 }}>{tl('Pagine, database, file e Theia Lavoro che li legge tutti.')}</Text>
-          </View>
-          <Mascot size={72} color={th.accent} expression="happy" />
-        </View>
-        <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
-          <Pressable onPress={() => onOpen(addPage(null))} accessibilityRole="button" style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 14, backgroundColor: th.text }}><Icon name="plus" size={16} color={th.onText} stroke={2.6} /><Text style={{ color: th.onText, fontWeight: '800' }}>{tl('Nuova pagina')}</Text></Pressable>
-          <Pressable onPress={() => setTplOpen(true)} accessibilityRole="button" style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 14, backgroundColor: th.card, borderWidth: 1, borderColor: th.border }}><Icon name="grid" size={16} color={th.text} /><Text style={{ color: th.text, fontWeight: '800' }}>{tl('Da modello')}</Text></Pressable>
-          <Pressable onPress={() => setTab('theia')} accessibilityRole="button" style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 14, backgroundColor: th.card, borderWidth: 1, borderColor: th.border }}><Icon name="sparkle" size={16} color={th.accent} stroke={2.2} /><Text style={{ color: th.text, fontWeight: '800' }}>Theia Lavoro</Text></Pressable>
-        </View>
-      </LinearGradient>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: th.input, borderWidth: 1, borderColor: th.border, borderRadius: 16, paddingHorizontal: 14, marginTop: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: th.input, borderWidth: 1, borderColor: th.border, borderRadius: 16, paddingHorizontal: 14, marginTop: 4 }}>
         <Icon name="search" size={18} color={th.muted} />
         <Input value={q} onChangeText={setQ} placeholder={tl('Cerca in pagine, database e file')} style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent', marginBottom: 0 }} />
       </View>
@@ -133,7 +119,11 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
           <View>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text style={{ color: th.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' }}>{tl('Le tue pagine')}</Text>
-              <Pressable onPress={() => onOpen(addPage(null, 'db', tl('Nuovo database')))} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('+ Database')}</Text></Pressable>
+              <View style={{ flexDirection: 'row', gap: 16 }}>
+                <Pressable onPress={() => onOpen(addPage(null))} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('+ Pagina')}</Text></Pressable>
+                <Pressable onPress={() => setTplOpen(true)} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('Da modello')}</Text></Pressable>
+                <Pressable onPress={() => onOpen(addPage(null, 'db', tl('Nuovo database')))} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('+ Database')}</Text></Pressable>
+              </View>
             </View>
             {roots.length ? nodes(null, 0) && roots.map((p) => <View key={p.id} style={{ marginTop: 8 }}><Tile p={p} onPress={() => onOpen(p.id)} />{childrenOf(pages, p.id).map((c) => <View key={c.id} style={{ marginStart: 16, marginTop: 6 }}><Tile p={c} onPress={() => onOpen(c.id)} /></View>)}</View>) : <Empty text={tl('Nessuna pagina ancora: creane una, anche per il wiki della tua azienda.')} />}
           </View>
