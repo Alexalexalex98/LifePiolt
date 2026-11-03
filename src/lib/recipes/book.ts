@@ -104,7 +104,7 @@ export function stepsFromMethod(method: string, ingredientNames: string[], servi
 
 /* ---------------- porzioni ---------------- */
 export const scaleGrams = (grams: number, from: number, to: number): number => (from > 0 ? (grams * to) / from : grams);
-const PIECE: [RegExp, number, string, string][] = [[/^uov/i, 55, 'uovo', 'uova'], [/^limone/i, 90, 'limone', 'limoni'], [/^aglio/i, 5, 'spicchio', 'spicchi'], [/^cipolla$/i, 110, 'cipolla', 'cipolle']];
+const PIECE: [RegExp, number, string, string][] = [[/^uov/i, 55, 'uovo', 'uova'], [/^limone/i, 90, 'limone', 'limoni'], [/^aglio/i, 3, 'spicchio', 'spicchi'], [/^cipolla$/i, 110, 'cipolla', 'cipolle']];
 /** Come scrivere un ingrediente: «2 uova (110 g)», «1,2 kg», «350 g». */
 export function prettyAmount(foodName: string, grams: number): string {
   const g = Math.round(grams);

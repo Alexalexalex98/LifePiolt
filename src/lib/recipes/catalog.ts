@@ -3,8 +3,10 @@ import { RECIPES } from '../fitness/foodDb.ts';
 import { FOOD } from '../fitness/nutrition.ts';
 import { itemName, parseBook, slug, stepsFromMethod, type FullRecipe, type RCat } from './book.ts';
 import { C1 } from './data/c1.ts';
+import { C2 } from './data/c2.ts';
+import { C3 } from './data/c3.ts';
 
-const SOURCES: string[] = [C1];
+const SOURCES: string[] = [C1, C2, C3];
 
 const catOf = (name: string, items: string): RCat => {
   const x = (name + ' ' + items).toLowerCase();

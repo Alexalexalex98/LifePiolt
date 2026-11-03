@@ -132,7 +132,7 @@ function Detail({ r, onBack }: { r: FullRecipe; onBack: () => void }) {
   const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <Page id="recipes" title={r.name} back onBack={onBack}>
+    <Page id="recipes" title={tl('Ricetta')} back onBack={onBack}>
       <LinearGradient colors={[c + 'dd', c + '22']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, padding: 18, gap: 8 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' }}>{`${tl(r.cat)}${r.region ? ` · ${r.region}` : ''}`}</Text>
