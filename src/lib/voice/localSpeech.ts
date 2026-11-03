@@ -42,6 +42,7 @@ export function createLocalSpeech(lang: string, onPos: (chunk: number, frac: num
   let curTimer: ReturnType<typeof setTimeout> | null = null; let curRes: (() => void) | null = null;
   const done = (async () => {
     try {
+      try { const A = require('expo-audio') as typeof import('expo-audio'); await A.setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }); } catch { /* resta l'impostazione attuale */ }
       const voice = await bestVoice(M, lang);
       let chunk = 0;
       for (let i = 0; !stopped; i++) {

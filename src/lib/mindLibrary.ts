@@ -48,3 +48,17 @@ export function narrationPlan(ex: Exercise, open?: string): NarrationPart[] {
   parts.push({ kind: 'say', text: ex.closing });
   return parts;
 }
+
+/**
+ * Come legge Theia: ogni tipo di esercizio ha la sua voce (stessa voce, intenzione diversa). Sono indicazioni di stile per Gemini.
+ * sonno = sussurrata e lentissima; calma = dolce e lenta (stress, ansia, respiro, corpo); calda = affettuosa (gratitudine, emozioni, relazioni); vivace = chiara e incoraggiante (concentrazione, movimento).
+ */
+export const VOICE_STYLES = {
+  sonno: 'Say in a very soft, slow, whispery, sleepy voice, with long gentle pauses between phrases',
+  calma: 'Say in a calm, slow, soothing and reassuring voice, with gentle pauses',
+  calda: 'Say in a warm, kind, tender voice, unhurried',
+  vivace: 'Say in a clear, steady, encouraging and focused voice, moderately paced',
+} as const;
+export type VoiceStyle = keyof typeof VOICE_STYLES;
+const CAT_STYLE: Record<Cat, VoiceStyle> = { sonno: 'sonno', respiro: 'calma', corpo: 'calma', stress: 'calma', ansia: 'calma', mente: 'calma', emozioni: 'calda', gratitudine: 'calda', relazioni: 'calda', focus: 'vivace', movimento: 'vivace' };
+export const voiceStyleFor = (exId: string): string => VOICE_STYLES[CAT_STYLE[metaOf(exId).cat] ?? 'calma'];

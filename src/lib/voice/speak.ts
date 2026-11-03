@@ -63,8 +63,8 @@ function trimCache(dir: Directory) {
     files.sort((a, b) => (a.modificationTime ?? 0) - (b.modificationTime ?? 0)).slice(0, files.length - MAX_CACHE).forEach((f) => { try { f.delete(); } catch { /* ignora */ } });
   } catch { /* senza pulizia */ }
 }
-async function prepare(text: string): Promise<Prepared> {
-  const key = checksum(text).replace(/[^a-z0-9]/gi, '');
+async function prepare(text: string, style?: string): Promise<Prepared> {
+  const key = checksum(`${style ?? ''}|${text}`).replace(/[^a-z0-9]/gi, '');
   if (Platform.OS !== 'web') {
     const dir = cacheDir();
     if (dir) {
@@ -72,7 +72,7 @@ async function prepare(text: string): Promise<Prepared> {
       try { if (hit.exists && hit.size > 1000) return { uri: hit.uri, file: hit, keep: true }; } catch { /* si rifà */ }
     }
   }
-  const r = await aiTts(text);
+  const r = await aiTts(text, style);
   const wav = pcmToWav(base64ToBytes(r.audio), pcmRate(r.mime));
   if (Platform.OS === 'web') return { uri: `data:audio/wav;base64,${bytesToBase64(wav)}`, file: null };
   const dir = cacheDir();
@@ -86,14 +86,15 @@ async function prepare(text: string): Promise<Prepared> {
  * La voce di Theia a pezzi: ogni pezzo viene preparato appena arriva (anche mentre il testo si sta ancora scrivendo) e letto in ordine,
  * così Theia inizia a parlare dopo le prime frasi. `onPos(i, frazione)` dice a che punto è: serve a far scorrere il testo con la voce.
  */
-export function createSpeechStream(onPos: (chunk: number, frac: number) => void): SpeechStream {
+export function createSpeechStream(onPos: (chunk: number, frac: number) => void, opts: { recording?: boolean; /** come leggere: vedi VOICE_STYLES */ style?: string } = {}): SpeechStream {
   const jobs: Promise<Prepared | { pause: number } | null>[] = [];
   let ended = false, stopped = false, began = false, wake: (() => void) | null = null;
   let cur: { stop: () => void } | null = null;
   const poke = () => { const w = wake; wake = null; w?.(); };
   const done = (async () => {
    try {
-    try { await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true }); } catch { /* resta l'impostazione attuale */ }
+    /* con allowsRecording iOS manda l'audio all'auricolare (volume bassissimo): si accende solo nella conversazione a voce, dove serve ascoltare mentre parla */
+    try { await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: !!opts.recording }); } catch { /* resta l'impostazione attuale */ }
     for (let i = 0; !stopped; i++) {
       while (i >= jobs.length && !ended && !stopped) await new Promise<void>((r) => { wake = r; });
       if (stopped || i >= jobs.length) break;
@@ -127,7 +128,7 @@ export function createSpeechStream(onPos: (chunk: number, frac: number) => void)
    } catch { /* la voce si ferma: il testo resta scritto */ }
   })();
   return {
-    push: (text) => { if (stopped || ended) return; jobs.push(prepare(text).catch(() => null)); poke(); },
+    push: (text) => { if (stopped || ended) return; jobs.push(prepare(text, opts.style).catch(() => null)); poke(); },
     pause: (ms) => { if (stopped || ended) return; jobs.push(Promise.resolve({ pause: ms })); poke(); },
     end: () => { ended = true; poke(); },
     stop: () => { stopped = true; cur?.stop(); poke(); jobs.forEach((j) => void j.then((p) => { try { const q = p as Prepared | null; if (q && !q.keep) q.file?.delete?.(); } catch { /* cache */ } })); },

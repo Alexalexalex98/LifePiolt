@@ -201,7 +201,8 @@ export const aiChatRaw = async (message: string, q?: string) => String((await ca
 export const aiChat = async (message: string) => humanize((await call<{ reply: string }>('/chat', geminiChat() ? { message, google: true } : { message })).reply);
 export const aiVision = async (image: string, mime: string, prompt: string) => { if (mime.startsWith('image/')) noteGoogleSend(1); return humanize((await call<{ reply: string }>('/vision', { image, mime, prompt, google: true }, 90000)).reply); };
 /** La voce di Theia: Gemini trasforma il testo in audio (PCM a 16 bit, 24 kHz). */
-export const aiTts = (text: string) => call<{ audio: string; mime: string }>('/tts', { text, google: true }, 40000);
+/** `style` = come leggere (dolce e lenta per dormire, calma, calda…): Gemini lo capisce da una breve indicazione davanti al testo. */
+export const aiTts = (text: string, style?: string) => call<{ audio: string; mime: string }>('/tts', { text: style ? `${style}: ${text}` : text, google: true }, 40000);
 export const aiAnalyze = (files: { data: string; mime: string }[], question?: string, context?: string, google = true) => call<{ reply: string; result: unknown }>('/analyze', { files, question, context, ...(google ? { google: true } : {}) }, 90000);
 
 /** Ogni volta che una foto parte verso Google Gemini te lo diciamo subito e lo scriviamo in «Cosa è stato inviato». */

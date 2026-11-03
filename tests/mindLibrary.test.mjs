@@ -25,3 +25,8 @@ test('consigli personalizzati: sera, sonno corto, umore giù; senza ripetere', (
   assert.equal(b.length, 3); assert.ok(!b.some((x) => x.exId === 'r-box'));
   assert.deepEqual(recommend({ weak: [], hour: 9, recent: [], seed: 4 }), recommend({ weak: [], hour: 9, recent: [], seed: 4 }));
 });
+import { voiceStyleFor, VOICE_STYLES } from '../src/lib/mindLibrary.ts';
+test('la voce cambia con il tipo di esercizio', () => {
+  assert.equal(voiceStyleFor('s-winddown'), VOICE_STYLES.sonno); assert.equal(voiceStyleFor('st-stop'), VOICE_STYLES.calma);
+  assert.equal(voiceStyleFor('g-tre'), VOICE_STYLES.calda); assert.equal(voiceStyleFor('f-un-compito'), VOICE_STYLES.vivace);
+});
