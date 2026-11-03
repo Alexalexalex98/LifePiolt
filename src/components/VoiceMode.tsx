@@ -13,7 +13,8 @@ import { sendTheia } from '@/lib/assistant/theiaFlow';
 import { Icon } from '@/lib/icons';
 import { createTransport, initialSpeech, liveText, localeFor, speechReducer, speechSupport, type SpeechErrorCode, type SpeechTransport } from '@/lib/speech';
 import { listenByRecording, REC_OPTIONS } from '@/lib/voice/recordListen';
-import { createSpeechStream, type SpeechStream } from '@/lib/voice/speak';
+import type { SpeechStream } from '@/lib/voice/speak';
+import { makeSpeechStream } from '@/lib/voice/speechEngine';
 import { cleanForSpeech, isEcho, sentenceSpans, takeChunks, wantsToStop } from '@/lib/voice/voiceText';
 import { useApp } from '@/store/app';
 import { useAssistant } from '@/store/assistant';
@@ -185,7 +186,7 @@ function VoiceMode() {
       const my = turn.current;
       setPhase('thinking'); setSpoken(''); spokenRef.current = ''; starts.current = []; setPos(0); ys.current = []; follow.current = true;
       const before = useAssistant.getState().log.length;
-      const stream = createSpeechStream((i, frac) => {
+      const stream = makeSpeechStream((i, frac) => {
         if (!alive.current || my !== turn.current) return;
         const c = starts.current[i]; if (!c) return;
         if (phaseRef.current === 'thinking') { setPhase('speaking'); void barge(my); }

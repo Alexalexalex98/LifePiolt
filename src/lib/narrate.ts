@@ -1,7 +1,8 @@
 import { t as tl } from '@/i18n/core';
 import type { Exercise } from '@/lib/mindExercises';
 import { narrationPlan } from '@/lib/mindLibrary';
-import { createSpeechStream, type SpeechStream } from '@/lib/voice/speak';
+import type { SpeechStream } from '@/lib/voice/speak';
+import { makeSpeechStream } from '@/lib/voice/speechEngine';
 
 let current: SpeechStream | null = null;
 export const stopNarration = () => { current?.stop(); current = null; };
@@ -14,7 +15,7 @@ export const isNarrating = () => current != null;
 export function narrate(ex: Exercise, onPart?: (i: number, n: number) => void): { done: Promise<void>; stop: () => void } {
   stopNarration();
   const plan = narrationPlan(ex, tl('Mettiti comodo. Ti accompagno io.'));
-  const stream = createSpeechStream(() => undefined);
+  const stream = makeSpeechStream(() => undefined);
   current = stream;
   let k = 0; const n = plan.filter((p) => p.kind === 'say').length;
   for (const p of plan) {

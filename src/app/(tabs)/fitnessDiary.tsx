@@ -20,6 +20,7 @@ import { refreshFoodReminders } from '@/lib/foodNotify';
 import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { requestPermission } from '@/lib/notify';
+import { mealsToCsv } from '@/lib/fitness/diaryExport';
 import { useFitness } from '@/store/fitness';
 import { toast } from '@/store/toast';
 
@@ -37,6 +38,19 @@ const Bar = ({ value, max, color }: { value: number; max: number; color: string 
 const SLOT: Record<string, string> = { colazione: 'Colazione', pranzo: 'Pranzo', merenda: 'Merenda', cena: 'Cena', notte: 'Dopo cena' };
 
 /** Storico dei pasti giorno per giorno, acqua, promemoria e analisi di Theia su come si mangia. */
+async function exportDiary(meals: Parameters<typeof mealsToCsv>[0]) {
+  try {
+    if (!meals.length) { toast(tl('Il diario è ancora vuoto.')); return; }
+    const { File, Paths } = await import('expo-file-system');
+    const Sharing = await import('expo-sharing');
+    const file = new File(Paths.cache, `diario-pasti-${new Date().toISOString().slice(0, 10)}.csv`);
+    if (file.exists) file.delete();
+    file.create(); file.write(`\uFEFF${mealsToCsv(meals)}`);
+    if (!(await Sharing.isAvailableAsync())) { toast(tl('La condivisione dei file non è disponibile su questo dispositivo.')); return; }
+    await Sharing.shareAsync(file.uri, { mimeType: 'text/csv', dialogTitle: tl('Il tuo diario dei pasti'), UTI: 'public.comma-separated-values-text' });
+  } catch { toast(tl('Non sono riuscito a esportare il diario.')); }
+}
+
 export default function FitnessDiary() {
   const t = useTheme();
   const fit = useFitness();
@@ -71,6 +85,7 @@ export default function FitnessDiary() {
 
   return (
     <Page id="fitnessDiary" back title="Storico dei pasti">
+      <Btn small ghost icon="file" title={tl('Esporta il diario (CSV)')} onPress={() => void exportDiary(fit.meals)} />
       <Card accent={FIT}>
         <H>Come mangi</H>
         <Body small muted style={{ marginTop: 2 }}>Un parere breve dell'AI e, sotto, l'analisi di Theia su tutti i nutrienti degli ultimi 7 giorni. L'analisi di Theia si fa sul telefono; il parere dell'AI parte solo se consenti.</Body>

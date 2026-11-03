@@ -16,6 +16,8 @@ import { mixer } from '@/lib/soundMixer';
 import type { Answer, Exercise } from '@/lib/mindExercises';
 import { useHealth } from '@/store/health';
 import { useMindSpace } from '@/store/mindSpace';
+import { useVoicePrefs } from '@/store/voicePrefs';
+import { deviceVoiceAvailable } from '@/lib/voice/speechEngine';
 import { toast } from '@/store/toast';
 
 type Tab = 'oggi' | 'esercizi' | 'sonno' | 'focus';
@@ -38,6 +40,8 @@ export default function Mindfulness() {
   const [, bump] = useReducer((x: number) => x + 1, 0);
   const entries = useMindSpace((s) => s.entries);
   const add = useMindSpace((s) => s.add);
+  const engine = useVoicePrefs((s) => s.engine);
+  const setEngine = useVoicePrefs((s) => s.set);
   useEffect(() => mixer.subscribe(bump), []);
   useEffect(() => () => { stopNarration(); }, []);
 
@@ -96,6 +100,15 @@ export default function Mindfulness() {
             <H>{tl('Per te adesso')}</H>
             <Body small muted style={{ marginBottom: 6 }}>{tl('Scelti dai tuoi dati (sonno, umore, tensione) e dall\'ora. Sono proposte: prendi quello che ti va.')}</Body>
             {recos.map((r, i) => { const ex = exerciseById(r.exId); return ex ? exRow(ex, i === recos.length - 1, tl(r.reason)) : null; })}
+          </Card>
+          <Card>
+            <H>{tl('Voce')}</H>
+            <Body small muted style={{ marginBottom: 8 }}>{tl('Con quale voce ti leggo gli esercizi e ti rispondo? Quella del telefono è gratis e funziona anche senza internet; Gemini è più naturale ma consuma il tuo piano (le frasi già lette restano salvate e non si pagano di nuovo).')}</Body>
+            <Row gap={8} style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+              <Pill label={tl('Voce del telefono (gratis)')} on={engine === 'device'} onPress={() => setEngine('device')} />
+              <Pill label={tl('Voce Gemini')} on={engine === 'gemini'} onPress={() => setEngine('gemini')} />
+            </Row>
+            {engine === 'device' && !deviceVoiceAvailable() ? <Body small muted style={{ marginTop: 8 }}>{tl('La voce del telefono non è ancora installata in questa versione: per ora uso Gemini. Aggiorna l\'app (npm install) per attivarla.')}</Body> : null}
           </Card>
           <Card>
             <H>{tl('Il tuo percorso')}</H>

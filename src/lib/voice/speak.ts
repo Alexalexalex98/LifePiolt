@@ -1,5 +1,6 @@
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
-import { File, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
+import { checksum } from '@/db/checksum';
 import { Platform } from 'react-native';
 
 import { aiTts } from '@/lib/aiServer';
@@ -50,14 +51,35 @@ export type SpeechStream = {
   started: () => boolean;
 };
 
-type Prepared = { uri: string; file: File | null };
+type Prepared = { uri: string; file: File | null; /** file nella cache: non si cancella dopo l'ascolto */ keep?: boolean };
+
+/** Cache su disco delle frasi già lette da Gemini: riascoltare lo stesso esercizio non costa una nuova richiesta. Al massimo MAX_CACHE file. */
+const MAX_CACHE = 60;
+function cacheDir(): Directory | null { try { const d = new Directory(Paths.document, 'tts-cache'); if (!d.exists) d.create(); return d; } catch { return null; } }
+function trimCache(dir: Directory) {
+  try {
+    const files = dir.list().filter((x): x is File => x instanceof File);
+    if (files.length <= MAX_CACHE) return;
+    files.sort((a, b) => (a.modificationTime ?? 0) - (b.modificationTime ?? 0)).slice(0, files.length - MAX_CACHE).forEach((f) => { try { f.delete(); } catch { /* ignora */ } });
+  } catch { /* senza pulizia */ }
+}
 async function prepare(text: string): Promise<Prepared> {
+  const key = checksum(text).replace(/[^a-z0-9]/gi, '');
+  if (Platform.OS !== 'web') {
+    const dir = cacheDir();
+    if (dir) {
+      const hit = new File(dir, `${key}.wav`);
+      try { if (hit.exists && hit.size > 1000) return { uri: hit.uri, file: hit, keep: true }; } catch { /* si rifà */ }
+    }
+  }
   const r = await aiTts(text);
   const wav = pcmToWav(base64ToBytes(r.audio), pcmRate(r.mime));
   if (Platform.OS === 'web') return { uri: `data:audio/wav;base64,${bytesToBase64(wav)}`, file: null };
-  const file = new File(Paths.cache, `theia-voice-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}.wav`);
+  const dir = cacheDir();
+  const file = dir ? new File(dir, `${key}.wav`) : new File(Paths.cache, `theia-voice-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}.wav`);
   file.create({ overwrite: true }); file.write(wav);
-  return { uri: file.uri, file };
+  if (dir) trimCache(dir);
+  return { uri: file.uri, file, keep: !!dir };
 }
 
 /**
@@ -77,7 +99,7 @@ export function createSpeechStream(onPos: (chunk: number, frac: number) => void)
       if (stopped || i >= jobs.length) break;
       const p = await jobs[i];
       if (p && 'pause' in p) { await new Promise<void>((r) => { const h = setTimeout(r, p.pause); cur = { stop: () => { clearTimeout(h); r(); } }; }); cur = null; continue; }
-      if (!p || stopped) { (p as Prepared | null)?.file?.delete(); continue; }
+      if (!p || stopped) { const q = p as Prepared | null; if (q && !q.keep) q.file?.delete(); continue; }
       began = true;
       await new Promise<void>((res) => {
         let player: ReturnType<typeof createAudioPlayer>;
@@ -87,7 +109,7 @@ export function createSpeechStream(onPos: (chunk: number, frac: number) => void)
           if (over) return; over = true; clearTimeout(guard);
           try { sub.remove(); } catch { /* già tolto */ }
           try { player.pause(); player.remove(); } catch { /* già fermo */ }
-          try { p.file?.delete(); } catch { /* la cache si svuota da sola */ }
+          try { if (!p.keep) p.file?.delete(); } catch { /* la cache si svuota da sola */ }
           cur = null; res();
         };
         const sub = player.addListener('playbackStatusUpdate', (st) => {
@@ -108,7 +130,7 @@ export function createSpeechStream(onPos: (chunk: number, frac: number) => void)
     push: (text) => { if (stopped || ended) return; jobs.push(prepare(text).catch(() => null)); poke(); },
     pause: (ms) => { if (stopped || ended) return; jobs.push(Promise.resolve({ pause: ms })); poke(); },
     end: () => { ended = true; poke(); },
-    stop: () => { stopped = true; cur?.stop(); poke(); jobs.forEach((j) => void j.then((p) => { try { (p as Prepared | null)?.file?.delete?.(); } catch { /* cache */ } })); },
+    stop: () => { stopped = true; cur?.stop(); poke(); jobs.forEach((j) => void j.then((p) => { try { const q = p as Prepared | null; if (q && !q.keep) q.file?.delete?.(); } catch { /* cache */ } })); },
     done,
     started: () => began,
   };

@@ -29,6 +29,7 @@ import { daysToNextPhotos } from '@/lib/fitness/bodyCheck';
 import { useFitness } from '@/store/fitness';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
+import { BarcodeSheet } from '@/components/fitness/BarcodeSheet';
 
 const GOALS: Goal[] = ['dimagrire', 'tonificare', 'massa', 'forza', 'resistenza', 'mobilità', 'salute'];
 const LEVELS: Level[] = ['principiante', 'intermedio', 'avanzato'];
@@ -50,6 +51,7 @@ export default function LifeFitness() {
   const [pass, setPass] = useState(false);
   const [tab, setTab] = useState('Oggi');
   const [quick, setQuick] = useState(false);
+  const [barcode, setBarcode] = useState(false);
   /* acquisto del LifePass come un abbonamento: riepilogo, conferma, elaborazione, esito */
   const [buy, setBuy] = useState<'off' | 'ask' | 'busy' | 'done' | 'fail'>('off');
   const [buyMsg, setBuyMsg] = useState('');
@@ -214,11 +216,14 @@ export default function LifeFitness() {
             <Row><View style={{ flex: 1 }}><H>Storico: pasti, acqua e analisi</H><Body small muted>Giorno per giorno, con foto e acqua. Theia ti dice dove sei carente e cosa migliorare.</Body></View><Icon name="chevron-right" size={18} color={t.muted} /></Row>
           </Card>
 
+            <BarcodeSheet visible={barcode} onClose={() => setBarcode(false)} />
             <Sheet visible={quick} title="Aggiungi un pasto" onClose={() => setQuick(false)}>
               <Body small muted>Fai o scegli la foto del piatto: la guardi, e se vuoi la faccio analizzare a Theia.</Body>
               <Btn style={{ marginTop: 12 }} icon="camera" title="Scatta una foto" onPress={() => { setQuick(false); go('fitnessMeal', { start: 'camera' }); }} />
               <Btn style={{ marginTop: 8 }} ghost icon="image" title="Scegli dalla galleria" onPress={() => { setQuick(false); go('fitnessMeal', { start: 'gallery' }); }} />
               <Btn style={{ marginTop: 8 }} ghost title="Compongo il piatto a mano" onPress={() => { setQuick(false); go('fitnessMeal'); }} />
+              <Btn style={{ marginTop: 8 }} ghost icon="search" title="Scansiono il codice a barre" onPress={() => { setQuick(false); setBarcode(true); }} />
+              <Btn style={{ marginTop: 8 }} ghost title="Digiuno intermittente" onPress={() => { setQuick(false); go('fasting'); }} />
             </Sheet>
             </>
           ) : null}

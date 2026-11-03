@@ -10,6 +10,8 @@ import {
   type Att,
 } from '@/lib/attachments';
 import { uid } from '@/lib/format';
+import { officeText } from '@/lib/officeText';
+import { readUriBytes } from '@/lib/readUri';
 import { notePreview, noteTitle } from '@/lib/notes';
 import { MAX_IMAGES } from '@/lib/assistant/imageCore';
 import { prepare, takePhoto as takeImage } from './images';
@@ -71,6 +73,12 @@ export async function addFiles(current: Att[]): Promise<Added> {
     if (canExtractLocally(name, mime)) {
       const raw = await readTextFile(a.uri);
       if (raw != null && raw.trim()) { const tr = truncateText(raw); text = tr.text; truncated = tr.truncated; }
+    } else if ((docType === 'xlsx' || docType === 'pptx' || docType === 'docx') && /\.(xlsx|pptx|docx)$/i.test(name)) {
+      /* Excel, PowerPoint e Word moderni: il testo si legge sul telefono, il file non parte */
+      try {
+        const raw = officeText(await readUriBytes(a.uri), docType);
+        if (raw) { const tr = truncateText(raw); text = tr.text; truncated = tr.truncated; }
+      } catch { /* resta il file */ }
     }
     out.push({ id: uid(), kind: 'document', name, uri: persistFile(a.uri, name), mime, size, docType, text, truncated, billish: looksLikeBill(name, text) });
   }
