@@ -194,7 +194,7 @@ export default function LifeFitness() {
           </Card>
           <Row gap={10}>
             <Card style={{ flex: 1 }} onPress={() => go('fitnessFridge')}><H style={{ marginBottom: 2 }}>Frigo e spesa</H><Body small muted>Scontrino, scorte, lista condivisa</Body></Card>
-            <Card style={{ flex: 1 }} onPress={() => go('fitnessCook')}><H style={{ marginBottom: 2 }}>Cosa cucino?</H><Body small muted>Ricette e cosa manca</Body></Card>
+            <Card style={{ flex: 1 }} onPress={() => go('recipes')}><H style={{ marginBottom: 2 }}>Ricette</H><Body small muted>Passo passo, con timer</Body></Card>
           </Row>
           <Card>
             <Pressable accessibilityRole="button" accessibilityLabel={tl('Apri la giornata di oggi')} onPress={() => go('fitnessDay', { day: dayOf(Date.now()) })}>

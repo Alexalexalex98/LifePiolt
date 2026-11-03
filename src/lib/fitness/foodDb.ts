@@ -65,6 +65,8 @@ function parse(): DbFood[] {
 }
 const BASE = parse();
 const BY_NAME = new Map(BASE.map((f) => [norm(f.name), f]));
+/** nome normalizzato → id dell'alimento: serve a leggere le ricette */
+export const BASE_NAMES = new Map(BASE.map((f) => [norm(f.name), f.id]));
 
 function parseRecipes(): { recipes: Recipe[]; missing: string[] } {
   const recipes: Recipe[] = []; const missing: string[] = []; const seen = new Set<string>();

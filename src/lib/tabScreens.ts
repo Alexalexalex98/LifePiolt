@@ -124,6 +124,7 @@ export const TAB_SCREENS: string[] = [
   'storyCreate',
   'storyView',
   'swipeDeck',
+  'recipes',
   'syncSettings',
   'taxdecl',
   'teams',

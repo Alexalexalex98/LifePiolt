@@ -1,5 +1,5 @@
 {
- "count": 17010,
+ "count": 17117,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -103,6 +103,7 @@
   "src/app/(tabs)/projectWork.tsx": 34,
   "src/app/(tabs)/projects.tsx": 57,
   "src/app/(tabs)/purchaseConfirm.tsx": 9,
+  "src/app/(tabs)/recipes.tsx": 66,
   "src/app/(tabs)/recordingPlayer.tsx": 8,
   "src/app/(tabs)/reminders.tsx": 23,
   "src/app/(tabs)/reports.tsx": 1,
@@ -318,6 +319,8 @@
   "src/components/profile/CardFace.tsx": 11,
   "src/components/profile/ProfileParts.tsx": 60,
   "src/components/profile/QaVote.tsx": 11,
+  "src/components/recipes/CookMode.tsx": 27,
+  "src/components/recipes/RecipeCard.tsx": 4,
   "src/components/scoreSheet.tsx": 2,
   "src/components/security/BackupSection.tsx": 30,
   "src/components/security/DbNoticeBanner.tsx": 1,
@@ -630,6 +633,9 @@
   "src/lib/profile/qa.ts": 1,
   "src/lib/profile/reputation.ts": 21,
   "src/lib/profile/skills.ts": 15,
+  "src/lib/recipes/book.ts": 44,
+  "src/lib/recipes/catalog.ts": 10,
+  "src/lib/recipes/timers.ts": 3,
   "src/lib/recordings.ts": 6,
   "src/lib/recurring.ts": 12,
   "src/lib/reminders.ts": 4,
@@ -739,5 +745,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2087
+ "withPlaceholders": 2108
 }
