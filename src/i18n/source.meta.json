@@ -1,5 +1,5 @@
 {
- "count": 17118,
+ "count": 17174,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -103,7 +103,7 @@
   "src/app/(tabs)/projectWork.tsx": 34,
   "src/app/(tabs)/projects.tsx": 57,
   "src/app/(tabs)/purchaseConfirm.tsx": 9,
-  "src/app/(tabs)/recipes.tsx": 67,
+  "src/app/(tabs)/recipes.tsx": 64,
   "src/app/(tabs)/recordingPlayer.tsx": 8,
   "src/app/(tabs)/reminders.tsx": 23,
   "src/app/(tabs)/reports.tsx": 1,
@@ -426,6 +426,7 @@
   "src/lib/assistant/phrasesMore.ts": 128,
   "src/lib/assistant/planDelivery.ts": 20,
   "src/lib/assistant/projectCore.ts": 138,
+  "src/lib/assistant/recipeTheia.ts": 75,
   "src/lib/assistant/reports.ts": 20,
   "src/lib/assistant/run.ts": 1,
   "src/lib/assistant/style.ts": 4,
@@ -635,6 +636,8 @@
   "src/lib/profile/skills.ts": 15,
   "src/lib/recipes/book.ts": 44,
   "src/lib/recipes/catalog.ts": 10,
+  "src/lib/recipes/intent.ts": 19,
+  "src/lib/recipes/plan.ts": 3,
   "src/lib/recipes/timers.ts": 3,
   "src/lib/recordings.ts": 6,
   "src/lib/recurring.ts": 12,
@@ -745,5 +748,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2108
+ "withPlaceholders": 2131
 }

@@ -49,6 +49,8 @@ export type TheiaAction =
   | { kind: 'photo-route'; label: string; to: 'corpo' | 'frigo' | 'piatto' | 'scontrino'; uris: string[] }
   /** mette i turni letti da un file al posto (o accanto) a quelli di prima, dopo la conferma */
   | { kind: 'shifts-apply'; label: string; replace: boolean; shifts: { name: string; start: string; end: string; weekdays: number[]; dates: string[] }[] }
+  /** ricette: avvia la cucina guidata, timer, promemoria dell'orario, lista della spesa, preferiti, diario */
+  | { kind: 'recipe'; label: string; op: 'cook' | 'timer' | 'remind' | 'shop' | 'fav' | 'done' | 'show'; id: string; sec?: number; timerLabel?: string; at?: number; servings?: number }
   | { kind: 'dismiss'; label: string };
 
 export type TheiaExt = {
@@ -68,4 +70,6 @@ export type TheiaExt = {
   avatar?: string;
   /** un file consegnato in chat (piano alimentare, programma): si tocca e si apre la pagina */
   card?: { icon: string; title: string; sub: string; page: string; params?: Record<string, string> };
+  /** più schede cliccabili nello stesso messaggio (es. le ricette trovate) */
+  cards?: NonNullable<TheiaExt['card']>[];
 };

@@ -54,6 +54,7 @@ import { friendlyAiError, isAddFollowUp, taskCommand, todoSubject } from './foll
 import { useLearned } from '@/store/learned';
 import { shareLearned, voteSharedCommand } from '@/social/sharedCommands';
 import { handleFood } from '@/lib/assistant/foodTheia';
+import { handleRecipes, runRecipeAction } from '@/lib/assistant/recipeTheia';
 import { deliverPlans, takePlans } from '@/lib/assistant/planDelivery';
 import { NUTRITIONIST_TALK, looksLikeDietPlan } from '@/lib/fitness/planPdf';
 import { mealPlanTalk } from '@/lib/fitness/aiPlan';
@@ -550,6 +551,8 @@ export async function sendTheia(i: SendInput): Promise<void> {
     });
     return;
   }
+  // ricette: cercare, vedere, cucinare passo passo con timer, orario del pasto, spesa, preferiti (tutto sul telefono)
+  if (!pending && handleRecipes(text, (m, o) => { pushAi(m, { chips: o?.chips, ext: { ...(o?.actions ? { actions: o.actions } : {}), ...(o?.cards ? { cards: o.cards } : {}) } }); }, (page, params) => go(page, params ?? {}))) return;
   // cibo e acqua: storico, analisi di come mangi, acqua bevuta e promemoria (tutto sul telefono)
   if (!pending && (await handleFood(text, (m, actions) => { pushAi(m, actions ? { ext: { actions } } : {}); }, (page, params) => go(page, params ?? {})))) return;
   // domande sul dove abiti o su percorsi da casa: Theia NON lo sa e lo dice, senza inventare strade
@@ -901,6 +904,7 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
       pushAi(action.replace ? t('Fatto: i turni di prima sono stati sostituiti con quelli del file.') : t('Fatto: ho aggiunto i turni del file.'), { ext: { actions: [{ kind: 'open', label: t('Apri i turni'), page: 'shifts' }] } });
       return;
     }
+    case 'recipe': store().push({ who: 'me', text: action.label, source: 'chat' }); runRecipeAction(action, (m, o) => { pushAi(m, { chips: o?.chips, ext: { ...(o?.actions ? { actions: o.actions } : {}), ...(o?.cards ? { cards: o.cards } : {}) } }); }); return;
     case 'pantry-add': { const n = usePantry.getState().addLines(action.lines.filter((l) => l.name.trim() && l.qty > 0)); pushAi(t('Fatto: ho aggiunto {0} prodotti al frigo.', n), { ext: { actions: [{ kind: 'open', label: t('Apri Frigo e spesa'), page: 'fitnessFridge' }] } }); return; }
     case 'meal-save': {
       const fit = useFitness.getState();

@@ -10,7 +10,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { cookable, recipeStatus } from '@/lib/fitness/cooking';
 import { Icon } from '@/lib/icons';
-import { scheduleAt } from '@/lib/notify';
+import { remindPlan } from '@/lib/recipes/plan';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
 import { CATALOG, WRITTEN_COUNT } from '@/lib/recipes/catalog';
 import { CAT_COLOR, DIETS, DIFF_LABEL, RCATS, balanceScore, dietsOf, estimateTotalSec, filterRecipes, fmtClock, fmtMin, itemName, nutritionPer, ovenLeadMin, planBackwards, prettyAmount, regionsOf, scaleGrams, totalMin, type Diet, type FullRecipe, type RCat } from '@/lib/recipes/book';
 import { secLeft, stopTimer, useKitchenTimers } from '@/lib/recipes/timers';
@@ -23,7 +25,9 @@ export default function Recipes() {
   const th = useTheme();
   const favs = useRecipes((s) => s.favs); const cooking = useRecipes((s) => s.cooking); const myDiets = useRecipes((s) => s.myDiets);
   const items = usePantry((s) => s.items);
-  const [open, setOpen] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ id?: string; cook?: string }>();
+  const [open, setOpen] = useState<string | null>(typeof params.id === 'string' ? params.id : null);
+  useEffect(() => { if (typeof params.id === 'string' && params.id) setOpen(params.id); }, [params.id]);
   const [q, setQ] = useState(''); const [cat, setCat] = useState<RCat | null>(null);
   const [quick, setQuick] = useState<'favs' | 'fridge' | 'fast' | null>(null);
   const [diets, setDiets] = useState<Diet[]>([]); const [diff, setDiff] = useState<1 | 2 | 3 | null>(null); const [region, setRegion] = useState<string | null>(null);
@@ -36,7 +40,7 @@ export default function Recipes() {
   const recipe = open ? CATALOG.find((r) => r.id === open) : null;
   const toggleDiet = (d: Diet) => setDiets((x) => (x.includes(d) ? x.filter((y) => y !== d) : [...x, d]));
 
-  if (recipe) return <Detail r={recipe} onBack={() => setOpen(null)} />;
+  if (recipe) return <Detail key={recipe.id + (params.cook ?? '')} r={recipe} onBack={() => setOpen(null)} autoCook={params.cook === '1'} />;
 
   const chip = (on: boolean) => ({ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: on ? th.accent : th.border, backgroundColor: on ? th.accent + '26' : th.card } as const);
   const rail = (title: string, sub: string | undefined, rs: FullRecipe[], more?: () => void) => rs.length ? (
@@ -109,13 +113,13 @@ export default function Recipes() {
 }
 
 /* ------------------------------ scheda ricetta ------------------------------ */
-function Detail({ r, onBack }: { r: FullRecipe; onBack: () => void }) {
+function Detail({ r, onBack, autoCook }: { r: FullRecipe; onBack: () => void; autoCook?: boolean }) {
   const th = useTheme(); const c = CAT_COLOR[r.cat];
   const fav = useRecipes((s) => s.favs.includes(r.id)); const note = useRecipes((s) => s.notes[r.id] ?? ''); const done = useRecipes((s) => s.cooked[r.id]); const myDiets = useRecipes((s) => s.myDiets);
   const cooking = useRecipes((s) => s.cooking);
   const items = usePantry((s) => s.items); const addShop = usePantry((s) => s.addShop);
   const [servings, setServings] = useState(cooking?.recipeId === r.id ? cooking.servings : r.servings);
-  const [play, setPlay] = useState(false);
+  const [play, setPlay] = useState(!!autoCook && cooking?.recipeId === r.id);
   const [plan, setPlan] = useState(false); const [eat, setEat] = useState(() => { const d = new Date(Date.now() + (estimateTotalSec(r) + 15 * 60) * 1000); d.setMinutes(Math.ceil(d.getMinutes() / 5) * 5, 0, 0); return d.getTime(); });
   const nut = nutritionPer(r); const bal = balanceScore(r); const dd = dietsOf(r);
   const st = useMemo(() => recipeStatus({ id: r.id, name: r.name, method: '', items: r.items.filter((i) => i.foodId).map((i) => ({ foodId: i.foodId, grams: i.grams })) }, items, servings / r.servings), [r, items, servings]);
@@ -124,11 +128,7 @@ function Detail({ r, onBack }: { r: FullRecipe; onBack: () => void }) {
   const start = () => { useRecipes.getState().startCooking(cooking?.recipeId === r.id ? { ...cooking, servings } : { recipeId: r.id, servings, step: 0, startedAt: Date.now(), checked: [] }); setPlay(true); };
   const toList = () => { st.missing.forEach((m) => addShop(m.name, m.missing, 'g')); toast(st.missing.length ? tl('Aggiunti {0} ingredienti alla lista della spesa', st.missing.length) : tl('Hai già tutto')); };
   const pb = planBackwards(r, eat); const ovenStep = r.steps.findIndex((s) => s.oven);
-  const remind = async () => {
-    const res = await scheduleAt(`lp-rplan-${r.id}`, new Date(pb.start), `${tl('Ora di cucinare')}: ${r.name}`, tl('Per mangiare all\'ora scelta, inizia adesso.'), { screen: 'recipes' }).catch(() => ({ ok: false } as { ok: boolean }));
-    if (ovenStep >= 0) { const o = r.steps[ovenStep]!.oven!; await scheduleAt(`lp-roven-${r.id}`, new Date(pb.at[ovenStep]! - ovenLeadMin(o) * 60000), tl('Accendi il forno'), `${r.name}: ${o.temp}° ${tl(o.mode)}`, { screen: 'recipes' }).catch(() => undefined); }
-    toast(res.ok ? tl('Ti avviso io') : tl('Non posso mandarti la notifica: controlla i permessi.')); setPlan(false);
-  };
+  const remind = async () => { const ok = await remindPlan(r, eat); toast(ok ? tl('Ti avviso io') : tl('Non posso mandarti la notifica: controlla i permessi.')); setPlan(false); };
   const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
   return (
