@@ -5,42 +5,19 @@ Tutti i file qui sotto vengono da **Mixkit** (https://mixkit.co), con la *Mixkit
 
 | File | Titolo originale | Fonte |
 |---|---|---|
-| natura__rain-loop.mp3 | Rain loop | https://assets.mixkit.co/active_storage/sfx/1250/1250-preview.mp3 |
-| natura__long-rain-ambience.mp3 | Long rain ambience | https://assets.mixkit.co/active_storage/sfx/1247/1247-preview.mp3 |
-| natura__intense-rain-in-a-calm-night.mp3 | Intense rain in a calm night | https://assets.mixkit.co/active_storage/sfx/1252/1252-preview.mp3 |
-| natura__forest-rain-loop.mp3 | Forest rain loop | https://assets.mixkit.co/active_storage/sfx/1225/1225-preview.mp3 |
-| natura__light-rain-loop.mp3 | Light rain loop | https://assets.mixkit.co/active_storage/sfx/2393/2393-preview.mp3 |
-| natura__heavy-rain-loop.mp3 | Heavy rain loop | https://assets.mixkit.co/active_storage/sfx/1243/1243-preview.mp3 |
-| natura__sea-waves-loop.mp3 | Sea waves loop | https://assets.mixkit.co/active_storage/sfx/1196/1196-preview.mp3 |
-| natura__close-sea-waves-loop.mp3 | Close sea waves loop | https://assets.mixkit.co/active_storage/sfx/1195/1195-preview.mp3 |
-| natura__sea-waves-ambience.mp3 | Sea waves ambience | https://assets.mixkit.co/active_storage/sfx/1189/1189-preview.mp3 |
-| natura__gentle-sea-wave.mp3 | Gentle sea wave | https://assets.mixkit.co/active_storage/sfx/1204/1204-preview.mp3 |
-| natura__sea-waves-on-a-rocky-shore.mp3 | Sea waves on a rocky shore | https://assets.mixkit.co/active_storage/sfx/1190/1190-preview.mp3 |
 | natura__forest-ambience-loop.mp3 | Forest ambience loop | https://assets.mixkit.co/active_storage/sfx/1228/1228-preview.mp3 |
 | natura__quiet-forest-ambience.mp3 | Quiet forest ambience | https://assets.mixkit.co/active_storage/sfx/1220/1220-preview.mp3 |
 | natura__birds-in-forest-loop.mp3 | Birds in forest loop | https://assets.mixkit.co/active_storage/sfx/1239/1239-preview.mp3 |
 | natura__european-spring-forest-ambience.mp3 | European spring forest ambience | https://assets.mixkit.co/active_storage/sfx/1219/1219-preview.mp3 |
 | natura__summer-night-in-the-forest.mp3 | Summer night in the forest | https://assets.mixkit.co/active_storage/sfx/1227/1227-preview.mp3 |
 | natura__forest-at-night.mp3 | Forest at night | https://assets.mixkit.co/active_storage/sfx/1224/1224-preview.mp3 |
-| natura__wind-in-the-forest-loop.mp3 | Wind in the forest loop | https://assets.mixkit.co/active_storage/sfx/1233/1233-preview.mp3 |
 | natura__morning-birds.mp3 | Morning birds | https://assets.mixkit.co/active_storage/sfx/2472/2472-preview.mp3 |
-| natura__water-flowing-ambience-loop.mp3 | Water flowing ambience loop | https://assets.mixkit.co/active_storage/sfx/3126/3126-preview.mp3 |
-| natura__water-flowing-in-the-river.mp3 | Water flowing in the river | https://assets.mixkit.co/active_storage/sfx/2455/2455-preview.mp3 |
-| natura__river-water-flowing.mp3 | River water flowing | https://assets.mixkit.co/active_storage/sfx/2454/2454-preview.mp3 |
-| natura__forest-waterfall-loop.mp3 | Forest waterfall loop | https://assets.mixkit.co/active_storage/sfx/2514/2514-preview.mp3 |
-| natura__big-waterfall-loop.mp3 | Big waterfall loop | https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3 |
-| natura__waterfall-ambience.mp3 | Waterfall ambience | https://assets.mixkit.co/active_storage/sfx/2513/2513-preview.mp3 |
 | natura__campfire-burning-crackles.mp3 | Campfire burning crackles | https://assets.mixkit.co/active_storage/sfx/1329/1329-preview.mp3 |
 | natura__campfire-crackles.mp3 | Campfire crackles | https://assets.mixkit.co/active_storage/sfx/1330/1330-preview.mp3 |
 | natura__summer-crickets-loop.mp3 | Summer crickets loop | https://assets.mixkit.co/active_storage/sfx/1788/1788-preview.mp3 |
 | natura__summer-night-crickets.mp3 | Summer night crickets | https://assets.mixkit.co/active_storage/sfx/1787/1787-preview.mp3 |
 | natura__pond-ambience-with-crickets.mp3 | Pond ambience with crickets | https://assets.mixkit.co/active_storage/sfx/1783/1783-preview.mp3 |
 | natura__crickets-at-night-in-nature.mp3 | Crickets at night in nature | https://assets.mixkit.co/active_storage/sfx/2475/2475-preview.mp3 |
-| natura__light-wind.mp3 | Light wind | https://assets.mixkit.co/active_storage/sfx/1165/1165-preview.mp3 |
-| natura__meadow-wind-light.mp3 | Meadow wind light | https://assets.mixkit.co/active_storage/sfx/1166/1166-preview.mp3 |
-| natura__winter-wind-loop.mp3 | Winter wind loop | https://assets.mixkit.co/active_storage/sfx/1175/1175-preview.mp3 |
-| natura__thunderstorm-ambience.mp3 | Thunderstorm ambience | https://assets.mixkit.co/active_storage/sfx/1289/1289-preview.mp3 |
-| natura__thunderstorm-and-rain-loop.mp3 | Thunderstorm and rain loop | https://assets.mixkit.co/active_storage/sfx/2402/2402-preview.mp3 |
 | meditazione__meditation.mp3 | Meditation | https://assets.mixkit.co/music/441/441.mp3 |
 | meditazione__deep-meditation.mp3 | Deep Meditation | https://assets.mixkit.co/music/109/109.mp3 |
 | meditazione__nature-meditation.mp3 | Nature Meditation | https://assets.mixkit.co/music/345/345.mp3 |

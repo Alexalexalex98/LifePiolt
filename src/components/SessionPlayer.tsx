@@ -12,6 +12,7 @@ import { VOICE_STYLES } from '@/lib/mindLibrary';
 import { sessionSeconds, type Session } from '@/lib/mindSessions';
 import { SOUNDS, type SoundGroup } from '@/lib/sleepSounds';
 import { mixer } from '@/lib/soundMixer';
+import { ambientGain, topicOf } from '@/lib/mixLevels';
 import { stopNarration } from '@/lib/narrate';
 import { makeSpeechStream } from '@/lib/voice/speechEngine';
 import type { SpeechStream } from '@/lib/voice/speak';
@@ -86,16 +87,17 @@ export function SessionPlayer({ session, color, onClose, next }: { session: Sess
     setPhase('play'); setElapsed(0); beatIdx.current = 0;
     const g = (session.ambient ?? 'natura') as SoundGroup;
     const snd = SOUNDS.find((x) => x.group === g) ?? SOUNDS.find((x) => x.group === 'natura');
+    mixer.setLevel(ambientGain({ kind: session.kind, topic: topicOf(session.id, session.title) }));
     if (snd && !mixer.active().length) void mixer.toggle(snd.id);
     startFrom(0);
   };
   const toggle = () => {
     if (!session) return;
-    if (playing) { stopAll(); setPlaying(false); mixer.setVolume(0.25); }
-    else { mixer.setVolume(0.7); /* riparte dalla frase corrente: le già lette sono in cache */ const say = session.beats; let n = 0; for (let i = 0; i < say.length; i++) { if (say[i]!.say && n++ >= Math.max(0, sayOffset.current)) { startFrom(i); return; } } startFrom(0); }
+    if (playing) { stopAll(); setPlaying(false); mixer.pause(); }
+    else { mixer.resume(); /* riparte dalla frase corrente: le già lette sono in cache */ const say = session.beats; let n = 0; for (let i = 0; i < say.length; i++) { if (say[i]!.say && n++ >= Math.max(0, sayOffset.current)) { startFrom(i); return; } } startFrom(0); }
   };
-  const leave = () => { stopAll(); mixer.stopAll(); onClose(); };
-  const done = () => { if (session) useMindProgress.getState().finish(session.id, before, after); stopAll(); mixer.stopAll(); onClose(); };
+  const leave = () => { stopAll(); mixer.stopAll(); mixer.resetLevel(); onClose(); };
+  const done = () => { if (session) useMindProgress.getState().finish(session.id, before, after); stopAll(); mixer.stopAll(); mixer.resetLevel(); onClose(); };
 
   if (!session) return null;
   const scale = orb.interpolate({ inputRange: [0, 1], outputRange: [0.62, 1.12] });
@@ -145,7 +147,7 @@ export function SessionPlayer({ session, color, onClose, next }: { session: Sess
               <View style={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', overflow: 'hidden' }}><View style={{ width: `${Math.min(100, (elapsed / Math.max(1, total)) * 100)}%`, height: 4, backgroundColor: color }} /></View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{fmt(elapsed)}</Text><Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{fmt(total)}</Text></View>
               <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 20 }}>
-                <Pressable onPress={() => { stopAll(); setPlaying(false); setPhase('after'); mixer.stopAll(); }} accessibilityRole="button" accessibilityLabel={tl('Concludi')} style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' }}><Text style={{ color: '#fff', fontWeight: '700' }}>{tl('Concludi')}</Text></Pressable>
+                <Pressable onPress={() => { stopAll(); setPlaying(false); setPhase('after'); mixer.stopAll(); mixer.resetLevel(); }} accessibilityRole="button" accessibilityLabel={tl('Concludi')} style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' }}><Text style={{ color: '#fff', fontWeight: '700' }}>{tl('Concludi')}</Text></Pressable>
                 <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel={playing ? tl('Pausa') : tl('Riprendi')} style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}><Icon name={playing ? 'pause' : 'play'} size={30} color="#0b0f1e" fill="#0b0f1e" /></Pressable>
               </View>
             </View>
