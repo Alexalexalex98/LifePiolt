@@ -2,6 +2,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
+import { Mascot } from '@/components/mascot/Mascot';
 import { Text } from '@/components/T';
 import { Body, Btn, Card, Empty, H, Input, Item, Page, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -14,6 +15,8 @@ import { WORKSPACE_FOLDER, askWorkspace, searchWorkspace, workspaceFiles, type S
 import { STATUSES, childrenOf, pathOf, slashCommand, useWorkspace, type BlockType, type WsPage } from '@/store/workspace';
 import { useWorkspaceChat } from '@/store/workspaceChat';
 import { useLife } from '@/store/life';
+import { useTeams } from '@/store/teams';
+import { deleteSharedPage } from '@/lib/teamSync';
 import { toast } from '@/store/toast';
 
 type Tab = 'pagine' | 'file' | 'assistente';
@@ -36,10 +39,12 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
   const [q, setQ] = useState('');
   const [hits, setHits] = useState<SearchHit[]>([]);
   useEffect(() => { let on = true; const h = setTimeout(() => { void searchWorkspace(q).then((r) => { if (on) setHits(r); }); }, 250); return () => { on = false; clearTimeout(h); }; }, [q, pages]);
+  const teams = useTeams((s) => s.teams);
+  const teamName = (id: string) => teams.find((x) => x.id === id)?.name ?? tl('Team');
   const roots = childrenOf(pages, null);
   const node = (p: WsPage, depth: number): React.ReactNode => (
     <View key={p.id}>
-      <Item onPress={() => onOpen(p.id)}><Row gap={8} style={{ justifyContent: 'flex-start', paddingStart: depth * 16 }}><Text style={{ color: th.muted }}>{p.kind === 'db' ? '▦' : '▸'}</Text><Body bold={depth === 0}>{p.title || tl('Pagina senza titolo')}</Body></Row></Item>
+      <Item onPress={() => onOpen(p.id)}><Row gap={8} style={{ justifyContent: 'flex-start', paddingStart: depth * 16 }}><Text style={{ color: th.muted }}>{p.kind === 'db' ? '▦' : '▸'}</Text><Body bold={depth === 0}>{p.title || tl('Pagina senza titolo')}</Body>{p.teamId ? <Text style={{ color: th.accent, fontSize: 12 }}>{`  ${teamName(p.teamId)}`}</Text> : null}</Row></Item>
       {childrenOf(pages, p.id).map((c) => node(c, depth + 1))}
     </View>
   );
@@ -53,7 +58,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
         </Card>
       ) : null}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-        {([['pagine', 'Pagine'], ['file', 'File'], ['assistente', 'Assistente']] as const).map(([id, l]) => <Pill key={id} label={tl(l)} on={tab === id} onPress={() => setTab(id)} />)}
+        {([['pagine', 'Pagine'], ['file', 'File'], ['assistente', 'Theia Lavoro']] as const).map(([id, l]) => <Pill key={id} label={tl(l)} on={tab === id} onPress={() => setTab(id)} />)}
       </ScrollView>
       {tab === 'pagine' ? (
         <Card>
@@ -61,6 +66,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
             <Btn small icon="plus" title={tl('Nuova pagina')} onPress={() => onOpen(addPage(null))} />
             <Btn small ghost title={tl('Nuovo database')} onPress={() => onOpen(addPage(null, 'db', tl('Nuovo database')))} />
           </Row>
+          {teams.length ? <Row gap={8} style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 8 }}>{teams.map((x) => <Pill key={x.id} label={tl('+ Pagina condivisa: {0}', x.name)} onPress={() => onOpen(addPage(null, 'page', '', x.id))} />)}</Row> : null}
           {roots.length ? roots.map((p) => node(p, 0)) : <Empty text={tl('Nessuna pagina ancora: creane una, anche per il wiki della tua azienda.')} />}
         </Card>
       ) : null}
@@ -104,14 +110,14 @@ function Assistant() {
   const send = async () => { const q = text.trim(); if (!q || busy) return; setText(''); setBusy(true); await askWorkspace(q); setBusy(false); };
   return (
     <Card>
-      <H>{tl('Assistente del workspace')}</H>
-      <Body small muted style={{ marginBottom: 8 }}>{tl('Risponde solo ai tuoi documenti e file del workspace, citando la fonte. È separato da Theia: non vede la tua vita privata, non scrive nella sua memoria e riceve solo i brani che servono, dopo il tuo permesso.')}</Body>
+      <Row gap={10} style={{ justifyContent: 'flex-start' }}><Mascot size={44} color={th.accent} expression="happy" /><H>{tl('Theia Lavoro')}</H></Row>
+      <Body small muted style={{ marginBottom: 8 }}>{tl('È Theia, in versione lavoro: legge tutte le pagine, i database e i file del workspace e dei tuoi team, e risponde citando la fonte. È separata dalla Theia personale: non vede la tua vita privata, non scrive nella sua memoria e riceve solo i brani che servono, dopo il tuo permesso.')}</Body>
       {log.map((m) => (
         <View key={m.id} style={{ alignSelf: m.who === 'me' ? 'flex-end' : 'flex-start', maxWidth: '90%', backgroundColor: m.who === 'me' ? th.accent + '33' : th.tile, borderRadius: 14, padding: 10, marginBottom: 8 }}>
           <Body>{m.text}</Body>{m.sources?.length ? <Body small muted style={{ marginTop: 4 }}>{tl('Fonti: {0}', m.sources.join(', '))}</Body> : null}
         </View>
       ))}
-      <Input value={text} onChangeText={setText} placeholder={tl('Chiedi qualcosa sui tuoi documenti…')} multiline maxLines={4} />
+      <Input value={text} onChangeText={setText} placeholder={tl('Chiedi a Theia Lavoro: file, numeri, decisioni…')} multiline maxLines={4} />
       <Row gap={8} style={{ justifyContent: 'flex-start' }}><Btn small icon="send" title={busy ? tl('Cerco…') : tl('Chiedi')} disabled={busy || !text.trim()} onPress={() => void send()} />{log.length ? <Btn small ghost title={tl('Svuota la chat')} onPress={() => useWorkspaceChat.getState().clear()} /> : null}</Row>
     </Card>
   );
@@ -125,13 +131,14 @@ function PageView({ page, onOpen, onBack }: { page: WsPage; onOpen: (id: string)
   const [comment, setComment] = useState('');
   const subs = childrenOf(pages, page.id);
   const crumbs = useMemo(() => pathOf(pages, page.id).slice(0, -1), [pages, page.id]);
-  const del = () => confirmDelete(tl('la pagina «{0}» e le sue sottopagine', page.title || tl('senza titolo')), () => { const gone = ws.remove(page.id); onBack(); return gone; }, () => undefined);
+  const del = () => confirmDelete(tl('la pagina «{0}» e le sue sottopagine', page.title || tl('senza titolo')), () => { if (page.teamId) void deleteSharedPage(page.id); const gone = ws.remove(page.id); onBack(); return gone; }, () => undefined);
   const onText = (bid: string, v: string) => {
     const c = slashCommand(v);
     if (c) { ws.patchBlock(page.id, bid, { t: c.t, text: c.rest }); if (c.t === 'divider') ws.addBlock(page.id); } else ws.patchBlock(page.id, bid, { text: v });
   };
   return (
     <Page id="workspace" title={page.title || tl('Pagina senza titolo')} back onBack={onBack}>
+      {page.teamId ? <Body small color={th.accent}>{tl('Pagina condivisa con il team «{0}»: le modifiche si vedono subito, per tutti.', useTeams.getState().teams.find((x) => x.id === page.teamId)?.name ?? '')}</Body> : null}
       {crumbs.length ? <Body small muted>{crumbs.map((c) => c.title || '…').join(' › ')}</Body> : null}
       <Input value={page.title} onChangeText={(v) => ws.patch(page.id, { title: v })} placeholder={tl('Titolo')} style={{ fontSize: 22, fontWeight: '800' }} />
       {page.kind === 'db' ? <Database page={page} /> : (
@@ -152,7 +159,7 @@ function PageView({ page, onOpen, onBack }: { page: WsPage; onOpen: (id: string)
       <Card>
         <Row><H>{tl('Sottopagine')}</H><Btn small ghost icon="plus" title={tl('Aggiungi')} onPress={() => onOpen(ws.addPage(page.id))} /></Row>
         {subs.length ? subs.map((c, i) => <Item key={c.id} last={i === subs.length - 1} onPress={() => onOpen(c.id)}><Body>{`${c.kind === 'db' ? '▦' : '▸'}  ${c.title || tl('Pagina senza titolo')}`}</Body></Item>) : <Body small muted>{tl('Una pagina può contenere altre pagine, come cartelle.')}</Body>}
-        <Btn small ghost style={{ marginTop: 6, alignSelf: 'flex-start' }} title={tl('Aggiungi un database')} onPress={() => onOpen(ws.addPage(page.id, 'db', tl('Nuovo database')))} />
+        <Btn small ghost style={{ marginTop: 6, alignSelf: 'flex-start' }} title={tl('Aggiungi un database')} onPress={() => onOpen(ws.addPage(page.id, 'db', tl('Nuovo database'), page.teamId))} />
       </Card>
       <Files pid={page.id} />
       <Card>

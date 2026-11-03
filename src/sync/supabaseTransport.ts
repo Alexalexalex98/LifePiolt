@@ -86,6 +86,8 @@ export class SupabaseTransport implements SyncTransport {
     signOut: async (): Promise<void> => { await this.client.auth.signOut(); this.authState = 'none'; this.email = null; this.connected = false; },
   };
   account(): string | null { return this.email; }
+  /** Il client Supabase vero (team, file e tempo reale lo usano direttamente: il server controlla chi può cosa con le regole per riga). */
+  raw(): unknown { return this.client; }
 
   async connect(cfg?: TransportConfig): Promise<{ ok: boolean; message: string }> {
     if (cfg) this.cfg = cfg;

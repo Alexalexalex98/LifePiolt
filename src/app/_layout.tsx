@@ -124,10 +124,11 @@ export default function RootLayout() {
     try { (require('@/lib/bills/calendarSync') as typeof import('@/lib/bills/calendarSync')).startBillCalendarSync(); } catch { /* senza calendario bollette */ }
     // prova di 14 giorni: si legge dal server (solo con account verificato) e Theia fa il punto nei giorni giusti
     const trialTimer = setTimeout(() => { void (async () => { try { await (require('@/lib/accountApi') as typeof import('@/lib/accountApi')).syncTrial(); (require('@/lib/assistant/trialNote') as typeof import('@/lib/assistant/trialNote')).trialNote(); } catch { /* senza prova */ } })(); }, 6000);
+    const teamTimer = setTimeout(() => { void (async () => { try { const a = require('@/store/account') as typeof import('@/store/account'); if (a.useAccount.getState().status !== 'verified') return; await (require('@/lib/teams') as typeof import('@/lib/teams')).refreshTeams(); await (require('@/lib/teamSync') as typeof import('@/lib/teamSync')).startTeamSync(); } catch { /* senza team */ } })(); }, 8000);
     const missTimer = setTimeout(() => { try { (require('@/lib/assistant/billMissing') as typeof import('@/lib/assistant/billMissing')).askMissingBills(); } catch { /* senza controllo */ } }, 9000);
     const stopLock = startLockScreenSync(); // blocco schermo e widget: turni, impegni, task
     const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { void refreshBriefings(); void syncLockScreen(); onForeground(); /* riprogramma anche al cambio di fuso orario/ora legale */ useFin.getState().rollMonth(); void autoSyncIfConnected(); } });
-    return () => { sub.remove(); stopLock(); stopUsage(); clearTimeout(wbTimer); clearTimeout(missTimer); clearTimeout(trialTimer); };
+    return () => { sub.remove(); stopLock(); stopUsage(); clearTimeout(wbTimer); clearTimeout(missTimer); clearTimeout(trialTimer); clearTimeout(teamTimer); };
   }, [ready]);
 
   if (!ready) return null;

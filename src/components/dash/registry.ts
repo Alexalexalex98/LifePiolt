@@ -3,6 +3,7 @@ import type { ComponentType } from 'react';
 import { AgendaW, ShiftW, UpcomingW, KcalW, LifeScoreW, MissingW, MoodW, TasksW, TrainW, WaterW, WeekW, metricW, type WProps } from '@/components/dash/widgetsA';
 import { RadarW, BalanceW, BillsW, LpW, MessagesW, NewsW, NotifsW, PortfolioW, SavingW, SpendW, StockW, TipW, TripW, WatchW, shortcutW } from '@/components/dash/widgetsB';
 import { NextTaskW, GoalsW, NextEventW, NextPlanW, NextMemoW } from '@/components/dash/widgetsD';
+import { FastingW, MindRecoW, WorkspaceRecentW } from '@/components/dash/widgetsE';
 import { FitTodayW, WaterQuickW, PantryW, BodyCheckW, DriveW, PetW, ScFridgeW, ScMealPlanW, ScBodyW, ScDriveW, ScPetW, ScVacationW, ScMonthW, ScProjectsW, ScPassW, ScLockW, ScWaterPageW, ScDiaryW } from '@/components/dash/widgetsC';
 
 export type CatId = 'oggi' | 'benessere' | 'finanza' | 'mercati' | 'notizie' | 'network' | 'plan' | 'viaggi' | 'theia' | 'scorciatoie';
@@ -108,6 +109,15 @@ export const WIDGETS: WidgetDef[] = [
   { type: 'sc-vacation', cat: 'scorciatoie', title: 'Piano vacanze', desc: 'Obiettivo e data, quanto mettere da parte', icon: 'lifetravel', color: '#e0c97b', sizes: S1, def: '1x1', Comp: ScVacationW },
   { type: 'sc-month', cat: 'scorciatoie', title: 'Piano del mese', desc: 'Entrate, spese e cosa puoi mettere da parte', icon: 'calendar', color: PLAN, sizes: S1, def: '1x1', Comp: ScMonthW },
   { type: 'sc-projects', cat: 'scorciatoie', title: 'Progetti', desc: 'Elenchi a più livelli, importabili da un file', icon: 'projects', color: PLAN, sizes: S1, def: '1x1', Comp: ScProjectsW },
+  { type: 'sc-barcode', cat: 'scorciatoie', title: 'Controlla un alimento', desc: 'Codice a barre: valori, Nutri-Score, aggiungi al diario', icon: 'search', color: FOOD, sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'search', label: 'Controlla alimento', page: 'foodScan', color: FOOD }) },
+  { type: 'sc-mind', cat: 'scorciatoie', title: 'Benessere mentale', desc: 'Meditazioni, sonno, focus e consigli per te', icon: 'sparkle', color: '#c9b6ff', sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'sparkle', label: 'Benessere mentale', page: 'mindfulness', color: '#c9b6ff' }) },
+  { type: 'sc-sleep', cat: 'scorciatoie', title: 'Wind Down e sonno', desc: 'Routine per dormire e suoni', icon: 'clock', color: '#8fa4ff', sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'clock', label: 'Dormire meglio', page: 'mindfulness', color: '#8fa4ff' }) },
+  { type: 'sc-fasting', cat: 'scorciatoie', title: 'Digiuno intermittente', desc: 'Apri lo schema del digiuno', icon: 'clock', color: FOOD, sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'clock', label: 'Digiuno', page: 'fasting', color: FOOD }) },
+  { type: 'sc-workspace', cat: 'scorciatoie', title: 'LifeWorkspace', desc: 'Pagine, wiki, database e Theia Lavoro', icon: 'note', color: '#8fb3ff', sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'note', label: 'LifeWorkspace', page: 'workspace', color: '#8fb3ff' }) },
+  { type: 'sc-teams', cat: 'scorciatoie', title: 'Team', desc: 'I tuoi team e il Drive condiviso', icon: 'users', color: '#8fb3ff', sizes: S1, def: '1x1', Comp: shortcutW({ icon: 'users', label: 'Team', page: 'teams', color: '#8fb3ff' }) },
+  { type: 'fasting', cat: 'benessere', title: 'Digiuno intermittente', desc: 'Puoi mangiare o sei in digiuno, e quanto manca', icon: 'clock', color: FOOD, sizes: ['2x1', '2x2', '4x1'], def: '2x1', Comp: FastingW },
+  { type: 'mindreco', cat: 'benessere', title: 'Per te adesso', desc: 'Un esercizio di benessere mentale scelto dai tuoi dati', icon: 'sparkle', color: '#c9b6ff', sizes: ['2x1', '2x2', '4x1'], def: '2x1', Comp: MindRecoW },
+  { type: 'wsrecent', cat: 'plan', title: 'LifeWorkspace', desc: 'Le ultime pagine su cui hai lavorato', icon: 'note', color: '#8fb3ff', sizes: ['2x2', '4x2', '2x4'], def: '2x2', Comp: WorkspaceRecentW },
   { type: 'sc-lock', cat: 'scorciatoie', title: 'Blocco schermo', desc: 'Scegli cosa mostrare sul blocco schermo', icon: 'lock', color: '#8fa4ff', sizes: S1, def: '1x1', Comp: ScLockW },
 ];
 export const WBY: Record<string, WidgetDef> = Object.fromEntries(WIDGETS.map((w) => [w.type, w]));

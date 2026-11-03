@@ -245,7 +245,7 @@ export function MenuSheet() {
       { id: 'lifenetwork', label: 'LifeNetwork', sub: [['activity', 'La tua attività', 'activity'], ['creatorStats', 'Le tue statistiche', 'chart'], ['savedPosts', 'Contenuti salvati', 'savedPosts'], ['myServices', 'I tuoi servizi', 'myServices'], ['myClubs', 'I tuoi LifeClub', 'myClubs'], ['importSocial', 'Importa da un altro social', 'importSocial']] },
       { id: 'lifefinance', label: 'LifeFinance' },
       { id: 'lifenotes', label: 'LifeNotes' },
-      { id: 'workspace', label: 'LifeWorkspace' },
+      { id: 'workspace', label: 'LifeWorkspace', sub: [['teams', 'Team', 'users']] },
       { id: 'lifetravel', label: 'LifeTravel' },
       { id: 'lifedrive', label: 'LifeDrive' },
       { id: 'lifetask', label: 'LifeTask', sub: [['projects', 'Progetti', 'projects']] },

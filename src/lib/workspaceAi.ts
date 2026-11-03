@@ -3,6 +3,8 @@ import { askSend, logSend } from '@/lib/aiConsent';
 import { AiServerError, aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { readLocally } from '@/lib/bills/files';
 import { readTextFile } from '@/lib/chatMedia';
+import { downloadTeamFile, listTeamFiles, type TeamFile } from '@/lib/teams';
+import { useTeams } from '@/store/teams';
 import { docTypeOf } from '@/lib/attachments';
 import { officeText } from '@/lib/officeText';
 import { readUriBytes } from '@/lib/readUri';
@@ -37,7 +39,34 @@ export async function fileText(f: DriveFile): Promise<string | null> {
   return text;
 }
 
-/** Tutto ciò che si può cercare e interrogare: pagine, database, commenti e file. */
+const teamCache = new Map<string, string | null>();
+/** Il testo dei file dei team di cui fai parte (si scaricano solo se ci sei ancora dentro: lo decide il server). */
+async function teamDocs(unreadable: string[]): Promise<Doc[]> {
+  const out: Doc[] = [];
+  for (const tm of useTeams.getState().teams) {
+    const l = await listTeamFiles(tm.id); if (!l.ok) continue;
+    for (const f of l.data.slice(0, 40) as TeamFile[]) {
+      if (!teamCache.has(f.path)) {
+        let tx: string | null = null;
+        if (f.size <= 8 * 1024 * 1024) { const d = await downloadTeamFile(f); if (d.ok) tx = await textFromBytes(f.name, d.data); }
+        teamCache.set(f.path, tx);
+      }
+      const tx = teamCache.get(f.path);
+      if (tx) out.push({ id: `t:${f.id}`, source: `${f.name} (${tm.name})`, text: tx }); else unreadable.push(f.name);
+    }
+  }
+  return out;
+}
+async function textFromBytes(name: string, bytes: Uint8Array): Promise<string | null> {
+  try {
+    const dt = docTypeOf(name);
+    if (dt === 'txt' || dt === 'csv' || dt === 'md') return new TextDecoder().decode(bytes);
+    if ((dt === 'xlsx' || dt === 'pptx' || dt === 'docx') && /\.(xlsx|pptx|docx)$/i.test(name)) return officeText(bytes, dt);
+  } catch { /* non leggibile */ }
+  return null;
+}
+
+/** Tutto ciò che si può cercare e interrogare: pagine, database, commenti e file (anche quelli dei team). */
 export async function workspaceDocs(): Promise<{ docs: Doc[]; unreadable: string[] }> {
   const docs: Doc[] = useWorkspace.getState().pages.map((p) => ({ id: `p:${p.id}`, source: p.title || t('Pagina senza titolo'), text: pageText(p) })).filter((d) => d.text.trim());
   const unreadable: string[] = [];
@@ -45,6 +74,7 @@ export async function workspaceDocs(): Promise<{ docs: Doc[]; unreadable: string
     const tx = await fileText(f);
     if (tx) docs.push({ id: `f:${f.id}`, source: f.n, text: tx }); else unreadable.push(f.n);
   }
+  try { docs.push(...(await teamDocs(unreadable))); } catch { /* senza team */ }
   return { docs, unreadable };
 }
 
@@ -71,12 +101,14 @@ export async function askWorkspace(question: string): Promise<void> {
   chat.push({ who: 'me', text: question });
   if (!aiServerConfigured) { chat.push({ who: 'ai', text: t('Per rispondere serve il collegamento con l\'AI: lo attivi in Intelligenza di Theia.') }); return; }
   const { docs, unreadable } = await workspaceDocs();
-  const ctx = contextFor(question, docs);
+  const ctx = contextFor(question, docs, 18000);
   if (!ctx.text) { chat.push({ who: 'ai', text: t('Non trovo niente su questo nel workspace. Controlla che il file sia caricato e leggibile.') + (unreadable.length ? ` ${t('Non riesco a leggere: {0}.', unreadable.slice(0, 3).join(', '))}` : '') }); return; }
-  if (!(await askSend('data', t('Solo i brani dei documenti del workspace che c\'entrano con la domanda, più la domanda. Nessun dato personale dell\'app e nessun messaggio di Theia.')))) { chat.push({ who: 'ai', text: t('Va bene, non invio niente. I tuoi documenti restano sul telefono.') }); return; }
+  if (!(await askSend('data', t('Solo i brani dei documenti del workspace (anche dei tuoi team) che c\'entrano con la domanda, i nomi dei file e le ultime battute di questa chat di lavoro. Nessun dato personale dell\'app e nessun messaggio della Theia personale.')))) { chat.push({ who: 'ai', text: t('Va bene, non invio niente. I tuoi documenti restano sul telefono.') }); return; }
   logSend('data', ctx.text.length, ctx.sources);
   try {
-    const reply = await aiChatRaw(WORKSPACE_PROMPT(ctx.text, question));
+    const hist = useWorkspaceChat.getState().log.slice(-7, -1).map((m) => `${m.who === 'me' ? 'Utente' : 'Theia Lavoro'}: ${m.text.replace(/\s+/g, ' ').slice(0, 500)}`);
+    const names = [...docs.map((d) => d.source), ...unreadable];
+    const reply = await aiChatRaw(WORKSPACE_PROMPT(ctx.text, question, hist, names));
     chat.push({ who: 'ai', text: reply.trim() || t('Risposta vuota dal server.'), sources: ctx.sources });
   } catch (e) { chat.push({ who: 'ai', text: e instanceof AiServerError ? e.message : t('Dammi un attimo e riproviamo.') }); }
 }

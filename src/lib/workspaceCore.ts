@@ -1,14 +1,16 @@
 /** Tipi e funzioni pure di LifeWorkspace (si provano con node:test). */
 export type BlockType = 'h' | 'p' | 'todo' | 'bullet' | 'quote' | 'divider' | 'link';
-export type Block = { id: string; t: BlockType; text: string; done?: boolean; /** id della pagina collegata */ ref?: string };
+export type Block = { id: string; t: BlockType; text: string; done?: boolean; /** id della pagina collegata */ ref?: string; /** ultima modifica (ms): serve a unire le modifiche di più persone */ u?: number };
 export type ColKind = 'text' | 'status' | 'number' | 'date';
-export type Col = { id: string; name: string; kind: ColKind };
-export type Row = { id: string; cells: Record<string, string> };
+export type Col = { id: string; name: string; kind: ColKind; u?: number };
+export type Row = { id: string; cells: Record<string, string>; u?: number };
 export type WsComment = { id: string; ts: number; text: string };
 export type WsPage = {
   id: string; parent: string | null; title: string; kind: 'page' | 'db'; blocks: Block[];
   cols?: Col[]; rows?: Row[]; view?: 'table' | 'kanban';
   comments: WsComment[]; /** id dei file di LifeDrive collegati */ files: string[]; updatedAt: number;
+  /** pagina condivisa con un team (si sincronizza in tempo reale) */ teamId?: string; titleU?: number;
+  /** elementi eliminati (blocchi, righe, colonne, file) da comunicare agli altri: k = b blocco, r riga, c colonna, f file */ tomb?: { id: string; u: number; k: 'b' | 'r' | 'c' | 'f' }[];
 };
 export const STATUSES = ['Da fare', 'In corso', 'Fatto'];
 
@@ -32,4 +34,11 @@ export function pageText(p: WsPage): string {
   if (p.kind === 'db') { const cols = p.cols ?? []; lines.push(cols.map((c) => c.name).join(' | ')); (p.rows ?? []).forEach((r) => lines.push(cols.map((c) => r.cells[c.id] ?? '').join(' | '))); }
   p.comments.forEach((c) => lines.push(`Commento: ${c.text}`));
   return lines.join('\n');
+}
+
+/** Unisce due elenchi di elementi con `id` e `u` (ultima modifica): per ogni id vince il più recente. Gli eliminati restano come tombe (`del`). Ordine: campo `o`, poi la posizione. */
+export function mergeItems<T extends { id: string; u?: number; o?: number; del?: boolean }>(a: T[], b: T[]): T[] {
+  const best = new Map<string, { x: T; i: number }>();
+  [...a, ...b].forEach((x, i) => { const cur = best.get(x.id); if (!cur || (x.u ?? 0) >= (cur.x.u ?? 0)) best.set(x.id, { x, i: cur ? cur.i : i }); });
+  return [...best.values()].sort((p, q) => (p.x.o ?? p.i) - (q.x.o ?? q.i) || p.i - q.i).map((v) => v.x);
 }
