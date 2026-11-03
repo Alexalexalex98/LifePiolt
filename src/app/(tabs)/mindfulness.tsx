@@ -164,7 +164,7 @@ export default function Mindfulness() {
           </Card>
           <Card>
             <H>{tl('Voce')}</H>
-            <Body small muted style={{ marginBottom: 8 }}>{tl('Con quale voce ti leggo gli esercizi? La voce di Theia è registrata dentro l'app: funziona anche senza internet. Quella del telefono è più semplice.')}</Body>
+            <Body small muted style={{ marginBottom: 8 }}>{tl('Con quale voce ti leggo gli esercizi? La voce di Theia è registrata dentro l\'app: funziona anche senza internet. Quella del telefono è più semplice.')}</Body>
             <Row gap={8} style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
               <Pill label={tl('Voce del telefono (gratis)')} on={engine === 'device'} onPress={() => setEngine('device')} />
               <Pill label={tl('Voce di Theia (registrata)')} on={engine === 'gemini'} onPress={() => setEngine('gemini')} />
