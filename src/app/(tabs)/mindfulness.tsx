@@ -2,6 +2,11 @@ import { useEffect, useMemo, useReducer, useState } from 'react';
 import { Linking, Pressable, ScrollView, View } from 'react-native';
 
 import { ExerciseRunner } from '@/components/mascot/ExerciseRunner';
+import { Mascot } from '@/components/mascot/Mascot';
+import { Icon } from '@/lib/icons';
+import { SessionPlayer } from '@/components/SessionPlayer';
+import { PROGRAMS, SESSION_BY_ID, sessionsOf, type Program, type Session } from '@/lib/mindSessions';
+import { useMindProgress } from '@/store/mindProgress';
 import { Text } from '@/components/T';
 import { Body, Btn, Card, H, Input, Item, Page, Pill, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -21,8 +26,8 @@ import { deviceVoiceAvailable } from '@/lib/voice/speechEngine';
 import { shareDiary } from '@/lib/wellbeing/diaryRun';
 import { toast } from '@/store/toast';
 
-type Tab = 'oggi' | 'esercizi' | 'sonno' | 'focus';
-const TABS: { id: Tab; label: string }[] = [{ id: 'oggi', label: 'Per te' }, { id: 'esercizi', label: 'Esercizi' }, { id: 'sonno', label: 'Sonno' }, { id: 'focus', label: 'Focus' }];
+type Tab = 'programmi' | 'oggi' | 'esercizi' | 'sonno' | 'focus';
+const TABS: { id: Tab; label: string }[] = [{ id: 'programmi', label: 'Programmi' }, { id: 'oggi', label: 'Per te' }, { id: 'esercizi', label: 'Esercizi rapidi' }, { id: 'sonno', label: 'Sonno' }, { id: 'focus', label: 'Focus' }];
 const MOOD: Record<string, number> = { Felice: 5, Calmo: 4, Neutro: 3, Stressato: 2, Arrabbiato: 2, Triste: 1.5 };
 const TIMERS = [15, 30, 60];
 /** Playlist su Spotify: si apre la ricerca nell'app o nel browser, gratis (non serve nessun accesso né chiave). */
@@ -35,7 +40,10 @@ const spotify = (q: string) => { void Linking.openURL(`https://open.spotify.com/
 /** Benessere mentale: meditazioni ed esercizi (oltre 100, anche da ascoltare con la voce di Theia), sonno con suoni e routine, focus, e consigli su misura dai tuoi dati. */
 export default function Mindfulness() {
   const th = useTheme();
-  const [tab, setTab] = useState<Tab>('oggi');
+  const [tab, setTab] = useState<Tab>('programmi');
+  const [prog, setProg] = useState<Program | null>(null);
+  const [play, setPlay] = useState<{ s: Session; color: string; next?: Session } | null>(null);
+  const done = useMindProgress((s) => s.done);
   const [run, setRun] = useState<Exercise | null>(null);
   const [dDays, setDDays] = useState(30);
   const [dNotes, setDNotes] = useState(false);
@@ -97,6 +105,56 @@ export default function Mindfulness() {
         </Card>
       ) : null}
 
+      {tab === 'programmi' && !prog ? (
+        <>
+          <Body small muted>{tl('Percorsi guidati, un passo alla volta, basati su protocolli della letteratura scientifica. Sono strumenti di autoaiuto, non una terapia.')}</Body>
+          {PROGRAMS.map((p) => {
+            const ss = sessionsOf(p); const n = ss.filter((x) => done[x.id]?.length).length;
+            return (
+              <Pressable key={p.id} onPress={() => setProg(p)} accessibilityRole="button" accessibilityLabel={p.title} style={{ borderRadius: 22, overflow: 'hidden', backgroundColor: p.color + '26', borderWidth: 1, borderColor: p.color + '66', padding: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: th.text, fontSize: 19, fontWeight: '800' }}>{tl(p.title)}</Text>
+                    <Text style={{ color: th.muted, fontSize: 13, marginTop: 2 }}>{tl(p.subtitle)}</Text>
+                    <Text style={{ color: p.color, fontSize: 12, fontWeight: '700', marginTop: 8 }}>{tl('{0} sessioni · {1} fatte', ss.length, n)}</Text>
+                    <View style={{ height: 5, borderRadius: 3, backgroundColor: p.color + '33', marginTop: 6, overflow: 'hidden' }}><View style={{ width: `${(n / Math.max(1, ss.length)) * 100}%`, height: 5, backgroundColor: p.color }} /></View>
+                  </View>
+                  <Mascot size={64} color={p.color} expression="happy" />
+                </View>
+              </Pressable>
+            );
+          })}
+        </>
+      ) : null}
+      {tab === 'programmi' && prog ? (
+        <>
+          <Row gap={8} style={{ justifyContent: 'flex-start' }}><Btn small ghost title={tl('Tutti i programmi')} onPress={() => setProg(null)} /></Row>
+          <View style={{ borderRadius: 22, backgroundColor: prog.color + '26', borderWidth: 1, borderColor: prog.color + '66', padding: 16 }}>
+            <Text style={{ color: th.text, fontSize: 22, fontWeight: '800' }}>{tl(prog.title)}</Text>
+            <Text style={{ color: th.muted, fontSize: 13, marginTop: 4 }}>{tl(prog.subtitle)}</Text>
+          </View>
+          <Card>
+            {sessionsOf(prog).map((x, i, a) => {
+              const n = done[x.id]?.length ?? 0; const nextS = a.find((y) => !done[y.id]?.length);
+              return (
+                <Item key={x.id} last={i === a.length - 1} onPress={() => setPlay({ s: x, color: prog.color, next: a[i + 1] })}>
+                  <Row gap={12}>
+                    <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: n ? prog.color : prog.color + '33', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: n ? '#0b0f1e' : th.text, fontWeight: '800' }}>{n ? '✓' : i + 1}</Text></View>
+                    <View style={{ flex: 1 }}><Body bold>{tl(x.title)}</Body><Body small muted>{`${x.minutes} min${nextS?.id === x.id ? ` · ${tl('Prossima')}` : ''}`}</Body></View>
+                    <Icon name="play" size={18} color={prog.color} fill={prog.color} />
+                  </Row>
+                </Item>
+              );
+            })}
+          </Card>
+          <Card>
+            <H>{tl('Su cosa si basa')}</H>
+            {prog.basedOn.map((b, i) => <Body key={i} small muted style={{ marginBottom: 4 }}>{`• ${b}`}</Body>)}
+            <Body small muted style={{ marginTop: 6 }}>{tl('Non è una terapia e non cura disturbi. Se i sintomi sono forti o durano da settimane, parlane con un medico o uno psicologo.')}</Body>
+          </Card>
+        </>
+      ) : null}
+
       {tab === 'oggi' ? (
         <>
           <Card>
@@ -141,12 +199,12 @@ export default function Mindfulness() {
           <Card>
             <H>{tl('Wind Down')}</H>
             <Body small muted style={{ marginBottom: 8 }}>{tl('Una routine lenta per prepararti a dormire, con musica dolce.')}</Body>
-            <Btn title={tl('Inizia Wind Down')} onPress={() => { const e = exerciseById('s-winddown'); if (e) listen(e, SOUNDS.find((x) => x.group === 'musica')?.id); mixer.setTimer(30); }} />
+            <Btn title={tl('Inizia Wind Down')} onPress={() => setPlay({ s: SESSION_BY_ID['s1-winddown']!, color: '#6e7cff' })} />
           </Card>
           <Card style={{ borderColor: th.accent }}>
             <H>{tl('SOS notturno')}</H>
             <Body small muted style={{ marginBottom: 8 }}>{tl('Ti sei svegliato e ti agiti? Niente luce, niente ora: ti accompagno a calmarti.')}</Body>
-            <Btn title={tl('Mi sono svegliato')} onPress={() => { const e = exerciseById('s-sos'); if (e) listen(e, SOUNDS.find((x) => x.group === 'natura')?.id ?? SOUNDS.find((x) => x.group === 'rumori')?.id); mixer.setTimer(30); }} />
+            <Btn title={tl('Mi sono svegliato')} onPress={() => setPlay({ s: SESSION_BY_ID['s6-sos']!, color: '#6e7cff' })} />
           </Card>
           <Sounds th={th} groups={['natura', 'rumori', 'musica', 'meditazione']} />
           <Card>
@@ -172,6 +230,7 @@ export default function Mindfulness() {
         </>
       ) : null}
 
+      <SessionPlayer session={play?.s ?? null} color={play?.color ?? '#8fa4ff'} onClose={() => setPlay(null)} next={play?.next ? () => setPlay({ s: play.next!, color: play.color }) : undefined} />
       <ExerciseRunner ex={run} onClose={() => setRun(null)} onSave={(answers: Record<string, Answer>) => { if (run) { add(run.id, answers); toast(tl('Salvato nel diario')); } }} />
     </Page>
   );

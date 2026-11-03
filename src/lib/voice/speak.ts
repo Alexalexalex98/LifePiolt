@@ -87,7 +87,10 @@ async function prepare(text: string, style?: string): Promise<Prepared> {
  * così Theia inizia a parlare dopo le prime frasi. `onPos(i, frazione)` dice a che punto è: serve a far scorrere il testo con la voce.
  */
 export function createSpeechStream(onPos: (chunk: number, frac: number) => void, opts: { recording?: boolean; /** come leggere: vedi VOICE_STYLES */ style?: string } = {}): SpeechStream {
-  const jobs: Promise<Prepared | { pause: number } | null>[] = [];
+  type Job = { text?: string; pause?: number; p?: Promise<Prepared | null> };
+  const jobs: Job[] = [];
+  const AHEAD = 3; // si preparano al massimo 3 frasi in anticipo (poche richieste alla volta, la voce parte subito)
+  const ensure = (i: number) => { for (let k = i; k <= i + AHEAD && k < jobs.length; k++) { const j = jobs[k]!; if (j.text !== undefined && !j.p) j.p = prepare(j.text, opts.style).catch(() => null); } };
   let ended = false, stopped = false, began = false, wake: (() => void) | null = null;
   let cur: { stop: () => void } | null = null;
   const poke = () => { const w = wake; wake = null; w?.(); };
@@ -98,8 +101,10 @@ export function createSpeechStream(onPos: (chunk: number, frac: number) => void,
     for (let i = 0; !stopped; i++) {
       while (i >= jobs.length && !ended && !stopped) await new Promise<void>((r) => { wake = r; });
       if (stopped || i >= jobs.length) break;
-      const p = await jobs[i];
-      if (p && 'pause' in p) { await new Promise<void>((r) => { const h = setTimeout(r, p.pause); cur = { stop: () => { clearTimeout(h); r(); } }; }); cur = null; continue; }
+      ensure(i);
+      const job = jobs[i]!;
+      if (job.pause !== undefined) { await new Promise<void>((r) => { const h = setTimeout(r, job.pause); cur = { stop: () => { clearTimeout(h); r(); } }; }); cur = null; continue; }
+      const p = await job.p!;
       if (!p || stopped) { const q = p as Prepared | null; if (q && !q.keep) q.file?.delete(); continue; }
       began = true;
       await new Promise<void>((res) => {
@@ -128,10 +133,10 @@ export function createSpeechStream(onPos: (chunk: number, frac: number) => void,
    } catch { /* la voce si ferma: il testo resta scritto */ }
   })();
   return {
-    push: (text) => { if (stopped || ended) return; jobs.push(prepare(text, opts.style).catch(() => null)); poke(); },
-    pause: (ms) => { if (stopped || ended) return; jobs.push(Promise.resolve({ pause: ms })); poke(); },
+    push: (text) => { if (stopped || ended) return; jobs.push({ text }); ensure(Math.max(0, jobs.length - 1 - AHEAD)); poke(); },
+    pause: (ms) => { if (stopped || ended) return; jobs.push({ pause: ms }); poke(); },
     end: () => { ended = true; poke(); },
-    stop: () => { stopped = true; cur?.stop(); poke(); jobs.forEach((j) => void j.then((p) => { try { const q = p as Prepared | null; if (q && !q.keep) q.file?.delete?.(); } catch { /* cache */ } })); },
+    stop: () => { stopped = true; cur?.stop(); poke(); jobs.forEach((j) => { if (j.p) void j.p.then((q) => { try { if (q && !q.keep) q.file?.delete?.(); } catch { /* cache */ } }); }); },
     done,
     started: () => began,
   };

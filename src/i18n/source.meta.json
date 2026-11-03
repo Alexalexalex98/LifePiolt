@@ -1,5 +1,5 @@
 {
- "count": 16362,
+ "count": 16694,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -64,7 +64,7 @@
   "src/app/(tabs)/jobTest.tsx": 47,
   "src/app/(tabs)/legalDoc.tsx": 2,
   "src/app/(tabs)/life.tsx": 23,
-  "src/app/(tabs)/lifedrive.tsx": 56,
+  "src/app/(tabs)/lifedrive.tsx": 59,
   "src/app/(tabs)/lifefinance.tsx": 100,
   "src/app/(tabs)/lifefitness.tsx": 130,
   "src/app/(tabs)/lifeforecast.tsx": 35,
@@ -80,7 +80,7 @@
   "src/app/(tabs)/mascot.tsx": 1,
   "src/app/(tabs)/menuPage.tsx": 28,
   "src/app/(tabs)/messagesPage.tsx": 37,
-  "src/app/(tabs)/mindfulness.tsx": 67,
+  "src/app/(tabs)/mindfulness.tsx": 75,
   "src/app/(tabs)/monthPlan.tsx": 73,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,
@@ -134,7 +134,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 57,
+  "src/app/(tabs)/workspace.tsx": 60,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -187,6 +187,7 @@
   "src/components/ProjectFiles.tsx": 2,
   "src/components/QrScanner.tsx": 4,
   "src/components/ReportsSheet.tsx": 17,
+  "src/components/SessionPlayer.tsx": 18,
   "src/components/SharingView.tsx": 29,
   "src/components/StatementChecksCard.tsx": 18,
   "src/components/StatementForecastCard.tsx": 18,
@@ -351,6 +352,7 @@
   "src/components/tour/TourOverlay.tsx": 8,
   "src/components/tour/TutorialSettings.tsx": 13,
   "src/components/ui.tsx": 12,
+  "src/components/workspace/WorkChat.tsx": 18,
   "src/data/areas.ts": 8,
   "src/data/clubSeed.ts": 100,
   "src/data/features.ts": 103,
@@ -570,8 +572,10 @@
   "src/lib/menu.ts": 11,
   "src/lib/mindExercises.ts": 139,
   "src/lib/mindExercisesMore.ts": 358,
+  "src/lib/mindLibrary.ts": 4,
   "src/lib/mindRecommend.ts": 6,
   "src/lib/mindScripts.ts": 123,
+  "src/lib/mindSessions.ts": 297,
   "src/lib/modRules.ts": 17,
   "src/lib/monthPlan.ts": 8,
   "src/lib/monthPlanChecks.ts": 17,
@@ -682,7 +686,7 @@
   "src/lib/wellbeing/score.ts": 55,
   "src/lib/when.ts": 11,
   "src/lib/workEstimate.ts": 8,
-  "src/lib/workspaceAi.ts": 11,
+  "src/lib/workspaceAi.ts": 21,
   "src/lib/workspaceCore.ts": 4,
   "src/lib/workspaceSearch.ts": 4,
   "src/schemas/change.ts": 3,
@@ -727,5 +731,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2038
+ "withPlaceholders": 2050
 }

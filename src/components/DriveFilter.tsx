@@ -16,28 +16,29 @@ const META: Record<string, { icon: string; color: string }> = {
   Progetti: { icon: 'projects', color: driveFolderColors.Progetti }, 'Chat con Theia': { icon: 'sparkle', color: '#b96bff' }, 'Creazioni di Theia': { icon: 'sparkle', color: '#d98bff' }, Altro: { icon: 'file', color: '#8e98a8' },
 };
 
-/** Il menu di LifeDrive: una scheda colorata per ogni categoria (con quante ce ne sono); la prima, «Tutte», le mostra insieme. */
-export function DriveFilter({ items, value, onChange }: { items: { id: string; count: number }[]; value: string; onChange: (id: string) => void }) {
+/** I filtri di LifeDrive: una riga di «chip» compatte (icona, nome, quanti), una sola riga che scorre, con il titolo di cosa stai filtrando. */
+export function DriveFilter({ items, value, onChange, label }: { items: { id: string; count: number }[]; value: string; onChange: (id: string) => void; label?: string }) {
   const t = useTheme();
   const ink = useInk();
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 12, paddingHorizontal: 2 }}>
-      {items.map((it) => {
-        const m = META[it.id] ?? { icon: 'file', color: '#8e98a8' };
-        const on = value === it.id;
-        return (
-          <Pressable key={it.id} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${tl(it.id)}, ${it.count}`} onPress={() => onChange(it.id)}
-            style={{ minWidth: 92, paddingVertical: 11, paddingHorizontal: 12, borderRadius: 20, backgroundColor: on ? m.color + '2e' : t.item, borderWidth: 1.5, borderColor: on ? m.color : t.sheetBorder }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: m.color + (on ? '55' : '2a'), alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name={m.icon} size={18} color={ink(m.color)} stroke={2.1} />
+    <View style={{ marginBottom: 6 }}>
+      {label ? <Text style={{ color: t.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 6, marginStart: 2 }}>{tl(label)}</Text> : null}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 2, paddingBottom: 4 }}>
+        {items.map((it) => {
+          const m = META[it.id] ?? { icon: 'file', color: '#8e98a8' };
+          const on = value === it.id;
+          return (
+            <Pressable key={it.id} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${tl(it.id)}, ${it.count}`} onPress={() => onChange(it.id)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 8, paddingStart: 8, paddingEnd: 12, borderRadius: 999, backgroundColor: on ? m.color + '2e' : t.item, borderWidth: 1, borderColor: on ? m.color : t.sheetBorder }}>
+              <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: m.color + (on ? '55' : '2a'), alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={m.icon} size={13} color={ink(m.color)} stroke={2.2} />
               </View>
-              <Text style={{ color: on ? ink(m.color) : t.text, fontWeight: '900', fontSize: 18 }}>{it.count}</Text>
-            </View>
-            <Text numberOfLines={1} style={{ color: on ? t.text : t.muted, fontWeight: '800', fontSize: 12.5, marginTop: 8 }}>{tl(it.id)}</Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+              <Text numberOfLines={1} style={{ color: on ? t.text : t.muted, fontWeight: '700', fontSize: 13 }}>{tl(it.id)}</Text>
+              <Text style={{ color: on ? ink(m.color) : t.muted, fontWeight: '800', fontSize: 12 }}>{it.count}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }

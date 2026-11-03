@@ -4691,5 +4691,19 @@
  "Invita un amministratore": "Invite an admin",
  "Controlla un alimento": "Check a food",
  "Meno": "Less",
- "Mostra tutti ({0})": "Show all ({0})"
+ "Mostra tutti ({0})": "Show all ({0})",
+ "Il tuo spazio di lavoro": "Your workspace",
+ "Pagine, database, file e Theia Lavoro che li legge tutti.": "Pages, databases, files and Theia Work, who reads them all.",
+ "Recenti": "Recent",
+ "Le tue pagine": "Your pages",
+ "Esercizi rapidi": "Quick exercises",
+ "Inizia": "Start",
+ "Ben fatto": "Well done",
+ "Salva e chiudi": "Save and close",
+ "Come ti senti adesso?": "How do you feel now?",
+ "Scegli un file": "Choose a file",
+ "Parliamo di: {0}": "We're talking about: {0}",
+ "Vuoi indicare tu il file su cui lavorare? Rispondo più in fretta e con più precisione. Se non sai quale, o non vuoi, lo cerco io in tutti i file.": "Do you want to pick the file to work on? I answer faster and more precisely. If you don't know which, or don't want to, I'll search all the files.",
+ "Scelgo io il file": "I'll choose the file",
+ "No, cerca tu": "No, you search"
 }

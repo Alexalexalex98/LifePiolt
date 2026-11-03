@@ -132,7 +132,7 @@ export default function LifeDrive() {
           return (
             <>
               {photoCatList.length > 0 ? (
-                <DriveFilter value={activeCat} onChange={setCat} items={[{ id: 'Tutte', count: photos.length }, ...photoCatList.map((c) => ({ id: c, count: photoCats[c]! }))]} />
+                <DriveFilter label="Origine" value={activeCat} onChange={setCat} items={[{ id: 'Tutte', count: photos.length }, ...photoCatList.map((c) => ({ id: c, count: photoCats[c]! }))]} />
               ) : null}
               {list.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>{list.map((f, i) => <Tile key={f.id} f={f} i={i} />)}</View> : <Empty text="Ancora nessuna foto qui: caricane una quando vuoi." />}
             </>
@@ -140,8 +140,8 @@ export default function LifeDrive() {
         })()
       ) : (
         <>
-          <DriveFilter value={folder} onChange={setFolder} items={[{ id: 'Tutti', count: files.length }, ...Object.keys(counts).sort((a, b) => counts[b]! - counts[a]!).map((c) => ({ id: c, count: counts[c]! }))]} />
-          {Object.keys(fileTags).length > 1 ? <DriveFilter value={activeFtag} onChange={setFtag} items={[{ id: 'Tutti', count: files.length }, ...Object.keys(fileTags).sort((a, b) => fileTags[b]! - fileTags[a]!).map((c) => ({ id: c, count: fileTags[c]! }))]} /> : null}
+          <DriveFilter label="Cartella" value={folder} onChange={setFolder} items={[{ id: 'Tutti', count: files.length }, ...Object.keys(counts).sort((a, b) => counts[b]! - counts[a]!).map((c) => ({ id: c, count: counts[c]! }))]} />
+          {Object.keys(fileTags).length > 1 ? <DriveFilter label="Contenuto" value={activeFtag} onChange={setFtag} items={[{ id: 'Tutti', count: files.length }, ...Object.keys(fileTags).sort((a, b) => fileTags[b]! - fileTags[a]!).map((c) => ({ id: c, count: fileTags[c]! }))]} /> : null}
           {folder === 'Progetti' ? <Card><ProjectFiles files={files.filter((f) => f.folder === 'Progetti' && f.n.toLowerCase().includes(lq))} onOpen={setPreview} onDelete={askDel} /></Card> : <Card>
             {(() => {
               const list = files.filter((f) => (folder === 'Tutti' || f.folder === folder) && (activeFtag === 'Tutti' || tagOf(f) === activeFtag) && f.n.toLowerCase().includes(lq));
@@ -153,7 +153,7 @@ export default function LifeDrive() {
                     <Row style={hl === f.id ? { backgroundColor: t.accent + '22', borderRadius: 12, borderWidth: 1, borderColor: t.accent, padding: 4 } : undefined}>
                       <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }} onPress={() => setPreview(f)}>
                         <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: color + '33', borderWidth: 1, borderColor: color + '33', alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={{ color: ink(color), fontWeight: '800', fontSize: 15 }}>{f.folder[0]}</Text>
+                          <Icon name={/\.(xlsx?|csv)$/i.test(f.n) ? 'chart' : /\.(pptx?)$/i.test(f.n) ? 'projects' : /\.(pdf)$/i.test(f.n) ? 'file' : /\.(docx?|txt|md)$/i.test(f.n) ? 'note' : 'file'} size={20} color={ink(color)} stroke={2} />
                         </View>
                         <View style={{ flex: 1 }}>
                           <Body numberOfLines={1}>{f.n}</Body>
