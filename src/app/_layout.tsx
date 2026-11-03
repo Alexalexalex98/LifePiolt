@@ -119,7 +119,8 @@ export default function RootLayout() {
     scheduleMaintenance();
     const wbTimer = setTimeout(() => { try { (require('@/lib/assistant/wellbeingFlow') as typeof import('@/lib/assistant/wellbeingFlow')).checkWellbeing(); } catch { /* senza benessere */ } }, 6000);
     try { (require('@/lib/memoSync') as typeof import('@/lib/memoSync')).startMemoSync(); } catch { /* senza promemoria */ }
-    const stopUsage = (require('@/lib/appUsage') as typeof import('@/lib/appUsage')).startUsageTracking();
+    let stopUsage: () => void = () => undefined;
+    try { stopUsage = (require('@/lib/appUsage') as typeof import('@/lib/appUsage')).startUsageTracking(); } catch { /* senza conteggio dell'uso (es. web) */ }
     try { (require('@/lib/bills/calendarSync') as typeof import('@/lib/bills/calendarSync')).startBillCalendarSync(); } catch { /* senza calendario bollette */ }
     // prova di 14 giorni: si legge dal server (solo con account verificato) e Theia fa il punto nei giorni giusti
     const trialTimer = setTimeout(() => { void (async () => { try { await (require('@/lib/accountApi') as typeof import('@/lib/accountApi')).syncTrial(); (require('@/lib/assistant/trialNote') as typeof import('@/lib/assistant/trialNote')).trialNote(); } catch { /* senza prova */ } })(); }, 6000);

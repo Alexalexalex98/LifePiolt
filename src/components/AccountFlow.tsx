@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Platform, View } from 'react-native';
 
 import { Body, Btn, Card, H, Input, Row, Toggle } from '@/components/ui';
-import { backend, restoreAccount, saveAccount, sendCode, verifyCode, type Backend } from '@/lib/accountApi';
+import { backend, oauthProviders, restoreAccount, saveAccount, sendCode, signInWithProvider, verifyCode, type Backend } from '@/lib/accountApi';
 import { EMPTY_FORM, MIN_AGE, emailOk, validateAccount, type AccountForm } from '@/lib/accountCore';
 import { t as tl } from '@/i18n/core';
 import { go } from '@/lib/nav';
@@ -64,6 +64,22 @@ export function AccountFlow({ initial = 'create', onDone, onBack }: { initial?: 
     if (s.ok) onDone(); else setNote(s.message ?? '');
   }
 
+  async function viaProvider(p: 'google' | 'apple') {
+    setBusy(true); setNote('');
+    const r = await signInWithProvider(p);
+    if (!r.ok) { setBusy(false); setNote(r.message ?? ''); return; }
+    if (r.existing) { restoreAccount(r.email ?? '', r.existing, true); setBusy(false); onDone(); return; }
+    // email confermata dal servizio: si completa solo il profilo, senza codice
+    setBusy(false); setConfirmed(true); setMode('create'); setStep('form'); up('email', r.email ?? ''); setNote('Email confermata. Completa i tuoi dati per finire.');
+  }
+  const providers = oauthProviders();
+  const social = providers.length && be === 'server' && (step === 'form' || step === 'login') && !confirmed ? (
+    <View style={{ gap: 8 }}>
+      {providers.includes('apple') ? <Btn ghost title={busy ? 'Un momento...' : 'Continua con Apple'} disabled={busy} onPress={() => void viaProvider('apple')} /> : null}
+      {providers.includes('google') ? <Btn ghost title={busy ? 'Un momento...' : 'Continua con Google'} disabled={busy} onPress={() => void viaProvider('google')} /> : null}
+      <Body small muted>Oppure con la tua email:</Body>
+    </View>
+  ) : null;
   const unavailable = be === 'none';
   return (
     <View style={{ gap: 10 }}>
@@ -73,6 +89,7 @@ export function AccountFlow({ initial = 'create', onDone, onBack }: { initial?: 
       {step === 'form' ? (
         <>
           <H>Crea il tuo account</H>
+          {social}
           <Body small muted>Un account per persona: serve a collegare l'app a te, ritrovare i tuoi dati su un altro telefono e parlare con gli amici. L'email è la tua identità, la confermi con un codice.</Body>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}><Input placeholder="Nome" value={f.firstName} onChangeText={(v) => up('firstName', v)} autoCapitalize="words" autoComplete="given-name" accessibilityLabel="Nome" /><E k="firstName" /></View>
@@ -104,6 +121,7 @@ export function AccountFlow({ initial = 'create', onDone, onBack }: { initial?: 
       {step === 'login' ? (
         <>
           <H>Accedi</H>
+          {social}
           <Body small muted>Scrivi l'email del tuo account: ti mando un codice. Sul nuovo telefono ritrovi i tuoi dati.</Body>
           <View><Input placeholder="Email" value={f.email} onChangeText={(v) => up('email', v)} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" accessibilityLabel="Email" /><E k="email" /></View>
           {note ? <Body small>{tl(note)}</Body> : null}

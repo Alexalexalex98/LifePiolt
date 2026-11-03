@@ -4611,5 +4611,13 @@
  "Segnare un pasto o l'acqua": "Log a meal or water",
  "Serve a capire cosa ti fa stare meglio.": "Helps understand what makes you feel better.",
  "Sonno e passi sono la base del Life Score.": "Sleep and steps are the basis of the Life Score.",
- "Sono al giorno {0} e ti conosco ancora poco: con qualche dato in più posso darti feedback molto più precisi.": "It's day {0} and I still know you little: with a bit more data I can give much more precise feedback."
+ "Sono al giorno {0} e ti conosco ancora poco: con qualche dato in più posso darti feedback molto più precisi.": "It's day {0} and I still know you little: with a bit more data I can give much more precise feedback.",
+ "Accesso annullato": "Sign-in cancelled",
+ "Accesso annullato: puoi riprovare quando vuoi.": "Sign-in cancelled: you can try again whenever you like.",
+ "Accesso con questo servizio non disponibile": "Sign-in with this service isn't available",
+ "Accesso non riuscito: riprova": "Sign-in failed: try again",
+ "Continua con Apple": "Continue with Apple",
+ "Continua con Google": "Continue with Google",
+ "Non riesco ad aprire l'accesso": "I can't open the sign-in",
+ "Oppure con la tua email:": "Or with your email:"
 }

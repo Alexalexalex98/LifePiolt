@@ -1,5 +1,5 @@
 {
- "count": 15581,
+ "count": 15589,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -131,7 +131,7 @@
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
   "src/app/onboarding.tsx": 15,
-  "src/components/AccountFlow.tsx": 42,
+  "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
   "src/components/AiNote.tsx": 2,
   "src/components/ArrivalAdvice.tsx": 8,
@@ -371,7 +371,7 @@
   "src/domain/operation.ts": 1,
   "src/domain/operations.ts": 10,
   "src/lib/a11y.ts": 1,
-  "src/lib/accountApi.ts": 12,
+  "src/lib/accountApi.ts": 13,
   "src/lib/accountCore.ts": 13,
   "src/lib/ai.ts": 26,
   "src/lib/aiConsent.ts": 24,
@@ -699,7 +699,7 @@
   "src/sync/engine.ts": 11,
   "src/sync/mockServer.ts": 9,
   "src/sync/registry.ts": 45,
-  "src/sync/supabaseTransport.ts": 14,
+  "src/sync/supabaseTransport.ts": 18,
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },

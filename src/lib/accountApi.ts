@@ -133,3 +133,28 @@ export async function syncTrial(): Promise<void> {
     if (Number.isFinite(at)) useTrial.getState().set({ startedAt: at, plan: r?.plan ?? 'free', syncedAt: Date.now() });
   } catch { /* offline o server non raggiungibile: si usa l'ultimo valore */ }
 }
+
+/** Servizi di accesso attivati (EXPO_PUBLIC_OAUTH_PROVIDERS=google,apple): compaiono solo se li hai configurati nel pannello del server. */
+export function oauthProviders(): ('google' | 'apple')[] {
+  if (Platform.OS === 'web') return [];
+  return (process.env.EXPO_PUBLIC_OAUTH_PROVIDERS ?? '').split(',').map((x) => x.trim()).filter((x): x is 'google' | 'apple' => x === 'google' || x === 'apple');
+}
+
+/** Accede con Google o Apple: apre il browser di sistema, torna all'app, e dice se il profilo esiste già (come verifyCode). */
+export async function signInWithProvider(provider: 'google' | 'apple'): Promise<Res & { email?: string; existing?: { firstName: string; lastName: string; country: string; city: string } }> {
+  try {
+    if ((await backend()) !== 'server') return { ok: false, message: 'Servizio account non attivo.' };
+    const WebBrowser = await import('expo-web-browser');
+    const Linking = await import('expo-linking');
+    const tr = await supa();
+    const redirect = Linking.createURL('auth-callback');
+    const url = await tr.auth.oauthUrl(provider, redirect);
+    const res = await WebBrowser.openAuthSessionAsync(url, redirect);
+    if (res.type !== 'success') return { ok: false, message: tl('Accesso annullato: puoi riprovare quando vuoi.') };
+    await tr.auth.oauthFinish(res.url);
+    await applyTransport();
+    const g = await (await supa()).rpc<{ complete?: boolean; nome?: string; cognome?: string; paese?: string; citta?: string }>('account_get');
+    const email = (await supa()).account() ?? '';
+    return g?.complete && (g.nome ?? '').trim() ? { ok: true, email, existing: { firstName: g.nome ?? '', lastName: g.cognome ?? '', country: g.paese ?? '', city: g.citta ?? '' } } : { ok: true, email };
+  } catch (e) { return { ok: false, message: msg(e) }; }
+}

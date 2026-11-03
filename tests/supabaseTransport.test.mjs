@@ -54,3 +54,19 @@ test('errori: limite, accesso scaduto, rete, server in pausa', async () => {
   await assert.rejects(() => t.pull(null), (e) => e.kind === 'auth');
   assert.equal(t.auth.state(), 'expired');
 });
+
+test('accesso con Google/Apple: indirizzo di ritorno con token o con codice', async () => {
+  const calls = [];
+  const client = { rpc: async () => ({ data: null, error: null }), from: () => ({ select: async () => ({ data: [], error: null }) }),
+    auth: { getSession: async () => ({ data: { session: { user: { email: 'a@b.ch' } } } }), signInWithOtp: async () => ({}), verifyOtp: async () => ({}), signOut: async () => ({}),
+      signInWithOAuth: async (a) => { calls.push(['oauth', a.provider, a.options.skipBrowserRedirect]); return { data: { url: 'https://x/y' }, error: null }; },
+      exchangeCodeForSession: async (c) => { calls.push(['code', c]); return { data: {}, error: null }; },
+      setSession: async (t) => { calls.push(['set', t.access_token]); return { data: {}, error: null }; } } };
+  const tr = new SupabaseTransport(client, { url: 'u', anonKey: 'k' });
+  assert.equal(await tr.auth.oauthUrl('google', 'lifepilot://auth-callback'), 'https://x/y');
+  await tr.auth.oauthFinish('lifepilot://auth-callback#access_token=AT&refresh_token=RT');
+  await tr.auth.oauthFinish('lifepilot://auth-callback?code=CC');
+  assert.deepEqual(calls, [['oauth', 'google', true], ['set', 'AT'], ['code', 'CC']]);
+  assert.equal(tr.account(), 'a@b.ch');
+  await assert.rejects(() => tr.auth.oauthFinish('lifepilot://auth-callback?error_description=annullato'), /annullato/);
+});

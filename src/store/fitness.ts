@@ -184,11 +184,11 @@ const syncAi = () => {
   const s = useFitness.getState();
   const newFoods = s.aiFoods !== seenFoods; const newProgs = s.aiPrograms !== seenProgs;
   seenFoods = s.aiFoods; seenProgs = s.aiPrograms;
-  if (newFoods && s.aiFoods?.length) { const { registerFood } = require('@/lib/fitness/nutrition') as typeof import('@/lib/fitness/nutrition'); for (const f of s.aiFoods) registerFood(f); }
-  if (newProgs && s.aiPrograms?.length) {
-    const { ALL_PROGRAMS } = require('@/lib/fitness/programsExtra') as typeof import('@/lib/fitness/programsExtra');
-    for (const p of s.aiPrograms) { const i = ALL_PROGRAMS.findIndex((x) => x.id === p.id); if (i >= 0) ALL_PROGRAMS[i] = p; else ALL_PROGRAMS.push(p); }
-  }
+  const withFoods = (m: typeof import('@/lib/fitness/nutrition')) => { for (const f of s.aiFoods) m.registerFood(f); };
+  const withProgs = (m: typeof import('@/lib/fitness/programsExtra')) => { for (const p of s.aiPrograms) { const i = m.ALL_PROGRAMS.findIndex((x) => x.id === p.id); if (i >= 0) m.ALL_PROGRAMS[i] = p; else m.ALL_PROGRAMS.push(p); } };
+  /* sul telefono i moduli stanno nello stesso pacchetto (require); sul web possono stare in un pezzo a parte (import dinamico) */
+  if (newFoods && s.aiFoods?.length) { try { withFoods(require('@/lib/fitness/nutrition')); } catch { void import('@/lib/fitness/nutrition').then(withFoods).catch(() => undefined); } }
+  if (newProgs && s.aiPrograms?.length) { try { withProgs(require('@/lib/fitness/programsExtra')); } catch { void import('@/lib/fitness/programsExtra').then(withProgs).catch(() => undefined); } }
 };
 useFitness.subscribe(syncAi);
 syncAi();

@@ -15,6 +15,10 @@ export type SupabaseLike = {
     signInWithOtp(a: { email: string; options?: Record<string, unknown> }): PromiseLike<Res>;
     verifyOtp(a: { email: string; token: string; type: 'email' }): PromiseLike<Res>;
     signOut(): PromiseLike<unknown>;
+    /** accesso con Google o Apple (facoltativi: il finto dei test non li ha) */
+    signInWithOAuth?(a: { provider: string; options?: Record<string, unknown> }): PromiseLike<{ data: { url?: string | null } | null; error: { message?: string } | null }>;
+    exchangeCodeForSession?(code: string): PromiseLike<Res>;
+    setSession?(a: { access_token: string; refresh_token: string }): PromiseLike<Res>;
   };
 };
 
@@ -56,6 +60,28 @@ export class SupabaseTransport implements SyncTransport {
       const r = await this.client.auth.verifyOtp({ email, token: c.token.trim(), type: 'email' });
       if (r.error) throw new TransportError('auth', 'Codice non valido o scaduto');
       this.email = email; this.authState = 'ok';
+    },
+    /** Accesso con Google o Apple: `url` dà l'indirizzo da aprire nel browser; `finish` chiude l'accesso con l'indirizzo di ritorno. */
+    oauthUrl: async (provider: string, redirectTo: string): Promise<string> => {
+      if (!this.client.auth.signInWithOAuth) throw new TransportError('auth', 'Accesso con questo servizio non disponibile');
+      const r = await this.client.auth.signInWithOAuth({ provider, options: { redirectTo, skipBrowserRedirect: true } });
+      if (r.error || !r.data?.url) throw new TransportError('auth', r.error?.message || 'Non riesco ad aprire l\'accesso');
+      return r.data.url;
+    },
+    oauthFinish: async (callbackUrl: string): Promise<void> => {
+      const q = callbackUrl.split('#')[0]!.split('?')[1] ?? '';
+      const hash = callbackUrl.split('#')[1] ?? '';
+      const qp = new URLSearchParams(q), hp = new URLSearchParams(hash);
+      const code = qp.get('code');
+      if (code && this.client.auth.exchangeCodeForSession) {
+        const r = await this.client.auth.exchangeCodeForSession(code);
+        if (r.error) throw new TransportError('auth', 'Accesso non riuscito: riprova');
+      } else if (hp.get('access_token') && hp.get('refresh_token') && this.client.auth.setSession) {
+        const r = await this.client.auth.setSession({ access_token: hp.get('access_token')!, refresh_token: hp.get('refresh_token')! });
+        if (r.error) throw new TransportError('auth', 'Accesso non riuscito: riprova');
+      } else throw new TransportError('auth', qp.get('error_description') || hp.get('error_description') || 'Accesso annullato');
+      const { data } = await this.client.auth.getSession();
+      this.email = data.session?.user?.email ?? null; this.authState = 'ok';
     },
     signOut: async (): Promise<void> => { await this.client.auth.signOut(); this.authState = 'none'; this.email = null; this.connected = false; },
   };
