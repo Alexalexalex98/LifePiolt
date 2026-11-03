@@ -1,5 +1,5 @@
 {
- "count": 15589,
+ "count": 15996,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -66,7 +66,7 @@
   "src/app/(tabs)/lifefinance.tsx": 100,
   "src/app/(tabs)/lifefitness.tsx": 128,
   "src/app/(tabs)/lifeforecast.tsx": 35,
-  "src/app/(tabs)/lifehealth.tsx": 102,
+  "src/app/(tabs)/lifehealth.tsx": 104,
   "src/app/(tabs)/lifenetwork.tsx": 42,
   "src/app/(tabs)/lifenotes.tsx": 3,
   "src/app/(tabs)/lifepointsPage.tsx": 36,
@@ -78,6 +78,7 @@
   "src/app/(tabs)/mascot.tsx": 1,
   "src/app/(tabs)/menuPage.tsx": 28,
   "src/app/(tabs)/messagesPage.tsx": 37,
+  "src/app/(tabs)/mindfulness.tsx": 53,
   "src/app/(tabs)/monthPlan.tsx": 73,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,
@@ -169,7 +170,7 @@
   "src/components/MonthCalcCard.tsx": 30,
   "src/components/MoodChart.tsx": 6,
   "src/components/MoodCheckinPrompt.tsx": 21,
-  "src/components/NavBar.tsx": 37,
+  "src/components/NavBar.tsx": 38,
   "src/components/NetSheets.tsx": 333,
   "src/components/NotifPrompt.tsx": 16,
   "src/components/NotifSettings.tsx": 46,
@@ -559,10 +560,13 @@
   "src/lib/memoSync.ts": 1,
   "src/lib/menu.ts": 11,
   "src/lib/mindExercises.ts": 139,
+  "src/lib/mindExercisesMore.ts": 358,
+  "src/lib/mindRecommend.ts": 6,
   "src/lib/modRules.ts": 17,
   "src/lib/monthPlan.ts": 8,
   "src/lib/monthPlanChecks.ts": 17,
   "src/lib/moodAnalysis.ts": 57,
+  "src/lib/narrate.ts": 1,
   "src/lib/nav.ts": 1,
   "src/lib/netMedia.ts": 8,
   "src/lib/netSearch.ts": 8,
@@ -621,6 +625,7 @@
   "src/lib/shop.ts": 14,
   "src/lib/shopActions.ts": 8,
   "src/lib/shopSeed.ts": 56,
+  "src/lib/sleepSounds.ts": 14,
   "src/lib/speech.ts": 4,
   "src/lib/speechCore.ts": 29,
   "src/lib/spendingReport.ts": 6,
@@ -703,5 +708,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2001
+ "withPlaceholders": 2006
 }

@@ -78,6 +78,7 @@ export const TAB_SCREENS: string[] = [
   'menuPage',
   'messagesPage',
   'monthPlan',
+  'mindfulness',
   'mood',
   'myClubs',
   'myServices',

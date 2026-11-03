@@ -40,6 +40,8 @@ export async function speak(text: string): Promise<Speaking> {
 export type SpeechStream = {
   /** aggiunge un pezzo di testo da leggere (parte subito la richiesta della voce; si legge in ordine) */
   push: (text: string) => void;
+  /** una pausa di silenzio (ms) tra un pezzo e l'altro: serve alle meditazioni guidate */
+  pause: (ms: number) => void;
   /** non arriveranno altri pezzi: `done` si chiude quando ha finito di leggere */
   end: () => void;
   stop: () => void;
@@ -63,7 +65,7 @@ async function prepare(text: string): Promise<Prepared> {
  * così Theia inizia a parlare dopo le prime frasi. `onPos(i, frazione)` dice a che punto è: serve a far scorrere il testo con la voce.
  */
 export function createSpeechStream(onPos: (chunk: number, frac: number) => void): SpeechStream {
-  const jobs: Promise<Prepared | null>[] = [];
+  const jobs: Promise<Prepared | { pause: number } | null>[] = [];
   let ended = false, stopped = false, began = false, wake: (() => void) | null = null;
   let cur: { stop: () => void } | null = null;
   const poke = () => { const w = wake; wake = null; w?.(); };
@@ -74,7 +76,8 @@ export function createSpeechStream(onPos: (chunk: number, frac: number) => void)
       while (i >= jobs.length && !ended && !stopped) await new Promise<void>((r) => { wake = r; });
       if (stopped || i >= jobs.length) break;
       const p = await jobs[i];
-      if (!p || stopped) { p?.file?.delete(); continue; }
+      if (p && 'pause' in p) { await new Promise<void>((r) => { const h = setTimeout(r, p.pause); cur = { stop: () => { clearTimeout(h); r(); } }; }); cur = null; continue; }
+      if (!p || stopped) { (p as Prepared | null)?.file?.delete(); continue; }
       began = true;
       await new Promise<void>((res) => {
         let player: ReturnType<typeof createAudioPlayer>;
@@ -103,8 +106,9 @@ export function createSpeechStream(onPos: (chunk: number, frac: number) => void)
   })();
   return {
     push: (text) => { if (stopped || ended) return; jobs.push(prepare(text).catch(() => null)); poke(); },
+    pause: (ms) => { if (stopped || ended) return; jobs.push(Promise.resolve({ pause: ms })); poke(); },
     end: () => { ended = true; poke(); },
-    stop: () => { stopped = true; cur?.stop(); poke(); jobs.forEach((j) => void j.then((p) => { try { p?.file?.delete(); } catch { /* cache */ } })); },
+    stop: () => { stopped = true; cur?.stop(); poke(); jobs.forEach((j) => void j.then((p) => { try { (p as Prepared | null)?.file?.delete?.(); } catch { /* cache */ } })); },
     done,
     started: () => began,
   };

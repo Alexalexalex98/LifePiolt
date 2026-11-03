@@ -240,7 +240,7 @@ export function MenuSheet() {
   const groups: { label: string; items: Row_[] }[] = [
     { label: 'Principali', items: [{ id: 'ai', label: 'LifeChat' }, { id: 'home', label: sn.home }, { id: 'plan', label: sn.plan }] },
     { label: 'Le tue sezioni', items: [
-      { id: 'lifehealth', label: 'LifeHealth' },
+      { id: 'lifehealth', label: 'LifeHealth', sub: [['mindfulness', 'Benessere mentale', 'sparkle']] },
       { id: 'lifefitness', label: 'LifeFitness', sub: [['fitnessDay', 'Pasti e calorie', 'meal'], ['fitnessFridge', 'Frigo e spesa', 'orders'], ['fitnessBody', 'Foto del corpo', 'camera']] },
       { id: 'lifenetwork', label: 'LifeNetwork', sub: [['activity', 'La tua attività', 'activity'], ['creatorStats', 'Le tue statistiche', 'chart'], ['savedPosts', 'Contenuti salvati', 'savedPosts'], ['myServices', 'I tuoi servizi', 'myServices'], ['myClubs', 'I tuoi LifeClub', 'myClubs'], ['importSocial', 'Importa da un altro social', 'importSocial']] },
       { id: 'lifefinance', label: 'LifeFinance' },

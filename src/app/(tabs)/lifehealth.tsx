@@ -1,3 +1,4 @@
+import { go } from '@/lib/nav';
 import { useEffect, useState } from 'react';
 import { AppState, Platform, Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
@@ -87,6 +88,11 @@ export default function LifeHealth() {
 
   return (
     <Page id="lifehealth" title="LifeHealth" back>
+      <Card>
+        <H>Benessere mentale</H>
+        <Body small muted style={{ marginBottom: 8 }}>Oltre 100 meditazioni ed esercizi (anche da ascoltare), suoni e routine per dormire, focus e consigli su misura.</Body>
+        <Btn icon="sparkle" title="Apri Benessere mentale" onPress={() => go('mindfulness')} />
+      </Card>
       <LifeBalanceCard />
       <TodayCard />
       <Card>
