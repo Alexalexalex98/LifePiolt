@@ -300,7 +300,7 @@ function CustomVoice() {
           <Btn small ghost title={tl('Prova')} onPress={() => { setSpeechLang(l.id); void readAloud(l.sample).done.finally(() => setSpeechLang(null)); }} />
         </View>
       ))}
-      <Body small muted>{tl('Donna e Uomo scelgono le voci del server vocale open source che trovi in server/tts (Qwen3-TTS e Chatterbox: 11 lingue; per l\'indonesiano uso la voce del telefono). Il server lo ospiti tu: io non ne attivo e non pago nulla.')}</Body>
+      <Body small muted>{tl('Donna e Uomo scelgono la voce del server vocale compatibile con OpenAI che hai collegato. Opzione per chi ha già un server: l\'app funziona benissimo anche senza.')}</Body>
     </View>
   );
 }
