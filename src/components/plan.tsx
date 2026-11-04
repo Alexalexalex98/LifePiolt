@@ -15,6 +15,11 @@ import { decomposeTextToSteps } from '@/lib/taskDecompose';
 import { useApp } from '@/store/app';
 import { useLife, taskIsDone, type CalEvent, type Task } from '@/store/life';
 import { useMemos } from '@/store/memos';
+import { useTeams } from '@/store/teams';
+import { scheduleOf, useWork } from '@/store/work';
+import { WORK_COLOR_ID, matchesFilter, newEventId } from '@/lib/workPlan';
+import { evRange, fitsInHours, nextFree } from '@/lib/workHours';
+import { pushWorkEvent, removeWorkEvent } from '@/lib/teamWork';
 import { occursOn, timeStr } from '@/lib/memo';
 import { toast } from '@/store/toast';
 import { go } from '@/lib/nav';
@@ -302,10 +307,14 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
   const [place, setPlace] = useState('');
   const [weekly, setWeekly] = useState(false);
   const [colorFor, setColorFor] = useState<number | null>(null);
+  const teams = useTeams((s) => s.teams);
+  const filter = useWork((s) => s.filter);
+  const schedules = useWork((s) => s.schedules);
+  const [area, setArea] = useState<string | null>(null); // null = personale, altrimenti id del workspace
   if (!day) return <Sheet visible={false} title="" onClose={onClose}><View /></Sheet>;
   const d = new Date(day + 'T00:00:00');
   const titleStr = day === dayKey() ? `Oggi · ${fmtDate(d, { day: 'numeric', month: 'long' })}` : fmtDate(d, { day: 'numeric', month: 'long' });
-  const all = events.map((e, idx) => ({ e, idx })).sort((a, b) => a.e.time.localeCompare(b.e.time));
+  const all = events.map((e, idx) => ({ e, idx })).filter((x) => matchesFilter(x.e, filter)).sort((a, b) => a.e.time.localeCompare(b.e.time));
   const isBill = (e: CalEvent) => typeof e.ref === 'string' && e.ref.startsWith('bill:');
   const dueBills = all.filter((x) => isBill(x.e));
   const sorted = all.filter((x) => !isBill(x.e));
@@ -394,7 +403,7 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
                 <Text style={{ color: col, fontSize: 14, fontWeight: '800', letterSpacing: 0.2 }}>{e.time}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Body bold>{e.title}</Body>
+                <Row gap={6} style={{ justifyContent: 'flex-start' }}><Body bold style={{ flexShrink: 1 }}>{e.title}</Body>{e.team ? <View style={{ backgroundColor: col + '33', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}><Text style={{ color: col, fontSize: 11, fontWeight: '800' }}>{tl('Lavoro')}</Text></View> : null}</Row>
                 {e.place ? <Row gap={5} style={{ justifyContent: 'flex-start', marginTop: 2 }}><Icon name="pin" size={13} color={t.muted} stroke={2} /><Body small muted style={{ flex: 1 }}>{e.place}</Body></Row> : null}
               </View>
               {e.important ? <Icon name="star" size={16} color="#ffb84f" fill="#ffb84f" /> : null}
@@ -407,7 +416,7 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
               <View style={{ flex: 1 }} />
               <IconBtn icon="trash" tone="danger" label="Rimuovi l'impegno" onPress={() => {
                 let rem: CalEvent | null = null;
-                confirmDelete(tl('l\'impegno «{0}»', e.title), () => { rem = delEvent(day, idx); setColorFor(null); }, () => { const r = rem as CalEvent | null; if (r) restoreEvent(day, idx, r); }, { undoMessage: 'Impegno rimosso' });
+                confirmDelete(tl('l\'impegno «{0}»', e.title), () => { rem = delEvent(day, idx); setColorFor(null); if (e.wid) void removeWorkEvent(e.wid); }, () => { const r = rem as CalEvent | null; if (r) { restoreEvent(day, idx, r); if (r.wid) void pushWorkEvent(day, r); } }, { undoMessage: 'Impegno rimosso' });
               }} />
             </Row>
             {colorFor === idx && (
@@ -419,6 +428,12 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
 
       <View style={{ marginTop: 6, borderRadius: 20, backgroundColor: t.chip, padding: 14 }}>
         <Row gap={8} style={{ justifyContent: 'flex-start', marginBottom: 10 }}><Icon name="plus" size={16} color={t.text} stroke={2.4} /><Body bold>Nuovo impegno</Body></Row>
+        {teams.length ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+            <Pill label={tl('Personale')} on={area === null} onPress={() => setArea(null)} />
+            {teams.map((x) => <Pill key={x.id} label={`${tl('Lavoro')} · ${x.name}`} on={area === x.id} onPress={() => setArea(x.id)} />)}
+          </View>
+        ) : null}
         <Row gap={8} style={{ alignItems: 'stretch' }}>
           <Input placeholder="09:00" style={{ width: 92, textAlign: 'center', fontWeight: '800', marginBottom: 0 }} value={time} onChangeText={setTime} />
           <Input flex={1} placeholder="Cosa devi fare?" style={{ marginBottom: 0 }} value={title} onChangeText={setTitle} />
@@ -432,14 +447,26 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
           const ti = title.trim(); if (!ti) return;
           const vac = vacationOn(day);
           const have = (useLife.getState().events[day] ?? []).length;
-          const go = () => {
-            const n = addEvent(day, { time: time.trim() || '--:--', title: ti, reminder: false, ...(place.trim() ? { place: place.trim() } : {}) }, weekly ? endOfMonth : undefined);
+          const go = (at?: { day: string; time: string }) => {
+            const d0 = at?.day ?? day; const t0 = at?.time ?? (time.trim() || '--:--');
+            const work = area ? { team: area, wid: newEventId(), color: WORK_COLOR_ID } : {};
+            const n = addEvent(d0, { time: t0, title: ti, reminder: false, ...(place.trim() ? { place: place.trim() } : {}), ...work }, weekly && !area ? endOfMonth : undefined);
+            if (area) void pushWorkEvent(d0, { time: t0, title: ti, ...(place.trim() ? { place: place.trim() } : {}), ...work }).then((r) => { if (!r.ok) toast(r.message); });
             setTitle(''); setPlace('');
             toast(n > 1 ? `Impegno aggiunto a ${n} date (ogni settimana)` : 'Impegno aggiunto');
           };
           // avviso: vacanza (tutta la giornata occupata) o impegni già presenti
-          if (vac) alertT('Sei in vacanza', `In questo giorno hai «${vac.name}»: la vacanza occupa tutta la giornata. Aggiungo comunque?`, [{ text: 'Annulla', style: 'cancel' }, { text: 'Aggiungi comunque', onPress: go }]);
-          else if (have > 0) alertT('Hai già impegni', `In questo giorno hai già ${have} ${have === 1 ? 'impegno' : 'impegni'}. Aggiungo comunque?`, [{ text: 'Annulla', style: 'cancel' }, { text: 'Aggiungi', onPress: go }]);
+          // lavoro: solo dentro il proprio orario; se non ci sta propone il primo posto libero
+          if (area && /^\d{1,2}:\d{2}$/.test(time.trim())) {
+            const sch = scheduleOf(area, schedules); const t0 = time.trim().padStart(5, '0');
+            if (!fitsInHours(sch, day, t0, 60)) {
+              const alt = nextFree(sch, day, 0, 60, (d) => (useLife.getState().events[d] ?? []).filter((e) => e.team === area).map(evRange));
+              alertT('Fuori dal tuo orario di lavoro', alt ? tl('Il primo posto libero è il {0} alle {1}. Vuoi metterlo lì?', alt.day, alt.time) : tl('Non trovo posto nel tuo orario. Lo metto comunque?'), [{ text: 'Annulla', style: 'cancel' }, ...(alt ? [{ text: tl('Sì, mettilo lì'), onPress: () => go(alt) }] : []), { text: tl('Lascia così'), onPress: () => go() }]);
+              return;
+            }
+          }
+          if (vac) alertT('Sei in vacanza', `In questo giorno hai «${vac.name}»: la vacanza occupa tutta la giornata. Aggiungo comunque?`, [{ text: 'Annulla', style: 'cancel' }, { text: 'Aggiungi comunque', onPress: () => go() }]);
+          else if (have > 0) alertT('Hai già impegni', `In questo giorno hai già ${have} ${have === 1 ? 'impegno' : 'impegni'}. Aggiungo comunque?`, [{ text: 'Annulla', style: 'cancel' }, { text: 'Aggiungi', onPress: () => go() }]);
           else go();
         }} />
       </View>

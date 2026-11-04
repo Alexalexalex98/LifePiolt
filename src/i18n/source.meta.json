@@ -1,5 +1,5 @@
 {
- "count": 17257,
+ "count": 17306,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -91,7 +91,7 @@
   "src/app/(tabs)/orders.tsx": 12,
   "src/app/(tabs)/payments.tsx": 35,
   "src/app/(tabs)/photoEdit.tsx": 5,
-  "src/app/(tabs)/plan.tsx": 50,
+  "src/app/(tabs)/plan.tsx": 53,
   "src/app/(tabs)/portfolio.tsx": 34,
   "src/app/(tabs)/posDemo.tsx": 8,
   "src/app/(tabs)/postPage.tsx": 33,
@@ -136,7 +136,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 99,
+  "src/app/(tabs)/workspace.tsx": 101,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -315,7 +315,7 @@
   "src/components/pet/extraArt.tsx": 1,
   "src/components/photo/EditSlider.tsx": 1,
   "src/components/photo/PhotoEditor.tsx": 36,
-  "src/components/plan.tsx": 115,
+  "src/components/plan.tsx": 121,
   "src/components/profile/CardFace.tsx": 11,
   "src/components/profile/ProfileParts.tsx": 60,
   "src/components/profile/QaVote.tsx": 11,
@@ -357,6 +357,7 @@
   "src/components/tour/TourOverlay.tsx": 8,
   "src/components/tour/TutorialSettings.tsx": 13,
   "src/components/ui.tsx": 12,
+  "src/components/work/WorkPlanner.tsx": 67,
   "src/components/workspace/WorkChat.tsx": 20,
   "src/data/areas.ts": 8,
   "src/data/clubSeed.ts": 100,
@@ -670,6 +671,7 @@
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
+  "src/lib/teamWork.ts": 5,
   "src/lib/teams.ts": 7,
   "src/lib/theia.ts": 107,
   "src/lib/theia/appContext.ts": 8,
@@ -751,5 +753,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2140
+ "withPlaceholders": 2144
 }

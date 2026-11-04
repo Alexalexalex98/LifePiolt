@@ -14,6 +14,8 @@ import { confirmDelete } from '@/lib/confirm';
 import { sendToAssistant } from '@/lib/assistant/run';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
+import { useTeams } from '@/store/teams';
+import { useWork } from '@/store/work';
 import { TRASH_DAYS, taskIsDone, useLife, type Goal, type Vacation } from '@/store/life';
 import { firstOpen } from '@/lib/taskTimer';
 import { toast } from '@/store/toast';
@@ -27,6 +29,8 @@ const dShort = (k: string) => fmtDate(parseKey(k), { day: 'numeric', month: 'sho
 export default function Plan() {
   const { tasks, goals, vacRange, vacations, trash, setVacRange, addGoal, bumpGoal, delGoal, restoreGoal, delVacation, restoreVacation, restoreFromTrash, purgeTrash } = useLife();
   const wh = useApp((s) => s.workHours);
+  const teams = useTeams((s) => s.teams);
+  const planFilter = useWork((s) => s.filter);
   const [day, setDay] = useState<string | null>(null);
   // da una notifica ('event:<giorno>:<indice>') si apre direttamente il giorno dell'impegno
   const { day: dayParam, at: openedAt, task: taskParam } = useLocalSearchParams<{ day?: string; idx?: string; at?: string; task?: string }>();
@@ -72,6 +76,11 @@ export default function Plan() {
   return (
     <Page id="plan" title="Plan" right={<Btn small ghost icon="calendar" title="Agenda" onPress={() => go('agenda')} />}>
       <NotifBanner />
+      {teams.length ? (
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+          {([['all', 'Tutto'], ['personal', 'Personale'], ['work', 'Lavoro']] as const).map(([k, l]) => <Pill key={k} label={tl(l)} on={planFilter === k} onPress={() => useWork.getState().set({ filter: k })} />)}
+        </View>
+      ) : null}
       <Card>
         <CalendarPanel selectMode={selectMode} onPickDay={pick} onOpenBand={(id) => setVacId(id)} />
         <Btn style={{ marginTop: 12 }} icon="compass" title="Pianifica le vacanze" onPress={() => go('vacationPlanner')} />

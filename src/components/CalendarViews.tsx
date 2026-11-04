@@ -15,6 +15,7 @@ import { Icon } from '@/lib/icons';
 import { go } from '@/lib/nav';
 import { useApp } from '@/store/app';
 import { useCalPrefs, type CalView } from '@/store/calprefs';
+import { useVisibleEvents } from '@/hooks/use-visible-events';
 import { useLife } from '@/store/life';
 import { useMemos } from '@/store/memos';
 import { occursOn, timeStr } from '@/lib/memo';
@@ -162,7 +163,7 @@ export function Legend() {
 function MonthView({ offset, selectMode, onPickDay, onOpenBand, hideOpen, below, onSelect }: { offset: number; selectMode: boolean; onPickDay: (k: string) => void; onOpenBand: (id: string) => void; hideOpen?: boolean; below?: (sel: string) => ReactNode; onSelect?: (k: string) => void }) {
   const c = useCalColors();
   const th = c.th;
-  const events = useLife((s) => s.events);
+  const events = useVisibleEvents();
   const tasks = useLife((s) => s.tasks);
   const bands = useBands();
   const vacRange = useLife((s) => s.vacRange);
@@ -231,7 +232,7 @@ function MonthView({ offset, selectMode, onPickDay, onOpenBand, hideOpen, below,
 function DayDetail({ sel, onPickDay, hideOpen }: { sel: string; onPickDay: (k: string) => void; hideOpen?: boolean }) {
   const c = useCalColors();
   const th = c.th;
-  const events = useLife((s) => s.events);
+  const events = useVisibleEvents();
   const dueTasks = useLife((s) => s.tasks).filter((x) => !x.done && x.due === sel);
   const dueMemos = useMemos((s) => s.memos).filter((m) => occursOn(m, sel));
   const bands = useBands();
@@ -291,7 +292,7 @@ const kindIsPlain = (e: { title: string; important?: boolean; ref?: string; colo
 function WeekView({ offset, onPickDay, onOpenBand }: { offset: number; onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
   const c = useCalColors();
   const th = c.th;
-  const events = useLife((s) => s.events);
+  const events = useVisibleEvents();
   const bands = useBands();
   const today = dayKey();
   const start = addDays(weekStart(today), offset * 7);
@@ -367,7 +368,7 @@ export function PickCalendar({ onSelect, below }: { onSelect: (k: string) => voi
 function AgendaView({ onPickDay, onOpenBand }: { onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
   const c = useCalColors();
   const th = c.th;
-  const events = useLife((s) => s.events);
+  const events = useVisibleEvents();
   const bands = useBands();
   const today = dayKey();
   const days = useMemo(() => agenda(events, bands, today, 14), [events, bands, today]);
@@ -499,7 +500,7 @@ const minToLabel = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2,
 function DayPage({ k, width, onPickDay, onOpenBand }: { k: string; width: number; onPickDay: (k: string) => void; onOpenBand: (id: string) => void }) {
   const c = useCalColors();
   const th = c.th;
-  const events = useLife((s) => s.events);
+  const events = useVisibleEvents();
   const bands = useBands();
   const wh = useApp((s) => s.workHours);
   const vRef = useRef<ComponentRef<typeof ScrollView>>(null);
