@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { persisted } from './persist';
 
 /** La chat di Theia Lavoro: separata dalla Theia personale (niente memoria condivisa, niente dati personali dell'app). */
-export type WsAction = { label: string; op: 'pick' | 'all' | 'dismiss' };
+export type WsAction = { label: string; op: 'pick' | 'all' | 'dismiss' | 'ai' };
 export type WsMsg = { id: string; who: 'me' | 'ai'; text: string; ts: number; sources?: string[]; files?: string[]; actions?: WsAction[] };
 type State = {
   log: WsMsg[];

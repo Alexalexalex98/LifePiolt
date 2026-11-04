@@ -14,7 +14,9 @@ import { skillStates, type Declared, type Evidence, type SkillState } from './sk
 
 /** Stato effettivo dell'identità: lo store dedicato, oppure il vecchio flag (profili demo e dati salvati prima). */
 export function identityStatusOf(name: string, me: string): IdStatus {
-  if (name !== me) return useApp.getState().demo ? 'verified' : 'none';
+  /* in modalità demo tutto funziona come se l'account fosse già verificato */
+  if (useApp.getState().demo) return 'verified';
+  if (name !== me) return 'none';
   const rec = useIdentity.getState().identity;
   if (rec.status !== 'none') return rec.status;
   return useNet.getState().identity.verified ? 'verified' : 'none';

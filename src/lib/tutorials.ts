@@ -155,6 +155,17 @@ export const TUTORIALS: SectionTutorial[] = [
       s('c', 'Privacy e dati', 'Cosa condividi e con chi, backup e cancellazione dei dati. Qui riprendi anche i tutorial di ogni sezione.'),
     ],
   },
+  {
+    id: 'sec-workspace', page: 'workspace', title: 'LifeWorkspace', icon: 'note', short: 'Pagine, database, file e Theia Lavoro', auto: true,
+    steps: [
+      s('a', 'Il tuo spazio di lavoro', 'Qui tieni pagine (documenti, appunti, una piccola wiki), database (tabelle) e file. Sta tutto sul tuo telefono e puoi condividerlo con un team. In alto cerchi in tutto con un tocco.'),
+      s('b', 'Creare una pagina', 'Tocca «+ Pagina», scrivi il nome e premi il grande tasto «Crea» in fondo: vedi subito un messaggio di conferma e la pagina si apre. Dentro scrivi e usa «/» per i comandi.', ['«/titolo» per un titolo', '«/todo» per una cosa da fare con la casella', '«/elenco», «/citazione», «/linea»', 'Una pagina può contenere altre pagine, come cartelle']),
+      s('c', 'Cos\'è un database', 'Un database è una tabella: ogni riga è una voce (un compito, un libro, un post) e ogni colonna un dato (nome, stato, data). Lo crei con «+ Database» e «Crea».', ['«Nuova riga» aggiunge una voce', 'Scrivi nelle celle per cambiare i dati', 'Tocca lo stato per passare da Da fare a In corso a Fatto', '«Nuova colonna» aggiunge un dato: testo, numero o data']),
+      s('d', 'Vederlo in 4 modi', 'In alto nel database scegli come guardare le stesse voci.', ['Tabella: righe e colonne', 'Kanban: colonne per stato, tocca una scheda per spostarla', 'Calendario: le voci per giorno (serve una colonna Data)', 'Galleria: una scheda per voce', '«Filtra» e i nomi delle colonne servono a cercare e ordinare']),
+      s('e', 'File e Theia Lavoro', 'Nella scheda «File» c\'è un solo tasto, «Carica file»: scegli dal telefono o da LifeDrive. Poi apri «Theia Lavoro», scegli il file (o lascia che li cerchi tutti) e chiedi: riassunti, scadenze, numeri importanti.', ['Legge PDF con testo, Word, Excel, PowerPoint e testo', 'Se un PDF è una scansione, ti chiede il permesso di farlo leggere all\'AI']),
+      s('f', 'Modelli e aiuto di Theia', '«Da modello» crea in un attimo un viaggio, le note di una riunione, un progetto o un elenco compiti. In ogni pagina Theia può riassumere il testo o estrarre i compiti in un database.'),
+    ],
+  },
 ];
 
 export const tutorialById = (id: string): SectionTutorial | undefined => TUTORIALS.find((t) => t.id === id);

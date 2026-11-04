@@ -20,6 +20,7 @@ import { WORKSPACE_FOLDER, pageAi, searchWorkspace, workspaceFiles, type SearchH
 import { STATUSES, childrenOf, pathOf, slashCommand, useWorkspace, type BlockType, type WsPage } from '@/store/workspace';
 import { useWorkspaceChat } from '@/store/workspaceChat';
 import { useLife } from '@/store/life';
+import { useTour } from '@/store/tour';
 import { useTeams } from '@/store/teams';
 import { toast } from '@/store/toast';
 
@@ -60,9 +61,8 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
   const th = useTheme();
   const pages = useWorkspace((s) => s.pages);
   const teams = useTeams((s) => s.teams);
-  const { addPage } = useWorkspace.getState();
   const [tab, setTab] = useState<Tab>('pagine');
-  const [tplOpen, setTplOpen] = useState(false);
+  const [create, setCreate] = useState<{ kind: CreateKind; teamId?: string } | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [q, setQ] = useState('');
   const [hits, setHits] = useState<SearchHit[]>([]);
@@ -75,6 +75,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
   return (
     <Page id="workspace" title="LifeWorkspace" back>
 
+      <Pressable onPress={() => useTour.getState().start('sec-workspace')} accessibilityRole="button" style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: th.card, borderWidth: 1, borderColor: th.border }}><Icon name="help" size={15} color={th.accent} /><Text style={{ color: th.text, fontWeight: '800', fontSize: 13 }}>{tl('Come si usa')}</Text></Pressable>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: th.input, borderWidth: 1, borderColor: th.border, borderRadius: 16, paddingHorizontal: 14, marginTop: 4 }}>
         <Icon name="search" size={18} color={th.muted} />
         <Input value={q} onChangeText={setQ} placeholder={tl('Cerca in pagine, database e file')} style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent', marginBottom: 0 }} />
@@ -110,7 +111,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
             <View key={tm.id}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <Text style={{ color: th.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' }}>{`${tm.name} · ${tl('condivise')}`}</Text>
-                <Pressable onPress={() => onOpen(addPage(null, 'page', '', tm.id))} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('+ Nuova')}</Text></Pressable>
+                <Pressable onPress={() => setCreate({ kind: 'page', teamId: tm.id })} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('+ Nuova')}</Text></Pressable>
               </View>
               {nodes(null, 0) && null}
               {childrenOf(pages, null).filter((p) => p.teamId === tm.id).map((p) => <View key={p.id} style={{ marginTop: 8 }}><Tile p={p} onPress={() => onOpen(p.id)} /></View>)}
@@ -120,9 +121,9 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text style={{ color: th.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' }}>{tl('Le tue pagine')}</Text>
               <View style={{ flexDirection: 'row', gap: 16 }}>
-                <Pressable onPress={() => onOpen(addPage(null))} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('+ Pagina')}</Text></Pressable>
-                <Pressable onPress={() => setTplOpen(true)} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('Da modello')}</Text></Pressable>
-                <Pressable onPress={() => onOpen(addPage(null, 'db', tl('Nuovo database')))} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('+ Database')}</Text></Pressable>
+                <Pressable onPress={() => setCreate({ kind: 'page' })} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('+ Pagina')}</Text></Pressable>
+                <Pressable onPress={() => setCreate({ kind: 'tpl' })} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('Da modello')}</Text></Pressable>
+                <Pressable onPress={() => setCreate({ kind: 'db' })} hitSlop={8} accessibilityRole="button"><Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('+ Database')}</Text></Pressable>
               </View>
             </View>
             {roots.length ? nodes(null, 0) && roots.map((p) => <View key={p.id} style={{ marginTop: 8 }}><Tile p={p} onPress={() => onOpen(p.id)} />{childrenOf(pages, p.id).map((c) => <View key={c.id} style={{ marginStart: 16, marginTop: 6 }}><Tile p={c} onPress={() => onOpen(c.id)} /></View>)}</View>) : <Empty text={tl('Nessuna pagina ancora: creane una, anche per il wiki della tua azienda.')} />}
@@ -132,10 +133,46 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
       {tab === 'file' ? <Files onChat={() => setTab('theia')} /> : null}
       {tab === 'theia' ? <WorkLauncher onOpen={() => setChatOpen(true)} /> : null}
       {chatOpen ? <WorkChat onClose={() => setChatOpen(false)} /> : null}
-      <Sheet visible={tplOpen} title={tl('Parti da un modello')} onClose={() => setTplOpen(false)}>
-        <View style={{ gap: 8 }}>{TEMPLATES.map((x) => <Pressable key={x.id} onPress={() => { setTplOpen(false); onOpen(useWorkspace.getState().fromTemplate(null, x.id)); }} accessibilityRole="button" style={{ backgroundColor: th.card, borderRadius: 14, borderWidth: 1, borderColor: th.border, padding: 12 }}><Text style={{ color: th.text, fontWeight: '800' }}>{tl(x.name)}</Text><Text style={{ color: th.muted, fontSize: 12, marginTop: 2 }}>{tl(x.hint)}</Text></Pressable>)}</View>
-      </Sheet>
+      <CreateSheet open={!!create} kind={create?.kind ?? 'page'} parent={null} teamId={create?.teamId} onClose={() => setCreate(null)} onCreated={onOpen} />
     </Page>
+  );
+}
+
+type CreateKind = 'page' | 'db' | 'tpl';
+/** Crea una pagina, un database o una pagina da modello: nome, spiegazione e un grande tasto «Crea» in fondo. */
+function CreateSheet({ open, kind: k0, parent, teamId, onClose, onCreated }: { open: boolean; kind: CreateKind; parent: string | null; teamId?: string; onClose: () => void; onCreated: (id: string) => void }) {
+  const th = useTheme();
+  const [kind, setKind] = useState<CreateKind>(k0); const [title, setTitle] = useState(''); const [tpl, setTpl] = useState<string | null>(null);
+  useEffect(() => { if (open) { setKind(k0); setTitle(''); setTpl(null); } }, [open, k0]);
+  const ok = kind !== 'tpl' || !!tpl;
+  const create = () => {
+    if (!ok) return;
+    const ws = useWorkspace.getState(); let id: string; let name = title.trim();
+    if (kind === 'tpl') { id = ws.fromTemplate(parent, tpl!, teamId); if (name) ws.patch(id, { title: name }); else name = TEMPLATES.find((x) => x.id === tpl)?.name ?? ''; }
+    else { name = name || (kind === 'db' ? tl('Nuovo database') : ''); id = ws.addPage(parent, kind, name, teamId); }
+    toast(kind === 'db' ? tl('Database creato: «{0}»', name) : tl('Pagina creata{0}', name ? `: «${name}»` : '')); onClose(); onCreated(id);
+  };
+  const seg = (k: CreateKind, l: string) => <Pressable key={k} onPress={() => setKind(k)} accessibilityRole="button" accessibilityState={{ selected: kind === k }} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: kind === k ? th.text : 'transparent' }}><Text style={{ color: kind === k ? th.onText : th.muted, fontWeight: '800', fontSize: 13 }}>{l}</Text></Pressable>;
+  return (
+    <Sheet visible={open} title={tl('Crea')} onClose={onClose}>
+      <View style={{ gap: 12 }}>
+        <View style={{ flexDirection: 'row', backgroundColor: th.card, borderRadius: 14, padding: 3, borderWidth: 1, borderColor: th.border }}>{seg('page', tl('Pagina'))}{seg('db', tl('Database'))}{seg('tpl', tl('Da modello'))}</View>
+        <Text style={{ color: th.muted, fontSize: 13.5, lineHeight: 19 }}>
+          {kind === 'page' ? tl('Una pagina è un documento: scrivi testo, elenchi di cose da fare, titoli. Può contenere altre pagine, come cartelle.') : kind === 'db' ? tl('Un database è una tabella: ogni riga è una voce (un compito, un libro, un contenuto) e ogni colonna un dato (nome, stato, data). Lo vedi come Tabella, Kanban, Calendario o Galleria.') : tl('Parti da una pagina già impostata: scegli un modello e poi cambia quello che vuoi.')}
+        </Text>
+        {kind === 'tpl' ? (
+          <View style={{ gap: 8 }}>{TEMPLATES.map((x) => { const on = tpl === x.id; return (
+            <Pressable key={x.id} onPress={() => { setTpl(x.id); }} accessibilityRole="radio" accessibilityState={{ checked: on }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: on ? th.accent + '1f' : th.card, borderRadius: 14, borderWidth: on ? 2 : 1, borderColor: on ? th.accent : th.border, padding: 12 }}>
+              <View style={{ flex: 1 }}><Text style={{ color: th.text, fontWeight: '800' }}>{tl(x.name)}</Text><Text style={{ color: th.muted, fontSize: 12 }}>{tl(x.hint)}</Text></View>
+              {on ? <Icon name="check" size={18} color={th.accent} stroke={3} /> : null}
+            </Pressable>); })}</View>
+        ) : null}
+        <Input value={title} onChangeText={setTitle} placeholder={kind === 'tpl' ? tl('Nome (facoltativo)') : kind === 'db' ? tl('Nome del database') : tl('Nome della pagina')} onSubmitEditing={create} returnKeyType="done" style={{ marginBottom: 0 }} />
+        <Pressable onPress={create} disabled={!ok} accessibilityRole="button" accessibilityLabel={tl('Crea')} style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16, backgroundColor: ok ? th.text : th.border, opacity: ok ? 1 : 0.7 }}>
+          <Text style={{ color: ok ? th.onText : th.muted, fontWeight: '800', fontSize: 17 }}>{kind === 'tpl' && !tpl ? tl('Scegli un modello') : tl('Crea')}</Text>
+        </Pressable>
+      </View>
+    </Sheet>
   );
 }
 
@@ -158,9 +195,12 @@ function WorkLauncher({ onOpen }: { onOpen: () => void }) {
 
 function Files({ pid, onChat }: { pid?: string; onChat?: () => void }) {
   const th = useTheme(); const life = useLife(); const ws = useWorkspace();
+  const [pick, setPick] = useState(false);
   useLife((s) => s.drive);
   const files = workspaceFiles();
-  const upload = async () => {
+  const mine = pid ? files.filter((f) => ws.pages.find((p) => p.id === pid)?.files.includes(f.id)) : [];
+  const fromPhone = async () => {
+    setPick(false);
     const r = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: true, copyToCacheDirectory: true });
     if (r.canceled) return;
     for (const a of r.assets) {
@@ -168,25 +208,46 @@ function Files({ pid, onChat }: { pid?: string; onChat?: () => void }) {
       life.addFile({ id, n: a.name, s: fmtBytes(a.size ?? 0) || '—', folder: WORKSPACE_FOLDER, date: weekdayShortDate(), uri: persistFile(a.uri, a.name), src: 'Workspace', tag: 'Workspace' });
       if (pid) ws.attach(pid, id);
     }
-    toast(tl('File caricati nel workspace'));
+    toast(r.assets.length === 1 ? tl('File caricato: «{0}»', r.assets[0]!.name) : tl('{0} file caricati', r.assets.length));
   };
-  const others = life.drive.filter((f) => f.folder !== WORKSPACE_FOLDER && !ws.pages.some((p) => p.files.includes(f.id)) && !f.photo).slice(0, 12);
+  const fromDrive = (id: string, name: string) => {
+    if (pid) ws.attach(pid, id); else useWorkspaceChat.getState().set({ linked: [...new Set([...useWorkspaceChat.getState().linked, id])] });
+    toast(tl('Aggiunto: «{0}»', name)); setPick(false);
+  };
+  const drive = life.drive.filter((f) => !f.photo && f.uri && !(pid ? ws.pages.find((p) => p.id === pid)?.files.includes(f.id) : workspaceFiles().some((w) => w.id === f.id)));
   const kindIcon = (n: string) => (/\.(xlsx?|csv)$/i.test(n) ? 'chart' : /\.(pptx?)$/i.test(n) ? 'projects' : /\.(docx?|txt|md)$/i.test(n) ? 'note' : 'file');
-  const asked = (id: string) => { useWorkspaceChat.getState().set({ focus: [id], mode: 'ask' }); onChat?.(); };
   return (
     <View style={{ gap: 10 }}>
-      <Pressable onPress={() => void upload()} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed', borderColor: th.accent + '88', backgroundColor: th.accent + '12' }}><Icon name="plus" size={18} color={th.accent} stroke={2.6} /><Text style={{ color: th.text, fontWeight: '800' }}>{tl('Carica file')}</Text></Pressable>
-      {files.length ? files.map((f) => {
-        const linked = pid ? ws.pages.find((p) => p.id === pid)?.files.includes(f.id) : false;
-        return (
+      <Pressable onPress={() => setPick(true)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 18, borderRadius: 18, backgroundColor: th.text }}>
+        <Icon name="plus" size={18} color={th.onText} stroke={2.6} /><Text style={{ color: th.onText, fontWeight: '800', fontSize: 16 }}>{tl('Carica file')}</Text>
+      </Pressable>
+      {pid ? (
+        mine.length ? mine.map((f) => (
           <View key={f.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: th.card, borderRadius: 16, borderWidth: 1, borderColor: th.border, padding: 12 }}>
             <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: th.accent + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={kindIcon(f.n)} size={20} color={th.accent} stroke={2} /></View>
             <View style={{ flex: 1 }}><Text numberOfLines={1} style={{ color: th.text, fontWeight: '800', fontSize: 14.5 }}>{f.n}</Text><Text style={{ color: th.muted, fontSize: 12 }}>{`${f.s} · ${f.date}`}</Text></View>
-            {pid ? <Btn small ghost title={linked ? tl('Scollega') : tl('Collega')} onPress={() => (linked ? ws.detach(pid, f.id) : ws.attach(pid, f.id))} /> : onChat ? <Btn small ghost title={tl('Chiedi')} onPress={() => asked(f.id)} /> : null}
+            <Btn small ghost title={tl('Scollega')} onPress={() => ws.detach(pid, f.id)} />
           </View>
-        );
-      }) : <Empty text={tl('Nessun file ancora: carica il primo e chiedi a Theia Lavoro.')} />}
-      {pid && others.length ? (<><Text style={{ color: th.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 6 }}>{tl('Da LifeDrive')}</Text>{others.map((f) => <View key={f.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}><Icon name="file" size={16} color={th.muted} /><Text numberOfLines={1} style={{ color: th.text, flex: 1 }}>{f.n}</Text><Btn small ghost title={tl('Collega')} onPress={() => ws.attach(pid, f.id)} /></View>)}</>) : null}
+        )) : <Text style={{ color: th.muted, fontSize: 13 }}>{tl('Nessun file in questa pagina.')}</Text>
+      ) : (
+        <Text style={{ color: th.muted, fontSize: 13.5, lineHeight: 19, textAlign: 'center' }}>{files.length ? tl('Hai {0} file nel workspace. Per leggerli apri Theia Lavoro e chiedi quello che vuoi: scegli il file o lascia che li cerchi tutti.', files.length) : tl('Carica un PDF, un documento, un foglio Excel o una presentazione, poi chiedi a Theia Lavoro cosa c\'è dentro.')}</Text>
+      )}
+      {!pid && onChat ? <Btn ghost icon="sparkle" title={tl('Chiedi a Theia Lavoro')} onPress={onChat} /> : null}
+      <Sheet visible={pick} title={tl('Carica un file')} onClose={() => setPick(false)}>
+        <View style={{ gap: 10 }}>
+          <Pressable onPress={() => void fromPhone()} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: th.card, borderRadius: 16, borderWidth: 1, borderColor: th.border, padding: 14 }}>
+            <Icon name="phone" size={22} color={th.accent} /><View style={{ flex: 1 }}><Text style={{ color: th.text, fontWeight: '800' }}>{tl('Dal telefono')}</Text><Text style={{ color: th.muted, fontSize: 12.5 }}>{tl('Scegli uno o più file dal telefono')}</Text></View><Icon name="chevron-right" size={18} color={th.muted} />
+          </Pressable>
+          <Text style={{ color: th.muted, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 4 }}>{tl('Da LifeDrive')}</Text>
+          {drive.length ? drive.slice(0, 40).map((f) => (
+            <Pressable key={f.id} onPress={() => fromDrive(f.id, f.n)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 }}>
+              <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: th.accent + '26', alignItems: 'center', justifyContent: 'center' }}><Icon name={kindIcon(f.n)} size={18} color={th.accent} /></View>
+              <View style={{ flex: 1 }}><Text numberOfLines={1} style={{ color: th.text, fontWeight: '700' }}>{f.n}</Text><Text style={{ color: th.muted, fontSize: 12 }}>{`${f.s} · ${f.date}`}</Text></View>
+              <Text style={{ color: th.accent, fontWeight: '800', fontSize: 13 }}>{tl('Aggiungi')}</Text>
+            </Pressable>
+          )) : <Text style={{ color: th.muted, fontSize: 13 }}>{tl('Non ci sono altri file in LifeDrive.')}</Text>}
+        </View>
+      </Sheet>
     </View>
   );
 }
@@ -198,6 +259,7 @@ function PageView({ page, onOpen, onBack }: { page: WsPage; onOpen: (id: string)
   const [comment, setComment] = useState('');
   const [focusBlock, setFocusBlock] = useState<string | null>(null);
   const [ai, setAi] = useState<'summary' | 'tasks' | null>(null);
+  const [sub, setSub] = useState<CreateKind | null>(null);
   const subs = childrenOf(pages, page.id);
   const crumbs = useMemo(() => pathOf(pages, page.id).slice(0, -1), [pages, page.id]);
   const c = colorOf(page.id);
@@ -239,7 +301,7 @@ function PageView({ page, onOpen, onBack }: { page: WsPage; onOpen: (id: string)
         <Btn small ghost title={ai === 'summary' ? tl('Theia legge…') : tl('Theia: riassumi')} disabled={!!ai} onPress={() => { setAi('summary'); void pageAi(page.id, 'summary').then((r) => { setAi(null); toast(r.msg); }); }} />
         <Btn small ghost title={ai === 'tasks' ? tl('Theia legge…') : tl('Theia: estrai i task')} disabled={!!ai} onPress={() => { setAi('tasks'); void pageAi(page.id, 'tasks').then((r) => { setAi(null); toast(r.msg); }); }} />
       </View>
-      <Section title={tl('Sottopagine')} action={tl('+ Pagina')} onAction={() => onOpen(ws.addPage(page.id, 'page', '', page.teamId))} extra={tl('+ Database')} onExtra={() => onOpen(ws.addPage(page.id, 'db', tl('Nuovo database'), page.teamId))}>
+      <Section title={tl('Sottopagine')} action={tl('+ Pagina')} onAction={() => setSub('page')} extra={tl('+ Database')} onExtra={() => setSub('db')}>
         {subs.length ? subs.map((s) => <View key={s.id} style={{ marginBottom: 8 }}><Tile p={s} onPress={() => onOpen(s.id)} /></View>) : <Text style={{ color: th.muted, fontSize: 13 }}>{tl('Una pagina può contenere altre pagine, come cartelle.')}</Text>}
       </Section>
       <Section title={tl('File collegati')}><Files pid={page.id} /></Section>
@@ -248,6 +310,7 @@ function PageView({ page, onOpen, onBack }: { page: WsPage; onOpen: (id: string)
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}><Input value={comment} onChangeText={setComment} placeholder={tl('Scrivi un commento')} flex={1} style={{ marginBottom: 0 }} /><Btn small disabled={!comment.trim()} title={tl('Invia')} onPress={() => { ws.addComment(page.id, comment); setComment(''); }} /></View>
       </Section>
       <Btn ghost danger small title={tl('Elimina la pagina')} onPress={del} />
+      <CreateSheet open={!!sub} kind={sub ?? 'page'} parent={page.id} teamId={page.teamId} onClose={() => setSub(null)} onCreated={onOpen} />
       <Sheet visible={!!menu} title={tl('Blocco')} onClose={() => setMenu(null)}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{BLOCKS.map((x) => <Pressable key={x.t} onPress={() => { if (menu) ws.patchBlock(page.id, menu, { t: x.t }); setMenu(null); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, backgroundColor: th.card, borderWidth: 1, borderColor: th.border }}><Icon name={x.icon} size={14} color={c} /><Text style={{ color: th.text, fontWeight: '700' }}>{tl(x.label)}</Text></Pressable>)}</View>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}><Btn small ghost title={tl('Su')} onPress={() => { if (menu) ws.moveBlock(page.id, menu, -1); }} /><Btn small ghost title={tl('Giù')} onPress={() => { if (menu) ws.moveBlock(page.id, menu, 1); }} /><Btn small ghost danger title={tl('Elimina')} onPress={() => { if (menu) ws.delBlock(page.id, menu); setMenu(null); }} /></View>
@@ -299,6 +362,10 @@ function Database({ page }: { page: WsPage }) {
   );
   return (
     <View style={{ gap: 12 }}>
+      <View style={{ backgroundColor: th.accent + '14', borderRadius: 16, padding: 12, gap: 4 }}>
+        <Text style={{ color: th.text, fontWeight: '800', fontSize: 14 }}>{allRows.length ? tl('Come si usa questo database') : tl('Un database vuoto: iniziamo')}</Text>
+        <Text style={{ color: th.muted, fontSize: 13, lineHeight: 19 }}>{allRows.length ? tl('Scrivi nelle celle per cambiare un dato. Tocca lo stato per passare a Da fare, In corso o Fatto. In alto scegli come vederlo: Tabella, Kanban, Calendario (serve una colonna Data) o Galleria.') : tl('1) Premi «Nuova riga» in fondo: ogni riga è una voce (un compito, un libro…). 2) Scrivi il nome nella prima cella. 3) Cambia vista in alto: Tabella, Kanban (colonne per stato), Calendario o Galleria.')}</Text>
+      </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', backgroundColor: th.card, borderRadius: 14, padding: 3, borderWidth: 1, borderColor: th.border }}>
           {VIEWS.map((x) => <Pressable key={x.v} onPress={() => ws.patch(page.id, { view: x.v })} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 11, backgroundColor: view === x.v ? th.text : 'transparent' }}><Text style={{ color: view === x.v ? th.onText : th.muted, fontWeight: '800', fontSize: 13 }}>{tl(x.l)}</Text></Pressable>)}
@@ -359,7 +426,7 @@ function Database({ page }: { page: WsPage }) {
       )}
       {rows.length < allRows.length ? <Text style={{ color: th.muted, fontSize: 12 }}>{tl('{0} righe su {1} (filtro attivo)', String(rows.length), String(allRows.length))}</Text> : null}
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <Btn small icon="plus" title={tl('Nuova riga')} onPress={() => ws.addRow(page.id)} />
+        <Btn small icon="plus" title={tl('Nuova riga')} onPress={() => { ws.addRow(page.id); toast(tl('Riga aggiunta')); }} />
         <Input value={colName} onChangeText={setColName} placeholder={tl('Nuova colonna')} style={{ width: 130, marginBottom: 0 }} />
         {(['text', 'number', 'date'] as const).map((k) => <Btn key={k} small ghost disabled={!colName.trim()} title={k === 'text' ? tl('Testo') : k === 'number' ? tl('Numero') : tl('Data')} onPress={() => { ws.addCol(page.id, colName, k); setColName(''); }} />)}
       </View>

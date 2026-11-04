@@ -123,7 +123,8 @@ export default function LifeNetwork() {
   const navItemsAll = useApp((a) => a.navItems);
   const quoteLikes = net.quoteLikes;
 
-  const verified = net.identity.verified;
+  const demoMode = useApp((a) => a.demo);
+  const verified = net.identity.verified || demoMode;
   const jobsList = useJobs((x) => x.jobs);
   const { communities, posts, ideas, seminars, providers, products, hideIdeas, mutedIdeaAuthors, following: followingList, reach } = net;
 

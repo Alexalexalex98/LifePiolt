@@ -1,5 +1,5 @@
 {
- "count": 17201,
+ "count": 17257,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -81,7 +81,7 @@
   "src/app/(tabs)/mascot.tsx": 1,
   "src/app/(tabs)/menuPage.tsx": 28,
   "src/app/(tabs)/messagesPage.tsx": 37,
-  "src/app/(tabs)/mindfulness.tsx": 102,
+  "src/app/(tabs)/mindfulness.tsx": 103,
   "src/app/(tabs)/monthPlan.tsx": 73,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,
@@ -136,7 +136,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 76,
+  "src/app/(tabs)/workspace.tsx": 99,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -688,7 +688,7 @@
   "src/lib/travel.ts": 38,
   "src/lib/trialJourney.ts": 16,
   "src/lib/tripPlanner.ts": 102,
-  "src/lib/tutorials.ts": 161,
+  "src/lib/tutorials.ts": 189,
   "src/lib/urgentPin.ts": 3,
   "src/lib/vacationPlan.ts": 7,
   "src/lib/voice/readAloud.ts": 1,
@@ -705,7 +705,7 @@
   "src/lib/wellbeing/score.ts": 55,
   "src/lib/when.ts": 11,
   "src/lib/workEstimate.ts": 8,
-  "src/lib/workspaceAi.ts": 33,
+  "src/lib/workspaceAi.ts": 41,
   "src/lib/workspaceCore.ts": 4,
   "src/lib/workspaceSearch.ts": 4,
   "src/lib/workspaceViews.ts": 51,
@@ -751,5 +751,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2132
+ "withPlaceholders": 2140
 }

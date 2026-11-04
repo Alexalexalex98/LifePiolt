@@ -1,6 +1,7 @@
 import { t } from '@/i18n/core';
 import { askSend, logSend } from '@/lib/aiConsent';
 import { AiServerError, aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
+import { askTheiaFiles } from '@/lib/theia';
 import { readLocally } from '@/lib/bills/files';
 import { readTextFile } from '@/lib/chatMedia';
 import { downloadTeamFile, listTeamFiles, type TeamFile } from '@/lib/teams';
@@ -116,6 +117,21 @@ export function saveAttachments(atts: Att[]): DriveFile[] {
   return out;
 }
 
+const mimeOf = (n: string): string | null => (/\.pdf$/i.test(n) ? 'application/pdf' : /\.jpe?g$/i.test(n) ? 'image/jpeg' : /\.png$/i.test(n) ? 'image/png' : null);
+
+/** Il file scelto non si legge sul telefono (scansione, foto): dopo il consenso lo legge l'AI e risponde alla domanda. */
+async function aiReadFocused(question: string): Promise<void> {
+  const chat = useWorkspaceChat.getState(); const id = chat.focus[0]; const f = useLife.getState().drive.find((x) => x.id === id);
+  if (!f?.uri) { chat.push({ who: 'ai', text: t('Non trovo più il file: caricalo di nuovo.') }); return; }
+  const mime = mimeOf(f.n); if (!mime) { chat.push({ who: 'ai', text: t('Questo tipo di file non lo posso far leggere all\'AI.') }); return; }
+  if (!(await askSend('files', f.n))) { chat.push({ who: 'ai', text: t('Va bene, non invio niente: il file resta sul tuo telefono.') }); return; }
+  logSend('files', 0, [mime]);
+  try {
+    const r = await askTheiaFiles(`${question}\n\n${t('Rispondi in italiano usando solo ciò che c\'è nel documento. Se la risposta non c\'è, dillo.')}`, [{ uri: f.uri, mime }]);
+    chat.push({ who: 'ai', text: r.reply.trim() || t('Risposta vuota dal server.'), sources: [f.n] });
+  } catch (e) { chat.push({ who: 'ai', text: e instanceof AiServerError ? e.message : t('Dammi un attimo e riproviamo.') }); }
+}
+
 async function answerFrom(question: string, ids: string[] | null): Promise<void> {
   const chat = useWorkspaceChat.getState();
   if (!aiServerConfigured) { chat.push({ who: 'ai', text: t('Per rispondere serve il collegamento con l\'AI: lo attivi in Intelligenza di Theia.') }); return; }
@@ -127,6 +143,17 @@ async function answerFrom(question: string, ids: string[] | null): Promise<void>
   } else { const r = await workspaceDocs(); docs = r.docs; unreadable.push(...r.unreadable); }
   const ctx = contextFor(question, docs, ids?.length ? 22000 : 18000);
   if (!ctx.text) {
+    if (ids?.length === 1) {
+      const f = useLife.getState().drive.find((x) => x.id === ids[0]);
+      const mime = f ? mimeOf(f.n) : null;
+      const gone = !f?.uri;
+      if (gone) { chat.push({ who: 'ai', text: t('Il file «{0}» non è più sul telefono (il collegamento si è perso). Caricalo di nuovo dal pulsante «Carica file».', about) }); return; }
+      if (mime && aiServerConfigured) {
+        chat.set({ pending: question });
+        chat.push({ who: 'ai', text: t('Sul telefono non riesco a leggere il testo di «{0}»: di solito è una scansione, una foto o un PDF con un formato particolare. Posso farlo leggere all\'AI: invio solo questo file e solo se me lo permetti.', about), actions: [{ label: t('Leggilo con l\'AI'), op: 'ai' }, { label: t('No, grazie'), op: 'dismiss' }] });
+        return;
+      }
+    }
     chat.push({ who: 'ai', text: ids?.length ? t('Non riesco a leggere il testo di «{0}»: se è una scansione o una foto, caricala come PDF con testo o dimmi cosa cercare.', about) : t('Non trovo niente su questo nel workspace. Controlla che il file sia caricato e leggibile.') + (unreadable.length ? ` ${t('Non riesco a leggere: {0}.', unreadable.slice(0, 3).join(', '))}` : '') });
     return;
   }
@@ -165,6 +192,7 @@ export async function workAction(op: WsAction['op']): Promise<'pick' | void> {
   const chat = useWorkspaceChat.getState();
   const q = chat.pending;
   if (op === 'pick') return 'pick';
+  if (op === 'ai') { chat.set({ pending: undefined }); if (q) await aiReadFocused(q); return; }
   if (op === 'all') { chat.set({ mode: 'all', pending: undefined }); if (q) await answerFrom(q, null); return; }
   chat.set({ pending: undefined });
 }

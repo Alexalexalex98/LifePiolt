@@ -10,6 +10,7 @@ import { confirmDelete } from '@/lib/confirm';
 import { go } from '@/lib/nav';
 import { startTeamSync } from '@/lib/teamSync';
 import { createTeam, deleteTeam, deleteTeamFile, downloadTeamFile, inviteCode, joinTeam, leaveTeam, listMembers, listTeamFiles, myUserId, refreshTeams, removeMember, uploadTeamFile, type Member, type TeamFile } from '@/lib/teams';
+import { useApp } from '@/store/app';
 import { useAccount } from '@/store/account';
 import { useTeams, type TeamInfo } from '@/store/teams';
 import { toast } from '@/store/toast';
@@ -18,7 +19,8 @@ const ROLE: Record<string, string> = { owner: 'Creatore', admin: 'Amministratore
 
 /** Team di lavoro: crei uno spazio, inviti con un codice (valido 7 giorni), condividi pagine in tempo reale e un Drive privato. Chi esce o viene rimosso perde subito l'accesso a tutto. */
 export default function Teams() {
-  const verified = useAccount((s) => s.status === 'verified');
+  const demoMode = useApp((s) => s.demo);
+  const verified = useAccount((s) => s.status === 'verified') || demoMode;
   const teams = useTeams((s) => s.teams);
   const [open, setOpen] = useState<string | null>(null);
   const [name, setName] = useState(''); const [code, setCode] = useState(''); const [busy, setBusy] = useState(false);

@@ -32,7 +32,7 @@ export function WorkChat({ onClose }: { onClose: () => void }) {
   const focusNames = focus.map((id) => useLife.getState().drive.find((f) => f.id === id)?.n).filter(Boolean) as string[];
 
   const send = async (m: ComposerSend) => { setBusy(true); try { await sendWork(m.text, m.attachments ?? []); } finally { setBusy(false); } };
-  const act = async (op: 'pick' | 'all' | 'dismiss', msgId: string) => {
+  const act = async (op: 'pick' | 'all' | 'dismiss' | 'ai', msgId: string) => {
     useWorkspaceChat.getState().patch(msgId, { actions: undefined });
     if (op === 'pick') { setPick(true); return; }
     setBusy(true); try { await workAction(op); } finally { setBusy(false); }
