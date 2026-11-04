@@ -1,5 +1,5 @@
 {
- "count": 17202,
+ "count": 17201,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -81,7 +81,7 @@
   "src/app/(tabs)/mascot.tsx": 1,
   "src/app/(tabs)/menuPage.tsx": 28,
   "src/app/(tabs)/messagesPage.tsx": 37,
-  "src/app/(tabs)/mindfulness.tsx": 101,
+  "src/app/(tabs)/mindfulness.tsx": 102,
   "src/app/(tabs)/monthPlan.tsx": 73,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,

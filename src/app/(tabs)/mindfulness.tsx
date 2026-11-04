@@ -267,17 +267,17 @@ function Library({ exRow }: { exRow: (ex: Exercise, last: boolean) => React.Reac
 }
 
 const VOICE_LANGS: { id: string; label: string; hint: string; sample: string }[] = [
-  { id: 'it', label: 'Italiano', hint: 'if_sara', sample: 'Ciao, sono Theia. Respira piano e seguimi.' },
-  { id: 'en', label: 'English', hint: 'af_heart', sample: 'Hi, I am Theia. Breathe slowly and follow me.' },
-  { id: 'es', label: 'Español', hint: 'ef_dora', sample: 'Hola, soy Theia. Respira despacio y sígueme.' },
-  { id: 'fr', label: 'Français', hint: 'ff_siwis', sample: 'Bonjour, je suis Theia. Respire doucement et suis-moi.' },
-  { id: 'de', label: 'Deutsch', hint: '', sample: 'Hallo, ich bin Theia. Atme langsam und folge mir.' },
-  { id: 'pt', label: 'Português', hint: 'pf_dora', sample: 'Olá, sou a Theia. Respire devagar e siga-me.' },
-  { id: 'zh', label: '中文', hint: 'zf_xiaobei', sample: '你好，我是Theia。慢慢呼吸，跟着我。' },
-  { id: 'hi', label: 'हिन्दी', hint: 'hf_alpha', sample: 'नमस्ते, मैं थेया हूँ। धीरे-धीरे साँस लें।' },
-  { id: 'ar', label: 'العربية', hint: '', sample: 'مرحبًا، أنا ثيا. تنفس ببطء وتابعني.' },
-  { id: 'ru', label: 'Русский', hint: '', sample: 'Привет, я Тея. Дышите медленно и следуйте за мной.' },
-  { id: 'ja', label: '日本語', hint: 'jf_alpha', sample: 'こんにちは、テイアです。ゆっくり呼吸してください。' },
+  { id: 'it', label: 'Italiano', hint: 'f-it', sample: 'Ciao, sono Theia. Respira piano e seguimi.' },
+  { id: 'en', label: 'English', hint: 'f-en', sample: 'Hi, I am Theia. Breathe slowly and follow me.' },
+  { id: 'es', label: 'Español', hint: 'f-es', sample: 'Hola, soy Theia. Respira despacio y sígueme.' },
+  { id: 'fr', label: 'Français', hint: 'f-fr', sample: 'Bonjour, je suis Theia. Respire doucement et suis-moi.' },
+  { id: 'de', label: 'Deutsch', hint: 'f-de', sample: 'Hallo, ich bin Theia. Atme langsam und folge mir.' },
+  { id: 'pt', label: 'Português', hint: 'f-pt', sample: 'Olá, sou a Theia. Respire devagar e siga-me.' },
+  { id: 'zh', label: '中文', hint: 'f-zh', sample: '你好，我是Theia。慢慢呼吸，跟着我。' },
+  { id: 'hi', label: 'हिन्दी', hint: 'f-hi', sample: 'नमस्ते, मैं थेया हूँ। धीरे-धीरे साँस लें।' },
+  { id: 'ar', label: 'العربية', hint: 'f-ar', sample: 'مرحبًا، أنا ثيا. تنفس ببطء وتابعني.' },
+  { id: 'ru', label: 'Русский', hint: 'f-ru', sample: 'Привет, я Тея. Дышите медленно и следуйте за мной.' },
+  { id: 'ja', label: '日本語', hint: 'f-ja', sample: 'こんにちは、テイアです。ゆっくり呼吸してください。' },
   { id: 'id', label: 'Indonesia', hint: '', sample: 'Halo, saya Theia. Bernapaslah pelan-pelan dan ikuti saya.' },
 ];
 /** Un server vocale tuo (open source, compatibile con OpenAI: Kokoro, Chatterbox, Qwen3-TTS…): legge qualunque testo, in ogni lingua, con una voce a scelta per lingua. */
@@ -293,12 +293,14 @@ function CustomVoice() {
       <Input value={vp.customVoice} onChangeText={(v) => vp.patch({ customVoice: v })} placeholder={tl('Voce generale')} autoCapitalize="none" style={{ marginBottom: 0 }} />
       {VOICE_LANGS.map((l) => (
         <View key={l.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ width: 84, color: th.text, fontWeight: '700', fontSize: 13 }}>{l.label}</Text>
+          <Text style={{ width: 70, color: th.text, fontWeight: '700', fontSize: 12 }}>{l.label}</Text>
           <Input value={vp.voices[l.id] ?? ''} onChangeText={(v) => vp.setVoice(l.id, v)} placeholder={l.hint || tl('voce')} autoCapitalize="none" flex={1} style={{ marginBottom: 0 }} />
+          <Btn small ghost title={tl('Donna')} onPress={() => vp.setVoice(l.id, `f-${l.id}`)} />
+          <Btn small ghost title={tl('Uomo')} onPress={() => vp.setVoice(l.id, `m-${l.id}`)} />
           <Btn small ghost title={tl('Prova')} onPress={() => { setSpeechLang(l.id); void readAloud(l.sample).done.finally(() => setSpeechLang(null)); }} />
         </View>
       ))}
-      <Body small muted>{tl('Il suggerimento nel campo è una voce di Kokoro (8 lingue). Qwen3-TTS e Chatterbox coprono più lingue. Un server vocale va ospitato da te: io non ne attivo e non pago nulla.')}</Body>
+      <Body small muted>{tl('Donna e Uomo scelgono le voci del server vocale open source che trovi in server/tts (Qwen3-TTS e Chatterbox: 11 lingue; per l\'indonesiano uso la voce del telefono). Il server lo ospiti tu: io non ne attivo e non pago nulla.')}</Body>
     </View>
   );
 }
