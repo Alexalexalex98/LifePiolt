@@ -6,6 +6,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { Mascot } from '@/components/mascot/Mascot';
 import { Text } from '@/components/T';
 import { WorkChat } from '@/components/workspace/WorkChat';
+import { MeetingsList } from '@/components/work/Meetings';
 import { WorkPlanner } from '@/components/work/WorkPlanner';
 import { Body, Btn, Empty, Input, Page, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -306,6 +307,7 @@ function PageView({ page, onOpen, onBack }: { page: WsPage; onOpen: (id: string)
       <Section title={tl('Sottopagine')} action={tl('+ Pagina')} onAction={() => setSub('page')} extra={tl('+ Database')} onExtra={() => setSub('db')}>
         {subs.length ? subs.map((s) => <View key={s.id} style={{ marginBottom: 8 }}><Tile p={s} onPress={() => onOpen(s.id)} /></View>) : <Text style={{ color: th.muted, fontSize: 13 }}>{tl('Una pagina può contenere altre pagine, come cartelle.')}</Text>}
       </Section>
+      {page.teamId ? <MeetingsList team={page.teamId} project={page.id} /> : null}
       <Section title={tl('File collegati')}><Files pid={page.id} /></Section>
       <Section title={tl('Commenti')}>
         {page.comments.map((cm) => <View key={cm.id} style={{ backgroundColor: th.card, borderRadius: 14, borderWidth: 1, borderColor: th.border, padding: 10, marginBottom: 8 }}><Text style={{ color: th.text, fontSize: 14 }}>{cm.text}</Text><Text style={{ color: th.muted, fontSize: 11, marginTop: 4 }}>{new Date(cm.ts).toLocaleString()}</Text></View>)}

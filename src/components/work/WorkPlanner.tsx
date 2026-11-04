@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/T';
+import { MeetingsList } from '@/components/work/Meetings';
 import { Body, Btn, Card, ChipBtn, Empty, H, Input, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
@@ -44,6 +45,7 @@ export function WorkPlanner() {
         </View>
       ) : null}
       <Body small muted>{tl('Quello che pianifichi qui compare anche nel tuo Plan con l\'etichetta «Lavoro». Le tue cose private qui non si vedono mai.')}</Body>
+      <MeetingsList team={team.id} />
       <Agenda team={team.id} role={team.role} />
       <Hours team={team.id} />
       <Absences team={team.id} role={team.role} />

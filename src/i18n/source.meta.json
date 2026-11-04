@@ -1,5 +1,5 @@
 {
- "count": 17306,
+ "count": 17358,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -357,6 +357,7 @@
   "src/components/tour/TourOverlay.tsx": 8,
   "src/components/tour/TutorialSettings.tsx": 13,
   "src/components/ui.tsx": 12,
+  "src/components/work/Meetings.tsx": 76,
   "src/components/work/WorkPlanner.tsx": 67,
   "src/components/workspace/WorkChat.tsx": 20,
   "src/data/areas.ts": 8,
@@ -579,6 +580,7 @@
   "src/lib/markets/invest.ts": 6,
   "src/lib/mascot.ts": 63,
   "src/lib/mealAlerts.ts": 8,
+  "src/lib/meetings.ts": 7,
   "src/lib/memo.ts": 4,
   "src/lib/memoSync.ts": 1,
   "src/lib/menu.ts": 11,
@@ -671,6 +673,7 @@
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
+  "src/lib/teamMeetings.ts": 3,
   "src/lib/teamWork.ts": 5,
   "src/lib/teams.ts": 7,
   "src/lib/theia.ts": 107,
@@ -753,5 +756,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2144
+ "withPlaceholders": 2149
 }

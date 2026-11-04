@@ -97,6 +97,7 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (id: string) => 
           <Pressable style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }} onPress={() => { if (smart) { setActOpen(true); return; } const n = toggleTask(task.id, !task.done); if (n) toast(n); }} accessibilityRole="button" accessibilityLabel={smart ? tl('Apri le azioni di {0}', task.t) : task.t}>
           <Body style={{ flex: 1, textDecorationLine: task.done ? 'line-through' : 'none', opacity: task.done ? 0.45 : 1 }}>
             {task.t}
+            {task.team ? <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800' }}>{'  · '}{tl('Lavoro')}</Text> : null}
             {task.urgent ? <Text style={{ color: t.danger, fontSize: 12, fontWeight: '700' }}>{'  · '}{tl('Urgente')}</Text> : null}
             {dueLabel ? <Text style={{ color: task.due && dueLabel === 'in ritardo' ? t.danger : t.muted, fontSize: 12 }}>{'  · '}{dueLabel}</Text> : null}
             {task.recurring && task.recurring !== 'none' ? <Text style={{ color: t.muted, fontSize: 12 }}>{'  · '}{task.recurring === 'daily' ? 'ogni giorno' : 'ogni settimana'}</Text> : null}

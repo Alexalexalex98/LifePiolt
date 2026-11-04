@@ -9,12 +9,12 @@ import { useTeams } from '@/store/teams';
 import { useWork, type Absence } from '@/store/work';
 
 /** Pianificazione del lavoro sul server: orari, impegni condivisi, assenze, occupato/libero. Ogni permesso lo decide il server. */
-type LQ = { select(c?: string): LQ; eq(c: string, v: unknown): LQ; gte(c: string, v: unknown): LQ; upsert(v: unknown): LQ; update(v: unknown): LQ; order(c: string, o?: { ascending: boolean }): LQ; then: PromiseLike<{ data: unknown; error: { message?: string } | null }>['then'] };
-type Db = { from(t: string): LQ; channel(n: string): { on(...a: unknown[]): { subscribe(cb?: (s: string) => void): unknown } }; removeChannel(c: unknown): unknown };
-const db = async () => (await raw()) as unknown as Db;
-const q = async <T,>(p: LQ): Promise<T> => { const r = await (p as unknown as Promise<{ data: unknown; error: { message?: string } | null }>); if (r.error) throw new Error(r.error.message); return r.data as T; };
+export type LQ = { insert(v: unknown): LQ; select(c?: string): LQ; eq(c: string, v: unknown): LQ; gte(c: string, v: unknown): LQ; upsert(v: unknown): LQ; update(v: unknown): LQ; order(c: string, o?: { ascending: boolean }): LQ; then: PromiseLike<{ data: unknown; error: { message?: string } | null }>['then'] };
+export type Db = { from(t: string): LQ; channel(n: string): { on(...a: unknown[]): { subscribe(cb?: (s: string) => void): unknown } }; removeChannel(c: unknown): unknown };
+export const db = async () => (await raw()) as unknown as Db;
+export const q = async <T,>(p: LQ): Promise<T> => { const r = await (p as unknown as Promise<{ data: unknown; error: { message?: string } | null }>); if (r.error) throw new Error(r.error.message); return r.data as T; };
 const msg = (e: unknown) => { const m = e instanceof Error ? e.message : ''; return /risorsa_occupata/.test(m) ? t('La risorsa è già occupata in quell\'orario.') : /invitato_non_nel_team/.test(m) ? t('Puoi invitare solo persone del workspace.') : /non_autorizzato|row-level security/.test(m) ? t('Non hai il permesso per farlo.') : m || t('Operazione non riuscita: riprova.'); };
-const run = async <T,>(f: () => Promise<T>): Promise<Res<T>> => { try { return { ok: true, data: await f() }; } catch (e) { return { ok: false, message: msg(e) }; } };
+export const run = async <T,>(f: () => Promise<T>): Promise<Res<T>> => { try { return { ok: true, data: await f() }; } catch (e) { return { ok: false, message: msg(e) }; } };
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 /* ---------- orari ---------- */
@@ -71,6 +71,8 @@ export async function startWorkSync(): Promise<void> {
     channels = [];
     for (const tm of useTeams.getState().teams) {
       void loadHours(tm.id); await pullWork(tm.id);
+      void import('@/lib/teamMeetings').then((m) => m.pullMeetings(tm.id));
+      channels.push(c.channel(`team-meetings-${tm.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'team_meetings', filter: `team_id=eq.${tm.id}` }, () => { void import('@/lib/teamMeetings').then((m) => m.pullMeetings(tm.id)); }).subscribe());
       channels.push(c.channel(`team-events-${tm.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'team_events', filter: `team_id=eq.${tm.id}` }, () => { void pullWork(tm.id); }).subscribe());
     }
   } catch { /* senza server */ }
