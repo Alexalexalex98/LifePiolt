@@ -27,6 +27,8 @@ import { MessageCard, MessageFooter, MessageImages } from '@/components/theia/Me
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { shouldScrollToEnd } from '@/lib/keyboardInset';
 import { Icon } from '@/lib/icons';
+import { CookBar } from '@/components/recipes/CookBar';
+import { readAloud } from '@/lib/voice/readAloud';
 import { GENERALE, foldersOf, migrateOldChat, searchLog, useAssistant, type AMsg } from '@/store/assistant';
 import { useApp } from '@/store/app';
 import { toast } from '@/store/toast';
@@ -204,6 +206,7 @@ export default function LifeChat() {
                     {item.ext?.attachments?.length ? <MessageAttachments items={item.ext.attachments} me={me} /> : null}
                     {item.ext?.card ? <MessageCard card={item.ext.card} /> : null}
                     {item.text ? (me ? <Text selectable style={{ color: '#111', fontSize: 15, lineHeight: 21 }}>{item.text}</Text> : <RichText text={item.text} color={t.text} accent={t.text} />) : null}
+                    {!me && item.text && item.text.length > 20 ? <Pressable onPress={() => { void readAloud(item.text); }} hitSlop={8} accessibilityRole="button" accessibilityLabel={translateText('Leggi a voce')} style={{ alignSelf: 'flex-start', marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 5 }}><Icon name="volume" size={14} color={t.muted} /><Text style={{ color: t.muted, fontSize: 12, fontWeight: '700' }}>{translateText('Leggi')}</Text></Pressable> : null}
                     {item.ext?.cards?.map((c, ci) => <MessageCard key={`${c.page}-${ci}-${c.title}`} card={c} />)}
                     <MessageFooter ext={item.id === lastAi?.id ? item.ext : item.ext} me={me} onAction={(a) => void act(item.id, a)} />
                     {item.source === 'theia' && <Text style={{ color: me ? '#556' : t.muted, fontSize: 10, marginTop: 4 }}>da {name} sulla schermata</Text>}
@@ -222,6 +225,7 @@ export default function LifeChat() {
             </Pressable>
           ) : null}
           </View>
+          <CookBar onCmd={send} />
           <AiNote compact style={{ paddingHorizontal: 4 }} />
           <Composer openAttach={attach} appLang={appLang} busy={busy} placeholder={section === GENERALE ? 'Scrivi a Theia…' : `Scrivi in ${section}…`} onSend={(m) => void deliver(m)} />
         </>

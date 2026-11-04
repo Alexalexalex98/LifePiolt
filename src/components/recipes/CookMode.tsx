@@ -12,6 +12,8 @@ import { CAT_COLOR, fmtClock, itemName, ovenLeadMin, prettyAmount, scaleGrams, s
 import { addMinutes, secLeft, startTimer, stopTimer, useKitchenTimers } from '@/lib/recipes/timers';
 import { macrosFor, sumMacros, FOOD } from '@/lib/fitness/nutrition';
 import { useFitness } from '@/store/fitness';
+import { readAloud, stopReading } from '@/lib/voice/readAloud';
+import { useVoicePrefs } from '@/store/voicePrefs';
 import { useRecipes } from '@/store/recipes';
 import { toast } from '@/store/toast';
 
@@ -33,6 +35,7 @@ export function CookMode({ r, onClose }: { r: FullRecipe; onClose: () => void })
   const { timers, now } = useKitchenTimers();
   const [ing, setIng] = useState(false); const [fin, setFin] = useState(false); const [stars, setStars] = useState(0); const [diary, setDiary] = useState(true);
   useKeepAwake(!!cooking);
+  const autoRead = useVoicePrefs((s) => s.autoRead);
   const fit = useFitness();
   const servings = cooking?.servings ?? r.servings; const i = Math.min(cooking?.step ?? 0, r.steps.length - 1);
   const step = r.steps[i]!; const last = i === r.steps.length - 1;
@@ -46,6 +49,8 @@ export function CookMode({ r, onClose }: { r: FullRecipe; onClose: () => void })
     for (let k = i; k < r.steps.length; k++) { const s = r.steps[k]!; if (s.oven && k > i) { const lead = ovenLeadMin(s.oven) * 60; return acc <= lead + 90 ? { k, o: s.oven, lead } : null; } acc += stepSeconds(s); }
     return null;
   }, [r, i, step.oven]);
+  useEffect(() => { if (autoRead) void readAloud(step.text); return () => { if (autoRead) stopReading(); }; }, [i, autoRead]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => stopReading(), []);
   const running = step.timer ? mine.find((x) => x.label === step.timer!.label && !x.fired) : undefined;
 
   const finish = () => {
@@ -94,6 +99,10 @@ export function CookMode({ r, onClose }: { r: FullRecipe; onClose: () => void })
             </View>
           ) : null}
           <Text style={{ color: th.text, fontSize: 27, lineHeight: 38, fontWeight: '600' }}>{step.text}</Text>
+          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+            <Btn small ghost icon="volume" title={tl('Leggi il passaggio')} onPress={() => { void readAloud(step.text); }} />
+            <Btn small ghost title={autoRead ? tl('Lettura automatica: sì') : tl('Lettura automatica: no')} onPress={() => useVoicePrefs.getState().patch({ autoRead: !autoRead })} />
+          </View>
           {step.oven ? (
             <View style={{ backgroundColor: th.card, borderRadius: 18, borderWidth: 1, borderColor: th.border, padding: 14, gap: 4 }}>
               <Text style={{ color: th.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 }}>{tl('Forno')}</Text>

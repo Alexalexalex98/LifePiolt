@@ -1,9 +1,9 @@
 {
- "count": 17176,
+ "count": 17202,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
-  "src/app/(tabs)/ai.tsx": 31,
+  "src/app/(tabs)/ai.tsx": 33,
   "src/app/(tabs)/aiSettings.tsx": 7,
   "src/app/(tabs)/applicantView.tsx": 101,
   "src/app/(tabs)/billDetail.tsx": 100,
@@ -81,7 +81,7 @@
   "src/app/(tabs)/mascot.tsx": 1,
   "src/app/(tabs)/menuPage.tsx": 28,
   "src/app/(tabs)/messagesPage.tsx": 37,
-  "src/app/(tabs)/mindfulness.tsx": 77,
+  "src/app/(tabs)/mindfulness.tsx": 101,
   "src/app/(tabs)/monthPlan.tsx": 73,
   "src/app/(tabs)/mood.tsx": 42,
   "src/app/(tabs)/myClubs.tsx": 13,
@@ -319,7 +319,8 @@
   "src/components/profile/CardFace.tsx": 11,
   "src/components/profile/ProfileParts.tsx": 60,
   "src/components/profile/QaVote.tsx": 11,
-  "src/components/recipes/CookMode.tsx": 27,
+  "src/components/recipes/CookBar.tsx": 9,
+  "src/components/recipes/CookMode.tsx": 30,
   "src/components/recipes/RecipeCard.tsx": 4,
   "src/components/scoreSheet.tsx": 2,
   "src/components/security/BackupSection.tsx": 30,
@@ -690,7 +691,9 @@
   "src/lib/tutorials.ts": 161,
   "src/lib/urgentPin.ts": 3,
   "src/lib/vacationPlan.ts": 7,
+  "src/lib/voice/readAloud.ts": 1,
   "src/lib/voice/recordListen.ts": 1,
+  "src/lib/voice/speak.ts": 2,
   "src/lib/voice/speechEngine.ts": 2,
   "src/lib/voice/voiceText.ts": 1,
   "src/lib/weather.ts": 15,
@@ -748,5 +751,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2131
+ "withPlaceholders": 2132
 }

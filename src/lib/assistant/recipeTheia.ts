@@ -83,7 +83,7 @@ function sayStep(r: FullRecipe, push: RPush) {
 }
 function startCook(r: FullRecipe, servings: number, push: RPush) {
   lastId = r.id; chatCook = true;
-  useRecipes.getState().startCooking({ recipeId: r.id, servings, step: 0, startedAt: Date.now(), checked: [] });
+  useRecipes.getState().startCooking({ recipeId: r.id, servings, step: 0, startedAt: Date.now(), checked: [], chat: true });
   const total = Math.round(estimateTotalSec(r) / 60);
   push(`${t('Perfetto, cuciniamo «{0}» per {1} porzioni. Ci vogliono circa {2} minuti.', r.name, servings, total)}\n\n${t('Ingredienti')}:\n${list(r, servings)}\n\n${t('Ti guido un passaggio alla volta: quando hai finito scrivi «avanti» e ti avvio i timer.')}`, { chips: [t('Avanti'), t('Esci')] });
   sayStep(r, push);

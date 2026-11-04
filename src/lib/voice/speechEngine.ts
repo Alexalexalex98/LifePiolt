@@ -1,9 +1,8 @@
 import { localeFor } from '@/lib/speech';
-import { useApp } from '@/store/app';
 import { useVoicePrefs } from '@/store/voicePrefs';
 import { createLocalSpeech, localSpeechAvailable } from './localSpeech';
 import { toast } from '@/store/toast';
-import { createSpeechStream, type SpeechStream } from './speak';
+import { createSpeechStream, speechLang, type SpeechStream } from './speak';
 
 /** Gemini non risponde (es. quota Google esaurita): per un po' si usa subito la voce del telefono. */
 let geminiDownUntil = 0;
@@ -15,7 +14,7 @@ export const geminiIsDown = (): boolean => Date.now() < geminiDownUntil;
  */
 export function makeSpeechStream(onPos: (chunk: number, frac: number) => void, opts: { style?: string; recording?: boolean; /** nessuna voce disponibile (né Gemini né telefono) */ onUnavailable?: (why: string) => void } = {}): SpeechStream {
   const engine = useVoicePrefs.getState().engine;
-  const local = () => createLocalSpeech(localeFor(useApp.getState().language), onPos);
+  const local = () => createLocalSpeech(localeFor(speechLang()), onPos);
   if (engine === 'device' && localSpeechAvailable()) { const s = local(); if (s) return s; }
   /* Gemini con ripiego: se il primo pezzo fallisce, i pezzi rimasti passano alla voce del telefono */
   type Item = { text?: string; ms?: number };

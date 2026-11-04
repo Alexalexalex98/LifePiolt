@@ -23,6 +23,8 @@ import { useHealth } from '@/store/health';
 import { useMindSpace } from '@/store/mindSpace';
 import { useVoicePrefs } from '@/store/voicePrefs';
 import { deviceVoiceAvailable } from '@/lib/voice/speechEngine';
+import { readAloud } from '@/lib/voice/readAloud';
+import { setSpeechLang } from '@/lib/voice/speak';
 import { shareDiary } from '@/lib/wellbeing/diaryRun';
 import { toast } from '@/store/toast';
 
@@ -167,9 +169,11 @@ export default function Mindfulness() {
             <Body small muted style={{ marginBottom: 8 }}>{tl('Con quale voce ti leggo gli esercizi? La voce di Theia è registrata dentro l\'app: funziona anche senza internet. Quella del telefono è più semplice.')}</Body>
             <Row gap={8} style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
               <Pill label={tl('Voce del telefono (gratis)')} on={engine === 'device'} onPress={() => setEngine('device')} />
-              <Pill label={tl('Voce di Theia (registrata)')} on={engine === 'gemini'} onPress={() => setEngine('gemini')} />
+              <Pill label={tl('Voce di Theia (Google)')} on={engine === 'gemini'} onPress={() => setEngine('gemini')} />
+              <Pill label={tl('Il mio server vocale')} on={engine === 'custom'} onPress={() => setEngine('custom')} />
             </Row>
             {engine === 'device' && !deviceVoiceAvailable() ? <Body small muted style={{ marginTop: 8 }}>{tl('La voce del telefono non è ancora installata in questa versione: uso la voce di Theia.')}</Body> : null}
+            {engine === 'custom' ? <CustomVoice /> : null}
           </Card>
           <Card onPress={() => go('diary')}>
             <Row gap={12}><Icon name="note" size={26} color={th.accent} /><View style={{ flex: 1 }}><H>{tl('Il tuo diario')}</H><Body small muted>{tl('Una pagina al giorno: scrivi o parla. Resta tra te e il diario; Theia lo legge solo per l\'analisi, se vuoi.')}</Body></View></Row>
@@ -259,6 +263,43 @@ function Library({ exRow }: { exRow: (ex: Exercise, last: boolean) => React.Reac
         {list.map((e, i) => exRow(e, i === list.length - 1))}
       </Card>
     </>
+  );
+}
+
+const VOICE_LANGS: { id: string; label: string; hint: string; sample: string }[] = [
+  { id: 'it', label: 'Italiano', hint: 'if_sara', sample: 'Ciao, sono Theia. Respira piano e seguimi.' },
+  { id: 'en', label: 'English', hint: 'af_heart', sample: 'Hi, I am Theia. Breathe slowly and follow me.' },
+  { id: 'es', label: 'Español', hint: 'ef_dora', sample: 'Hola, soy Theia. Respira despacio y sígueme.' },
+  { id: 'fr', label: 'Français', hint: 'ff_siwis', sample: 'Bonjour, je suis Theia. Respire doucement et suis-moi.' },
+  { id: 'de', label: 'Deutsch', hint: '', sample: 'Hallo, ich bin Theia. Atme langsam und folge mir.' },
+  { id: 'pt', label: 'Português', hint: 'pf_dora', sample: 'Olá, sou a Theia. Respire devagar e siga-me.' },
+  { id: 'zh', label: '中文', hint: 'zf_xiaobei', sample: '你好，我是Theia。慢慢呼吸，跟着我。' },
+  { id: 'hi', label: 'हिन्दी', hint: 'hf_alpha', sample: 'नमस्ते, मैं थेया हूँ। धीरे-धीरे साँस लें।' },
+  { id: 'ar', label: 'العربية', hint: '', sample: 'مرحبًا، أنا ثيا. تنفس ببطء وتابعني.' },
+  { id: 'ru', label: 'Русский', hint: '', sample: 'Привет, я Тея. Дышите медленно и следуйте за мной.' },
+  { id: 'ja', label: '日本語', hint: 'jf_alpha', sample: 'こんにちは、テイアです。ゆっくり呼吸してください。' },
+  { id: 'id', label: 'Indonesia', hint: '', sample: 'Halo, saya Theia. Bernapaslah pelan-pelan dan ikuti saya.' },
+];
+/** Un server vocale tuo (open source, compatibile con OpenAI: Kokoro, Chatterbox, Qwen3-TTS…): legge qualunque testo, in ogni lingua, con una voce a scelta per lingua. */
+function CustomVoice() {
+  const vp = useVoicePrefs();
+  const th = useTheme();
+  return (
+    <View style={{ gap: 8, marginTop: 10 }}>
+      <Body small muted>{tl('Indirizzo del tuo server vocale (che risponde a /v1/audio/speech) e, se serve, il modello e la chiave. La voce si sceglie per ogni lingua: per le lingue lasciate vuote uso la voce generale.')}</Body>
+      <Input value={vp.customUrl} onChangeText={(v) => vp.patch({ customUrl: v })} placeholder="https://il-tuo-server" autoCapitalize="none" style={{ marginBottom: 0 }} />
+      <Input value={vp.customModel} onChangeText={(v) => vp.patch({ customModel: v })} placeholder={tl('Modello (opzionale)')} autoCapitalize="none" style={{ marginBottom: 0 }} />
+      <Input value={vp.customKey} onChangeText={(v) => vp.patch({ customKey: v })} placeholder={tl('Chiave (opzionale)')} autoCapitalize="none" secureTextEntry style={{ marginBottom: 0 }} />
+      <Input value={vp.customVoice} onChangeText={(v) => vp.patch({ customVoice: v })} placeholder={tl('Voce generale')} autoCapitalize="none" style={{ marginBottom: 0 }} />
+      {VOICE_LANGS.map((l) => (
+        <View key={l.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ width: 84, color: th.text, fontWeight: '700', fontSize: 13 }}>{l.label}</Text>
+          <Input value={vp.voices[l.id] ?? ''} onChangeText={(v) => vp.setVoice(l.id, v)} placeholder={l.hint || tl('voce')} autoCapitalize="none" flex={1} style={{ marginBottom: 0 }} />
+          <Btn small ghost title={tl('Prova')} onPress={() => { setSpeechLang(l.id); void readAloud(l.sample).done.finally(() => setSpeechLang(null)); }} />
+        </View>
+      ))}
+      <Body small muted>{tl('Il suggerimento nel campo è una voce di Kokoro (8 lingue). Qwen3-TTS e Chatterbox coprono più lingue. Un server vocale va ospitato da te: io non ne attivo e non pago nulla.')}</Body>
+    </View>
   );
 }
 

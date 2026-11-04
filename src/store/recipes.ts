@@ -5,7 +5,7 @@ import type { Diet } from '@/lib/recipes/book';
 import { persisted } from './persist';
 
 export type KTimer = { id: string; recipeId?: string; label: string; sec: number; endAt: number; fired?: boolean };
-export type Cooking = { recipeId: string; servings: number; step: number; startedAt: number; checked: string[] };
+export type Cooking = { recipeId: string; servings: number; step: number; startedAt: number; checked: string[]; /** guidata dalla chat di Theia: mostra i pulsanti sopra il campo di scrittura */ chat?: boolean };
 type State = {
   favs: string[];
   notes: Record<string, string>;

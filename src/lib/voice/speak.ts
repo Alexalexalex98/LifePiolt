@@ -5,6 +5,8 @@ import { Platform } from 'react-native';
 
 import { aiTts } from '@/lib/aiServer';
 import { bundledClip } from './bundled';
+import { useApp } from '@/store/app';
+import { useVoicePrefs } from '@/store/voicePrefs';
 import { bytesToBase64 } from '@/lib/readUri';
 import { base64ToBytes, pcmRate, pcmToWav } from './voiceText';
 
@@ -64,10 +66,16 @@ function trimCache(dir: Directory) {
     files.sort((a, b) => (a.modificationTime ?? 0) - (b.modificationTime ?? 0)).slice(0, files.length - MAX_CACHE).forEach((f) => { try { f.delete(); } catch { /* ignora */ } });
   } catch { /* senza pulizia */ }
 }
+/** La voce per la lingua attuale dell'app (inglese, spagnolo…): quella scelta per quella lingua, altrimenti quella generale. */
+let langOverride: string | null = null;
+/** Per la «Prova» di una voce: legge con la lingua indicata senza cambiare la lingua dell'app. */
+export const setSpeechLang = (l: string | null) => { langOverride = l; };
+export const speechLang = () => langOverride ?? useApp.getState().language;
+function voiceFor(vp: ReturnType<typeof useVoicePrefs.getState>): string { return vp.voices[speechLang()] || vp.customVoice || 'alloy'; }
 async function prepare(text: string, style?: string): Promise<Prepared> {
   const clip = bundledClip(text);
   if (clip != null) return { uri: clip, file: null, keep: true };
-  const key = checksum(`${style ?? ''}|${text}`).replace(/[^a-z0-9]/gi, '');
+  const vp0 = useVoicePrefs.getState(); const key = checksum(`${vp0.engine}|${vp0.engine === 'custom' ? voiceFor(vp0) + vp0.customModel : ''}|${useApp.getState().language}|${style ?? ''}|${text}`).replace(/[^a-z0-9]/gi, '');
   if (Platform.OS !== 'web') {
     const dir = cacheDir();
     if (dir) {
@@ -75,8 +83,16 @@ async function prepare(text: string, style?: string): Promise<Prepared> {
       try { if (hit.exists && hit.size > 1000) return { uri: hit.uri, file: hit, keep: true }; } catch { /* si rifà */ }
     }
   }
-  const r = await aiTts(text, style);
-  const wav = pcmToWav(base64ToBytes(r.audio), pcmRate(r.mime));
+  const vp = useVoicePrefs.getState();
+  let wav: Uint8Array;
+  if (vp.engine === 'custom' && vp.customUrl.trim()) {
+    const res = await fetch(`${vp.customUrl.trim().replace(/\/+$/, '')}/v1/audio/speech`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(vp.customKey ? { Authorization: `Bearer ${vp.customKey}` } : {}) }, body: JSON.stringify({ model: vp.customModel || 'tts-1', voice: voiceFor(vp), language: speechLang(), input: text, response_format: 'wav' }) });
+    if (!res.ok) throw new Error(`voce del server: errore ${res.status}`);
+    wav = new Uint8Array(await res.arrayBuffer());
+  } else {
+    const r = await aiTts(text, style);
+    wav = pcmToWav(base64ToBytes(r.audio), pcmRate(r.mime));
+  }
   if (Platform.OS === 'web') return { uri: `data:audio/wav;base64,${bytesToBase64(wav)}`, file: null };
   const dir = cacheDir();
   const file = dir ? new File(dir, `${key}.wav`) : new File(Paths.cache, `theia-voice-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}.wav`);
