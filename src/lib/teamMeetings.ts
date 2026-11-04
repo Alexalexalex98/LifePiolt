@@ -1,12 +1,13 @@
 import { t } from '@/i18n/core';
 import { supa } from '@/lib/accountApi';
 import { buildNotes, type CallNotes } from '@/lib/callNotes';
-import { buildMinutes, nextOccurrence, type Line, type Meeting } from '@/lib/meetings';
+import { actionsOf, buildMinutes, nextOccurrence, type Line, type Meeting } from '@/lib/meetings';
 import { listMembers, myUserId, type Res } from '@/lib/teams';
 import { db, pushWorkEvent, q, removeWorkEvent, run } from '@/lib/teamWork';
 import { WORK_COLOR_ID, newEventId } from '@/lib/workPlan';
 import { useLife } from '@/store/life';
 import { useMeetings } from '@/store/meetings';
+import { useWorkspace } from '@/store/workspace';
 
 /** Riunioni di lavoro sul server: ogni persona invitata vede la riunione, chi sta trascrivendo e le righe che arrivano dagli altri. */
 const st = () => useMeetings.getState();
@@ -26,7 +27,7 @@ export const createMeeting = (m: NewMeeting) => run(async () => {
   const id = newEventId(); const wid = newEventId();
   const row = { id, team_id: m.team, project: m.project ?? null, title: m.title.trim(), day: m.day, time: m.time, dur: m.dur, agenda: m.agenda ?? '', attendees: m.attendees.filter((x) => x !== me), created_by: me, recurrence: m.recurrence ?? 'none', event_id: wid };
   await q((await db()).from('team_meetings').insert(row));
-  const ev = { time: m.time, title: m.title.trim(), dur: m.dur, color: WORK_COLOR_ID, team: m.team, wid, with: row.attendees, by: me };
+  const ev = { time: m.time, title: m.title.trim(), dur: m.dur, color: WORK_COLOR_ID, team: m.team, wid, with: row.attendees, by: me, kind: 'meeting' as const, ...(m.project ? { proj: m.project } : {}) };
   useLife.getState().addEvent(m.day, ev);
   await pushWorkEvent(m.day, ev);
   const full: Meeting = { ...row, status: 'scheduled', rec_by: null, rec_users: [], notes: null, minutes: null } as Meeting;
@@ -43,7 +44,7 @@ export const updateMeeting = (id: string, patch: Partial<Pick<Meeting, 'title' |
     const me = await myUserId();
     const evs = useLife.getState().events;
     for (const [d, l] of Object.entries(evs)) { const i = l.findIndex((e) => e.wid === cur.event_id); if (i >= 0) useLife.getState().delEvent(d, i); }
-    const ev = { time: next.time, title: next.title, dur: next.dur, color: WORK_COLOR_ID, team: next.team_id, wid: cur.event_id, with: next.attendees, by: me ?? undefined };
+    const ev = { time: next.time, title: next.title, dur: next.dur, color: WORK_COLOR_ID, team: next.team_id, wid: cur.event_id, with: next.attendees, by: me ?? undefined, kind: 'meeting' as const, ...(next.project ? { proj: next.project } : {}) };
     useLife.getState().addEvent(next.day, ev);
     await pushWorkEvent(next.day, ev);
   }
@@ -59,8 +60,49 @@ export const removeMeeting = (id: string) => run(async () => {
   }
 });
 
-/** Accende o spegne la tua trascrizione. Gli altri non devono accettare: vedono il pulsante illuminato e chi la usa. */
-export const setRec = (id: string, on: boolean) => run(async () => { const m = await (await supa()).rpc<Meeting>('team_meeting_rec', { p_id: id, p_on: on }); if (m) put(m); return m; });
+/** Entra nella riunione: registrazione e trascrizione partono da sole (lo dice la policy). */
+export const joinMeeting = (id: string) => run(async () => { const m = await (await supa()).rpc<Meeting>('team_meeting_join', { p_id: id }); if (m) put(m); return m; });
+/** Esce. Se eri l'ultimo la riunione si chiude: appunti, verbale e cose da fare si salvano da soli nel progetto. */
+export const leaveMeeting = (id: string) => run(async () => {
+  const m = await (await supa()).rpc<Meeting>('team_meeting_leave', { p_id: id }); if (!m) return null;
+  put(m);
+  if (m.status === 'ended' && !m.notes) {
+    const lines = await loadLines(id);
+    const r = await finishMeeting(m, lines);
+    if (r.ok) { const full = st().items.find((x) => x.id === id); if (full) saveToWorkspace(full); }
+  }
+  return m;
+});
+
+/** Nome da mostrare nel Plan: «Meeting · nome del progetto». */
+export const meetingLabel = (proj?: string): string => { const n = proj ? useWorkspace.getState().pages.find((p) => p.id === proj)?.title : ''; return n ? `${t('Meeting')} · ${n}` : t('Meeting'); };
+
+/** Salva la riunione finita nel workspace: verbale in una pagina «Meeting · progetto» e cose da fare nel database condiviso. */
+export function saveToWorkspace(m: Meeting): void {
+  const ws = useWorkspace.getState();
+  const page = ws.addPage(m.project ?? null, 'page', `${meetingLabel(m.project ?? undefined)} · ${m.day}`, m.team_id);
+  const body = (m.minutes ?? '').split('\n');
+  const first = useWorkspace.getState().pages.find((p) => p.id === page)?.blocks[0];
+  if (first) ws.patchBlock(page, first.id, { text: body[0] ?? '' });
+  body.slice(1).forEach((l) => ws.addBlock(page, 'p', l));
+  const acts = m.notes?.actions ?? [];
+  if (!acts.length) return;
+  const nm = t('Cose da fare'); const owner = t('Responsabile'); const due = t('Scadenza');
+  let dbId = useWorkspace.getState().pages.find((p) => p.teamId === m.team_id && p.kind === 'db' && p.title === nm)?.id;
+  if (!dbId) { dbId = ws.addPage(null, 'db', nm, m.team_id); ws.addCol(dbId, owner, 'text'); ws.addCol(dbId, due, 'date'); }
+  const cols = useWorkspace.getState().pages.find((p) => p.id === dbId)?.cols ?? [];
+  const oc = cols.find((c) => c.name === owner)?.id; const dc = cols.find((c) => c.name === due)?.id;
+  for (const a of actionsOf(m.notes, '', new Date())) {
+    const rid = ws.addRow(dbId); ws.patchRow(dbId, rid, cols[0]!.id, a.text);
+    if (oc) ws.patchRow(dbId, rid, oc, a.owner); if (dc && a.due) ws.patchRow(dbId, rid, dc, a.due);
+  }
+}
+/** Le tue cose da fare della riunione nel tuo Plan (con l'etichetta «Lavoro»). Una sola volta per riunione. */
+export function addMyActions(m: Meeting, myName: string): number {
+  let n = 0;
+  for (const a of actionsOf(m.notes, myName, new Date())) if (a.mine) { useLife.getState().addTask({ t: a.text, team: m.team_id, ...(a.due ? { due: a.due } : {}) }); n++; }
+  return n;
+}
 
 export const sendLine = (id: string, at: number, text: string) => run(async () => { await (await supa()).rpc('team_meeting_line', { p_id: id, p_at: Math.max(0, Math.round(at)), p_text: text }); });
 

@@ -31,3 +31,11 @@ test('un impegno di un altro team resta com\'è', () => {
   const local = { '2026-11-09': [{ time: '10:00', title: 'Altro', team: 'T2', wid: 'z' }] };
   assert.equal(mergeWork(local, [], 'T1', 'me')['2026-11-09'].length, 1);
 });
+
+test('le riunioni portano progetto e tipo avanti e indietro', () => {
+  const w = toWireEvent('2026-11-09', { time: '10:00', title: 'Avvio', team: 'T1', kind: 'meeting', proj: 'P1' }, 'me');
+  assert.equal(w.kind, 'meeting'); assert.equal(w.project, 'P1');
+  const back = fromWireEvent({ ...w, created_by: 'u2' }, 'me');
+  assert.equal(back.ev.kind, 'meeting'); assert.equal(back.ev.proj, 'P1');
+  assert.equal(fromWireEvent({ ...w, kind: 'event', project: null, created_by: 'u2' }, 'me').ev.kind, undefined);
+});

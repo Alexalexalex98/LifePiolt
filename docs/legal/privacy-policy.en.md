@@ -50,6 +50,10 @@ Theia reads everything in the app on your phone to help you. When it answers wit
 
 - **Signals on the phone.** The game may notice, only on the phone and without sending anything, changes in your data (for example less sleep, less activity, very harsh phrases written to Theia) to gently suggest an activity. They are hints, not diagnoses; we do not analyse anyone's face, voice or posture. You can turn it off at any time from Theia's page.
 
+
+### Recorded and transcribed work meetings
+Meetings in a work workspace are **recorded and transcribed by Theia automatically** for everyone who joins: nothing needs to be switched on and each person's separate consent is not required, because joining the meeting means accepting this rule, which is shown before joining. Each phone transcribes the voice of its user and the lines are merged into one shared transcript; **no audio is stored**, only text. Transcript, notes and minutes are visible to invited people and workspace administrators. The call runs on the free Jitsi Meet service (meet.jit.si), which handles its audio and video under its own privacy notice. The employer using the workspace must inform the people involved and comply with employment and data-protection rules (Italy: GDPR and Workers' Statute; Switzerland: FADP).
+
 ## 6. Who we share data with (recipients)
 - **AI service**: Cloudflare (Workers AI, open models), through our server, only with your consent and for the single request.
 - **Our server and hosting provider** ([name, e.g. Cloudflare]) to forward AI requests and, if you turn on synchronization or LifeNetwork, to deliver data.

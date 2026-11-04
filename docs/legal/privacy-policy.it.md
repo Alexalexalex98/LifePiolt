@@ -48,6 +48,10 @@ Theia legge sul telefono tutto quello che c'è nell'app per aiutarti. Quando ris
 - **L'AI può sbagliare.** Verifica sempre cifre e informazioni. Le indicazioni su salute e finanze sono generali e non sostituiscono un medico, un dietista o un consulente.
 - Non usiamo i tuoi dati per addestrare modelli. [Da confermare con il contratto con il fornitore AI.]
 
+### Riunioni di lavoro registrate e trascritte
+Le riunioni di un workspace di lavoro sono **registrate e trascritte da Theia in automatico** per chi entra: non serve attivare nulla e non occorre il consenso di ogni singola persona, perché entrare nella riunione significa accettare questa regola, che viene ricordata prima di entrare. Ogni telefono trascrive la voce di chi lo usa e le frasi si uniscono nella trascrizione condivisa; **non viene salvato nessun audio**, si tiene solo il testo. Trascrizione, appunti e verbale sono visibili alle persone invitate e agli amministratori del workspace. La chiamata passa dal servizio gratuito Jitsi Meet (meet.jit.si), che ne tratta l'audio e il video secondo la propria informativa. Il datore di lavoro che usa il workspace deve informare le persone coinvolte e rispettare le norme sul lavoro e sulla protezione dei dati (Italia: GDPR e Statuto dei lavoratori; Svizzera: LPD).
+
+
 - **Segnali sul telefono.** Il gioco può accorgersi, solo sul telefono e senza inviare nulla, di cambiamenti nei tuoi dati (per esempio meno sonno, meno attività, frasi molto dure scritte a Theia) per proporti con garbo un'attività. Sono indizi e non diagnosi; non analizziamo volto, voce o postura di nessuno. Puoi spegnerlo in ogni momento dalla pagina di Theia.
 
 ## 6. Con chi condividiamo i dati (destinatari)

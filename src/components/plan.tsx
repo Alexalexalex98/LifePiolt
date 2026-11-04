@@ -20,6 +20,7 @@ import { scheduleOf, useWork } from '@/store/work';
 import { WORK_COLOR_ID, matchesFilter, newEventId } from '@/lib/workPlan';
 import { evRange, fitsInHours, nextFree } from '@/lib/workHours';
 import { pushWorkEvent, removeWorkEvent } from '@/lib/teamWork';
+import { meetingLabel } from '@/lib/teamMeetings';
 import { occursOn, timeStr } from '@/lib/memo';
 import { toast } from '@/store/toast';
 import { go } from '@/lib/nav';
@@ -404,7 +405,7 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
                 <Text style={{ color: col, fontSize: 14, fontWeight: '800', letterSpacing: 0.2 }}>{e.time}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Row gap={6} style={{ justifyContent: 'flex-start' }}><Body bold style={{ flexShrink: 1 }}>{e.title}</Body>{e.team ? <View style={{ backgroundColor: col + '33', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}><Text style={{ color: col, fontSize: 11, fontWeight: '800' }}>{tl('Lavoro')}</Text></View> : null}</Row>
+                <Row gap={6} style={{ justifyContent: 'flex-start' }}><Body bold style={{ flexShrink: 1 }}>{e.title}</Body>{e.team ? <View style={{ backgroundColor: col + '33', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}><Text style={{ color: col, fontSize: 11, fontWeight: '800' }}>{e.kind === 'meeting' ? meetingLabel(e.proj) : tl('Lavoro')}</Text></View> : null}</Row>
                 {e.place ? <Row gap={5} style={{ justifyContent: 'flex-start', marginTop: 2 }}><Icon name="pin" size={13} color={t.muted} stroke={2} /><Body small muted style={{ flex: 1 }}>{e.place}</Body></Row> : null}
               </View>
               {e.important ? <Icon name="star" size={16} color="#ffb84f" fill="#ffb84f" /> : null}

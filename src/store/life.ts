@@ -25,7 +25,7 @@ export function photoSource(f: DriveFile): string {
 /** dur = durata in minuti (se manca si assumono 60); ref = id dell'iscrizione/prenotazione che l'ha creato. */
 /** color = id della tavolozza (lib/calendarColors.ts), se manca vale il colore di default per urgenza/tipo. */
 /** team/wid/with/by (solo impegni di LAVORO): id del workspace, id sul server, persone invitate, chi l'ha creato. Senza `team` l'impegno è personale. */
-export type CalEvent = { time: string; title: string; important?: boolean; place?: string; reminder?: boolean; dur?: number; ref?: string; color?: string; team?: string; wid?: string; with?: string[]; by?: string };
+export type CalEvent = { time: string; title: string; important?: boolean; place?: string; reminder?: boolean; dur?: number; ref?: string; color?: string; team?: string; wid?: string; with?: string[]; by?: string; /** riunione di lavoro: in Plan si chiama «Meeting · nome del progetto», non «Lavoro» */ kind?: 'meeting'; /** id del progetto della riunione */ proj?: string };
 /** start/end (YYYY-MM-DD, opzionali): se presenti la vacanza compare come fascia nel calendario. */
 export type Vacation = { id: string; dest: string; month: string; hotel: string; price: number; days: number; flight: number; start?: string; end?: string };
 /** Elemento eliminato di recente (cestino di obiettivi e task, 30 giorni). */

@@ -2,24 +2,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 
 import { useCallTranscription } from '@/components/call/useTheiaNotes';
+import { MeetingCall } from '@/components/work/MeetingCall';
 import { Text } from '@/components/T';
 import { Body, Btn, Card, Empty, H, Input, Pill, Row, Sheet } from '@/components/ui';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
-import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { alertT } from '@/lib/alert';
 import { buildNotes } from '@/lib/callNotes';
-import { startCall } from '@/lib/callActions';
 import { actionsOf, type Line, type Meeting } from '@/lib/meetings';
-import { createMeeting, finishMeeting, loadLines, pullMeetings, removeMeeting, sendLine, setRec, watchMeeting } from '@/lib/teamMeetings';
+import { addMyActions, createMeeting, finishMeeting, joinMeeting, leaveMeeting, loadLines, meetingLabel, pullMeetings, removeMeeting, saveToWorkspace, sendLine, watchMeeting } from '@/lib/teamMeetings';
 import { listMembers, myUserId, type Member } from '@/lib/teams';
 import { today } from '@/lib/teamWork';
 import { useApp } from '@/store/app';
-import { useChat } from '@/store/chat';
-import { useLife } from '@/store/life';
 import { useMeetings } from '@/store/meetings';
 import { toast } from '@/store/toast';
-import { useWorkspace } from '@/store/workspace';
 
 const okDay = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(new Date(d + 'T12:00:00').getTime());
 const label = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
@@ -106,19 +102,19 @@ function NewMeeting({ team, project, open, onClose, onCreated }: { team: string;
 
 /* ---------- la riunione: durante e dopo ---------- */
 export function MeetingRoom({ id, onClose }: { id: string; onClose: () => void }) {
-  const th = useTheme();
   const m = useMeetings((s) => s.items.find((x) => x.id === id));
   const lines = useMeetings((s) => s.lines[id]) ?? [];
   const myName = useApp((s) => s.account.name);
   const lang = useApp((s) => s.language);
   const { members, me, nameOf } = useMembers(m?.team_id ?? '');
   const [who, setWho] = useState(false);
+  const [call, setCall] = useState(false);
   const [busy, setBusy] = useState(false);
-  const iRec = !!me && !!m?.rec_users.includes(me);
+  const inside = !!me && !!m?.rec_users.includes(me);
   useEffect(() => { void loadLines(id); let off: () => void = () => undefined; let dead = false; void watchMeeting(id).then((f) => { if (dead) f(); else off = f; }); return () => { dead = true; off(); }; }, [id]);
 
-  // la MIA voce, sul MIO telefono: ogni frase finita va al server e arriva agli altri
-  useCallTranscription({ enabled: iRec && m?.status === 'live', speaker: myName, lang, startedAt: m ? startMs(m) : Date.now(), onLine: (l) => { void sendLine(id, l.at, l.text); } });
+  // la registrazione parte da sola per chi è dentro: la MIA voce, sul MIO telefono, finisce nella trascrizione di tutti
+  useCallTranscription({ enabled: inside && m?.status === 'live', speaker: myName, lang, startedAt: m ? startMs(m) : Date.now(), onLine: (l) => { void sendLine(id, l.at, l.text); } });
 
   if (!m) return <Sheet visible title="Riunione" onClose={onClose}><Empty text="Riunione non trovata." /></Sheet>;
   const myRole = members.find((x) => x.user_id === me)?.role;
@@ -126,16 +122,12 @@ export function MeetingRoom({ id, onClose }: { id: string; onClose: () => void }
   const people = [m.created_by, ...m.attendees];
   const live = buildNotes(lines.map((l) => ({ at: l.at, speaker: nameOf(l.speaker), text: l.text })));
 
-  const startRec = () => alertT('Theia trascrive', 'Theia scrive gli appunti della riunione. Trascrive solo la tua voce, sul tuo telefono: non viene salvato nessun audio. Tutti vedono che la trascrizione è attiva e chi la usa. Puoi smettere quando vuoi.', [
-    { text: 'Non ora', style: 'cancel' }, { text: 'Attiva', onPress: () => { void setRec(id, true).then((r) => { if (!r.ok) toast(r.message); }); } },
+  const enter = () => alertT('Riunione registrata', 'Entrando, la riunione viene registrata e trascritta da Theia per scrivere appunti e verbale, come previsto dalle regole d\'uso. Non viene salvato nessun audio: si tiene solo il testo. Puoi uscire quando vuoi.', [
+    { text: 'Annulla', style: 'cancel' },
+    { text: 'Entra', onPress: () => { void joinMeeting(id).then((r) => { if (!r.ok) { toast(r.message); return; } setCall(true); }); } },
   ]);
-  const stopRec = () => { void setRec(id, false).then((r) => { if (!r.ok) toast(r.message); }); };
-  const openCall = () => {
-    const names = people.filter((u) => u !== me).map(nameOf);
-    const chat = useChat.getState().createGroup(m.title, names, myName, tl('Riunione di lavoro'));
-    startCall(chat, myName, false);
-  };
-  const end = () => alertT('Terminare la riunione?', 'Theia prepara appunti e verbale e li salva per tutti.', [{ text: 'Annulla', style: 'cancel' }, { text: 'Termina', onPress: () => { setBusy(true); void finishMeeting(m, lines).then((r) => { setBusy(false); toast(r.ok ? 'Appunti e verbale pronti' : r.message); }); } }]);
+  const leave = () => { setCall(false); setBusy(true); void leaveMeeting(id).then((r) => { setBusy(false); if (!r.ok) { toast(r.message); return; } toast(r.data?.status === 'ended' ? 'Eri l\'ultimo: riunione chiusa, verbale e cose da fare salvati nel progetto' : 'Sei uscito dalla riunione'); }); };
+  const endAll = () => alertT('Chiudere la riunione per tutti?', 'Theia prepara appunti e verbale e li salva nel progetto.', [{ text: 'Annulla', style: 'cancel' }, { text: 'Chiudi', onPress: () => { setBusy(true); void finishMeeting(m, lines).then((r) => { setBusy(false); if (r.ok) { const full = useMeetings.getState().items.find((x) => x.id === id); if (full) saveToWorkspace(full); toast('Riunione chiusa: verbale e cose da fare salvati'); } else toast(r.message); }); } }]);
   const del = () => alertT('Eliminare la riunione?', m.title, [{ text: 'Annulla', style: 'cancel' }, { text: 'Elimina', style: 'destructive', onPress: () => { void removeMeeting(id).then((r) => { toast(r.ok ? 'Riunione eliminata' : r.message); if (r.ok) onClose(); }); } }]);
 
   return (
@@ -145,21 +137,21 @@ export function MeetingRoom({ id, onClose }: { id: string; onClose: () => void }
 
       {m.status !== 'ended' ? (
         <>
-          <RecButton on={m.rec_users.length > 0} n={m.rec_users.length} onPress={() => setWho(true)} />
-          <Row style={{ marginTop: 10 }}>
-            <Btn icon="mic" title={iRec ? 'Smetti di trascrivere la mia voce' : 'Trascrivi con Theia'} ghost={iRec} onPress={iRec ? stopRec : startRec} />
-          </Row>
-          <Btn style={{ marginTop: 8 }} ghost icon="phone" title="Apri la chiamata" onPress={openCall} />
+          <RecButton on={m.status === 'live'} n={m.rec_users.length} onPress={() => setWho(true)} />
+          {inside ? (
+            <Row style={{ marginTop: 10 }}><Btn icon="phone" title="Torna alla chiamata" onPress={() => setCall(true)} /><Btn ghost danger title={busy ? 'Un momento…' : 'Esci'} disabled={busy} onPress={leave} /></Row>
+          ) : <Btn style={{ marginTop: 10 }} icon="phone" title={m.status === 'live' ? 'Entra nella riunione' : 'Avvia la riunione'} onPress={enter} />}
           {m.agenda ? <><Body small bold muted style={{ marginTop: 14, marginBottom: 4 }}>{tl('ORDINE DEL GIORNO').toUpperCase()}</Body><Body>{m.agenda}</Body></> : null}
-          {m.status === 'live' ? <LivePanel lines={lines} nameOf={nameOf} notes={live} /> : <Body small muted style={{ marginTop: 14 }}>{tl('Quando qualcuno attiva la trascrizione la riunione risulta in corso per tutti e Theia scrive gli appunti.')}</Body>}
-          {isOwner ? <Row style={{ marginTop: 14 }}><Btn small danger ghost title="Elimina" onPress={del} /><Btn small icon="check" disabled={busy} title={busy ? 'Un momento…' : 'Termina e crea i verbali'} onPress={end} /></Row> : null}
+          {m.status === 'live' ? <LivePanel lines={lines} nameOf={nameOf} notes={live} /> : <Body small muted style={{ marginTop: 14 }}>{tl('Chi entra avvia la riunione: la chiamata, la registrazione e gli appunti di Theia partono da soli. Quando esce l\'ultimo la riunione si chiude e il verbale finisce nel progetto.')}</Body>}
+          {isOwner ? <Row style={{ marginTop: 14 }}><Btn small danger ghost title="Elimina" onPress={del} />{m.status === 'live' ? <Btn small ghost title="Chiudi per tutti" disabled={busy} onPress={endAll} /> : null}</Row> : null}
         </>
-      ) : <Result m={m} nameOf={nameOf} meId={me} members={members} />}
+      ) : <Result m={m} nameOf={nameOf} />}
 
-      <Sheet visible={who} title="Chi trascrive" onClose={() => setWho(false)}>
-        {m.rec_users.length ? m.rec_users.map((u) => <Body key={u} style={{ paddingVertical: 6 }}>{u === me ? tl('{0} (tu)', nameOf(u)) : nameOf(u)}</Body>) : <Empty text="Nessuno sta trascrivendo adesso." />}
-        <Body small muted style={{ marginTop: 10, color: th.muted }}>{tl('Ognuno trascrive solo la propria voce, sul proprio telefono. Non viene salvato nessun audio.')}</Body>
+      <Sheet visible={who} title="In riunione" onClose={() => setWho(false)}>
+        {m.rec_users.length ? m.rec_users.map((u) => <Body key={u} style={{ paddingVertical: 6 }}>{u === me ? tl('{0} (tu)', nameOf(u)) : nameOf(u)}</Body>) : <Empty text="Nessuno è dentro adesso." />}
+        <Body small muted style={{ marginTop: 10 }}>{tl('La riunione è registrata e trascritta da Theia. Ogni telefono trascrive la voce di chi lo usa. Non viene salvato nessun audio.')}</Body>
       </Sheet>
+      {call && inside ? <MeetingCall id={id} title={m.title} name={myName} onHide={() => setCall(false)} onLeave={leave} /> : null}
     </Sheet>
   );
 }
@@ -168,11 +160,11 @@ function RecButton({ on, n, onPress }: { on: boolean; n: number; onPress: () => 
   const reduce = useReduceMotion(); const a = useRef(new Animated.Value(1)).current;
   useEffect(() => { if (!on || reduce) return; const l = Animated.loop(Animated.sequence([Animated.timing(a, { toValue: 0.3, duration: 700, useNativeDriver: true }), Animated.timing(a, { toValue: 1, duration: 700, useNativeDriver: true })])); l.start(); return () => l.stop(); }, [on, reduce, a]);
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={on ? tl('Theia sta trascrivendo. Tocca per vedere chi') : tl('Nessuno sta trascrivendo')} style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: on ? 'rgba(120,20,30,0.92)' : 'rgba(128,128,128,0.15)', borderWidth: 1, borderColor: on ? '#ff5a64' : 'rgba(128,128,128,0.3)' }}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={on ? tl('Riunione registrata e trascritta. Tocca per vedere chi è dentro') : tl('Riunione non ancora iniziata')} style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: on ? 'rgba(120,20,30,0.92)' : 'rgba(128,128,128,0.15)', borderWidth: 1, borderColor: on ? '#ff5a64' : 'rgba(128,128,128,0.3)' }}>
       <Animated.View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: on ? '#ff5a64' : '#8e98a8', opacity: on ? a : 1 }} />
       <View style={{ flex: 1 }}>
-        <Text style={{ color: on ? '#fff' : undefined, fontWeight: '800', fontSize: 14 }}>{on ? tl('Theia sta trascrivendo') : tl('Trascrizione spenta')}</Text>
-        <Text style={{ color: on ? 'rgba(255,255,255,0.85)' : '#8e98a8', fontSize: 12 }}>{on ? tl('{0} persone la usano · tocca per vedere chi', n) : tl('Chiunque può accenderla')}</Text>
+        <Text style={{ color: on ? '#fff' : undefined, fontWeight: '800', fontSize: 14 }}>{on ? tl('Registrata e trascritta da Theia') : tl('Non ancora iniziata')}</Text>
+        <Text style={{ color: on ? 'rgba(255,255,255,0.85)' : '#8e98a8', fontSize: 12 }}>{on ? tl('{0} in riunione · tocca per vedere chi', n) : tl('Parte da sola quando entra qualcuno')}</Text>
       </View>
     </Pressable>
   );
@@ -191,47 +183,23 @@ function LivePanel({ lines, nameOf, notes }: { lines: Line[]; nameOf: (u: string
 }
 
 /* ---------- dopo la riunione ---------- */
-function Result({ m, nameOf, meId, members }: { m: Meeting; nameOf: (u: string) => string; meId: string | null; members: Member[] }) {
+function Result({ m, nameOf }: { m: Meeting; nameOf: (u: string) => string }) {
   const myName = useApp((s) => s.account.name);
   const [done, setDone] = useState(false);
   const acts = useMemo(() => actionsOf(m.notes, myName, new Date()), [m.notes, myName]);
-  void members; void meId;
-  function createAll() {
-    const ws = useWorkspace.getState();
-    // verbale: pagina condivisa dentro il progetto
-    const page = ws.addPage(m.project ?? null, 'page', `${tl('Verbale')} · ${m.title}`, m.team_id);
-    const body = (m.minutes ?? '').split('\n');
-    ws.patchBlock(page, useWorkspace.getState().pages.find((p) => p.id === page)!.blocks[0]!.id, { text: body[0] ?? '' });
-    body.slice(1).forEach((l) => ws.addBlock(page, 'p', l));
-    // cose da fare: nel database condiviso «Cose da fare» del workspace
-    if (acts.length) {
-      let db = useWorkspace.getState().pages.find((p) => p.teamId === m.team_id && p.kind === 'db' && p.title === tl('Cose da fare'));
-      let dbId = db?.id;
-      if (!dbId) { dbId = ws.addPage(null, 'db', tl('Cose da fare'), m.team_id); ws.addCol(dbId, tl('Responsabile'), 'text'); ws.addCol(dbId, tl('Scadenza'), 'date'); db = useWorkspace.getState().pages.find((p) => p.id === dbId)!; }
-      const cols = useWorkspace.getState().pages.find((p) => p.id === dbId)!.cols ?? [];
-      const owner = cols.find((c) => c.name === tl('Responsabile'))?.id; const due = cols.find((c) => c.name === tl('Scadenza'))?.id;
-      for (const a of acts) {
-        const rid = ws.addRow(dbId);
-        ws.patchRow(dbId, rid, cols[0]!.id, a.text);
-        if (owner) ws.patchRow(dbId, rid, owner, a.owner);
-        if (due && a.due) ws.patchRow(dbId, rid, due, a.due);
-      }
-      // le mie nel mio Plan con l'etichetta Lavoro
-      for (const a of acts.filter((x) => x.mine)) useLife.getState().addTask({ t: a.text, team: m.team_id, ...(a.due ? { due: a.due } : {}) });
-    }
-    setDone(true); toast(tl('Fatto: verbale nel progetto, cose da fare nel database e le tue nel Plan'));
-  }
+  const mine = acts.filter((a) => a.mine).length;
   return (
     <View style={{ marginTop: 12 }}>
-      <Body small bold muted>{tl('APPUNTI DI THEIA').toUpperCase()}</Body>
+      <Body small muted>{tl('Riunione finita. Il verbale e le cose da fare sono già nel progetto, nella pagina «{0}».', meetingLabel(m.project ?? undefined))}</Body>
+      <Body small bold muted style={{ marginTop: 12 }}>{tl('APPUNTI DI THEIA').toUpperCase()}</Body>
       {m.notes && (m.notes.decisions.length + m.notes.actions.length + m.notes.questions.length) ? (
         <>
           {m.notes.decisions.map((d, i) => <Body key={'d' + i} small style={{ marginTop: 4 }}>{`${tl('Decisione')}: ${d.text}`}</Body>)}
           {acts.map((a, i) => <Body key={'a' + i} small style={{ marginTop: 4 }}>{`${tl('Da fare')}: ${a.text} · ${a.owner}${a.due ? ` · ${label(a.due)}` : ''}`}</Body>)}
           {m.notes.questions.map((q, i) => <Body key={'q' + i} small style={{ marginTop: 4 }}>{`${tl('Domanda aperta')}: ${q.text}`}</Body>)}
         </>
-      ) : <Body small muted style={{ marginTop: 4 }}>{tl('Nessuna decisione o cosa da fare riconosciute: se non ha trascritto nessuno non ci sono appunti.')}</Body>}
-      <Btn style={{ marginTop: 12 }} icon="check" disabled={done} title={done ? 'Creato' : 'Crea tutto: verbale, cose da fare, Plan'} onPress={createAll} />
+      ) : <Body small muted style={{ marginTop: 4 }}>{tl('Nessuna decisione o cosa da fare riconosciute in questa riunione.')}</Body>}
+      {mine ? <Btn style={{ marginTop: 12 }} icon="check" disabled={done} title={done ? 'Aggiunte al tuo Plan' : tl('Aggiungi le mie {0} cose da fare al Plan', mine)} onPress={() => { const n = addMyActions(m, myName); setDone(true); toast(tl('{0} cose da fare aggiunte al tuo Plan', n)); }} /> : null}
       <Body small muted style={{ marginTop: 8 }}>{tl('Presenti: {0}', [m.created_by, ...m.attendees].map(nameOf).join(', '))}</Body>
     </View>
   );
