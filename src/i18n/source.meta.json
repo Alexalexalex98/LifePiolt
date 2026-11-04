@@ -1,5 +1,5 @@
 {
- "count": 17360,
+ "count": 17436,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -136,7 +136,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 101,
+  "src/app/(tabs)/workspace.tsx": 103,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -359,6 +359,7 @@
   "src/components/ui.tsx": 12,
   "src/components/work/MeetingCall.tsx": 4,
   "src/components/work/Meetings.tsx": 74,
+  "src/components/work/Messages.tsx": 59,
   "src/components/work/WorkPlanner.tsx": 67,
   "src/components/workspace/WorkChat.tsx": 20,
   "src/data/areas.ts": 8,
@@ -674,6 +675,7 @@
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
+  "src/lib/teamComms.ts": 9,
   "src/lib/teamMeetings.ts": 7,
   "src/lib/teamWork.ts": 5,
   "src/lib/teams.ts": 7,
@@ -710,6 +712,7 @@
   "src/lib/wellbeing/questionnaires.ts": 29,
   "src/lib/wellbeing/score.ts": 55,
   "src/lib/when.ts": 11,
+  "src/lib/workComms.ts": 32,
   "src/lib/workEstimate.ts": 8,
   "src/lib/workspaceAi.ts": 41,
   "src/lib/workspaceCore.ts": 4,
@@ -757,5 +760,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2152
+ "withPlaceholders": 2160
 }

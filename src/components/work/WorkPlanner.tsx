@@ -206,7 +206,7 @@ function Absences({ team, role }: { team: string; role: Member['role'] }) {
             {admin && a.status === 'requested' ? (
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <ChipBtn icon="check" title="Approva" onPress={() => { void decideAbsence(a.id, true).then((r) => { toast(r.ok ? 'Approvata' : r.message); reload(); }); }} />
-                <ChipBtn icon="close" tone="danger" title="Rifiuta" onPress={() => { void decideAbsence(a.id, false).then((r) => { toast(r.ok ? 'Rifiutata' : r.message); reload(); }); }} />
+                <ChipBtn icon="x" tone="danger" title="Rifiuta" onPress={() => { void decideAbsence(a.id, false).then((r) => { toast(r.ok ? 'Rifiutata' : r.message); reload(); }); }} />
               </View>
             ) : null}
           </Row>

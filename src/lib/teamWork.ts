@@ -9,7 +9,7 @@ import { useTeams } from '@/store/teams';
 import { useWork, type Absence } from '@/store/work';
 
 /** Pianificazione del lavoro sul server: orari, impegni condivisi, assenze, occupato/libero. Ogni permesso lo decide il server. */
-export type LQ = { insert(v: unknown): LQ; select(c?: string): LQ; eq(c: string, v: unknown): LQ; gte(c: string, v: unknown): LQ; upsert(v: unknown): LQ; update(v: unknown): LQ; order(c: string, o?: { ascending: boolean }): LQ; then: PromiseLike<{ data: unknown; error: { message?: string } | null }>['then'] };
+export type LQ = { insert(v: unknown): LQ; select(c?: string): LQ; eq(c: string, v: unknown): LQ; gte(c: string, v: unknown): LQ; upsert(v: unknown): LQ; update(v: unknown): LQ; order(c: string, o?: { ascending: boolean }): LQ; limit(n: number): LQ; delete(): LQ; then: PromiseLike<{ data: unknown; error: { message?: string } | null }>['then'] };
 export type Db = { from(t: string): LQ; channel(n: string): { on(...a: unknown[]): { subscribe(cb?: (s: string) => void): unknown } }; removeChannel(c: unknown): unknown };
 export const db = async () => (await raw()) as unknown as Db;
 export const q = async <T,>(p: LQ): Promise<T> => { const r = await (p as unknown as Promise<{ data: unknown; error: { message?: string } | null }>); if (r.error) throw new Error(r.error.message); return r.data as T; };
@@ -71,6 +71,7 @@ export async function startWorkSync(): Promise<void> {
     channels = [];
     for (const tm of useTeams.getState().teams) {
       void loadHours(tm.id); await pullWork(tm.id);
+      void import('@/lib/teamComms').then((m) => { void m.pullMessages(tm.id, 'general'); void m.pullMessages(tm.id, 'ann'); void m.pullAway(tm.id); });
       void import('@/lib/teamMeetings').then((m) => m.pullMeetings(tm.id));
       channels.push(c.channel(`team-meetings-${tm.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'team_meetings', filter: `team_id=eq.${tm.id}` }, () => { void import('@/lib/teamMeetings').then((m) => m.pullMeetings(tm.id)); }).subscribe());
       channels.push(c.channel(`team-events-${tm.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'team_events', filter: `team_id=eq.${tm.id}` }, () => { void pullWork(tm.id); }).subscribe());

@@ -7,6 +7,7 @@ import { Mascot } from '@/components/mascot/Mascot';
 import { Text } from '@/components/T';
 import { WorkChat } from '@/components/workspace/WorkChat';
 import { MeetingsList } from '@/components/work/Meetings';
+import { ChannelView, Messages } from '@/components/work/Messages';
 import { WorkPlanner } from '@/components/work/WorkPlanner';
 import { Body, Btn, Empty, Input, Page, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -26,7 +27,7 @@ import { useTour } from '@/store/tour';
 import { useTeams } from '@/store/teams';
 import { toast } from '@/store/toast';
 
-type Tab = 'pagine' | 'piano' | 'file' | 'theia';
+type Tab = 'pagine' | 'piano' | 'messaggi' | 'file' | 'theia';
 const PALETTE = ['#8fa4ff', '#5fd39a', '#ff9d6e', '#c9b6ff', '#6ec9dd', '#e0c97b', '#ff8fb1'];
 const colorOf = (id: string) => PALETTE[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % PALETTE.length]!;
 const ago = (ts: number) => { const m = Math.round((Date.now() - ts) / 60000); return m < 1 ? tl('adesso') : m < 60 ? tl('{0} min fa', m) : m < 1440 ? tl('{0} h fa', Math.round(m / 60)) : tl('{0} g fa', Math.round(m / 1440)); };
@@ -93,13 +94,13 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
         </View>
       ) : null}
 
-      <View style={{ flexDirection: 'row', backgroundColor: th.card, borderRadius: 16, padding: 4, borderWidth: 1, borderColor: th.border, marginTop: 12, marginBottom: 12 }}>
-        {([['pagine', 'Pagine', 'note'], ['piano', 'Piano', 'calendar'], ['file', 'File', 'file'], ['theia', 'Theia', 'sparkle']] as const).map(([id, l, ic]) => (
-          <Pressable key={id} onPress={() => { setTab(id); if (id === 'theia') setChatOpen(true); }} accessibilityRole="button" accessibilityState={{ selected: tab === id }} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 12, backgroundColor: tab === id ? th.text : 'transparent' }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ backgroundColor: th.card, borderRadius: 16, padding: 4, gap: 2, marginTop: 12, marginBottom: 12, borderWidth: 1, borderColor: th.border }} style={{ flexGrow: 0 }}>
+        {([['pagine', 'Pagine', 'note'], ['piano', 'Piano', 'calendar'], ['messaggi', 'Messaggi', 'comment'], ['file', 'File', 'file'], ['theia', 'Theia', 'sparkle']] as const).map(([id, l, ic]) => (
+          <Pressable key={id} onPress={() => { setTab(id); if (id === 'theia') setChatOpen(true); }} accessibilityRole="button" accessibilityState={{ selected: tab === id }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 12, backgroundColor: tab === id ? th.text : 'transparent' }}>
             <Icon name={ic} size={15} color={tab === id ? th.onText : th.muted} stroke={2.2} /><Text style={{ color: tab === id ? th.onText : th.muted, fontWeight: '800', fontSize: 13 }}>{tl(l)}</Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
 
       {tab === 'pagine' ? (
         <View style={{ gap: 14 }}>
@@ -133,6 +134,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
         </View>
       ) : null}
       {tab === 'piano' ? <WorkPlanner /> : null}
+      {tab === 'messaggi' ? <Messages /> : null}
       {tab === 'file' ? <Files onChat={() => setTab('theia')} /> : null}
       {tab === 'theia' ? <WorkLauncher onOpen={() => setChatOpen(true)} /> : null}
       {chatOpen ? <WorkChat onClose={() => setChatOpen(false)} /> : null}
@@ -308,6 +310,7 @@ function PageView({ page, onOpen, onBack }: { page: WsPage; onOpen: (id: string)
         {subs.length ? subs.map((s) => <View key={s.id} style={{ marginBottom: 8 }}><Tile p={s} onPress={() => onOpen(s.id)} /></View>) : <Text style={{ color: th.muted, fontSize: 13 }}>{tl('Una pagina può contenere altre pagine, come cartelle.')}</Text>}
       </Section>
       {page.teamId ? <MeetingsList team={page.teamId} project={page.id} /> : null}
+      {page.teamId && page.parent === null ? <ChannelView team={page.teamId} channel={page.id} admin={useTeams.getState().teams.find((x) => x.id === page.teamId)?.role !== 'member'} name={tl('Chat del progetto')} /> : null}
       <Section title={tl('File collegati')}><Files pid={page.id} /></Section>
       <Section title={tl('Commenti')}>
         {page.comments.map((cm) => <View key={cm.id} style={{ backgroundColor: th.card, borderRadius: 14, borderWidth: 1, borderColor: th.border, padding: 10, marginBottom: 8 }}><Text style={{ color: th.text, fontSize: 14 }}>{cm.text}</Text><Text style={{ color: th.muted, fontSize: 11, marginTop: 4 }}>{new Date(cm.ts).toLocaleString()}</Text></View>)}

@@ -22,7 +22,7 @@ const label = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString(undefi
 const startMs = (m: Meeting) => new Date(`${m.day}T${m.time}:00`).getTime();
 
 /** Nomi e id delle persone del workspace. */
-function useMembers(team: string) {
+export function useMembers(team: string) {
   const [members, setMembers] = useState<Member[]>([]);
   const [me, setMe] = useState<string | null>(null);
   useEffect(() => { void myUserId().then(setMe); void listMembers(team).then((r) => { if (r.ok) setMembers(r.data); }); }, [team]);
