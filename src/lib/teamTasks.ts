@@ -60,8 +60,8 @@ export const saveProject = (team: string, id: string, patch: Partial<Pick<WProje
   await pullTasks(team);
 });
 /** Crea un progetto da un modello: la pagina condivisa, la scheda e tutti i task con le scadenze. */
-export const createProjectFromTemplate = (team: string, tpl: ProjectTemplate, start: string, assignee: string | null) => run(async () => {
-  const page = useWorkspace.getState().addPage(null, 'page', tpl.name, team);
+export const createProjectFromTemplate = (team: string, tpl: ProjectTemplate, start: string, assignee: string | null, name?: string) => run(async () => {
+  const page = useWorkspace.getState().addPage(null, 'page', name ?? tpl.name, team);
   const goal = tpl.goal; const items = fromTemplate(tpl, start);
   const last = items.reduce((a, x) => (x.due > a ? x.due : a), start);
   const r = await saveProject(team, page, { goal, due: last }); if (!r.ok) throw new Error(r.message);

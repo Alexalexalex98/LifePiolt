@@ -1,5 +1,5 @@
 {
- "count": 18308,
+ "count": 18408,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -360,6 +360,7 @@
   "src/components/work/Conflicts.tsx": 13,
   "src/components/work/Crm.tsx": 140,
   "src/components/work/Documents.tsx": 48,
+  "src/components/work/Hr.tsx": 102,
   "src/components/work/MeetingCall.tsx": 4,
   "src/components/work/Meetings.tsx": 91,
   "src/components/work/Messages.tsx": 56,
@@ -564,6 +565,7 @@
   "src/lib/helpFaq.ts": 373,
   "src/lib/helpKb.ts": 165,
   "src/lib/hiring.ts": 26,
+  "src/lib/hr.ts": 25,
   "src/lib/http.ts": 2,
   "src/lib/i18n.ts": 4,
   "src/lib/ideasActions.ts": 2,
@@ -693,6 +695,7 @@
   "src/lib/teamComms.ts": 9,
   "src/lib/teamCrm.ts": 6,
   "src/lib/teamDocs.ts": 8,
+  "src/lib/teamHr.ts": 3,
   "src/lib/teamMeetings.ts": 7,
   "src/lib/teamMoney.ts": 9,
   "src/lib/teamReports.ts": 15,
@@ -735,7 +738,7 @@
   "src/lib/workComms.ts": 32,
   "src/lib/workEstimate.ts": 8,
   "src/lib/workRoles.ts": 231,
-  "src/lib/workTasks.ts": 56,
+  "src/lib/workTasks.ts": 64,
   "src/lib/workspaceAi.ts": 41,
   "src/lib/workspaceCore.ts": 4,
   "src/lib/workspaceSearch.ts": 4,
@@ -783,5 +786,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2271
+ "withPlaceholders": 2285
 }
