@@ -15,7 +15,7 @@ export type LQ = { insert(v: unknown): LQ; select(c?: string): LQ; eq(c: string,
 export type Db = { from(t: string): LQ; channel(n: string): { on(...a: unknown[]): { subscribe(cb?: (s: string) => void): unknown } }; removeChannel(c: unknown): unknown };
 export const db = async () => (await raw()) as unknown as Db;
 export const q = async <T,>(p: LQ): Promise<T> => { const r = await (p as unknown as Promise<{ data: unknown; error: { message?: string } | null }>); if (r.error) throw new Error(r.error.message); return r.data as T; };
-const msg = (e: unknown) => { const m = e instanceof Error ? e.message : ''; return /risorsa_occupata/.test(m) ? t('La risorsa è già occupata in quell\'orario.') : /invitato_non_nel_team/.test(m) ? t('Puoi invitare solo persone del workspace.') : /non_autorizzato|row-level security/.test(m) ? t('Non hai il permesso per farlo.') : m || t('Operazione non riuscita: riprova.'); };
+const msg = (e: unknown) => { const m = e instanceof Error ? e.message : ''; return /risorsa_occupata/.test(m) ? t('La risorsa è già occupata in quell\'orario.') : /invitato_non_nel_team/.test(m) ? t('Puoi invitare solo persone del workspace.') : /troppi_tentativi/.test(m) ? t('Troppi tentativi sbagliati: riprova tra 15 minuti.') : /pagina_riservata/.test(m) ? t('Questa pagina è riservata: serve la password.') : /password_troppo_corta/.test(m) ? t('La password deve avere almeno 6 caratteri.') : /stato_non_valido/.test(m) ? t('Non si può fare in questo stato.') : /persona_non_nel_team/.test(m) ? t('Puoi scegliere solo persone del workspace.') : /non_autorizzato|row-level security/.test(m) ? t('Non hai il permesso per farlo.') : m || t('Operazione non riuscita: riprova.'); };
 export const run = async <T,>(f: () => Promise<T>): Promise<Res<T>> => { try { return { ok: true, data: await f() }; } catch (e) { return { ok: false, message: msg(e) }; } };
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
@@ -92,6 +92,7 @@ export async function startWorkSync(): Promise<void> {
       void loadHours(tm.id); await pullWork(tm.id);
       void import('@/lib/teamComms').then((m) => { void m.pullMessages(tm.id, 'general'); void m.pullMessages(tm.id, 'ann'); void m.pullAway(tm.id); });
       void import('@/lib/teamMeetings').then((m) => m.pullMeetings(tm.id));
+      void import('@/lib/teamCompany').then((m) => m.pullCompany(tm.id));
       channels.push(c.channel(`team-meetings-${tm.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'team_meetings', filter: `team_id=eq.${tm.id}` }, () => { void import('@/lib/teamMeetings').then((m) => m.pullMeetings(tm.id)); }).subscribe());
       channels.push(c.channel(`team-events-${tm.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'team_events', filter: `team_id=eq.${tm.id}` }, () => { void pullWork(tm.id); }).subscribe());
     }

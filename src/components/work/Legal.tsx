@@ -12,6 +12,7 @@ import { addContract, addProcessing, addStarters, deleteLegal, doneCheck, pullLe
 import { loadPeople, useCaps } from '@/lib/teamPeople';
 import { today } from '@/lib/teamWork';
 import { contractOf, legalOf, processingOf, useLegal, type LegalItem } from '@/store/legal';
+import { useCompany } from '@/store/company';
 import { usePeople } from '@/store/people';
 import { useTeams } from '@/store/teams';
 import { toast } from '@/store/toast';
@@ -121,7 +122,7 @@ function ContractView({ id, team, onClose }: { id: string; team: string; onClose
 
 /* ---------- scadenze di legge e controlli ---------- */
 function Checks({ team, items }: { team: string; items: LegalItem[] }) {
-  const [country, setCountry] = useState<Country>('IT');
+  const [country, setCountry] = useState<Country>(useCompany.getState().settings[team]?.country ?? 'IT');
   const done = useMemo(() => Object.fromEntries(items.map((i) => [String(i.data.obl), String(i.data.last)])), [items]);
   const rows = dueRows(OBLIGATIONS, done, today(), country);
   return (

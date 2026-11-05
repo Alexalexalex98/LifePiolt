@@ -10,7 +10,11 @@ import { PageBlocks } from '@/components/workspace/PageBlocks';
 import { WorkChat } from '@/components/workspace/WorkChat';
 import { Crm } from '@/components/work/Crm';
 import { Hr } from '@/components/work/Hr';
+import { KIND_LABEL, searchItems } from '@/lib/workSearch';
+import { collectSearchItems } from '@/lib/workSearchData';
 import { Career } from '@/components/work/Career';
+import { Company } from '@/components/work/Company';
+import { useCompany } from '@/store/company';
 import { Legal } from '@/components/work/Legal';
 import { Trips } from '@/components/work/Trips';
 import { WorkWell } from '@/components/work/WorkWell';
@@ -43,7 +47,7 @@ import { useDocs } from '@/store/docs';
 import { useTeams } from '@/store/teams';
 import { toast } from '@/store/toast';
 
-type Tab = 'pagine' | 'piano' | 'task' | 'clienti' | 'report' | 'legale' | 'benessere' | 'carriera' | 'trasferte' | 'scrivi' | 'soldi' | 'hr' | 'messaggi' | 'documenti' | 'persone' | 'file' | 'theia';
+type Tab = 'pagine' | 'piano' | 'task' | 'clienti' | 'report' | 'legale' | 'benessere' | 'carriera' | 'trasferte' | 'azienda' | 'scrivi' | 'soldi' | 'hr' | 'messaggi' | 'documenti' | 'persone' | 'file' | 'theia';
 const PALETTE = ['#8fa4ff', '#5fd39a', '#ff9d6e', '#c9b6ff', '#6ec9dd', '#e0c97b', '#ff8fb1'];
 const colorOf = (id: string) => PALETTE[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % PALETTE.length]!;
 const ago = (ts: number) => { const m = Math.round((Date.now() - ts) / 60000); return m < 1 ? tl('adesso') : m < 60 ? tl('{0} min fa', m) : m < 1440 ? tl('{0} h fa', Math.round(m / 60)) : tl('{0} g fa', Math.round(m / 1440)); };
@@ -87,7 +91,9 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
   const [hits, setHits] = useState<SearchHit[]>([]);
   useEffect(() => { let on = true; const h = setTimeout(() => { void searchWorkspace(q).then((r) => { if (on) setHits(r); }); }, 250); return () => { on = false; clearTimeout(h); }; }, [q, pages]);
   const allDocs = useDocs((d) => d.docs);
+  const lockedCount = useCompany((c) => Object.values(c.locked).flat().filter((l) => !l.unlocked).length);
   const docHits = useMemo(() => { const n = q.trim().toLowerCase(); if (n.length < 2) return []; return Object.values(allDocs).flat().filter((d) => `${d.title} ${Object.values(d.fields).join(' ')} ${d.file_name}`.toLowerCase().includes(n)).slice(0, 6); }, [q, allDocs]);
+  const others = useMemo(() => (q.trim().length >= 2 ? searchItems(q, collectSearchItems(), 12).filter((x) => x.kind !== 'page' && x.kind !== 'doc') : []), [q, pages, allDocs]);
   const recent = useMemo(() => [...pages].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6), [pages]);
   const roots = childrenOf(pages, null).filter((p) => !p.teamId);
   const nodes = (parent: string | null, depth: number): React.ReactNode => childrenOf(pages, parent).map((p) => (
@@ -105,12 +111,18 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
       </View>
       {q.trim().length >= 2 ? (
         <View style={{ gap: 8 }}>
+          {others.map((o) => (
+            <Pressable key={o.kind + o.id} onPress={() => { setTab(o.tab as Tab); setQ(''); }} accessibilityRole="button" style={{ backgroundColor: th.card, borderRadius: 16, borderWidth: 1, borderColor: th.border, padding: 12 }}>
+              <Text numberOfLines={1} style={{ color: th.text, fontWeight: '800' }}>{o.title}</Text>
+              <Text numberOfLines={2} style={{ color: th.muted, fontSize: 12.5, marginTop: 4 }}>{`${tl(KIND_LABEL[o.kind])}${o.sub ? ` · ${o.sub}` : ''}${o.snippet ? ` · …${o.snippet}…` : ''}`}</Text>
+            </Pressable>
+          ))}
           {hits.length ? hits.map((h) => (
             <Pressable key={h.kind + h.id} onPress={h.kind === 'page' ? () => onOpen(h.id) : () => setTab('file')} style={{ backgroundColor: th.card, borderRadius: 16, borderWidth: 1, borderColor: th.border, padding: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><Icon name={h.kind === 'page' ? 'note' : 'file'} size={16} color={th.accent} /><Text numberOfLines={1} style={{ color: th.text, fontWeight: '800', flex: 1 }}>{h.title}</Text></View>
               {h.snippet ? <Text numberOfLines={2} style={{ color: th.muted, fontSize: 12.5, marginTop: 4 }}>{`…${h.snippet}…`}</Text> : null}
             </Pressable>
-          )) : docHits.length ? null : <Body small muted>{tl('Niente trovato.')}</Body>}
+          )) : docHits.length || others.length ? null : <Body small muted>{tl('Niente trovato.')}</Body>}
           {docHits.map((d) => (
             <Pressable key={'doc' + d.id} onPress={() => { setTab('documenti'); setQ(''); }} accessibilityRole="button" style={{ backgroundColor: th.card, borderRadius: 16, borderWidth: 1, borderColor: th.border, padding: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><Icon name="file" size={16} color={th.accent} /><Text numberOfLines={1} style={{ color: th.text, fontWeight: '800', flex: 1 }}>{d.title}</Text></View>
@@ -121,7 +133,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
       ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ backgroundColor: th.card, borderRadius: 16, padding: 4, gap: 2, marginTop: 12, marginBottom: 12, borderWidth: 1, borderColor: th.border }} style={{ flexGrow: 0 }}>
-        {([['theia', 'Theia', 'sparkle'], ['pagine', 'Pagine', 'note'], ['piano', 'Piano', 'calendar'], ['task', 'Task', 'check'], ['clienti', 'Clienti', 'contact'], ['soldi', 'Soldi', 'wallet'], ['hr', 'HR', 'profile'], ['report', 'Report', 'chart'], ['legale', 'Legale', 'note'], ['benessere', 'Benessere', 'heart'], ['carriera', 'Carriera', 'chart'], ['trasferte', 'Trasferte', 'lifetravel'], ['scrivi', 'Scrivi', 'edit'], ['messaggi', 'Messaggi', 'comment'], ['documenti', 'Documenti', 'note'], ['persone', 'Persone', 'users'], ['file', 'File', 'file']] as const).map(([id, l, ic]) => (
+        {([['theia', 'Theia', 'sparkle'], ['pagine', 'Pagine', 'note'], ['piano', 'Piano', 'calendar'], ['task', 'Task', 'check'], ['clienti', 'Clienti', 'contact'], ['soldi', 'Soldi', 'wallet'], ['hr', 'HR', 'profile'], ['report', 'Report', 'chart'], ['legale', 'Legale', 'note'], ['benessere', 'Benessere', 'heart'], ['carriera', 'Carriera', 'chart'], ['trasferte', 'Trasferte', 'lifetravel'], ['azienda', 'Azienda', 'lock'], ['scrivi', 'Scrivi', 'edit'], ['messaggi', 'Messaggi', 'comment'], ['documenti', 'Documenti', 'note'], ['persone', 'Persone', 'users'], ['file', 'File', 'file']] as const).map(([id, l, ic]) => (
           <Pressable key={id} onPress={() => { setTab(id); if (id === 'theia') setChatOpen(true); }} accessibilityRole="button" accessibilityState={{ selected: tab === id }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 12, backgroundColor: tab === id ? th.text : 'transparent' }}>
             <Icon name={ic} size={15} color={tab === id ? th.onText : th.muted} stroke={2.2} /><Text style={{ color: tab === id ? th.onText : th.muted, fontWeight: '800', fontSize: 13 }}>{tl(l)}</Text>
           </Pressable>
@@ -130,6 +142,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
 
       {tab === 'pagine' ? (
         <View style={{ gap: 14 }}>
+          {lockedCount ? <Pressable onPress={() => setTab('azienda')} accessibilityRole="button" style={{ backgroundColor: th.card, borderRadius: 16, borderWidth: 1, borderColor: th.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}><Icon name="lock" size={18} color={th.accent} /><Text style={{ color: th.text, flex: 1, fontWeight: '700' }}>{tl('{0} progetti riservati: serve la password', lockedCount)}</Text><Icon name="chevron-right" size={18} color={th.muted} /></Pressable> : null}
           {teams.length === 0 ? <NoWorkspace what="condividi pagine, task e riunioni" /> : null}
           {recent.length ? (
             <View>
@@ -169,6 +182,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
       {tab === 'benessere' ? <WorkWell /> : null}
       {tab === 'carriera' ? <Career /> : null}
       {tab === 'trasferte' ? <Trips /> : null}
+      {tab === 'azienda' ? <Company /> : null}
       {tab === 'report' ? <Reports /> : null}
       {tab === 'scrivi' ? <Writing /> : null}
       {tab === 'messaggi' ? <Messages /> : null}

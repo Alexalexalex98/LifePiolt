@@ -1,5 +1,6 @@
 import { t } from '@/i18n/core';
 import { askSend, logSend } from '@/lib/aiConsent';
+import { aiText, workAiOn } from '@/lib/teamCompany';
 import { AiServerError, aiChatRaw, aiServerConfigured } from '@/lib/aiServer';
 import { ACTIONS, actionById, catalogText, type Ctx } from '@/lib/agent/registry';
 import { buildPrompt, isNo, isYes, offlineSteps, parsePlan, type Plan, type Step } from '@/lib/agent/plan';
@@ -53,6 +54,7 @@ const describe = (s: Step) => `${actionById(s.action)?.desc ?? s.action}: ${Obje
 async function plan(q: string, ctx: Ctx): Promise<Plan | null> {
   const off = offlineSteps(q); if (off) return { steps: off };
   if (!aiServerConfigured) return null;
+  if (!workAiOn(ctx.team)) { say(aiText(ctx.team)); return { steps: [], reply: '·' }; }
   if (!(await askSend('data', t('Solo il testo della tua richiesta, il tuo nome, i nomi delle persone e dei progetti del workspace e le date. Nessun documento e nessun dato dei clienti o degli stipendi.')))) { say(t('Va bene, non invio niente. Senza l\'AI posso fare solo richieste semplici (ferie, task, «cosa ho oggi»).')); return { steps: [], reply: '·' }; }
   await ensureData(ctx.team);
   const people = (usePeople.getState().people[ctx.team] ?? []).map((p) => ({ name: p.name || t('Collega'), position: positionOf(p.position)?.label }));

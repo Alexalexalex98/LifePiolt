@@ -12,6 +12,7 @@ import { closeTrip, createTrip, decideTrip, deleteTrip, pullTrips, requestTrip, 
 import { loadPeople, useCaps } from '@/lib/teamPeople';
 import { today } from '@/lib/teamWork';
 import { SEG_LABEL, STATUS_LABEL, ZONES, checkSegments, convert, defaultDocs, diffLabel, docsProgress, expenseDrafts, itinerary, nightsOf, planClashes, segTimes, tripCost, zoneOf, type Seg, type SegKind, type Trip } from '@/lib/tripWork';
+import { useCompany } from '@/store/company';
 import { useLife } from '@/store/life';
 import { usePeople } from '@/store/people';
 import { useTeams } from '@/store/teams';
@@ -79,7 +80,7 @@ function TripRow({ trip, who, onPress }: { trip: Trip; who?: string; onPress: ()
 }
 
 function NewTrip({ team, open, onClose, onCreated }: { team: string; open: boolean; onClose: () => void; onCreated: (id: string) => void }) {
-  const [f, setF] = useState({ title: '', dest: '', from: '', to: '', purpose: '', budget: '' }); const [intl, setIntl] = useState(false); const [cur, setCur] = useState<'CHF' | 'EUR'>('CHF'); const [busy, setBusy] = useState(false);
+  const [f, setF] = useState({ title: '', dest: '', from: '', to: '', purpose: '', budget: '' }); const [intl, setIntl] = useState(false); const [cur, setCur] = useState<'CHF' | 'EUR'>(useCompany.getState().settings[team]?.currency === 'EUR' ? 'EUR' : 'CHF'); const [busy, setBusy] = useState(false);
   const save = () => {
     if (!f.title.trim() || !f.from) { toast('Scrivi il titolo e scegli le date'); return; }
     const to = f.to || f.from; if (to < f.from) { toast('Il ritorno è prima della partenza'); return; }

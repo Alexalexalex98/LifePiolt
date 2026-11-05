@@ -1,5 +1,5 @@
 {
- "count": 19131,
+ "count": 19200,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -136,7 +136,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 95,
+  "src/app/(tabs)/workspace.tsx": 97,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -358,6 +358,7 @@
   "src/components/tour/TutorialSettings.tsx": 13,
   "src/components/ui.tsx": 12,
   "src/components/work/Career.tsx": 97,
+  "src/components/work/Company.tsx": 59,
   "src/components/work/Conflicts.tsx": 17,
   "src/components/work/Crm.tsx": 140,
   "src/components/work/DayField.tsx": 4,
@@ -501,6 +502,7 @@
   "src/lib/club/limits.ts": 1,
   "src/lib/club/progress.ts": 1,
   "src/lib/club/reputation.ts": 5,
+  "src/lib/companyWork.ts": 22,
   "src/lib/confirm.ts": 7,
   "src/lib/contractParse.ts": 2,
   "src/lib/creative/builder.ts": 9,
@@ -715,7 +717,7 @@
   "src/lib/teamReports.ts": 15,
   "src/lib/teamTasks.ts": 4,
   "src/lib/teamTrips.ts": 1,
-  "src/lib/teamWork.ts": 5,
+  "src/lib/teamWork.ts": 10,
   "src/lib/teams.ts": 9,
   "src/lib/theia.ts": 107,
   "src/lib/theia/appContext.ts": 8,
@@ -756,6 +758,7 @@
   "src/lib/workIntentRun.ts": 13,
   "src/lib/workLegal.ts": 111,
   "src/lib/workRoles.ts": 231,
+  "src/lib/workSearch.ts": 8,
   "src/lib/workTasks.ts": 64,
   "src/lib/workWell.ts": 68,
   "src/lib/workspaceAi.ts": 41,
@@ -805,5 +808,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2410
+ "withPlaceholders": 2414
 }

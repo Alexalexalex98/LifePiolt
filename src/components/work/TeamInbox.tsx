@@ -5,6 +5,8 @@ import { Body, Btn, Card, H, Row } from '@/components/ui';
 import { NewMeeting, type MeetingSeed } from '@/components/work/Meetings';
 import { t as tl } from '@/i18n/core';
 import { answerReschedule, markNotif, pullNotifs } from '@/lib/teamNotify';
+import { notifAllowed } from '@/lib/companyWork';
+import { notifOf, useCompany } from '@/store/company';
 import { useTeamNotifs, type TeamNotif } from '@/store/notifications';
 import { toast } from '@/store/toast';
 
@@ -13,7 +15,8 @@ type Snap = { title?: string; dur?: number; agenda?: string; attendees?: string[
 /** Le notifiche di lavoro: chi ha spostato un impegno, chi non può, le riunioni annullate con «Riorganizza». Compare nel Plan e nel Workspace. */
 export function TeamInbox({ team }: { team?: string }) {
   const all = useTeamNotifs((s) => s.items);
-  const list = all.filter((n) => (!team || n.team_id === team) && !n.done);
+  const prefs = useCompany((c) => c.notif);
+  const list = all.filter((n) => (!team || n.team_id === team) && !n.done && notifAllowed(n.kind, notifOf(n.team_id, prefs)));
   const [seed, setSeed] = useState<{ team: string; seed: MeetingSeed } | null>(null);
   useEffect(() => { void pullNotifs(); }, []);
   if (!list.length && !seed) return null;
