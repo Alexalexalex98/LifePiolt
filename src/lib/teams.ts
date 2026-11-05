@@ -20,7 +20,7 @@ const run = async <T>(f: () => Promise<T>): Promise<Res<T>> => { try { return { 
 /** Rilegge i team dal server e, se sei stato tolto da un team, cancella da questo telefono le sue pagine e i suoi file. */
 export async function refreshTeams(): Promise<Res<TeamInfo[]>> {
   return run(async () => {
-    if (isDemo()) return useTeams.getState().teams;
+    if (await isDemo()) return useTeams.getState().teams;
     const list = (await (await supa()).rpc<TeamInfo[]>('team_list')) ?? [];
     useTeams.getState().set({ teams: list, syncedAt: Date.now() });
     const ids = new Set(list.map((x) => x.id));
@@ -32,15 +32,22 @@ export async function refreshTeams(): Promise<Res<TeamInfo[]>> {
   });
 }
 /** In modalità demo non c'è un account sul server: il workspace nasce sul telefono (pagine, file e piano funzionano qui; la condivisione con altre persone arriva con l'account verificato). */
-const isDemo = () => useApp.getState().demo;
+export type ServerState = 'ok' | 'config' | 'login';
+/** Il server è raggiungibile? 'config' = la build non ha indirizzo e chiave del server; 'login' = c'è il server ma non hai fatto l'accesso con un account verificato (per esempio sei in demo). */
+export async function serverState(): Promise<ServerState> {
+  try { const { backend } = await import('@/lib/accountApi'); if ((await backend()) !== 'server') return 'config'; } catch { return 'config'; }
+  return (await myUserId()) ? 'ok' : 'login';
+}
+/** Sul telefono solo se sei in demo E il server non è usabile: con un account verificato tutto passa dal server, anche in demo. */
+const isDemo = async (): Promise<boolean> => useApp.getState().demo && (await serverState()) !== 'ok';
 const localTeam = (name: string, role: TeamInfo['role']): string => { const id = `demo-${Math.random().toString(36).slice(2, 10)}`; useTeams.getState().set({ teams: [...useTeams.getState().teams, { id, name, role, members: 1 }], syncedAt: Date.now() }); return id; };
 export const createTeam = (name: string) => run(async () => {
-  if (isDemo()) return localTeam(name.trim().slice(0, 80), 'owner');
+  if (await isDemo()) return localTeam(name.trim().slice(0, 80), 'owner');
   const id = await (await supa()).rpc<string>('team_create', { p_name: name }); await refreshTeams(); return id;
 });
 export const inviteCode = (team: string, role: 'member' | 'admin' = 'member') => run(() => supa().then((s) => s.rpc<string>('team_invite', { p_team: team, p_role: role })));
 export const joinTeam = (code: string) => run(async () => {
-  if (isDemo()) return localTeam('Studio di prova', 'member');
+  if (await isDemo()) return localTeam('Studio di prova', 'member');
   const id = await (await supa()).rpc<string>('team_join', { p_code: code }); await refreshTeams(); return id;
 });
 export const listMembers = (team: string) => run(() => supa().then((s) => s.rpc<Member[]>('team_members_list', { p_team: team })));

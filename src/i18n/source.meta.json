@@ -1,5 +1,5 @@
 {
- "count": 17836,
+ "count": 17839,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -128,7 +128,7 @@
   "src/app/(tabs)/swipeDeck.tsx": 4,
   "src/app/(tabs)/syncSettings.tsx": 2,
   "src/app/(tabs)/taxdecl.tsx": 77,
-  "src/app/(tabs)/teams.tsx": 50,
+  "src/app/(tabs)/teams.tsx": 53,
   "src/app/(tabs)/theiaPet.tsx": 131,
   "src/app/(tabs)/trial.tsx": 8,
   "src/app/(tabs)/userProfile.tsx": 51,

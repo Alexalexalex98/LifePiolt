@@ -10,7 +10,7 @@ import { fmtBytes } from '@/lib/attachments';
 import { confirmDelete } from '@/lib/confirm';
 import { go, goBack } from '@/lib/nav';
 import { startTeamSync } from '@/lib/teamSync';
-import { createTeam, deleteTeam, deleteTeamFile, downloadTeamFile, inviteCode, joinTeam, leaveTeam, listMembers, listTeamFiles, myUserId, refreshTeams, removeMember, uploadTeamFile, type Member, type TeamFile } from '@/lib/teams';
+import { serverState, type ServerState, createTeam, deleteTeam, deleteTeamFile, downloadTeamFile, inviteCode, joinTeam, leaveTeam, listMembers, listTeamFiles, myUserId, refreshTeams, removeMember, uploadTeamFile, type Member, type TeamFile } from '@/lib/teams';
 import { useApp } from '@/store/app';
 import { useAccount } from '@/store/account';
 import { useTeams, type TeamInfo } from '@/store/teams';
@@ -25,6 +25,8 @@ export default function Teams() {
   const verified = useAccount((s) => s.status === 'verified') || demoMode;
   const teams = useTeams((s) => s.teams);
   const [open, setOpen] = useState<string | null>(null);
+  const [srv, setSrv] = useState<ServerState | null>(null);
+  useEffect(() => { void serverState().then(setSrv); }, [demoMode, verified]);
   const [name, setName] = useState(''); const [code, setCode] = useState(''); const [busy, setBusy] = useState(false);
   useEffect(() => { if (verified) void refreshTeams().then(() => startTeamSync()); }, [verified]);
   const team = teams.find((x) => x.id === open);
@@ -32,6 +34,7 @@ export default function Teams() {
   const act = async (f: () => Promise<{ ok: boolean; message?: string }>, done?: string) => { setBusy(true); const r = await f(); setBusy(false); if (!r.ok) toast((r as { message?: string }).message ?? tl('Operazione non riuscita: riprova.')); else if (done) toast(done); return r; };
   return (
     <Page id="teams" title={mode === 'create' ? tl('Nuovo workspace') : mode === 'join' ? tl('Entra in un workspace') : tl('Team')} back>
+      {srv && srv !== 'ok' ? <Card><H>{tl('Collegamento al server')}</H><Body small style={{ marginTop: 4 }}>{srv === 'config' ? tl('Questa versione dell\'app non conosce l\'indirizzo del server, quindi i workspace restano solo su questo telefono. Per condividerli con altre persone la build deve avere EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY (variabili dell\'ambiente EAS) e va ricompilata.') : tl('Il server c\'è, ma non hai fatto l\'accesso con un account verificato (in demo non c\'è nessun account). Esci dalla demo e accedi con il tuo account da Impostazioni: da quel momento tutto passa dal server e lo vedono anche le altre persone.')}</Body></Card> : null}
       {!verified ? <Card><Body>{tl('Per creare o entrare in un team serve un account verificato: lo crei da Impostazioni o dalla schermata iniziale.')}</Body></Card> : null}
       {mode ? null : <Card>
         <H>{tl('I tuoi team')}</H>
