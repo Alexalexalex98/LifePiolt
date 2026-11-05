@@ -182,6 +182,8 @@ export async function sendWork(text: string, atts: Att[] = []): Promise<void> {
   if (!q) { if (saved.length) chat.push({ who: 'ai', text: t('Cosa vuoi sapere su questo file?') }); return; }
   // prima le cose da fare (ferie, permessi, task): non c'entrano con il file di cui si stava parlando
   if (await (await import('@/lib/workIntentRun')).handleWorkIntent(q)) return;
+  // poi tutto il resto che si può fare nel workspace (task, riunioni, messaggi, clienti, soldi, HR, report…): lo fa lei
+  if (await (await import('@/lib/agent/run')).runAgent(q)) return;
   const st = useWorkspaceChat.getState();
   if (st.focus.length) { await answerFrom(q, st.focus); return; }
   if (st.mode === 'all') { await answerFrom(q, null); return; }

@@ -13,11 +13,13 @@ type State = {
   mode: 'ask' | 'all';
   /** domanda in attesa della scelta del file */
   pending?: string;
+  /** azioni che aspettano il tuo «sì» (cancellare, rifiutare…): Theia Lavoro non le fa senza conferma */
+  agentPending?: { action: string; params: Record<string, unknown> }[];
   /** file di LifeDrive collegati al workspace senza spostarli */
   linked: string[];
   push: (m: Omit<WsMsg, 'id' | 'ts'>) => string;
   patch: (id: string, p: Partial<WsMsg>) => void;
-  set: (p: Partial<Pick<State, 'focus' | 'mode' | 'pending' | 'linked'>>) => void;
+  set: (p: Partial<Pick<State, 'focus' | 'mode' | 'pending' | 'linked' | 'agentPending'>>) => void;
   clear: () => void;
 };
 export const useWorkspaceChat = create<State>()(persisted<State>('workspaceChat', (set) => ({
@@ -25,5 +27,5 @@ export const useWorkspaceChat = create<State>()(persisted<State>('workspaceChat'
   push: (m) => { const id = Math.random().toString(36).slice(2, 9); set((s) => ({ log: [...s.log, { ...m, id, ts: Date.now() }].slice(-80) })); return id; },
   patch: (id, p) => set((s) => ({ log: s.log.map((m) => (m.id === id ? { ...m, ...p } : m)) })),
   set: (p) => set(p),
-  clear: () => set({ log: [], focus: [], mode: 'ask', pending: undefined }),
+  clear: () => set({ log: [], focus: [], mode: 'ask', pending: undefined, agentPending: undefined }),
 }), (s) => ({ log: s.log, focus: s.focus, mode: s.mode, linked: s.linked }), { sensitive: true }));

@@ -1,5 +1,5 @@
 {
- "count": 18420,
+ "count": 18588,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -368,7 +368,7 @@
   "src/components/work/NoWorkspace.tsx": 5,
   "src/components/work/People.tsx": 30,
   "src/components/work/Reports.tsx": 35,
-  "src/components/work/Tasks.tsx": 72,
+  "src/components/work/Tasks.tsx": 67,
   "src/components/work/WorkPlanner.tsx": 67,
   "src/components/work/Writing.tsx": 48,
   "src/components/workspace/WorkChat.tsx": 20,
@@ -402,6 +402,9 @@
   "src/lib/a11y.ts": 1,
   "src/lib/accountApi.ts": 13,
   "src/lib/accountCore.ts": 13,
+  "src/lib/agent/plan.ts": 14,
+  "src/lib/agent/registry.ts": 165,
+  "src/lib/agent/run.ts": 11,
   "src/lib/ai.ts": 26,
   "src/lib/aiConsent.ts": 24,
   "src/lib/aiLinkCode.ts": 1,
@@ -637,6 +640,7 @@
   "src/lib/photoShader.ts": 58,
   "src/lib/places.ts": 2,
   "src/lib/planBooking.tsx": 23,
+  "src/lib/planMine.ts": 5,
   "src/lib/planner.ts": 5,
   "src/lib/posDemo.ts": 12,
   "src/lib/postEdit.ts": 2,
@@ -787,5 +791,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2292
+ "withPlaceholders": 2343
 }

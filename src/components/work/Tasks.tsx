@@ -10,16 +10,15 @@ import { alertT } from '@/lib/alert';
 import { go } from '@/lib/nav';
 import { loadPeople, useCaps } from '@/lib/teamPeople';
 import { alertLate, createProjectFromTemplate, createTask, deleteTask, logTime, pullTasks, saveProject, setStatus, timeOf, updateTask, watchTasks, type TimeRow } from '@/lib/teamTasks';
-import { pushWorkEvent, today } from '@/lib/teamWork';
-import { addDays, evRange, planTasks } from '@/lib/workHours';
+import { today } from '@/lib/teamWork';
+import { addDays } from '@/lib/workHours';
+import { planMyTasks } from '@/lib/planMine';
 import { PRIORITY_LABEL, PROJECT_TEMPLATES, STATUS_LABEL, groupByStatus, isLate, lateTasks, progress, sortTasks, subtasksOf, waitingOn, type Priority, type Recurrence, type Status, type WTask } from '@/lib/workTasks';
-import { WORK_COLOR_ID, newEventId } from '@/lib/workPlan';
-import { useLife } from '@/store/life';
 import { usePeople } from '@/store/people';
 import { useTasks as useTaskStore } from '@/store/tasksView';
 import { useTeams } from '@/store/teams';
 import { toast } from '@/store/toast';
-import { scheduleOf, useWork } from '@/store/work';
+import { useWork } from '@/store/work';
 import { useWorkspace } from '@/store/workspace';
 import { useWTasks } from '@/store/tasks';
 
@@ -55,23 +54,7 @@ export function Tasks() {
   const late = lateTasks(scoped, t0).length;
   const canAssign = caps.has('tasks.assign');
 
-  function planMine() {
-    const mine = all.filter((x) => x.assignee === me && x.status !== 'done' && !x.parent && waitingOn(x, all).length === 0);
-    const events = useLife.getState().events;
-    const already = new Set(Object.values(events).flat().map((e) => e.ref).filter(Boolean));
-    const todo = mine.filter((x) => !already.has('wt:' + x.id));
-    if (!todo.length) { toast(mine.length ? 'I tuoi task sono già nel Plan' : 'Non hai task da pianificare'); return; }
-    const sch = scheduleOf(team!.id, useWork.getState().schedules);
-    const now = new Date(); const busy = (d: string) => (useLife.getState().events[d] ?? []).filter((e) => e.team === team!.id).map(evRange);
-    const plan = planTasks(sch, todo.map((x) => ({ id: x.id, dur: x.est_min ?? 60, due: x.due ?? undefined, urgent: x.priority === 'urgent' })), t0, now.getHours() * 60 + now.getMinutes(), busy);
-    for (const p of plan) {
-      const task = todo.find((x) => x.id === p.id)!;
-      const ev = { time: p.time, title: task.title, dur: p.dur, color: WORK_COLOR_ID, team: team!.id, wid: newEventId(), by: me ?? undefined, ref: 'wt:' + task.id };
-      useLife.getState().addEvent(p.day, ev); void pushWorkEvent(p.day, ev);
-    }
-    const left = todo.length - plan.length;
-    toast(plan.length ? `${tl('{0} task nel tuo Plan, dentro il tuo orario di lavoro', plan.length)}${left ? ` · ${tl('{0} non entrano prima della scadenza', left)}` : ''}` : 'Non c\'è posto prima delle scadenze: controlla il tuo orario');
-  }
+  const planMine = () => { const r = planMyTasks(team!.id, me); toast(r.message); };
 
   const card = (x: WTask) => {
     const subs = subtasksOf(x, all); const wait = waitingOn(x, all);

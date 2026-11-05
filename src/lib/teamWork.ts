@@ -99,3 +99,6 @@ export async function startWorkSync(): Promise<void> {
 }
 
 export { fromMin, today };
+
+/** Imposta la mia assenza con risposta automatica (usata anche da Theia Lavoro). */
+export const setAwayFor = async (team: string, a: { until: string; message: string }) => (await import('@/lib/teamComms')).setAway(team, a);
