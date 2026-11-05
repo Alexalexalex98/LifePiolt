@@ -1,5 +1,5 @@
 {
- "count": 17839,
+ "count": 17938,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -136,7 +136,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 107,
+  "src/app/(tabs)/workspace.tsx": 108,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -357,6 +357,7 @@
   "src/components/tour/TourOverlay.tsx": 8,
   "src/components/tour/TutorialSettings.tsx": 13,
   "src/components/ui.tsx": 12,
+  "src/components/work/Crm.tsx": 140,
   "src/components/work/Documents.tsx": 48,
   "src/components/work/MeetingCall.tsx": 4,
   "src/components/work/Meetings.tsx": 74,
@@ -489,6 +490,7 @@
   "src/lib/creative/spec.ts": 2,
   "src/lib/creative/terms.ts": 5,
   "src/lib/creatorStats.ts": 60,
+  "src/lib/crm.ts": 21,
   "src/lib/csvImport.ts": 45,
   "src/lib/dash/backgrounds.ts": 16,
   "src/lib/dashBrief.ts": 33,
@@ -681,6 +683,7 @@
   "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
   "src/lib/teamComms.ts": 9,
+  "src/lib/teamCrm.ts": 6,
   "src/lib/teamDocs.ts": 8,
   "src/lib/teamMeetings.ts": 7,
   "src/lib/teamTasks.ts": 4,
@@ -721,7 +724,7 @@
   "src/lib/when.ts": 11,
   "src/lib/workComms.ts": 32,
   "src/lib/workEstimate.ts": 8,
-  "src/lib/workRoles.ts": 229,
+  "src/lib/workRoles.ts": 231,
   "src/lib/workTasks.ts": 56,
   "src/lib/workspaceAi.ts": 41,
   "src/lib/workspaceCore.ts": 4,
@@ -769,5 +772,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2173
+ "withPlaceholders": 2191
 }

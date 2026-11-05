@@ -16,7 +16,7 @@ test('HR vede CV e buste paga, la contabile non vede le buste paga', () => {
   assert.equal(canHandle('team', 'member', capsOf('member', undefined)), true);
 });
 test('gli amministratori hanno sempre tutto', () => {
-  const c = capsOf('admin', undefined); assert.equal(c.size, 10); assert.equal(canHandle('admin', 'owner', capsOf('owner', null)), true);
+  const c = capsOf('admin', undefined); assert.equal(c.size, 12); assert.equal(canHandle('admin', 'owner', capsOf('owner', null)), true);
   assert.equal(canHandle('admin', 'member', capsOf('member', 'hr_manager')), false);
 });
 test('solo HR e direzione gestiscono le persone; i responsabili approvano le ferie', () => {
