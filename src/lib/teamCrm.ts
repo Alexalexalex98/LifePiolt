@@ -5,6 +5,7 @@ import { db, pushWorkEvent, q, run, today } from '@/lib/teamWork';
 import { WORK_COLOR_ID, newEventId } from '@/lib/workPlan';
 import { useCrm, type CrmData } from '@/store/crm';
 import { useLife } from '@/store/life';
+import { fillPage } from '@/lib/reportPage';
 import { useWorkspace } from '@/store/workspace';
 
 /** Clienti, trattative, assistenza e da incassare sul server. Chi non ha il permesso non riceve nulla: lo decide il server. */
@@ -73,8 +74,7 @@ export const markPaid = (r: Receivable, paid: boolean) => after(r.team_id, async
 /** Salva il preventivo come pagina condivisa del workspace e porta la trattativa alla fase «Preventivo». */
 export const saveQuote = (d: Deal, c: Contact, text: string) => after(d.team_id, async () => {
   const ws = useWorkspace.getState(); const page = ws.addPage(null, 'page', `${t('Preventivo')} · ${c.name} · ${d.title}`.slice(0, 190), d.team_id);
-  const lines = text.split('\n'); const first = useWorkspace.getState().pages.find((p) => p.id === page)?.blocks[0];
-  if (first) ws.patchBlock(page, first.id, { text: lines[0] ?? '' }); lines.slice(1).forEach((l) => ws.addBlock(page, 'p', l));
+  fillPage(page, text);
   if (d.stage === 'lead' || d.stage === 'contact') await q((await db()).from('team_deals').update({ stage: 'quote' }).eq('id', d.id));
   const me = await myUserId(); if (me) await q((await db()).from('team_interactions').insert({ id: newEventId(), team_id: d.team_id, contact: c.id, kind: 'note', text: `${t('Preventivo preparato')}: ${d.title}`, by: me }));
   return page;

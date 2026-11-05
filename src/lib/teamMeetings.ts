@@ -7,6 +7,7 @@ import { db, pushWorkEvent, q, removeWorkEvent, run } from '@/lib/teamWork';
 import { WORK_COLOR_ID, newEventId } from '@/lib/workPlan';
 import { useLife } from '@/store/life';
 import { useMeetings } from '@/store/meetings';
+import { fillPage } from '@/lib/reportPage';
 import { useWorkspace } from '@/store/workspace';
 
 /** Riunioni di lavoro sul server: ogni persona invitata vede la riunione, chi sta trascrivendo e le righe che arrivano dagli altri. */
@@ -81,10 +82,7 @@ export const meetingLabel = (proj?: string): string => { const n = proj ? useWor
 export function saveToWorkspace(m: Meeting): void {
   const ws = useWorkspace.getState();
   const page = ws.addPage(m.project ?? null, 'page', `${meetingLabel(m.project ?? undefined)} · ${m.day}`, m.team_id);
-  const body = (m.minutes ?? '').split('\n');
-  const first = useWorkspace.getState().pages.find((p) => p.id === page)?.blocks[0];
-  if (first) ws.patchBlock(page, first.id, { text: body[0] ?? '' });
-  body.slice(1).forEach((l) => ws.addBlock(page, 'p', l));
+  fillPage(page, m.minutes ?? '');
   const acts = m.notes?.actions ?? [];
   if (!acts.length) return;
   const nm = t('Cose da fare'); const owner = t('Responsabile'); const due = t('Scadenza');

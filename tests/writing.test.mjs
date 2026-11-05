@@ -33,3 +33,9 @@ test('presentazione da testo e da progetto', () => {
   const h = slidesHtml(p, { company: 'Rossi <Srl>', address: '', email: '', phone: '', vat: '', footer: '', color: '#0F766E', logo: null }, 'Sito'); assert.match(h, /Rossi &lt;Srl&gt;/); assert.equal((h.match(/<section/g) ?? []).length, 4);
   assert.match(docHtml('Ciao\n- uno\n- due', { company: 'X', address: '', email: '', phone: '', vat: '', footer: 'Riservato', color: '#0F766E' }), /<ul><li>uno<\/li>/);
 });
+
+import { linesToBlocks } from '../src/lib/blocksFromText.ts';
+test('un testo diventa blocchi: sezioni, punti, testo', () => {
+  const b = linesToBlocks('Verbale: Avvio\n2026-11-05 · 10:00\n\nDecisioni\n- Si parte lunedì (Giulia)\nDa fare\n- Testi · Giulia\nPresenti: A, B');
+  assert.deepEqual(b.map((x) => x.t), ['p', 'p', 'h', 'bullet', 'h', 'bullet', 'p']); assert.equal(b[3].text, 'Si parte lunedì (Giulia)');
+});

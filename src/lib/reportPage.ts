@@ -1,10 +1,12 @@
+import { linesToBlocks } from '@/lib/blocksFromText';
 import { useWorkspace } from '@/store/workspace';
 
-/** Salva un testo come pagina condivisa del workspace (una riga per blocco). */
+/** Riempie una pagina nuova con i blocchi (sostituisce il blocco vuoto di partenza). */
+export function fillPage(pageId: string, text: string): void {
+  const ws = useWorkspace.getState(); const blocks = linesToBlocks(text); const first = useWorkspace.getState().pages.find((p) => p.id === pageId)?.blocks[0];
+  blocks.forEach((b, i) => { if (i === 0 && first) ws.patchBlock(pageId, first.id, { t: b.t, text: b.text }); else ws.addBlock(pageId, b.t, b.text); });
+}
+/** Salva un testo come pagina condivisa del workspace. */
 export async function saveReportPage(team: string, title: string, text: string): Promise<string> {
-  const ws = useWorkspace.getState(); const page = ws.addPage(null, 'page', title.slice(0, 190), team);
-  const lines = text.split('\n'); const first = useWorkspace.getState().pages.find((p) => p.id === page)?.blocks[0];
-  if (first) ws.patchBlock(page, first.id, { t: 'h', text: lines[0] ?? '' });
-  lines.slice(1).forEach((l) => ws.addBlock(page, l.startsWith('- ') ? 'bullet' : 'p', l.startsWith('- ') ? l.slice(2) : l));
-  return page;
+  const page = useWorkspace.getState().addPage(null, 'page', title.slice(0, 190), team); fillPage(page, text); return page;
 }

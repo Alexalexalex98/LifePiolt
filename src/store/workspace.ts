@@ -14,6 +14,7 @@ type State = {
   remove: (id: string) => WsPage[];
   restore: (list: WsPage[]) => void;
   addBlock: (pid: string, t?: BlockType, text?: string) => string;
+  addBlockAfter: (pid: string, afterId: string, t?: BlockType, text?: string) => string;
   patchBlock: (pid: string, bid: string, p: Partial<Block>) => void;
   delBlock: (pid: string, bid: string) => void;
   moveBlock: (pid: string, bid: string, dir: -1 | 1) => void;
@@ -43,6 +44,7 @@ export const useWorkspace = create<State>()(
     remove: (id) => { const ids = new Set([id, ...descendants(get().pages, id)]); const gone = get().pages.filter((p) => ids.has(p.id)); set((s) => ({ pages: s.pages.filter((p) => !ids.has(p.id)) })); return gone; },
     restore: (list) => set((s) => ({ pages: [...s.pages, ...list.filter((p) => !s.pages.some((x) => x.id === p.id))] })),
     addBlock: (pid, t = 'p', text = '') => { const id = uid(); set((s) => upd(s, pid, (p) => ({ ...p, blocks: [...p.blocks, { id, t, text, u: Date.now() }] }))); return id; },
+    addBlockAfter: (pid, afterId, t = 'p', text = '') => { const id = uid(); set((s) => upd(s, pid, (p) => { const i = p.blocks.findIndex((b) => b.id === afterId); const nb = { id, t, text, u: Date.now() }; const a = p.blocks.slice(); a.splice(i < 0 ? a.length : i + 1, 0, nb); return { ...p, blocks: a }; })); return id; },
     patchBlock: (pid, bid, patch) => set((s) => upd(s, pid, (p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === bid ? { ...b, ...patch, u: Date.now() } : b)) }))),
     delBlock: (pid, bid) => set((s) => upd(s, pid, (p) => ({ ...p, blocks: p.blocks.filter((b) => b.id !== bid), ...(p.teamId ? { tomb: [...(p.tomb ?? []), { id: bid, u: Date.now(), k: 'b' as const }] } : {}) }))),
     moveBlock: (pid, bid, dir) => set((s) => upd(s, pid, (p) => { const i = p.blocks.findIndex((b) => b.id === bid); const j = i + dir; if (i < 0 || j < 0 || j >= p.blocks.length) return p; const a = p.blocks.slice(); [a[i], a[j]] = [a[j]!, a[i]!]; return { ...p, blocks: a.map((b, k) => (k === i || k === j ? { ...b, u: Date.now() } : b)) }; })),

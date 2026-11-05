@@ -5,6 +5,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 
 import { Mascot } from '@/components/mascot/Mascot';
 import { Text } from '@/components/T';
+import { PageBlocks } from '@/components/workspace/PageBlocks';
 import { WorkChat } from '@/components/workspace/WorkChat';
 import { Crm } from '@/components/work/Crm';
 import { Hr } from '@/components/work/Hr';
@@ -302,34 +303,15 @@ function PageView({ page, onOpen, onBack }: { page: WsPage; onOpen: (id: string)
   const onText = (bid: string, v: string) => { const sc = slashCommand(v); if (sc) { ws.patchBlock(page.id, bid, { t: sc.t, text: sc.rest }); if (sc.t === 'divider') ws.addBlock(page.id); } else ws.patchBlock(page.id, bid, { text: v }); };
   return (
     <Page id="workspace" title={page.title || tl('Pagina senza titolo')} back onBack={onBack}>
-      <LinearGradient colors={[c + '77', c + '12']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 96, borderRadius: 22 }} />
+      <LinearGradient colors={[c + '77', c + '12']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 64, borderRadius: 20 }} />
       <View style={{ marginTop: -40, paddingHorizontal: 6 }}>
         <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: th.card, borderWidth: 2, borderColor: th.bg, alignItems: 'center', justifyContent: 'center' }}><View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: c + '33', alignItems: 'center', justifyContent: 'center' }}><Icon name={page.kind === 'db' ? 'chart' : 'note'} size={26} color={c} stroke={2} /></View></View>
         {crumbs.length ? <Text style={{ color: th.muted, fontSize: 12, marginTop: 8 }}>{crumbs.map((x) => x.title || '…').join('  ›  ')}</Text> : null}
-        <Input value={page.title} onChangeText={(v) => ws.patch(page.id, { title: v })} placeholder={tl('Pagina senza titolo')} style={{ fontSize: 30, fontWeight: '800', letterSpacing: -0.6, borderWidth: 0, backgroundColor: 'transparent', paddingHorizontal: 0 }} />
+        <Input value={page.title} onChangeText={(v) => ws.patch(page.id, { title: v })} placeholder={tl('Pagina senza titolo')} style={{ fontSize: 26, fontWeight: '800', letterSpacing: -0.4, borderWidth: 0, backgroundColor: 'transparent', paddingHorizontal: 0 }} />
         <Text style={{ color: th.muted, fontSize: 12, marginTop: -4 }}>{`${teamName ? `${tl('Condivisa con {0}', teamName)} · ` : ''}${tl('modificata {0}', ago(page.updatedAt))}`}</Text>
       </View>
 
-      {page.kind === 'db' ? <Database page={page} /> : (
-        <View style={{ gap: 2, paddingHorizontal: 4 }}>
-          {page.blocks.map((b) => {
-            const on = focusBlock === b.id; const slash = b.text.startsWith('/') && on;
-            if (b.t === 'divider') return <Pressable key={b.id} onLongPress={() => setMenu(b.id)} style={{ height: 1, backgroundColor: th.border, marginVertical: 14 }} />;
-            return (
-              <View key={b.id}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderStartWidth: b.t === 'quote' ? 3 : 0, borderStartColor: c, paddingStart: b.t === 'quote' ? 10 : 0 }}>
-                  {b.t === 'todo' ? <Pressable onPress={() => ws.patchBlock(page.id, b.id, { done: !b.done })} hitSlop={8} accessibilityRole="checkbox" accessibilityState={{ checked: !!b.done }} style={{ marginTop: 11, width: 20, height: 20, borderRadius: 6, borderWidth: 2, borderColor: b.done ? th.positive : th.muted, backgroundColor: b.done ? th.positive : 'transparent', alignItems: 'center', justifyContent: 'center' }}>{b.done ? <Icon name="check" size={13} color="#fff" stroke={3} /> : null}</Pressable> : b.t === 'bullet' ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c, marginTop: 17 }} /> : null}
-                  <Input value={b.text} onChangeText={(v) => onText(b.id, v)} multiline onFocus={() => setFocusBlock(b.id)} placeholder={b.t === 'p' ? tl('Scrivi, o «/» per un comando') : b.t === 'h' ? tl('Titolo') : ''} flex={1}
-                    style={{ borderWidth: 0, backgroundColor: 'transparent', paddingHorizontal: 0, fontSize: b.t === 'h' ? 22 : 16, lineHeight: b.t === 'h' ? 28 : 24, fontWeight: b.t === 'h' ? '800' : '400', fontStyle: b.t === 'quote' ? 'italic' : 'normal', color: b.t === 'todo' && b.done ? th.muted : th.text, textDecorationLine: b.t === 'todo' && b.done ? 'line-through' : 'none' }} />
-                  {on ? <Pressable onPress={() => setMenu(b.id)} hitSlop={8} accessibilityRole="button" style={{ marginTop: 12 }}><Icon name="more" size={18} color={th.muted} /></Pressable> : null}
-                </View>
-                {slash ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 6 }}>{BLOCKS.map((x) => <Pressable key={x.t} onPress={() => { ws.patchBlock(page.id, b.id, { t: x.t, text: '' }); if (x.t === 'divider') ws.addBlock(page.id); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: th.card, borderWidth: 1, borderColor: th.border }}><Icon name={x.icon} size={14} color={c} /><Text style={{ color: th.text, fontWeight: '700', fontSize: 13 }}>{tl(x.label)}</Text></Pressable>)}</ScrollView> : null}
-              </View>
-            );
-          })}
-          <Pressable onPress={() => { const id = ws.addBlock(page.id); setFocusBlock(id); }} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12 }}><Icon name="plus" size={16} color={th.muted} stroke={2.4} /><Text style={{ color: th.muted, fontSize: 14 }}>{tl('Aggiungi un blocco')}</Text></Pressable>
-        </View>
-      )}
+      {page.kind === 'db' ? <Database page={page} /> : <PageBlocks page={page} accent={c} onMenu={setMenu} />}
 
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn small ghost title={ai === 'summary' ? tl('Theia legge…') : tl('Theia: riassumi')} disabled={!!ai} onPress={() => { setAi('summary'); void pageAi(page.id, 'summary').then((r) => { setAi(null); toast(r.msg); }); }} />

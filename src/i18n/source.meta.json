@@ -1,5 +1,5 @@
 {
- "count": 18594,
+ "count": 18602,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -136,7 +136,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 111,
+  "src/app/(tabs)/workspace.tsx": 109,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -372,6 +372,7 @@
   "src/components/work/Tasks.tsx": 68,
   "src/components/work/WorkPlanner.tsx": 66,
   "src/components/work/Writing.tsx": 48,
+  "src/components/workspace/PageBlocks.tsx": 17,
   "src/components/workspace/WorkChat.tsx": 20,
   "src/data/areas.ts": 8,
   "src/data/clubSeed.ts": 100,
@@ -792,5 +793,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2343
+ "withPlaceholders": 2344
 }
