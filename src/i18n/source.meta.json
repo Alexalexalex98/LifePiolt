@@ -1,5 +1,5 @@
 {
- "count": 18408,
+ "count": 18420,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -737,6 +737,7 @@
   "src/lib/when.ts": 11,
   "src/lib/workComms.ts": 32,
   "src/lib/workEstimate.ts": 8,
+  "src/lib/workIntentRun.ts": 13,
   "src/lib/workRoles.ts": 231,
   "src/lib/workTasks.ts": 64,
   "src/lib/workspaceAi.ts": 41,
@@ -786,5 +787,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2285
+ "withPlaceholders": 2292
 }

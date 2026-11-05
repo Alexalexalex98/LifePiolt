@@ -180,6 +180,8 @@ export async function sendWork(text: string, atts: Att[] = []): Promise<void> {
   if (saved.length) { chat.set({ focus: saved.map((f) => f.id), mode: 'ask', pending: undefined }); chat.push({ who: 'ai', text: t('Fatto: ho salvato {0} nel Drive del workspace.{1}', saved.map((f) => `«${f.n}»`).join(', '), skipped ? ` ${t('Le foto qui non le leggo.')}` : '') }); }
   const q = text.trim();
   if (!q) { if (saved.length) chat.push({ who: 'ai', text: t('Cosa vuoi sapere su questo file?') }); return; }
+  // prima le cose da fare (ferie, permessi, task): non c'entrano con il file di cui si stava parlando
+  if (await (await import('@/lib/workIntentRun')).handleWorkIntent(q)) return;
   const st = useWorkspaceChat.getState();
   if (st.focus.length) { await answerFrom(q, st.focus); return; }
   if (st.mode === 'all') { await answerFrom(q, null); return; }
