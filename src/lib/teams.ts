@@ -2,6 +2,7 @@ import { t } from '@/i18n/core';
 import { applyTransport } from '@/sync/bindings';
 import { supa } from '@/lib/accountApi';
 import { readUriBytes } from '@/lib/readUri';
+import { useApp } from '@/store/app';
 import { useTeams, type TeamInfo } from '@/store/teams';
 import { useWorkspace } from '@/store/workspace';
 
@@ -12,13 +13,14 @@ type Q = { select(c: string): Q; eq(c: string, v: unknown): Q; order(c: string, 
 type Raw = { from(t: string): Q; storage: { from(b: string): { upload(p: string, b: ArrayBuffer | Uint8Array, o?: Record<string, unknown>): Promise<{ error: { message?: string } | null }>; download(p: string): Promise<{ data: Blob | null; error: { message?: string } | null }>; remove(p: string[]): Promise<{ error: { message?: string } | null }> } }; channel(n: string): { on(...a: unknown[]): { subscribe(cb?: (s: string) => void): unknown }; }; removeChannel(c: unknown): unknown };
 
 export async function raw(): Promise<Raw> { return (await supa()).raw() as Raw; }
-const msg = (e: unknown) => { const m = e instanceof Error ? e.message : (e as { message?: string })?.message ?? ''; return /invito_non_valido/.test(m) ? t('Il codice non è valido o è scaduto.') : /troppi_team/.test(m) ? t('Hai già 10 team: eliminane uno prima.') : /non_autorizzato/.test(m) ? t('Non hai il permesso per farlo.') : m || t('Operazione non riuscita: riprova.'); };
+const msg = (e: unknown) => { const m = e instanceof Error ? e.message : (e as { message?: string })?.message ?? ''; return /Server non collegato/.test(m) ? t('Non c\'è il collegamento con il server: per condividere con altre persone serve un account verificato e la rete.') : /invito_non_valido/.test(m) ? t('Il codice non è valido o è scaduto.') : /troppi_team/.test(m) ? t('Hai già 10 team: eliminane uno prima.') : /non_autorizzato/.test(m) ? t('Non hai il permesso per farlo.') : m || t('Operazione non riuscita: riprova.'); };
 export type Res<T = undefined> = { ok: true; data: T } | { ok: false; message: string };
 const run = async <T>(f: () => Promise<T>): Promise<Res<T>> => { try { return { ok: true, data: await f() }; } catch (e) { return { ok: false, message: msg(e) }; } };
 
 /** Rilegge i team dal server e, se sei stato tolto da un team, cancella da questo telefono le sue pagine e i suoi file. */
 export async function refreshTeams(): Promise<Res<TeamInfo[]>> {
   return run(async () => {
+    if (isDemo()) return useTeams.getState().teams;
     const list = (await (await supa()).rpc<TeamInfo[]>('team_list')) ?? [];
     useTeams.getState().set({ teams: list, syncedAt: Date.now() });
     const ids = new Set(list.map((x) => x.id));
@@ -29,9 +31,18 @@ export async function refreshTeams(): Promise<Res<TeamInfo[]>> {
     return list;
   });
 }
-export const createTeam = (name: string) => run(async () => { const id = await (await supa()).rpc<string>('team_create', { p_name: name }); await refreshTeams(); return id; });
+/** In modalità demo non c'è un account sul server: il workspace nasce sul telefono (pagine, file e piano funzionano qui; la condivisione con altre persone arriva con l'account verificato). */
+const isDemo = () => useApp.getState().demo;
+const localTeam = (name: string, role: TeamInfo['role']): string => { const id = `demo-${Math.random().toString(36).slice(2, 10)}`; useTeams.getState().set({ teams: [...useTeams.getState().teams, { id, name, role, members: 1 }], syncedAt: Date.now() }); return id; };
+export const createTeam = (name: string) => run(async () => {
+  if (isDemo()) return localTeam(name.trim().slice(0, 80), 'owner');
+  const id = await (await supa()).rpc<string>('team_create', { p_name: name }); await refreshTeams(); return id;
+});
 export const inviteCode = (team: string, role: 'member' | 'admin' = 'member') => run(() => supa().then((s) => s.rpc<string>('team_invite', { p_team: team, p_role: role })));
-export const joinTeam = (code: string) => run(async () => { const id = await (await supa()).rpc<string>('team_join', { p_code: code }); await refreshTeams(); return id; });
+export const joinTeam = (code: string) => run(async () => {
+  if (isDemo()) return localTeam('Studio di prova', 'member');
+  const id = await (await supa()).rpc<string>('team_join', { p_code: code }); await refreshTeams(); return id;
+});
 export const listMembers = (team: string) => run(() => supa().then((s) => s.rpc<Member[]>('team_members_list', { p_team: team })));
 export const removeMember = (team: string, user: string) => run(async () => { await (await supa()).rpc('team_remove_member', { p_team: team, p_user: user }); });
 export const deleteTeam = (team: string) => run(async () => { await (await supa()).rpc('team_delete', { p_team: team }); await refreshTeams(); });

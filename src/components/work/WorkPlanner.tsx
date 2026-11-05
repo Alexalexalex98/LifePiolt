@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/T';
 import { MeetingsList } from '@/components/work/Meetings';
+import { NoWorkspace } from '@/components/work/NoWorkspace';
 import { Body, Btn, Card, ChipBtn, Empty, H, Input, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
@@ -31,13 +32,7 @@ export function WorkPlanner() {
   const teams = useTeams((s) => s.teams);
   const active = useWork((s) => s.active);
   const team = teams.find((x) => x.id === active) ?? teams[0];
-  if (!team) return (
-    <Card>
-      <H>Nessun workspace di lavoro</H>
-      <Body small muted style={{ marginTop: 4 }}>Crea un workspace o entra con un codice di invito: poi qui trovi orario, riunioni e ferie di tutta la squadra.</Body>
-      <Btn style={{ marginTop: 10 }} icon="plus" title="Crea o entra in un workspace" onPress={() => go('teams')} />
-    </Card>
-  );
+  if (!team) return <NoWorkspace what="trovi orario, riunioni e ferie di tutta la squadra" />;
   return (
     <View style={{ gap: 14 }}>
       {teams.length > 1 ? (

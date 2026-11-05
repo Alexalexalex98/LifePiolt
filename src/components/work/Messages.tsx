@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { Text } from '@/components/T';
+import { NoWorkspace } from '@/components/work/NoWorkspace';
 import { useMembers } from '@/components/work/Meetings';
 import { Body, Btn, Card, ChipBtn, Empty, H, Input, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -32,7 +33,7 @@ export function Messages() {
   const [channel, setChannel] = useState('general');
   const msgs = useComms((s) => s.msgs);
   const { me } = useMembers(team?.id ?? '');
-  if (!team) return <Card><H>Nessun workspace di lavoro</H><Body small muted style={{ marginTop: 4 }}>Crea un workspace o entra con un codice di invito per parlare con la tua squadra.</Body><Btn style={{ marginTop: 10 }} icon="plus" title="Crea o entra in un workspace" onPress={() => go('teams')} /></Card>;
+  if (!team) return <NoWorkspace />;
   const projects = pages.filter((p) => p.teamId === team.id && p.parent === null && p.kind === 'page');
   const chans: { id: string; name: string }[] = [{ id: 'general', name: tl('Generale') }, { id: 'ann', name: tl('Annunci') }, ...projects.map((p) => ({ id: p.id, name: p.title || tl('Progetto') }))];
   void msgs;

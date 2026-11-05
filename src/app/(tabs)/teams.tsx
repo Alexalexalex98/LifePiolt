@@ -1,5 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { useCallback, useEffect, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { Share, View } from 'react-native';
 
 import { Body, Btn, Card, Empty, H, Input, Item, Page, Pill, Row } from '@/components/ui';
@@ -7,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { fmtBytes } from '@/lib/attachments';
 import { confirmDelete } from '@/lib/confirm';
-import { go } from '@/lib/nav';
+import { go, goBack } from '@/lib/nav';
 import { startTeamSync } from '@/lib/teamSync';
 import { createTeam, deleteTeam, deleteTeamFile, downloadTeamFile, inviteCode, joinTeam, leaveTeam, listMembers, listTeamFiles, myUserId, refreshTeams, removeMember, uploadTeamFile, type Member, type TeamFile } from '@/lib/teams';
 import { useApp } from '@/store/app';
@@ -19,6 +20,7 @@ const ROLE: Record<string, string> = { owner: 'Creatore', admin: 'Amministratore
 
 /** Team di lavoro: crei uno spazio, inviti con un codice (valido 7 giorni), condividi pagine in tempo reale e un Drive privato. Chi esce o viene rimosso perde subito l'accesso a tutto. */
 export default function Teams() {
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
   const demoMode = useApp((s) => s.demo);
   const verified = useAccount((s) => s.status === 'verified') || demoMode;
   const teams = useTeams((s) => s.teams);
@@ -29,25 +31,33 @@ export default function Teams() {
   if (team) return <TeamView team={team} onBack={() => setOpen(null)} />;
   const act = async (f: () => Promise<{ ok: boolean; message?: string }>, done?: string) => { setBusy(true); const r = await f(); setBusy(false); if (!r.ok) toast((r as { message?: string }).message ?? tl('Operazione non riuscita: riprova.')); else if (done) toast(done); return r; };
   return (
-    <Page id="teams" title={tl('Team')} back>
+    <Page id="teams" title={mode === 'create' ? tl('Nuovo workspace') : mode === 'join' ? tl('Entra in un workspace') : tl('Team')} back>
       {!verified ? <Card><Body>{tl('Per creare o entrare in un team serve un account verificato: lo crei da Impostazioni o dalla schermata iniziale.')}</Body></Card> : null}
-      <Card>
+      {mode ? null : <Card>
         <H>{tl('I tuoi team')}</H>
         {teams.length ? teams.map((x, i) => <Item key={x.id} last={i === teams.length - 1} onPress={() => setOpen(x.id)}><Row><View style={{ flex: 1 }}><Body bold>{x.name}</Body><Body small muted>{`${tl(ROLE[x.role] ?? x.role)} · ${tl('{0} persone', x.members)}`}</Body></View></Row></Item>) : <Empty text={tl('Nessun team ancora.')} />}
-      </Card>
-      {verified ? (
+      </Card>}
+      {verified && !mode ? (
         <>
-          <Card>
-            <H>{tl('Crea un team')}</H>
-            <Input value={name} onChangeText={setName} placeholder={tl('Nome del team (es. Studio Rossi)')} />
-            <Btn disabled={busy || !name.trim()} title={tl('Crea')} onPress={() => void act(() => createTeam(name.trim()), tl('Team creato')).then((r) => { if (r.ok) setName(''); })} />
-          </Card>
-          <Card>
-            <H>{tl('Ho un codice di invito')}</H>
-            <Input value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" placeholder="ABCDE12345" />
-            <Btn ghost disabled={busy || code.trim().length < 6} title={tl('Entra nel team')} onPress={() => void act(() => joinTeam(code.trim()), tl('Sei dentro')).then((r) => { if (r.ok) setCode(''); })} />
-          </Card>
+          <Btn icon="plus" title={tl('Crea il mio workspace')} onPress={() => go('teams', { mode: 'create' })} />
+          <Btn ghost icon="users" title={tl('Entro in un workspace con un codice')} onPress={() => go('teams', { mode: 'join' })} />
         </>
+      ) : null}
+      {verified && mode === 'create' ? (
+        <Card>
+          <H>{tl('Crea il tuo workspace')}</H>
+          <Body small muted style={{ marginBottom: 8 }}>{tl('Sarai il proprietario: poi inviti le persone con un codice e assegni le loro posizioni.')}</Body>
+          <Input value={name} onChangeText={setName} placeholder={tl('Nome del workspace (es. Studio Rossi)')} />
+          <Btn disabled={busy || !name.trim()} title={tl('Crea')} onPress={() => void act(() => createTeam(name.trim()), tl('Workspace creato')).then((r) => { if (r.ok) { setName(''); goBack(); } })} />
+        </Card>
+      ) : null}
+      {verified && mode === 'join' ? (
+        <Card>
+          <H>{tl('Entra in un workspace')}</H>
+          <Body small muted style={{ marginBottom: 8 }}>{tl('Chiedi il codice di invito a un amministratore del workspace: vale 7 giorni.')}</Body>
+          <Input value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" placeholder="ABCDE12345" />
+          <Btn disabled={busy || (code.trim().length < 6 && !demoMode)} title={tl('Entra')} onPress={() => void act(() => joinTeam(code.trim()), tl('Sei dentro')).then((r) => { if (r.ok) { setCode(''); goBack(); } })} />
+        </Card>
       ) : null}
     </Page>
   );

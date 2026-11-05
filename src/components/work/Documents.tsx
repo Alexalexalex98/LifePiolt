@@ -1,3 +1,4 @@
+import { NoWorkspace } from '@/components/work/NoWorkspace';
 import * as DocumentPicker from 'expo-document-picker';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
@@ -32,7 +33,7 @@ export function Documents() {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<TeamDoc | null>(null);
   useEffect(() => { if (team) void listDocs(team.id); }, [team?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!team) return <Card><H>Nessun workspace di lavoro</H><Body small muted style={{ marginTop: 4 }}>Crea un workspace o entra con un codice di invito: poi i documenti si smistano da soli.</Body><Btn style={{ marginTop: 10 }} icon="plus" title="Crea o entra in un workspace" onPress={() => go('teams')} /></Card>;
+  if (!team) return <NoWorkspace />;
 
   async function pick() {
     const r = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: false, copyToCacheDirectory: true });

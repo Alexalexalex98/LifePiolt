@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { Text } from '@/components/T';
+import { NoWorkspace } from '@/components/work/NoWorkspace';
 import { Body, Btn, Card, ChipBtn, Empty, H, Pill, Row, Sheet } from '@/components/ui';
 import { t as tl } from '@/i18n/core';
 import { go } from '@/lib/nav';
@@ -36,7 +37,7 @@ export function People() {
     walk(null, 0, new Set());
     return out;
   }, [people]);
-  if (!team) return <Card><H>Nessun workspace di lavoro</H><Body small muted style={{ marginTop: 4 }}>Crea un workspace o entra con un codice di invito.</Body><Btn style={{ marginTop: 10 }} icon="plus" title="Crea o entra in un workspace" onPress={() => go('teams')} /></Card>;
+  if (!team) return <NoWorkspace />;
   const canManage = caps.has('members.manage');
 
   return (

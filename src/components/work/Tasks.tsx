@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { Text } from '@/components/T';
+import { NoWorkspace } from '@/components/work/NoWorkspace';
 import { Body, Btn, Card, ChipBtn, Empty, H, Input, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
@@ -42,7 +43,7 @@ export function Tasks() {
   const [neu, setNeu] = useState(false);
   const [tpl, setTpl] = useState(false);
   useEffect(() => { if (!team) return; void pullTasks(team.id); void loadPeople(team.id); let off: () => void = () => undefined; let dead = false; void watchTasks(team.id).then((f) => { if (dead) f(); else off = f; }); return () => { dead = true; off(); }; }, [team?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!team) return <Card><H>Nessun workspace di lavoro</H><Body small muted style={{ marginTop: 4 }}>Crea un workspace o entra con un codice di invito: poi pianifichi progetti e task con la squadra.</Body><Btn style={{ marginTop: 10 }} icon="plus" title="Crea o entra in un workspace" onPress={() => go('teams')} /></Card>;
+  if (!team) return <NoWorkspace />;
 
   const nameOf = (id: string | null) => (id ? (id === me ? tl('Tu') : people.find((p) => p.user_id === id)?.name || tl('Collega')) : tl('Nessuno'));
   const t0 = today();

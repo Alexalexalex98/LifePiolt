@@ -9,6 +9,7 @@ import { WorkChat } from '@/components/workspace/WorkChat';
 import { Documents } from '@/components/work/Documents';
 import { People } from '@/components/work/People';
 import { Tasks } from '@/components/work/Tasks';
+import { NoWorkspace } from '@/components/work/NoWorkspace';
 import { MeetingsList } from '@/components/work/Meetings';
 import { ChannelView, Messages } from '@/components/work/Messages';
 import { WorkPlanner } from '@/components/work/WorkPlanner';
@@ -84,10 +85,12 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
   return (
     <Page id="workspace" title="LifeWorkspace" back>
 
-      <Pressable onPress={() => useTour.getState().start('sec-workspace')} accessibilityRole="button" style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: th.card, borderWidth: 1, borderColor: th.border }}><Icon name="help" size={15} color={th.accent} /><Text style={{ color: th.text, fontWeight: '800', fontSize: 13 }}>{tl('Come si usa')}</Text></Pressable>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: th.input, borderWidth: 1, borderColor: th.border, borderRadius: 16, paddingHorizontal: 14, marginTop: 4 }}>
-        <Icon name="search" size={18} color={th.muted} />
-        <Input value={q} onChangeText={setQ} placeholder={tl('Cerca in pagine, database e file')} style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent', marginBottom: 0 }} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: th.input, borderWidth: 1, borderColor: th.border, borderRadius: 16, paddingHorizontal: 14 }}>
+          <Icon name="search" size={18} color={th.muted} />
+          <Input value={q} onChangeText={setQ} placeholder={tl('Cerca in pagine, database e file')} style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent', marginBottom: 0 }} />
+        </View>
+        <Pressable onPress={() => useTour.getState().start('sec-workspace')} accessibilityRole="button" accessibilityLabel={tl('Come si usa')} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: th.card, borderWidth: 1, borderColor: th.border, alignItems: 'center', justifyContent: 'center' }}><Icon name="help" size={20} color={th.accent} /></Pressable>
       </View>
       {q.trim().length >= 2 ? (
         <View style={{ gap: 8 }}>
@@ -107,7 +110,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
       ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ backgroundColor: th.card, borderRadius: 16, padding: 4, gap: 2, marginTop: 12, marginBottom: 12, borderWidth: 1, borderColor: th.border }} style={{ flexGrow: 0 }}>
-        {([['pagine', 'Pagine', 'note'], ['piano', 'Piano', 'calendar'], ['task', 'Task', 'check'], ['messaggi', 'Messaggi', 'comment'], ['documenti', 'Documenti', 'note'], ['persone', 'Persone', 'users'], ['file', 'File', 'file'], ['theia', 'Theia', 'sparkle']] as const).map(([id, l, ic]) => (
+        {([['theia', 'Theia', 'sparkle'], ['pagine', 'Pagine', 'note'], ['piano', 'Piano', 'calendar'], ['task', 'Task', 'check'], ['messaggi', 'Messaggi', 'comment'], ['documenti', 'Documenti', 'note'], ['persone', 'Persone', 'users'], ['file', 'File', 'file']] as const).map(([id, l, ic]) => (
           <Pressable key={id} onPress={() => { setTab(id); if (id === 'theia') setChatOpen(true); }} accessibilityRole="button" accessibilityState={{ selected: tab === id }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 12, backgroundColor: tab === id ? th.text : 'transparent' }}>
             <Icon name={ic} size={15} color={tab === id ? th.onText : th.muted} stroke={2.2} /><Text style={{ color: tab === id ? th.onText : th.muted, fontWeight: '800', fontSize: 13 }}>{tl(l)}</Text>
           </Pressable>
@@ -116,6 +119,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
 
       {tab === 'pagine' ? (
         <View style={{ gap: 14 }}>
+          {teams.length === 0 ? <NoWorkspace what="condividi pagine, task e riunioni" /> : null}
           {recent.length ? (
             <View>
               <Text style={{ color: th.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 }}>{tl('Recenti')}</Text>
