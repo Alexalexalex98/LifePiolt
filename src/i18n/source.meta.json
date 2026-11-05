@@ -1,5 +1,5 @@
 {
- "count": 19033,
+ "count": 19131,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -136,7 +136,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 94,
+  "src/app/(tabs)/workspace.tsx": 95,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -373,6 +373,7 @@
   "src/components/work/Reports.tsx": 35,
   "src/components/work/Tasks.tsx": 68,
   "src/components/work/TeamInbox.tsx": 8,
+  "src/components/work/Trips.tsx": 71,
   "src/components/work/WorkPlanner.tsx": 66,
   "src/components/work/WorkWell.tsx": 38,
   "src/components/work/Writing.tsx": 48,
@@ -713,6 +714,7 @@
   "src/lib/teamMoney.ts": 9,
   "src/lib/teamReports.ts": 15,
   "src/lib/teamTasks.ts": 4,
+  "src/lib/teamTrips.ts": 1,
   "src/lib/teamWork.ts": 5,
   "src/lib/teams.ts": 9,
   "src/lib/theia.ts": 107,
@@ -732,6 +734,7 @@
   "src/lib/travel.ts": 38,
   "src/lib/trialJourney.ts": 16,
   "src/lib/tripPlanner.ts": 102,
+  "src/lib/tripWork.ts": 50,
   "src/lib/tutorials.ts": 189,
   "src/lib/urgentPin.ts": 3,
   "src/lib/vacationPlan.ts": 7,
@@ -802,5 +805,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2394
+ "withPlaceholders": 2410
 }
