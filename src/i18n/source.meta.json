@@ -1,5 +1,5 @@
 {
- "count": 18168,
+ "count": 18277,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -136,7 +136,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 110,
+  "src/app/(tabs)/workspace.tsx": 111,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -362,6 +362,7 @@
   "src/components/work/MeetingCall.tsx": 4,
   "src/components/work/Meetings.tsx": 74,
   "src/components/work/Messages.tsx": 56,
+  "src/components/work/Money.tsx": 112,
   "src/components/work/NoWorkspace.tsx": 5,
   "src/components/work/People.tsx": 30,
   "src/components/work/Reports.tsx": 35,
@@ -603,6 +604,7 @@
   "src/lib/mindScripts.ts": 123,
   "src/lib/mindSessions.ts": 297,
   "src/lib/modRules.ts": 17,
+  "src/lib/money.ts": 53,
   "src/lib/monthPlan.ts": 8,
   "src/lib/monthPlanChecks.ts": 17,
   "src/lib/moodAnalysis.ts": 57,
@@ -691,6 +693,7 @@
   "src/lib/teamCrm.ts": 6,
   "src/lib/teamDocs.ts": 8,
   "src/lib/teamMeetings.ts": 7,
+  "src/lib/teamMoney.ts": 9,
   "src/lib/teamReports.ts": 15,
   "src/lib/teamTasks.ts": 4,
   "src/lib/teamWork.ts": 5,
@@ -779,5 +782,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2249
+ "withPlaceholders": 2261
 }
