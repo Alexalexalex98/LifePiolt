@@ -16,6 +16,8 @@ import { useApp } from '@/store/app';
 import { useLife, taskIsDone, type CalEvent, type Task } from '@/store/life';
 import { useMemos } from '@/store/memos';
 import { useTeams } from '@/store/teams';
+import { usePeople } from '@/store/people';
+import { useWTasks } from '@/store/tasks';
 import { scheduleOf, useWork } from '@/store/work';
 import { WORK_COLOR_ID, matchesFilter, newEventId } from '@/lib/workPlan';
 import { evRange, fitsInHours, nextFree } from '@/lib/workHours';
@@ -303,6 +305,8 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
   const events = useLife((s) => (day ? s.events[day] : undefined)) ?? [];
   const { addEvent, delEvent, restoreEvent, toggleReminder, patchEvent } = useLife();
   const dueTasks = useLife((s) => s.tasks).filter((x) => !x.done && !!day && x.due === day);
+  const meId = usePeople((x) => x.me);
+  const workTasks = Object.values(useWTasks((x) => x.tasks)).flat().filter((x) => !!day && x.due === day && x.assignee === meId && x.status !== 'done' && !x.parent && filter !== 'personal');
   const dueMemos = useMemos((s) => s.memos).filter((m) => !!day && occursOn(m, day));
   const [time, setTime] = useState('09:00');
   const [title, setTitle] = useState('');
@@ -353,6 +357,16 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
           ))}
         </>
       ) : null}
+      {workTasks.length > 0 ? (
+        <>
+          <Body small bold muted style={{ marginTop: 4, marginBottom: 6 }}>{tl('TASK DI LAVORO')}</Body>
+          {workTasks.map((x) => (
+            <RowCard key={x.id} color={c.of({ title: x.title, color: WORK_COLOR_ID })}>
+              <Row gap={10}><View style={{ flex: 1 }}><Body bold>{x.title}</Body><Body small muted>{`${tl('Lavoro')} · ${tl(x.priority === 'urgent' ? 'Urgente' : 'Da fare')}`}</Body></View></Row>
+            </RowCard>
+          ))}
+        </>
+      ) : null}
       {dueTasks.length > 0 ? (
         <>
           <Body small bold muted style={{ marginTop: 4, marginBottom: 6 }}>{tl('TASK DA FARE')}</Body>
@@ -369,7 +383,7 @@ export function DaySheet({ day, onClose, onVacation }: { day: string | null; onC
           ))}
         </>
       ) : null}
-      {sorted.length === 0 && vacs.length === 0 && dueTasks.length === 0 && dueMemos.length === 0 ? (
+      {sorted.length === 0 && vacs.length === 0 && dueTasks.length === 0 && workTasks.length === 0 && dueMemos.length === 0 ? (
         <View style={{ alignItems: 'center', paddingVertical: 22, gap: 8 }}>
           <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: t.chip, alignItems: 'center', justifyContent: 'center' }}><Icon name="calendar" size={24} color={t.muted} stroke={1.8} /></View>
           <Body muted>Nessun impegno pianificato: giornata libera.</Body>
