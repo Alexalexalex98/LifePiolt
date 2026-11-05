@@ -1,5 +1,5 @@
 {
- "count": 17497,
+ "count": 17744,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -136,7 +136,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 105,
+  "src/app/(tabs)/workspace.tsx": 106,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -357,10 +357,11 @@
   "src/components/tour/TourOverlay.tsx": 8,
   "src/components/tour/TutorialSettings.tsx": 13,
   "src/components/ui.tsx": 12,
-  "src/components/work/Documents.tsx": 48,
+  "src/components/work/Documents.tsx": 51,
   "src/components/work/MeetingCall.tsx": 4,
   "src/components/work/Meetings.tsx": 74,
   "src/components/work/Messages.tsx": 59,
+  "src/components/work/People.tsx": 33,
   "src/components/work/WorkPlanner.tsx": 67,
   "src/components/workspace/WorkChat.tsx": 20,
   "src/data/areas.ts": 8,
@@ -717,6 +718,7 @@
   "src/lib/when.ts": 11,
   "src/lib/workComms.ts": 32,
   "src/lib/workEstimate.ts": 8,
+  "src/lib/workRoles.ts": 229,
   "src/lib/workspaceAi.ts": 41,
   "src/lib/workspaceCore.ts": 4,
   "src/lib/workspaceSearch.ts": 4,
@@ -763,5 +765,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2162
+ "withPlaceholders": 2165
 }

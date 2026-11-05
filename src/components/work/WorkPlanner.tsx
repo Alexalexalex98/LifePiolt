@@ -12,6 +12,7 @@ import { listMembers, myUserId, type Member } from '@/lib/teams';
 import { busyRanges, decideAbsence, listAbsences, loadHours, pushWorkEvent, removeWorkEvent, requestAbsence, teamBusy, today, type Busy } from '@/lib/teamWork';
 import { DEFAULT_SCHEDULE, addDays, commonFree, evRange, fitsInHours, formatSpans, fromMin, nextFree, parseSpans, type Schedule } from '@/lib/workHours';
 import { WORK_COLOR_ID, isWork, newEventId } from '@/lib/workPlan';
+import { useCaps } from '@/lib/teamPeople';
 import { useLife, type CalEvent } from '@/store/life';
 import { useTeams } from '@/store/teams';
 import { toast } from '@/store/toast';
@@ -181,7 +182,7 @@ function Hours({ team }: { team: string }) {
 }
 
 /* ---------- ferie e permessi ---------- */
-function Absences({ team, role }: { team: string; role: Member['role'] }) {
+function Absences({ team }: { team: string; role?: Member['role'] }) {
   const [list, setList] = useState<Absence[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [open, setOpen] = useState(false);
@@ -189,7 +190,7 @@ function Absences({ team, role }: { team: string; role: Member['role'] }) {
   const [from, setFrom] = useState(today());
   const [to, setTo] = useState(today());
   const [note, setNote] = useState('');
-  const admin = role !== 'member';
+  const approver = useCaps(team).caps.has('absence.approve');
   const reload = useCallback(() => { void listAbsences(team).then((r) => { if (r.ok) setList(r.data.filter((a) => a.to_day >= today())); }); }, [team]);
   useEffect(() => { reload(); void listMembers(team).then((r) => { if (r.ok) setNames(Object.fromEntries(r.data.map((m) => [m.user_id, m.name || tl('Collega')]))); }); }, [team, reload]);
   const st = (a: Absence) => (a.status === 'approved' ? tl('Approvata') : a.status === 'rejected' ? tl('Rifiutata') : tl('In attesa'));
@@ -203,7 +204,7 @@ function Absences({ team, role }: { team: string; role: Member['role'] }) {
               <Body bold>{`${names[a.user_id] ?? tl('Collega')} · ${tl(KIND_LABEL[a.kind])}`}</Body>
               <Body small muted>{`${label(a.from_day)} – ${label(a.to_day)} · ${st(a)}`}</Body>
             </View>
-            {admin && a.status === 'requested' ? (
+            {approver && a.status === 'requested' ? (
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <ChipBtn icon="check" title="Approva" onPress={() => { void decideAbsence(a.id, true).then((r) => { toast(r.ok ? 'Approvata' : r.message); reload(); }); }} />
                 <ChipBtn icon="x" tone="danger" title="Rifiuta" onPress={() => { void decideAbsence(a.id, false).then((r) => { toast(r.ok ? 'Rifiutata' : r.message); reload(); }); }} />

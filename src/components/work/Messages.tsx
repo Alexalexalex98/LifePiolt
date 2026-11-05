@@ -12,6 +12,7 @@ import { addDays } from '@/lib/workHours';
 import { TEMPLATES, autoReply, draftReplies, fillTemplate, mentionIds, priorityOf, summarize, type Priority } from '@/lib/workComms';
 import { commsAi, deleteMessage, markSeen, pinMessage, pullAway, pullMessages, sendMessage, setAway, unread, watchMessages } from '@/lib/teamComms';
 import { today } from '@/lib/teamWork';
+import { useCaps } from '@/lib/teamPeople';
 import { chanKey, useComms, type Msg } from '@/store/comms';
 import { useLife } from '@/store/life';
 import { useTeams } from '@/store/teams';
@@ -64,7 +65,8 @@ export function ChannelView({ team, channel, admin, name }: { team: string; chan
   const [busy, setBusy] = useState(false);
   useEffect(() => { void pullMessages(team, channel); void pullAway(team); let off: () => void = () => undefined; let dead = false; void watchMessages(team, channel).then((f) => { if (dead) f(); else off = f; }); return () => { dead = true; off(); }; }, [team, channel]);
   useEffect(() => { markSeen(team, channel); }, [list.length, team, channel]);
-  const canWrite = channel !== 'ann' || admin;
+  const canAnnounce = useCaps(team).caps.has('announce');
+  const canWrite = channel !== 'ann' || canAnnounce;
   const people = members.map((m) => ({ id: m.user_id, name: m.name }));
   const t0 = today();
   const absent = Object.entries(away).filter(([, a]) => a.until >= t0);
@@ -108,7 +110,7 @@ export function ChannelView({ team, channel, admin, name }: { team: string; chan
       {absent.length ? absent.map(([id, a]) => <Body key={id} small muted style={{ marginTop: 4 }}>{tl('{0} è assente fino al {1}.', nameOf(id), new Date(a.until + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))}</Body>) : null}
       {pinned.length ? <View style={{ marginTop: 8, backgroundColor: th.accent + '1a', borderRadius: 12, padding: 10 }}><Body small bold>{tl('FISSATI').toUpperCase()}</Body>{pinned.map((m) => <Body key={m.id} small style={{ marginTop: 2 }}>{m.text}</Body>)}</View> : null}
       <View style={{ marginTop: 10 }}>
-        {list.length === 0 ? <Empty text={channel === 'ann' ? 'Nessun annuncio. Gli annunci li scrivono gli amministratori e li vedono tutti.' : 'Nessun messaggio. Scrivi il primo.'} /> : list.map(bubble)}
+        {list.length === 0 ? <Empty text={channel === 'ann' ? 'Nessun annuncio. Gli annunci li scrivono amministratori e responsabili e li vedono tutti.' : 'Nessun messaggio. Scrivi il primo.'} /> : list.map(bubble)}
       </View>
       {reply ? <Row style={{ marginTop: 4 }}><Text numberOfLines={1} style={{ flex: 1, color: th.muted, fontSize: 12 }}>{tl('Rispondi a {0}: {1}', nameOf(reply.author), reply.text)}</Text><ChipBtn icon="x" title="Annulla" onPress={() => setReply(null)} /></Row> : null}
       {hints.map((h, i) => <Body key={i} small muted style={{ marginTop: 4 }}>{h}</Body>)}
@@ -117,7 +119,7 @@ export function ChannelView({ team, channel, admin, name }: { team: string; chan
           <Input value={text} onChangeText={setText} placeholder={tl('Scrivi un messaggio. Con @ citi una persona.')} maxLines={5} style={{ marginTop: 6 }} />
           <Row><Btn small ghost icon="note" title="Modelli" onPress={() => setTpl(true)} /><Btn small icon="send" disabled={busy || !text.trim()} title="Invia" onPress={send} /></Row>
         </>
-      ) : <Body small muted style={{ marginTop: 6 }}>{tl('Solo gli amministratori scrivono negli annunci.')}</Body>}
+      ) : <Body small muted style={{ marginTop: 6 }}>{tl('Gli annunci li scrivono amministratori e responsabili.')}</Body>}
 
       <Templates open={tpl} onClose={() => setTpl(false)} onPick={(v) => { setText(v); setTpl(false); }} />
       <Summary lines={sum} onClose={() => setSum(null)} raw={list.slice(-20).map((m) => m.text).join('\n')} />

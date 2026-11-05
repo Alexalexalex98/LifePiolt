@@ -40,7 +40,7 @@ export const saveDoc = (d: NewDoc) => run(async () => {
   const me = await myUserId(); if (!me) throw new Error(t('Accedi per continuare.'));
   const bytes = await readUriBytes(d.file.uri);
   if (bytes.length > 25 * 1024 * 1024) throw new Error(t('Il file supera i 25 MB.'));
-  const folder = d.access === 'team' ? 'team' : d.access === 'admin' ? 'admin' : `p-${d.person}`;
+  const folder = d.access === 'person' ? `p-${d.person}` : d.access;
   if (d.access === 'person' && !d.person) throw new Error(t('Scegli a quale persona si riferisce.'));
   const path = `${d.team}/${folder}/${Date.now().toString(36)}-${d.file.name.replace(/[^\w.\-]+/g, '_')}`;
   const c = await raw();

@@ -4,19 +4,19 @@
  * Tutto a regole, sul telefono: funziona senza AI e senza costi. Con l'AI collegata si può leggere anche ciò che le regole non vedono.
  */
 export type DocKind = 'cv' | 'invoice' | 'bill' | 'payslip' | 'contract' | 'quote' | 'receipt' | 'minutes' | 'tax' | 'registry' | 'certificate' | 'other';
-export type Access = 'team' | 'admin' | 'person';
+export type Access = 'team' | 'admin' | 'hr' | 'fin' | 'legal' | 'person';
 export type DocInfo = { label: string; section: string; access: Access; icon: string };
-/** Dove va ciascun tipo e chi lo vede (buste paga e documenti personali: amministratori e persona interessata; CV e fatture: amministratori). */
+/** Dove va ciascun tipo e chi lo vede (buste paga: HR e persona interessata; CV: HR; fatture e spese: amministrazione; contratti: ufficio legale; tutti con gli amministratori). */
 export const KINDS: Record<DocKind, DocInfo> = {
-  cv: { label: 'Curriculum', section: 'Candidati', access: 'admin', icon: 'user' },
-  invoice: { label: 'Fattura', section: 'Pagamenti', access: 'admin', icon: 'file' },
-  bill: { label: 'Bolletta', section: 'Pagamenti', access: 'admin', icon: 'file' },
+  cv: { label: 'Curriculum', section: 'Candidati', access: 'hr', icon: 'profile' },
+  invoice: { label: 'Fattura', section: 'Pagamenti', access: 'fin', icon: 'file' },
+  bill: { label: 'Bolletta', section: 'Pagamenti', access: 'fin', icon: 'file' },
   payslip: { label: 'Busta paga', section: 'Buste paga', access: 'person', icon: 'file' },
-  contract: { label: 'Contratto', section: 'Contratti', access: 'admin', icon: 'note' },
+  contract: { label: 'Contratto', section: 'Contratti', access: 'legal', icon: 'note' },
   quote: { label: 'Preventivo', section: 'Preventivi', access: 'team', icon: 'note' },
-  receipt: { label: 'Ricevuta o nota spese', section: 'Spese', access: 'admin', icon: 'file' },
+  receipt: { label: 'Ricevuta o nota spese', section: 'Spese', access: 'fin', icon: 'file' },
   minutes: { label: 'Verbale', section: 'Altri documenti', access: 'team', icon: 'note' },
-  tax: { label: 'Documento fiscale', section: 'Fisco', access: 'admin', icon: 'file' },
+  tax: { label: 'Documento fiscale', section: 'Fisco', access: 'fin', icon: 'file' },
   registry: { label: 'Visura o registro di commercio', section: 'Fisco', access: 'team', icon: 'file' },
   certificate: { label: 'Certificato', section: 'Altri documenti', access: 'team', icon: 'file' },
   other: { label: 'Altro documento', section: 'Altri documenti', access: 'team', icon: 'file' },

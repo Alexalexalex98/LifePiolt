@@ -11,14 +11,15 @@ import { go } from '@/lib/nav';
 import { deleteDoc, downloadDoc, listDocs, readAndAnalyze, readWithAi, saveDoc, updateDoc, type Picked } from '@/lib/teamDocs';
 import { useDocs, type TeamDoc } from '@/store/docs';
 import { useTeams } from '@/store/teams';
+import { useCaps } from '@/lib/teamPeople';
+import { canHandle, type Cap } from '@/lib/workRoles';
 import { toast } from '@/store/toast';
 import { useWork } from '@/store/work';
 
 const money = (n: number | null, c: string | null) => (n == null ? '' : `${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${c ?? ''}`.trim());
 const day = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-/** Chi non è amministratore può caricare solo documenti visibili a tutto il team. */
-const OPEN_KINDS: DocKind[] = ['quote', 'minutes', 'certificate', 'registry', 'other'];
 const ALL_KINDS = Object.keys(KINDS) as DocKind[];
+const ACCESS_TEXT: Record<string, string> = { team: 'Lo vedono tutte le persone del workspace.', admin: 'Lo vedono solo gli amministratori.', hr: 'Lo vedono HR e gli amministratori.', fin: 'Lo vedono amministrazione e gli amministratori.', legal: 'Lo vede l\'ufficio legale e gli amministratori.', person: 'Lo vedono HR, gli amministratori e la persona interessata.' };
 
 /** Documenti intelligenti: ogni file caricato viene letto da Theia, riconosciuto e messo nell'elenco giusto (Candidati, Pagamenti, Buste paga...). */
 export function Documents() {
@@ -26,6 +27,7 @@ export function Documents() {
   const active = useWork((s) => s.active);
   const team = teams.find((x) => x.id === active) ?? teams[0];
   const all = useDocs((s) => (team ? s.docs[team.id] : undefined)) ?? [];
+  const { caps, role } = useCaps(team?.id);
   const [review, setReview] = useState<{ file: Picked; result: DocResult; text: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<TeamDoc | null>(null);
@@ -54,8 +56,8 @@ export function Documents() {
           {g.list.map((d) => <DocRow key={d.id} d={d} onOpen={() => setOpen(d)} />)}
         </Card>
       ))}
-      {review ? <Review team={team.id} admin={team.role !== 'member'} init={review} onClose={() => setReview(null)} /> : null}
-      <DocSheet d={open} admin={team.role !== 'member'} onClose={() => setOpen(null)} />
+      {review ? <Review team={team.id} role={role} caps={caps} init={review} onClose={() => setReview(null)} /> : null}
+      <DocSheet d={open} role={role} caps={caps} onClose={() => setOpen(null)} />
     </View>
   );
 }
@@ -79,7 +81,7 @@ function DocRow({ d, onOpen }: { d: TeamDoc; onOpen: () => void }) {
 }
 
 /* ---------- controllo prima di salvare ---------- */
-function Review({ team, admin, init, onClose }: { team: string; admin: boolean; init: { file: Picked; result: DocResult; text: string | null }; onClose: () => void }) {
+function Review({ team, role, caps, init, onClose }: { team: string; role: 'owner' | 'admin' | 'member' | undefined; caps: Set<Cap>; init: { file: Picked; result: DocResult; text: string | null }; onClose: () => void }) {
   const { members, me, nameOf } = useMembers(team);
   const [res, setRes] = useState<DocResult>(init.result);
   const [fields, setFields] = useState<Record<string, string>>(init.result.fields);
@@ -89,16 +91,16 @@ function Review({ team, admin, init, onClose }: { team: string; admin: boolean; 
   const [person, setPerson] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const kind = res.kind; const info = KINDS[kind];
-  const blocked = !admin && info.access !== 'team';
+  const blocked = !canHandle(info.access, role, caps);
   const needsPerson = info.access === 'person';
   const confidence = res.confidence >= 0.75 ? tl('Sono sicura') : res.confidence >= 0.5 ? tl('Credo') : tl('Non sono sicura');
-  const kinds = admin ? ALL_KINDS : OPEN_KINDS;
+  const kinds = ALL_KINDS.filter((k) => canHandle(KINDS[k].access, role, caps));
   useEffect(() => { if (needsPerson && !person) { const n = (fields.persona ?? '').toLowerCase(); const m = n ? members.find((x) => n.includes((x.name || '').toLowerCase().split(' ')[0] ?? '###')) : undefined; if (m) setPerson(m.user_id); } }, [members]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const retype = (k: DocKind) => setRes({ ...res, kind: k });
   const withAi = () => { setBusy(true); void readWithAi(init.file).then((r) => { setBusy(false); if (!r) { toast('Non sono riuscita a leggerlo: compila a mano.'); return; } setRes(r.result); setFields(r.result.fields); setTitle(r.result.title); setDue(r.result.due ?? ''); setAmount(r.result.amount != null ? String(r.result.amount) : ''); }); };
   function save() {
-    if (blocked) { toast('Questo documento è riservato: lo carica un amministratore.'); return; }
+    if (blocked) { toast('Questo documento è riservato alla funzione che lo gestisce.'); return; }
     if (needsPerson && !person) { toast('Scegli a quale persona si riferisce'); return; }
     if (due && !/^\d{4}-\d{2}-\d{2}$/.test(due)) { toast('Scrivi la scadenza come 2026-12-31'); return; }
     const amt = amount.trim() ? parseFloat(amount.replace(',', '.')) : null;
@@ -117,8 +119,8 @@ function Review({ team, admin, init, onClose }: { team: string; admin: boolean; 
       {init.text === null || res.kind === 'other' ? <Btn style={{ marginTop: 8 }} ghost icon="sparkle" disabled={busy} title={busy ? 'Theia legge…' : 'Fai leggere il documento a Theia'} onPress={withAi} /> : null}
       <Body small bold muted style={{ marginTop: 12, marginBottom: 6 }}>{tl('TIPO').toUpperCase()}</Body>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{kinds.map((k) => <Pill key={k} label={tl(KINDS[k].label)} on={k === kind} onPress={() => retype(k)} />)}</View>
-      <Body small muted style={{ marginTop: 8 }}>{`${tl('Va in')}: ${tl(info.section)}. ${info.access === 'team' ? tl('Lo vedono tutte le persone del workspace.') : info.access === 'admin' ? tl('Lo vedono solo gli amministratori.') : tl('Lo vedono gli amministratori e la persona interessata.')}`}</Body>
-      {blocked ? <Body small bold color="#ff5a64" style={{ marginTop: 6 }}>{tl('Questo tipo di documento è riservato: chiedi a un amministratore di caricarlo.')}</Body> : null}
+      <Body small muted style={{ marginTop: 8 }}>{`${tl('Va in')}: ${tl(info.section)}. ${tl(ACCESS_TEXT[info.access]!)}`}</Body>
+      {blocked ? <Body small bold color="#ff5a64" style={{ marginTop: 6 }}>{tl('Questo tipo di documento è riservato: lo carica chi ha quella funzione (per esempio HR o amministrazione).')}</Body> : null}
       <Input style={{ marginTop: 10 }} placeholder="Titolo" value={title} onChangeText={setTitle} />
       {keys.map((k) => <Input key={k} placeholder={tl(FIELD_LABELS[k] ?? k)} value={fields[k] ?? ''} onChangeText={(v) => setFields({ ...fields, [k]: v })} />)}
       {kind === 'cv' && !fields.nome ? <Input placeholder="Nome" value={fields.nome ?? ''} onChangeText={(v) => setFields({ ...fields, nome: v })} /> : null}
@@ -136,7 +138,7 @@ function Review({ team, admin, init, onClose }: { team: string; admin: boolean; 
 }
 
 /* ---------- scheda di un documento salvato ---------- */
-function DocSheet({ d, admin, onClose }: { d: TeamDoc | null; admin: boolean; onClose: () => void }) {
+function DocSheet({ d, role, caps, onClose }: { d: TeamDoc | null; role: 'owner' | 'admin' | 'member' | undefined; caps: Set<Cap>; onClose: () => void }) {
   const { me, nameOf } = useMembers(d?.team_id ?? '');
   const cur = useDocs((s) => (d ? s.docs[d.team_id]?.find((x) => x.id === d.id) : undefined)) ?? d;
   const open = useCallback(async () => {
@@ -150,7 +152,7 @@ function DocSheet({ d, admin, onClose }: { d: TeamDoc | null; admin: boolean; on
     } catch { toast('Non riesco ad aprire il file su questo dispositivo.'); }
   }, [cur]);
   if (!cur) return null;
-  const canEdit = admin || cur.created_by === me;
+  const canEdit = canHandle(cur.access, role, caps) || (cur.access === 'team' && cur.created_by === me);
   const isMoney = cur.kind === 'invoice' || cur.kind === 'bill';
   return (
     <Sheet visible title={cur.title} onClose={onClose}>

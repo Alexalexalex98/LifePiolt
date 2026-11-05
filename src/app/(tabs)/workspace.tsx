@@ -7,6 +7,7 @@ import { Mascot } from '@/components/mascot/Mascot';
 import { Text } from '@/components/T';
 import { WorkChat } from '@/components/workspace/WorkChat';
 import { Documents } from '@/components/work/Documents';
+import { People } from '@/components/work/People';
 import { MeetingsList } from '@/components/work/Meetings';
 import { ChannelView, Messages } from '@/components/work/Messages';
 import { WorkPlanner } from '@/components/work/WorkPlanner';
@@ -29,7 +30,7 @@ import { useDocs } from '@/store/docs';
 import { useTeams } from '@/store/teams';
 import { toast } from '@/store/toast';
 
-type Tab = 'pagine' | 'piano' | 'messaggi' | 'documenti' | 'file' | 'theia';
+type Tab = 'pagine' | 'piano' | 'messaggi' | 'documenti' | 'persone' | 'file' | 'theia';
 const PALETTE = ['#8fa4ff', '#5fd39a', '#ff9d6e', '#c9b6ff', '#6ec9dd', '#e0c97b', '#ff8fb1'];
 const colorOf = (id: string) => PALETTE[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % PALETTE.length]!;
 const ago = (ts: number) => { const m = Math.round((Date.now() - ts) / 60000); return m < 1 ? tl('adesso') : m < 60 ? tl('{0} min fa', m) : m < 1440 ? tl('{0} h fa', Math.round(m / 60)) : tl('{0} g fa', Math.round(m / 1440)); };
@@ -105,7 +106,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
       ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ backgroundColor: th.card, borderRadius: 16, padding: 4, gap: 2, marginTop: 12, marginBottom: 12, borderWidth: 1, borderColor: th.border }} style={{ flexGrow: 0 }}>
-        {([['pagine', 'Pagine', 'note'], ['piano', 'Piano', 'calendar'], ['messaggi', 'Messaggi', 'comment'], ['documenti', 'Documenti', 'note'], ['file', 'File', 'file'], ['theia', 'Theia', 'sparkle']] as const).map(([id, l, ic]) => (
+        {([['pagine', 'Pagine', 'note'], ['piano', 'Piano', 'calendar'], ['messaggi', 'Messaggi', 'comment'], ['documenti', 'Documenti', 'note'], ['persone', 'Persone', 'users'], ['file', 'File', 'file'], ['theia', 'Theia', 'sparkle']] as const).map(([id, l, ic]) => (
           <Pressable key={id} onPress={() => { setTab(id); if (id === 'theia') setChatOpen(true); }} accessibilityRole="button" accessibilityState={{ selected: tab === id }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 12, backgroundColor: tab === id ? th.text : 'transparent' }}>
             <Icon name={ic} size={15} color={tab === id ? th.onText : th.muted} stroke={2.2} /><Text style={{ color: tab === id ? th.onText : th.muted, fontWeight: '800', fontSize: 13 }}>{tl(l)}</Text>
           </Pressable>
@@ -146,6 +147,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
       {tab === 'piano' ? <WorkPlanner /> : null}
       {tab === 'messaggi' ? <Messages /> : null}
       {tab === 'documenti' ? <Documents /> : null}
+      {tab === 'persone' ? <People /> : null}
       {tab === 'file' ? <Files onChat={() => setTab('theia')} /> : null}
       {tab === 'theia' ? <WorkLauncher onOpen={() => setChatOpen(true)} /> : null}
       {chatOpen ? <WorkChat onClose={() => setChatOpen(false)} /> : null}
