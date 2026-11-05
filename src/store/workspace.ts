@@ -19,6 +19,8 @@ type State = {
   delBlock: (pid: string, bid: string) => void;
   moveBlock: (pid: string, bid: string, dir: -1 | 1) => void;
   addCol: (pid: string, name: string, kind: ColKind) => void;
+  renameCol: (pid: string, cid: string, name: string) => void;
+  delCol: (pid: string, cid: string) => void;
   addRow: (pid: string) => string;
   addRows: (pid: string, items: { title: string; date?: string }[]) => void;
   fromTemplate: (parent: string | null, tplId: string, teamId?: string) => string;
@@ -49,6 +51,8 @@ export const useWorkspace = create<State>()(
     delBlock: (pid, bid) => set((s) => upd(s, pid, (p) => ({ ...p, blocks: p.blocks.filter((b) => b.id !== bid), ...(p.teamId ? { tomb: [...(p.tomb ?? []), { id: bid, u: Date.now(), k: 'b' as const }] } : {}) }))),
     moveBlock: (pid, bid, dir) => set((s) => upd(s, pid, (p) => { const i = p.blocks.findIndex((b) => b.id === bid); const j = i + dir; if (i < 0 || j < 0 || j >= p.blocks.length) return p; const a = p.blocks.slice(); [a[i], a[j]] = [a[j]!, a[i]!]; return { ...p, blocks: a.map((b, k) => (k === i || k === j ? { ...b, u: Date.now() } : b)) }; })),
     addCol: (pid, name, kind) => set((s) => upd(s, pid, (p) => ({ ...p, cols: [...(p.cols ?? []), { id: uid(), name: name.trim() || 'Colonna', kind, u: Date.now() }] }))),
+    renameCol: (pid, cid, name) => set((s) => upd(s, pid, (p) => ({ ...p, cols: (p.cols ?? []).map((c) => (c.id === cid ? { ...c, name: name.trim() || c.name, u: Date.now() } : c)) }))),
+    delCol: (pid, cid) => set((s) => upd(s, pid, (p) => ({ ...p, cols: (p.cols ?? []).filter((c) => c.id !== cid), ...(p.teamId ? { tomb: [...(p.tomb ?? []), { id: cid, u: Date.now(), k: 'c' as const }] } : {}) }))),
     addRow: (pid) => { const id = uid(); set((s) => upd(s, pid, (p) => ({ ...p, rows: [...(p.rows ?? []), { id, cells: {}, u: Date.now() }] }))); return id; },
     addRows: (pid, items) => set((s) => upd(s, pid, (p) => {
       const cols = p.cols ?? []; const name = cols[0]?.id; const date = cols.find((c) => c.kind === 'date')?.id; const st = cols.find((c) => c.kind === 'status')?.id;

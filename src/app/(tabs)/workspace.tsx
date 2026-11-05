@@ -5,6 +5,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 
 import { Mascot } from '@/components/mascot/Mascot';
 import { Text } from '@/components/T';
+import { Database } from '@/components/workspace/Database';
 import { PageBlocks } from '@/components/workspace/PageBlocks';
 import { WorkChat } from '@/components/workspace/WorkChat';
 import { Crm } from '@/components/work/Crm';
@@ -356,98 +357,3 @@ function Section({ title, children, action, onAction, extra, onExtra }: { title:
 const OPS: { op: Filter['op']; label: string }[] = [{ op: 'has', label: 'contiene' }, { op: 'is', label: 'è' }, { op: 'not', label: 'non è' }, { op: 'gt', label: '>' }, { op: 'lt', label: '<' }];
 const VIEWS = [{ v: 'table', l: 'Tabella' }, { v: 'kanban', l: 'Kanban' }, { v: 'calendar', l: 'Calendario' }, { v: 'gallery', l: 'Galleria' }] as const;
 
-function Database({ page }: { page: WsPage }) {
-  const th = useTheme(); const ws = useWorkspace.getState();
-  const [colName, setColName] = useState('');
-  const [fOpen, setFOpen] = useState(false);
-  const cols = page.cols ?? []; const allRows = page.rows ?? [];
-  const status = cols.find((x) => x.kind === 'status'); const first = cols[0];
-  const rows = useMemo(() => applyView(cols, allRows, page.flt, page.srt), [cols, allRows, page.flt, page.srt]);
-  const view = page.view ?? 'table';
-  const next = (v: string | undefined) => STATUSES[(STATUSES.indexOf(v ?? '') + 1) % STATUSES.length]!;
-  const SC: Record<string, string> = { 'Da fare': '#8e98a8', 'In corso': '#e0c97b', Fatto: '#5fd39a' };
-  const flt: Filter = page.flt ?? { col: first?.id ?? '', op: 'has', v: '' };
-  const setFlt = (p: Partial<Filter>) => ws.patch(page.id, { flt: { ...flt, ...p } });
-  const sortBy = (id: string) => { const s = page.srt; ws.patch(page.id, { srt: !s || s.col !== id ? { col: id, dir: 1 } : s.dir === 1 ? { col: id, dir: -1 } : null }); };
-  const dateCol = cols.find((x) => x.kind === 'date');
-  const cal = useMemo(() => byDay(cols, rows), [cols, rows]);
-  const chip = (on: boolean) => ({ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: on ? th.accent : th.border, backgroundColor: on ? th.accent + '22' : th.card } as const);
-  const card = (r: (typeof rows)[number], w?: number) => (
-    <Pressable key={r.id} onPress={() => status ? ws.patchRow(page.id, r.id, status.id, next(r.cells[status.id] || STATUSES[0])) : undefined} style={{ width: w, backgroundColor: th.card, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: th.border }}>
-      <Text style={{ color: th.text, fontWeight: '800' }}>{(first && r.cells[first.id]) || tl('Senza nome')}</Text>
-      {cols.slice(1).filter((x) => r.cells[x.id]).map((x) => <Text key={x.id} style={{ color: th.muted, fontSize: 12, marginTop: 3 }}>{`${x.name}: ${x.kind === 'status' ? tl(r.cells[x.id]!) : r.cells[x.id]}`}</Text>)}
-    </Pressable>
-  );
-  return (
-    <View style={{ gap: 12 }}>
-      <View style={{ backgroundColor: th.accent + '14', borderRadius: 16, padding: 12, gap: 4 }}>
-        <Text style={{ color: th.text, fontWeight: '800', fontSize: 14 }}>{allRows.length ? tl('Come si usa questo database') : tl('Un database vuoto: iniziamo')}</Text>
-        <Text style={{ color: th.muted, fontSize: 13, lineHeight: 19 }}>{allRows.length ? tl('Scrivi nelle celle per cambiare un dato. Tocca lo stato per passare a Da fare, In corso o Fatto. In alto scegli come vederlo: Tabella, Kanban, Calendario (serve una colonna Data) o Galleria.') : tl('1) Premi «Nuova riga» in fondo: ogni riga è una voce (un compito, un libro…). 2) Scrivi il nome nella prima cella. 3) Cambia vista in alto: Tabella, Kanban (colonne per stato), Calendario o Galleria.')}</Text>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={{ flexDirection: 'row', backgroundColor: th.card, borderRadius: 14, padding: 3, borderWidth: 1, borderColor: th.border }}>
-          {VIEWS.map((x) => <Pressable key={x.v} onPress={() => ws.patch(page.id, { view: x.v })} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 11, backgroundColor: view === x.v ? th.text : 'transparent' }}><Text style={{ color: view === x.v ? th.onText : th.muted, fontWeight: '800', fontSize: 13 }}>{tl(x.l)}</Text></Pressable>)}
-        </View>
-      </ScrollView>
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <Pressable onPress={() => setFOpen(!fOpen)} accessibilityRole="button" style={chip(!!page.flt?.v)}><Text style={{ color: th.text, fontWeight: '700', fontSize: 12 }}>{page.flt?.v ? `${tl('Filtro')}: ${page.flt.v}` : tl('Filtra')}</Text></Pressable>
-        {cols.map((x) => <Pressable key={x.id} onPress={() => sortBy(x.id)} accessibilityRole="button" style={chip(page.srt?.col === x.id)}><Text style={{ color: th.text, fontWeight: '700', fontSize: 12 }}>{`${x.name}${page.srt?.col === x.id ? (page.srt.dir === 1 ? ' ↑' : ' ↓') : ''}`}</Text></Pressable>)}
-        {page.flt?.v || page.srt ? <Pressable onPress={() => ws.patch(page.id, { flt: null, srt: null })} hitSlop={8}><Text style={{ color: th.accent, fontWeight: '800', fontSize: 12 }}>{tl('Azzera')}</Text></Pressable> : null}
-      </View>
-      {fOpen ? (
-        <View style={{ backgroundColor: th.card, borderRadius: 16, borderWidth: 1, borderColor: th.border, padding: 10, gap: 8 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>{cols.map((x) => <Pressable key={x.id} onPress={() => setFlt({ col: x.id })} style={chip(flt.col === x.id)}><Text style={{ color: th.text, fontSize: 12, fontWeight: '700' }}>{x.name}</Text></Pressable>)}</ScrollView>
-          <View style={{ flexDirection: 'row', gap: 6 }}>{OPS.map((o) => <Pressable key={o.op} onPress={() => setFlt({ op: o.op })} style={chip(flt.op === o.op)}><Text style={{ color: th.text, fontSize: 12, fontWeight: '700' }}>{tl(o.label)}</Text></Pressable>)}</View>
-          <Input value={flt.v} onChangeText={(v) => setFlt({ v })} placeholder={tl('Valore')} style={{ marginBottom: 0 }} />
-        </View>
-      ) : null}
-      {view === 'kanban' && status && first ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-          {STATUSES.map((s) => { const col = rows.filter((r) => (r.cells[status.id] || STATUSES[0]) === s); return (
-            <View key={s} style={{ width: 220, backgroundColor: th.card, borderRadius: 18, padding: 10, gap: 8, borderWidth: 1, borderColor: th.border }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: SC[s] }} /><Text style={{ color: th.text, fontWeight: '800' }}>{tl(s)}</Text><Text style={{ color: th.muted }}>{col.length}</Text></View>
-              {col.map((r) => <Pressable key={r.id} onPress={() => ws.patchRow(page.id, r.id, status.id, next(r.cells[status.id] || STATUSES[0]))} style={{ backgroundColor: th.bg, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: th.border }}><Text style={{ color: th.text, fontWeight: '700' }}>{r.cells[first.id] || tl('Senza nome')}</Text><Text style={{ color: th.muted, fontSize: 11, marginTop: 4 }}>{tl('Tocca per spostare')}</Text></Pressable>)}
-            </View>
-          ); })}
-        </ScrollView>
-      ) : view === 'calendar' ? (
-        <View style={{ gap: 10 }}>
-          {!dateCol ? <Text style={{ color: th.muted }}>{tl('Per il calendario serve una colonna Data: aggiungila qui sotto.')}</Text> : null}
-          {cal.days.map((d) => (
-            <View key={d.key} style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ width: 54, alignItems: 'center', backgroundColor: th.card, borderRadius: 14, borderWidth: 1, borderColor: th.border, paddingVertical: 8, alignSelf: 'flex-start' }}>
-                <Text style={{ color: th.accent, fontWeight: '800', fontSize: 11 }}>{new Date(d.key).toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</Text>
-                <Text style={{ color: th.text, fontWeight: '800', fontSize: 20 }}>{new Date(d.key).getDate()}</Text>
-                <Text style={{ color: th.muted, fontSize: 10 }}>{new Date(d.key).toLocaleDateString(undefined, { weekday: 'short' })}</Text>
-              </View>
-              <View style={{ flex: 1, gap: 6 }}>{d.rows.map((r) => card(r))}</View>
-            </View>
-          ))}
-          {cal.undated.length ? <><Text style={{ color: th.muted, fontWeight: '800', fontSize: 12 }}>{tl('Senza data')}</Text>{cal.undated.map((r) => card(r))}</> : null}
-        </View>
-      ) : view === 'gallery' ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>{rows.map((r) => card(r, 160))}</View>
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={{ borderRadius: 16, borderWidth: 1, borderColor: th.border, overflow: 'hidden' }}>
-            <View style={{ flexDirection: 'row', backgroundColor: th.card }}>{cols.map((x) => <View key={x.id} style={{ width: 140, padding: 10 }}><Text style={{ color: th.muted, fontSize: 12, fontWeight: '800' }}>{x.name}</Text></View>)}<View style={{ width: 36 }} /></View>
-            {rows.map((r) => (
-              <View key={r.id} style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: th.border, alignItems: 'center' }}>
-                {cols.map((x) => x.kind === 'status'
-                  ? <View key={x.id} style={{ width: 140, padding: 6 }}><Pressable onPress={() => ws.patchRow(page.id, r.id, x.id, next(r.cells[x.id] || STATUSES[0]))} style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: SC[r.cells[x.id] || STATUSES[0]!]! + '33' }}><Text style={{ color: SC[r.cells[x.id] || STATUSES[0]!], fontWeight: '800', fontSize: 12 }}>{tl(r.cells[x.id] || STATUSES[0]!)}</Text></Pressable></View>
-                  : <Input key={x.id} value={r.cells[x.id] ?? ''} onChangeText={(v) => ws.patchRow(page.id, r.id, x.id, v)} keyboardType={x.kind === 'number' ? 'decimal-pad' : 'default'} placeholder={x.kind === 'date' ? 'GG/MM/AAAA' : ''} style={{ width: 140, marginBottom: 0, borderWidth: 0, backgroundColor: 'transparent', borderRadius: 0 }} />)}
-                <Pressable onPress={() => ws.delRow(page.id, r.id)} hitSlop={8} style={{ width: 36, alignItems: 'center' }}><Icon name="x" size={14} color={th.muted} /></Pressable>
-              </View>
-            ))}
-          </View>
-        </ScrollView>
-      )}
-      {rows.length < allRows.length ? <Text style={{ color: th.muted, fontSize: 12 }}>{tl('{0} righe su {1} (filtro attivo)', String(rows.length), String(allRows.length))}</Text> : null}
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <Btn small icon="plus" title={tl('Nuova riga')} onPress={() => { ws.addRow(page.id); toast(tl('Riga aggiunta')); }} />
-        <Input value={colName} onChangeText={setColName} placeholder={tl('Nuova colonna')} style={{ width: 130, marginBottom: 0 }} />
-        {(['text', 'number', 'date'] as const).map((k) => <Btn key={k} small ghost disabled={!colName.trim()} title={k === 'text' ? tl('Testo') : k === 'number' ? tl('Numero') : tl('Data')} onPress={() => { ws.addCol(page.id, colName, k); setColName(''); }} />)}
-      </View>
-    </View>
-  );
-}
