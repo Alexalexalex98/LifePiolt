@@ -1,5 +1,5 @@
 {
- "count": 18616,
+ "count": 18622,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -357,19 +357,20 @@
   "src/components/tour/TourOverlay.tsx": 8,
   "src/components/tour/TutorialSettings.tsx": 13,
   "src/components/ui.tsx": 12,
-  "src/components/work/Conflicts.tsx": 13,
+  "src/components/work/Conflicts.tsx": 17,
   "src/components/work/Crm.tsx": 140,
   "src/components/work/DayField.tsx": 4,
   "src/components/work/Documents.tsx": 48,
   "src/components/work/Hr.tsx": 102,
   "src/components/work/MeetingCall.tsx": 4,
-  "src/components/work/Meetings.tsx": 90,
+  "src/components/work/Meetings.tsx": 89,
   "src/components/work/Messages.tsx": 56,
   "src/components/work/Money.tsx": 112,
   "src/components/work/NoWorkspace.tsx": 5,
   "src/components/work/People.tsx": 30,
   "src/components/work/Reports.tsx": 35,
   "src/components/work/Tasks.tsx": 68,
+  "src/components/work/TeamInbox.tsx": 8,
   "src/components/work/WorkPlanner.tsx": 66,
   "src/components/work/Writing.tsx": 48,
   "src/components/workspace/Database.tsx": 42,
@@ -794,5 +795,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2347
+ "withPlaceholders": 2350
 }

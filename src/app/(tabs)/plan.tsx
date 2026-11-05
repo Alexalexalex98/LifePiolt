@@ -6,6 +6,7 @@ import { AutomationsCard, AutomationsSheet } from '@/components/Automations';
 import { CalendarImportSheet } from '@/components/CalendarImportSheet';
 import { CalendarPanel, VacationSheet } from '@/components/CalendarViews';
 import { ConflictCard } from '@/components/work/Conflicts';
+import { TeamInbox } from '@/components/work/TeamInbox';
 import { NotifBanner } from '@/components/NotifPrompt';
 import { GoalProgress } from '@/components/GoalProgress';
 import { DaySheet, SmartTaskSheet, TaskBreakdownSheet, TaskRow, WorkHoursSheet } from '@/components/plan';
@@ -77,6 +78,7 @@ export default function Plan() {
   return (
     <Page id="plan" title="Plan" right={<Btn small ghost icon="calendar" title="Agenda" onPress={() => go('agenda')} />}>
       <NotifBanner />
+      <TeamInbox />
       <ConflictCard />
       {teams.length ? (
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>

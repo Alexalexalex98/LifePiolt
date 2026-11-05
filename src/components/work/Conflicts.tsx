@@ -3,7 +3,11 @@ import { View } from 'react-native';
 
 import { Body, Btn, Card, H, Pill, Sheet } from '@/components/ui';
 import { t as tl } from '@/i18n/core';
-import { freeStarts, rangeOf } from '@/lib/conflicts';
+import { type Range } from '@/lib/conflicts';
+import { moveTargets } from '@/lib/slots';
+import { myUserId } from '@/lib/teams';
+import { proposeReschedule } from '@/lib/teamNotify';
+import { useMeetings } from '@/store/meetings';
 import { sendMessage } from '@/lib/teamComms';
 import { usePeople } from '@/store/people';
 import { pushWorkEvent } from '@/lib/teamWork';
@@ -12,17 +16,39 @@ import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
 import { useState } from 'react';
 
-/** Sposta un tuo impegno a un altro orario libero dello stesso giorno (se è un impegno di lavoro condiviso, lo aggiorna anche per gli altri). */
-export function MoveEvent({ day, idx, onClose, onDone }: { day: string; idx: number; onClose: () => void; onDone?: () => void }) {
+/** Applica lo spostamento di un tuo impegno. Se è condiviso con altre persone le avvisa: devono accettare il nuovo orario. */
+export async function applyMove(day: string, idx: number, time: string): Promise<void> {
+  const ev = useLife.getState().events[day]?.[idx]; if (!ev) return;
+  useLife.getState().patchEvent(day, idx, { time });
+  if (!(ev.team && ev.wid)) return;
+  const me = await myUserId();
+  const m = useMeetings.getState().items.find((x) => x.event_id === ev.wid);
+  if (ev.by && ev.by !== me) { void pushWorkEvent(day, { ...ev, time }); return; }
+  if (m) {
+    useMeetings.getState().set({ items: useMeetings.getState().items.map((x) => (x.id === m.id ? { ...x, time } : x)) });
+    const r = await proposeReschedule('meeting', m.id, day, time);
+    toast(!r.ok ? r.message : r.data ? 'Ho avvisato gli invitati: devono accettare il nuovo orario' : 'Spostata');
+  } else if (ev.with?.length) {
+    const r = await proposeReschedule('event', ev.wid, day, time);
+    toast(!r.ok ? r.message : r.data ? 'Ho avvisato gli invitati: devono accettare il nuovo orario' : 'Spostato');
+  } else void pushWorkEvent(day, { ...ev, time });
+}
+
+/** Sposta un tuo impegno a un altro orario libero dello stesso giorno. Con `onPick` non lo sposta subito: restituisce solo l'orario scelto (serve a «sposta e riorganizza»). `avoid` = intervalli da non toccare (la nuova riunione). */
+export function MoveEvent({ day, idx, onClose, onDone, onPick, avoid }: { day: string; idx: number; onClose: () => void; onDone?: () => void; onPick?: (time: string) => void; avoid?: Range[] }) {
   const ev = useLife((s) => s.events[day]?.[idx]);
   const list = useLife((s) => s.events[day]) ?? [];
-  const starts = useMemo(() => (ev ? freeStarts(list.filter((_, i) => i !== idx).filter((e) => /^\d{1,2}:\d{2}$/.test(e.time) && (e.dur ?? 60) < 1440).map(rangeOf), ev.dur ?? 60) : []), [list, idx, ev]);
+  const starts = useMemo(() => (ev ? moveTargets(list, idx, avoid ?? [], ev.dur ?? 60) : []), [list, idx, ev, avoid]);
   if (!ev) return null;
-  const move = (time: string) => { useLife.getState().patchEvent(day, idx, { time }); if (ev.team && ev.wid) void pushWorkEvent(day, { ...ev, time }); toast(tl('«{0}» spostato alle {1}', ev.title, time)); onDone?.(); onClose(); };
+  const move = (time: string) => {
+    if (onPick) { onPick(time); onClose(); return; }
+    void applyMove(day, idx, time); toast(tl('«{0}» spostato alle {1}', ev.title, time)); onDone?.(); onClose();
+  };
   return (
     <Sheet visible title={tl('Sposta «{0}»', ev.title)} onClose={onClose}>
       <Body small muted style={{ marginBottom: 8 }}>{tl('Ora è alle {0}. Scegli un altro orario libero di questo giorno.', ev.time)}</Body>
-      {starts.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{starts.slice(0, 16).map((s) => <Pill key={s} label={s} onPress={() => move(s)} />)}</View> : <Body small muted>{tl('Non c\'è un orario libero in questo giorno: spostalo dal Plan a un altro giorno.')}</Body>}
+      {ev.with?.length ? <Body small muted style={{ marginBottom: 8 }}>{tl('Chi partecipa riceve una notifica e deve accettare il nuovo orario.')}</Body> : null}
+      {starts.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{starts.map((s) => <Pill key={s} label={s} onPress={() => move(s)} />)}</View> : <Body small muted>{tl('Non c\'è un orario libero in questo giorno: spostalo dal Plan a un altro giorno.')}</Body>}
     </Sheet>
   );
 }

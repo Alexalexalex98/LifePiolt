@@ -96,7 +96,7 @@ export async function startTeamSync(): Promise<void> {
       const ch = c.channel(`team-pages-${t.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'team_pages', filter: `team_id=eq.${t.id}` }, (payload: { new?: WireRow }) => { if (payload?.new?.id) apply(payload.new); }).subscribe();
       channels.push(ch);
     }
-    void (await import('@/lib/teamWork')).startWorkSync();
+    void (await import('@/lib/teamWork')).startWorkSync(); void (await import('@/lib/teamNotify')).watchNotifs();
     if (!started) {
       started = true;
       useWorkspace.subscribe((s, prev) => {

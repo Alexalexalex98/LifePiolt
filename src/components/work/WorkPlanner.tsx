@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/T';
 import { ConflictCard } from '@/components/work/Conflicts';
+import { TeamInbox } from '@/components/work/TeamInbox';
 import { DayField } from '@/components/work/DayField';
 import { MeetingsList } from '@/components/work/Meetings';
 import { conflictsWith, freeStarts, rangeOf } from '@/lib/conflicts';
@@ -44,6 +45,7 @@ export function WorkPlanner() {
         </View>
       ) : null}
       <Body small muted>{tl('Quello che pianifichi qui compare anche nel tuo Plan con l\'etichetta «Lavoro». Le tue cose private qui non si vedono mai.')}</Body>
+      <TeamInbox team={team.id} />
       <ConflictCard team={team.id} />
       <MeetingsList team={team.id} />
       <Agenda team={team.id} role={team.role} />
