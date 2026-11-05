@@ -15,6 +15,7 @@ import { listMembers, myUserId, type Member } from '@/lib/teams';
 import { busyRanges, teamBusy, today, type Busy } from '@/lib/teamWork';
 import { conflictsWith, freeStarts, fromMin, overlaps, rangeOf } from '@/lib/conflicts';
 import { MoveEvent } from '@/components/work/Conflicts';
+import { DayField } from '@/components/work/DayField';
 import { useLife } from '@/store/life';
 import { useTheme } from '@/hooks/use-theme';
 import { useApp } from '@/store/app';
@@ -80,7 +81,7 @@ function NewMeeting({ team, project, open, onClose, onCreated }: { team: string;
   const { members, me, nameOf } = useMembers(team);
   const [title, setTitle] = useState(''); const [day, setDay] = useState(today()); const [time, setTime] = useState('10:00'); const [dur, setDur] = useState(60);
   const [agenda, setAgenda] = useState(''); const [rec, setRec2] = useState<Meeting['recurrence']>('none'); const [sel, setSel] = useState<string[] | null>(null);
-  const [plan, setPlan] = useState(false); const [clash, setClash] = useState(false); const [others, setOthers] = useState<Busy[]>([]); const [move, setMove] = useState<number | null>(null); const [saving, setSaving] = useState(false);
+  const [plan, setPlan] = useState(true); const [clash, setClash] = useState(false); const [others, setOthers] = useState<Busy[]>([]); const [move, setMove] = useState<number | null>(null); const [saving, setSaving] = useState(false);
   const others2 = members.filter((m) => m.user_id !== me);
   const chosen = sel ?? others2.map((m) => m.user_id); // di default invita tutte le persone del progetto
   const t = time.trim().padStart(5, '0'); const valid = okDay(day) && /^\d{2}:\d{2}$/.test(t);
@@ -110,10 +111,11 @@ function NewMeeting({ team, project, open, onClose, onCreated }: { team: string;
   return (
     <Sheet visible={open} title="Nuova riunione" onClose={onClose}>
       <Input placeholder="Titolo (es. Avvio progetto)" value={title} onChangeText={setTitle} />
-      <Row><Input flex={1} placeholder="Giorno (2026-11-20)" value={day} onChangeText={setDay} /><Input flex={1} placeholder="Ora (10:00)" value={time} onChangeText={setTime} /></Row>
+      <DayField value={day} onChange={setDay} />
+      <Input placeholder="Ora (es. 10:00): o scegli un orario libero qui sotto" value={time} onChangeText={setTime} />
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>{[30, 45, 60, 90].map((d) => <Pill key={d} label={`${d} min`} on={dur === d} onPress={() => setDur(d)} />)}</View>
 
-      <Btn small ghost icon="calendar" title={plan ? 'Nascondi il Plan' : 'Vedi il Plan di questo giorno'} onPress={() => setPlan(!plan)} />
+      <Btn small ghost icon="calendar" title={plan ? 'Nascondi il Plan del giorno' : 'Mostra il Plan del giorno'} onPress={() => setPlan(!plan)} />
       {(plan || myClash.length || theirClash.length) && valid ? (
         <View style={{ marginTop: 8, marginBottom: 10, backgroundColor: th.chip, borderRadius: 14, padding: 10 }}>
           <Body small bold muted style={{ marginBottom: 6 }}>{tl('IL TUO PLAN').toUpperCase()}</Body>

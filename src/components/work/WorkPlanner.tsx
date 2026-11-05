@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/T';
 import { ConflictCard } from '@/components/work/Conflicts';
+import { DayField } from '@/components/work/DayField';
 import { MeetingsList } from '@/components/work/Meetings';
 import { conflictsWith, freeStarts, rangeOf } from '@/lib/conflicts';
 import { NoWorkspace } from '@/components/work/NoWorkspace';
@@ -138,7 +139,8 @@ function NewEvent({ team, open, onClose }: { team: string; open: boolean; onClos
   return (
     <Sheet visible={open} title="Nuovo impegno di lavoro" onClose={onClose}>
       <Input placeholder="Che cosa?" value={title} onChangeText={setTitle} />
-      <Row><Input flex={1} placeholder="Giorno (2026-11-20)" value={day} onChangeText={setDay} /><Input flex={1} placeholder="Ora (10:00)" value={time} onChangeText={setTime} /></Row>
+      <DayField value={day} onChange={setDay} />
+      <Input placeholder="Ora (es. 10:00)" value={time} onChangeText={setTime} />
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>{[30, 45, 60, 90, 120].map((d) => <Pill key={d} label={`${d} min`} on={dur === d} onPress={() => setDur(d)} />)}</View>
       {others.length ? (
         <>
@@ -219,7 +221,8 @@ function Absences({ team }: { team: string; role?: Member['role'] }) {
       ))}
       <Sheet visible={open} title="Richiedi un'assenza" onClose={() => setOpen(false)}>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>{KINDS.map((k) => <Pill key={k} label={tl(KIND_LABEL[k])} on={kind === k} onPress={() => setKind(k)} />)}</View>
-        <Row><Input flex={1} placeholder="Dal (2026-12-24)" value={from} onChangeText={setFrom} /><Input flex={1} placeholder="Al (2026-12-31)" value={to} onChangeText={setTo} /></Row>
+        <DayField value={from} onChange={(d) => { setFrom(d); if (to < d) setTo(d); }} placeholder="Dal giorno…" />
+        <DayField value={to} onChange={setTo} placeholder="Al giorno…" />
         <Input placeholder="Nota (facoltativa)" value={note} onChangeText={setNote} />
         <Btn icon="check" title="Invia la richiesta" onPress={() => {
           if (!okDay(from) || !okDay(to) || to < from) { toast('Controlla le date (il «Al» non può venire prima del «Dal»)'); return; }

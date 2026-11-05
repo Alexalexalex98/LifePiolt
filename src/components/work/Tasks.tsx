@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { Text } from '@/components/T';
+import { DayField } from '@/components/work/DayField';
 import { NoWorkspace } from '@/components/work/NoWorkspace';
 import { Body, Btn, Card, ChipBtn, Empty, H, Input, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -149,7 +150,7 @@ function NewTask({ team, open, onClose, project, canAssign, me, people, projects
       {projects.length ? chips('Progetto', [{ k: null as string | null, l: tl('Nessuno') }, ...projects.map((p) => ({ k: p.id as string | null, l: p.name || tl('Progetto') }))], proj, setProj) : null}
       {canAssign ? chips('Responsabile', [{ k: null as string | null, l: tl('Nessuno') }, ...people.map((p) => ({ k: p.id as string | null, l: p.id === me ? tl('Io') : p.name || tl('Collega') }))], who, setWho) : null}
       {chips('Priorità', (Object.keys(PRIORITY_LABEL) as Priority[]).map((k) => ({ k, l: tl(PRIORITY_LABEL[k]) })), prio, setPrio)}
-      <Input placeholder="Scadenza (2026-12-31)" value={due} onChangeText={setDue} />
+      <DayField value={due} onChange={setDue} placeholder="Scadenza (scegli dal Plan)" />
       {chips('Tempo previsto', [{ k: null as number | null, l: tl('Non so') }, ...[30, 60, 120, 240].map((m) => ({ k: m as number | null, l: m < 60 ? `${m} min` : `${m / 60} h` }))], est, setEst)}
       {chips('Si ripete', [{ k: 'none' as Recurrence, l: tl('No') }, { k: 'daily' as Recurrence, l: tl('Ogni giorno') }, { k: 'weekly' as Recurrence, l: tl('Ogni settimana') }, { k: 'monthly' as Recurrence, l: tl('Ogni mese') }], rec, setRec)}
       <Btn icon="check" title="Crea task" onPress={save} />
