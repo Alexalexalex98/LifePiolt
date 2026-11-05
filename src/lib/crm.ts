@@ -4,7 +4,7 @@ export type Kind = 'client' | 'supplier' | 'lead';
 export type Contact = { id: string; team_id: string; kind: Kind; name: string; company: string; email: string; phone: string; address: string; country: 'IT' | 'CH' | null; vat: string; notes: string; owner: string | null; status: 'active' | 'archived' };
 export type Interaction = { id: string; team_id: string; contact: string; kind: 'call' | 'email' | 'meeting' | 'visit' | 'note'; text: string; by: string; at: string; follow_up: string | null; follow_done: boolean };
 export type Stage = 'lead' | 'contact' | 'quote' | 'negotiation' | 'won' | 'lost';
-export type Deal = { id: string; team_id: string; contact: string; title: string; stage: Stage; amount: number; currency: Currency; expected_close: string | null; renewal: string | null; probability: number | null; owner: string | null; notes: string; lost_reason: string };
+export type Deal = { id: string; team_id: string; contact: string; title: string; stage: Stage; amount: number; currency: Currency; expected_close: string | null; renewal: string | null; probability: number | null; owner: string | null; notes: string; lost_reason: string; updated_at?: string };
 export type Ticket = { id: string; team_id: string; contact: string | null; title: string; text: string; priority: 'low' | 'normal' | 'high' | 'urgent'; status: 'open' | 'doing' | 'resolved'; assignee: string | null; created_at: string; resolved_at: string | null };
 export type Receivable = { id: string; team_id: string; contact: string; label: string; amount: number; currency: Currency; due: string | null; paid: boolean };
 

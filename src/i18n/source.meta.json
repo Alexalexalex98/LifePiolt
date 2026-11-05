@@ -1,5 +1,5 @@
 {
- "count": 17938,
+ "count": 18168,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -136,7 +136,7 @@
   "src/app/(tabs)/vacationPlanner.tsx": 15,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
-  "src/app/(tabs)/workspace.tsx": 108,
+  "src/app/(tabs)/workspace.tsx": 110,
   "src/app/onboarding.tsx": 15,
   "src/components/AccountFlow.tsx": 45,
   "src/components/AddMovementSheet.tsx": 29,
@@ -364,8 +364,10 @@
   "src/components/work/Messages.tsx": 56,
   "src/components/work/NoWorkspace.tsx": 5,
   "src/components/work/People.tsx": 30,
+  "src/components/work/Reports.tsx": 35,
   "src/components/work/Tasks.tsx": 72,
   "src/components/work/WorkPlanner.tsx": 64,
+  "src/components/work/Writing.tsx": 48,
   "src/components/workspace/WorkChat.tsx": 20,
   "src/data/areas.ts": 8,
   "src/data/clubSeed.ts": 100,
@@ -510,6 +512,7 @@
   "src/lib/e2eModel.ts": 37,
   "src/lib/enroll.ts": 31,
   "src/lib/errorLog.ts": 3,
+  "src/lib/exportFile.ts": 4,
   "src/lib/feedSwipe.ts": 3,
   "src/lib/finWellbeing.ts": 29,
   "src/lib/financeRecap.ts": 57,
@@ -657,6 +660,7 @@
   "src/lib/reminders.ts": 4,
   "src/lib/report.ts": 19,
   "src/lib/reportHtml.ts": 30,
+  "src/lib/reports.ts": 61,
   "src/lib/reschedule.ts": 1,
   "src/lib/safety.ts": 3,
   "src/lib/samplePdf.ts": 18,
@@ -682,10 +686,12 @@
   "src/lib/taskDecompose.ts": 40,
   "src/lib/taskIntent.ts": 5,
   "src/lib/taxDeadlines.ts": 14,
+  "src/lib/teamBrand.ts": 2,
   "src/lib/teamComms.ts": 9,
   "src/lib/teamCrm.ts": 6,
   "src/lib/teamDocs.ts": 8,
   "src/lib/teamMeetings.ts": 7,
+  "src/lib/teamReports.ts": 15,
   "src/lib/teamTasks.ts": 4,
   "src/lib/teamWork.ts": 5,
   "src/lib/teams.ts": 9,
@@ -730,6 +736,7 @@
   "src/lib/workspaceCore.ts": 4,
   "src/lib/workspaceSearch.ts": 4,
   "src/lib/workspaceViews.ts": 51,
+  "src/lib/writing.ts": 124,
   "src/schemas/change.ts": 3,
   "src/schemas/collections.ts": 3,
   "src/social/dmSync.ts": 2,
@@ -772,5 +779,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2191
+ "withPlaceholders": 2249
 }

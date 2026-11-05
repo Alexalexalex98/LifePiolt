@@ -5,7 +5,7 @@ export type Recurrence = 'none' | 'daily' | 'weekly' | 'monthly';
 export type WTask = {
   id: string; team_id: string; project: string | null; title: string; notes: string; assignee: string | null; priority: Priority; status: Status;
   due: string | null; est_min: number | null; parent: string | null; depends_on: string[]; recurrence: Recurrence; block_reason: string;
-  created_by: string; deleted?: boolean; done_at?: string | null;
+  created_by: string; deleted?: boolean; done_at?: string | null; created_at?: string;
 };
 export const STATUS_LABEL: Record<Status, string> = { todo: 'Da fare', doing: 'In corso', blocked: 'Bloccato', done: 'Fatto' };
 export const PRIORITY_LABEL: Record<Priority, string> = { low: 'Bassa', normal: 'Normale', high: 'Alta', urgent: 'Urgente' };
