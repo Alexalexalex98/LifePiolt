@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/T';
+import { ConflictCard } from '@/components/work/Conflicts';
 import { MeetingsList } from '@/components/work/Meetings';
+import { conflictsWith, freeStarts, rangeOf } from '@/lib/conflicts';
 import { NoWorkspace } from '@/components/work/NoWorkspace';
 import { Body, Btn, Card, ChipBtn, Empty, H, Input, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -41,6 +43,7 @@ export function WorkPlanner() {
         </View>
       ) : null}
       <Body small muted>{tl('Quello che pianifichi qui compare anche nel tuo Plan con l\'etichetta «Lavoro». Le tue cose private qui non si vedono mai.')}</Body>
+      <ConflictCard team={team.id} />
       <MeetingsList team={team.id} />
       <Agenda team={team.id} role={team.role} />
       <Hours team={team.id} />
@@ -118,6 +121,12 @@ function NewEvent({ team, open, onClose }: { team: string; open: boolean; onClos
     if (!title.trim()) { toast('Scrivi il titolo'); return; }
     if (!okDay(day) || !/^\d{1,2}:\d{2}$/.test(time.trim())) { toast('Controlla giorno e ora'); return; }
     const t = time.trim().padStart(5, '0');
+    const own = conflictsWith(useLife.getState().events[day] ?? [], t, dur);
+    if (own.length) {
+      const alt = freeStarts((useLife.getState().events[day] ?? []).filter((e) => /^\d{1,2}:\d{2}$/.test(e.time) && (e.dur ?? 60) < 1440).map(rangeOf), dur)[0];
+      alertT('Sei già impegnato', tl('Alle {0} hai «{1}». Sposta uno dei due dal Plan, oppure scegli un altro orario.', t, own[0]!.e.title), [{ text: 'Annulla', style: 'cancel' }, ...(alt ? [{ text: tl('Usa le {0}', alt), onPress: () => save({ day, time: alt }) }] : [])]);
+      return;
+    }
     if (fitsInHours(sched, day, t, dur)) { save({ day, time: t }); return; }
     const alt = nextFree(sched, day, 0, dur, myBusy);
     alertT('Fuori dal tuo orario di lavoro', alt ? tl('Il primo posto libero è {0} alle {1}. Vuoi metterlo lì?', label(alt.day), alt.time) : tl('Non trovo posto nel tuo orario. Lo metto comunque?'), [

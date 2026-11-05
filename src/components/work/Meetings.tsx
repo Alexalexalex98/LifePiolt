@@ -12,7 +12,11 @@ import { buildNotes } from '@/lib/callNotes';
 import { actionsOf, type Line, type Meeting } from '@/lib/meetings';
 import { addMyActions, createMeeting, finishMeeting, joinMeeting, leaveMeeting, loadLines, meetingLabel, pullMeetings, removeMeeting, saveToWorkspace, sendLine, watchMeeting } from '@/lib/teamMeetings';
 import { listMembers, myUserId, type Member } from '@/lib/teams';
-import { today } from '@/lib/teamWork';
+import { busyRanges, teamBusy, today, type Busy } from '@/lib/teamWork';
+import { conflictsWith, freeStarts, fromMin, overlaps, rangeOf } from '@/lib/conflicts';
+import { MoveEvent } from '@/components/work/Conflicts';
+import { useLife } from '@/store/life';
+import { useTheme } from '@/hooks/use-theme';
 import { useApp } from '@/store/app';
 import { useMeetings } from '@/store/meetings';
 import { toast } from '@/store/toast';
@@ -72,30 +76,76 @@ function LiveDot({ n }: { n: number }) {
 
 /* ---------- nuova riunione ---------- */
 function NewMeeting({ team, project, open, onClose, onCreated }: { team: string; project?: string; open: boolean; onClose: () => void; onCreated: (id: string) => void }) {
-  const { members, me } = useMembers(team);
+  const th = useTheme();
+  const { members, me, nameOf } = useMembers(team);
   const [title, setTitle] = useState(''); const [day, setDay] = useState(today()); const [time, setTime] = useState('10:00'); const [dur, setDur] = useState(60);
   const [agenda, setAgenda] = useState(''); const [rec, setRec2] = useState<Meeting['recurrence']>('none'); const [sel, setSel] = useState<string[] | null>(null);
-  const others = members.filter((m) => m.user_id !== me);
-  const chosen = sel ?? others.map((m) => m.user_id); // di default invita tutte le persone del progetto
-  async function save() {
-    if (!title.trim()) { toast('Scrivi il titolo'); return; }
-    if (!okDay(day) || !/^\d{1,2}:\d{2}$/.test(time.trim())) { toast('Controlla giorno e ora'); return; }
-    const r = await createMeeting({ team, project: project ?? null, title, day, time: time.trim().padStart(5, '0'), dur, agenda, attendees: chosen, recurrence: rec });
+  const [plan, setPlan] = useState(false); const [clash, setClash] = useState(false); const [others, setOthers] = useState<Busy[]>([]); const [move, setMove] = useState<number | null>(null); const [saving, setSaving] = useState(false);
+  const others2 = members.filter((m) => m.user_id !== me);
+  const chosen = sel ?? others2.map((m) => m.user_id); // di default invita tutte le persone del progetto
+  const t = time.trim().padStart(5, '0'); const valid = okDay(day) && /^\d{2}:\d{2}$/.test(t);
+  const mine = useLife((s) => s.events[day]) ?? [];
+  useEffect(() => { if (open && okDay(day)) void teamBusy(team, day, day).then((r) => { if (r.ok) setOthers(r.data); }); }, [open, day, team]);
+  const slot = rangeOf({ time: t, dur });
+  const myClash = valid ? conflictsWith(mine, t, dur) : [];
+  const theirs = (id: string) => busyRanges(others, id, day);
+  const theirClash = valid ? chosen.filter((id) => theirs(id).some((r) => overlaps(r, slot))) : [];
+  const busyAll = [...mine.filter((e) => /^\d{1,2}:\d{2}$/.test(e.time) && (e.dur ?? 60) < 1440).map(rangeOf), ...chosen.flatMap(theirs)];
+  const free = freeStarts(busyAll, dur);
+  const create = async () => {
+    setSaving(true);
+    const r = await createMeeting({ team, project: project ?? null, title, day, time: t, dur, agenda, attendees: chosen, recurrence: rec });
+    setSaving(false);
     if (!r.ok) { toast(r.message); return; }
     toast(chosen.length ? 'Riunione creata: le persone invitate la vedono nel Plan' : 'Riunione creata');
-    setTitle(''); setAgenda(''); setSel(null); onClose(); onCreated(r.data.id);
-  }
+    setTitle(''); setAgenda(''); setSel(null); setClash(false); setPlan(false); onClose(); onCreated(r.data.id);
+  };
+  const save = () => {
+    if (!title.trim()) { toast('Scrivi il titolo'); return; }
+    if (!valid) { toast('Controlla giorno e ora'); return; }
+    if (myClash.length || theirClash.length) { setClash(true); return; }
+    void create();
+  };
+  const row = (label: string, from: number, to: number, hit: boolean, key: string) => <Row key={key} style={{ marginBottom: 4 }}><Text style={{ color: hit ? '#ff5a64' : th.text, fontWeight: hit ? '800' : '600', fontSize: 13, flex: 1 }}>{`${fromMin(from)}–${fromMin(to)} · ${label}`}</Text>{hit ? <Text style={{ color: '#ff5a64', fontSize: 12, fontWeight: '800' }}>{tl('si scontra')}</Text> : null}</Row>;
   return (
     <Sheet visible={open} title="Nuova riunione" onClose={onClose}>
       <Input placeholder="Titolo (es. Avvio progetto)" value={title} onChangeText={setTitle} />
       <Row><Input flex={1} placeholder="Giorno (2026-11-20)" value={day} onChangeText={setDay} /><Input flex={1} placeholder="Ora (10:00)" value={time} onChangeText={setTime} /></Row>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>{[30, 45, 60, 90].map((d) => <Pill key={d} label={`${d} min`} on={dur === d} onPress={() => setDur(d)} />)}</View>
+
+      <Btn small ghost icon="calendar" title={plan ? 'Nascondi il Plan' : 'Vedi il Plan di questo giorno'} onPress={() => setPlan(!plan)} />
+      {(plan || myClash.length || theirClash.length) && valid ? (
+        <View style={{ marginTop: 8, marginBottom: 10, backgroundColor: th.chip, borderRadius: 14, padding: 10 }}>
+          <Body small bold muted style={{ marginBottom: 6 }}>{tl('IL TUO PLAN').toUpperCase()}</Body>
+          {mine.length === 0 ? <Body small muted>{tl('Nessun impegno: giornata libera.')}</Body> : [...mine].sort((a, b) => a.time.localeCompare(b.time)).map((e, i) => { const r = /^\d{1,2}:\d{2}$/.test(e.time) ? rangeOf(e) : null; return r ? row(e.title, r[0], r[1], (e.dur ?? 60) < 1440 && overlaps(r, slot), `m${i}`) : <Body key={`m${i}`} small muted>{`${e.title}`}</Body>; })}
+          <View style={{ height: 2, backgroundColor: th.accent, opacity: 0.5, marginVertical: 6 }} />
+          {row(title.trim() || tl('La nuova riunione'), slot[0], slot[1], false, 'new')}
+          {chosen.some((id) => theirs(id).length) ? <Body small bold muted style={{ marginTop: 8, marginBottom: 4 }}>{tl('GLI INVITATI (SOLO ORARI OCCUPATI)').toUpperCase()}</Body> : null}
+          {chosen.map((id) => theirs(id).map((r, i) => row(nameOf(id), r[0], r[1], overlaps(r, slot), `o${id}${i}`)))}
+          {free.length ? <><Body small bold muted style={{ marginTop: 8, marginBottom: 6 }}>{tl('ORARI LIBERI PER TUTTI').toUpperCase()}</Body><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{free.slice(0, 10).map((f) => <Pill key={f} label={f} on={t === f} onPress={() => setTime(f)} />)}</View></> : <Body small muted style={{ marginTop: 8 }}>{tl('Non c\'è un orario libero per tutti in questo giorno: prova un altro giorno.')}</Body>}
+        </View>
+      ) : null}
+
       <Input placeholder="Ordine del giorno (facoltativo)" value={agenda} onChangeText={setAgenda} maxLines={6} />
       <Body small bold muted style={{ marginBottom: 6 }}>{tl('RIPETI').toUpperCase()}</Body>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>{([['none', 'Una volta'], ['weekly', 'Ogni settimana'], ['monthly', 'Ogni mese']] as const).map(([k, l]) => <Pill key={k} label={tl(l)} on={rec === k} onPress={() => setRec2(k)} />)}</View>
       <Body small bold muted style={{ marginBottom: 6 }}>{tl('INVITATI').toUpperCase()}</Body>
-      {others.length ? <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>{others.map((m) => <Pill key={m.user_id} label={m.name || tl('Collega')} on={chosen.includes(m.user_id)} onPress={() => setSel(chosen.includes(m.user_id) ? chosen.filter((x) => x !== m.user_id) : [...chosen, m.user_id])} />)}</View> : <Body small muted style={{ marginBottom: 8 }}>{tl('Non ci sono altre persone nel workspace: invitale dalla scheda Team.')}</Body>}
-      <Btn icon="check" title="Crea riunione" onPress={() => { void save(); }} />
+      {others2.length ? <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>{others2.map((m) => <Pill key={m.user_id} label={m.name || tl('Collega')} on={chosen.includes(m.user_id)} onPress={() => setSel(chosen.includes(m.user_id) ? chosen.filter((x) => x !== m.user_id) : [...chosen, m.user_id])} />)}</View> : <Body small muted style={{ marginBottom: 8 }}>{tl('Non ci sono altre persone nel workspace: invitale dalla scheda Team.')}</Body>}
+      <Btn icon="check" disabled={saving} title="Crea riunione" onPress={save} />
+
+      <Sheet visible={clash && (myClash.length > 0 || theirClash.length > 0)} title="Qualcuno è occupato" onClose={() => setClash(false)}>
+        {myClash.length ? (
+          <>
+            <Body bold style={{ marginBottom: 6 }}>{tl('Alle {0} sei già impegnato. Devi spostare uno dei due.', t)}</Body>
+            {myClash.map(({ e, idx }) => <Row key={idx} style={{ marginBottom: 6 }}><Body small style={{ flex: 1 }}>{`${e.time} · ${e.title}`}</Body><Btn small icon="clock" title="Sposta questo" onPress={() => setMove(idx)} /></Row>)}
+          </>
+        ) : null}
+        {theirClash.length ? <Body style={{ marginTop: 6 }}>{tl('Occupati a quell\'ora: {0}.', theirClash.map(nameOf).join(', '))}</Body> : null}
+        <Body small bold muted style={{ marginTop: 12, marginBottom: 6 }}>{tl('OPPURE SPOSTA LA RIUNIONE').toUpperCase()}</Body>
+        {free.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{free.slice(0, 10).map((f) => <Pill key={f} label={f} onPress={() => { setTime(f); setClash(false); }} />)}</View> : <Body small muted>{tl('Nessun orario libero per tutti oggi: cambia giorno.')}</Body>}
+        {myClash.length === 0 ? <Btn style={{ marginTop: 12 }} ghost title="Invita comunque" onPress={() => { void create(); }} /> : <Body small muted style={{ marginTop: 12 }}>{tl('Finché non sposti uno dei due impegni non puoi creare la riunione.')}</Body>}
+      </Sheet>
+      {move != null ? <MoveEvent day={day} idx={move} onClose={() => setMove(null)} /> : null}
     </Sheet>
   );
 }

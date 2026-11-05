@@ -4,6 +4,8 @@ import { myUserId, raw, type Res } from '@/lib/teams';
 import type { Range, Schedule } from '@/lib/workHours';
 import { fromMin, toMin } from '@/lib/workHours';
 import { mergeWork, toWireEvent, type CalLike, type WireEvent } from '@/lib/workPlan';
+import { incomingConflicts } from '@/lib/conflicts';
+import { useConflicts, type Clash } from '@/store/conflicts';
 import { useLife } from '@/store/life';
 import { useTeams } from '@/store/teams';
 import { useWork, type Absence } from '@/store/work';
@@ -39,7 +41,24 @@ export async function pullWork(team: string): Promise<void> {
     const from = new Date(Date.now() - 14 * 86400000); const f = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`;
     const rows = await q<WireEvent[]>((await db()).from('team_events').select('*').eq('team_id', team).gte('day', f));
     useLife.setState((s) => ({ events: mergeWork(s.events, rows, team, me) as typeof s.events }));
+    detectClashes(team, me);
   } catch { /* offline: restano quelli sul telefono */ }
+}
+/** Riunioni che altri hanno messo nel mio Plan e che si scontrano con un altro mio impegno: le segnala, così scelgo quale spostare. */
+export function detectClashes(team: string, me: string): void {
+  const t0 = today(); const out: Clash[] = [];
+  for (const [day, list] of Object.entries(useLife.getState().events)) {
+    if (day < t0) continue;
+    list.forEach((e) => {
+      if (e.team !== team || !e.wid || !e.by || e.by === me) return;
+      for (const c of incomingConflicts(list, { time: e.time, dur: e.dur, wid: e.wid })) {
+        if (c.e.team === team && c.e.wid && c.e.by !== me) continue; // due riunioni degli altri: non tocca a me scegliere
+        out.push({ id: `${e.wid}:${day}:${c.idx}`, team, day, time: e.time, dur: e.dur ?? 60, title: e.title, by: e.by, otherDay: day, otherIdx: c.idx, otherTitle: c.e.title, otherTime: c.e.time });
+      }
+    });
+  }
+  const ig = new Set(useConflicts.getState().ignored);
+  useConflicts.getState().set({ clashes: [...useConflicts.getState().clashes.filter((c) => c.team !== team), ...out.filter((c) => !ig.has(c.id))] });
 }
 /** Salva (o aggiorna) un impegno di lavoro sul server: gli invitati lo vedono subito. */
 export const pushWorkEvent = (day: string, ev: CalLike) => run(async () => {
