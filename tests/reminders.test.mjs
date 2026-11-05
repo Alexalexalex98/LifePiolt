@@ -125,3 +125,16 @@ test('slot riservati: 64 - 14 = 50', () => {
   assert.equal(RESERVED_SLOTS, 14);
   assert.equal(MAX_SCHEDULED, IOS_LIMIT - RESERVED_SLOTS);
 });
+
+test('disconnessione: niente avvisi di lavoro fuori orario, gli altri restano', async () => {
+  const { planReminders } = await import('../src/lib/reminders.ts');
+  const now = new Date('2026-11-02T06:00:00').getTime();
+  const events = { '2026-11-02': [{ time: '07:30', title: 'Call presto', team: 't' }, { time: '07:30', title: 'Dentista' }, { time: '10:00', title: 'Riunione', team: 't' }] };
+  const mute = (_day, min) => min < 9 * 60 || min >= 18 * 60;
+  const all = planReminders(events, { now });
+  const q = planReminders(events, { now, mute });
+  assert.ok(all.some((p) => p.idx === 0));
+  assert.ok(!q.some((p) => p.idx === 0), 'lavoro fuori orario silenziato');
+  assert.ok(q.some((p) => p.idx === 1), 'impegno privato resta');
+  assert.ok(q.some((p) => p.idx === 2), 'lavoro in orario resta');
+});

@@ -283,7 +283,13 @@ export async function refreshReminders(): Promise<void> {
       const events = (require('@/store/life') as typeof import('@/store/life')).useLife.getState().events;
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const homeCity = (require('@/store/interests') as typeof import('@/store/interests')).useInterests.getState().homeCity;
-      const plan = planReminders(events, { now: Date.now(), prefs: app.reminders, homeCity });
+      // disconnessione: gli avvisi degli impegni di lavoro non suonano fuori dal tuo orario (se l'hai scelto)
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const ww = (require('@/store/workWell') as typeof import('@/store/workWell')).useWorkWell.getState();
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const wk = (require('@/store/work') as typeof import('@/store/work'));
+      const mute = ww.disconnect ? (day: string, min: number, ev: { team?: string }) => { const sch = wk.scheduleOf(ev.team, wk.useWork.getState().schedules); return (require('@/lib/workWell') as typeof import('@/lib/workWell')).outsideHours(sch, day, min); } : undefined;
+      const plan = planReminders(events, { now: Date.now(), prefs: app.reminders, homeCity, mute });
       const channelId = KINDS.promemoria.channel.id;
       for (const p of plan) {
         try {

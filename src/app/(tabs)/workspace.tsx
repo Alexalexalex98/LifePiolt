@@ -11,6 +11,7 @@ import { WorkChat } from '@/components/workspace/WorkChat';
 import { Crm } from '@/components/work/Crm';
 import { Hr } from '@/components/work/Hr';
 import { Legal } from '@/components/work/Legal';
+import { WorkWell } from '@/components/work/WorkWell';
 import { Money } from '@/components/work/Money';
 import { Reports } from '@/components/work/Reports';
 import { Writing } from '@/components/work/Writing';
@@ -40,7 +41,7 @@ import { useDocs } from '@/store/docs';
 import { useTeams } from '@/store/teams';
 import { toast } from '@/store/toast';
 
-type Tab = 'pagine' | 'piano' | 'task' | 'clienti' | 'report' | 'legale' | 'scrivi' | 'soldi' | 'hr' | 'messaggi' | 'documenti' | 'persone' | 'file' | 'theia';
+type Tab = 'pagine' | 'piano' | 'task' | 'clienti' | 'report' | 'legale' | 'benessere' | 'scrivi' | 'soldi' | 'hr' | 'messaggi' | 'documenti' | 'persone' | 'file' | 'theia';
 const PALETTE = ['#8fa4ff', '#5fd39a', '#ff9d6e', '#c9b6ff', '#6ec9dd', '#e0c97b', '#ff8fb1'];
 const colorOf = (id: string) => PALETTE[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % PALETTE.length]!;
 const ago = (ts: number) => { const m = Math.round((Date.now() - ts) / 60000); return m < 1 ? tl('adesso') : m < 60 ? tl('{0} min fa', m) : m < 1440 ? tl('{0} h fa', Math.round(m / 60)) : tl('{0} g fa', Math.round(m / 1440)); };
@@ -118,7 +119,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
       ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ backgroundColor: th.card, borderRadius: 16, padding: 4, gap: 2, marginTop: 12, marginBottom: 12, borderWidth: 1, borderColor: th.border }} style={{ flexGrow: 0 }}>
-        {([['theia', 'Theia', 'sparkle'], ['pagine', 'Pagine', 'note'], ['piano', 'Piano', 'calendar'], ['task', 'Task', 'check'], ['clienti', 'Clienti', 'contact'], ['soldi', 'Soldi', 'wallet'], ['hr', 'HR', 'profile'], ['report', 'Report', 'chart'], ['legale', 'Legale', 'note'], ['scrivi', 'Scrivi', 'edit'], ['messaggi', 'Messaggi', 'comment'], ['documenti', 'Documenti', 'note'], ['persone', 'Persone', 'users'], ['file', 'File', 'file']] as const).map(([id, l, ic]) => (
+        {([['theia', 'Theia', 'sparkle'], ['pagine', 'Pagine', 'note'], ['piano', 'Piano', 'calendar'], ['task', 'Task', 'check'], ['clienti', 'Clienti', 'contact'], ['soldi', 'Soldi', 'wallet'], ['hr', 'HR', 'profile'], ['report', 'Report', 'chart'], ['legale', 'Legale', 'note'], ['benessere', 'Benessere', 'heart'], ['scrivi', 'Scrivi', 'edit'], ['messaggi', 'Messaggi', 'comment'], ['documenti', 'Documenti', 'note'], ['persone', 'Persone', 'users'], ['file', 'File', 'file']] as const).map(([id, l, ic]) => (
           <Pressable key={id} onPress={() => { setTab(id); if (id === 'theia') setChatOpen(true); }} accessibilityRole="button" accessibilityState={{ selected: tab === id }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 12, backgroundColor: tab === id ? th.text : 'transparent' }}>
             <Icon name={ic} size={15} color={tab === id ? th.onText : th.muted} stroke={2.2} /><Text style={{ color: tab === id ? th.onText : th.muted, fontWeight: '800', fontSize: 13 }}>{tl(l)}</Text>
           </Pressable>
@@ -163,6 +164,7 @@ function Home({ onOpen }: { onOpen: (id: string) => void }) {
       {tab === 'soldi' ? <Money /> : null}
       {tab === 'hr' ? <Hr /> : null}
       {tab === 'legale' ? <Legal /> : null}
+      {tab === 'benessere' ? <WorkWell /> : null}
       {tab === 'report' ? <Reports /> : null}
       {tab === 'scrivi' ? <Writing /> : null}
       {tab === 'messaggi' ? <Messages /> : null}

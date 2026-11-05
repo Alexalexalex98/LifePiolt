@@ -46,7 +46,7 @@ export function normalizePrefs(p?: Partial<ReminderPrefs> | null): ReminderPrefs
   };
 }
 
-export type RemEvent = { time: string; title: string; place?: string; dur?: number; reminder?: boolean };
+export type RemEvent = { time: string; title: string; place?: string; dur?: number; reminder?: boolean; /** impegno di lavoro (id del workspace) */ team?: string };
 export type Planned = { id: string; at: number; kind: ReminderKind; day: string; idx: number; title: string; body: string };
 
 const TIME_RE = /^(\d{1,2}):(\d{2})$/;
@@ -92,6 +92,8 @@ export type PlanOptions = {
   homeCity?: string;
   windowDays?: number;
   max?: number;
+  /** disconnessione: true = non avvisare di questo impegno di lavoro a quest'ora (giorno YYYY-MM-DD, minuti dalla mezzanotte) */
+  mute?: (day: string, minutes: number, ev: RemEvent) => boolean;
 };
 
 /**
@@ -139,6 +141,8 @@ export function planReminders(events: Record<string, RemEvent[]> | undefined | n
       }
     });
   }
-  out.sort((a, b) => a.at - b.at || a.id.localeCompare(b.id));
-  return out.slice(0, Math.max(0, max));
+  const mute = opts.mute;
+  const kept = mute ? out.filter((p) => { const ev = events[p.day]?.[p.idx]; if (!ev?.team) return true; const d = new Date(p.at); const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; return !mute(day, d.getHours() * 60 + d.getMinutes(), ev); }) : out;
+  kept.sort((a, b) => a.at - b.at || a.id.localeCompare(b.id));
+  return kept.slice(0, Math.max(0, max));
 }
