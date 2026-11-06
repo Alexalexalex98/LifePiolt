@@ -12,7 +12,7 @@ import { t as tl } from '@/i18n/core';
 import { alertT } from '@/lib/alert';
 import { readWarranty } from '@/lib/warrantyAi';
 import { fromFile, fromPhoto, scanDocument, type Captured } from '@/lib/warrantyScan';
-import { purchaseTitle, reminders, sortPurchases, summary, type Purchase } from '@/lib/warranty';
+import { purchaseTitle, reminders, sortPurchases, summary, type Purchase, type Question } from '@/lib/warranty';
 import { fmtBytes } from '@/lib/docCheck';
 import { useLife } from '@/store/life';
 import { toast } from '@/store/toast';
@@ -24,14 +24,14 @@ const uid = () => `g${Date.now().toString(36)}${Math.random().toString(36).slice
 /** Garanzie: scansioni la fattura (o fai una foto), Theia legge i dati e la garanzia si segna da sola, con il PDF e il conto alla rovescia. */
 export default function Warranties() {
   const th = useTheme(); const today = useToday(); const items = useWarranty((s) => s.items);
-  const [pick, setPick] = useState(false); const [busy, setBusy] = useState(false); const [draft, setDraft] = useState<{ p: Purchase; preview?: string; notice?: string; isNew: boolean } | null>(null);
+  const [pick, setPick] = useState(false); const [busy, setBusy] = useState(false); const [draft, setDraft] = useState<{ p: Purchase; preview?: string; notice?: string; isNew: boolean; questions?: Question[] } | null>(null);
   const list = useMemo(() => sortPurchases(items, today), [items, today]); const sum = useMemo(() => summary(items, today), [items, today]);
 
   const process = async (c: Captured | null) => {
     if (!c) return; setBusy(true);
     const base: Purchase = { id: uid(), store: '', date: '', currency: 'EUR', products: [], pages: c.pages, ...(c.pdf ? { pdf: c.pdf } : {}), source: c.source, createdAt: today };
     const r = await readWarranty(c, today); setBusy(false);
-    if (r.ok) setDraft({ p: { ...base, store: r.data.store, date: r.data.date ?? '', currency: r.data.currency, ...(r.data.total != null ? { total: r.data.total } : {}), products: r.data.products.map((x, i) => ({ ...x, id: `${base.id}-${i}` })) }, preview: c.pages[0], notice: r.data.extensionsFound ? tl('Ecco cosa ho letto. Ho trovato {0} estensioni di garanzia: controllale bene.', r.data.extensionsFound) : tl('Ecco cosa ho letto: controlla e correggi, soprattutto la garanzia.'), isNew: true });
+    if (r.ok) setDraft({ p: { ...base, store: r.data.store, date: r.data.date ?? '', currency: r.data.currency, ...(r.data.total != null ? { total: r.data.total } : {}), products: r.data.products.map((x, i) => ({ ...x, id: `${base.id}-${i}` })) }, preview: c.pages[0], notice: [r.data.extensionsFound ? tl('Ho trovato {0} estensioni di garanzia.', r.data.extensionsFound) : '', r.data.insurancesFound ? tl('Sullo scontrino c\'è un\'assicurazione ({0}): l\'ho segnata a parte.', r.data.insurancesFound) : '', r.data.questions.length ? tl('Alcune voci non sono chiare: rispondi alle domande in alto.') : tl('Controlla e correggi, soprattutto la garanzia.')].filter(Boolean).join(' '), questions: r.data.questions, isNew: true });
     else { toast(r.message); setDraft({ p: base, preview: c.pages[0], isNew: true }); }
   };
   const save = (p: Purchase) => {
@@ -63,7 +63,7 @@ export default function Warranties() {
         </View>
         <Body small muted style={{ marginTop: 10 }}>{tl('Una foto diventa un PDF di una pagina, così la fattura si conserva sempre allo stesso modo.')}</Body>
       </Sheet>
-      {draft ? <WarrantyEditor key={draft.p.id} purchase={draft.p} preview={draft.preview} notice={draft.notice} onSave={save} onClose={() => setDraft(null)} /> : null}
+      {draft ? <WarrantyEditor key={draft.p.id} purchase={draft.p} preview={draft.preview} notice={draft.notice} questions={draft.questions} onSave={save} onClose={() => setDraft(null)} /> : null}
     </Page>
   );
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { coverage, legalExpiry, withCoverage, addMonths, expiryOf, remaining, progress, statusOf, durationLabel, purchaseTitle, nextExpiry, sortPurchases, summary, reminders, parseWarranty, validDay, daysBetween, DEFAULT_MONTHS, productExpiry } from '../src/lib/warranty.ts';
+import { answer, settle, insuranceKindOf, coverage, legalExpiry, withCoverage, addMonths, expiryOf, remaining, progress, statusOf, durationLabel, purchaseTitle, nextExpiry, sortPurchases, summary, reminders, parseWarranty, validDay, daysBetween, DEFAULT_MONTHS, productExpiry } from '../src/lib/warranty.ts';
 
 const P = (id, date, products, extra = {}) => ({ id, store: 'Negozio', date, currency: 'EUR', products, pages: [], source: 'scan', createdAt: '2026-01-01', ...extra });
 const X = (name, months, extra = {}) => ({ id: name, name, months, ...extra });
@@ -69,4 +69,37 @@ test('copertura: legale ed estensione con due scadenze', () => {
   assert.equal(legalExpiry('2026-10-01', x), '2028-10-01'); assert.equal(productExpiry({ date: '2026-10-01' }, x), '2030-10-01');
   assert.equal(coverage({ months: 24 }).extended, false); assert.equal(coverage({ months: 12 }).legal, 12);
   const w = withCoverage({ id: 'a', name: 'A', months: 24, assumed: true }, 24, 12); assert.equal(w.months, 36); assert.equal(w.assumed, false); assert.equal(withCoverage(w, 24, 0).months, 24);
+});
+
+const T0 = '2026-11-05';
+test('assicurazione sullo scontrino: segnata nei dati, separata dalla garanzia', () => {
+  const r = parseWarranty('{"data":"2026-10-01","prodotti":[{"nome":"iPhone 16","marca":"Apple","garanzia_mesi":24}],"assicurazioni":[{"prodotto":"iPhone","nome":"Assicurazione Furto e Danni","fornitore":"Allianz","costo":"89,90","copertura":"furto e danni","mesi":12,"testo":"ASSICURAZ. FURTO E DANNI 12M"}]}', T0);
+  assert.equal(r.questions.length, 0); assert.equal(r.insurancesFound, 1); const x = r.products[0];
+  assert.deepEqual([x.ins.kind, x.ins.by, x.ins.cost, x.ins.months], ['furto e danni', 'Allianz', 89.9, 12]); assert.equal(x.months, 24, 'i mesi dell\'assicurazione non si mescolano con quelli della garanzia');
+  const row = parseWarranty('{"data":"2026-10-01","prodotti":[{"nome":"Tv","marca":"LG"},{"nome":"Assicurazione furto 24 mesi","prezzo":59}]}', T0); assert.equal(row.products.length, 1); assert.equal(row.products[0].ins.kind, 'furto'); assert.equal(row.products[0].ins.months, 24); assert.equal(row.products[0].ins.cost, 59);
+  assert.equal(insuranceKindOf('Protezione rottura schermo'), 'danni'); assert.equal(insuranceKindOf('Care'), 'altro');
+});
+test('ambiguità: «Care» è estensione o assicurazione? chiede, non indovina', () => {
+  const r = parseWarranty('{"data":"2026-10-01","prodotti":[{"nome":"Galaxy S24","marca":"Samsung","garanzia_mesi":24}],"voci_incerte":[{"testo":"Samsung Care+ 24 mesi","costo":99}]}', T0);
+  assert.equal(r.questions.length, 1); const q = r.questions[0]; assert.equal(q.ask, 'tipo'); assert.equal(q.product, 0); assert.match(q.text, /Samsung Care\+ 24 mesi/); assert.deepEqual(q.options.map((o) => o.id), ['estensione', 'assicurazione', 'altro']); assert.equal(r.products[0].months, 24, 'finché non si risponde non cambia niente');
+  const a = answer(r.products, r.questions, q.id, 'estensione'); assert.equal(a.qs.length, 0); assert.equal(a.items[0].months, 48); assert.equal(a.items[0].ext.cost, 99);
+  const b = answer(r.products, r.questions, q.id, 'assicurazione'); assert.equal(b.items[0].ins.cost, 99); assert.equal(b.items[0].months, 24);
+  const c = answer(r.products, r.questions, q.id, 'altro'); assert.equal(c.qs.length, 0); assert.equal(c.items[0].ins, undefined); assert.match(c.note, /non è una garanzia/);
+  const d = answer(r.products, r.questions, q.id, 'spiega', 'È il servizio di ritiro a domicilio'); assert.match(d.note, /ritiro a domicilio/); assert.equal(d.qs.length, 0);
+  assert.equal(r.products[0].ext, undefined, 'le risposte non modificano l\'originale');
+});
+test('ambiguità: a quale prodotto? e quanto dura?', () => {
+  const r = parseWarranty('{"data":"2026-10-01","prodotti":[{"nome":"Tv","marca":"LG"},{"nome":"Soundbar","marca":"Sony"}],"assicurazioni":[{"nome":"Assicurazione danni","costo":40}],"estensioni":[{"nome":"Extra garanzia","fornitore":"MediaWorld"}]}', T0);
+  assert.deepEqual(r.questions.map((q) => q.ask), ['prodotto', 'prodotto']); assert.ok(r.questions[0].options.some((o) => o.id === 'p1' && o.label === 'Soundbar'));
+  const ins = r.questions.find((q) => q.item.kind === 'assicurazione'); const ext = r.questions.find((q) => q.item.kind === 'estensione');
+  let st = { items: r.products, qs: r.questions };
+  st = answer(st.items, st.qs, ins.id, 'p1'); assert.equal(st.items[1].ins.cost, 40); assert.equal(st.qs.length, 1);
+  st = answer(st.items, st.qs, ext.id, 'p0'); assert.equal(st.qs.length, 1); assert.equal(st.qs[0].ask, 'durata'); assert.equal(st.qs[0].product, 0);
+  st = answer(st.items, st.qs, st.qs[0].id, 'm24'); assert.equal(st.qs.length, 0); assert.equal(st.items[0].months, 48); assert.equal(st.items[0].ext.by, 'MediaWorld');
+  const none = answer(r.products, r.questions, ins.id, 'nessuno'); assert.equal(none.items.every((x) => !x.ins), true); assert.match(none.note, /non collegata/);
+  const unk = parseWarranty('{"data":"2026-10-01","prodotti":[{"nome":"Tv","marca":"LG"}],"estensioni":[{"prodotto":"Tv","nome":"Extra garanzia LG"}]}', T0); assert.equal(unk.questions[0].ask, 'durata'); assert.equal(answer(unk.products, unk.questions, unk.questions[0].id, 'nessuno').items[0].months, 24);
+});
+test('settle a mano e voci senza prodotti', () => {
+  const items = [{ name: 'A', months: 24 }]; const qs = []; settle(items, qs, { kind: 'assicurazione', name: 'Polizza danni', cost: 10 }); assert.equal(items[0].ins.kind, 'danni'); assert.equal(qs.length, 0);
+  const empty = []; settle([], empty, { kind: 'assicurazione', name: 'X' }); assert.equal(empty.length, 0);
 });

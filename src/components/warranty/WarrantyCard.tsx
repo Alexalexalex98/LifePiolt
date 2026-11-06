@@ -6,11 +6,12 @@ import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { Icon } from '@/lib/icons';
 import { openDocument } from '@/lib/openDoc';
-import { coverage, durationLabel, legalExpiry, nextExpiry, productExpiry, progress, purchaseTitle, remaining, statusOf, type Purchase, type Status } from '@/lib/warranty';
+import { coverage, durationLabel, expiryOf, legalExpiry, nextExpiry, productExpiry, progress, purchaseTitle, remaining, statusOf, type Purchase, type Status } from '@/lib/warranty';
 
 const fmt = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 const money = (n: number, c: string) => `${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${c}`;
 const EXT = '#8b5cf6';
+const INS = '#2563eb';
 export const STATUS_LABEL: Record<Status, string> = { attiva: 'Attiva', 'in scadenza': 'In scadenza', scaduta: 'Scaduta' };
 
 /** Una scheda per acquisto: il nome di tutti i prodotti e, per ognuno, i dati e il conto alla rovescia dalla data di acquisto alla scadenza. */
@@ -41,6 +42,14 @@ export function WarrantyCard({ p, today, onEdit, onDelete }: { p: Purchase; toda
               {cv.extended ? <Row><View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: EXT }} /><Body small style={{ flex: 1 }}>{`${tl('Estensione')} · +${durationLabel(cv.extra)}${x.ext?.by ? ` · ${x.ext.by}` : ''}${x.ext?.name ? ` · ${x.ext.name}` : ''}${x.ext?.cost != null ? ` · ${money(x.ext.cost, p.currency)}` : ''}`}</Body><Body small bold>{`${tl('fino al')} ${fmt(ex)}`}</Body></Row> : null}
             </View>
 
+            {x.ins ? (() => { const iex = x.ins.months ? expiryOf(p.date, x.ins.months) : null; return (
+              <View style={{ marginTop: 10, padding: 10, borderRadius: 12, backgroundColor: `${INS}18`, gap: 2 }}>
+                <Row><Icon name="shield" size={16} color={INS} /><Text style={{ color: th.text, fontWeight: '800', flex: 1 }}>{tl('Assicurazione')}</Text><View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: `${INS}30` }}><Text style={{ color: INS, fontWeight: '800', fontSize: 11 }}>{tl(x.ins.kind)}</Text></View></Row>
+                <Body small>{[x.ins.name, x.ins.by, x.ins.cost != null ? money(x.ins.cost, p.currency) : ''].filter(Boolean).join(' · ')}</Body>
+                {iex ? <Body small muted>{`${durationLabel(x.ins.months!)} · ${tl('fino al')} ${fmt(iex)} · ${tl(remaining(today, iex).label)}`}</Body> : <Body small muted>{tl('Durata non indicata sul documento')}</Body>}
+                <Body small muted>{tl('Non è una garanzia: copre altro (per esempio furto o danni).')}</Body>
+              </View>
+            ); })() : null}
             <Text style={{ color: color(st), fontSize: 20, fontWeight: '800', marginTop: 10 }} accessibilityLiveRegion="polite">{tl(rem.label)}</Text>
             {cv.extended ? <Body small muted>{legalLeft.expired ? tl('La garanzia legale è finita: ora vale l\'estensione.') : tl('La garanzia legale: {0}', tl(legalLeft.label).toLowerCase())}</Body> : null}
             <CoverageBar legal={cv.legal} extra={cv.extra} elapsed={pr} color={color(st)} />
@@ -48,6 +57,7 @@ export function WarrantyCard({ p, today, onEdit, onDelete }: { p: Purchase; toda
           </View>
         );
       })}
+      {p.note ? <View style={{ marginTop: 12, padding: 10, borderRadius: 12, backgroundColor: th.chip }}><Body small bold muted>{tl('NOTE').toUpperCase()}</Body><Body small>{p.note}</Body></View> : null}
       <Row style={{ marginTop: 14, flexWrap: 'wrap' }}>
         {p.pdf ? <Btn small icon="file" title="Fattura (PDF)" onPress={() => { void openDocument({ uri: p.pdf, name: `${purchaseTitle(p)}.pdf`, mime: 'application/pdf' }); }} /> : null}
         <Btn small ghost icon="edit" title="Modifica" onPress={onEdit} />

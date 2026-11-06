@@ -1,5 +1,5 @@
 {
- "count": 19527,
+ "count": 19560,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -134,7 +134,7 @@
   "src/app/(tabs)/userProfile.tsx": 51,
   "src/app/(tabs)/vacationPlan.tsx": 32,
   "src/app/(tabs)/vacationPlanner.tsx": 15,
-  "src/app/(tabs)/warranties.tsx": 24,
+  "src/app/(tabs)/warranties.tsx": 26,
   "src/app/(tabs)/weekPlan.tsx": 24,
   "src/app/(tabs)/withdraw.tsx": 20,
   "src/app/(tabs)/workspace.tsx": 97,
@@ -366,8 +366,8 @@
   "src/components/tour/TourOverlay.tsx": 8,
   "src/components/tour/TutorialSettings.tsx": 13,
   "src/components/ui.tsx": 12,
-  "src/components/warranty/WarrantyCard.tsx": 16,
-  "src/components/warranty/WarrantyEditor.tsx": 23,
+  "src/components/warranty/WarrantyCard.tsx": 19,
+  "src/components/warranty/WarrantyEditor.tsx": 42,
   "src/components/work/Career.tsx": 97,
   "src/components/work/Company.tsx": 59,
   "src/components/work/Conflicts.tsx": 17,
@@ -759,7 +759,7 @@
   "src/lib/voice/speak.ts": 2,
   "src/lib/voice/speechEngine.ts": 2,
   "src/lib/voice/voiceText.ts": 1,
-  "src/lib/warranty.ts": 6,
+  "src/lib/warranty.ts": 21,
   "src/lib/warrantyAi.ts": 6,
   "src/lib/warrantyScan.ts": 5,
   "src/lib/weather.ts": 15,
@@ -825,5 +825,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2443
+ "withPlaceholders": 2452
 }
