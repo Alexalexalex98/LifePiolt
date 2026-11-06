@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { HomeChores } from '@/components/casa/HomeChores';
+import { HomeClean } from '@/components/casa/HomeClean';
 import { HomeFamily } from '@/components/casa/HomeFamily';
-import { HomePlan } from '@/components/casa/HomePlan';
-import { HomeRooms, QuickStart } from '@/components/casa/HomeRooms';
-import { HomeTidy } from '@/components/casa/HomeTidy';
+import { HomeFloor, QuickStart } from '@/components/casa/HomeFloor';
 import { HomeToday } from '@/components/casa/HomeToday';
 import { Body, Pill } from '@/components/ui';
 import { t as tl } from '@/i18n/core';
 
-type Tab = 'oggi' | 'piano' | 'casa' | 'faccende' | 'riordino' | 'famiglia';
-const TABS: [Tab, string][] = [['oggi', 'Oggi'], ['piano', 'Piano'], ['casa', 'Casa'], ['faccende', 'Faccende'], ['riordino', 'Riordino'], ['famiglia', 'Famiglia']];
+type Tab = 'oggi' | 'pulizie' | 'planimetria' | 'famiglia';
+const TABS: [Tab, string][] = [['oggi', 'Oggi'], ['pulizie', 'Pulizie'], ['planimetria', 'Planimetria'], ['famiglia', 'Famiglia']];
 
-/** Casa: tenere la casa in ordine senza tenere tutto in testa. Il piano si fa da solo. */
+/** Casa: tenere la casa in ordine senza tenere tutto in testa. Oggi cosa fare; Pulizie stanza per stanza; la Planimetria come casa tua; la Famiglia. */
 export function HomeCare() {
   const [tab, setTab] = useState<Tab>('oggi'); const [quick, setQuick] = useState(false);
   return (
@@ -21,12 +19,10 @@ export function HomeCare() {
       <Body small muted>{tl('Meno cose da ricordare: Casa le pianifica per te, un giorno alla volta.')}</Body>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>{TABS.map(([k, l]) => <Pill key={k} label={tl(l)} on={tab === k} onPress={() => setTab(k)} />)}</ScrollView>
       {tab === 'oggi' ? <HomeToday onStart={() => setQuick(true)} /> : null}
-      {tab === 'piano' ? <HomePlan /> : null}
-      {tab === 'casa' ? <HomeRooms /> : null}
-      {tab === 'faccende' ? <HomeChores /> : null}
-      {tab === 'riordino' ? <HomeTidy /> : null}
+      {tab === 'pulizie' ? <HomeClean onFloor={() => setTab('planimetria')} /> : null}
+      {tab === 'planimetria' ? <HomeFloor /> : null}
       {tab === 'famiglia' ? <HomeFamily /> : null}
-      <QuickStart open={quick} onClose={() => setQuick(false)} />
+      <QuickStart open={quick} onClose={() => setQuick(false)} onDone={() => setTab('planimetria')} />
     </View>
   );
 }

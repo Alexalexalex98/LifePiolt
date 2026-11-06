@@ -2,47 +2,26 @@ import { useState } from 'react';
 import { Image, View } from 'react-native';
 
 import { ensureMe, localToday, pickPhoto } from '@/components/casa/shared';
-import { Body, Btn, Card, H, Pill, Row, Sheet } from '@/components/ui';
+import { Body, Btn, Pill, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { alertT } from '@/lib/alert';
 import { reviewTidy } from '@/lib/homeAi';
 import { praiseOf } from '@/lib/homeCare';
-import { GUIDES, guideMinutes, guideOf, stepsDone } from '@/lib/homeGuides';
+import { guideOf, stepsDone } from '@/lib/homeGuides';
 import { useCasa, type Tidy } from '@/store/casa';
 import { toast } from '@/store/toast';
 
 const newTidyId = () => `t${Date.now().toString(36)}`;
 
-/** Riordino guidato: un passo alla volta, con la foto del prima e del dopo. Theia guarda la differenza e ti dice, con gentilezza, cosa è venuto bene. */
-export function HomeTidy() {
-  const { tidy, rooms, upsertTidy } = useCasa(); const [open, setOpen] = useState<string | null>(null);
-  const active = tidy.filter((t) => !t.finished); const finished = tidy.filter((t) => t.finished);
-  const start = (gid: string) => {
-    const g = guideOf(gid)!; const room = rooms.find((r) => r.type === g.room)?.id ?? null;
-    const ex = active.find((t) => t.guide === gid); if (ex) { setOpen(ex.id); return; }
-    const t: Tidy = { id: newTidyId(), guide: gid, room, started: localToday(), done: [] }; upsertTidy(t); setOpen(t.id);
-  };
-  return (
-    <View style={{ gap: 14 }}>
-      {active.length ? (
-        <Card>
-          <H>In corso</H>
-          {active.map((t) => { const g = guideOf(t.guide)!; return <Row key={t.id} style={{ marginTop: 8 }}><View style={{ flex: 1 }}><Body bold>{g.title}</Body><Body small muted>{`${stepsDone(g, t.done)}%`}</Body></View><Btn small title="Continua" onPress={() => setOpen(t.id)} /></Row>; })}
-        </Card>
-      ) : null}
-      <Card>
-        <H>Guide di riordino</H>
-        <Body small muted style={{ marginTop: 4 }}>{tl('Scegli una zona. Un passo alla volta, senza fare tutto in un giorno.')}</Body>
-        {GUIDES.map((g) => <Row key={g.id} style={{ marginTop: 12 }}><View style={{ flex: 1 }}><Body bold>{g.title}</Body><Body small muted>{`${tl(g.intro)} · ${tl('circa {0} min', guideMinutes(g))}`}</Body></View><Btn small ghost title="Inizia" onPress={() => start(g.id)} /></Row>)}
-      </Card>
-      {finished.length ? <Card><H>Riordini finiti</H>{finished.map((t) => <Row key={t.id} style={{ marginTop: 8 }}><Body style={{ flex: 1 }}>{guideOf(t.guide)?.title}</Body><Body small muted>{t.finished}</Body></Row>)}</Card> : null}
-      {open ? <TidySheet id={open} onClose={() => setOpen(null)} /> : null}
-    </View>
-  );
+/** Avvia (o riprende) un riordino guidato per una zona; restituisce il suo id. */
+export function startTidy(gid: string): string {
+  const st = useCasa.getState(); const g = guideOf(gid)!; const ex = st.tidy.find((t) => t.guide === gid && !t.finished); if (ex) return ex.id;
+  const room = st.rooms.find((r) => r.type === g.room)?.id ?? null; const t: Tidy = { id: newTidyId(), guide: gid, room, started: localToday(), done: [] }; st.upsertTidy(t); return t.id;
 }
 
-function TidySheet({ id, onClose }: { id: string; onClose: () => void }) {
+/** Riordino guidato: un passo alla volta, con la foto del prima e del dopo. Theia guarda la differenza e ti dice, con gentilezza, cosa è venuto bene. */
+export function TidySheet({ id, onClose }: { id: string; onClose: () => void }) {
   const th = useTheme(); const t = useCasa((s) => s.tidy.find((x) => x.id === id)); const { upsertTidy, removeTidy, finishTidy } = useCasa(); const [busy, setBusy] = useState(false);
   if (!t) return null; const g = guideOf(t.guide)!;
   const set = (p: Partial<Tidy>) => upsertTidy({ ...t, ...p });

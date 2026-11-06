@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
-import { ensureMe, memberName, useToday } from '@/components/casa/shared';
+import { ensureMe, maybeAskRoomPhoto, memberName, useToday } from '@/components/casa/shared';
 import { Text } from '@/components/T';
 import { Body, Btn, Card, Empty, H, Pill, Row, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -22,7 +22,7 @@ export function HomeToday({ onStart }: { onStart: () => void }) {
   const doneToday = log.filter((d) => d.day === today && !d.chore.startsWith('tidy-'));
   const plan = useMemo(() => dailyPlan(chores, today, { budget: settings.budget, lowEnergy, doneToday: doneToday.map((d) => d.chore) }), [chores, today, settings.budget, lowEnergy, doneToday.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const who = actor ?? me ?? members[0]?.id ?? ensureMe().id;
-  const finish = (id: string) => { const m = actor ?? me ?? ensureMe().id; const pts = doChore(id, m, today); if (pts != null) toast(pts > 0 ? praiseOf(log.length) : 'Segnato'); };
+  const finish = (id: string) => { const m = actor ?? me ?? ensureMe().id; const pts = doChore(id, m, today); if (pts != null) { toast(pts > 0 ? praiseOf(log.length) : 'Segnato'); maybeAskRoomPhoto(chores.find((x) => x.id === id)?.room ?? null); } };
   if (chores.length === 0) return <Card><H>Oggi</H><Empty text="Per cominciare crea la tua casa: ci vuole un minuto e il piano si fa da solo." /><View style={{ marginTop: 8 }}><Btn icon="plus" title="Crea la mia casa" onPress={onStart} /></View></Card>;
   const items = plan.items.filter((x) => !skip.includes(x.chore.id));
   return (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { alertT } from '@/lib/alert';
-import { MEMBER_COLORS, type Member } from '@/lib/homeCare';
+import { MEMBER_COLORS, roomSummary, type Member } from '@/lib/homeCare';
 import { pickFromGallery, takePhoto } from '@/components/theia/images';
 import { useApp } from '@/store/app';
 import { useCasa } from '@/store/casa';
@@ -28,3 +28,16 @@ export function pickPhoto(): Promise<string | null> {
   });
 }
 export const memberName = (ms: Member[], id: string | null | undefined): string => (id === 'rotate' ? 'A turno' : id ? ms.find((m) => m.id === id)?.name ?? 'Qualcuno' : 'Chiunque');
+
+export const ROOM_COLORS = ['#0F766E', '#2563EB', '#7C3AED', '#B45309', '#DB2777', '#16A34A', '#0891B2', '#9333EA'];
+/** Quando una stanza è a posto (niente in scadenza e qualcosa fatto oggi) chiede, una volta al giorno, se vuoi la foto com'è adesso come foto della stanza. */
+export function maybeAskRoomPhoto(roomId: string | null): void {
+  if (!roomId) return;
+  const st = useCasa.getState(); const room = st.rooms.find((r) => r.id === roomId); if (!room) return; const today = localToday();
+  if (!roomSummary(roomId, st.chores, st.log, today).clean || st.photoAsked[roomId] === today) return;
+  st.set({ photoAsked: { ...st.photoAsked, [roomId]: today } });
+  alertT(`${room.name} a posto!`, room.photo ? 'Vuoi aggiornare la foto della stanza con com\'è adesso?' : 'Vuoi scattare una foto e usarla come foto della stanza?', [
+    { text: 'Non adesso', style: 'cancel' },
+    { text: 'Scatta o scegli', onPress: () => { void pickPhoto().then((uri) => { if (uri) useCasa.getState().updateRoom(roomId, { photo: uri }); }); } },
+  ]);
+}

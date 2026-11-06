@@ -10,7 +10,7 @@ export type CompletedDone = Done & { prevDue?: string | null; prevLast?: string 
 export type Tidy = { id: string; guide: string; room: string | null; started: string; done: number[]; before?: string; after?: string; beforeNote?: string; verdict?: Verdict; finished?: string };
 export type CasaSettings = { budget: number; restDays: number[]; leaderboard: boolean; simple: boolean; lowEnergyDay?: string; slidAt?: string };
 type State = {
-  rooms: Room[]; chores: Chore[]; members: Member[]; log: CompletedDone[]; tidy: Tidy[]; floorplan?: string; me?: string; settings: CasaSettings;
+  rooms: Room[]; chores: Chore[]; members: Member[]; log: CompletedDone[]; tidy: Tidy[]; floorplan?: string; me?: string; settings: CasaSettings; /** stanza -> ultimo giorno in cui ho chiesto la foto (una volta al giorno) */ photoAsked: Record<string, string>;
   set: (p: Partial<Omit<State, 'set'>>) => void;
   setSettings: (p: Partial<CasaSettings>) => void;
   addRooms: (r: Room[]) => void; updateRoom: (id: string, p: Partial<Room>) => void; removeRoom: (id: string) => void;
@@ -21,7 +21,7 @@ type State = {
   upsertTidy: (t: Tidy) => void; removeTidy: (id: string) => void; finishTidy: (id: string, member: string, day: string, points: number) => void;
   clear: () => void;
 };
-const empty = { rooms: [] as Room[], chores: [] as Chore[], members: [] as Member[], log: [] as CompletedDone[], tidy: [] as Tidy[], floorplan: undefined as string | undefined, me: undefined as string | undefined, settings: { budget: 30, restDays: [], leaderboard: true, simple: false } as CasaSettings };
+const empty = { rooms: [] as Room[], chores: [] as Chore[], members: [] as Member[], log: [] as CompletedDone[], tidy: [] as Tidy[], floorplan: undefined as string | undefined, me: undefined as string | undefined, photoAsked: {} as Record<string, string>, settings: { budget: 30, restDays: [], leaderboard: true, simple: false } as CasaSettings };
 export const useCasa = create<State>()(persisted<State>('casa', (set, get) => ({
   ...empty,
   set: (p) => set(p),
@@ -50,6 +50,6 @@ export const useCasa = create<State>()(persisted<State>('casa', (set, get) => ({
   removeTidy: (id) => set((s) => ({ tidy: s.tidy.filter((x) => x.id !== id) })),
   finishTidy: (id, member, day, points) => { set((s) => ({ tidy: s.tidy.map((t) => (t.id === id ? { ...t, finished: day } : t)), log: [...s.log, { id: `t${id}`, chore: `tidy-${id}`, member, day, points, ts: Date.now() }] })); if (member === (get().me ?? member)) usePetHome.getState().earn('tidy'); },
   clear: () => set({ ...empty }),
-}), (s) => ({ rooms: s.rooms, chores: s.chores, members: s.members, log: s.log, tidy: s.tidy, floorplan: s.floorplan, me: s.me, settings: s.settings }), { sensitive: true }));
+}), (s) => ({ rooms: s.rooms, chores: s.chores, members: s.members, log: s.log, tidy: s.tidy, floorplan: s.floorplan, me: s.me, settings: s.settings, photoAsked: s.photoAsked }), { sensitive: true }));
 export const monthKey = (day: string) => monthOf(day);
 export { basePoints };

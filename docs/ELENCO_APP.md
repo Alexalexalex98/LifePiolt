@@ -268,25 +268,23 @@
     - Una cosa alla volta (con timer)
     - Giornata no
     - Fatto oggi
-  - **Piano**
-    - Prossimi 7 giorni
-    - L'anno, mese per mese
-    - Ricalcola il piano
-  - **Casa**
-    - Planimetria disegnata dalle misure
-    - Stanze
+  - **Pulizie**
+    - Una scheda per stanza, con la foto della stanza
+    - Dentro la stanza
+      - Ogni giorno
+      - Ogni settimana
+      - Ogni tanto
+      - Aggiungi, modifica, segna come fatto
+      - Idee consigliate e le tre essenziali
+      - Riordino guidato (guardaroba, documenti, cucina, bagno, cassetti, scrivania, ingresso, giochi)
+      - Foto del prima e del dopo
+    - Calendario (7 giorni e anno)
+  - **Planimetria**
+    - Disegno con stanze da trascinare e ridimensionare
+    - Misure precise
     - Foto della planimetria o mappa del robot
     - Lettura con Theia
-    - Crea la casa in un minuto
-  - **Faccende**
-    - Per stanza
-    - Idee consigliate
-    - Ogni quanto si ripetono
-    - Chi le fa
-  - **Riordino**
-    - Guide passo-passo (guardaroba, documenti, cucina, bagno, cassetti, scrivania, ingresso, giochi)
-    - Foto del prima e del dopo
-    - Theia guarda la differenza
+    - Crea la casa in un minuto (m²)
   - **Famiglia**
     - Persone
     - Distribuzione equa

@@ -100,3 +100,26 @@ test('guide di riordino', () => {
   const g = GUIDES[0]; assert.equal(stepsDone(g, [0, 1, 99]), Math.round((2 / g.steps.length) * 100));
   assert.equal(daysBetween('2026-11-02', addDays('2026-11-02', 10)), 10);
 });
+
+import { placeRooms, boundsOf, overlapsOther, snapMove, snapResize, snapTo, clampSide, swapDims, categoryOf, roomSummary, essentialsFor, CATS } from '../src/lib/homeCare.ts';
+const R = (id, w, l, x, y, extra = {}) => ({ id, name: id, type: 'altro', w, l, ...(x != null ? { x, y } : {}), ...extra });
+test('planimetria: posizioni, sovrapposizioni, aggancio ai muri', () => {
+  const placed = placeRooms([R('a', 4, 3, 0, 0), R('b', 3, 3), R('c', 2, 2)]);
+  assert.deepEqual([placed[0].x, placed[0].y], [0, 0]); assert.ok(placed[1].x != null && placed[2].x != null);
+  for (const r of placed) assert.equal(overlapsOther(placed, r.id), false, 'le stanze messe in automatico non si sovrappongono');
+  assert.equal(overlapsOther([R('a', 4, 3, 0, 0), R('b', 3, 3, 2, 1)], 'a'), true); assert.equal(overlapsOther([R('a', 4, 3, 0, 0), R('b', 3, 3, 4, 0)], 'a'), false, 'muro in comune non è sovrapposizione');
+  assert.deepEqual(boundsOf([R('a', 4, 3, 1, 2)]), { w: 6, h: 6 }); assert.deepEqual(boundsOf([R('a', 8, 3, 1, 5)]), { w: 9, h: 8 });
+  const rooms = [R('a', 4, 3, 0, 0), R('b', 3, 3, 9, 9)];
+  assert.deepEqual(snapMove(rooms, 'b', 4.1, 0.2), { x: 4, y: 0 }, 'si aggancia al muro di destra e in alto'); assert.deepEqual(snapMove(rooms, 'b', 7.34, 7.26), { x: 7.3, y: 7.3 }, 'lontano: solo la griglia di 10 cm'); assert.deepEqual(snapMove(rooms, 'b', -2, -1), { x: 0, y: 0 });
+  assert.deepEqual(snapResize([R('a', 4, 3, 0, 0), R('b', 2, 2, 5, 0)], 'a', 4.9, 3.04), { w: 5, l: 3 }, 'il lato destro si aggancia al muro dell\'altra'); assert.deepEqual(snapResize([R('a', 4, 3, 0, 0)], 'a', 0.1, 99), { w: 0.8, l: 30 });
+  assert.equal(snapTo(1.04), 1); assert.equal(snapTo(1.06), 1.1); assert.equal(snapTo(1.3, 0.5), 1.5); assert.equal(clampSide(0.1), 0.8); assert.deepEqual(swapDims({ w: 3, l: 5 }), { w: 5, l: 3 });
+});
+test('pulizie per stanza: tre categorie e stato della stanza', () => {
+  const E = (n, unit) => ({ n, unit });
+  assert.equal(categoryOf({ every: E(1, 'day') }), 'giornaliere'); assert.equal(categoryOf({ every: E(3, 'day') }), 'giornaliere'); assert.equal(categoryOf({ every: E(1, 'week') }), 'settimanali'); assert.equal(categoryOf({ every: E(2, 'week') }), 'settimanali'); assert.equal(categoryOf({ every: E(1, 'month') }), 'periodiche'); assert.equal(categoryOf({ every: E(1, 'year') }), 'periodiche'); assert.equal(CATS.length, 3);
+  const T2 = '2026-11-02'; const cs = [mk('a', 'A', E(1, 'day'), 5, 1, { room: 'r1', due: T2 }), mk('b', 'B', E(1, 'week'), 5, 1, { room: 'r1', due: '2026-11-09' }), mk('c', 'C', E(1, 'week'), 5, 1, { room: 'r2', due: T2 }), mk('d', 'D', E(1, 'week'), 5, 1, { room: 'r1', due: T2, active: false })];
+  assert.deepEqual(roomSummary('r1', cs, [], T2), { total: 2, dueToday: 1, doneToday: 0, clean: false });
+  const after = [{ ...cs[0], due: '2026-11-03' }, cs[1], cs[2], cs[3]]; const s = roomSummary('r1', after, [{ chore: 'a', day: T2 }], T2); assert.equal(s.clean, true); assert.equal(s.doneToday, 1);
+  assert.equal(roomSummary('r1', cs, [{ chore: 'c', day: T2 }], T2).doneToday, 0, 'le faccende delle altre stanze non contano'); assert.equal(roomSummary('r9', cs, [], T2).clean, false); assert.equal(roomSummary(null, cs, [], T2).total, 0);
+  assert.equal(essentialsFor({ id: 'x', name: 'Cucina', type: 'cucina', w: 3, l: 3 }, []).length, 3); assert.equal(essentialsFor({ id: 'x', name: 'Cucina', type: 'cucina', w: 3, l: 3 }, CATALOG.cucina.map((it, i) => choreFrom('c' + i, 'x', it))).length, 0);
+});

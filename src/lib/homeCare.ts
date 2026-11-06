@@ -31,7 +31,8 @@ export const INTERVALS: { label: string; every: Every }[] = [
 /* ---------- stanze e faccende ---------- */
 export type RoomType = 'cucina' | 'bagno' | 'camera' | 'cameretta' | 'soggiorno' | 'ingresso' | 'corridoio' | 'studio' | 'lavanderia' | 'balcone' | 'cantina' | 'garage' | 'altro';
 export const ROOM_TYPES: { id: RoomType; label: string }[] = [{ id: 'cucina', label: 'Cucina' }, { id: 'bagno', label: 'Bagno' }, { id: 'camera', label: 'Camera da letto' }, { id: 'cameretta', label: 'Cameretta' }, { id: 'soggiorno', label: 'Soggiorno' }, { id: 'ingresso', label: 'Ingresso' }, { id: 'corridoio', label: 'Corridoio' }, { id: 'studio', label: 'Studio' }, { id: 'lavanderia', label: 'Lavanderia' }, { id: 'balcone', label: 'Balcone' }, { id: 'cantina', label: 'Cantina' }, { id: 'garage', label: 'Garage' }, { id: 'altro', label: 'Altro' }];
-export type Room = { id: string; name: string; type: RoomType; w: number; l: number };
+/** x, y: posizione in metri dall'angolo in alto a sinistra della planimetria; photo: la foto della stanza (per esempio com'è quando è in ordine). */
+export type Room = { id: string; name: string; type: RoomType; w: number; l: number; x?: number; y?: number; photo?: string };
 export type Chore = { id: string; title: string; room: string | null; every: Every; minutes: number; effort: 1 | 2 | 3; assignee: string | 'rotate' | null; due: string | null; lastDone?: string; active: boolean; note?: string };
 const E = (n: number, unit: Unit): Every => ({ n, unit });
 type Item = { title: string; every: Every; minutes: number; effort: 1 | 2 | 3 };
@@ -210,3 +211,61 @@ export function parseVerdict(text: string): Verdict {
   try { const j = JSON.parse(m ? m[0] : text) as Partial<Verdict>; const v = j.verdict === 'meglio' || j.verdict === 'uguale' || j.verdict === 'da_rifinire' ? j.verdict : 'meglio'; return { verdict: v, praise: String(j.praise ?? '').slice(0, 240) || 'Hai fatto un bel passo.', tips: (Array.isArray(j.tips) ? j.tips : []).map((t) => String(t).slice(0, 200)).slice(0, 2) }; }
   catch { return { verdict: 'meglio', praise: text.replace(/\s+/g, ' ').trim().slice(0, 240) || 'Hai fatto un bel passo.', tips: [] }; }
 }
+
+/* ---------- planimetria da disegnare (posizioni in metri) ---------- */
+export const MIN_SIDE = 0.8; export const MAX_SIDE = 30;
+const r1 = (v: number) => Math.round(v * 10) / 10;
+export const snapTo = (v: number, step = 0.1): number => r1(Math.round(v / step) * step);
+export const clampSide = (v: number): number => Math.max(MIN_SIDE, Math.min(MAX_SIDE, r1(v)));
+export const swapDims = (r: Pick<Room, 'w' | 'l'>): { w: number; l: number } => ({ w: r.l, l: r.w });
+/** Le stanze senza posizione vengono messe in fila sotto quelle già disposte; quelle già sistemate non si muovono. */
+export function placeRooms(rooms: Room[]): Room[] {
+  const done = rooms.filter((r) => r.x != null && r.y != null); const todo = rooms.filter((r) => r.x == null || r.y == null); if (!todo.length) return rooms;
+  const area = rooms.reduce((n, r) => n + r.w * r.l, 0); const rowM = Math.max(8, ...rooms.map((r) => r.w), Math.sqrt(area * 1.5));
+  const top = done.length ? Math.max(...done.map((r) => (r.y ?? 0) + r.l)) + 0.2 : 0; let x = 0; let y = top; let rowH = 0; const pos = new Map<string, { x: number; y: number }>();
+  for (const r of [...todo].sort((a, b) => b.w * b.l - a.w * a.l)) { if (x > 0 && x + r.w > rowM + 0.001) { x = 0; y += rowH + 0.2; rowH = 0; } pos.set(r.id, { x: r1(x), y: r1(y) }); x += r.w + 0.2; rowH = Math.max(rowH, r.l); }
+  return rooms.map((r) => (pos.has(r.id) ? { ...r, ...pos.get(r.id)! } : r));
+}
+export function boundsOf(rooms: Room[]): { w: number; h: number } { return { w: Math.max(6, ...rooms.map((r) => (r.x ?? 0) + r.w)), h: Math.max(6, ...rooms.map((r) => (r.y ?? 0) + r.l)) }; }
+const hit = (a: { x: number; y: number; w: number; l: number }, b: { x: number; y: number; w: number; l: number }, tol = 0.05) => a.x < b.x + b.w - tol && b.x < a.x + a.w - tol && a.y < b.y + b.l - tol && b.y < a.y + a.l - tol;
+/** Una stanza che si sovrappone a un'altra (si segnala, ma si può lasciare). */
+export function overlapsOther(rooms: Room[], id: string): boolean { const r = rooms.find((x) => x.id === id); if (!r) return false; return rooms.some((o) => o.id !== id && hit({ x: r.x ?? 0, y: r.y ?? 0, w: r.w, l: r.l }, { x: o.x ?? 0, y: o.y ?? 0, w: o.w, l: o.l })); }
+/** Trascinando, la stanza si aggancia ai bordi delle altre (e alla griglia di 10 cm): i muri combaciano. */
+export function snapMove(rooms: Room[], id: string, x: number, y: number, tol = 0.25): { x: number; y: number } {
+  const me = rooms.find((r) => r.id === id); if (!me) return { x, y };
+  let nx = Math.max(0, snapTo(x)); let ny = Math.max(0, snapTo(y)); let bx = tol; let by = tol;
+  for (const o of rooms) {
+    if (o.id === id) continue; const ox = o.x ?? 0; const oy = o.y ?? 0;
+    for (const c of [ox, ox + o.w, ox - me.w, ox + o.w - me.w]) { const d = Math.abs(c - nx); if (d < bx) { bx = d; nx = r1(c); } }
+    for (const c of [oy, oy + o.l, oy - me.l, oy + o.l - me.l]) { const d = Math.abs(c - ny); if (d < by) { by = d; ny = r1(c); } }
+  }
+  return { x: Math.max(0, nx), y: Math.max(0, ny) };
+}
+/** Ridimensionando, il lato destro e quello basso si agganciano ai bordi delle altre stanze. */
+export function snapResize(rooms: Room[], id: string, w: number, l: number, tol = 0.25): { w: number; l: number } {
+  const me = rooms.find((r) => r.id === id); if (!me) return { w, l }; const mx = me.x ?? 0; const my = me.y ?? 0;
+  let nw = clampSide(snapTo(w)); let nl = clampSide(snapTo(l)); let bx = tol; let by = tol;
+  for (const o of rooms) { if (o.id === id) continue; const ox = o.x ?? 0; const oy = o.y ?? 0;
+    for (const c of [ox, ox + o.w]) { const d = Math.abs(mx + nw - c); if (d < bx && c - mx >= MIN_SIDE) { bx = d; nw = r1(c - mx); } }
+    for (const c of [oy, oy + o.l]) { const d = Math.abs(my + nl - c); if (d < by && c - my >= MIN_SIDE) { by = d; nl = r1(c - my); } } }
+  return { w: clampSide(nw), l: clampSide(nl) };
+}
+
+/* ---------- pulizie per stanza: tre categorie ---------- */
+export type Cat = 'giornaliere' | 'settimanali' | 'periodiche';
+export const CATS: { id: Cat; label: string; hint: string; every: Every }[] = [
+  { id: 'giornaliere', label: 'Ogni giorno', hint: 'Le cose veloci di ogni giorno', every: { n: 1, unit: 'day' } },
+  { id: 'settimanali', label: 'Ogni settimana', hint: 'Una volta a settimana o ogni due', every: { n: 1, unit: 'week' } },
+  { id: 'periodiche', label: 'Ogni tanto', hint: 'Mese, stagione o anno', every: { n: 1, unit: 'month' } },
+];
+export const categoryOf = (c: Pick<Chore, 'every'>): Cat => { const d = everyDays(c.every); return d <= 3 ? 'giornaliere' : d <= 14 ? 'settimanali' : 'periodiche'; };
+export type RoomSummary = { total: number; dueToday: number; doneToday: number; clean: boolean };
+/** Com'è messa la stanza oggi: quante pulizie ha, quante sono da fare, quante fatte. «A posto» = niente in scadenza e almeno una fatta oggi. */
+export function roomSummary(roomId: string | null, chores: Chore[], log: { chore: string; day: string }[], today: string): RoomSummary {
+  const mine = chores.filter((c) => c.room === roomId && c.active); const ids = new Set(mine.map((c) => c.id));
+  const doneToday = new Set(log.filter((d) => d.day === today && ids.has(d.chore)).map((d) => d.chore)).size;
+  const dueToday = mine.filter((c) => c.due && c.due <= today).length;
+  return { total: mine.length, dueToday, doneToday, clean: mine.length > 0 && dueToday === 0 && doneToday > 0 };
+}
+/** Le poche cose da cui partire in una stanza: le prime tre consigliate, non tutte. */
+export const essentialsFor = (room: Room | null, have: Chore[]): { title: string; every: Every; minutes: number; effort: 1 | 2 | 3 }[] => suggestFor(room, have).slice(0, 3);
