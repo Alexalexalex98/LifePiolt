@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { HomeCare } from '@/components/casa/HomeCare';
 import { SmartTaskSheet, TaskBreakdownSheet, TaskRow } from '@/components/plan';
 import { Body, Btn, Card, Empty, Page, Row, Seg } from '@/components/ui';
 import { go } from '@/lib/nav';
@@ -8,6 +9,7 @@ import { taskIsDone, useLife } from '@/store/life';
 
 export default function LifeTask() {
   const tasks = useLife((s) => s.tasks);
+  const [section, setSection] = useState('Task');
   const [filter, setFilter] = useState('Tutti');
   const [sheet, setSheet] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
@@ -25,6 +27,8 @@ export default function LifeTask() {
 
   return (
     <Page id="lifetask" title="LifeTask" back>
+      <Seg plain options={['Task', 'Casa']} value={section} onChange={setSection} />
+      {section === 'Casa' ? <HomeCare /> : <>
       <Card><Row><Stat l="Attivi" v={active} /><Stat l="Completati" v={done} /><Stat l="Ore pianificate" v={`${hours}h`} /></Row></Card>
       <Row style={{ justifyContent: 'flex-start', marginBottom: 8 }} gap={8}><Btn small icon="plus" title="Nuovo task" onPress={() => setSheet(true)} /><Btn small ghost icon="tasks" title="Progetti con sotto-attività" onPress={() => go('projects')} /><Btn small ghost icon="plus" title="Nuovo obiettivo" onPress={() => go('plan')} /></Row>
       <Body small muted style={{ marginBottom: 12 }}>Tocca il quadratino per segnare un task come fatto. Con i tre puntini scegli timer, scadenza, urgenza o elimini. «Progetti con sotto-attività» serve per elenchi grandi a più livelli, importabili da un file.</Body>
@@ -34,6 +38,7 @@ export default function LifeTask() {
       </Card>
       <SmartTaskSheet visible={sheet} onClose={() => setSheet(false)} />
       <TaskBreakdownSheet taskId={open} onClose={() => setOpen(null)} />
+      </>}
     </Page>
   );
 }

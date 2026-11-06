@@ -51,7 +51,7 @@ export type HomeState = { coins: number; owned: Owned[]; placed: Record<string, 
 export const newHome = (): HomeState => ({ coins: 30, owned: [], placed: {}, tier: 0 });
 
 /** Base delle stelline per ogni cosa. L'utente NON vede mai quanto vale cosa: così non si fa solo la cosa che rende di più. */
-export const COINS: Record<string, number> = { snack: 3, water: 2, fit: 5, love: 2, pet: 0, activity: 4, visit: 1 };
+export const COINS: Record<string, number> = { snack: 3, water: 2, fit: 5, love: 2, pet: 0, activity: 4, visit: 1, chore: 3, tidy: 8 };
 export type EarnLog = { k: string; ts: number }[];
 /**
  * Quante stelline arrivano ADESSO per questa cosa: calano se si ripete sempre la stessa (oggi e nell'ultima settimana) e c'è un piccolo premio

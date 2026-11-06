@@ -1,5 +1,5 @@
 {
- "count": 19200,
+ "count": 19471,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -73,7 +73,7 @@
   "src/app/(tabs)/lifenetwork.tsx": 42,
   "src/app/(tabs)/lifenotes.tsx": 3,
   "src/app/(tabs)/lifepointsPage.tsx": 36,
-  "src/app/(tabs)/lifetask.tsx": 8,
+  "src/app/(tabs)/lifetask.tsx": 10,
   "src/app/(tabs)/lifetravel.tsx": 102,
   "src/app/(tabs)/liveRoom.tsx": 88,
   "src/app/(tabs)/lockScreenSettings.tsx": 11,
@@ -219,6 +219,14 @@
   "src/components/call/IncomingCall.tsx": 4,
   "src/components/call/RecBanner.tsx": 7,
   "src/components/call/useTheiaNotes.ts": 3,
+  "src/components/casa/HomeCare.tsx": 7,
+  "src/components/casa/HomeChores.tsx": 35,
+  "src/components/casa/HomeFamily.tsx": 31,
+  "src/components/casa/HomePlan.tsx": 17,
+  "src/components/casa/HomeRooms.tsx": 38,
+  "src/components/casa/HomeTidy.tsx": 26,
+  "src/components/casa/HomeToday.tsx": 32,
+  "src/components/casa/shared.tsx": 9,
   "src/components/chat/Bubble.tsx": 3,
   "src/components/chat/CallCard.tsx": 19,
   "src/components/chat/ChatBgSheet.tsx": 10,
@@ -579,6 +587,9 @@
   "src/lib/helpFaq.ts": 373,
   "src/lib/helpKb.ts": 165,
   "src/lib/hiring.ts": 26,
+  "src/lib/homeAi.ts": 9,
+  "src/lib/homeCare.ts": 94,
+  "src/lib/homeGuides.ts": 54,
   "src/lib/hr.ts": 25,
   "src/lib/http.ts": 2,
   "src/lib/i18n.ts": 4,
@@ -808,5 +819,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2414
+ "withPlaceholders": 2436
 }

@@ -255,6 +255,36 @@
 - **Obiettivi**
 - **Progetti**
   - Sotto-attività
+- **Casa**
+  - **Oggi**
+    - Le cose di oggi, dentro il tempo che hai
+    - Una cosa alla volta (con timer)
+    - Giornata no
+    - Fatto oggi
+  - **Piano**
+    - Prossimi 7 giorni
+    - L'anno, mese per mese
+    - Ricalcola il piano
+  - **Casa**
+    - Planimetria disegnata dalle misure
+    - Stanze
+    - Foto della planimetria o mappa del robot
+    - Lettura con Theia
+    - Crea la casa in un minuto
+  - **Faccende**
+    - Per stanza
+    - Idee consigliate
+    - Ogni quanto si ripetono
+    - Chi le fa
+  - **Riordino**
+    - Guide passo-passo (guardaroba, documenti, cucina, bagno, cassetti, scrivania, ingresso, giochi)
+    - Foto del prima e del dopo
+    - Theia guarda la differenza
+  - **Famiglia**
+    - Persone
+    - Distribuzione equa
+    - Classifica del mese
+    - Condividi il piano di oggi
 
 ## LifeTravel
 
