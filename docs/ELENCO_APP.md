@@ -219,6 +219,13 @@
   - Consigli
 - **Previsioni future**
 - **Dichiarazione fiscale**
+- **Garanzie**
+  - Scansione della fattura (come Genius Scan)
+  - Foto o file
+  - Dati letti da Theia
+  - Schede con tutti i prodotti
+  - Conto alla rovescia fino alla scadenza
+  - Fattura in PDF
 - **Stock**
   - Analisi
   - Portafoglio

@@ -10,6 +10,7 @@ const tabs = [
   { page: 'lifefinance', n: 'Finanza personale' },
   { page: 'lifeforecast', n: 'Previsioni future' },
   { page: 'taxdecl', n: 'Dichiarazione fiscale' },
+  { page: 'warranties', n: 'Garanzie' },
   { page: 'stocks', n: 'Stock' }, // per chi investe: in fondo, non è la prima cosa che vede chi apre le Finanze
 ];
 

@@ -44,7 +44,7 @@ export const LEVELS: LevelDef[] = [
     how: 'Comincia con un solo dato, per esempio le ore di sonno di stanotte. Più giorni registri, più i grafici diventano utili.',
   },
   {
-    level: 4, id: 'finanze', title: 'Finanze', short: 'Spese, bollette, risparmi e budget', pages: ['lifefinance', 'lifeforecast', 'taxdecl', 'stocks', 'portfolio'], prevUsed: ['health'], days: 3, openPage: 'lifefinance',
+    level: 4, id: 'finanze', title: 'Finanze', short: 'Spese, bollette, risparmi e budget', pages: ['lifefinance', 'lifeforecast', 'taxdecl', 'warranties', 'stocks', 'portfolio'], prevUsed: ['health'], days: 3, openPage: 'lifefinance',
     intro: 'Spese, bollette e risparmi in un posto solo, con un budget mensile e un avviso quando una categoria sfora.',
     how: 'Aggiungi una spesa oppure importa l\'estratto conto da CSV. Se investi: più avanti trovi anche Previsioni, Stock e Portafoglio.',
   },
