@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addMonths, expiryOf, remaining, progress, statusOf, durationLabel, purchaseTitle, nextExpiry, sortPurchases, summary, reminders, parseWarranty, validDay, daysBetween, DEFAULT_MONTHS, productExpiry } from '../src/lib/warranty.ts';
+import { coverage, legalExpiry, withCoverage, addMonths, expiryOf, remaining, progress, statusOf, durationLabel, purchaseTitle, nextExpiry, sortPurchases, summary, reminders, parseWarranty, validDay, daysBetween, DEFAULT_MONTHS, productExpiry } from '../src/lib/warranty.ts';
 
 const P = (id, date, products, extra = {}) => ({ id, store: 'Negozio', date, currency: 'EUR', products, pages: [], source: 'scan', createdAt: '2026-01-01', ...extra });
 const X = (name, months, extra = {}) => ({ id: name, name, months, ...extra });
@@ -41,12 +41,32 @@ test('promemoria nel Plan', () => {
   const r = reminders(P('a', '2025-12-01', [X('Tv', 12), X('Vecchia', 1)]), '2026-11-05'); assert.equal(r.length, 1); assert.equal(r[0].day, '2026-11-05'); assert.match(r[0].title, /Tv/);
   const f = reminders(P('a', '2026-11-01', [X('Forno', 24)]), '2026-11-05'); assert.equal(f[0].day, '2028-10-02');
 });
-test('lettura sicura dell\'AI', () => {
+test('lettura sicura dell\'AI: legale, durata scritta, estensione', () => {
   const ok = parseWarranty('Ecco:\n{"negozio":"MediaWorld","data":"2026-10-20","valuta":"chf","totale":"1.299,90","prodotti":[{"nome":"Lavatrice Bosch WAN28","marca":"Bosch","modello":"WAN28","seriale":"SN123","prezzo":"649,95","garanzia_mesi":36},{"nome":"Aspirapolvere","garanzia_mesi":null},{"nome":"lavatrice bosch wan28"},{"nome":""}]}', '2026-11-05');
   assert.equal(ok.store, 'MediaWorld'); assert.equal(ok.date, '2026-10-20'); assert.equal(ok.currency, 'CHF'); assert.equal(ok.products.length, 2);
-  assert.equal(ok.products[0].months, 36); assert.equal(ok.products[0].assumed, undefined); assert.equal(ok.products[0].price, 649.95); assert.equal(ok.products[1].months, DEFAULT_MONTHS); assert.equal(ok.products[1].assumed, true);
+  assert.equal(ok.products[0].months, 36); assert.equal(ok.products[0].legal, 24); assert.equal(ok.products[0].assumed, undefined); assert.equal(ok.products[0].price, 649.95);
+  assert.equal(ok.products[1].months, 24); assert.equal(ok.products[1].legal, 24); assert.equal(ok.products[1].assumed, true, 'nessuna durata sul documento: vale la garanzia legale');
+  assert.equal(ok.extensionsFound, 1);
   assert.equal(parseWarranty('{"data":"2030-01-01","prodotti":[{"nome":"Tv"}]}', '2026-11-05').date, null, 'data futura scartata');
   assert.equal(parseWarranty('{"data":"31/12/2025","prodotti":[{"nome":"Tv","garanzia_mesi":999}]}', '2026-11-05').products[0].months, 24);
   assert.equal(parseWarranty('niente json', '2026-11-05'), null); assert.equal(parseWarranty('{"prodotti":[]}', '2026-11-05'), null); assert.equal(parseWarranty('{rotto', '2026-11-05'), null);
   assert.equal(validDay('2026-02-30'), false); assert.equal(validDay('2026-02-28'), true); assert.equal(daysBetween('2026-01-01', '2026-01-31'), 30); assert.equal(productExpiry({ date: '2026-01-31' }, { months: 1 }), '2026-02-28');
+});
+test('estensione di garanzia: nel prodotto, a parte, a riga, generale', () => {
+  const T = '2026-11-05';
+  const inner = parseWarranty('{"data":"2026-10-01","prodotti":[{"nome":"Tv","garanzia_legale_mesi":24,"estensione_mesi":24,"estensione_fornitore":"Samsung","estensione_nome":"Samsung Care+","estensione_costo":99}]}', T).products[0];
+  assert.equal(inner.months, 48); assert.equal(inner.legal, 24); assert.deepEqual(inner.ext, { by: 'Samsung', name: 'Samsung Care+', cost: 99 }); assert.equal(inner.assumed, undefined);
+  const sep = parseWarranty('{"data":"2026-10-01","prodotti":[{"nome":"Tv Samsung 55"},{"nome":"Soundbar"}],"estensioni":[{"prodotto":"Tv Samsung","mesi":12,"fornitore":"MediaWorld"}]}', T).products;
+  assert.equal(sep[0].months, 36); assert.equal(sep[0].ext.by, 'MediaWorld'); assert.equal(sep[1].months, 24); assert.equal(sep[1].assumed, true);
+  const row = parseWarranty('{"data":"2026-10-01","prodotti":[{"nome":"Frigorifero Bosch","marca":"Bosch"},{"nome":"Estensione garanzia 36 mesi","prezzo":129}]}', T).products;
+  assert.equal(row.length, 1); assert.equal(row[0].months, 60); assert.equal(row[0].ext.cost, 129);
+  const gen = parseWarranty('{"data":"2026-10-01","garanzia_generale_mesi":36,"prodotti":[{"nome":"A"},{"nome":"B"}]}', T).products; assert.ok(gen.every((x) => x.months === 36 && !x.assumed));
+  const short = parseWarranty('{"data":"2026-10-01","prodotti":[{"nome":"Usato","garanzia_mesi":12}]}', T).products[0]; assert.equal(short.months, 12); assert.equal(short.legal, 12); assert.equal(coverage(short).extended, false);
+  const manuf = parseWarranty('{"data":"2026-10-01","prodotti":[{"nome":"Tv","garanzia_mesi":60}]}', T).products[0]; assert.equal(manuf.legal, 24); assert.equal(coverage(manuf).extra, 36);
+});
+test('copertura: legale ed estensione con due scadenze', () => {
+  const x = { months: 48, legal: 24 }; const c = coverage(x); assert.deepEqual([c.legal, c.extra, c.total, c.extended], [24, 24, 48, true]);
+  assert.equal(legalExpiry('2026-10-01', x), '2028-10-01'); assert.equal(productExpiry({ date: '2026-10-01' }, x), '2030-10-01');
+  assert.equal(coverage({ months: 24 }).extended, false); assert.equal(coverage({ months: 12 }).legal, 12);
+  const w = withCoverage({ id: 'a', name: 'A', months: 24, assumed: true }, 24, 12); assert.equal(w.months, 36); assert.equal(w.assumed, false); assert.equal(withCoverage(w, 24, 0).months, 24);
 });

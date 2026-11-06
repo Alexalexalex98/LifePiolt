@@ -3,7 +3,8 @@
 const pad = (n: number) => String(n).padStart(2, '0');
 const isoOf = (d: Date) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 const dateOf = (day: string) => new Date(day + 'T12:00:00Z');
-export const DEFAULT_MONTHS = 24;
+export const DEFAULT_MONTHS = 24; // garanzia legale tipica per i beni di consumo nuovi (Italia e Svizzera)
+export const MAX_MONTHS = 120;
 export const addDays = (day: string, n: number): string => { const d = dateOf(day); d.setUTCDate(d.getUTCDate() + n); return isoOf(d); };
 export const daysBetween = (a: string, b: string): number => Math.round((dateOf(b).getTime() - dateOf(a).getTime()) / 86400000);
 export function addMonths(day: string, n: number): string {
@@ -12,9 +13,19 @@ export function addMonths(day: string, n: number): string {
 }
 export const validDay = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(dateOf(s).getTime()) && isoOf(dateOf(s)) === s;
 
-export type WProduct = { id: string; name: string; brand?: string; model?: string; serial?: string; price?: number; months: number; assumed?: boolean; note?: string };
+/** `months` è la durata TOTALE della garanzia (legale + eventuale estensione). `legal` è la parte di legge (di solito 24 mesi); il resto è l'estensione.
+ *  `assumed`: sul documento non c'è una durata e vale la garanzia legale. */
+export type WProduct = { id: string; name: string; brand?: string; model?: string; serial?: string; price?: number; months: number; legal?: number; ext?: { by?: string; name?: string; cost?: number }; assumed?: boolean; note?: string };
 export type Purchase = { id: string; store: string; date: string; currency: 'EUR' | 'CHF'; total?: number; products: WProduct[]; pdf?: string; pages: string[]; source: 'scan' | 'foto' | 'file' | 'manuale'; createdAt: string; note?: string };
 export const expiryOf = (date: string, months: number): string => addMonths(date, months);
+/** La garanzia divisa: la parte di legge e l'estensione, con le due scadenze. */
+export function coverage(x: Pick<WProduct, 'months' | 'legal' | 'ext'>): { legal: number; extra: number; total: number; extended: boolean; by?: string } {
+  const legal = Math.min(x.months, x.legal ?? Math.min(x.months, DEFAULT_MONTHS)); const extra = Math.max(0, x.months - legal);
+  return { legal, extra, total: x.months, extended: extra > 0, ...(x.ext?.by ? { by: x.ext.by } : {}) };
+}
+export const legalExpiry = (date: string, x: Pick<WProduct, 'months' | 'legal' | 'ext'>): string => expiryOf(date, coverage(x).legal);
+/** Imposta legale ed estensione insieme: il totale è la somma. */
+export const withCoverage = <T extends { months: number; legal?: number; assumed?: boolean }>(x: T, legal: number, extra: number): T => ({ ...x, legal, months: Math.max(1, Math.min(MAX_MONTHS, legal + extra)), assumed: false });
 
 /** La scadenza è l'ultimo giorno di garanzia: dal giorno dopo non è più coperta. */
 export type Remaining = { expired: boolean; years: number; months: number; days: number; totalDays: number; label: string };
@@ -61,23 +72,45 @@ export function reminders(p: Purchase, today: string, lead = 30): { day: string;
 }
 
 /* ---------- lettura del documento ---------- */
-export const WARRANTY_PROMPT = 'Questa è la foto o la scansione di una fattura, uno scontrino o un certificato di garanzia. Leggi i dati e rispondi SOLO con un oggetto JSON, senza testo prima o dopo: {"negozio":"nome del venditore","data":"YYYY-MM-DD data di acquisto","valuta":"EUR oppure CHF","totale":0,"prodotti":[{"nome":"nome del prodotto","marca":"","modello":"","seriale":"","prezzo":0,"garanzia_mesi":24}]}. Elenca solo i prodotti veri e propri (non spedizione, sconti, imballaggi, servizi). Metti "garanzia_mesi" SOLO se la durata della garanzia è scritta sul documento (per esempio "2 anni" = 24, "36 mesi" = 36); se non è scritta usa null. Se un dato non c\'è usa null o una stringa vuota. Non inventare nulla.';
+export const WARRANTY_PROMPT = 'Questa è la foto o la scansione di una fattura, di uno scontrino o di un certificato di garanzia. Leggi TUTTO il documento, anche le righe piccole, i timbri, il retro e le condizioni in fondo, e rispondi SOLO con un oggetto JSON, senza testo prima o dopo: {"negozio":"nome del venditore","data":"YYYY-MM-DD data di acquisto","valuta":"EUR oppure CHF","totale":0,"garanzia_generale_mesi":null,"prodotti":[{"nome":"","marca":"","modello":"","seriale":"","prezzo":0,"garanzia_mesi":null,"garanzia_legale_mesi":null,"estensione_mesi":null,"estensione_fornitore":"","estensione_nome":"","estensione_costo":null}],"estensioni":[{"prodotto":"nome del prodotto a cui si riferisce","mesi":0,"fornitore":"","nome":"","costo":0}]}. Regole: 1) "prodotti" contiene solo i prodotti veri (non spedizione, sconti, imballaggi, servizi, e NON le estensioni di garanzia). 2) La garanzia legale di conformità dei beni di consumo nuovi è di 24 mesi: se il documento la scrive mettila in "garanzia_legale_mesi". 3) "garanzia_mesi" è la durata TOTALE finale che il documento dà al prodotto, estensione compresa (per esempio "garanzia 3 anni" = 36, "garanzia produttore 5 anni" = 60). 4) Se c\'è una ESTENSIONE o PROLUNGAMENTO di garanzia (per esempio "Estensione garanzia 24 mesi", "Extra garanzia", "Care", "Garanzia convenzionale", "Warranty extension"), mettila in "estensione_mesi" del prodotto (mesi AGGIUNTIVI oltre alla garanzia legale) con fornitore, nome commerciale e costo; se è una riga a parte nella fattura mettila in "estensioni". 5) Se una frase vale per tutti i prodotti (per esempio "tutti i prodotti hanno 24 mesi di garanzia") scrivila in "garanzia_generale_mesi". 6) Converti sempre gli anni in mesi. Se un dato non c\'è usa null o una stringa vuota. Non inventare nulla.';
 const num = (v: unknown): number | undefined => { const n = typeof v === 'number' ? v : typeof v === 'string' ? parseFloat(v.replace(',', '.')) : NaN; return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined; };
+const mon = (v: unknown): number | undefined => { const n = num(v); return n != null && n >= 1 && n <= MAX_MONTHS ? Math.round(n) : undefined; };
 const txt = (v: unknown, max: number): string => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '');
-export type Read = { store: string; date: string | null; currency: 'EUR' | 'CHF'; total?: number; products: Omit<WProduct, 'id'>[] };
-/** Legge la risposta dell'AI senza fidarsi: scarta date impossibili o future, durate assurde, prodotti senza nome. Se manca la durata propone 24 mesi e lo segnala. */
+const norm = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+export type Read = { store: string; date: string | null; currency: 'EUR' | 'CHF'; total?: number; products: Omit<WProduct, 'id'>[]; extensionsFound: number };
+/** Se il nome sembra una riga di estensione della garanzia (e non un prodotto). */
+const EXT_ROW = /^(estensione|prolungamento|extra ?garanzia|garanzia( estesa| convenzionale| aggiuntiva)?|warranty|care\b|assicurazione)/i;
+const monthsInText = (s: string): number | undefined => { const m = s.match(/(\d{1,2})\s*(anni|anno|years?|mesi|mese|months?)/i); if (!m) return undefined; const n = parseInt(m[1]!, 10); return /^(a|y)/i.test(m[2]!) ? n * 12 : n; };
+type Ext = { product: string; months: number; by: string; name: string; cost?: number };
+
+/** Legge la risposta dell'AI senza fidarsi. Garanzia legale ed estensioni restano separate. Se sul documento non c'è nessuna durata vale la garanzia legale (24 mesi) e lo si segnala. */
 export function parseWarranty(text: string, today: string): Read | null {
   const m = text.match(/\{[\s\S]*\}/); if (!m) return null;
   let j: Record<string, unknown>; try { j = JSON.parse(m[0]) as Record<string, unknown>; } catch { return null; }
   if (!j || typeof j !== 'object') return null;
-  const raw = Array.isArray(j.prodotti) ? j.prodotti : []; const seen = new Set<string>(); const products: Read['products'] = [];
-  for (const r of raw.slice(0, 12)) {
-    const o = (r ?? {}) as Record<string, unknown>; const name = txt(o.nome, 80); if (!name || seen.has(name.toLowerCase())) continue; seen.add(name.toLowerCase());
-    const mm = num(o.garanzia_mesi); const months = mm && mm >= 1 && mm <= 120 ? Math.round(mm) : DEFAULT_MONTHS;
-    products.push({ name, months, ...(mm && mm >= 1 && mm <= 120 ? {} : { assumed: true }), ...(txt(o.marca, 40) ? { brand: txt(o.marca, 40) } : {}), ...(txt(o.modello, 40) ? { model: txt(o.modello, 40) } : {}), ...(txt(o.seriale, 40) ? { serial: txt(o.seriale, 40) } : {}), ...(num(o.prezzo) != null ? { price: num(o.prezzo) } : {}) });
+  const general = mon(j.garanzia_generale_mesi);
+  const exts: Ext[] = (Array.isArray(j.estensioni) ? j.estensioni : []).slice(0, 12).map((r) => { const o = (r ?? {}) as Record<string, unknown>; return { product: norm(txt(o.prodotto, 80)), months: mon(o.mesi) ?? 0, by: txt(o.fornitore, 60), name: txt(o.nome, 80), ...(num(o.costo) != null ? { cost: num(o.costo) } : {}) }; }).filter((e) => e.months > 0);
+  const raw = Array.isArray(j.prodotti) ? j.prodotti : []; const seen = new Set<string>(); const rows: Record<string, unknown>[] = [];
+  for (const r of raw.slice(0, 16)) {
+    const o = (r ?? {}) as Record<string, unknown>; const name = txt(o.nome, 80); if (!name) continue;
+    if (EXT_ROW.test(name) && !txt(o.marca, 40) && !txt(o.modello, 40)) { const mm = monthsInText(name) ?? mon(o.estensione_mesi) ?? mon(o.garanzia_mesi); if (mm) exts.push({ product: '', months: mm, by: txt(o.estensione_fornitore, 60), name, ...(num(o.prezzo) != null ? { cost: num(o.prezzo) } : {}) }); continue; }
+    if (seen.has(name.toLowerCase())) continue; seen.add(name.toLowerCase()); rows.push(o);
+  }
+  const used = new Set<Ext>(); const products: Read['products'] = [];
+  for (const o of rows.slice(0, 12)) {
+    const name = txt(o.nome, 80); const key = norm(name);
+    const own: Ext | undefined = mon(o.estensione_mesi) ? { product: key, months: mon(o.estensione_mesi)!, by: txt(o.estensione_fornitore, 60), name: txt(o.estensione_nome, 80), ...(num(o.estensione_costo) != null ? { cost: num(o.estensione_costo) } : {}) } : undefined;
+    const link = own ?? exts.find((e) => !used.has(e) && e.product && (key.includes(e.product) || e.product.includes(key))) ?? (rows.length === 1 ? exts.find((e) => !used.has(e)) : undefined) ?? exts.find((e) => !used.has(e) && !e.product);
+    if (link) used.add(link);
+    const stated = mon(o.garanzia_mesi); const legalStated = mon(o.garanzia_legale_mesi); const extra = link?.months;
+    const legal = legalStated ?? (stated && stated < DEFAULT_MONTHS && !extra ? stated : DEFAULT_MONTHS);
+    let total = stated ?? (extra ? legal + extra : general ?? legal); if (extra && stated && stated < legal + extra) total = legal + extra;
+    const assumed = !stated && !extra && !general;
+    const ext = link && total > legal ? { ...(link.by ? { by: link.by } : {}), ...(link.name ? { name: link.name } : {}), ...(link.cost != null ? { cost: link.cost } : {}) } : undefined;
+    products.push({ name, months: Math.min(MAX_MONTHS, total), legal: Math.min(legal, total), ...(ext ? { ext } : {}), ...(assumed ? { assumed: true } : {}), ...(txt(o.marca, 40) ? { brand: txt(o.marca, 40) } : {}), ...(txt(o.modello, 40) ? { model: txt(o.modello, 40) } : {}), ...(txt(o.seriale, 40) ? { serial: txt(o.seriale, 40) } : {}), ...(num(o.prezzo) != null ? { price: num(o.prezzo) } : {}) });
   }
   const day = validDay(j.data) && j.data <= addDays(today, 1) && j.data >= '2000-01-01' ? j.data : null;
   const cur = String(j.valuta ?? '').toUpperCase() === 'CHF' ? 'CHF' : 'EUR';
   if (!products.length && !day && !txt(j.negozio, 60)) return null;
-  return { store: txt(j.negozio, 60), date: day, currency: cur, ...(num(j.totale) != null ? { total: num(j.totale) } : {}), products };
+  return { store: txt(j.negozio, 60), date: day, currency: cur, ...(num(j.totale) != null ? { total: num(j.totale) } : {}), products, extensionsFound: products.filter((p) => (p.months - (p.legal ?? DEFAULT_MONTHS)) > 0).length };
 }

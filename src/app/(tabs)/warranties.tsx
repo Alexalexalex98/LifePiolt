@@ -31,7 +31,7 @@ export default function Warranties() {
     if (!c) return; setBusy(true);
     const base: Purchase = { id: uid(), store: '', date: '', currency: 'EUR', products: [], pages: c.pages, ...(c.pdf ? { pdf: c.pdf } : {}), source: c.source, createdAt: today };
     const r = await readWarranty(c, today); setBusy(false);
-    if (r.ok) setDraft({ p: { ...base, store: r.data.store, date: r.data.date ?? '', currency: r.data.currency, ...(r.data.total != null ? { total: r.data.total } : {}), products: r.data.products.map((x, i) => ({ ...x, id: `${base.id}-${i}` })) }, preview: c.pages[0], notice: tl('Ecco cosa ho letto: controlla e correggi.'), isNew: true });
+    if (r.ok) setDraft({ p: { ...base, store: r.data.store, date: r.data.date ?? '', currency: r.data.currency, ...(r.data.total != null ? { total: r.data.total } : {}), products: r.data.products.map((x, i) => ({ ...x, id: `${base.id}-${i}` })) }, preview: c.pages[0], notice: r.data.extensionsFound ? tl('Ecco cosa ho letto. Ho trovato {0} estensioni di garanzia: controllale bene.', r.data.extensionsFound) : tl('Ecco cosa ho letto: controlla e correggi, soprattutto la garanzia.'), isNew: true });
     else { toast(r.message); setDraft({ p: base, preview: c.pages[0], isNew: true }); }
   };
   const save = (p: Purchase) => {
@@ -48,7 +48,7 @@ export default function Warranties() {
       <FinTabs current="warranties" />
       <Card>
         <Row><Stat l="Attive" v={sum.active} c="#22c55e" /><Stat l="In scadenza" v={sum.soon} c="#f59e0b" /><Stat l="Scadute" v={sum.expired} c={sum.expired ? th.danger : undefined} /></Row>
-        <Body small muted style={{ marginTop: 8 }}>{sum.products ? tl('{0} prodotti in elenco. Ti avviso nel Plan un mese prima della scadenza.', sum.products) : tl('Scansiona una fattura o uno scontrino: Theia legge prodotti, data e durata della garanzia e li segna per te.')}</Body>
+        <Body small muted style={{ marginTop: 8 }}>{sum.products ? tl('{0} prodotti in elenco. Ti avviso nel Plan un mese prima della scadenza.', sum.products) : tl('Scansiona una fattura o uno scontrino: Theia legge prodotti, data, garanzia legale ed eventuali estensioni e li segna per te.')}</Body>
         <Row style={{ marginTop: 12 }}><Btn icon="camera" disabled={busy} title={busy ? 'Theia legge…' : 'Scansiona'} onPress={() => { void scanDocument().then(process); }} /><Btn ghost disabled={busy} title="Foto o file" onPress={() => setPick(true)} /></Row>
       </Card>
       {list.length === 0 ? <Card><H>Le tue garanzie</H><Empty text="Ancora nessuna garanzia. Scansiona la fattura di un elettrodomestico, di un telefono o di un mobile: la trovi qui con il conto alla rovescia." /></Card> : list.map((p) => <WarrantyCard key={p.id} p={p} today={today} onEdit={() => setDraft({ p, preview: p.pages[0], isNew: false })} onDelete={() => remove(p)} />)}

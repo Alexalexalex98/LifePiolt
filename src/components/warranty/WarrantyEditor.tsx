@@ -4,10 +4,11 @@ import { Image, View } from 'react-native';
 import { DayField } from '@/components/work/DayField';
 import { Body, Btn, Input, Pill, Row, Sheet } from '@/components/ui';
 import { t as tl } from '@/i18n/core';
-import { DEFAULT_MONTHS, durationLabel, validDay, type Purchase, type WProduct } from '@/lib/warranty';
+import { DEFAULT_MONTHS, coverage, durationLabel, expiryOf, validDay, withCoverage, type Purchase, type WProduct } from '@/lib/warranty';
 import { toast } from '@/store/toast';
 
-const MONTHS = [12, 24, 36, 48, 60];
+const LEGAL = [12, 24];
+const EXTRA = [0, 12, 24, 36, 48];
 const num = (s: string) => { const n = parseFloat(s.replace(',', '.')); return Number.isFinite(n) ? n : NaN; };
 const pid = () => `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 type Draft = Omit<WProduct, 'price'> & { price: string };
@@ -21,7 +22,7 @@ export function WarrantyEditor({ purchase, preview, onSave, onClose, notice }: {
     const prods = items.filter((x) => x.name.trim());
     if (!prods.length) { toast('Scrivi il nome di almeno un prodotto'); return; }
     if (!validDay(date)) { toast('Scegli la data di acquisto'); return; }
-    onSave({ ...purchase, store: store.trim(), date, currency: cur, ...(num(total) >= 0 ? { total: num(total) } : { total: undefined }), products: prods.map((x) => ({ id: x.id, name: x.name.trim(), months: x.months, ...(x.assumed ? { assumed: true } : {}), ...(x.brand?.trim() ? { brand: x.brand.trim() } : {}), ...(x.model?.trim() ? { model: x.model.trim() } : {}), ...(x.serial?.trim() ? { serial: x.serial.trim() } : {}), ...(num(x.price) >= 0 ? { price: num(x.price) } : {}) })) });
+    onSave({ ...purchase, store: store.trim(), date, currency: cur, ...(num(total) >= 0 ? { total: num(total) } : { total: undefined }), products: prods.map((x) => ({ id: x.id, name: x.name.trim(), months: x.months, legal: coverage(x).legal, ...(coverage(x).extended && (x.ext?.by?.trim() || x.ext?.name || x.ext?.cost != null) ? { ext: { ...(x.ext?.by?.trim() ? { by: x.ext.by.trim() } : {}), ...(x.ext?.name ? { name: x.ext.name } : {}), ...(x.ext?.cost != null ? { cost: x.ext.cost } : {}) } } : {}), ...(x.assumed ? { assumed: true } : {}), ...(x.brand?.trim() ? { brand: x.brand.trim() } : {}), ...(x.model?.trim() ? { model: x.model.trim() } : {}), ...(x.serial?.trim() ? { serial: x.serial.trim() } : {}), ...(num(x.price) >= 0 ? { price: num(x.price) } : {}) })) });
   };
   return (
     <Sheet visible title="Dati della garanzia" onClose={onClose}>
@@ -36,15 +37,23 @@ export function WarrantyEditor({ purchase, preview, onSave, onClose, notice }: {
           <Input placeholder="Nome del prodotto" value={x.name} onChangeText={(v) => set(i, { name: v })} />
           <Row><Input flex={1} placeholder="Marca" value={x.brand ?? ''} onChangeText={(v) => set(i, { brand: v })} /><Input flex={1} placeholder="Modello" value={x.model ?? ''} onChangeText={(v) => set(i, { model: v })} /></Row>
           <Row><Input flex={1} placeholder="Numero di serie" value={x.serial ?? ''} onChangeText={(v) => set(i, { serial: v })} /><Input flex={1} placeholder="Prezzo" keyboardType="numeric" value={x.price} onChangeText={(v) => set(i, { price: v })} /></Row>
-          <Body small bold muted style={{ marginBottom: 6 }}>{tl('DURATA DELLA GARANZIA').toUpperCase()}</Body>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{MONTHS.map((m) => <Pill key={m} label={durationLabel(m)} on={x.months === m} onPress={() => set(i, { months: m, assumed: false })} />)}{!MONTHS.includes(x.months) ? <Pill label={durationLabel(x.months)} on /> : null}</View>
-          <Row style={{ marginTop: 6 }}><Input flex={1} placeholder="Oppure scrivi i mesi" keyboardType="numeric" value="" onChangeText={(v) => { const n = parseInt(v, 10); if (n >= 1 && n <= 120) set(i, { months: n, assumed: false }); }} /></Row>
-          {x.assumed ? <Body small style={{ color: '#f59e0b' }}>{tl('Sul documento non ho trovato la durata: ho messo 24 mesi (la garanzia legale tipica). Controlla e correggi.')}</Body> : null}
+          {(() => { const cv = coverage(x); const exp = validDay(date) ? expiryOf(date, x.months) : null; return (
+            <>
+              <Body small bold muted style={{ marginBottom: 6 }}>{tl('GARANZIA LEGALE').toUpperCase()}</Body>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{LEGAL.map((m) => <Pill key={m} label={durationLabel(m)} on={cv.legal === m} onPress={() => setItems(items.map((y, k) => (k === i ? { ...withCoverage(y, m, cv.extra), price: y.price } : y)))} />)}{!LEGAL.includes(cv.legal) ? <Pill label={durationLabel(cv.legal)} on /> : null}</View>
+              {x.assumed ? <Body small style={{ color: '#f59e0b', marginTop: 4 }}>{tl('Sul documento non c\'è una durata: per legge vale la garanzia legale (di solito 24 mesi). Se hai un\'estensione, aggiungila qui sotto.')}</Body> : null}
+              <Body small bold muted style={{ marginTop: 10, marginBottom: 6 }}>{tl('ESTENSIONE DI GARANZIA (SE C\'È)').toUpperCase()}</Body>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{EXTRA.map((m) => <Pill key={m} label={m ? `+${durationLabel(m)}` : tl('Nessuna')} on={cv.extra === m} onPress={() => setItems(items.map((y, k) => (k === i ? { ...withCoverage(y, cv.legal, m), price: y.price, ...(m ? {} : { ext: undefined }) } : y)))} />)}{!EXTRA.includes(cv.extra) ? <Pill label={`+${durationLabel(cv.extra)}`} on /> : null}</View>
+              <Row style={{ marginTop: 6 }}><Input flex={1} placeholder="Oppure mesi in più" keyboardType="numeric" value="" onChangeText={(v) => { const n = parseInt(v, 10); if (n >= 1 && n <= 96) setItems(items.map((y, k) => (k === i ? { ...withCoverage(y, cv.legal, n), price: y.price } : y))); }} /></Row>
+              {cv.extended ? <Row><Input flex={1} placeholder="Chi la dà (produttore, negozio…)" value={x.ext?.by ?? ''} onChangeText={(v) => set(i, { ext: { ...x.ext, by: v } })} /><Input flex={1} placeholder="Costo dell\'estensione" keyboardType="numeric" value={x.ext?.cost != null ? String(x.ext.cost) : ''} onChangeText={(v) => set(i, { ext: { ...x.ext, ...(num(v) >= 0 ? { cost: num(v) } : { cost: undefined }) } })} /></Row> : null}
+              <Body small bold style={{ marginTop: 8 }}>{exp ? `${tl('Dura in tutto')} ${durationLabel(x.months)} · ${tl('scade il')} ${new Date(exp + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}` : `${tl('Dura in tutto')} ${durationLabel(x.months)}`}</Body>
+            </>
+          ); })()}
         </View>
       ))}
       <View style={{ marginTop: 10, alignSelf: 'flex-start' }}><Btn small ghost icon="plus" title="Un altro prodotto" onPress={() => setItems([...items, { id: pid(), name: '', months: DEFAULT_MONTHS, price: '' }])} /></View>
       <View style={{ height: 12 }} /><Btn icon="check" title="Salva la garanzia" onPress={save} />
-      <Body small muted style={{ marginTop: 8 }}>{tl('La durata vale dalla data di acquisto. Per i beni nuovi di solito è di 24 mesi, ma controlla il tuo documento.')}</Body>
+      <Body small muted style={{ marginTop: 8 }}>{tl('La garanzia conta dalla data di acquisto. Per legge i beni di consumo nuovi hanno di solito 24 mesi; se la garanzia è stata prolungata, scrivi l\'estensione: è importante.')}</Body>
     </Sheet>
   );
 }
