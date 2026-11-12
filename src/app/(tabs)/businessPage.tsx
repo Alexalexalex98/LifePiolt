@@ -18,6 +18,7 @@ import { useJobs } from '@/store/jobs';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 import { t as tl } from '@/i18n/core';
+import { safeUrl } from '@/lib/safeUrl';
 
 /** Pagina pubblica di un'attività: il titolare (persona verificata) è SEMPRE mostrato e non è oscurabile. */
 export default function BusinessPage() {
@@ -39,7 +40,7 @@ export default function BusinessPage() {
   const seminars = net.seminars.filter((x) => x.host === b.owner);
   const open = (c: { kind: 'email' | 'phone' | 'web'; value: string }) => {
     const url = c.kind === 'email' ? `mailto:${c.value}` : c.kind === 'phone' ? `tel:${c.value}` : /^https?:/.test(c.value) ? c.value : `https://${c.value}`;
-    Linking.openURL(url).catch(() => toast('Non riesco ad aprire questo contatto'));
+    (safeUrl(url) ? Linking.openURL(safeUrl(url)!) : Promise.reject(new Error('link non valido'))).catch(() => toast('Non riesco ad aprire questo contatto'));
   };
   return (
     <Page id="businessPage" back title={b.name}>

@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { ArtId } from '@/lib/petFood';

@@ -74,6 +74,7 @@ import { topicOf } from './nlp';
 import { getAssistant } from './run';
 import { styleText } from './style';
 import type { ExtImage, TheiaAction, TheiaExt } from './theiaExt';
+import { safeUrl } from '@/lib/safeUrl';
 
 /**
  * Ingresso unico di Theia (testo, voce, immagini, 12 lingue). Ordine di elaborazione:
@@ -866,7 +867,7 @@ export async function runAction(msgId: string, action: TheiaAction): Promise<voi
   switch (action.kind) {
     case 'dismiss': return;
     case 'open': {
-      if (action.url) { try { await Linking.openURL(action.url); } catch { pushAi(t('Non riesco ad aprire il collegamento da qui.')); } }
+      if (action.url) { try { const u = safeUrl(action.url); if (!u) throw new Error('link non valido'); await Linking.openURL(u); } catch { pushAi(t('Non riesco ad aprire il collegamento da qui.')); } }
       else if (action.page) go(action.page, action.params);
       return;
     }

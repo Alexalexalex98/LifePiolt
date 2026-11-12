@@ -30,6 +30,7 @@ import { useVisible } from '@/lib/moderation';
 import { useNet } from '@/store/network';
 import { repostsOf } from '@/lib/threads';
 import { toast } from '@/store/toast';
+import { safeUrl } from '@/lib/safeUrl';
 
 export default function UserProfile() {
   const t = useTheme();
@@ -212,7 +213,7 @@ export default function UserProfile() {
       {isMe && (look.place || link) ? (
         <Row gap={8} style={{ justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
           {look.place ? <Row gap={5} style={{ backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}><Icon name="location" size={14} color={t.muted} /><Body small muted>{look.place}</Body></Row> : null}
-          {link ? <Pressable onPress={() => Linking.openURL(link).catch(() => toast('Non riesco ad aprire il link'))} accessibilityRole="link" hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}><Icon name="link" size={14} color={accent} /><Text numberOfLines={1} style={{ color: accent, fontSize: 13, fontWeight: '700', maxWidth: 200 }}>{link.replace(/^https?:\/\//, '')}</Text></Pressable> : null}
+          {link ? <Pressable onPress={() => (safeUrl(link) ? Linking.openURL(safeUrl(link)!) : Promise.reject(new Error('link non valido'))).catch(() => toast('Non riesco ad aprire il link'))} accessibilityRole="link" hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: t.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}><Icon name="link" size={14} color={accent} /><Text numberOfLines={1} style={{ color: accent, fontSize: 13, fontWeight: '700', maxWidth: 200 }}>{link.replace(/^https?:\/\//, '')}</Text></Pressable> : null}
         </Row>
       ) : null}
       {isMe && look.headline && net.bio ? <Text style={{ color: t.text, fontSize: 14.5, lineHeight: 21, marginTop: 10, textAlign: 'center' }}>{net.bio}</Text> : null}

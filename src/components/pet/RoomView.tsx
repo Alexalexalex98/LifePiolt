@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type JSX } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, Image as SvgImage, Line, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 

@@ -4,13 +4,14 @@ import { Linking, Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 import { inlineBold, toBlocks } from '@/lib/aiPersona';
 import { Icon } from '@/lib/icons';
+import { safeUrl } from '@/lib/safeUrl';
 
 /** Testo delle risposte di Theia: paragrafi staccati, elenchi con rientro, righe-titolo e **grassetto**, per leggerle a colpo d'occhio. */
 export function RichText({ text, color, size = 15, accent }: { text: string; color: string; size?: number; accent?: string }) {
   const blocks = toBlocks(text);
   const line = Math.round(size * 1.45);
   const pill = (label: string, href: string, k: string) => (
-    <Pressable key={k} accessibilityRole="link" accessibilityLabel={label} onPress={() => { Linking.openURL(href).catch(() => {}); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: (accent ?? color) + '24', borderWidth: 1, borderColor: (accent ?? color) + '55' }}>
+    <Pressable key={k} accessibilityRole="link" accessibilityLabel={label} onPress={() => { const u = safeUrl(href); if (u) Linking.openURL(u).catch(() => {}); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: (accent ?? color) + '24', borderWidth: 1, borderColor: (accent ?? color) + '55' }}>
       <Icon name="link" size={12} color={accent ?? color} stroke={2.2} />
       <Text numberOfLines={1} style={{ color: accent ?? color, fontSize: Math.max(11, size - 3), fontWeight: '700' }}>{label.replace(/^www\./, '').slice(0, 24)}</Text>
     </Pressable>

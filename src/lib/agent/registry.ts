@@ -131,7 +131,7 @@ export const ACTIONS: ActionDef[] = [
     const d = pick(S(p, 'deal'), crm(c).deals, (x) => x.title, t('la trattativa')); const ct = crm(c).contacts.find((x) => x.id === d.contact)!;
     const lines = (Array.isArray(p.lines) ? p.lines : []).map((l) => { const o = l as P; return { desc: String(o.desc ?? ''), qty: N(o, 'qty') ?? 1, price: N(o, 'price') ?? 0 }; }).filter((l) => l.desc);
     if (!lines.length) lines.push({ desc: d.title, qty: 1, price: d.amount }); const country = ct.country ?? (d.currency === 'EUR' ? 'IT' : 'CH');
-    const text = quoteText({ from: useWorkspaceName(c), client: { ...ct, country }, title: d.title, lines, currency: d.currency, discountPct: N(p, 'discount_pct') ?? 0, today: today() }); ok(await saveQuote(d, ct, text));
+    const text = quoteText({ from: workspaceNameOf(c), client: { ...ct, country }, title: d.title, lines, currency: d.currency, discountPct: N(p, 'discount_pct') ?? 0, today: today() }); ok(await saveQuote(d, ct, text));
     return t('Preventivo per {0} pronto e salvato nel workspace: totale {1}.', ct.name, money(computeQuote(lines, country, d.currency, N(p, 'discount_pct') ?? 0).total, d.currency));
   } },
   { id: 'create_ticket', desc: 'Apre un reclamo o una richiesta di assistenza', params: 'title*, contact, text, priority(bassa|normale|alta|urgente)', run: async (c, p) => { ok(await createTicket({ team: c.team, contact: S(p, 'contact') ? contact(c, S(p, 'contact')).id : null, title: need(S(p, 'title'), t('il titolo')), text: S(p, 'text'), priority: PRIO[(S(p, 'priority') ?? '').toLowerCase()] as 'normal' })); return t('Reclamo aperto: «{0}».', S(p, 'title')!); } },
@@ -163,7 +163,7 @@ export const ACTIONS: ActionDef[] = [
   { id: 'report', desc: 'Prepara il report (task, ore, vendite, assistenza) di un periodo e lo salva nel workspace', params: 'period(week|month|quarter), scope(me|all|nome progetto)', run: async (c, p) => {
     const kind = (['week', 'month', 'quarter'].includes(S(p, 'period') ?? '') ? S(p, 'period') : 'month') as PeriodKind; const sc = S(p, 'scope'); const inp = await loadReportInput(c.team);
     const scope = !sc || sc === 'all' ? {} : sc === 'me' ? { user: c.me } : { project: projectId(c, sc) }; const cmp = compare(inp, kind, 0, today(), scope);
-    const text = reportText({ title: sc && sc !== 'all' && sc !== 'me' ? sc : useWorkspaceName(c), period: cmp.period, kpis: cmp.kpis, currency: 'CHF', workload: workload(inp.tasks, (id) => people(c).find((x) => x.id === id)?.name ?? '') }); await saveReportPage(c.team, `${t('Report')} · ${cmp.period.label}`, text); return text.split('\n').slice(0, 14).join('\n');
+    const text = reportText({ title: sc && sc !== 'all' && sc !== 'me' ? sc : workspaceNameOf(c), period: cmp.period, kpis: cmp.kpis, currency: 'CHF', workload: workload(inp.tasks, (id) => people(c).find((x) => x.id === id)?.name ?? '') }); await saveReportPage(c.team, `${t('Report')} · ${cmp.period.label}`, text); return text.split('\n').slice(0, 14).join('\n');
   } },
   { id: 'answer_data', desc: 'Risponde a una domanda sui numeri (task in ritardo, ore, incassi, vendite, reclami)', params: 'question*', run: async (c, p) => { const inp = await loadReportInput(c.team); const cmp = compare(inp, 'month', 0, today()); const a = answer(need(S(p, 'question'), t('la domanda')), { kpis: cmp.kpis, workload: workload(inp.tasks, (id) => people(c).find((x) => x.id === id)?.name ?? ''), currency: 'CHF', period: cmp.period }); return a ?? t('Non trovo questo numero tra gli indicatori.'); } },
   { id: 'write_document', desc: `Scrive un documento da un modello (${DOC_TYPES.map((d) => d.id).join(', ')}) e lo salva come bozza nel workspace`, params: 'type*, fields*{campo:valore}', run: async (c, p) => { const dt = pick(S(p, 'type'), DOC_TYPES, (d) => `${d.id} ${d.name}`, t('il tipo di documento')); const f = (typeof p.fields === 'object' && p.fields ? p.fields : {}) as Record<string, string>; const text = dt.build(f, { tone: 'formale', today: today(), from: c.myName }); await saveReportPage(c.team, `${dt.name} · ${t('bozza')}`, text); return `${t('Bozza pronta e salvata nel workspace:')}\n${text}`; } },
@@ -173,7 +173,7 @@ export const ACTIONS: ActionDef[] = [
     return [ev.length ? `${t('Oggi')}:\n${ev.map((e) => `• ${e.time} ${e.title}`).join('\n')}` : t('Oggi non hai impegni in agenda.'), tk.length ? `${t('Task in scadenza o in ritardo')}:\n${tk.map((x) => `• ${x.title} (${x.due})`).join('\n')}` : ''].filter(Boolean).join('\n\n');
   } },
 ];
-function useWorkspaceName(c: Ctx): string { return useTeams.getState().teams.find((x) => x.id === c.team)?.name ?? ''; }
+function workspaceNameOf(c: Ctx): string { return useTeams.getState().teams.find((x) => x.id === c.team)?.name ?? ''; }
 export const actionById = (id: string) => ACTIONS.find((a) => a.id === id);
 /** L'elenco delle azioni da dare all'AI: una riga per azione. */
 export const catalogText = (): string => ACTIONS.map((a) => `- ${a.id}(${a.params}): ${a.desc}`).join('\n');

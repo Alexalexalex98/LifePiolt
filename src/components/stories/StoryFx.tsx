@@ -8,6 +8,7 @@ import { mapsUrl } from '@/lib/maps';
 import { go } from '@/lib/nav';
 import { TEXT_SIZES, adjustLayers, blendLayers, contrastBoost, tintOfFilter, type Story } from '@/lib/stories';
 import { toast } from '@/store/toast';
+import { safeUrl } from '@/lib/safeUrl';
 
 const FILL = { position: 'absolute', top: 0, bottom: 0, start: 0, end: 0 } as const;
 
@@ -49,7 +50,7 @@ export function StoryStickers({ s, bottom }: { s: Story; bottom: number }) {
   }
   for (const p of s.people ?? []) chips.push({ key: 'p' + p, icon: 'profile', label: p, onPress: () => go('userProfile', { name: p }) });
   for (const t of s.tags ?? []) chips.push({ key: 't' + t, icon: 'search', label: '#' + t });
-  if (s.link) chips.push({ key: 'l', icon: 'link', label: s.link.replace(/^https?:\/\//, '').slice(0, 28), onPress: () => { Linking.openURL(s.link!).catch(() => toast('Non riesco ad aprire il link')); } });
+  if (s.link) chips.push({ key: 'l', icon: 'link', label: s.link.replace(/^https?:\/\//, '').slice(0, 28), onPress: () => { (safeUrl(s.link) ? Linking.openURL(safeUrl(s.link)!) : Promise.reject(new Error('link non valido'))).catch(() => toast('Non riesco ad aprire il link')); } });
   if (!chips.length) return null;
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', start: 12, end: 12, bottom, flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>

@@ -7,6 +7,7 @@ import { Text } from '@/components/T';
 import { Btn } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
+import { onDomain } from '@/lib/safeUrl';
 
 /** Indirizzo della stanza sul servizio gratuito Jitsi Meet (meet.jit.si): nessun account per entrare, nessun costo. La stanza si chiama come l'id della riunione (casuale, lo vedono solo gli invitati). */
 export const callUrl = (meetingId: string, name: string): string =>
@@ -37,7 +38,7 @@ export function MeetingCall({ id, title, name, onLeave, onHide }: { id: string; 
             style={{ flex: 1, backgroundColor: th.bg }}
             javaScriptEnabled domStorageEnabled allowsInlineMediaPlayback mediaPlaybackRequiresUserAction={false}
             mediaCapturePermissionGrantType="grant" setSupportMultipleWindows={false}
-            originWhitelist={['https://*']} onShouldStartLoadWithRequest={(r) => /^https:\/\/([a-z0-9-]+\.)*(jit\.si|8x8\.vc)\b/i.test(r.url) || r.url === 'about:blank'}
+            originWhitelist={['https://*']} onShouldStartLoadWithRequest={(r) => onDomain(r.url, ['jit.si', '8x8.vc']) || r.url === 'about:blank'}
           />
         ) : null}
       </View>
