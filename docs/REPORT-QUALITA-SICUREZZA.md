@@ -6,7 +6,7 @@ Data del controllo: 12 novembre 2026 · ramo `claude/app-store-google-play-ncktn
 
 - L'app compila, il controllo dei tipi è pulito e i 2096 test automatici passano.
 - Ho corretto la causa che bloccava la build dell'APK e alcuni problemi di sicurezza nell'app.
-- **Non ho potuto controllare il database dal vivo**: Supabase risulta attivo ma in ibernazione e ha rifiutato ogni interrogazione. Il controllo del server è fatto sulle migrazioni del repo, non sul database reale.
+- **Database controllato dal vivo** (aggiornamento del 12 novembre, dopo la riattivazione): nessun problema grave, vedi punto 4.4.
 - **Non ho provato l'app su un telefono**: tutto quello che riguarda schermate, fotocamera, scanner e trascinamento va provato a mano.
 - I punti più seri da chiudere prima di venderla sono tre: i server AI aperti a chiunque, i LifePoints come denaro, i testi legali incompleti.
 
@@ -24,7 +24,7 @@ Data del controllo: 12 novembre 2026 · ramo `claude/app-store-google-play-ncktn
 | `expo-doctor` | 18 controlli su 20 passati; i 2 falliti richiedevano la rete di Expo, non raggiungibile da qui |
 | Segreti nel repo | Nessuna chiave o token trovato |
 | Worker Cloudflare | Letto il codice di `lifepilot-ai2` e `lifepilot-api` |
-| Database Supabase | Solo dalle migrazioni: il database non rispondeva |
+| Database Supabase | Controllato dal vivo: advisor di sicurezza e verifica di tabelle, regole e funzioni |
 | Prova su telefono | Non fatta |
 
 ## 2. Cosa ho corretto
@@ -34,7 +34,6 @@ Data del controllo: 12 novembre 2026 · ramo `claude/app-store-google-play-ncktn
 3. **Collegamenti esterni.** I link che arrivano da altri utenti (profili, storie, pagine attività), dall'AI e dai messaggi si aprivano con qualsiasi schema. Ora si aprono solo `https`, `http`, `mailto`, `tel`, `sms` e mappe; vengono rifiutati `file:`, `javascript:`, `intent:`, gli schemi di altre app e gli indirizzi ingannevoli del tipo `banca.it@sito-falso.com`.
 4. **Chiamate di riunione.** La finestra della chiamata doveva restare su Jitsi, ma la regola accettava anche `jit.si.sito-falso.com`. Ora il dominio è controllato in modo esatto.
 5. **Nome di funzione.** Una funzione normale aveva un nome da "hook" di React e il lint la segnalava come errore: rinominata.
-6. **Migrazione di rinforzo scritta ma non applicata** (`0031_hardening.sql`): toglie agli utenti anonimi il permesso di chiamare il salvataggio delle pagine di team. La funzione li rifiuta già, è una protezione in più.
 
 ## 3. Cosa ho trovato e non ho corretto
 
@@ -62,15 +61,20 @@ Entrambi i Worker accettano richieste anonime. `lifepilot-api` usa la tua chiave
 **4.3 Nessun limite alla grandezza delle richieste AI.**
 `lifepilot-ai2` non controlla la dimensione del corpo; `lifepilot-api` guarda solo l'intestazione `content-length`, che si può omettere. Si possono mandare file enormi per far lavorare il server a vuoto.
 
-**4.4 Il database non è stato verificato dal vivo.**
-Dalle migrazioni risulta: 64 tabelle, tutte con la sicurezza per riga attiva; 8 tabelle senza regole di accesso diretto perché si usano solo tramite funzioni; 84 funzioni con privilegi elevati, tutte con `search_path` fissato. Ma il database reale può essere diverso dai file (migrazioni applicate a mano, modifiche dal pannello).
-- Da fare appena risponde: lanciare gli "advisor" di sicurezza di Supabase e la verifica su tabelle, regole e funzioni; applicare la migrazione 0031.
+**4.4 Database: verificato dal vivo, nessun problema grave.**
+- 64 tabelle, tutte con la sicurezza per riga attiva.
+- 9 tabelle senza regole di accesso diretto: è voluto, si usano solo tramite funzioni del server (inviti, password dei progetti, prove gratuite, uso dell'AI).
+- Nessuna funzione con privilegi elevati è chiamabile da utenti anonimi, e tutte hanno il `search_path` fissato.
+- L'advisor di Supabase segnala 61 funzioni con privilegi elevati chiamabili da utenti registrati. Sono le operazioni dell'app (team, riunioni, trasferte, amici): ognuna controlla al suo interno chi la chiama. È il disegno scelto, ma ogni funzione nuova va scritta con lo stesso controllo.
+- **Da attivare: protezione dalle password compromesse.** È spenta. Si accende dal pannello Supabase, in Authentication → impostazioni delle password. Può richiedere un piano a pagamento.
+- La migrazione di rinforzo che avevo preparato non serve: gli anonimi già non possono chiamare il salvataggio delle pagine. L'ho tolta dal repo.
+- Al momento del controllo c'è 1 solo utente registrato.
 
 ### Medio
 
 **4.5 Stanze di riunione pubbliche.** Le chiamate usano il Jitsi pubblico (`meet.jit.si`) con un nome di stanza derivato dall'id della riunione. Chi conosce o indovina il nome entra senza controlli. Per uso aziendale serve un Jitsi proprio o un servizio con accesso tramite token.
 
-**4.6 Cartella dei media social pubblica.** Il contenitore `social-media` è leggibile da tutti (è voluto per i post), accetta file fino a 50 MB e nessun limite sul tipo di file. Chi ha un account può caricarci qualsiasi cosa e usarlo come deposito pubblico. Da fare: limitare ai tipi immagine e video, abbassare la dimensione, quota per utente.
+**4.6 Cartella dei media social pubblica.** Il contenitore `social-media` è leggibile da tutti (è voluto per i post), accetta file fino a 50 MB e nessun limite sul tipo di file (confermato dal vivo: nessuno dei 5 contenitori limita il tipo di file). Chi ha un account può caricarci qualsiasi cosa e usarlo come deposito pubblico. Da fare: limitare ai tipi immagine e video, abbassare la dimensione, quota per utente.
 
 **4.7 Dati visibili a tutti gli iscritti.** Profili social, "mi piace" e chi segue chi sono leggibili da qualsiasi utente registrato. È normale per un social, ma va dichiarato nell'informativa e ogni campo del profilo va trattato come pubblico.
 
@@ -134,7 +138,7 @@ Dalle migrazioni risulta: 64 tabelle, tutte con la sicurezza per riga attiva; 8 
 
 ## 6. Ordine consigliato
 
-1. Riattivare il database e fare la verifica di sicurezza dal vivo; applicare la 0031.
+1. Attivare la protezione dalle password compromesse su Supabase e limitare tipo e dimensione dei file nel contenitore `social-media`.
 2. Chiudere i server AI: accesso obbligatorio su `lifepilot-api`, limiti globali, tetto di spesa, via la parola d'ordine condivisa.
 3. Build su telefono e giro completo a mano; correggere quello che emerge.
 4. Decidere sui LifePoints (togliere, dimostrativo o partner autorizzato).
