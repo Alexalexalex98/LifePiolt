@@ -396,13 +396,15 @@ export async function usage(tok, env, fetcher = fetch) {
     return u && typeof u.full === 'boolean' ? u : null;
   } catch { return null; }
 }
+/** Tetto alla grandezza di una richiesta (foto e documenti in base64 compresi): oltre, il server non lavora. */
+export const MAX_BODY = 6_000_000;
 const RATE = { free: 15, plus: 30, pro: 60 };
 const guestHits = new Map();
 export function guestTooMany(ip, now = Date.now()) {
   const a = (guestHits.get(ip) ?? []).filter((t) => now - t < 60000);
   a.push(now); guestHits.set(ip, a);
   if (guestHits.size > 2000) guestHits.clear();
-  return a.length > 12;
+  return a.length > 6;
 }
 
 export default {
@@ -421,11 +423,13 @@ export default {
       const u = user.id === 'prova' || path === '/translate' ? null : await usage(tok, env, fetcher);
       const plan = u?.plan ?? 'free';
       if (tooMany(user.id, Date.now(), RATE[plan] ?? 15)) return json({ error: 'troppe richieste: aspetta un minuto' }, 429);
+      if (u?.blocked) return json({ error: 'Per oggi Theia ha fatto il pieno di conversazioni: ci vediamo domani. Il resto dell\'app continua a funzionare.', code: 'daily_cap' }, 429);
       lite = u ? !u.full : false;
       info = { plan, lite, left: u ? Math.max(0, u.limit - u.used) : undefined, limit: u?.limit };
     }
     let b;
-    try { b = await req.json(); } catch { return json({ error: 'richiesta non valida' }, 400); }
+    if (Number(req.headers.get('content-length') || 0) > MAX_BODY) return json({ error: 'richiesta troppo grande' }, 413);
+    try { const raw = await req.text(); if (raw.length > MAX_BODY) return json({ error: 'richiesta troppo grande' }, 413); b = JSON.parse(raw); } catch { return json({ error: 'richiesta non valida' }, 400); }
     if (path === '/chat' && b.stream === true) return streamChat(b, env, lite, info);
     try {
       const out = await handle(path, b, env, lite);

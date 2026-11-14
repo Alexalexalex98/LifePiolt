@@ -72,6 +72,14 @@ test('piani: free/plus/pro con limiti diversi; finiti i messaggi completi si pas
   const plus = await call('plus'); assert.equal(plus.lite, false); assert.equal(plus.left, 195); assert.equal(seen.at(-1)[0], SMART[0]);
   const pro = await call('pro'); assert.equal(pro.limit, 1000); assert.equal(pro.lite, false);
 });
+test('tetto giornaliero: oltre il limite si risponde con un invito a tornare domani; richieste enormi rifiutate', async () => {
+  const f = async (url) => (url.endsWith('/auth/v1/user') ? new Response(JSON.stringify({ id: 'ux' })) : new Response(JSON.stringify({ plan: 'free', limit: 15, used: 41, full: false, hard: 40, blocked: true })));
+  const env = envWith(async () => ({ response: 'ok' }), { SUPABASE_URL: 'https://s.co', SUPABASE_KEY: 'k' });
+  const r = await worker.fetch(req('/chat', { message: 'ciao' }, 'free'), env, undefined, f);
+  assert.equal(r.status, 429); assert.equal((await r.json()).code, 'daily_cap');
+  const big = await worker.fetch(req('/chat', { message: 'x'.repeat(6_100_000) }, 'free'), envWith(async () => ({ response: 'ok' })), undefined, async () => new Response('{}', { status: 404 }));
+  assert.equal(big.status, 413);
+});
 test('se il conteggio non risponde non si blocca nessuno; il freno degli ospiti e\' stretto', async () => {
   assert.equal(await usage('t', { SUPABASE_URL: 'https://s.co', SUPABASE_KEY: 'k' }, async () => new Response('{}', { status: 404 })), null);
   let blocked = false; for (let i = 0; i < 14; i++) blocked = guestTooMany('ip', 5000) || blocked;

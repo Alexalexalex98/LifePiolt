@@ -128,6 +128,8 @@ async function callOnce<T>(path: string, body: unknown, timeoutMs: number): Prom
     if (path === '/chat') lastAiDomain = (j as { domain?: { id: string; name: string } }).domain ?? null;
     if (r.ok && j.plan) lastAiInfo = { plan: j.plan, lite: !!j.lite, left: j.left, limit: j.limit };
     if (!r.ok) {
+      /* tetto giornaliero raggiunto: messaggio del server, mai ritentato (non è un sovraccarico) */
+      if ((j as { code?: string }).code === 'daily_cap') throw new AiServerError(j.error ?? 'Per oggi basta conversazioni con Theia: riprova domani.', 403);
       const why = j.details?.error?.message ?? j.error ?? `errore ${r.status}`;
       throw new AiServerError(r.status === 401 ? (g ? 'Per leggere le foto con Google devi essere collegato al tuo account, e la tua sessione è scaduta: esci e accedi di nuovo dal Profilo. (' : 'Il server AI non riconosce il tuo accesso: esci e accedi di nuovo dal tuo account. (') + base.replace(/^https?:\/\//, '') + ')' : `Il server AI ha risposto: ${why}`, r.status);
     }
@@ -179,7 +181,11 @@ export async function aiChatStream(message: string, q: string | undefined, onTex
         eat();
         if (x.status === 401) { resolve(401); return; }
         if (err) { reject(new AiServerError(err.m, err.code === 'quota' ? 429 : 502)); return; }
-        if (x.status < 200 || x.status >= 300) { reject(new AiServerError(`Il server AI ha risposto: errore ${x.status}`, x.status)); return; }
+        if (x.status < 200 || x.status >= 300) {
+          let capped: { error?: string; code?: string } = {}; try { capped = JSON.parse(x.responseText); } catch { /* non JSON */ }
+          if (capped.code === 'daily_cap') { reject(new AiServerError(capped.error ?? 'Per oggi basta conversazioni con Theia: riprova domani.', 403)); return; }
+          reject(new AiServerError(`Il server AI ha risposto: errore ${x.status}`, x.status)); return;
+        }
         resolve(final ?? acc);
       };
       x.onerror = () => reject(new AiServerError('Non riesco a raggiungere il server AI.'));
