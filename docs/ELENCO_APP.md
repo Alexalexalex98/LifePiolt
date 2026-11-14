@@ -219,6 +219,13 @@
   - Consigli
 - **Previsioni future**
 - **Dichiarazione fiscale**
+- **Ore e stipendio**
+  - Contratto (foto o PDF letti da Theia, oppure a mano): paga oraria o fissa, ore settimanali, maggiorazioni, ferie
+  - Ore di ogni giorno: scritte, dai turni o da una foto del foglio ore; si confermano o si cambiano
+  - Lordo e netto giorno per giorno e del mese (trattenute del contratto, senza imposte)
+  - Buste paga: la percentuale vera trattenuta affina la stima dei mesi dopo
+  - Confronto con quello entrato sul conto
+  - Straordinari, ferie maturate e godute, ore in più
 - **Garanzie**
   - Scansione della fattura (come Genius Scan)
   - Foto o file

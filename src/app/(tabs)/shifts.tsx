@@ -6,6 +6,7 @@ import { InfoTip } from '@/components/InfoTip';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { Icon } from '@/lib/icons';
+import { go } from '@/lib/nav';
 import { countdown, hoursOf, isTime, upcoming, whenText, type Shift } from '@/lib/shifts';
 import { useShifts } from '@/store/shifts';
 import { toast } from '@/store/toast';
@@ -72,6 +73,8 @@ export default function Shifts() {
         ))}
         {!shifts.length ? <Body muted style={{ marginTop: 6 }}>Non hai ancora turni.</Body> : null}
       </Card>
+
+      <Card><H>Quanto guadagni con questi turni</H><Body small muted>{tl('Conferma le ore di ogni giorno e vedi lordo, netto e straordinari del mese.')}</Body><Btn icon="coin" title="Ore e stipendio" onPress={() => go('payroll')} style={{ marginTop: 10 }} /></Card>
 
       <Sheet visible={!!edit} title={edit?.id ? 'Modifica il turno' : 'Nuovo turno'} onClose={() => setEdit(null)}>
         {edit ? (

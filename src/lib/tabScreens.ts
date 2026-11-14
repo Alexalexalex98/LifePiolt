@@ -128,6 +128,7 @@ export const TAB_SCREENS: string[] = [
   'syncSettings',
   'taxdecl',
   'warranties',
+  'payroll',
   'teams',
   'theiaPet',
   'trial',
