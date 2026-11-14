@@ -18,6 +18,7 @@ export const personByCode = (code: string) => run(() => rpc<Card>('people_by_cod
 export const followPerson = (id: string) => run(() => rpc<'accepted' | 'pending'>('people_follow', { p_user: id }));
 export const unfollowPerson = (id: string) => run(() => rpc<void>('people_unfollow', { p_user: id }));
 export const answerFollow = (id: string, accept: boolean) => run(() => rpc<void>('people_follow_answer', { p_user: id, p_accept: accept }));
+export const ratePerson = (id: string, stars: number) => run(() => rpc<Card>('people_rate', { p_to: id, p_stars: stars, p_kind: 'profile', p_ref: 'profile' }));
 export const followRequests = () => run(() => rpc<Card[]>('people_follow_requests'));
 
 /** Annunci, servizi, seminari e idee condivisi online, ognuno con il suo pubblico. */

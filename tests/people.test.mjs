@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeCode, isCode, formatCode, qrPayload, parseQr, cleanUsername, usernameProblem, queryKind, canSee, AUDIENCES, POST_AUDIENCES, initials, peopleError } from '../src/lib/people.ts';
+import { normalizeCode, isCode, formatCode, qrPayload, parseQr, cleanUsername, usernameProblem, queryKind, canSee, AUDIENCES, POST_AUDIENCES, initials, peopleError, scoreText, sinceText, listingsText, CONFIDENCE_TEXT } from '../src/lib/people.ts';
 
 test('codice: normalizza, formatta, riconosce; niente caratteri ambigui', () => {
   assert.equal(normalizeCode(' k7m4-9qxr '), 'K7M49QXR'); assert.equal(formatCode('k7m49qxr'), 'K7M4-9QXR'); assert.equal(isCode('K7M4-9QXR'), true);
@@ -24,3 +24,10 @@ test('pubblico dei contenuti: tutti / solo chi mi segue / tutti tranne chi mi se
   assert.deepEqual(AUDIENCES.map((a) => a.k), ['public', 'followers', 'not_followers']); assert.deepEqual(POST_AUDIENCES, ['public', 'followers']);
 });
 test('iniziali e messaggi d\'errore', () => { assert.equal(initials('Anna Maria Verdi'), 'AM'); assert.equal(initials(''), ''); assert.match(peopleError(new Error('nome_utente_occupato')), /già preso/); assert.match(peopleError('troppe_ricerche'), /minuto/); assert.match(peopleError('non_visibile'), /codice/); assert.match(peopleError('boh'), /connessione/); });
+
+test('anteprima: voto, iscritto da e annunci in italiano', () => {
+  assert.equal(scoreText({ votes: 4, score: 4.25, confidence: 'media' }), '4.3'.replace('.', ',')); assert.equal(scoreText({ votes: 0, score: null, confidence: 'nessuna' }), '–'); assert.equal(scoreText(undefined), '–');
+  assert.equal(sinceText('2026-03-15T10:00:00Z'), 'marzo 2026'); assert.equal(sinceText(undefined), ''); assert.equal(sinceText('boh'), '');
+  assert.equal(listingsText({ service: 2, seminar: 1, idea: 3, offer: 0 }), '2 servizi · 1 seminario · 3 idee'); assert.equal(listingsText({ service: 0, seminar: 0, idea: 0, offer: 0 }), ''); assert.equal(listingsText(undefined), '');
+  assert.equal(CONFIDENCE_TEXT.nessuna, 'Nessun voto ancora'); assert.match(peopleError('non_puoi_votare'), /segui/); assert.match(peopleError('voto_gia_dato'), /30 giorni/);
+});

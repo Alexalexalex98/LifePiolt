@@ -8,7 +8,7 @@ const bad = (m, e) => { console.log('  FAIL', m, '-', String(e?.message ?? e).sl
 await db.exec(`
 create role anon; create role authenticated;
 create schema auth; create schema storage;
-create table auth.users (id uuid primary key default gen_random_uuid(), email text);
+create table auth.users (id uuid primary key default gen_random_uuid(), email text, created_at timestamptz not null default now());
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint);
 create table storage.objects (bucket_id text, name text, owner uuid);
@@ -19,7 +19,7 @@ alter default privileges in schema public grant all on tables to anon, authentic
 alter default privileges in schema public grant all on functions to anon, authenticated;
 `);
 await db.exec(`create or replace function public.gen_random_bytes(n int) returns bytea language sql as $$ select decode(md5(random()::text), 'hex') $$;`);
-for (const f of ['0004_social.sql', '0007_friends_messages.sql', '0035_people_privacy.sql']) {
+for (const f of ['0004_social.sql', '0006_identity.sql', '0007_friends_messages.sql', '0035_people_privacy.sql', '0036_people_details.sql']) {
   try { await db.exec(readFileSync(M + f, 'utf8')); ok(f); } catch (e) { bad(f, e); }
 }
 const U = { a: '00000000-0000-0000-0000-0000000000a1', b: '00000000-0000-0000-0000-0000000000b2', c: '00000000-0000-0000-0000-0000000000c3', d: '00000000-0000-0000-0000-0000000000d4' };
@@ -64,7 +64,7 @@ await t('ricerca per nome: trova i profili pubblici, minimo 3 caratteri, nessun 
   eq(rows(await as('c', `select public.people_search('@anna') as r`))[0].r.map((x) => x.username), ['anna.v']);
   eq(rows(await as('c', `select public.people_search('an') as r`))[0].r, [], 'meno di 3');
   const card = rows(await as('c', `select public.people_search('anna') as r`))[0].r[0];
-  eq(Object.keys(card).sort(), ['avatar_url', 'bio', 'display_name', 'follow', 'follow_approval', 'followers', 'following', 'me', 'user_id', 'username']);
+  eq(Object.keys(card).sort(), ['avatar_url', 'bio', 'display_name', 'follow', 'follow_approval', 'followers', 'following', 'listings', 'me', 'my_vote', 'posts', 'reputation', 'since', 'user_id', 'username', 'verified']);
   eq(Object.keys(card).some((k) => /mail|via|nascita|telefono|phone|address|code|codice/i.test(k)), false);
 });
 await t('freno alle ricerche: massimo 20 al minuto', async () => {
@@ -76,7 +76,7 @@ await t('anteprima: profilo privato non visibile finché non pubblica qualcosa d
   await as('b', `insert into public.social_listings (author_id, kind, title, audience) values ($1, 'service', 'Ripetizioni di inglese', 'public')`, [U.b]);
   const p = rows(await as('c', `select public.people_preview($1) as r`, [U.b]))[0].r;
   eq([p.display_name, p.username], ['Bruno Neri', 'bruno.neri']);
-  eq(Object.keys(p).some((k) => /post|listing|idea|annunc|content/i.test(k)), false, 'solo informazioni principali');
+  eq([typeof p.posts, Object.values(p.listings).every((n) => typeof n === 'number')], ['number', true], 'solo numeri: nessun contenuto, nessun titolo');
 });
 await t('post: «solo chi mi segue» lo vede solo chi segue; i pubblici li vedono tutti; commenti e mi piace seguono il post', async () => {
   await as('a', `insert into public.social_posts (author_id, body, audience) values ($1, 'pubblico', 'public'), ($1, 'riservato', 'followers')`, [U.a]);
@@ -112,6 +112,35 @@ await t('seguire con approvazione: la richiesta resta in attesa e non dà access
 await t('non si può modificare il follow di altri né inserirlo a mano', async () => {
   await rejects(as('d', `insert into public.social_follows (follower_id, followed_id) values ($1, $2)`, [U.d, U.a]), /permission denied|row-level/);
   await rejects(as('d', `update public.social_follows set status = 'accepted'`), /permission denied|row-level/);
+});
+await t('anteprima dettagliata: voto con affidabilità, iscritto da, verificato, numeri di post e annunci (solo quelli visibili a chi guarda)', async () => {
+  // a ha 1 post pubblico, 1 riservato ai seguaci; annunci: 1 seminario pubblico, 1 idea per seguaci, 1 offerta per chi non segue
+  let card = rows(await as('d', `select public.people_preview($1) as r`, [U.a]))[0].r;
+  eq([card.posts, card.listings.seminar, card.listings.idea, card.listings.offer, card.listings.service], [1, 1, 0, 1, 0], 'd non segue a');
+  eq([card.reputation.votes, card.reputation.score, card.reputation.confidence], [0, null, 'nessuna']);
+  eq(card.verified, false); eq(typeof card.since, 'string');
+  await db.exec(`insert into public.identity_claims (claim_hash, user_id, provider) values ('${'a'.repeat(64)}', '${U.a}', 'prova')`);
+  eq(rows(await as('d', `select public.people_preview($1) as r`, [U.a]))[0].r.verified, true);
+  await as('d', `select public.people_follow($1)`, [U.a]);
+  card = rows(await as('d', `select public.people_preview($1) as r`, [U.a]))[0].r;
+  eq([card.posts, card.listings.idea, card.listings.offer], [2, 1, 0], 'd ora segue a');
+});
+await t('voti: solo chi segue, non a se stessi, un voto (cambiabile dopo 30 giorni), pesati per anzianità, chiusi alla lettura diretta', async () => {
+  await rejects(as('a', `select public.people_rate($1, 5)`, [U.a]), /voto_a_se_stessi/);
+  await rejects(as('c', `select public.people_rate($1, 5)`, [U.d]), /non_puoi_votare/, 'c non segue d (ha smesso)');
+  await rejects(as('d', `select public.people_rate($1, 6)`, [U.a]), /voto_non_valido/);
+  let card = rows(await as('d', `select public.people_rate($1, 5) as r`, [U.a]))[0].r;
+  eq([card.my_vote, card.reputation.votes], [5, 1]);
+  eq(card.reputation.score, Math.round(((5 * 3.5 + 5 * 0.4) / (5 + 0.4)) * 100) / 100, 'account nuovo: peso 0,4');
+  await rejects(as('d', `select public.people_rate($1, 1)`, [U.a]), /voto_gia_dato/);
+  await db.exec(`update auth.users set created_at = now() - interval '90 days'`);
+  card = rows(await as('d', `select public.people_preview($1) as r`, [U.a]))[0].r;
+  eq(card.reputation.score, Math.round(((5 * 3.5 + 5) / (5 + 1)) * 100) / 100, 'account vecchio: peso 1'); eq(card.reputation.confidence, 'bassa');
+  await db.exec(`update public.social_ratings set created_at = now() - interval '31 days'`);
+  eq(rows(await as('d', `select public.people_rate($1, 3) as r`, [U.a]))[0].r.my_vote, 3, 'dopo 30 giorni si può cambiare');
+  await rejects(as('d', `select count(*) from public.social_ratings`), /permission denied/);
+  for (let i = 0; i < 10; i++) await as('d', `select public.people_rate($1, 4, 'qa', $2)`, [U.a, 'r' + i]);
+  await rejects(as('d', `select public.people_rate($1, 4, 'qa', 'r11')`, [U.a]), /troppi_voti/);
 });
 console.log(process.exitCode ? 'CON ERRORI' : 'TUTTO OK');
 await db.close();

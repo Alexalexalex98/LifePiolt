@@ -55,7 +55,13 @@ export function canSee(audience: Audience, isAuthor: boolean, follows: boolean):
 }
 
 /** Anteprima di un profilo: solo le informazioni principali. */
-export type Card = { user_id: string; display_name: string; username: string | null; avatar_url: string | null; bio: string | null; followers: number; following: number; follow: 'accepted' | 'pending' | null; follow_approval: boolean; me: boolean };
+export type Reputation = { votes: number; score: number | null; confidence: 'nessuna' | 'bassa' | 'media' | 'alta' };
+export type Counts = { service: number; seminar: number; idea: number; offer: number };
+export type Card = {
+  user_id: string; display_name: string; username: string | null; avatar_url: string | null; bio: string | null; followers: number; following: number; follow: 'accepted' | 'pending' | null; follow_approval: boolean; me: boolean;
+  /** dettagli dell'anteprima (solo numeri e informazioni principali) */
+  since?: string; verified?: boolean; posts?: number; listings?: Counts; reputation?: Reputation; my_vote?: number | null;
+};
 export type Me = { user_id: string; display_name: string; username: string | null; code: string; discoverable: boolean; follow_approval: boolean; can_change_username_at: string | null };
 export const initials = (name: string): string => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('');
 
@@ -67,6 +73,22 @@ export function peopleError(e: unknown): string {
   if (/troppe_ricerche/.test(m)) return 'Troppe ricerche di fila: riprova tra un minuto.';
   if (/codice_non_valido/.test(m)) return 'Codice non valido: controlla che sia di 8 caratteri.';
   if (/non_visibile/.test(m)) return 'Questo profilo non è visibile. Se lo conosci, chiedigli il suo codice o il suo QR.';
+  if (/non_puoi_votare/.test(m)) return 'Puoi votare solo le persone che segui.';
+  if (/voto_gia_dato/.test(m)) return 'Hai già dato il tuo voto: lo puoi cambiare dopo 30 giorni.';
+  if (/voto_a_se_stessi/.test(m)) return 'Non puoi votare te stesso.';
+  if (/troppi_voti/.test(m)) return 'Hai dato molti voti oggi: riprova domani.';
   if (/profilo_pubblico_mancante/.test(m)) return 'Prima completa il tuo profilo con nome e cognome.';
   return 'Non sono riuscita a farlo: controlla la connessione e riprova.';
+}
+
+export const CONFIDENCE_TEXT: Record<Reputation['confidence'], string> = { nessuna: 'Nessun voto ancora', bassa: 'Affidabilità bassa', media: 'Affidabilità media', alta: 'Affidabilità alta' };
+/** «4,3» (virgola, una cifra dopo): il voto si mostra sempre con il numero di voti e l'affidabilità accanto. */
+export const scoreText = (r: Reputation | undefined): string => (r && r.score != null ? r.score.toFixed(1).replace('.', ',') : '–');
+const MONTHS = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+export const sinceText = (iso: string | undefined): string => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}` : ''; };
+/** «2 servizi · 1 seminario · 3 idee» (solo ciò che c'è). */
+export function listingsText(c: Counts | undefined): string {
+  if (!c) return '';
+  const one = (n: number, s: string, p: string) => (n ? `${n} ${n === 1 ? s : p}` : '');
+  return [one(c.service, 'servizio', 'servizi'), one(c.seminar, 'seminario', 'seminari'), one(c.idea, 'idea', 'idee'), one(c.offer, 'offerta', 'offerte')].filter(Boolean).join(' · ');
 }
