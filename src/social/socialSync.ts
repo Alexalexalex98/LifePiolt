@@ -1,6 +1,7 @@
 import { AppState } from 'react-native';
 
 import { useApp } from '@/store/app';
+import { usePrefs } from '@/store/prefs';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
 import { refreshShared } from './sharedCommands';
@@ -37,7 +38,7 @@ async function publishNew(s: Social) {
       if (p.poster && !/^https?:/.test(p.poster)) up.poster = (await uploadMedia(s, p.poster)) ?? undefined;
       if (p.uris?.length) up.list = (await Promise.all(p.uris.map((u) => (/^https?:/.test(u) ? u : uploadMedia(s, u))))).filter((u): u is string => !!u);
       if (p.media && p.uri && !up.media && !/^https?:/.test(p.uri)) continue; // il file non è partito: riprovo al prossimo giro
-      const row = await insertPost(s, toInsertRow(p, s.userId, up));
+      const row = await insertPost(s, { ...toInsertRow(p, s.userId, up), audience: usePrefs.getState().postAudience });
       if (row) { useNet.getState().patch({ posts: useNet.getState().posts.map((x) => (x.id === p.id ? { ...x, remoteId: row.id } : x)) as never }); toast('Pubblicato online'); failed.delete(p.id); }
       else if (!failed.has(p.id)) { failed.add(p.id); toast(`Non sono riuscito a pubblicare online: ${lastPostError || 'riprovo più tardi'}. Il post resta sul telefono.`); }
     } finally { publishing.delete(p.id); }

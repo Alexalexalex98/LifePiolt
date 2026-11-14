@@ -63,6 +63,11 @@ export default function Profile() {
           <Chev />
         </Row>
       </Card>
+      <Card>
+        <H>Il mio codice e le persone</H>
+        <Body small muted>Il tuo QR e codice univoci, il nome utente facoltativo, chi può trovarti e la ricerca di altre persone.</Body>
+        <Row gap={8} style={{ justifyContent: 'flex-start', marginTop: 10, flexWrap: 'wrap' }}><Btn small icon="users" title="Il mio codice" onPress={() => go('myCode')} /><Btn small ghost icon="search" title="Trova persone" onPress={() => go('people')} /></Row>
+      </Card>
       <Card onPress={() => go('life')}>
         <Row>
           <View style={{ flex: 1 }}><H>La tua vita</H><Body small muted>Life Score, Health, Mind, Finance, Growth e altro</Body></View>

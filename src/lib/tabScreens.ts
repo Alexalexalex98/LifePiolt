@@ -134,6 +134,8 @@ export const TAB_SCREENS: string[] = [
   'trial',
   'userProfile',
   'workgroup',
+  'people',
+  'myCode',
   'workspace',
   'vacationPlan',
   'vacationPlanner',

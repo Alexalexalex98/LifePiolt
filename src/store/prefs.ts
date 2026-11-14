@@ -15,6 +15,9 @@ export const styleLabel = (id: string) => answerStyles.find((x) => x.id === id)?
 type PrefsState = {
   answerStyle: AnswerStyle;
   setAnswerStyle: (s: AnswerStyle) => void;
+  /** a chi si mostrano i nuovi post: tutti, oppure solo chi ti segue */
+  postAudience: 'public' | 'followers';
+  setPostAudience: (a: 'public' | 'followers') => void;
   reset: () => void;
 };
 
@@ -22,6 +25,8 @@ export const usePrefs = create<PrefsState>()(
   persisted<PrefsState>('prefs', (set) => ({
     answerStyle: DEFAULT_STYLE,
     setAnswerStyle: (answerStyle) => set({ answerStyle }),
-    reset: () => set({ answerStyle: DEFAULT_STYLE }),
+    postAudience: 'public',
+    setPostAudience: (postAudience) => set({ postAudience }),
+    reset: () => set({ answerStyle: DEFAULT_STYLE, postAudience: 'public' }),
   })),
 );
