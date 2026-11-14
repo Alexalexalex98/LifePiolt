@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultContract, hoursBetween, nightHours, hourlyRate, dayHours, monthPay, netRatio, planFromShifts, balance, matchBank, parseContract, parsePayslip, parseHours, weekStart, weekdayOf, daysOfMonth, addMonth } from '../src/lib/payroll.ts';
+import { bankLedger, overtimeSplit, defaultContract, hoursBetween, nightHours, hourlyRate, dayHours, monthPay, netRatio, planFromShifts, balance, matchBank, parseContract, parsePayslip, parseHours, weekStart, weekdayOf, daysOfMonth, addMonth } from '../src/lib/payroll.ts';
 
 const C = (x = {}) => ({ ...defaultContract(), kind: 'hourly', hourly: 10, weekHours: 40, netPct: 80, ...x });
 const D = (date, start, end, extra = {}) => ({ date, kind: 'work', start, end, pause: 0, hours: 0, confirmed: true, source: 'manuale', ...extra });
@@ -85,4 +85,50 @@ test('lettura del foglio ore: orari, ferie, giorni senza anno, righe vuote scart
   const r = parseHours('{"giorni":[{"data":"2026-11-02","inizio":"9:00","fine":"17:30","pausa_minuti":30},{"data":"03/11","ore":6},{"data":"2026-11-04","tipo":"ferie"},{"data":"2026-11-05","tipo":"lavoro"},{"data":"2026-11-02","ore":3},{"data":"2026-13-40","ore":3}]}', '2026-11-13');
   assert.deepEqual(r.map((x) => [x.date, x.kind, x.hours]), [['2026-11-02', 'work', 8], ['2026-11-03', 'work', 6], ['2026-11-04', 'vacation', 0]]);
   assert.equal(r[0].start, '09:00'); assert.deepEqual(parseHours('x', '2026-11-13'), []);
+});
+
+const week = (from, n = 5, start = '09:00', end = '18:00') => Array.from({ length: n }, (_, i) => D(`2026-11-${String(from + i).padStart(2, '0')}`, start, end));
+test('regola «pagate senza maggiorazione»: le ore in più valgono come le altre', () => {
+  const p = monthPay('2026-11', week(2), C({ overtimeMode: 'plain' }));
+  assert.equal(p.gross, 450); assert.equal(p.overtimeHours, 5); assert.equal(p.paidOvertimeHours, 5); assert.equal(p.bankHours, 0);
+});
+test('regola «recuperate»: le ore in più non si pagano e vanno in banca ore', () => {
+  const p = monthPay('2026-11', week(2), C({ overtimeMode: 'bank' }));
+  assert.equal(p.gross, 400); assert.equal(p.bankHours, 5); assert.equal(p.paidOvertimeHours, 0); assert.equal(p.days.at(-1).bankHours, 5);
+  assert.equal(monthPay('2026-11', week(2), C({ overtimeMode: 'bank', bankRatio: 1.25 })).bankHours, 6.25);
+});
+test('regola mista: fino alla soglia si pagano (con maggiorazione), il resto va in banca', () => {
+  const p = monthPay('2026-11', week(2), C({ overtimeMode: 'mixed', paidUpTo: 2 }));
+  assert.equal(p.paidOvertimeHours, 2); assert.equal(p.bankHours, 3); assert.equal(p.gross, 425);
+  assert.equal(overtimeSplit('2026-11', week(2), C({ overtimeMode: 'mixed', paidUpTo: 2 })).get('2026-11-06').bank, 3);
+});
+test('contratto fisso con recupero: niente extra, solo ore in banca', () => {
+  const c = C({ kind: 'monthly', monthly: 2080, hourly: undefined, overtimeMode: 'bank' });
+  const p = monthPay('2026-11', week(2), c); assert.equal(p.gross, 2080); assert.equal(p.bankHours, 5);
+});
+test('banca ore: giorni di recupero scalano il saldo; il recupero non conta come ore lavorate', () => {
+  const days = [...week(2), ...week(9), { date: '2026-11-20', kind: 'recovery', hours: 0, confirmed: true, source: 'manuale' }];
+  const b = bankLedger(days, C({ overtimeMode: 'bank' }), '2026-11-25');
+  assert.equal(b.accrued, 10); assert.equal(b.recovered, 8); assert.equal(b.balance, 2); assert.equal(b.debt, 0); assert.equal(b.recoveryDays, 1);
+  const p = monthPay('2026-11', [...week(2, 4), { date: '2026-11-06', kind: 'recovery', hours: 0, confirmed: true, source: 'manuale' }], C({ overtimeMode: 'bank' }));
+  assert.equal(p.gross, 4 * 90 + 80); // 4 giorni da 9 h (36 h, sotto le 40) + il recupero pagato come una giornata di contratto
+});
+test('banca ore: recupero preso prima di averlo maturato = saldo negativo (sei sotto di ore)', () => {
+  const days = [...week(2), { date: '2026-11-13', kind: 'recovery', hours: 0, confirmed: true, source: 'manuale' }];
+  const b = bankLedger(days, C({ overtimeMode: 'bank' }), '2026-11-20');
+  assert.equal(b.balance, -3); assert.equal(b.debt, 3);
+});
+test('banca ore: le ore scadono, le più vecchie per prime; non confermate solo con includePlanned', () => {
+  const days = [...week(2), ...week(9)];
+  const b = bankLedger(days, C({ overtimeMode: 'bank', bankExpiryMonths: 1 }), '2026-12-10');
+  assert.equal(b.expired, 5); assert.equal(b.balance, 5); assert.deepEqual(b.nextExpiry, { date: '2026-12-13', hours: 5 });
+  const plan = week(2).map((d) => ({ ...d, confirmed: false }));
+  assert.equal(bankLedger(plan, C({ overtimeMode: 'bank' }), '2026-11-20').balance, 0); assert.equal(bankLedger(plan, C({ overtimeMode: 'bank' }), '2026-11-20', true).balance, 5);
+  assert.equal(bankLedger(days, C({ overtimeMode: 'bank', bankCap: 8 }), '2026-11-25').overCap, 2);
+  assert.equal(bankLedger(days, C({ overtimeMode: 'paid' }), '2026-11-25').balance, 0);
+});
+test('lettura contratto: regola degli straordinari; foglio ore: recupero', () => {
+  assert.equal(parseContract('{"tipo":"ore","paga_oraria_lorda":10,"straordinari":"recuperati"}').overtimeMode, 'bank');
+  assert.equal(parseContract('{"tipo":"ore","paga_oraria_lorda":10,"straordinari":"pagati"}').overtimeMode, 'paid');
+  assert.equal(parseHours('{"giorni":[{"data":"2026-11-04","tipo":"recupero"}]}', '2026-11-13')[0].kind, 'recovery');
 });

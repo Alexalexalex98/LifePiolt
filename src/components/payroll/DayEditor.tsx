@@ -44,7 +44,8 @@ export function DayEditor({ day, isNew, contract, onSave, onDelete, onClose }: {
             {!times ? <Field label="Oppure ore totali" value={hours} onChange={setHours} placeholder="7,5" numeric /> : null}
             <Row style={{ justifyContent: 'flex-start' }} gap={6}><Pill label={tl('Festivo lavorato')} on={!!d.holiday} onPress={() => setD({ ...d, holiday: !d.holiday })} /></Row>
           </>
-        ) : <Body small muted>{contract.paidLeave ? tl('Conta come una giornata di contratto.') : tl('Non è pagata dal tuo contratto.')}</Body>}
+        ) : d.kind === 'recovery' ? <Body small muted>{tl('Scala una giornata di contratto ({0} h) dalla banca ore e viene pagata normalmente.', Math.round(contract.weekHours / 5 * 100) / 100)}</Body>
+          : <Body small muted>{contract.paidLeave ? tl('Conta come una giornata di contratto.') : tl('Non è pagata dal tuo contratto.')}</Body>}
         <Field label="Nota (facoltativa)" value={note} onChange={setNote} />
         {preview && d.kind === 'work' ? <Body small muted>{tl('{0} h · lordo {1} · netto stimato {2}', preview.hours, eur(preview.gross, contract.currency), eur(preview.net, contract.currency))}</Body> : null}
         <Btn icon="check" title="Conferma" onPress={() => { const x = build(true); if (x) onSave(x); }} />

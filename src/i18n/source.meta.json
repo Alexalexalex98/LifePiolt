@@ -1,5 +1,5 @@
 {
- "count": 19714,
+ "count": 19744,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -322,9 +322,9 @@
   "src/components/money/InvestTab.tsx": 58,
   "src/components/money/WalletTab.tsx": 84,
   "src/components/network.tsx": 42,
-  "src/components/payroll/ContractTab.tsx": 31,
-  "src/components/payroll/DayEditor.tsx": 17,
-  "src/components/payroll/MonthTab.tsx": 50,
+  "src/components/payroll/ContractTab.tsx": 38,
+  "src/components/payroll/DayEditor.tsx": 18,
+  "src/components/payroll/MonthTab.tsx": 64,
   "src/components/payroll/SlipsTab.tsx": 35,
   "src/components/payroll/shared.tsx": 13,
   "src/components/pet/FeedFx.tsx": 2,
@@ -665,7 +665,7 @@
   "src/lib/openDoc.ts": 2,
   "src/lib/paymentActions.ts": 8,
   "src/lib/payments.ts": 6,
-  "src/lib/payroll.ts": 11,
+  "src/lib/payroll.ts": 20,
   "src/lib/payrollAi.ts": 9,
   "src/lib/pet.ts": 9,
   "src/lib/petFood.ts": 26,
@@ -835,5 +835,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2483
+ "withPlaceholders": 2492
 }

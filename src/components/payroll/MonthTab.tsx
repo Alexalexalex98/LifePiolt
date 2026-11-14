@@ -6,7 +6,7 @@ import { Body, Btn, Card, Empty, H, Item, Press, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { Icon } from '@/lib/icons';
-import { addMonth, balance, monthPay, planFromShifts, weekdayOf, type Day } from '@/lib/payroll';
+import { addMonth, balance, bankLedger, defaultContract, monthPay, planFromShifts, weekdayOf, type Day } from '@/lib/payroll';
 import { readHours } from '@/lib/payrollAi';
 import type { Captured } from '@/lib/warrantyScan';
 import { usePayroll } from '@/store/payroll';
@@ -16,12 +16,12 @@ import { toast } from '@/store/toast';
 import { DayEditor } from './DayEditor';
 import { Big, CaptureSheet, WD, eur, monthTitle } from './shared';
 
-const KIND_TXT: Record<string, string> = { work: 'Lavoro', vacation: 'Ferie', sick: 'Malattia', holiday: 'Festivo', off: 'Riposo' };
+const KIND_TXT: Record<string, string> = { work: 'Lavoro', vacation: 'Ferie', sick: 'Malattia', holiday: 'Festivo', recovery: 'Recupero ore', off: 'Riposo' };
 
 /** Il mese: ogni giorno con ore, lordo e netto; confermi o cambi; in alto il conto del mese e quanto ti aspetti sul conto. */
 export function MonthTab({ today, onContract }: { today: string; onContract: () => void }) {
   const th = useTheme();
-  const c = usePayroll((s) => s.contract); const ready = usePayroll((s) => s.ready); const days = usePayroll((s) => s.days); const slips = usePayroll((s) => s.slips);
+  const stored = usePayroll((s) => s.contract); const c = useMemo(() => ({ ...defaultContract(), ...stored }), [stored]); const ready = usePayroll((s) => s.ready); const days = usePayroll((s) => s.days); const slips = usePayroll((s) => s.slips);
   const shifts = useShifts((s) => s.shifts);
   const [month, setMonth] = useState(today.slice(0, 7));
   const [edit, setEdit] = useState<{ day: Day; isNew: boolean } | null>(null);
@@ -29,6 +29,8 @@ export function MonthTab({ today, onContract }: { today: string; onContract: () 
   const all = useMemo(() => Object.values(days), [days]);
   const pay = useMemo(() => monthPay(month, all, c, slips), [month, all, c, slips]);
   const bal = useMemo(() => balance(all, c, today), [all, c, today]);
+  const bank = useMemo(() => bankLedger(all, c, today), [all, c, today]);
+  const bankPlan = useMemo(() => bankLedger(all, c, today, true), [all, c, today]);
   const money = (n: number) => eur(n, c.currency);
   const noRate = !(c.kind === 'hourly' ? c.hourly : c.monthly);
   const fresh = (date: string): Day => ({ date, kind: 'work', hours: 0, confirmed: true, source: 'manuale', pause: c.pauseMin });
@@ -71,7 +73,7 @@ export function MonthTab({ today, onContract }: { today: string; onContract: () 
           <Big label="Lordo del mese" value={money(pay.gross)} sub={pay.fixed ? tl('di cui fisso {0}', money(pay.fixed)) : undefined} />
         </Row>
         <Row style={{ marginTop: 10 }}>
-          <Big label="Ore" value={`${pay.hours}`} sub={pay.overtimeHours ? tl('{0} di straordinario', pay.overtimeHours) : undefined} />
+          <Big label="Ore" value={`${pay.hours}`} sub={pay.overtimeHours ? (pay.bankHours ? tl('{0} h in più: {1} in banca ore', pay.overtimeHours, pay.bankHours) : tl('{0} di straordinario', pay.overtimeHours)) : undefined} />
           <Big label="Trattenute usate" value={`${Math.round((1 - pay.ratio) * 100)}%`} sub={pay.ratioFrom === 'buste paga' ? tl('viste nelle tue buste paga') : tl('dal contratto')} />
         </Row>
         <Body small muted style={{ marginTop: 8 }}>{pay.pending ? tl('{0} giornate da confermare: finché non le confermi sono una previsione.', pay.pending) : tl('Il netto usa le trattenute del contratto e poi quelle vere delle tue buste paga, senza le imposte sul reddito.')}</Body>
@@ -94,7 +96,7 @@ export function MonthTab({ today, onContract }: { today: string; onContract: () 
                 <View style={{ width: 46 }}><Text style={{ color: th.text, fontWeight: '800', fontSize: 16 }}>{Number(x.date.slice(8))}</Text><Body small muted>{tl(WD[weekdayOf(x.date)] ?? '')}</Body></View>
                 <View style={{ flex: 1 }}>
                   <Body bold>{d.kind === 'work' ? `${x.hours} h${d.start && d.end ? ` · ${d.start}-${d.end}` : ''}` : tl(KIND_TXT[d.kind] ?? '')}</Body>
-                  <Body small muted>{[d.shiftName, d.holiday ? tl('Festivo lavorato') : '', !x.confirmed ? tl('Da confermare') : ''].filter(Boolean).join(' · ') || ' '}</Body>
+                  <Body small muted>{[d.shiftName, d.holiday ? tl('Festivo lavorato') : '', x.bankHours ? tl('+{0} h in banca', x.bankHours) : '', d.kind === 'recovery' ? tl('-{0} h dalla banca', Math.round(c.weekHours / 5 * 100) / 100) : '', !x.confirmed ? tl('Da confermare') : ''].filter(Boolean).join(' · ') || ' '}</Body>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={{ color: x.confirmed ? th.positive : th.muted, fontWeight: '800' }}>{x.value || x.hours ? money(x.valueNet) : '—'}</Text>
@@ -106,6 +108,20 @@ export function MonthTab({ today, onContract }: { today: string; onContract: () 
           );
         })}
       </Card>
+
+      {bank.on || bank.recoveryDays ? (
+        <Card accent={bank.balance < 0 ? th.danger : th.accent}>
+          <H>Banca ore</H>
+          <Row style={{ alignItems: 'flex-start' }}>
+            <Big label="Saldo" value={`${bank.balance > 0 ? '+' : ''}${bank.balance} h`} color={bank.balance < 0 ? th.danger : th.positive} sub={bank.balance >= 0 ? tl('{0} giorni di recupero', Math.round(bank.balance / Math.max(0.1, c.weekHours / 5) * 10) / 10) : tl('sei sotto di ore')} />
+            <Big label="Con le giornate previste" value={`${bankPlan.balance > 0 ? '+' : ''}${bankPlan.balance} h`} sub={tl('guadagnate {0} · recuperate {1}', bank.accrued, bank.recovered)} />
+          </Row>
+          {bank.nextExpiry ? <Body small color={th.warn} style={{ marginTop: 8 }}>{tl('{0} h scadono il {1}: recuperale prima.', bank.nextExpiry.hours, bank.nextExpiry.date)}</Body> : null}
+          {bank.expired ? <Body small muted style={{ marginTop: 4 }}>{tl('{0} h sono scadute.', bank.expired)}</Body> : null}
+          {bank.overCap ? <Body small color={th.warn} style={{ marginTop: 4 }}>{tl('Sei {0} h oltre il tetto della banca ore.', bank.overCap)}</Body> : null}
+          <Body small muted style={{ marginTop: 6 }}>{tl('Per recuperare, aggiungi una giornata di tipo «Recupero ore».')}</Body>
+        </Card>
+      ) : null}
 
       <Card>
         <H>{tl('Ferie e ore in più {0}', bal.year)}</H>

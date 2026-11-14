@@ -21,6 +21,13 @@ export const addMonth = (month: string, n: number): string => { const [y, m] = m
 /** Lunedì della settimana di quel giorno: serve a contare gli straordinari settimana per settimana. */
 export const weekStart = (day: string): string => addDays(day, -weekdayOf(day));
 
+export type OvertimeMode = 'paid' | 'plain' | 'bank' | 'mixed';
+export const OVERTIME_MODES: { k: OvertimeMode; n: string; d: string }[] = [
+  { k: 'paid', n: 'Pagate con maggiorazione', d: 'Le ore in più si pagano di più (per esempio +25%).' },
+  { k: 'plain', n: 'Pagate senza maggiorazione', d: 'Le ore in più si pagano come le altre.' },
+  { k: 'bank', n: 'Recuperate con riposo', d: 'Le ore in più vanno in una banca ore e le recuperi con giorni liberi.' },
+  { k: 'mixed', n: 'In parte pagate, in parte recuperate', d: 'Fino a una soglia al mese si pagano, il resto va in banca ore.' },
+];
 export type Contract = {
   /** a ore (paga per ora) o a stipendio fisso mensile */
   kind: 'hourly' | 'monthly';
@@ -32,7 +39,18 @@ export type Contract = {
   weekHours: number;
   /** quanto resta in busta dopo le trattenute del CONTRATTO (contributi ecc.), in %: è il punto di partenza finché non ci sono buste paga */
   netPct: number;
+  /** come si trattano le ore oltre il contratto: pagate con maggiorazione, pagate senza maggiorazione, recuperate con riposo (banca ore), oppure miste */
+  overtimeMode: OvertimeMode;
+  /** maggiorazione dello straordinario pagato, in % (vale per «pagate con maggiorazione» e per la parte pagata delle miste) */
   overtimePct: number; nightPct: number; sundayPct: number; holidayPct: number;
+  /** miste: quante ore al mese si pagano prima di passare al recupero */
+  paidUpTo?: number;
+  /** recupero: ore di riposo per ogni ora in più (1 = ora per ora; 1,25 = il recupero vale il 25% in più) */
+  bankRatio: number;
+  /** le ore in banca vanno recuperate entro tanti mesi (vuoto = nessuna scadenza) */
+  bankExpiryMonths?: number;
+  /** tetto della banca ore, in ore (vuoto = nessun tetto): oltre, ti avviso */
+  bankCap?: number;
   /** giorni di ferie all'anno */
   vacationDays: number;
   /** ferie e malattia pagate come una giornata di contratto */
@@ -45,10 +63,10 @@ export type Contract = {
   employer?: string;
   pdf?: string; pages?: string[];
 };
-export const defaultContract = (): Contract => ({ kind: 'hourly', hourly: 0, weekHours: 40, netPct: 85, overtimePct: 25, nightPct: 25, sundayPct: 50, holidayPct: 50, vacationDays: 20, paidLeave: true, pauseMin: 0, currency: 'EUR' });
+export const defaultContract = (): Contract => ({ kind: 'hourly', hourly: 0, weekHours: 40, netPct: 85, overtimeMode: 'paid', overtimePct: 25, bankRatio: 1, nightPct: 25, sundayPct: 50, holidayPct: 50, vacationDays: 20, paidLeave: true, pauseMin: 0, currency: 'EUR' });
 
-export type DayKind = 'work' | 'vacation' | 'sick' | 'holiday' | 'off';
-export const DAY_KINDS: { k: DayKind; n: string }[] = [{ k: 'work', n: 'Lavoro' }, { k: 'vacation', n: 'Ferie' }, { k: 'sick', n: 'Malattia' }, { k: 'holiday', n: 'Festivo non lavorato' }, { k: 'off', n: 'Riposo' }];
+export type DayKind = 'work' | 'vacation' | 'sick' | 'holiday' | 'recovery' | 'off';
+export const DAY_KINDS: { k: DayKind; n: string }[] = [{ k: 'work', n: 'Lavoro' }, { k: 'vacation', n: 'Ferie' }, { k: 'sick', n: 'Malattia' }, { k: 'holiday', n: 'Festivo non lavorato' }, { k: 'recovery', n: 'Recupero ore (dalla banca)' }, { k: 'off', n: 'Riposo' }];
 export type Day = {
   date: string; kind: DayKind;
   /** HH:MM; se mancano si usano le `hours` scritte */
@@ -80,7 +98,7 @@ export function nightHours(start: string, end: string, pause = 0): number {
 }
 /** Le ore di un giorno: da inizio/fine se ci sono, altrimenti quelle scritte. Giorni di ferie/malattia/festivo valgono come una giornata di contratto se `paidLeave`. */
 export function dayHours(d: Day, c: Contract): number {
-  if (d.kind === 'off') return 0;
+  if (d.kind === 'off' || d.kind === 'recovery') return 0; // il recupero non conta tra le ore lavorate: scala la banca ore
   if (d.kind !== 'work') return c.paidLeave ? r2(c.weekHours / 5) : 0;
   if (d.start && d.end && isTime(d.start) && isTime(d.end)) return hoursBetween(d.start, d.end, d.pause ?? c.pauseMin);
   return Math.max(0, d.hours || 0);
@@ -92,10 +110,12 @@ export function hourlyRate(c: Contract): number {
 }
 
 /** `gross`/`net` entrano nei totali; `value`/`valueNet` sono quanto «vale» la giornata (per il contratto fisso: ore × paga oraria equivalente), da mostrare giorno per giorno. */
-export type DayPay = { date: string; hours: number; base: number; extra: number; gross: number; net: number; value: number; valueNet: number; confirmed: boolean; kind: DayKind };
+export type DayPay = { date: string; hours: number; base: number; extra: number; gross: number; net: number; value: number; valueNet: number; /** ore guadagnate in banca ore quel giorno (già con il rapporto di recupero) */ bankHours: number; confirmed: boolean; kind: DayKind };
 export type MonthPay = {
   month: string; days: DayPay[];
   hours: number; confirmedHours: number; overtimeHours: number;
+  /** ore in più pagate e ore che vanno in banca ore questo mese (già con il rapporto di recupero) */
+  paidOvertimeHours: number; bankHours: number;
   /** lordo di ciò che hai confermato / di tutto il mese (compresi i giorni solo previsti) */
   confirmedGross: number; gross: number;
   /** netto «da contratto», poi calibrato con le buste paga */
@@ -105,9 +125,12 @@ export type MonthPay = {
   fixed: number; pending: number;
 };
 
-/** Il lordo di un giorno senza lo straordinario (che si calcola sulla settimana): base + maggiorazioni notte/domenica/festivo. */
+const contractDay = (c: Contract): number => r2(Math.max(0, c.weekHours) / 5);
+/** Il lordo di un giorno senza lo straordinario (che si calcola sulla settimana): base + maggiorazioni notte/domenica/festivo. Un giorno di recupero si paga come una giornata di contratto (le ore sono già state lavorate). */
 function dayBase(d: Day, c: Contract): { hours: number; base: number; extra: number } {
-  const h = dayHours(d, c); const rate = hourlyRate(c);
+  const rate = hourlyRate(c);
+  if (d.kind === 'recovery') return { hours: 0, base: c.kind === 'hourly' ? r2(contractDay(c) * rate) : 0, extra: 0 };
+  const h = dayHours(d, c);
   if (d.kind !== 'work') return { hours: h, base: c.kind === 'hourly' ? r2(h * rate) : 0, extra: 0 };
   let extra = 0;
   if (d.start && d.end) extra += nightHours(d.start, d.end, d.pause ?? c.pauseMin) * rate * (c.nightPct / 100);
@@ -122,6 +145,59 @@ export function overtimeByWeek(days: Day[], c: Contract): Map<string, { hours: n
   for (const d of days) { const k = weekStart(d.date); const e = w.get(k) ?? { hours: 0, over: 0 }; e.hours += dayHours(d, c); w.set(k, e); }
   for (const e of w.values()) { e.hours = r2(e.hours); e.over = r2(Math.max(0, e.hours - Math.max(0, c.weekHours))); }
   return w;
+}
+
+/** Le ore in più di un giorno e dove vanno: `pay` si pagano, `bank` vanno in banca ore (secondo la regola del contratto). Si contano sulla settimana intera. */
+export type Split = { ot: number; pay: number; bank: number };
+export function overtimeSplit(month: string, all: Day[], c: Contract): Map<string, Split> {
+  const out = new Map<string, Split>();
+  const days = all.filter((d) => monthOf(d.date) === month && d.kind === 'work').sort((a, b) => a.date.localeCompare(b.date));
+  let paidSoFar = 0;
+  for (const d of days) {
+    const h = dayHours(d, c);
+    const before = all.filter((x) => weekStart(x.date) === weekStart(d.date) && x.date < d.date).reduce((t, x) => t + dayHours(x, c), 0);
+    const ot = r2(Math.max(0, Math.min(h, before + h - Math.max(0, c.weekHours)))); if (!ot) continue;
+    let pay = ot, bank = 0;
+    if (c.overtimeMode === 'bank') { pay = 0; bank = ot; }
+    else if (c.overtimeMode === 'mixed') { pay = r2(Math.min(ot, Math.max(0, (c.paidUpTo ?? 0) - paidSoFar))); bank = r2(ot - pay); paidSoFar += pay; }
+    out.set(d.date, { ot, pay, bank });
+  }
+  return out;
+}
+
+const addMonthsISO = (day: string, n: number): string => { const m = addMonth(day.slice(0, 7), n); const last = daysOfMonth(m).length; return `${m}-${pad(Math.min(Number(day.slice(8)), last))}`; };
+
+/** La banca ore: ore guadagnate (con il rapporto di recupero) meno i giorni di recupero presi. Le ore scadono dopo `bankExpiryMonths` mesi (si consumano le più vecchie per prime).
+ *  Il saldo può andare sotto zero: vuol dire che hai preso più recupero di quanto avevi maturato. */
+export type BankLedger = { on: boolean; balance: number; accrued: number; recovered: number; expired: number; debt: number; nextExpiry: { date: string; hours: number } | null; overCap: number; recoveryDays: number };
+export function bankLedger(all: Day[], c: Contract, today: string, includePlanned = false): BankLedger {
+  const on = c.overtimeMode === 'bank' || c.overtimeMode === 'mixed';
+  const zero: BankLedger = { on, balance: 0, accrued: 0, recovered: 0, expired: 0, debt: 0, nextExpiry: null, overCap: 0, recoveryDays: 0 };
+  const pool = all.filter((d) => includePlanned || d.confirmed);
+  if (!on && !pool.some((d) => d.kind === 'recovery')) return zero;
+  const events: { date: string; kind: 'acc' | 'rec'; h: number }[] = [];
+  const months = [...new Set(pool.filter((d) => d.kind === 'work').map((d) => monthOf(d.date)))].sort();
+  if (on) for (const m of months) for (const [date, sp] of overtimeSplit(m, pool, c)) if (sp.bank > 0) events.push({ date, kind: 'acc', h: r2(sp.bank * (c.bankRatio || 1)) });
+  const rec = contractDay(c);
+  for (const d of pool) if (d.kind === 'recovery') events.push({ date: d.date, kind: 'rec', h: rec });
+  events.sort((a, b) => a.date.localeCompare(b.date) || (a.kind === 'acc' ? -1 : 1));
+  const exp = c.bankExpiryMonths && c.bankExpiryMonths > 0 ? c.bankExpiryMonths : 0;
+  const lots: { date: string; left: number; until: string | null }[] = [];
+  let accrued = 0, recovered = 0, expired = 0, debt = 0, recoveryDays = 0;
+  const lapse = (now: string) => { for (const l of lots) if (l.left > 0 && l.until && l.until < now) { expired += l.left; l.left = 0; } };
+  for (const e of events) {
+    lapse(e.date);
+    if (e.kind === 'acc') { accrued += e.h; lots.push({ date: e.date, left: e.h, until: exp ? addMonthsISO(e.date, exp) : null }); continue; }
+    recoveryDays++; recovered += e.h; let need = e.h;
+    for (const l of lots) { if (need <= 0) break; const t = Math.min(l.left, need); l.left -= t; need -= t; }
+    debt += need;
+  }
+  lapse(today);
+  const alive = lots.filter((l) => l.left > 0);
+  const left = alive.reduce((t, l) => t + l.left, 0);
+  const next = alive.filter((l) => l.until).sort((a, b) => (a.until as string).localeCompare(b.until as string))[0];
+  const balance = r2(left - debt);
+  return { on, balance, accrued: r2(accrued), recovered: r2(recovered), expired: r2(expired), debt: r2(debt), nextExpiry: next ? { date: next.until as string, hours: r2(next.left) } : null, overCap: c.bankCap && balance > c.bankCap ? r2(balance - c.bankCap) : 0, recoveryDays };
 }
 
 /** Il netto che si stima: parte dalle trattenute del contratto e passa alle trattenute vere viste nelle buste paga man mano che ne carichi (le ultime 3 pesano di più). */
@@ -140,31 +216,26 @@ export function netRatio(c: Contract, slips: Payslip[]): { ratio: number; from: 
 export function monthPay(month: string, all: Day[], c: Contract, slips: Payslip[] = []): MonthPay {
   const inMonth = all.filter((d) => monthOf(d.date) === month).sort((a, b) => a.date.localeCompare(b.date));
   const { ratio, from } = netRatio(c, slips);
-  // gli straordinari si contano sulla settimana intera, anche se a cavallo di due mesi
-  const wk = overtimeByWeek(all.filter((d) => { const m = monthOf(d.date); return m === month || m === addMonth(month, -1) || m === addMonth(month, 1); }), c);
-  const rate = hourlyRate(c);
-  const seen = new Set<string>(); const days: DayPay[] = [];
-  let overtimeHours = 0;
+  const split = overtimeSplit(month, all, c);
+  const rate = hourlyRate(c); const pct = c.overtimeMode === 'plain' ? 0 : c.overtimePct;
+  const days: DayPay[] = [];
+  let overtimeHours = 0, paidOt = 0, bankHours = 0;
   for (const d of inMonth) {
-    const b = dayBase(d, c);
-    // lo straordinario si assegna al giorno in cui la settimana supera le ore del contratto
-    let extra = b.extra; let ot = 0;
-    const w = wk.get(weekStart(d.date));
-    if (w && w.over > 0 && d.kind === 'work') {
-      const before = all.filter((x) => weekStart(x.date) === weekStart(d.date) && x.date < d.date).reduce((s, x) => s + dayHours(x, c), 0);
-      const beyond = Math.max(0, Math.min(b.hours, before + b.hours - Math.max(0, c.weekHours)));
-      ot = beyond; extra += beyond * rate * (c.overtimePct / 100) + (c.kind === 'monthly' ? beyond * rate : 0);
-    }
-    overtimeHours += ot; seen.add(d.date);
-    const gross = r2(b.base + extra);
+    const b = dayBase(d, c); const sp = split.get(d.date) ?? { ot: 0, pay: 0, bank: 0 };
+    let base = b.base; let extra = b.extra;
+    // le ore che vanno in banca non si pagano adesso (si recuperano con riposo); quelle pagate si maggiorano
+    if (c.kind === 'hourly') { base = r2(base - sp.bank * rate); extra += sp.pay * rate * (pct / 100); }
+    else extra += sp.pay * rate * (1 + pct / 100);
+    overtimeHours += sp.ot; paidOt += sp.pay; const bh = r2(sp.bank * (c.bankRatio || 1)); bankHours += bh;
+    const gross = r2(base + extra);
     const value = c.kind === 'hourly' ? gross : r2(b.hours * rate + extra);
-    days.push({ date: d.date, hours: b.hours, base: b.base, extra: r2(extra), gross, net: r2(gross * ratio), value, valueNet: r2(value * ratio), confirmed: d.confirmed, kind: d.kind });
+    days.push({ date: d.date, hours: b.hours, base, extra: r2(extra), gross, net: r2(gross * ratio), value, valueNet: r2(value * ratio), bankHours: bh, confirmed: d.confirmed, kind: d.kind });
   }
   const fixed = c.kind === 'monthly' ? Math.max(0, c.monthly ?? 0) : 0;
   const sum = (f: (d: DayPay) => number, only?: boolean) => days.filter((d) => only === undefined || d.confirmed === only).reduce((s, d) => s + f(d), 0);
   const confirmedGross = r2(sum((d) => d.gross, true) + fixed); const gross = r2(sum((d) => d.gross) + fixed);
   return {
-    month, days, hours: r2(sum((d) => d.hours)), confirmedHours: r2(sum((d) => d.hours, true)), overtimeHours: r2(overtimeHours),
+    month, days, hours: r2(sum((d) => d.hours)), confirmedHours: r2(sum((d) => d.hours, true)), overtimeHours: r2(overtimeHours), paidOvertimeHours: r2(paidOt), bankHours: r2(bankHours),
     confirmedGross, gross, confirmedNet: r2(confirmedGross * ratio), net: r2(gross * ratio), ratio, ratioFrom: from, fixed, pending: days.filter((d) => !d.confirmed && d.kind === 'work').length,
   };
 }
@@ -228,7 +299,7 @@ const txt = (v: unknown, max: number): string => (typeof v === 'string' ? v.repl
 const json = (text: string): Record<string, unknown> | null => { const m = text.match(/\{[\s\S]*\}/); if (!m) return null; try { const j = JSON.parse(m[0]) as unknown; return j && typeof j === 'object' ? (j as Record<string, unknown>) : null; } catch { return null; } };
 const timeOf = (v: unknown): string | undefined => { if (typeof v !== 'string') return undefined; const m = v.trim().match(/^(\d{1,2})[:.hH](\d{2})$/); if (!m) return undefined; const t = `${pad(Number(m[1]))}:${m[2]}`; return isTime(t) ? t : undefined; };
 
-export const CONTRACT_PROMPT = 'Questa è la foto o la scansione di un contratto di lavoro. Leggi le condizioni economiche e di orario e rispondi SOLO con un oggetto JSON, senza testo prima o dopo: {"tipo":"ore oppure fisso","paga_oraria_lorda":null,"stipendio_mensile_lordo":null,"ore_settimanali":null,"maggiorazione_straordinario_percento":null,"maggiorazione_notturno_percento":null,"maggiorazione_domenica_percento":null,"maggiorazione_festivo_percento":null,"ferie_giorni_anno":null,"pausa_non_pagata_minuti":null,"valuta":"EUR oppure CHF","inizio":"YYYY-MM-DD","datore":"nome dell\'azienda"}. Metti null per ciò che non trovi: non inventare nulla.';
+export const CONTRACT_PROMPT = 'Questa è la foto o la scansione di un contratto di lavoro. Leggi le condizioni economiche e di orario e rispondi SOLO con un oggetto JSON, senza testo prima o dopo: {"tipo":"ore oppure fisso","paga_oraria_lorda":null,"stipendio_mensile_lordo":null,"ore_settimanali":null,"maggiorazione_straordinario_percento":null,"maggiorazione_notturno_percento":null,"maggiorazione_domenica_percento":null,"maggiorazione_festivo_percento":null,"straordinari":"pagati oppure recuperati oppure misti","ferie_giorni_anno":null,"pausa_non_pagata_minuti":null,"valuta":"EUR oppure CHF","inizio":"YYYY-MM-DD","datore":"nome dell\'azienda"}. Metti null per ciò che non trovi: non inventare nulla.';
 export function parseContract(text: string): Partial<Contract> | null {
   const j = json(text); if (!j) return null;
   const out: Partial<Contract> = {};
@@ -236,6 +307,7 @@ export function parseContract(text: string): Partial<Contract> | null {
   if (hourly && (kind.startsWith('or') || !monthly)) { out.kind = 'hourly'; out.hourly = hourly; } else if (monthly) { out.kind = 'monthly'; out.monthly = monthly; }
   const wk = num(j.ore_settimanali); if (wk && wk > 0 && wk <= 60) out.weekHours = wk;
   for (const [key, to] of [['maggiorazione_straordinario_percento', 'overtimePct'], ['maggiorazione_notturno_percento', 'nightPct'], ['maggiorazione_domenica_percento', 'sundayPct'], ['maggiorazione_festivo_percento', 'holidayPct']] as const) { const v = num(j[key]); if (v != null && v <= 200) out[to] = v; }
+  const so = txt(j.straordinari, 20).toLowerCase(); if (so.startsWith('pag')) out.overtimeMode = 'paid'; else if (so.startsWith('rec')) out.overtimeMode = 'bank'; else if (so.startsWith('mis')) out.overtimeMode = 'mixed';
   const f = num(j.ferie_giorni_anno); if (f != null && f <= 60) out.vacationDays = f;
   const p = num(j.pausa_non_pagata_minuti); if (p != null && p <= 180) out.pauseMin = Math.round(p);
   const cur = txt(j.valuta, 5).toUpperCase(); if (cur === 'EUR' || cur === 'CHF') out.currency = cur;
@@ -254,7 +326,7 @@ export function parsePayslip(text: string): { month?: string; gross?: number; ne
   return { ...(month ? { month } : {}), ...(gross ? { gross } : {}), ...(net ? { net } : {}), ...(hours && hours < 400 ? { hours } : {}), ...(cur === 'EUR' || cur === 'CHF' ? { currency: cur } : {}) };
 }
 
-export const HOURS_PROMPT = 'Questa è la foto di un foglio ore, di un planning o di un turno di lavoro. Leggi TUTTE le righe e rispondi SOLO con un oggetto JSON, senza testo prima o dopo: {"giorni":[{"data":"YYYY-MM-DD","inizio":"HH:MM","fine":"HH:MM","pausa_minuti":null,"ore":null,"tipo":"lavoro oppure ferie oppure malattia oppure festivo oppure riposo"}]}. Se manca l\'anno usa quello indicato qui sotto. Se una riga ha solo le ore totali, metti "ore" e lascia inizio e fine vuoti. Non inventare righe.';
+export const HOURS_PROMPT = 'Questa è la foto di un foglio ore, di un planning o di un turno di lavoro. Leggi TUTTE le righe e rispondi SOLO con un oggetto JSON, senza testo prima o dopo: {"giorni":[{"data":"YYYY-MM-DD","inizio":"HH:MM","fine":"HH:MM","pausa_minuti":null,"ore":null,"tipo":"lavoro oppure ferie oppure malattia oppure festivo oppure recupero oppure riposo"}]}. Se manca l\'anno usa quello indicato qui sotto. Se una riga ha solo le ore totali, metti "ore" e lascia inizio e fine vuoti. Non inventare righe.';
 export type ReadDay = { date: string; kind: DayKind; start?: string; end?: string; pause?: number; hours: number };
 export function parseHours(text: string, today: string): ReadDay[] {
   const j = json(text); if (!j || !Array.isArray(j.giorni)) return [];
@@ -265,7 +337,7 @@ export function parseHours(text: string, today: string): ReadDay[] {
     if (/^\d{1,2}[/.-]\d{1,2}$/.test(date)) { const [d, m] = date.split(/[/.-]/).map(Number) as [number, number]; date = `${today.slice(0, 4)}-${pad(m)}-${pad(d)}`; }
     if (!validDay(date) || seen.has(date)) continue;
     const t = txt(o.tipo, 20).toLowerCase();
-    const kind: DayKind = t.startsWith('fer') ? 'vacation' : t.startsWith('mal') ? 'sick' : t.startsWith('fes') ? 'holiday' : t.startsWith('ris') ? 'off' : 'work';
+    const kind: DayKind = t.startsWith('fer') ? 'vacation' : t.startsWith('mal') ? 'sick' : t.startsWith('fes') ? 'holiday' : t.startsWith('rec') ? 'recovery' : t.startsWith('ris') ? 'off' : 'work';
     const start = timeOf(o.inizio), end = timeOf(o.fine); const pause = num(o.pausa_minuti); const h = num(o.ore);
     const hours = start && end ? hoursBetween(start, end, pause ?? 0) : h && h <= 24 ? h : 0;
     if (kind === 'work' && !hours) continue;
