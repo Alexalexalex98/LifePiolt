@@ -388,9 +388,9 @@ async function handle(path, b, env, lite = false) {
 }
 
 /** Conta una richiesta sul tuo account (con il tuo stesso token) e dice piano e se hai ancora messaggi "completi" oggi. Se non risponde, nessun blocco. */
-export async function usage(tok, env, fetcher = fetch) {
+export async function usage(tok, env, fetcher = fetch, doc = false) {
   try {
-    const r = await fetcher(`${env.SUPABASE_URL}/rest/v1/rpc/ai_take`, { method: 'POST', headers: { apikey: env.SUPABASE_KEY, authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: '{}' });
+    const r = await fetcher(`${env.SUPABASE_URL}/rest/v1/rpc/${doc ? 'ai_take_doc' : 'ai_take'}`, { method: 'POST', headers: { apikey: env.SUPABASE_KEY, authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: '{}' });
     if (!r.ok) return null;
     const u = await r.json();
     return u && typeof u.full === 'boolean' ? u : null;
@@ -420,9 +420,10 @@ export default {
       lite = true;
     } else {
       const tok = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
-      const u = user.id === 'prova' || path === '/translate' ? null : await usage(tok, env, fetcher);
+      const u = user.id === 'prova' || path === '/translate' ? null : await usage(tok, env, fetcher, path === '/vision');
       const plan = u?.plan ?? 'free';
       if (tooMany(user.id, Date.now(), RATE[plan] ?? 15)) return json({ error: 'troppe richieste: aspetta un minuto' }, 429);
+      if (u?.blocked && u.doc) return json({ error: 'Per oggi hai usato le letture gratuite di foto e documenti. Con Premium ne hai molte di più, oppure compili a mano: il resto dell\'app resta gratuito.', code: 'doc_cap' }, 429);
       if (u?.blocked) return json({ error: 'Per oggi Theia ha fatto il pieno di conversazioni: ci vediamo domani. Il resto dell\'app continua a funzionare.', code: 'daily_cap' }, 429);
       lite = u ? !u.full : false;
       info = { plan, lite, left: u ? Math.max(0, u.limit - u.used) : undefined, limit: u?.limit };

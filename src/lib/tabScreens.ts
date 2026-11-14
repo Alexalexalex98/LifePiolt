@@ -133,6 +133,7 @@ export const TAB_SCREENS: string[] = [
   'theiaPet',
   'trial',
   'userProfile',
+  'workgroup',
   'workspace',
   'vacationPlan',
   'vacationPlanner',

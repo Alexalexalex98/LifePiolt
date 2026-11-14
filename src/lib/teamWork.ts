@@ -88,7 +88,7 @@ export async function startWorkSync(): Promise<void> {
     const c = await db();
     for (const ch of channels) c.removeChannel(ch);
     channels = [];
-    for (const tm of useTeams.getState().teams) {
+    for (const tm of [...useTeams.getState().teams, ...useTeams.getState().groups]) {
       void loadHours(tm.id); await pullWork(tm.id);
       void import('@/lib/teamComms').then((m) => { void m.pullMessages(tm.id, 'general'); void m.pullMessages(tm.id, 'ann'); void m.pullAway(tm.id); });
       void import('@/lib/teamMeetings').then((m) => m.pullMeetings(tm.id));

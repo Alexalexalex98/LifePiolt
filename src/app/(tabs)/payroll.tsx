@@ -5,8 +5,9 @@ import { FinTabs } from '@/components/FinTabs';
 import { ContractTab } from '@/components/payroll/ContractTab';
 import { MonthTab } from '@/components/payroll/MonthTab';
 import { SlipsTab } from '@/components/payroll/SlipsTab';
-import { Body, Page, Pill, Row } from '@/components/ui';
+import { Body, Btn, Page, Pill, Row } from '@/components/ui';
 import { t as tl } from '@/i18n/core';
+import { go } from '@/lib/nav';
 
 type Tab = 'month' | 'slips' | 'contract';
 
@@ -24,6 +25,7 @@ export default function Payroll() {
         <Pill label={tl('Contratto')} on={tab === 'contract'} onPress={() => setTab('contract')} />
       </Row>
       {tab === 'month' ? <MonthTab today={today} onContract={() => setTab('contract')} /> : tab === 'slips' ? <SlipsTab today={today} /> : <ContractTab />}
+      <Btn ghost icon="users" title="Gruppo di lavoro: turni, ferie e scambi" onPress={() => go('workgroup')} />
       <Body small muted>{tl('I dati restano sul tuo telefono. Le foto vanno all\'AI solo con il tuo permesso. Le stime non sono una consulenza: contano le buste paga.')}</Body>
     </Page>
   );

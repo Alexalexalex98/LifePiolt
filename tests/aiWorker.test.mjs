@@ -80,6 +80,13 @@ test('tetto giornaliero: oltre il limite si risponde con un invito a tornare dom
   const big = await worker.fetch(req('/chat', { message: 'x'.repeat(6_100_000) }, 'free'), envWith(async () => ({ response: 'ok' })), undefined, async () => new Response('{}', { status: 404 }));
   assert.equal(big.status, 413);
 });
+test('foto e documenti: contatore separato e invito a Premium oltre il limite gratuito', async () => {
+  const calls = [];
+  const f = async (url) => { if (url.endsWith('/auth/v1/user')) return new Response(JSON.stringify({ id: 'ud' })); calls.push(url.split('/rpc/')[1]); return new Response(JSON.stringify({ plan: 'free', limit: 3, used: 3, full: true, blocked: true, doc: true })); };
+  const env = envWith(async () => ({ response: 'ok' }), { SUPABASE_URL: 'https://s.co', SUPABASE_KEY: 'k' });
+  const r = await worker.fetch(req('/vision', { image: 'x', mime: 'image/jpeg', prompt: 'p' }, 'free'), env, undefined, f);
+  assert.equal(r.status, 429); assert.equal((await r.json()).code, 'doc_cap'); assert.deepEqual(calls, ['ai_take_doc']);
+});
 test('se il conteggio non risponde non si blocca nessuno; il freno degli ospiti e\' stretto', async () => {
   assert.equal(await usage('t', { SUPABASE_URL: 'https://s.co', SUPABASE_KEY: 'k' }, async () => new Response('{}', { status: 404 })), null);
   let blocked = false; for (let i = 0; i < 14; i++) blocked = guestTooMany('ip', 5000) || blocked;

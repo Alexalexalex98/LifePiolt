@@ -22,7 +22,7 @@ export async function refreshTeams(): Promise<Res<TeamInfo[]>> {
   return run(async () => {
     if (await isDemo()) return useTeams.getState().teams;
     const list = (await (await supa()).rpc<TeamInfo[]>('team_list')) ?? [];
-    useTeams.getState().set({ teams: list, syncedAt: Date.now() });
+    useTeams.getState().set({ teams: list.filter((x) => x.kind !== 'group'), groups: list.filter((x) => x.kind === 'group'), syncedAt: Date.now() });
     const ids = new Set(list.map((x) => x.id));
     const ws = useWorkspace.getState();
     const gone = ws.pages.filter((p) => p.teamId && !ids.has(p.teamId));
