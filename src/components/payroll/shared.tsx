@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { Text } from '@/components/T';
 import { Body, Btn, Input, Sheet } from '@/components/ui';
@@ -39,7 +39,8 @@ export function Big({ label, value, color, sub }: { label: string; value: string
 
 /** Come aggiungere un documento: scansione, foto, galleria, file o a mano. Le foto vanno all'AI solo con il permesso. */
 export function CaptureSheet({ visible, title, onClose, onCaptured, onManual }: { visible: boolean; title: string; onClose: () => void; onCaptured: (c: Captured) => void; onManual?: () => void }) {
-  const go = (f: () => Promise<Captured | null>) => { onClose(); void f().then((c) => { if (c) onCaptured(c); }); };
+  // su iPhone il selettore (fotocamera, galleria, file) non si apre se parte mentre la finestra si sta ancora chiudendo: aspetto che sia sparita
+  const go = (f: () => Promise<Captured | null>) => { onClose(); setTimeout(() => { void f().then((c) => { if (c) onCaptured(c); }); }, Platform.OS === 'ios' ? 600 : 150); };
   return (
     <Sheet visible={visible} title={title} onClose={onClose}>
       <View style={{ gap: 8 }}>
