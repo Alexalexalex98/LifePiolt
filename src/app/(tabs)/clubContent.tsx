@@ -1,3 +1,4 @@
+import { useProtectedContent } from '@/hooks/use-protected-content';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
@@ -22,6 +23,7 @@ import { toast } from '@/store/toast';
 
 export default function ClubContent() {
   useClubSeed();
+  useProtectedContent('club-content');
   const { id = '', lesson = '', t: tParam, page: pageParam, para: paraParam } = useLocalSearchParams<{ id?: string; lesson?: string; t?: string; page?: string; para?: string }>();
   const club = useClub((s) => s.clubs[id]);
   const found = useMemo(() => findLesson(club, lesson), [club, lesson]);

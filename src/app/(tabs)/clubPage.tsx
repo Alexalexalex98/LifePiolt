@@ -50,6 +50,8 @@ export default function ClubPage() {
   const viewerUser = isOwner && preview !== 'me' ? '·anteprima·' : me;
   const viewer = useMemo(() => ({ user: viewerUser, owner: club?.owner ?? '', tier }), [viewerUser, club?.owner, tier]);
   const counts = club ? memberCounts({ memberships }, club) : null;
+  /** i contenuti del LifeClub sono privati: li vede solo chi è iscritto (free o Premium) e il creatore (nell'anteprima come visitatore, no) */
+  const members = isOwner ? preview !== 'none' : tier === 'free' || tier === 'premium';
   const rv = Object.values(ratings ?? {});
   const rr = qaRating(rv.map((r) => r.stars));
 
@@ -61,7 +63,7 @@ export default function ClubPage() {
     const a = accessOf(c, l);
     if (a.ok) return go('clubContent', { id: club.id, lesson: l.id });
     if (a.reason === 'premium') return setPremium(true);
-    toast('Segui o iscriviti gratis per aprire questa lezione');
+    toast('Il LifeClub è privato: iscriviti gratis per aprire questa lezione');
   };
 
   function unsubscribe() {
@@ -125,6 +127,14 @@ export default function ClubPage() {
         )}
       </Card>
 
+      {!members ? (
+        <Card accent={t.accent}>
+          <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="lock" size={18} color={t.text} /><H>LifeClub privato</H></Row>
+          <Body small muted style={{ marginTop: 6 }}>Lezioni, post, chat e domande li vedono solo gli iscritti: quelli del club free dopo l'iscrizione gratuita, quelli a pagamento con l'abbonamento Premium. Fuori dal club non si vede niente.</Body>
+          <Body small muted style={{ marginTop: 6 }}>{`${fmtInt(counts!.subscribers)} iscritti`}</Body>
+        </Card>
+      ) : (
+      <>
       <Seg options={[...TABS]} value={tab} onChange={(v) => setTab(v as (typeof TABS)[number])} />
 
       {tab === 'Free' && (
@@ -180,6 +190,8 @@ export default function ClubPage() {
 
       <PremiumSheet club={club} visible={premium} onClose={() => setPremium(false)} />
       <RateSheet visible={rate} onClose={() => setRate(false)} clubId={club.id} />
+      </>
+      )}
     </Page>
   );
 

@@ -24,6 +24,7 @@ export default function WorkGroup() {
   const [sheet, setSheet] = useState<'new' | 'join' | null>(null); const [name, setName] = useState(''); const [code, setCode] = useState(''); const [busy, setBusy] = useState(false);
   useEffect(() => { void serverState().then(setServer); void refreshTeams(); }, []);
   const group = groups.find((g) => g.id === (sel ?? groups[0]?.id));
+  useEffect(() => { if (group) void import('@/lib/push').then((m) => m.registerPush(true)); }, [group?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const data = useGroup(group?.id, today);
   const boss = group?.role !== 'member';
 

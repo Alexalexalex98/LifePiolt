@@ -1,0 +1,94 @@
+// Prova la migrazione 0038 (notifiche push mirate e promemoria mensile) su un Postgres in memoria; il servizio di invio è simulato.
+import { PGlite } from '@electric-sql/pglite';
+import { readFileSync } from 'node:fs';
+const M = new URL('../supabase/migrations/', import.meta.url).pathname;
+const db = new PGlite();
+const ok = (m) => console.log('  ok  ', m);
+const bad = (m, e) => { console.log('  FAIL', m, '-', String(e?.message ?? e).slice(0, 300)); process.exitCode = 1; };
+await db.exec(`
+create role anon; create role authenticated;
+create schema auth; create schema storage; create schema net; create schema cron;
+create table auth.users (id uuid primary key default gen_random_uuid(), email text, created_at timestamptz not null default now());
+create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint);
+create table storage.objects (bucket_id text, name text, owner uuid);
+create function storage.foldername(n text) returns text[] language sql as $$ select string_to_array(n, '/') $$;
+create publication supabase_realtime;
+create table public.profiles (user_id uuid primary key, nome text, cognome text);
+create table net.calls (id serial primary key, url text, body jsonb);
+create function net.http_post(url text, body jsonb default '{}', params jsonb default '{}', headers jsonb default '{"Content-Type": "application/json"}', timeout_milliseconds integer default 5000) returns bigint language plpgsql as $$ begin insert into net.calls (url, body) values (url, body); return 1; end $$;
+create table cron.jobs (name text, schedule text, command text);
+create function cron.schedule(n text, s text, c text) returns bigint language plpgsql as $$ begin insert into cron.jobs values (n, s, c); return 1; end $$;
+grant usage on schema public, auth to anon, authenticated;
+alter default privileges in schema public grant all on tables to anon, authenticated;
+alter default privileges in schema public grant all on functions to anon, authenticated;
+`);
+await db.exec(`create or replace function public.gen_random_bytes(n int) returns bytea language sql as $$ select decode(md5(random()::text), 'hex') $$;`);
+const load = async (f, fn) => { try { await db.exec(fn ? fn(readFileSync(M + f, 'utf8')) : readFileSync(M + f, 'utf8')); ok(f); } catch (e) { bad(f, e); } };
+await load('0014_team_drive.sql', (s) => s.replace(/create policy team_drive[\s\S]*?;\n/g, '').replace(/insert into storage\.buckets[\s\S]*?;\n/, ''));
+await load('0016_team_work_plan.sql'); await load('0019_team_messages.sql'); await load('0027_team_reschedule.sql'); await load('0032_work_group.sql');
+await load('0038_push.sql', (s) => s.replace(/create extension[^\n]*\n/g, ''));
+const U = { boss: '00000000-0000-0000-0000-0000000000b1', ann: '00000000-0000-0000-0000-0000000000a1', bob: '00000000-0000-0000-0000-0000000000b2' };
+for (const [k, id] of Object.entries(U)) await db.exec(`insert into auth.users (id, email) values ('${id}', '${k}@x.it'); insert into public.profiles (user_id, nome, cognome) values ('${id}', '${k}', 'Test');`);
+const as = async (u, sql, params) => { await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub', '${U[u]}', false);`); try { return await db.query(sql, params); } finally { await db.exec('reset role;'); } };
+const rows = (r) => r.rows;
+const t = async (name, f) => { try { await f(); ok(name); } catch (e) { bad(name, e); } };
+const eq = (a, b, m) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m ?? ''} atteso ${JSON.stringify(b)} ottenuto ${JSON.stringify(a)}`); };
+const rejects = async (p, re) => { try { await p; } catch (e) { if (re.test(String(e.message))) return; throw new Error('errore diverso: ' + e.message); } throw new Error('doveva fallire'); };
+const calls = async () => rows(await db.query(`select body from net.calls order by id`)).map((r) => r.body);
+const TA = 'ExponentPushToken[aaaaaaaaaaaaaaaaaaaaaa]', TB = 'ExponentPushToken[bbbbbbbbbbbbbbbbbbbbbb]';
+let team;
+await t('promemoria mensile pianificato il giorno 1', async () => { eq(rows(await db.query(`select name, schedule from cron.jobs`))[0], { name: 'group-month-remind', schedule: '0 8 1 * *' }); });
+await t('registrazione del telefono: formato valido, un telefono per volta, nessuna lettura diretta', async () => {
+  await rejects(as('ann', `select public.push_register('non-un-token', 'ios')`), /violates check/);
+  await as('ann', `select public.push_register($1, 'ios')`, [TA]); await as('ann', `select public.push_register($1, 'ios')`, [TA]);
+  eq(rows(await db.query(`select count(*)::int as n from public.push_tokens`))[0].n, 1, 'registrare due volte non duplica');
+  await as('bob', `select public.push_register($1, 'android')`, [TA]);
+  eq(rows(await db.query(`select user_id::text as u from public.push_tokens`)).map((r) => r.u), [U.bob], 'lo stesso telefono passa a bob');
+  await as('ann', `select public.push_register($1, 'ios')`, [TA]);
+  await rejects(as('ann', `select count(*) from public.push_tokens`), /permission denied/);
+  await as('ann', `select public.push_unregister($1)`, [TA]); eq(rows(await db.query(`select count(*)::int as n from public.push_tokens`))[0].n, 0);
+  await as('ann', `select public.push_register($1, 'ios')`, [TA]); await as('bob', `select public.push_register($1, 'android')`, [TB]);
+});
+await t('un turno assegnato avvisa solo il dipendente, con titolo, testo e destinazione', async () => {
+  team = rows(await as('boss', `select public.group_create('Bar Sole') as id`))[0].id;
+  await db.exec(`insert into public.team_members (team_id, user_id, role) values ('${team}', '${U.ann}', 'member'), ('${team}', '${U.bob}', 'member')`);
+  await db.exec(`delete from net.calls`);
+  await as('boss', `select public.group_shift_set($1, $2, '2026-12-07', '09:00', '17:00', 'Mattina')`, [team, U.ann]);
+  const c = await calls(); eq(c.length, 1); eq(c[0].length, 1, 'un solo telefono: quello di ann');
+  eq([c[0][0].to, c[0][0].title, c[0][0].channelId, c[0][0].data.kind, c[0][0].data.ref], [TA, 'Turno da confermare', 'work', 'shift_ask', 'group']);
+  eq(/07\/12/.test(c[0][0].body) && /09:00/.test(c[0][0].body), true);
+});
+await t('la risposta del dipendente avvisa il datore (che non ha telefono registrato: nessun invio)', async () => {
+  await db.exec(`delete from net.calls`);
+  const sid = rows(await db.query(`select id from public.group_shifts limit 1`))[0].id;
+  await as('ann', `select public.group_shift_answer($1, true)`, [sid]);
+  eq((await calls()).length, 0);
+  await as('boss', `select public.push_register('ExponentPushToken[cccccccccccccccccccccc]', 'ios')`);
+  await as('boss', `select public.group_shift_set($1, $2, '2026-12-08', '09:00', '13:00', 'Cassa')`, [team, U.ann]);
+  await db.exec(`delete from net.calls`);
+  const s2 = rows(await db.query(`select id from public.group_shifts where day = '2026-12-08'`))[0].id;
+  await as('ann', `select public.group_shift_answer($1, false)`, [s2]);
+  const c = await calls(); eq(c.length, 1); eq([c[0][0].to, c[0][0].data.kind], ['ExponentPushToken[cccccccccccccccccccccc]', 'shift_no']);
+});
+await t('turno scoperto: la notifica arriva ai disponibili, non agli altri', async () => {
+  await db.exec(`delete from net.calls`);
+  await as('bob', `select public.group_cover_set($1, true, '')`, [team]);
+  await as('boss', `select public.group_cover_ask($1, '2026-12-14', '12:00', '16:00', 'Pranzo')`, [team]);
+  const c = await calls(); eq(c.length, 1); eq([c[0][0].to, c[0][0].title, c[0][0].data.kind], [TB, 'Turno da coprire', 'cover_ask']);
+});
+await t('promemoria mensile: solo a chi ha turni confermati nel mese scorso e non ha confermato; una volta sola', async () => {
+  await db.exec(`insert into public.group_shifts (id, team_id, user_id, day, start_t, end_t, label, status) values ('m1', '${team}', '${U.bob}', (date_trunc('month', now()) - interval '10 days')::date, '09:00', '17:00', 'Mese', 'confirmed')`);
+  await db.exec(`delete from net.calls`);
+  eq(rows(await db.query(`select public.group_month_remind() as n`))[0].n, 1);
+  const c = await calls(); eq(c.length, 1); eq([c[0][0].to, c[0][0].data.kind, /^Conferma le ore di/.test(c[0][0].title)], [TB, 'month_ask', true]);
+  eq(rows(await db.query(`select public.group_month_remind() as n`))[0].n, 0, 'non si ripete');
+  await rejects(as('bob', `select public.group_month_remind()`), /permission denied/);
+});
+await t('se l\'invio fallisce, la notifica nasce lo stesso', async () => {
+  await db.exec(`create or replace function net.http_post(url text, body jsonb default '{}', params jsonb default '{}', headers jsonb default '{}', timeout_milliseconds integer default 5000) returns bigint language plpgsql as $$ begin raise exception 'rete giù'; end $$;`);
+  await as('boss', `select public.group_shift_set($1, $2, '2026-12-20', '09:00', '13:00', 'Prova')`, [team, U.ann]);
+  eq(rows(await db.query(`select count(*)::int as n from public.team_notifications where title = 'Turno da confermare'`))[0].n >= 2, true);
+});
+console.log(process.exitCode ? 'CON ERRORI' : 'TUTTO OK');
+await db.close();

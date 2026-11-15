@@ -1,3 +1,4 @@
+import { Watermark } from '@/components/Watermark';
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
@@ -97,7 +98,7 @@ export function DocStage({ lesson, page, setPage, para, setPara, counts, onAsk }
   return (
     <View>
       {isImage
-        ? <Image source={{ uri: lesson.uri }} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 14, backgroundColor: t.item }} contentFit="contain" onError={() => setImgErr(true)} accessibilityLabel={lesson.title} />
+        ? <View style={{ borderRadius: 14, overflow: 'hidden' }}><Image source={{ uri: lesson.uri }} style={{ width: '100%', aspectRatio: 4 / 3, backgroundColor: t.item }} contentFit="contain" onError={() => setImgErr(true)} accessibilityLabel={lesson.title} /><Watermark /></View>
         : (
           <View style={{ padding: 18, borderRadius: 14, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, alignItems: 'center', gap: 8 }}>
             <Icon name="paperclip" size={30} color={t.text} />

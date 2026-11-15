@@ -107,6 +107,7 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
     void autoSyncIfConnected();
     startDmSync(); // chat con gli amici veri (solo se sei collegato)
+    void import('@/lib/push').then((m) => m.registerPush()); // notifiche mirate dal server (solo con account, permesso già dato e app installata)
     startSocialSync(); // post pubblicati: gli stessi su iPhone e Android (solo se il server è collegato)
     startSync(); // sincronizzazione local-first: parte solo se l'utente l'ha abilitata, dopo un ritardo e senza bloccare
     void refreshWeather();

@@ -10,10 +10,12 @@ test('accesso ai contenuti per livello', () => {
   const free = { tier: 'free', preview: false }, prem = { tier: 'premium', preview: false }, prev = { tier: 'premium', preview: true };
   assert.equal(C.lessonAccess(viewer('none'), course(), free).ok, false);
   assert.equal(C.lessonAccess(viewer('none'), course(), free).reason, 'iscriviti');
-  assert.equal(C.lessonAccess(viewer('follower'), course(), free).ok, true);
+  assert.equal(C.lessonAccess(viewer('follower'), course(), free).ok, false, 'club privato: chi segue soltanto non entra');
+  assert.equal(C.lessonAccess(viewer('free'), course(), free).ok, true);
   assert.equal(C.lessonAccess(viewer('free'), course(), prem).reason, 'premium');
   assert.equal(C.lessonAccess(viewer('premium'), course(), prem).ok, true);
-  assert.equal(C.lessonAccess(viewer('none'), course(), prev).ok, true, 'anteprima gratuita');
+  assert.equal(C.lessonAccess(viewer('none'), course(), prev).ok, false, 'nemmeno le anteprime fuori dal club');
+  assert.equal(C.lessonAccess(viewer('free'), course(), prev).ok, true);
   assert.equal(C.lessonAccess(viewer('premium'), course(false), free).reason, 'bozza');
   assert.equal(C.lessonAccess(viewer('none', 'Laura'), course(false), prem).ok, true, 'il creatore vede tutto');
   assert.equal(C.postVisible(viewer('free'), { tier: 'premium' }), false);

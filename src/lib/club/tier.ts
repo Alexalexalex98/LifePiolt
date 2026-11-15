@@ -22,15 +22,15 @@ export type Access = { ok: boolean; reason?: 'iscriviti' | 'premium' | 'bozza' }
  * Accesso a una lezione:
  *  - il creatore vede tutto (anche le bozze);
  *  - le bozze non sono visibili ad altri;
- *  - anteprima gratuita: chiunque (anche senza iscrizione);
- *  - tier free: serve almeno 'follower'? No: i contenuti free sono per chiunque segua o si iscriva (follower/free/premium);
+ *  - il LifeClub è PRIVATO, anche quello free: chi non è iscritto non vede niente, nemmeno le anteprime; chi segue soltanto non basta;
+ *  - tier free: serve l'iscrizione (free o Premium);
  *  - tier premium: solo abbonati premium (periodo pagato o prova attiva).
  */
 export function lessonAccess(v: Viewer, course: Pick<Course, 'published'>, lesson: Pick<Lesson, 'tier' | 'preview'>): Access {
   if (v.user === v.owner) return { ok: true };
   if (!course.published) return { ok: false, reason: 'bozza' };
-  if (lesson.preview) return { ok: true };
-  if (lesson.tier === 'free') return v.tier === 'none' ? { ok: false, reason: 'iscriviti' } : { ok: true };
+  const member = v.tier === 'free' || v.tier === 'premium';
+  if (lesson.preview || lesson.tier === 'free') return member ? { ok: true } : { ok: false, reason: 'iscriviti' };
   return v.tier === 'premium' ? { ok: true } : { ok: false, reason: 'premium' };
 }
 
@@ -59,5 +59,5 @@ export const daysLeft = (until: number | undefined, now = Date.now()) => (until 
 /** Post visibile al viewer (i post premium solo agli abbonati; il creatore vede tutto). */
 export function postVisible(v: Viewer, p: { tier: 'free' | 'premium' }): boolean {
   if (v.user === v.owner) return true;
-  return p.tier === 'free' ? true : v.tier === 'premium';
+  return p.tier === 'free' ? v.tier === 'free' || v.tier === 'premium' : v.tier === 'premium';
 }

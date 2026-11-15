@@ -91,6 +91,7 @@ export function restoreAccount(email: string, p: { firstName: string; lastName: 
 }
 
 export async function signOutAccount(): Promise<void> {
+  try { await (await import('@/lib/push')).unregisterPush(); } catch { /* ignore */ }
   try { if ((await backend()) === 'server') await getTransport().auth.signOut?.(); } catch { /* ignore */ }
   stopDmSync();
   useAccount.getState().clear();

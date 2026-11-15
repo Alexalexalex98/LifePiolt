@@ -6,6 +6,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/T';
 
 import { Press } from '@/components/ui';
+import { Watermark } from '@/components/Watermark';
 import { useTheme } from '@/hooks/use-theme';
 import { fmtClock, type Lesson } from '@/lib/club';
 import { Icon } from '@/lib/icons';
@@ -132,6 +133,7 @@ function Shell({ pb, visual, markers, overlay, audio, sim, title }: { pb: PB; vi
         )}
         {!!pb.error && <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000a' }}><Text style={{ color: '#fff' }}>{pb.error}</Text></View>}
         {overlay}
+        <Watermark />
         {visual && !pb.playing && (
           <Pressable onPress={pb.toggle} accessibilityRole="button" accessibilityLabel="Riproduci" style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}>
             <View style={{ width: 58, height: 58, borderRadius: 29, backgroundColor: '#000a', alignItems: 'center', justifyContent: 'center' }}><Icon name="play" size={26} color="#fff" fill="#fff" /></View>

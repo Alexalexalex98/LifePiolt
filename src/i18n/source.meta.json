@@ -1,5 +1,5 @@
 {
- "count": 19958,
+ "count": 19962,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/agenda.tsx": 1,
@@ -17,7 +17,7 @@
   "src/app/(tabs)/chatSettings.tsx": 24,
   "src/app/(tabs)/checkRequest.tsx": 22,
   "src/app/(tabs)/clubContent.tsx": 27,
-  "src/app/(tabs)/clubPage.tsx": 66,
+  "src/app/(tabs)/clubPage.tsx": 69,
   "src/app/(tabs)/clubStudio.tsx": 128,
   "src/app/(tabs)/communityProfile.tsx": 24,
   "src/app/(tabs)/conversationPage.tsx": 62,
@@ -435,6 +435,7 @@
   "src/domain/operation.ts": 1,
   "src/domain/operations.ts": 10,
   "src/hooks/use-dictation.ts": 4,
+  "src/hooks/use-protected-content.ts": 1,
   "src/lib/a11y.ts": 1,
   "src/lib/accountApi.ts": 13,
   "src/lib/accountCore.ts": 13,
@@ -847,5 +848,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2513
+ "withPlaceholders": 2514
 }
