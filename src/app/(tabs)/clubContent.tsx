@@ -3,6 +3,7 @@ import { useProtectedContent } from '@/hooks/use-protected-content';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
+import { SocialGate } from '@/components/people/SocialGate';
 import { Text } from '@/components/T';
 
 import { DocStage } from '@/components/club/DocStage';
@@ -22,7 +23,7 @@ import { mkey, pkey, useClub } from '@/store/club';
 import { findLesson, joinFreeClub } from '@/store/clubFlow';
 import { toast } from '@/store/toast';
 
-export default function ClubContent() {
+function ClubContentInner() {
   useClubSeed();
   useProtectedContent('club-content');
   const { id = '', lesson = '', t: tParam, page: pageParam, para: paraParam } = useLocalSearchParams<{ id?: string; lesson?: string; t?: string; page?: string; para?: string }>();
@@ -169,3 +170,5 @@ function Bubble({ c, onPress }: { c: ClubComment; onPress: () => void }) {
     </Text>
   );
 }
+
+export default function ClubContent() { return <SocialGate id="clubContent" title="LifeClub"><ClubContentInner /></SocialGate>; }

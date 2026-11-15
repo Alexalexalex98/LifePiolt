@@ -78,6 +78,14 @@ export function peopleError(e: unknown): string {
   if (/voto_a_se_stessi/.test(m)) return 'Non puoi votare te stesso.';
   if (/troppi_voti/.test(m)) return 'Hai dato molti voti oggi: riprova domani.';
   if (/profilo_pubblico_mancante/.test(m)) return 'Prima completa il tuo profilo con nome e cognome.';
+  if (/social_eta_minima/.test(m)) return 'La parte social è disponibile dai 16 anni. Il resto dell\'app lo puoi usare già da ora.';
+  if (/social_sospeso/.test(m)) return 'Il social è sospeso per il tuo account: se pensi sia un errore, scrivici dal centro assistenza.';
+  if (/regole_non_accettate/.test(m)) return 'Per pubblicare il LifeClub devi prima accettare le regole.';
+  if (/club_adulti_solo_maggiorenni/.test(m)) return 'I LifeClub per adulti possono essere creati solo da chi ha almeno 18 anni.';
+  if (/silenziato/.test(m)) return 'Il creatore ti ha silenziato in questo LifeClub.';
+  if (/troppi_commenti/.test(m)) return 'Hai scritto molti commenti: riprova tra un po\'.';
+  if (/non_autorizzato|non_trovato/.test(m)) return 'Questo contenuto non è disponibile per te.';
+  if (/club_troppo_grande|troppi_corsi|troppe_lezioni/.test(m)) return 'Il LifeClub è troppo grande per essere pubblicato: togli qualcosa e riprova.';
   return 'Non sono riuscita a farlo: controlla la connessione e riprova.';
 }
 

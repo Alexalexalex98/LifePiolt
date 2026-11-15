@@ -1,6 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
+import { pushClub } from '@/social/clubSync';
+import { SocialGate } from '@/components/people/SocialGate';
 import { Text } from '@/components/T';
 
 import { dayLong, money } from '@/components/club/format';
@@ -27,7 +29,7 @@ const COVERS: [string, string][] = [['#ff9966', '#ff5e62'], ['#36d1dc', '#5b86e5
 const LEVELS: Level[] = ['base', 'intermedio', 'avanzato'];
 const LEVEL_L: Record<Level, string> = { base: 'Base', intermedio: 'Intermedio', avanzato: 'Avanzato' };
 
-export default function ClubStudio() {
+function ClubStudioInner() {
   useClubSeed();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const me = useApp((s) => s.account.name);
@@ -95,7 +97,7 @@ function Studio({ club }: { club: Club }) {
         </Row>
         <Row style={{ marginTop: 12 }}>
           <View style={{ flex: 1 }}><Text style={{ color: t.text, fontWeight: '700' }}>{club.published ? 'Pubblicato' : 'Bozza'}</Text><Body small muted>{club.published ? 'Visibile a chi ti segue.' : 'Solo tu lo vedi finché non lo pubblichi.'}</Body></View>
-          <Switch value={club.published} onValueChange={(v) => { if (v) { const c = canPublish(club.rulesAccepted); if (!c.ok) { toast(c.why ?? 'Accetta le regole'); setRulesOpen(true); return; } } st().patchClub(club.id, { published: v }); if (v) ensureChat(club); toast(v ? 'LifeClub pubblicato' : 'Tornato in bozza'); }} accessibilityLabel="Pubblicato" />
+          <Switch value={club.published} onValueChange={(v) => { if (v) { const c = canPublish(club.rulesAccepted); if (!c.ok) { toast(c.why ?? 'Accetta le regole'); setRulesOpen(true); return; } } st().patchClub(club.id, { published: v }); if (v) ensureChat(club); toast(v ? 'LifeClub pubblicato' : 'Tornato in bozza'); if (v) void pushClub(club.id).then((r) => { if (!r.ok && r.message) toast(r.message); }); }} accessibilityLabel="Pubblicato" />
         </Row>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={8}>
           <Btn small icon="eye" title="Vedi come lo vede un iscritto" onPress={() => go('clubPage', { id: club.id })} />
@@ -400,3 +402,5 @@ function MembersTab({ club }: { club: Club }) {
     </View>
   );
 }
+
+export default function ClubStudio() { return <SocialGate id="clubStudio" title="Studio LifeClub"><ClubStudioInner /></SocialGate>; }

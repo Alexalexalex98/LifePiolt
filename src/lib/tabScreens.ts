@@ -1,6 +1,7 @@
 /* ogni pagina in src/app/(tabs) va elencata qui: da Expo Router 58 il navigatore mostra solo le schermate dichiarate (test: tests/tabScreens.test.mjs) */
 export const TAB_SCREENS: string[] = [
   'activity',
+  'adminReports',
   'agenda',
   'ai',
   'aiSettings',

@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { ProfilePreview } from '@/components/people/ProfilePreview';
 import { QrScanner } from '@/components/QrScanner';
+import { SocialGate } from '@/components/people/SocialGate';
 import { Text } from '@/components/T';
 import { Body, Btn, Card, Empty, H, Input, Item, Page, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -10,12 +11,13 @@ import { t as tl } from '@/i18n/core';
 import { go } from '@/lib/nav';
 import { initials, parseQr, queryKind, type Card as PCard } from '@/lib/people';
 import { answerFollow, followRequests, personByCode, searchPeople } from '@/lib/peopleApi';
+import { useSocialStatus } from '@/social/socialAccess';
 import { serverState, type ServerState } from '@/lib/teams';
 import { toast } from '@/store/toast';
 
 /** Trova persone: per nome e cognome, @nome utente, codice o QR. Chi ha il profilo privato si trova solo con il codice o il QR. */
-export default function People() {
-  const th = useTheme(); const [text, setText] = useState(''); const [list, setList] = useState<PCard[] | null>(null); const [busy, setBusy] = useState(false);
+function PeopleInner() {
+  const th = useTheme(); const admin = useSocialStatus().admin; const [text, setText] = useState(''); const [list, setList] = useState<PCard[] | null>(null); const [busy, setBusy] = useState(false);
   const [scan, setScan] = useState(false); const [card, setCard] = useState<PCard | null>(null); const [reqs, setReqs] = useState<PCard[]>([]); const [server, setServer] = useState<ServerState | null>(null);
   const loadReqs = async () => { const r = await followRequests(); if (r.ok) setReqs(r.data); };
   useEffect(() => { void serverState().then((s) => { setServer(s); if (s === 'ok') void loadReqs(); }); }, []);
@@ -48,7 +50,7 @@ export default function People() {
             <Row gap={8} style={{ justifyContent: 'flex-start', marginTop: 10, flexWrap: 'wrap' }}>
               <Btn icon="search" disabled={busy} title={busy ? 'Cerco…' : 'Cerca'} onPress={() => { void search(); }} />
               <Btn ghost icon="camera" title="Scansiona un QR" onPress={() => setScan(true)} />
-              <Btn ghost title="Il mio codice" onPress={() => go('myCode')} />
+              <Btn ghost title="Il mio codice" onPress={() => go('myCode')} />{admin ? <Btn ghost title="Segnalazioni" onPress={() => go('adminReports')} /> : null}
             </Row>
           </Card>
           {reqs.length ? (
@@ -82,3 +84,5 @@ export default function People() {
     </Page>
   );
 }
+
+export default function People() { return <SocialGate id="people" title="Persone"><PeopleInner /></SocialGate>; }

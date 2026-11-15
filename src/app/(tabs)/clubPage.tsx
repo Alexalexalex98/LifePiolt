@@ -4,6 +4,8 @@ import { useNet } from '@/store/network';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
+import { refreshClub } from '@/social/clubSync';
+import { SocialGate } from '@/components/people/SocialGate';
 import { Text } from '@/components/T';
 
 import { ClubChatPreview } from '@/components/club/ChatPreview';
@@ -31,7 +33,7 @@ import { toast } from '@/store/toast';
 const TABS = ['Free', 'Premium', 'Chat'] as const;
 type Preview = 'me' | 'none' | 'free' | 'premium';
 
-export default function ClubPage() {
+function ClubPageInner() {
   const t = useTheme();
   useClubSeed();
   const { id = '', tab: tabParam } = useLocalSearchParams<{ id?: string; tab?: string }>();
@@ -46,6 +48,7 @@ export default function ClubPage() {
   const [preview, setPreview] = useState<Preview>('me');
   const [year] = useState(() => new Date().getFullYear());
   const birthYear = useNet((x) => x.identity.birthYear); const adultAck = useClub((x) => x.adultAck);
+  useEffect(() => { if (club?.remote) void refreshClub(club.id); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [club?.id]);
   useEffect(() => { if (club && memberships[mkey(club.id, me)]) ensureChat(club); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [club?.id]);
 
   const m = club ? memberships[mkey(club.id, me)] : undefined;
@@ -276,3 +279,5 @@ function RateSheet({ visible, onClose, clubId }: { visible: boolean; onClose: ()
     </Sheet>
   );
 }
+
+export default function ClubPage() { return <SocialGate id="clubPage" title="LifeClub"><ClubPageInner /></SocialGate>; }

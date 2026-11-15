@@ -8,6 +8,7 @@ import { registerDomainHandlers } from '@/domain/handlers';
 import { defineBackgroundTask, onAppStart, onForeground } from '@/lib/background';
 import { startLogStorage } from '@/lib/logStorage';
 import { autoSyncIfConnected } from '@/lib/healthkit';
+import { startClubSync } from '@/social/clubSync';
 import { startSocialSync } from '@/social/socialSync';
 import { startDmSync } from '@/social/dmSync';
 import { resyncCalendars } from '@/lib/calendarImport';
@@ -108,7 +109,7 @@ export default function RootLayout() {
     void autoSyncIfConnected();
     startDmSync(); // chat con gli amici veri (solo se sei collegato)
     void import('@/lib/push').then((m) => m.registerPush()); // notifiche mirate dal server (solo con account, permesso già dato e app installata)
-    startSocialSync(); // post pubblicati: gli stessi su iPhone e Android (solo se il server è collegato)
+    startClubSync(); startSocialSync(); // post pubblicati: gli stessi su iPhone e Android (solo se il server è collegato)
     startSync(); // sincronizzazione local-first: parte solo se l'utente l'ha abilitata, dopo un ritardo e senza bloccare
     void refreshWeather();
     void refreshBriefings();

@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { SocialGate } from '@/components/people/SocialGate';
 import { Text } from '@/components/T';
 
 import { CoverArt } from '@/components/club/parts';
@@ -12,7 +13,7 @@ import { clubsOf, memberCounts, tierOf, useClub } from '@/store/club';
 const TIER: Record<string, string> = { free: 'Iscritto', premium: 'Premium', follower: 'Segui', none: '' };
 
 /** I tuoi LifeClub: quelli che gestisci, quelli a cui sei iscritto e quelli da scoprire. */
-export default function MyClubs() {
+function MyClubsInner() {
   const t = useTheme();
   useClubSeed();
   const me = useApp((s) => s.account.name);
@@ -52,3 +53,5 @@ export default function MyClubs() {
     </Page>
   );
 }
+
+export default function MyClubs() { return <SocialGate id="myClubs" title="I tuoi LifeClub"><MyClubsInner /></SocialGate>; }

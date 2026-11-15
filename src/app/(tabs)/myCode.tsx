@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { QrCode } from '@/components/bills/QrCode';
 import { AudienceSelect } from '@/components/people/AudienceSelect';
+import { SocialGate } from '@/components/people/SocialGate';
 import { Text } from '@/components/T';
 import { Body, Btn, Card, H, Input, Page, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -16,7 +17,7 @@ import { usePrefs } from '@/store/prefs';
 import { toast } from '@/store/toast';
 
 /** Il mio codice: QR e codice univoci (fissi), nome utente facoltativo e privacy del profilo. Nome e cognome ci sono sempre; i dati personali (via, età, email) non si vedono mai. */
-export default function MyCode() {
+function MyCodeInner() {
   const th = useTheme(); const [me, setMe] = useState<Me | null>(null); const [server, setServer] = useState<ServerState | null>(null); const [user, setUser] = useState(''); const [busy, setBusy] = useState(false); const [now] = useState(() => Date.now());
   const audience = usePrefs((s) => s.postAudience); const setAudience = usePrefs((s) => s.setPostAudience);
   const load = async () => { const r = await myProfile(); if (r.ok) { setMe(r.data); setUser(r.data.username ?? ''); } else toast(r.message); };
@@ -73,3 +74,5 @@ export default function MyCode() {
     </Page>
   );
 }
+
+export default function MyCode() { return <SocialGate id="myCode" title="Il tuo codice"><MyCodeInner /></SocialGate>; }

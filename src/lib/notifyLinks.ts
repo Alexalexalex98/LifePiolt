@@ -22,18 +22,19 @@
  *   clubcontent:<clubId>:<lezione>[:<secondi>]   lettore della lezione, al minuto indicato
  *   call:<chatId>:<messaggio>          stanza della call di gruppo
  *   group[:<teamId>]                   Gruppo di lavoro (turni, scambi, ferie, conferma del mese)
+ *   admin                              segnalazioni da rivedere (solo chi amministra)
  *   reminder  system
  */
 
 export type RefKind =
   | 'post' | 'comment' | 'like' | 'follow' | 'mention' | 'reply' | 'idea' | 'community' | 'chat'
-  | 'seminar' | 'service' | 'booking' | 'job' | 'points' | 'event' | 'bill' | 'reminder' | 'system' | 'club' | 'clubcontent' | 'call' | 'request' | 'group';
+  | 'seminar' | 'service' | 'booking' | 'job' | 'points' | 'event' | 'bill' | 'reminder' | 'system' | 'club' | 'clubcontent' | 'call' | 'request' | 'group' | 'admin';
 
 /** [minimo, massimo] di argomenti per tipo. */
 const ARITY: Record<RefKind, [number, number]> = {
   post: [1, 1], comment: [2, 2], like: [1, 3], follow: [1, 1], mention: [2, 2], reply: [2, 2],
   idea: [1, 1], community: [1, 1], chat: [1, 2], seminar: [1, 1], service: [1, 1], booking: [1, 1], job: [1, 1],
-  points: [1, 1], event: [2, 2], bill: [1, 1], reminder: [0, 1], system: [0, 1], club: [1, 1], clubcontent: [2, 3], call: [2, 2], request: [1, 1], group: [0, 1],
+  points: [1, 1], event: [2, 2], bill: [1, 1], reminder: [0, 1], system: [0, 1], club: [1, 1], clubcontent: [2, 3], call: [2, 2], request: [1, 1], group: [0, 1], admin: [0, 0],
 };
 export const REF_KINDS = Object.keys(ARITY) as RefKind[];
 
@@ -129,6 +130,7 @@ export function routeFor(ref: string | null | undefined): Route {
     case 'call': return ok('groupCall', { chat: a[0], mid: a[1] });
     case 'reminder': return a[0] === 'note' ? ok('reminders', {}) : a[0] === 'food' ? ok('ai', { ask: 'Com\'è andata oggi con il cibo?' }) : a[0] === 'water' ? ok('ai', { ask: 'Quanta acqua ho bevuto oggi?' }) : a[0] === 'radar' ? ok('index', {}) : ok('plan', {});
     case 'group': return ok('workgroup', {});
+    case 'admin': return ok('adminReports', {});
     case 'system': return ok('notificationsPage', {});
   }
 }

@@ -45,7 +45,7 @@ export function PremiumSheet({ club, visible, onClose }: { club: Club; visible: 
         <Text style={{ color: t.text, fontSize: 22, fontWeight: '800' }}>{p.trialDays > 0 ? money(0, p.currency) : money(price, p.currency)}</Text>
         {p.trialDays > 0 ? <Body small muted>{`Poi ${money(price, p.currency)} ${eff === 'annuale' ? 'all\'anno' : 'al mese'} dopo ${p.trialDays} giorni`}</Body> : null}
       </View>
-      <Btn title={p.trialDays > 0 ? 'Inizia la prova (demo)' : 'Conferma Premium (demo)'} onPress={() => { joinPremiumClub(club, eff); onClose(); }} />
+      {club.remote ? <Body small muted>I pagamenti non sono ancora attivi: appena lo saranno potrai abbonarti da qui. Intanto puoi iscriverti gratis e il creatore può darti l'accesso Premium.</Body> : <Btn title={p.trialDays > 0 ? 'Inizia la prova (demo)' : 'Conferma Premium (demo)'} onPress={() => { joinPremiumClub(club, eff); onClose(); }} />}
       <Body small muted style={{ marginTop: 8 }}>Per legge, i contenuti digitali a pagamento prevedono informazioni chiare su prezzo, rinnovo e diritto di recesso: col server saranno mostrate anche IVA e condizioni complete.</Body>
     </Sheet>
   );

@@ -21,6 +21,10 @@ export type Lesson = {
   preview: boolean;
   /** file salvato nella memoria dell'app (nessun upload) */
   uri?: string;
+  /** percorso del file nell'archivio privato del server (solo se il club è online) */
+  mediaPath?: string;
+  /** lezione Premium che non puoi ancora aprire (arriva dal server solo come titolo) */
+  locked?: boolean;
   fileName?: string;
   size?: number;
   mime?: string;
@@ -81,6 +85,8 @@ export type Club = {
   published: boolean;
   /** contenuti per adulti (18+): chi entra conferma di essere maggiorenne; non compare in ricerche e consigli */
   adult?: boolean;
+  /** il club vive sul server: arriva da lì (o ci viene inviato dal creatore) */
+  remote?: boolean;
   /** regole del LifeClub accettate dal creatore (versione e data) */
   rulesAccepted?: { version: number; at: number };
   pricing: Pricing;
