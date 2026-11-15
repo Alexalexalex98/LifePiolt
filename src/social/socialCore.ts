@@ -5,11 +5,11 @@
 export type RemotePost = {
   id: string; author_id: string; author_name: string; body: string; media: 'photo' | 'video' | null; media_url: string | null; media_urls: string[] | null;
   poster_url: string | null; tag: string | null; fx: unknown; caption_mode: 'photo' | 'below' | null; comments_off: boolean; hide_likes: boolean;
-  likes_count: number; comments_count: number; created_at: string; edited_at: string | null;
+  likes_count: number; comments_count: number; created_at: string; edited_at: string | null; audience?: 'public' | 'followers';
 };
 export type LocalPostLike = {
   id: number; remoteId?: string; author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; poster?: string; uris?: string[];
-  captionMode?: 'photo' | 'below'; fx?: unknown; commentsOff?: boolean; hideLikes?: boolean; editedAt?: number;
+  captionMode?: 'photo' | 'below'; fx?: unknown; commentsOff?: boolean; hideLikes?: boolean; editedAt?: number; authorId?: string; visibility?: 'public' | 'followers';
 };
 
 /** Numero stabile (negativo, per non scontrarsi con gli id locali) ricavato dall'id del server: serve come chiave nelle liste. */
@@ -23,7 +23,7 @@ const isRemoteUrl = (u?: string | null): u is string => !!u && /^https?:\/\//.te
 export function toLocalPost(r: RemotePost): LocalPostLike {
   const urls = (r.media_urls ?? []).filter(isRemoteUrl);
   return {
-    id: hashId(r.id), remoteId: r.id, author: r.author_name, text: r.body, media: r.media ?? null, likes: r.likes_count, ts: Date.parse(r.created_at),
+    id: hashId(r.id), remoteId: r.id, authorId: r.author_id, ...(r.audience && r.audience !== 'public' ? { visibility: r.audience } : {}), author: r.author_name, text: r.body, media: r.media ?? null, likes: r.likes_count, ts: Date.parse(r.created_at),
     ...(r.tag ? { tag: r.tag } : {}), ...(isRemoteUrl(r.media_url) ? { uri: r.media_url } : {}), ...(isRemoteUrl(r.poster_url) ? { poster: r.poster_url } : {}),
     ...(urls.length > 1 ? { uris: urls } : {}), ...(r.caption_mode ? { captionMode: r.caption_mode } : {}), ...(r.fx ? { fx: r.fx } : {}),
     ...(r.comments_off ? { commentsOff: true } : {}), ...(r.hide_likes ? { hideLikes: true } : {}), ...(r.edited_at ? { editedAt: Date.parse(r.edited_at) } : {}),
@@ -35,7 +35,7 @@ export function toInsertRow(p: LocalPostLike, authorId: string, urls: { media?: 
   return {
     author_id: authorId, author_name: p.author, body: p.text, media: p.media, media_url: urls.media ?? (isRemoteUrl(p.uri) ? p.uri : null),
     media_urls: urls.list ?? (p.uris ?? []).filter(isRemoteUrl), poster_url: urls.poster ?? (isRemoteUrl(p.poster) ? p.poster : null), tag: p.tag ?? null,
-    fx: p.fx ?? null, caption_mode: p.captionMode ?? null, comments_off: !!p.commentsOff, hide_likes: !!p.hideLikes,
+    fx: p.fx ?? null, caption_mode: p.captionMode ?? null, comments_off: !!p.commentsOff, hide_likes: !!p.hideLikes, ...(p.visibility ? { audience: p.visibility } : {}),
   };
 }
 

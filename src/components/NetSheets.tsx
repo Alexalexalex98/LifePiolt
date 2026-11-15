@@ -1,3 +1,6 @@
+import { AudiencePills } from '@/components/people/AudienceSelect';
+import { toggleFollowSynced } from '@/social/followSync';
+import { usePrefs } from '@/store/prefs';
 import { itemLine } from '@/lib/menu';
 import { likersFor } from '@/lib/likers';
 import { peoplePool } from '@/lib/network';
@@ -91,7 +94,7 @@ function NetSheetInner() {
       ) : (
         <>
           <Item onPress={() => { Share.share({ message: `Post di ${author} su LifePilot` }); }}><Body>Condividi fuori dall’app</Body></Item>
-          <Item onPress={() => { const f = net.toggleFollow(author); close(); toast(f ? 'Ora segui ' + author : 'Non segui più ' + author); }}><Body>{fol ? 'Smetti di seguire' : 'Segui'}</Body></Item>
+          <Item onPress={() => { const f = toggleFollowSynced(author); close(); toast(f ? 'Ora segui ' + author : 'Non segui più ' + author); }}><Body>{fol ? 'Smetti di seguire' : 'Segui'}</Body></Item>
           <Item onPress={() => { const m = net.toggleMuteAuthor(author); close(); toast(m ? `Post di ${author} silenziati` : `Post di ${author} riattivati`); }}><Body>{mutedP ? 'Riattiva ' + author : 'Silenzia ' + author}</Body></Item>
           {tag ? <Item onPress={() => { const m = net.toggleMuteTopic(tag); close(); toast(m ? `Post su ${tag} silenziati` : `Post su ${tag} riattivati`); }}><Body>{mutedT ? 'Riattiva argomento ' + tag : 'Silenzia argomento ' + tag}</Body></Item> : null}
           {p.ref ? <ModItems target={{ kind: 'post', ref: p.ref, label: p.label || 'Post di ' + author, author }} /> : null}
@@ -375,6 +378,7 @@ function NewIdeaView({ resume }: { resume?: boolean }) {
   const [type, setType] = useState<'libero' | 'fisso'>(d?.type ?? 'libero'); const [fixed, setFixed] = useState(d?.fixed ?? ''); const [reward, setReward] = useState(d?.reward ?? '');
   const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
   const [days, setDays] = useState<number>(d?.days ?? IDEA_DEFAULT_DAYS); const [target, setTarget] = useState(d?.target ?? '500');
+  const [visibility, setVisibility] = useState<'public' | 'followers' | 'not_followers'>(usePrefs.getState().listingAudience);
   return (
     <>
       <Body small muted>Titolare: {me} (le pagine idea sono sempre legate a chi le pubblica).</Body>
@@ -388,6 +392,7 @@ function NewIdeaView({ resume }: { resume?: boolean }) {
       <Body small muted style={{ marginVertical: 8 }}>Obiettivo e durata della raccolta (al massimo {IDEA_MAX_DAYS} giorni). I LifePoints ti arrivano solo se raggiungi l'obiettivo: altrimenti chi ha contribuito viene rimborsato.</Body>
       <Input keyboardType="number-pad" placeholder="Obiettivo in LP" value={target} onChangeText={setTarget} />
       <View style={{ flexDirection: 'row', marginBottom: 8 }}>{IDEA_PERIODS.map((d) => <Pill key={d} label={tl('{0} giorni', d)} on={days === d} onPress={() => setDays(d)} />)}</View>
+      <AudiencePills value={visibility} onChange={setVisibility} />
       <Btn title="Pubblica e fai valutare dall'AI" onPress={() => {
         const ti = title.trim(), de = desc.trim();
         if (!ti || !de) { toast('Compila titolo e descrizione'); return; }
@@ -396,7 +401,7 @@ function NewIdeaView({ resume }: { resume?: boolean }) {
         const tg = Math.floor(parseFloat(target.replace(',', '.')) || 0);
         if (tg < 10) { toast('L\'obiettivo deve essere di almeno 10 LP'); return; }
         const dup = net.ideas.find((x) => textSimilarity(x.title + ' ' + x.desc, ti + ' ' + de) > 0.35);
-        net.patch({ ideas: [...net.ideas, { id: newId(), title: ti, desc: de, author: me, raised: 0, similarTo: dup ? dup.id : null, rewardType: type, fixedAmount: fa, rewardDesc: reward.trim(), target: tg, days, ts: Date.now(), media: media?.media ?? null, uri: media?.uri }] });
+        net.patch({ ideas: [...net.ideas, { id: newId(), title: ti, desc: de, author: me, raised: 0, similarTo: dup ? dup.id : null, rewardType: type, fixedAmount: fa, rewardDesc: reward.trim(), target: tg, days, visibility, ts: Date.now(), media: media?.media ?? null, uri: media?.uri }] });
         close();
         toast(dup ? `Idea simile già presente: "${dup.title}". La tua è stata registrata come correlata.` : 'Idea pubblicata · punteggio AI: ' + rateIdeaDetailed(de).score + '/100');
       }} />
@@ -456,6 +461,7 @@ function NewSeminarView({ semId }: { semId?: number }) {
   const close = useNetSheet((s) => s.close);
   const cur = semId != null ? net.seminars.find((x) => x.id === semId && x.host === me) : undefined;
   const editing = !!cur;
+  const [visibility, setVisibility] = useState<'public' | 'followers' | 'not_followers'>(cur?.visibility ?? usePrefs.getState().listingAudience);
   const now = Date.now();
   const started = !!cur?.startsAt && cur.startsAt <= now;
   const baseDays = nextDays(90);
@@ -485,7 +491,7 @@ function NewSeminarView({ semId }: { semId?: number }) {
     const body = { title: title.trim(), desc: desc.trim(), learn: lines.length ? lines : undefined, audience: audience.trim() || undefined, durationMin, mode, place: place.trim(), language: lang, price: pr, seats: se, cancelPolicy: pr ? paidCancel(pr) : freeCancel };
     if (editing) {
       const r = applySeminarEdit(net.seminars as SemLike[], cur!.id, { ...body, ...(startsAt !== cur!.startsAt ? { startsAt } : {}) }, inSeries ? scope : 'one', now);
-      net.patch({ seminars: r.list as typeof net.seminars });
+      net.patch({ seminars: (r.list as typeof net.seminars).map((x) => (x.id === cur!.id || (cur!.series && x.series === cur!.series && (inSeries ? scope : 'one') !== 'one') ? { ...x, visibility } : x)) });
       const people = Math.max((net.participants?.[`seminar:${cur!.id}`] ?? []).length, cur!.joined ?? 0);
       close(); toast(people > 0 && (startsAt !== cur!.startsAt || pr !== cur!.price) ? tl('Seminario modificato: {0} iscritti avvisati. Chi ha già pagato mantiene il prezzo pagato.', people) : r.changed.length > 1 ? tl('{0} date modificate', r.changed.length) : 'Seminario modificato');
       return;
@@ -493,7 +499,7 @@ function NewSeminarView({ semId }: { semId?: number }) {
     const dates = every === 'none' ? [startsAt] : seriesDates(startsAt, every, parseInt(times, 10) || 1);
     const series = dates.length > 1 ? `ser${newId()}` : undefined;
     const created = dates.map((ts, i) => ({
-      id: newId() + i, ...body, host: me, promoted: false, ts: Date.now(), startsAt: ts, joined: 0, included: 'Partecipazione al seminario secondo la descrizione sopra.', ...(series ? { series } : {}),
+      id: newId() + i, ...body, host: me, promoted: false, ts: Date.now(), startsAt: ts, visibility, joined: 0, included: 'Partecipazione al seminario secondo la descrizione sopra.', ...(series ? { series } : {}),
     }));
     net.patch({ seminars: [...created.reverse(), ...net.seminars] });
     close(); toast(dates.length > 1 ? tl('{0} seminari pubblicati', dates.length) : 'Seminario pubblicato');
@@ -534,6 +540,7 @@ function NewSeminarView({ semId }: { semId?: number }) {
       <Select title="Lingua" value={lang} options={['Italiano', 'English', 'Français', 'Deutsch']} onChange={setLang} />
       <Input keyboardType="decimal-pad" placeholder="Prezzo in LP (0 = gratuito)" value={price} onChangeText={setPrice} />
       <Input keyboardType="number-pad" placeholder="Numero di posti" value={seats} onChangeText={setSeats} />
+      <AudiencePills value={visibility} onChange={setVisibility} />
       <Btn title={editing ? 'Salva le modifiche' : 'Pubblica'} onPress={save} />
     </>
   );
@@ -556,6 +563,7 @@ function ServiceEditor({ resume }: { resume?: boolean }) {
   const [mode, setMode] = useState<'online' | 'presenza'>(info?.mode ?? 'online'); const [place, setPlace] = useState(info?.place ?? ''); const [lang, setLang] = useState(info?.language ?? 'Italiano');
   const [slots, setSlots] = useState<string[]>(cur?.slots ?? []);
   const [cover, setCover] = useState<string | undefined>(cur?.cover);
+  const [visibility, setVisibility] = useState<'public' | 'followers' | 'not_followers'>(cur?.visibility ?? usePrefs.getState().listingAudience);
   const pickCover = async () => {
     try {
       const perm = await libraryPermission();
@@ -570,7 +578,7 @@ function ServiceEditor({ resume }: { resume?: boolean }) {
     const why = validateService(form);
     if (why) { toast(why); return; }
     const pr = parseFloat(price.replace(',', '.'));
-    const provider = { name: me, role: role.trim(), price: pr, rating: cur?.rating ?? 0, tag, media: cur?.media ?? null, slots: sortSlots(slots), cover };
+    const provider = { name: me, role: role.trim(), price: pr, rating: cur?.rating ?? 0, tag, media: cur?.media ?? null, slots: sortSlots(slots), cover, visibility, ...(cur?.remoteId ? { remoteId: cur.remoteId, authorId: cur.authorId } : {}) };
     const lines = gets.split('\n').map((l) => l.trim()).filter(Boolean);
     const next: ServiceInfo = { desc: desc.trim(), gets: lines.length ? lines : [`Una sessione di ${fmtDuration(form.durationMin)}`], durationMin: form.durationMin, mode, place: place.trim(), language: lang, forWho: forWho.trim() || 'Chiunque voglia provare.', cancel: pr ? `Paghi ${pr} LP al momento della prenotazione. Puoi disdire fino a 24 ore prima con rimborso intero e lo slot torna disponibile; puoi sempre riprogrammare.` : 'Gratuito: puoi disdire in qualsiasi momento.' };
     net.patch({ providers: cur ? net.providers.map((x) => (x.name === me ? provider : x)) : [provider, ...net.providers], serviceInfo: { ...(net.serviceInfo ?? {}), [me]: next } });
@@ -626,6 +634,7 @@ function ServiceEditor({ resume }: { resume?: boolean }) {
           </Pressable>
         ))}
       </View>
+      <AudiencePills value={visibility} onChange={setVisibility} />
       <Btn title={cur ? 'Salva le modifiche' : 'Pubblica il servizio'} onPress={save} />
       {cur ? <Btn ghost icon="trash" style={{ marginTop: 8 }} title="Elimina il servizio" onPress={remove} /> : null}
     </>
@@ -787,6 +796,7 @@ function EditPostView({ ref_, resume }: { ref_: string; resume?: boolean }) {
   const [media, setMedia] = useState<NetMedia | null>(d ? d.media : cur?.media && cur.uri ? { media: cur.media, uri: cur.uri } : null);
   const [hideLikes, setHideLikes] = useState(d?.hideLikes ?? !!stand?.hideLikes);
   const [commentsOff, setCommentsOff] = useState(d?.commentsOff ?? !!stand?.commentsOff);
+  const [visibility, setVisibility] = useState<'public' | 'followers'>(stand?.visibility ?? 'public');
   if (!r || !cur || cur.author !== me) return <Body muted>Questo post non c'è più o non è tuo.</Body>;
   // un post nato con la foto di esempio (senza file) la tiene finché non la cambi o la togli
   const keepsDemoMedia = !!cur.media && !cur.uri && !media;
@@ -800,6 +810,7 @@ function EditPostView({ ref_, resume }: { ref_: string; resume?: boolean }) {
         <>
           <Toggle label="Nascondi il numero di mi piace agli altri" value={hideLikes} onChange={setHideLikes} hint="Tu lo vedi sempre" />
           <Toggle label="Disattiva i commenti" value={commentsOff} onChange={setCommentsOff} hint="Nessuno può commentare questo post" />
+          <AudiencePills post value={visibility} onChange={(a) => { if (a !== 'not_followers') setVisibility(a); }} />
         </>
       ) : null}
       <Btn style={{ marginTop: 10 }} title="Salva" onPress={() => {
@@ -808,7 +819,7 @@ function EditPostView({ ref_, resume }: { ref_: string; resume?: boolean }) {
         if (why) { toast(why); return; }
         const now = Date.now();
         const mediaPatch = keepsDemoMedia ? {} : { media: media?.media ?? null, uri: media?.uri };
-        if (r.kind === 'standalone') net.patch({ posts: editStandalone(net.posts, r.id, me, { text, tag, hideLikes, commentsOff, ...mediaPatch }, now) });
+        if (r.kind === 'standalone') net.patch({ posts: editStandalone(net.posts, r.id, me, { text, tag, hideLikes, commentsOff, visibility, ...mediaPatch }, now) });
         else net.patch({ communities: editInCommunity(net.communities, r.id, r.index, me, { text, ...mediaPatch }, now) });
         close(); toast('Post modificato');
       }} />
@@ -851,6 +862,7 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
   const [dish, setDish] = useState<string | null>(d?.dish ?? null);
   const [capMode, setCapMode] = useState<'photo' | 'below'>(d?.capMode ?? 'photo');
   const [fx, setFx] = useState<PostFx | undefined>(d?.fx);
+  const [visibility, setVisibility] = useState<'public' | 'followers'>(usePrefs.getState().postAudience);
   const myMenu = useMenus((x) => x.byOwner[me]); const [tag, setTag] = useState(d?.tag ?? topicList[0]); const [media, setMedia] = useState<NetMedia | null>(d?.media ?? null);
   const t = useTheme();
   // tornando dall'editor: la foto (ritagliata) e i ritocchi scelti
@@ -873,7 +885,7 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
     if (!text.trim() && !media) { toast('Scrivi qualcosa o aggiungi una foto'); return; }
     /* l'anteprima del video si crea ora: poi compare subito, senza nero */
     const poster = media?.media === 'video' ? await videoThumb(media.uri) : undefined;
-    net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, ...(poster ? { poster } : {}), tag, likes: 0, ts: Date.now(), ...(dish ? { menuItem: dish } : {}), ...(media && capMode === 'below' ? { captionMode: 'below' as const } : {}), ...(media && cleanFx(fx) ? { fx: cleanFx(fx) } : {}) }, ...net.posts] });
+    net.patch({ posts: [{ id: newId(), author: me, text: text.trim(), media: media?.media ?? null, uri: media?.uri, ...(poster ? { poster } : {}), tag, likes: 0, ...(visibility === 'followers' ? { visibility } : {}), ts: Date.now(), ...(dish ? { menuItem: dish } : {}), ...(media && capMode === 'below' ? { captionMode: 'below' as const } : {}), ...(media && cleanFx(fx) ? { fx: cleanFx(fx) } : {}) }, ...net.posts] });
     delete drafts.newPost;
     close(); toast('Post pubblicato');
   };
@@ -911,6 +923,7 @@ function NewPostView({ resume, prefill }: { resume?: boolean; prefill?: string }
           ))}
         </View>
       ) : null}
+      <AudiencePills post value={visibility} onChange={(a) => { if (a !== 'not_followers') setVisibility(a); }} />
       {/* chi ha un menù può legare il post a un piatto: si vede cos'è e quanto costa */}
       {myMenu && myMenu.items.length ? (
         <View style={{ marginBottom: 8 }}>

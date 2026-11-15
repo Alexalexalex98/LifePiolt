@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 
-import { Body, Press } from '@/components/ui';
+import { Body, Pill, Press, Row } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { t as tl } from '@/i18n/core';
 import { AUDIENCES, POST_AUDIENCES, type Audience } from '@/lib/people';
@@ -17,6 +17,19 @@ export function AudienceSelect({ value, onChange, post }: { value: Audience; onC
           <Body small muted>{tl(a.d)}</Body>
         </Press>
       ))}
+    </View>
+  );
+}
+
+/** Versione compatta per i moduli di creazione: pulsanti con il pubblico scelto e, sotto, che cosa significa. */
+export function AudiencePills({ value, onChange, post, label = 'Chi lo vede' }: { value: Audience; onChange: (a: Audience) => void; post?: boolean; label?: string }) {
+  const list = AUDIENCES.filter((a) => !post || POST_AUDIENCES.includes(a.k));
+  const cur = list.find((a) => a.k === value) ?? list[0]!;
+  return (
+    <View style={{ marginBottom: 10 }}>
+      <Body small muted style={{ marginBottom: 6 }}>{tl(label)}</Body>
+      <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }} gap={6}>{list.map((a) => <Pill key={a.k} label={tl(a.n)} on={value === a.k} onPress={() => onChange(a.k)} />)}</Row>
+      <Body small muted style={{ marginTop: 6 }}>{tl(cur.d)}</Body>
     </View>
   );
 }

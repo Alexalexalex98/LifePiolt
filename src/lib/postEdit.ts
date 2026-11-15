@@ -3,9 +3,9 @@
  * 'standalone:<id>' per un post del profilo, 'community:<id>:<posizione>' per un post in una community.
  * Solo l'autore può modificare o eliminare; chi modifica può cambiare testo e argomento, non l'immagine.
  */
-export type PostLike = { author: string; text: string; tag?: string; editedAt?: number; media?: 'photo' | 'video' | null; uri?: string; hideLikes?: boolean; commentsOff?: boolean };
+export type PostLike = { author: string; text: string; tag?: string; editedAt?: number; media?: 'photo' | 'video' | null; uri?: string; hideLikes?: boolean; commentsOff?: boolean; /** a chi si mostra (post online) */ visibility?: 'public' | 'followers' };
 /** Tutto ciò che l'autore può cambiare: testo, argomento, foto o video (o toglierli), mi piace visibili, commenti. */
-export type PostPatch = { text: string; tag?: string; media?: 'photo' | 'video' | null; uri?: string; hideLikes?: boolean; commentsOff?: boolean };
+export type PostPatch = { text: string; tag?: string; media?: 'photo' | 'video' | null; uri?: string; hideLikes?: boolean; commentsOff?: boolean; visibility?: 'public' | 'followers' };
 export type CommLike<P> = { id: number | string; posts: P[] };
 
 export type Ref = { kind: 'standalone'; id: string } | { kind: 'community'; id: string; index: number };
@@ -32,7 +32,8 @@ export function editStandalone<P extends PostLike & { id: number }>(posts: P[], 
   if ('media' in patch) { next.media = patch.media ?? null; next.uri = patch.media ? patch.uri : undefined; }
   if (patch.hideLikes !== undefined) next.hideLikes = patch.hideLikes || undefined;
   if (patch.commentsOff !== undefined) next.commentsOff = patch.commentsOff || undefined;
-  const same = next.text === cur.text && next.tag === cur.tag && next.media === cur.media && next.uri === cur.uri && !!next.hideLikes === !!cur.hideLikes && !!next.commentsOff === !!cur.commentsOff;
+  if (patch.visibility !== undefined) next.visibility = patch.visibility;
+  const same = next.text === cur.text && next.tag === cur.tag && next.media === cur.media && next.uri === cur.uri && !!next.hideLikes === !!cur.hideLikes && !!next.commentsOff === !!cur.commentsOff && (next.visibility ?? 'public') === (cur.visibility ?? 'public');
   if (same) return posts;
   const out = [...posts]; out[i] = { ...next, editedAt: now };
   return out;

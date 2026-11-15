@@ -19,7 +19,7 @@ alter default privileges in schema public grant all on tables to anon, authentic
 alter default privileges in schema public grant all on functions to anon, authenticated;
 `);
 await db.exec(`create or replace function public.gen_random_bytes(n int) returns bytea language sql as $$ select decode(md5(random()::text), 'hex') $$;`);
-for (const f of ['0004_social.sql', '0006_identity.sql', '0007_friends_messages.sql', '0035_people_privacy.sql', '0036_people_details.sql']) {
+for (const f of ['0004_social.sql', '0006_identity.sql', '0007_friends_messages.sql', '0035_people_privacy.sql', '0036_people_details.sql', '0037_people_following.sql']) {
   try { await db.exec(readFileSync(M + f, 'utf8')); ok(f); } catch (e) { bad(f, e); }
 }
 const U = { a: '00000000-0000-0000-0000-0000000000a1', b: '00000000-0000-0000-0000-0000000000b2', c: '00000000-0000-0000-0000-0000000000c3', d: '00000000-0000-0000-0000-0000000000d4' };
@@ -141,6 +141,15 @@ await t('voti: solo chi segue, non a se stessi, un voto (cambiabile dopo 30 gior
   await rejects(as('d', `select count(*) from public.social_ratings`), /permission denied/);
   for (let i = 0; i < 10; i++) await as('d', `select public.people_rate($1, 4, 'qa', $2)`, [U.a, 'r' + i]);
   await rejects(as('d', `select public.people_rate($1, 4, 'qa', 'r11')`, [U.a]), /troppi_voti/);
+});
+await t('chi seguo: elenco dal server, con in attesa e accettati', async () => {
+  await db.exec(`delete from public.social_follows`);
+  await as('c', `select public.people_follow($1)`, [U.a]);
+  await as('c', `select public.people_follow($1)`, [U.d]);
+  const f = rows(await as('c', `select public.people_following() as r`))[0].r;
+  eq(f.map((x) => x.display_name).sort(), ['Anna Verdi', 'Dario Rossi']);
+  eq(f.find((x) => x.display_name === 'Dario Rossi').follow, 'pending', 'd chiede l\'approvazione');
+  eq(rows(await as('a', `select public.people_following() as r`))[0].r, [], 'ognuno vede solo i suoi');
 });
 console.log(process.exitCode ? 'CON ERRORI' : 'TUTTO OK');
 await db.close();

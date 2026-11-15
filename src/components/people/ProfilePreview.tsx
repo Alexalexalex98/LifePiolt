@@ -8,6 +8,7 @@ import { t as tl } from '@/i18n/core';
 import { Icon } from '@/lib/icons';
 import { CONFIDENCE_TEXT, initials, listingsText, scoreText, sinceText, type Card } from '@/lib/people';
 import { followPerson, ratePerson, unfollowPerson } from '@/lib/peopleApi';
+import { applyServerFollow } from '@/social/followSync';
 import { toast } from '@/store/toast';
 
 const Stat = ({ n, l }: { n: number | string; l: string }) => {
@@ -23,8 +24,8 @@ export function ProfilePreview({ card, onClose, onChange }: { card: Card | null;
   const rep = card.reputation; const ads = listingsText(card.listings); const since = sinceText(card.since);
   const act = async () => {
     setBusy(true);
-    if (card.follow) { const r = await unfollowPerson(card.user_id); if (r.ok) { onChange?.({ ...card, follow: null }); toast('Non lo segui più'); } else toast(r.message); }
-    else { const r = await followPerson(card.user_id); if (r.ok) { onChange?.({ ...card, follow: r.data }); toast(r.data === 'pending' ? 'Richiesta inviata: deve accettarla' : 'Ora lo segui'); } else toast(r.message); }
+    if (card.follow) { const r = await unfollowPerson(card.user_id); if (r.ok) { applyServerFollow(card, false); onChange?.({ ...card, follow: null }); toast('Non lo segui più'); } else toast(r.message); }
+    else { const r = await followPerson(card.user_id); if (r.ok) { applyServerFollow(card, r.data === 'accepted'); onChange?.({ ...card, follow: r.data }); toast(r.data === 'pending' ? 'Richiesta inviata: deve accettarla' : 'Ora lo segui'); } else toast(r.message); }
     setBusy(false);
   };
   const vote = async (n: number) => {

@@ -19,16 +19,18 @@ export const followPerson = (id: string) => run(() => rpc<'accepted' | 'pending'
 export const unfollowPerson = (id: string) => run(() => rpc<void>('people_unfollow', { p_user: id }));
 export const answerFollow = (id: string, accept: boolean) => run(() => rpc<void>('people_follow_answer', { p_user: id, p_accept: accept }));
 export const ratePerson = (id: string, stars: number) => run(() => rpc<Card>('people_rate', { p_to: id, p_stars: stars, p_kind: 'profile', p_ref: 'profile' }));
+export const followingList = () => run(() => rpc<Card[]>('people_following'));
 export const followRequests = () => run(() => rpc<Card[]>('people_follow_requests'));
 
 /** Annunci, servizi, seminari e idee condivisi online, ognuno con il suo pubblico. */
 export type ListingKind = 'service' | 'seminar' | 'idea' | 'offer';
-export type Listing = { id: string; author_id: string; author_name: string; kind: ListingKind; title: string; body: string; payload: Record<string, unknown>; audience: Audience; created_at: string };
+export type Listing = import('@/social/listings').RemoteListing;
 export const publishListing = (l: { kind: ListingKind; title: string; body?: string; payload?: Record<string, unknown>; audience: Audience }) => run(async () => {
   const me = (await rpc<Me>('people_me', { p_name: useApp.getState().account.name || null })).user_id;
   const rows = await q<Listing[]>((await db()).from('social_listings').insert({ author_id: me, kind: l.kind, title: l.title.trim().slice(0, 120), body: (l.body ?? '').slice(0, 4000), payload: l.payload ?? {}, audience: l.audience }).select('*'));
   return rows[0] as Listing;
 });
+export const updateListing = (id: string, patch: { title: string; body: string; payload: Record<string, unknown>; audience: Audience }) => run(async () => { await q((await db()).from('social_listings').update({ title: patch.title.slice(0, 120), body: patch.body.slice(0, 4000), payload: patch.payload, audience: patch.audience }).eq('id', id)); });
 export const setListingAudience = (id: string, audience: Audience) => run(async () => { await q((await db()).from('social_listings').update({ audience }).eq('id', id)); });
 export const removeListing = (id: string) => run(async () => { await q((await db()).from('social_listings').update({ deleted_at: new Date().toISOString() }).eq('id', id)); });
 /** I contenuti che il server ti lascia vedere (il pubblico lo decide lui): tutti, o di un autore. */

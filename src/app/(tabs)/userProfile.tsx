@@ -1,3 +1,4 @@
+import { toggleFollowSynced } from '@/social/followSync';
 import { useMenus } from '@/store/menus';
 import { useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
@@ -229,7 +230,7 @@ export default function UserProfile() {
           </View>
         ) : (
           <>
-            <Btn style={{ flex: 1 }} ghost={fol} title={fol ? 'Già seguito' : fromFollow ? 'Segui anche tu' : 'Segui'} onPress={() => { const f = net.toggleFollow(name); toast(f ? 'Ora segui ' + name : 'Non segui più ' + name); }} />
+            <Btn style={{ flex: 1 }} ghost={fol} title={fol ? 'Già seguito' : fromFollow ? 'Segui anche tu' : 'Segui'} onPress={() => { const f = toggleFollowSynced(name); toast(f ? 'Ora segui ' + name : 'Non segui più ' + name); }} />
             <Btn style={{ flex: 1 }} ghost title="Messaggio" onPress={() => go('conversationPage', { id: useChat.getState().ensureDm(name, me) })} />
             <Btn ghost icon="award" title="Vota" onPress={() => openSheet('vote', { name })} />
           </>

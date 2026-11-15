@@ -12,16 +12,17 @@ import { persisted } from './persist';
 
 /** Inserzione pagata da un'attività: compare in «Per te» e nello Swipe con l'etichetta «Sponsorizzato». */
 export type Sponsor = { cta: string; place: string; kind: string };
-export type Post = { id: number; /** id del post sul server: lo stesso su ogni telefono */ remoteId?: string; sponsor?: Sponsor; /** dove sta la scritta: sulla foto (predefinito) o come didascalia fissa sotto */ captionMode?: 'photo' | 'below'; /** filtri e ritocchi scelti nell'editor (gli stessi dei recap) */ fx?: { filter?: string; adj?: import('@/lib/stories').Adjust; fit?: 'cover' | 'contain'; video?: import('@/lib/videoFx').VideoFx }; /** piatto del menù dell'autore a cui è legato il post */ menuItem?: string; author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; /** fotogramma di anteprima dei video: compare subito, prima del video */ poster?: string; uris?: string[]; /** quando è stato modificato dall'autore */ editedAt?: number; /** l'autore nasconde il numero di mi piace agli altri */ hideLikes?: boolean; /** l'autore ha disattivato i commenti */ commentsOff?: boolean; /** importato da un altro social */ imported?: boolean; /** non compare nel feed, solo nel profilo */ hideFromFeed?: boolean };
+export type Post = { id: number; /** id del post sul server: lo stesso su ogni telefono */ remoteId?: string; /** chi l'ha scritto sul server */ authorId?: string; /** a chi si mostra online: tutti o solo chi segue l'autore */ visibility?: 'public' | 'followers'; sponsor?: Sponsor; /** dove sta la scritta: sulla foto (predefinito) o come didascalia fissa sotto */ captionMode?: 'photo' | 'below'; /** filtri e ritocchi scelti nell'editor (gli stessi dei recap) */ fx?: { filter?: string; adj?: import('@/lib/stories').Adjust; fit?: 'cover' | 'contain'; video?: import('@/lib/videoFx').VideoFx }; /** piatto del menù dell'autore a cui è legato il post */ menuItem?: string; author: string; text: string; media: 'photo' | 'video' | null; tag?: string; likes: number; ts?: number; uri?: string; /** fotogramma di anteprima dei video: compare subito, prima del video */ poster?: string; uris?: string[]; /** quando è stato modificato dall'autore */ editedAt?: number; /** l'autore nasconde il numero di mi piace agli altri */ hideLikes?: boolean; /** l'autore ha disattivato i commenti */ commentsOff?: boolean; /** importato da un altro social */ imported?: boolean; /** non compare nel feed, solo nel profilo */ hideFromFeed?: boolean };
 export type CommPost = { author: string; text: string; media?: 'photo' | 'video' | null; likes: number; ts?: number; uri?: string; editedAt?: number };
 export type Community = { id: number; name: string; topic: string; owner: string; openPosting: boolean; members: string[]; posts: CommPost[]; desc?: string; rules?: string; ts?: number };
-export type Provider = { name: string; role: string; price: number; rating: number; tag: string; media: 'photo' | 'video' | null; slots: string[]; /** foto della banda in alto: se manca, LifePilot sceglie lo sfondo */ cover?: string };
+export type Provider = { /** annuncio online: id sul server, autore e pubblico */ remoteId?: string; authorId?: string; visibility?: 'public' | 'followers' | 'not_followers'; name: string; role: string; price: number; rating: number; tag: string; media: 'photo' | 'video' | null; slots: string[]; /** foto della banda in alto: se manca, LifePilot sceglie lo sfondo */ cover?: string };
 export type Booking = { id: string; provider: string; role: string; slot: string; price: number };
-export type Idea = { id: number; title: string; desc: string; author: string; raised: number; similarTo: number | null; rewardType: 'libero' | 'fisso'; fixedAmount: number | null; rewardDesc: string; target: number; ts?: number; /** durata della raccolta in giorni (max 90) */ days?: number; /** esito già registrato: pagata al titolare o rimborsata */ settled?: 'paid' | 'refunded'; media?: 'photo' | 'video' | null; uri?: string; /** altre foto del progetto: nello Swipe e nella Home sono un carosello */ uris?: string[] };
+export type Idea = { remoteId?: string; authorId?: string; visibility?: 'public' | 'followers' | 'not_followers'; id: number; title: string; desc: string; author: string; raised: number; similarTo: number | null; rewardType: 'libero' | 'fisso'; fixedAmount: number | null; rewardDesc: string; target: number; ts?: number; /** durata della raccolta in giorni (max 90) */ days?: number; /** esito già registrato: pagata al titolare o rimborsata */ settled?: 'paid' | 'refunded'; media?: 'photo' | 'video' | null; uri?: string; /** altre foto del progetto: nello Swipe e nella Home sono un carosello */ uris?: string[] };
 export type SeminarMode = 'online' | 'presenza';
 /** I campi oltre a promoted sono opzionali solo per i dati salvati da versioni precedenti. */
 export type Seminar = {
   id: number; title: string; host: string; price: number; promoted: boolean;
+  /** annuncio online: id sul server, autore e pubblico (non è il «a chi è rivolto» scritto più sotto) */ remoteId?: string; authorId?: string; visibility?: 'public' | 'followers' | 'not_followers';
   ts?: number; startsAt?: number; durationMin?: number; mode?: SeminarMode; place?: string; seats?: number; joined?: number;
   desc?: string; learn?: string[]; audience?: string; included?: string; language?: string; cancelPolicy?: string;
   /** seminari ripetuti: stessa serie */ series?: string;
@@ -85,6 +86,8 @@ type NetState = {
   cryptoLog?: { ts: number; asset: string; amount: number; lp: number }[];
   receivedPayments: Record<string, number>;
   following: string[];
+  /** nome → id sul server di chi seguo (serve a tenere allineato il follow online) */
+  followIds: Record<string, string>;
   mutedAuthors: string[];
   mutedTopics: string[];
   dailyPoint: { lastGiven: string | null; to: string | null };
@@ -173,6 +176,7 @@ const blank = () => ({
   themeWeights: {} as ThemeWeights,
   receivedPayments: {} as Record<string, number>,
   following: [] as string[],
+  followIds: {} as Record<string, string>,
   mutedAuthors: [] as string[],
   mutedTopics: [] as string[],
   dailyPoint: { lastGiven: null as string | null, to: null as string | null },

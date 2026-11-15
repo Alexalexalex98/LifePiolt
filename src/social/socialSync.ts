@@ -4,6 +4,8 @@ import { useApp } from '@/store/app';
 import { usePrefs } from '@/store/prefs';
 import { useNet } from '@/store/network';
 import { toast } from '@/store/toast';
+import { pullFollowing } from './followSync';
+import { pullListings, snapshotListings, syncListings } from './listingSync';
 import { refreshShared } from './sharedCommands';
 import { deletePost, ensurePublicProfile, fetchFeed, insertPost, lastPostError, myLikes, setLike, socialSession, updatePost, uploadMedia, type Social } from './socialApi';
 import { mergeRemote, toInsertRow, type LocalPostLike, type RemotePost } from './socialCore';
@@ -38,7 +40,7 @@ async function publishNew(s: Social) {
       if (p.poster && !/^https?:/.test(p.poster)) up.poster = (await uploadMedia(s, p.poster)) ?? undefined;
       if (p.uris?.length) up.list = (await Promise.all(p.uris.map((u) => (/^https?:/.test(u) ? u : uploadMedia(s, u))))).filter((u): u is string => !!u);
       if (p.media && p.uri && !up.media && !/^https?:/.test(p.uri)) continue; // il file non è partito: riprovo al prossimo giro
-      const row = await insertPost(s, { ...toInsertRow(p, s.userId, up), audience: usePrefs.getState().postAudience });
+      const row = await insertPost(s, { ...toInsertRow(p, s.userId, up), audience: p.visibility ?? usePrefs.getState().postAudience });
       if (row) { useNet.getState().patch({ posts: useNet.getState().posts.map((x) => (x.id === p.id ? { ...x, remoteId: row.id } : x)) as never }); toast('Pubblicato online'); failed.delete(p.id); }
       else if (!failed.has(p.id)) { failed.add(p.id); toast(`Non sono riuscito a pubblicare online: ${lastPostError || 'riprovo più tardi'}. Il post resta sul telefono.`); }
     } finally { publishing.delete(p.id); }
@@ -55,7 +57,7 @@ async function pushChanges(s: Social) {
   // modificati
   for (const p of cur) {
     const o = prev.find((x) => x.id === p.id);
-    if (p.remoteId && o && mine(p, s.name) && (o.text !== p.text || o.tag !== p.tag || o.editedAt !== p.editedAt)) void updatePost(s, p.remoteId, { body: p.text, tag: p.tag ?? null, comments_off: !!p.commentsOff, hide_likes: !!p.hideLikes });
+    if (p.remoteId && o && mine(p, s.name) && (o.text !== p.text || o.tag !== p.tag || o.editedAt !== p.editedAt || o.visibility !== p.visibility)) void updatePost(s, p.remoteId, { body: p.text, tag: p.tag ?? null, comments_off: !!p.commentsOff, hide_likes: !!p.hideLikes, audience: p.visibility ?? 'public' });
   }
   // mi piace
   const added = net.likedPosts.filter((k) => !prevLiked.includes(k)), removed = prevLiked.filter((k) => !net.likedPosts.includes(k));
@@ -72,6 +74,7 @@ export async function pullFeed(force = false): Promise<void> {
   lastPull = Date.now();
   if (!ready) ready = await ensurePublicProfile(s);
   if (!ready) return;
+  void pullListings(); void pullFollowing();
   const remote: RemotePost[] = await fetchFeed(s);
   if (!remote.length) return;
   const net = useNet.getState();
@@ -95,7 +98,9 @@ export async function pullFeed(force = false): Promise<void> {
 export function startSocialSync() {
   if (started) return;
   started = true;
-  prev = useNet.getState().posts as NetPost[]; prevLiked = useNet.getState().likedPosts;
+  prev = useNet.getState().posts as NetPost[]; prevLiked = useNet.getState().likedPosts; snapshotListings();
+  let lastIdeas = useNet.getState().ideas, lastSem = useNet.getState().seminars, lastProv = useNet.getState().providers, lastInfo = useNet.getState().serviceInfo;
+  useNet.subscribe((st) => { if (st.ideas === lastIdeas && st.seminars === lastSem && st.providers === lastProv && st.serviceInfo === lastInfo) return; lastIdeas = st.ideas; lastSem = st.seminars; lastProv = st.providers; lastInfo = st.serviceInfo; void syncListings(); });
   let lastPosts = useNet.getState().posts, lastLikes = useNet.getState().likedPosts;
   useNet.subscribe((st) => { if (st.posts === lastPosts && st.likedPosts === lastLikes) return; lastPosts = st.posts; lastLikes = st.likedPosts; void socialSession().then(async (s) => { if (!s) return; if (!ready) ready = await ensurePublicProfile(s); if (ready) { await publishNew(s); await pushChanges(s); } else { prev = useNet.getState().posts as NetPost[]; prevLiked = useNet.getState().likedPosts; } }); });
   setTimeout(() => { void pullFeed(true); void refreshShared(); }, 2500);

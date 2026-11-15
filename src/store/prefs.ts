@@ -18,6 +18,9 @@ type PrefsState = {
   /** a chi si mostrano i nuovi post: tutti, oppure solo chi ti segue */
   postAudience: 'public' | 'followers';
   setPostAudience: (a: 'public' | 'followers') => void;
+  /** a chi si mostrano i nuovi annunci, servizi, seminari e idee */
+  listingAudience: 'public' | 'followers' | 'not_followers';
+  setListingAudience: (a: 'public' | 'followers' | 'not_followers') => void;
   reset: () => void;
 };
 
@@ -27,6 +30,8 @@ export const usePrefs = create<PrefsState>()(
     setAnswerStyle: (answerStyle) => set({ answerStyle }),
     postAudience: 'public',
     setPostAudience: (postAudience) => set({ postAudience }),
-    reset: () => set({ answerStyle: DEFAULT_STYLE, postAudience: 'public' }),
+    listingAudience: 'public',
+    setListingAudience: (listingAudience) => set({ listingAudience }),
+    reset: () => set({ answerStyle: DEFAULT_STYLE, postAudience: 'public', listingAudience: 'public' }),
   })),
 );
