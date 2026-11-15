@@ -20,7 +20,7 @@ export default function MyClubs() {
   const memberships = useClub((s) => s.memberships);
   const owned = clubsOf({ clubs }, me);
   const joined = Object.values(clubs).filter((c) => c.owner !== me && tierOf({ memberships }, c.id, me) !== 'none');
-  const discover = Object.values(clubs).filter((c) => c.published && c.owner !== me && tierOf({ memberships }, c.id, me) === 'none');
+  const discover = Object.values(clubs).filter((c) => c.published && !c.adult && c.owner !== me && tierOf({ memberships }, c.id, me) === 'none');
   const row = (c: (typeof owned)[number], badge: string, last: boolean, onPress: () => void) => (
     <Item key={c.id} last={last} onPress={onPress}>
       <Row gap={12}>

@@ -25,6 +25,9 @@ type State = {
   comments: ClubComment[];
   votes: AnswerVote[];
   ratings: Record<string, Record<string, Rating>>;
+  /** ho confermato di avere almeno 18 anni (per i LifeClub per adulti) */
+  adultAck: boolean;
+  setAdultAck: (v: boolean) => void;
 
   seedDemo: () => void;
   seedMine: (owner: string) => void;
@@ -74,7 +77,7 @@ type State = {
   reset: () => void;
 };
 
-const initial = { seeded: false, mineSeeded: false, clubs: {} as Record<string, Club>, memberships: {} as Record<string, Membership>, progress: {} as Record<string, LessonProgress>, notes: {} as Record<string, string>, comments: [] as ClubComment[], votes: [] as AnswerVote[], ratings: {} as Record<string, Record<string, Rating>> };
+const initial = { seeded: false, mineSeeded: false, clubs: {} as Record<string, Club>, memberships: {} as Record<string, Membership>, progress: {} as Record<string, LessonProgress>, notes: {} as Record<string, string>, comments: [] as ClubComment[], votes: [] as AnswerVote[], ratings: {} as Record<string, Record<string, Rating>>, adultAck: false };
 
 export const mkey = (clubId: string, user: string) => `${clubId}|${user}`;
 export const pkey = (user: string, lessonId: string) => `${user}|${lessonId}`;
@@ -88,6 +91,7 @@ export const useClub = create<State>()(
     const putM = (m: Membership) => set((s) => ({ memberships: { ...s.memberships, [mkey(m.clubId, m.user)]: m } }));
     return {
       ...initial,
+      setAdultAck: (adultAck) => set({ adultAck }),
 
       seedDemo: () => {
         if (get().seeded) return;

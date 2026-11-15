@@ -79,6 +79,10 @@ export type Club = {
   categories: string[];
   createdAt: number;
   published: boolean;
+  /** contenuti per adulti (18+): chi entra conferma di essere maggiorenne; non compare in ricerche e consigli */
+  adult?: boolean;
+  /** regole del LifeClub accettate dal creatore (versione e data) */
+  rulesAccepted?: { version: number; at: number };
   pricing: Pricing;
   chat: ChatConfig;
   courses: Course[];

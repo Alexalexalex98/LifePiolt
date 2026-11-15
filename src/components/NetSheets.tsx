@@ -1,3 +1,5 @@
+import { sendReport } from '@/lib/reportsApi';
+import { isUrgent } from '@/lib/club/rules';
 import { AudiencePills } from '@/components/people/AudienceSelect';
 import { toggleFollowSynced } from '@/social/followSync';
 import { usePrefs } from '@/store/prefs';
@@ -996,8 +998,11 @@ function ReportView({ target }: { target: ModTarget }) {
         if (!reason) { toast('Scegli un motivo'); return; }
         if (reason === 'altro' && !note.trim()) { toast('Spiega il motivo nella nota'); return; }
         useMod.getState().report({ kind: target.kind as ModKind, ref: target.ref, label: target.label, author: target.author, reason, note });
+        void sendReport({ kind: target.kind, ref: target.ref, label: target.label, author: target.author, reason, note });
+        // minorenni o contenuto illegale: da quel momento non lo vedi più, in attesa dell'esame
+        if (isUrgent(reason)) useMod.getState().hide(target.kind as ModKind, target.ref, target.label);
         close();
-        toast('Segnalazione registrata sul dispositivo');
+        toast(isUrgent(reason) ? 'Grazie: lo esaminiamo subito e intanto non lo vedi più' : 'Segnalazione inviata: la esaminiamo');
       }} />
     </>
   );

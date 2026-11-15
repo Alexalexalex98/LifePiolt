@@ -10,7 +10,8 @@ import { KIND_LABEL } from '@/components/club/LessonRow';
 import { Chip, CoverArt, PreviewNote } from '@/components/club/parts';
 import { pickClubFile } from '@/components/club/pickFile';
 import { UserAvatar } from '@/components/network';
-import { Body, Btn, Card, H, Input, Item, Page, Pill, Press, Row, Seg, Sheet, Switch } from '@/components/ui';
+import { Body, Btn, Card, H, Input, Item, Page, Pill, Press, Row, Seg, Sheet, Switch, Toggle } from '@/components/ui';
+import { CLUB_RULES, CLUB_RULES_VERSION, RULES_CONSEQUENCES, canPublish } from '@/lib/club/rules';
 import { useTheme } from '@/hooks/use-theme';
 import { PLATFORM_FEE_PCT, WRITE_LABEL, WRITE_ORDER, courseProgress, effectiveTier, hasYearly, monthlyRevenue, sanitizePricing, sortedLessons, yearlyPrice, type ChatWrite, type Club, type Course, type Lesson, type Level } from '@/lib/club';
 import { confirmDelete } from '@/lib/confirm';
@@ -72,6 +73,8 @@ function Studio({ club }: { club: Club }) {
   const t = useTheme();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Contenuti');
   const [editInfo, setEditInfo] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const rulesOk = canPublish(club.rulesAccepted).ok;
   const counts = memberCounts({ memberships: useClub((s) => s.memberships) }, club);
   const st = useClub.getState;
 
@@ -92,7 +95,7 @@ function Studio({ club }: { club: Club }) {
         </Row>
         <Row style={{ marginTop: 12 }}>
           <View style={{ flex: 1 }}><Text style={{ color: t.text, fontWeight: '700' }}>{club.published ? 'Pubblicato' : 'Bozza'}</Text><Body small muted>{club.published ? 'Visibile a chi ti segue.' : 'Solo tu lo vedi finché non lo pubblichi.'}</Body></View>
-          <Switch value={club.published} onValueChange={(v) => { st().patchClub(club.id, { published: v }); if (v) ensureChat(club); toast(v ? 'LifeClub pubblicato' : 'Tornato in bozza'); }} accessibilityLabel="Pubblicato" />
+          <Switch value={club.published} onValueChange={(v) => { if (v) { const c = canPublish(club.rulesAccepted); if (!c.ok) { toast(c.why ?? 'Accetta le regole'); setRulesOpen(true); return; } } st().patchClub(club.id, { published: v }); if (v) ensureChat(club); toast(v ? 'LifeClub pubblicato' : 'Tornato in bozza'); }} accessibilityLabel="Pubblicato" />
         </Row>
         <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10 }} gap={8}>
           <Btn small icon="eye" title="Vedi come lo vede un iscritto" onPress={() => go('clubPage', { id: club.id })} />
@@ -100,6 +103,18 @@ function Studio({ club }: { club: Club }) {
           <Btn small ghost icon="comment" title="Apri la chat" onPress={() => { ensureChat(club); go('conversationPage', { id: `club:${club.id}` }); }} />
         </Row>
       </Card>
+      <Card accent={rulesOk ? t.positive : t.warn}>
+        <H>Regole e contenuti per adulti</H>
+        <Toggle label="Contenuti per adulti (18+)" value={!!club.adult} onChange={(v) => st().patchClub(club.id, { adult: v })} hint="Chi entra conferma di avere almeno 18 anni e il club non compare in ricerche e consigli. Pornografia e contenuti espliciti restano vietati." />
+        {rulesOk ? <Body small color={t.positive}>Hai accettato le regole del LifeClub.</Body> : <Body small color={t.warn}>Per pubblicare il LifeClub devi leggere e accettare le regole.</Body>}
+        <Btn small ghost={rulesOk} icon="shield" title={rulesOk ? 'Rileggi le regole' : 'Leggi e accetta le regole'} onPress={() => setRulesOpen(true)} style={{ marginTop: 8, alignSelf: 'flex-start' }} />
+      </Card>
+      <Sheet visible={rulesOpen} title="Regole del LifeClub" onClose={() => setRulesOpen(false)}>
+        <Body small muted style={{ marginBottom: 8 }}>Il LifeClub è fatto per far crescere le persone. Ognuno sceglie cosa pubblicare, entro queste regole:</Body>
+        {CLUB_RULES.map((r, i) => <Item key={r.id} last={i === CLUB_RULES.length - 1}><Body bold>{`${i + 1}. ${r.title}`}</Body><Body small muted>{r.text}</Body></Item>)}
+        <Body small muted style={{ marginTop: 10 }}>{RULES_CONSEQUENCES}</Body>
+        <Btn icon="check" title={rulesOk ? 'Chiudi' : 'Ho letto e accetto le regole'} style={{ marginTop: 10 }} onPress={() => { if (!rulesOk) { st().patchClub(club.id, { rulesAccepted: { version: CLUB_RULES_VERSION, at: Date.now() } }); toast('Regole accettate: ora puoi pubblicare'); } setRulesOpen(false); }} />
+      </Sheet>
       <PreviewNote text="Anteprima: i contenuti restano nella memoria di questo telefono, i pagamenti e le statistiche sono dimostrativi. Con il server saranno reali." />
       <Seg options={[...TABS]} value={tab} onChange={(v) => setTab(v as (typeof TABS)[number])} />
       {tab === 'Contenuti' && <ContentTab club={club} />}

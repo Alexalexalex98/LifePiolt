@@ -1,3 +1,6 @@
+import { adultGate } from '@/lib/club/rules';
+import { openSheet } from '@/components/network';
+import { useNet } from '@/store/network';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
@@ -41,6 +44,8 @@ export default function ClubPage() {
   const [premium, setPremium] = useState(false);
   const [rate, setRate] = useState(false);
   const [preview, setPreview] = useState<Preview>('me');
+  const [year] = useState(() => new Date().getFullYear());
+  const birthYear = useNet((x) => x.identity.birthYear); const adultAck = useClub((x) => x.adultAck);
   useEffect(() => { if (club && memberships[mkey(club.id, me)]) ensureChat(club); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [club?.id]);
 
   const m = club ? memberships[mkey(club.id, me)] : undefined;
@@ -56,6 +61,23 @@ export default function ClubPage() {
   const rr = qaRating(rv.map((r) => r.stars));
 
   if (!club || (!club.published && !isOwner)) return <Page id="clubPage" title="LifeClub" back><Card><Empty text="LifeClub non trovato." /></Card></Page>;
+  const gate = isOwner ? 'ok' : adultGate({ adultClub: club.adult, birthYear, ack: adultAck, year });
+  if (gate !== 'ok') {
+    return (
+      <Page id="clubPage" title={undefined} back>
+        <Text accessibilityRole="header" style={{ color: t.text, fontSize: 24, fontWeight: '800', marginTop: 10 }}>{club.name}</Text>
+        <Card accent={t.warn} style={{ marginTop: 14 }}>
+          <Row style={{ justifyContent: 'flex-start' }} gap={8}><Icon name="lock" size={18} color={t.text} /><H>LifeClub per adulti (18+)</H></Row>
+          {gate === 'blocked' ? <Body small muted style={{ marginTop: 6 }}>Questo LifeClub è riservato ai maggiorenni.</Body> : (
+            <>
+              <Body small muted style={{ marginTop: 6 }}>Questo LifeClub tratta temi per adulti. Per entrare confermi di avere almeno 18 anni. Contenuti sessuali espliciti sono comunque vietati.</Body>
+              <Btn style={{ marginTop: 10 }} icon="check" title="Confermo di avere almeno 18 anni" onPress={() => useClub.getState().setAdultAck(true)} />
+            </>
+          )}
+        </Card>
+      </Page>
+    );
+  }
   const info = subInfo(m);
   const paid = hasPremium(club);
   const accessOf = (c: Course, l: Course['lessons'][number]) => lessonAccess(viewer, { published: c.published || isOwner }, l);
@@ -93,7 +115,7 @@ export default function ClubPage() {
         </View>
         {rv.length > 0 ? <Row gap={4}><Icon name="award" size={15} color={t.accent} fill={t.accent} /><Text style={{ color: t.text, fontWeight: '700' }}>{rr.rating.toFixed(1)}</Text><Body small muted>{`(${rv.length})`}</Body></Row> : null}
       </Row>
-      {club.categories.length > 0 && <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={6}>{club.categories.map((c) => <Chip key={c} label={c} />)}</Row>}
+      {(club.categories.length > 0 || club.adult) && <Row style={{ justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 8 }} gap={6}>{club.adult ? <Chip label="18+" color={t.warn} /> : null}{club.categories.map((c) => <Chip key={c} label={c} />)}</Row>}
       {club.description ? <Body small style={{ marginTop: 10 }}>{club.description}</Body> : null}
 
       {/* stato e azioni */}
@@ -122,6 +144,7 @@ export default function ClubPage() {
               {info.state === 'in_scadenza' && <Btn title="Riprendi l'abbonamento" onPress={() => { resumeClub(club); toast('Abbonamento ripreso'); }} />}
               {info.state !== 'nessuna' && <Btn small ghost danger title={info.state === 'follower' ? 'Smetti di seguire' : 'Disiscriviti'} onPress={unsubscribe} />}
             </View>
+            <Btn small ghost icon="alert" title="Segnala questo LifeClub" onPress={() => openSheet('report', { kind: 'club', ref: club.id, label: club.name, author: club.owner })} style={{ marginTop: 10, alignSelf: 'flex-start' }} />
             <Body small muted style={{ marginTop: 8 }}>Puoi disiscriverti quando vuoi. Il Premium annullato resta attivo fino a fine periodo pagato.</Body>
           </>
         )}

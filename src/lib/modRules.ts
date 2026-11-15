@@ -2,18 +2,23 @@
  * Moderazione: regole PURE (nessun alias, nessuno store) per segnalazioni, contenuti nascosti e utenti bloccati.
  * Un contenuto e' identificato da una chiave `tipo:riferimento` (es. "post:standalone:3", "comment:community:2:1#0").
  */
-export type ModKind = 'post' | 'comment' | 'seminar' | 'service' | 'community' | 'profile' | 'idea';
-export type ReasonId = 'spam' | 'offensivo' | 'truffa' | 'falso' | 'altro';
+export type ModKind = 'post' | 'comment' | 'seminar' | 'service' | 'community' | 'profile' | 'idea' | 'club' | 'clubitem';
+export type ReasonId = 'spam' | 'offensivo' | 'truffa' | 'falso' | 'esplicito' | 'minori' | 'copyright' | 'illegale' | 'adulti' | 'altro';
 
 export const REASONS: { id: ReasonId; label: string; hint: string }[] = [
   { id: 'spam', label: 'Spam', hint: 'Pubblicità ripetuta o contenuti non richiesti' },
   { id: 'offensivo', label: 'Contenuto offensivo', hint: 'Insulti, odio, molestie' },
   { id: 'truffa', label: 'Truffa', hint: 'Tentativo di ingannare o di farsi pagare senza dare nulla' },
   { id: 'falso', label: 'Informazioni false', hint: 'Notizie, dati o promesse non veri' },
+  { id: 'esplicito', label: 'Contenuto sessuale esplicito', hint: 'Pornografia o scene sessuali esplicite' },
+  { id: 'minori', label: 'Coinvolge minorenni', hint: 'Nudo o contenuti sessuali con minorenni: lo esaminiamo subito' },
+  { id: 'copyright', label: 'Diritto d\'autore', hint: 'Materiale di altri pubblicato o rivenduto senza permesso' },
+  { id: 'illegale', label: 'Contenuto illegale', hint: 'Qualcosa che la legge vieta' },
+  { id: 'adulti', label: 'Per adulti, non segnalato', hint: 'Contenuto per adulti in un club senza il segno 18+' },
   { id: 'altro', label: 'Altro', hint: 'Spiegalo nella nota' },
 ];
 export const reasonLabel = (id: string) => REASONS.find((r) => r.id === id)?.label ?? id;
-export const kindLabel: Record<ModKind, string> = { post: 'Post', comment: 'Commento', seminar: 'Seminario', service: 'Servizio', community: 'Community', profile: 'Profilo', idea: 'Idea' };
+export const kindLabel: Record<ModKind, string> = { post: 'Post', comment: 'Commento', seminar: 'Seminario', service: 'Servizio', community: 'Community', profile: 'Profilo', idea: 'Idea', club: 'LifeClub', clubitem: 'Contenuto del LifeClub' };
 
 export const modKey = (kind: ModKind, ref: string | number) => `${kind}:${ref}`;
 

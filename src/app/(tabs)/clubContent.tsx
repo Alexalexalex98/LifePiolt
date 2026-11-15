@@ -1,3 +1,4 @@
+import { openSheet } from '@/components/network';
 import { useProtectedContent } from '@/hooks/use-protected-content';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -134,6 +135,7 @@ function LessonView({ club, course, lesson, startT, startPage, startPara }: { cl
       )}
       {resumeAt > 5 && timed && !startT && <Body small muted style={{ marginTop: 8 }}>{`Ripreso da ${fmtClock(resumeAt)} dove eri arrivato.`}</Body>}
       {lesson.description ? <Body small style={{ marginTop: 10 }}>{lesson.description}</Body> : null}
+      {club.owner !== me ? <Btn small ghost icon="alert" title="Segnala questo contenuto" onPress={() => openSheet('report', { kind: 'clubitem', ref: `${club.id}:${lesson.id}`, label: lesson.title, author: club.owner })} style={{ marginTop: 8, alignSelf: 'flex-start' }} /> : null}
 
       <Row style={{ marginTop: 12 }} gap={8}>
         <Btn style={{ flex: 1 }} small ghost={!done} icon="check" title={done ? 'Completata' : 'Segna come completata'} disabled={!member}
