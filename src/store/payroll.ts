@@ -12,6 +12,7 @@ type State = {
   days: Record<string, Day>;
   slips: Payslip[];
   setContract: (c: Contract) => void;
+  attachContractFile: (pdf: string | undefined, pages: string[] | undefined) => void;
   setDay: (d: Day) => void;
   setDays: (ds: Day[]) => void;
   removeDay: (date: string) => void;
@@ -23,6 +24,7 @@ type State = {
 export const usePayroll = create<State>()(persisted<State>('payroll', (set) => ({
   contract: defaultContract(), ready: false, days: {}, slips: [],
   setContract: (c) => set({ contract: c, ready: true }),
+  attachContractFile: (pdf, pages) => set((s) => ({ contract: { ...s.contract, pdf, pages } })),
   setDay: (d) => set((s) => ({ days: { ...s.days, [d.date]: d } })),
   setDays: (ds) => set((s) => ({ days: { ...s.days, ...Object.fromEntries(ds.map((d) => [d.date, d])) } })),
   removeDay: (date) => set((s) => { const days = { ...s.days }; delete days[date]; return { days }; }),

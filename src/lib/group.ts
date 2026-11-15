@@ -56,7 +56,11 @@ export function groupError(e: unknown): string {
   if (/ora_non_valida/.test(m)) return 'Scrivi gli orari così: 09:00 e 17:00.';
   if (/non_nel_team/.test(m)) return 'Questa persona non fa parte del gruppo.';
   if (/mese_non_valido/.test(m)) return 'Mese non valido.';
-  return 'Non sono riuscita a farlo: controlla la connessione e riprova.';
+  if (/troppi_team/.test(m)) return 'Hai già 10 gruppi: eliminane uno prima di crearne un altro.';
+  if (/PT401|unauthorized|JWT|not authenticated|Auth session missing/i.test(m)) return 'La tua sessione è scaduta: esci e rientra nell\'account, poi riprova.';
+  if (/Server non collegato/.test(m)) return 'Non c\'è il collegamento con il server: serve un account verificato e la rete.';
+  const raw = m.replace(/\s+/g, ' ').trim().slice(0, 90);
+  return `Non sono riuscita a farlo: controlla la connessione e riprova.${raw ? ` (${raw})` : ''}`;
 }
 
 /** Il PDF mensile: ore per giorno, totale e firma digitale (impronta) di ciò che il dipendente conferma. Senza importi. */

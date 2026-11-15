@@ -21,7 +21,7 @@ export default function WorkGroup() {
   const th = useTheme(); const today = useToday();
   const groups = useTeams((s) => s.groups);
   const [sel, setSel] = useState<string | undefined>(); const [server, setServer] = useState<ServerState | null>(null);
-  const [sheet, setSheet] = useState<'new' | 'join' | null>(null); const [name, setName] = useState(''); const [code, setCode] = useState(''); const [busy, setBusy] = useState(false);
+  const [sheet, setSheet] = useState<'new' | 'join' | null>(null); const [name, setName] = useState(''); const [code, setCode] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   useEffect(() => { void serverState().then(setServer); void refreshTeams(); }, []);
   const group = groups.find((g) => g.id === (sel ?? groups[0]?.id));
   useEffect(() => { if (group) void import('@/lib/push').then((m) => m.registerPush(true)); }, [group?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -29,15 +29,17 @@ export default function WorkGroup() {
   const boss = group?.role !== 'member';
 
   const create = async () => {
-    if (!name.trim()) { toast('Dai un nome al gruppo, per esempio il nome dell\'attività'); return; }
+    setErr('');
+    if (!name.trim()) { setErr('Dai un nome al gruppo, per esempio il nome dell\'attività'); return; }
     setBusy(true); const r = await createGroup(name); setBusy(false);
-    if (!r.ok) { toast(r.message); return; }
+    if (!r.ok) { setErr(r.message); return; }
     setSheet(null); setName(''); setSel(r.data); toast('Gruppo creato: la chat di gruppo c\'è già. Invita i dipendenti dalla scheda Persone');
   };
   const join = async () => {
-    if (!code.trim()) { toast('Scrivi il codice che ti ha dato il datore'); return; }
+    setErr('');
+    if (!code.trim()) { setErr('Scrivi il codice che ti ha dato il datore'); return; }
     setBusy(true); const r = await joinGroup(code.trim().toUpperCase()); setBusy(false);
-    if (!r.ok) { toast(r.message); return; }
+    if (!r.ok) { setErr(r.message); return; }
     await refreshTeams(); setSheet(null); setCode(''); toast('Sei nel gruppo: i tuoi turni compaiono nel Plan appena li confermi');
   };
 
@@ -74,6 +76,7 @@ export default function WorkGroup() {
       <Sheet visible={sheet === 'new'} title="Crea il gruppo di lavoro" onClose={() => setSheet(null)}>
         <View style={{ gap: 10 }}>
           <Input placeholder="Nome dell'attività" value={name} onChangeText={setName} />
+          {err ? <Body small color={th.danger}>{err}</Body> : null}
           <Btn icon="check" disabled={busy} title={busy ? 'Un attimo…' : 'Crea'} onPress={() => { void create(); }} />
           <Btn ghost title="Ho già un codice d'invito" onPress={() => setSheet('join')} />
         </View>
@@ -81,6 +84,7 @@ export default function WorkGroup() {
       <Sheet visible={sheet === 'join'} title="Entra con un codice" onClose={() => setSheet(null)}>
         <View style={{ gap: 10 }}>
           <Input placeholder="Codice d'invito" value={code} onChangeText={setCode} autoCapitalize="characters" />
+          {err ? <Body small color={th.danger}>{err}</Body> : null}
           <Btn icon="check" disabled={busy} title={busy ? 'Un attimo…' : 'Entra'} onPress={() => { void join(); }} />
           <Btn ghost title="Crea un nuovo gruppo" onPress={() => setSheet('new')} />
         </View>

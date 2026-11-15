@@ -1,5 +1,5 @@
 {
- "count": 20036,
+ "count": 20048,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/adminReports.tsx": 19,
@@ -326,7 +326,7 @@
   "src/components/money/InvestTab.tsx": 58,
   "src/components/money/WalletTab.tsx": 84,
   "src/components/network.tsx": 42,
-  "src/components/payroll/ContractTab.tsx": 38,
+  "src/components/payroll/ContractTab.tsx": 59,
   "src/components/payroll/DayEditor.tsx": 18,
   "src/components/payroll/MonthTab.tsx": 64,
   "src/components/payroll/SlipsTab.tsx": 35,
@@ -598,7 +598,7 @@
   "src/lib/format.ts": 12,
   "src/lib/friendsCore.ts": 4,
   "src/lib/goalData.ts": 28,
-  "src/lib/group.ts": 19,
+  "src/lib/group.ts": 22,
   "src/lib/groupCall.ts": 7,
   "src/lib/habits/labels.ts": 10,
   "src/lib/habits/mode.ts": 14,
@@ -853,5 +853,5 @@
   "src/sync/transport.ts": 2,
   "src/widgets/now.tsx": 3
  },
- "withPlaceholders": 2516
+ "withPlaceholders": 2517
 }

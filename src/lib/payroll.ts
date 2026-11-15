@@ -62,6 +62,10 @@ export type Contract = {
   from?: string;
   employer?: string;
   pdf?: string; pages?: string[];
+  /** i campi che hanno un valore vero: letto dal contratto (e verificato) o scritto da te. Gli altri restano vuoti e il calcolo usa valori standard. Vuoto/assente = contratto salvato prima di questa regola: si mostra tutto. */
+  known?: string[];
+  /** per i campi letti dal contratto: la frase copiata dal documento, da controllare */
+  found?: Record<string, string>;
 };
 export const defaultContract = (): Contract => ({ kind: 'hourly', hourly: 0, weekHours: 40, netPct: 85, overtimeMode: 'paid', overtimePct: 25, bankRatio: 1, nightPct: 25, sundayPct: 50, holidayPct: 50, vacationDays: 20, paidLeave: true, pauseMin: 0, currency: 'EUR' });
 
@@ -299,21 +303,40 @@ const txt = (v: unknown, max: number): string => (typeof v === 'string' ? v.repl
 const json = (text: string): Record<string, unknown> | null => { const m = text.match(/\{[\s\S]*\}/); if (!m) return null; try { const j = JSON.parse(m[0]) as unknown; return j && typeof j === 'object' ? (j as Record<string, unknown>) : null; } catch { return null; } };
 const timeOf = (v: unknown): string | undefined => { if (typeof v !== 'string') return undefined; const m = v.trim().match(/^(\d{1,2})[:.hH](\d{2})$/); if (!m) return undefined; const t = `${pad(Number(m[1]))}:${m[2]}`; return isTime(t) ? t : undefined; };
 
-export const CONTRACT_PROMPT = 'Questa è la foto o la scansione di un contratto di lavoro. Leggi le condizioni economiche e di orario e rispondi SOLO con un oggetto JSON, senza testo prima o dopo: {"tipo":"ore oppure fisso","paga_oraria_lorda":null,"stipendio_mensile_lordo":null,"ore_settimanali":null,"maggiorazione_straordinario_percento":null,"maggiorazione_notturno_percento":null,"maggiorazione_domenica_percento":null,"maggiorazione_festivo_percento":null,"straordinari":"pagati oppure recuperati oppure misti","ferie_giorni_anno":null,"pausa_non_pagata_minuti":null,"valuta":"EUR oppure CHF","inizio":"YYYY-MM-DD","datore":"nome dell\'azienda"}. Metti null per ciò che non trovi: non inventare nulla.';
+export const CONTRACT_PROMPT = 'Questa è la foto, la scansione o il PDF di un contratto di lavoro. Estrai SOLO ciò che è scritto in modo esplicito. Per ogni campo rispondi con {"valore":…,"citazione":"la frase ESATTA copiata dal contratto che contiene il dato"} oppure con null se il contratto non lo dice chiaramente. Non dedurre, non calcolare, non usare valori tipici, non prendere i dati da altri contratti o da esempi: se hai un dubbio, null. Distingui lordo e netto (usa solo il LORDO), orario e mensile, settimanale e annuale. Rispondi SOLO con un oggetto JSON senza testo prima o dopo, con queste chiavi: "paga_oraria_lorda" (euro o franchi lordi all\'ora), "stipendio_mensile_lordo" (lordo al mese), "stipendio_annuo_lordo" (RAL, lordo all\'anno) e "mensilita" (quante mensilità l\'anno, es. 13), "ore_settimanali", "maggiorazione_straordinario_percento", "maggiorazione_notturno_percento", "maggiorazione_domenica_percento", "maggiorazione_festivo_percento", "straordinari" (valore: "pagati", "recuperati" o "misti"), "ferie_giorni_anno", "pausa_non_pagata_minuti", "valuta" (valore: "EUR" o "CHF"), "inizio" (valore: data YYYY-MM-DD), "datore" (nome dell\'azienda).';
+
+type Cite = { value: unknown; quote: string };
+const cite = (v: unknown): Cite | null => {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>; const quote = txt(o.citazione, 400);
+  return o.valore == null || !quote ? null : { value: o.valore, quote };
+};
+const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+/** Il numero c'è davvero nella frase citata? (12,50 = 12.50 = 12,5). Se no, il dato non è sul documento e non lo uso. */
+const inQuote = (n: number, quote: string): boolean => (quote.match(/\d+(?:[.,]\d+)*/g) ?? []).some((m) => [num(m), /^\d{1,3}(\.\d{3})+$/.test(m) ? Number(m.replace(/\./g, '')) : undefined].some((x) => x != null && Math.abs(x - n) < 0.006));
+const numCited = (v: unknown): { n: number; quote: string } | null => { const c = cite(v); if (!c) return null; const n = num(c.value); return n != null && inQuote(n, c.quote) ? { n, quote: c.quote } : null; };
+
+/** Legge la risposta dell'AI senza fidarsi: ogni dato deve avere la frase del contratto che lo contiene e il numero deve comparire in quella frase. Quello che non torna resta vuoto. */
 export function parseContract(text: string): Partial<Contract> | null {
   const j = json(text); if (!j) return null;
-  const out: Partial<Contract> = {};
-  const kind = txt(j.tipo, 20).toLowerCase(); const hourly = num(j.paga_oraria_lorda); const monthly = num(j.stipendio_mensile_lordo);
-  if (hourly && (kind.startsWith('or') || !monthly)) { out.kind = 'hourly'; out.hourly = hourly; } else if (monthly) { out.kind = 'monthly'; out.monthly = monthly; }
-  const wk = num(j.ore_settimanali); if (wk && wk > 0 && wk <= 60) out.weekHours = wk;
-  for (const [key, to] of [['maggiorazione_straordinario_percento', 'overtimePct'], ['maggiorazione_notturno_percento', 'nightPct'], ['maggiorazione_domenica_percento', 'sundayPct'], ['maggiorazione_festivo_percento', 'holidayPct']] as const) { const v = num(j[key]); if (v != null && v <= 200) out[to] = v; }
-  const so = txt(j.straordinari, 20).toLowerCase(); if (so.startsWith('pag')) out.overtimeMode = 'paid'; else if (so.startsWith('rec')) out.overtimeMode = 'bank'; else if (so.startsWith('mis')) out.overtimeMode = 'mixed';
-  const f = num(j.ferie_giorni_anno); if (f != null && f <= 60) out.vacationDays = f;
-  const p = num(j.pausa_non_pagata_minuti); if (p != null && p <= 180) out.pauseMin = Math.round(p);
-  const cur = txt(j.valuta, 5).toUpperCase(); if (cur === 'EUR' || cur === 'CHF') out.currency = cur;
-  if (validDay(j.inizio)) out.from = j.inizio;
-  const e = txt(j.datore, 80); if (e) out.employer = e;
-  return Object.keys(out).length ? out : null;
+  const out: Partial<Contract> = {}; const found: Record<string, string> = {};
+  const take = (k: string, quote: string) => { found[k] = quote; };
+  const hourly = numCited(j.paga_oraria_lorda); let monthly = numCited(j.stipendio_mensile_lordo);
+  if (!monthly) { const ann = numCited(j.stipendio_annuo_lordo); const m = numCited(j.mensilita); if (ann && m && m.n >= 12 && m.n <= 16 && Number.isInteger(m.n)) monthly = { n: Math.round((ann.n / m.n) * 100) / 100, quote: `${ann.quote} · ${m.quote}` }; }
+  if (hourly && hourly.n > 0 && hourly.n < 500) { out.kind = 'hourly'; out.hourly = hourly.n; take('hourly', hourly.quote); }
+  else if (monthly && monthly.n > 0 && monthly.n < 100000) { out.kind = 'monthly'; out.monthly = monthly.n; take('monthly', monthly.quote); }
+  const wk = numCited(j.ore_settimanali); if (wk && wk.n > 0 && wk.n <= 60) { out.weekHours = wk.n; take('weekHours', wk.quote); }
+  for (const [key, to] of [['maggiorazione_straordinario_percento', 'overtimePct'], ['maggiorazione_notturno_percento', 'nightPct'], ['maggiorazione_domenica_percento', 'sundayPct'], ['maggiorazione_festivo_percento', 'holidayPct']] as const) {
+    const v = numCited(j[key]); if (v && v.n >= 0 && v.n <= 200) { out[to] = v.n; take(to, v.quote); }
+  }
+  const so = cite(j.straordinari); if (so) { const m = txt(so.value, 20).toLowerCase(); const mode = m.startsWith('pag') ? 'paid' : m.startsWith('rec') ? 'bank' : m.startsWith('mis') ? 'mixed' : null; if (mode) { out.overtimeMode = mode; take('overtimeMode', so.quote); } }
+  const f = numCited(j.ferie_giorni_anno); if (f && f.n > 0 && f.n <= 60) { out.vacationDays = f.n; take('vacationDays', f.quote); }
+  const p = numCited(j.pausa_non_pagata_minuti); if (p && p.n >= 0 && p.n <= 180) { out.pauseMin = Math.round(p.n); take('pauseMin', p.quote); }
+  const cur = cite(j.valuta); if (cur) { const v = txt(cur.value, 5).toUpperCase(); if ((v === 'EUR' || v === 'CHF') && (v === 'EUR' ? /€|eur/i : /chf|fr\.|franch/i).test(cur.quote)) { out.currency = v; take('currency', cur.quote); } }
+  const st = cite(j.inizio); if (st && validDay(st.value) && /\d/.test(st.quote)) { out.from = st.value as string; take('from', st.quote); }
+  const em = cite(j.datore); if (em) { const name = txt(em.value, 80); if (name && norm(em.quote).includes(norm(name))) { out.employer = name; take('employer', em.quote); } }
+  if (!Object.keys(found).length) return null;
+  return { ...out, found, known: Object.keys(found) };
 }
 
 export const PAYSLIP_PROMPT = 'Questa è la foto o la scansione di una busta paga (cedolino). Rispondi SOLO con un oggetto JSON, senza testo prima o dopo: {"mese":"YYYY-MM mese di competenza","lordo":0,"netto":0,"ore":null,"valuta":"EUR oppure CHF"}. "lordo" è il totale delle competenze lorde, "netto" è l\'importo netto in busta (netto a pagare). Metti null per ciò che non trovi: non inventare nulla.';

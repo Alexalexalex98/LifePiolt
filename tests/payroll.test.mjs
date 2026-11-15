@@ -70,11 +70,24 @@ test('confronto con il conto: trova l\'accredito vicino al netto', () => {
   const m = matchBank(moves, { month: '2026-10', net: 1500 }); assert.equal(m.move.label, 'ACCREDITO STIPENDIO ACME'); assert.equal(m.diff, 3);
   assert.equal(matchBank(moves, { month: '2026-10', net: 900 }), null); assert.equal(matchBank(moves, { month: '2026-10', net: 0 }), null);
 });
-test('lettura contratto: tipo, paga, maggiorazioni; non si fida', () => {
-  const r = parseContract('ecco {"tipo":"ore","paga_oraria_lorda":"12,50","ore_settimanali":38,"maggiorazione_notturno_percento":30,"ferie_giorni_anno":22,"valuta":"chf","inizio":"2026-02-01","datore":"Acme SA"}');
+const Q = (valore, citazione) => ({ valore, citazione });
+test('lettura contratto: ogni dato ha la sua frase e il numero deve esserci; il resto resta vuoto', () => {
+  const r = parseContract('ecco ' + JSON.stringify({ paga_oraria_lorda: Q('12,50', 'La retribuzione è di CHF 12,50 lordi all\'ora'), ore_settimanali: Q(38, 'orario di 38 ore settimanali'), maggiorazione_notturno_percento: Q(30, 'lavoro notturno +30%'), ferie_giorni_anno: Q(22, '22 giorni di ferie'), valuta: Q('CHF', 'CHF 12,50'), inizio: Q('2026-02-01', 'dal 1 febbraio 2026'), datore: Q('Acme SA', 'tra Acme SA e il dipendente') }));
   assert.equal(r.kind, 'hourly'); assert.equal(r.hourly, 12.5); assert.equal(r.weekHours, 38); assert.equal(r.nightPct, 30); assert.equal(r.vacationDays, 22); assert.equal(r.currency, 'CHF'); assert.equal(r.from, '2026-02-01'); assert.equal(r.employer, 'Acme SA');
-  assert.equal(parseContract('{"tipo":"fisso","stipendio_mensile_lordo":"2.450,00"}').monthly, 2450);
+  assert.equal(r.sundayPct, undefined); assert.equal(r.overtimePct, undefined); assert.ok(r.known.includes('hourly') && !r.known.includes('sundayPct')); assert.match(r.found.hourly, /12,50/);
+  assert.equal(parseContract('{"stipendio_mensile_lordo":' + JSON.stringify(Q('2.450,00', 'stipendio lordo mensile di euro 2.450,00')) + '}').monthly, 2450);
   assert.equal(parseContract('niente json'), null); assert.equal(parseContract('{"ore_settimanali":200}'), null);
+});
+test('lettura contratto: senza frase, o con un numero che nella frase non c\'è, il dato viene scartato', () => {
+  assert.equal(parseContract('{"paga_oraria_lorda":10}'), null);
+  assert.equal(parseContract('{"paga_oraria_lorda":' + JSON.stringify(Q(10, 'paga oraria da definire')) + '}'), null);
+  const r = parseContract(JSON.stringify({ paga_oraria_lorda: Q(9, '9 euro l\'ora'), ore_settimanali: Q(40, 'orario da concordare'), valuta: Q('CHF', 'euro') }));
+  assert.equal(r.hourly, 9); assert.equal(r.weekHours, undefined); assert.equal(r.currency, undefined);
+});
+test('lettura contratto: la RAL si divide per le mensilità solo se ci sono entrambe', () => {
+  const ok = parseContract(JSON.stringify({ stipendio_annuo_lordo: Q(26000, 'RAL euro 26.000'), mensilita: Q(13, 'tredici mensilità (13)') }));
+  assert.equal(ok.monthly, 2000);
+  assert.equal(parseContract(JSON.stringify({ stipendio_annuo_lordo: Q(26000, 'RAL euro 26.000') })), null);
 });
 test('lettura busta paga', () => {
   const r = parsePayslip('{"mese":"2026-10","lordo":"2.000,00","netto":1580.5,"ore":160}');
@@ -128,7 +141,8 @@ test('banca ore: le ore scadono, le più vecchie per prime; non confermate solo 
   assert.equal(bankLedger(days, C({ overtimeMode: 'paid' }), '2026-11-25').balance, 0);
 });
 test('lettura contratto: regola degli straordinari; foglio ore: recupero', () => {
-  assert.equal(parseContract('{"tipo":"ore","paga_oraria_lorda":10,"straordinari":"recuperati"}').overtimeMode, 'bank');
-  assert.equal(parseContract('{"tipo":"ore","paga_oraria_lorda":10,"straordinari":"pagati"}').overtimeMode, 'paid');
+  const w = (so, q) => JSON.stringify({ paga_oraria_lorda: Q(10, '10 euro all\'ora'), straordinari: Q(so, q) });
+  assert.equal(parseContract(w('recuperati', 'le ore in più si recuperano con riposo')).overtimeMode, 'bank');
+  assert.equal(parseContract(w('pagati', 'le ore in più sono pagate')).overtimeMode, 'paid');
   assert.equal(parseHours('{"giorni":[{"data":"2026-11-04","tipo":"recupero"}]}', '2026-11-13')[0].kind, 'recovery');
 });
