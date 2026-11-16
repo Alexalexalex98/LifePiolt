@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Platform, View } from 'react-native';
 
 import { Body, Btn, Card, H, Input, Row, Toggle } from '@/components/ui';
-import { backend, oauthProviders, restoreAccount, saveAccount, sendCode, signInWithProvider, verifyCode, type Backend } from '@/lib/accountApi';
+import { useApp } from '@/store/app';
+import { backend, enabledProviders, restoreAccount, saveAccount, sendCode, signInWithProvider, verifyCode, type Backend } from '@/lib/accountApi';
 import { EMPTY_FORM, MIN_AGE, emailOk, validateAccount, type AccountForm } from '@/lib/accountCore';
 import { t as tl } from '@/i18n/core';
 import { go } from '@/lib/nav';
@@ -29,7 +30,8 @@ export function AccountFlow({ initial = 'create', onDone, onBack }: { initial?: 
   const [be, setBe] = useState<Backend | null>(null);
   /** email già confermata con il codice: se manca solo il profilo non si richiede il codice */
   const [confirmed, setConfirmed] = useState(false);
-  useEffect(() => { void backend().then(setBe); }, []);
+  const [provs, setProvs] = useState<('google' | 'apple')[]>([]);
+  useEffect(() => { void backend().then(setBe); void enabledProviders().then(setProvs); }, []);
   const up = (k: keyof AccountForm, v: string | boolean) => { setF((x) => ({ ...x, [k]: v })); setErr((e) => ({ ...e, [k]: undefined })); };
   const E = ({ k }: { k: keyof AccountForm }) => (err[k] ? <Text style={{ color: t.danger, fontSize: 12, marginTop: 3 }}>{err[k]}</Text> : null);
 
@@ -68,11 +70,13 @@ export function AccountFlow({ initial = 'create', onDone, onBack }: { initial?: 
     setBusy(true); setNote('');
     const r = await signInWithProvider(p);
     if (!r.ok) { setBusy(false); setNote(r.message ?? ''); return; }
-    if (r.existing) { restoreAccount(r.email ?? '', r.existing, true); setBusy(false); onDone(); return; }
+    if (r.existing) { restoreAccount(r.email ?? '', r.existing, true); if (r.profile?.photo && !useApp.getState().account.photo) useApp.setState((x) => ({ account: { ...x.account, photo: r.profile!.photo } })); setBusy(false); onDone(); return; }
+    // nome, cognome e foto che il servizio ha già: li metto nell'app, tu controlli e completi il resto
+    if (r.profile) { setF((x) => ({ ...x, firstName: x.firstName || r.profile!.firstName, lastName: x.lastName || r.profile!.lastName })); if (r.profile.photo) useApp.setState((x) => ({ account: { ...x.account, photo: r.profile!.photo } })); }
     // email confermata dal servizio: si completa solo il profilo, senza codice
     setBusy(false); setConfirmed(true); setMode('create'); setStep('form'); up('email', r.email ?? ''); setNote('Email confermata. Completa i tuoi dati per finire.');
   }
-  const providers = oauthProviders();
+  const providers = provs;
   const social = providers.length && be === 'server' && (step === 'form' || step === 'login') && !confirmed ? (
     <View style={{ gap: 8 }}>
       {providers.includes('apple') ? <Btn ghost title={busy ? 'Un momento...' : 'Continua con Apple'} disabled={busy} onPress={() => void viaProvider('apple')} /> : null}

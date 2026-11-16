@@ -83,6 +83,13 @@ export class SupabaseTransport implements SyncTransport {
       const { data } = await this.client.auth.getSession();
       this.email = data.session?.user?.email ?? null; this.authState = 'ok';
     },
+    /** Quello che Google o Apple hanno mandato sul profilo: nome, cognome e foto (non la data di nascita: non la danno). */
+    oauthProfile: async (): Promise<{ firstName: string; lastName: string; photo: string }> => {
+      const u = ((await (this.client.auth as unknown as { getUser(): Promise<{ data?: { user?: { user_metadata?: Record<string, unknown> } } }> }).getUser())?.data?.user?.user_metadata ?? {}) as Record<string, unknown>;
+      const str = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, 80) : '');
+      const full = str(u.full_name) || str(u.name); const [first, ...rest] = full.split(/\s+/);
+      return { firstName: str(u.given_name) || first || '', lastName: str(u.family_name) || rest.join(' '), photo: typeof u.avatar_url === 'string' ? u.avatar_url : typeof u.picture === 'string' ? u.picture : '' };
+    },
     signOut: async (): Promise<void> => { await this.client.auth.signOut(); this.authState = 'none'; this.email = null; this.connected = false; },
   };
   account(): string | null { return this.email; }

@@ -1,5 +1,5 @@
 {
- "count": 20048,
+ "count": 20049,
  "byFile": {
   "src/app/(tabs)/activity.tsx": 19,
   "src/app/(tabs)/adminReports.tsx": 19,
@@ -439,7 +439,7 @@
   "src/hooks/use-dictation.ts": 4,
   "src/hooks/use-protected-content.ts": 1,
   "src/lib/a11y.ts": 1,
-  "src/lib/accountApi.ts": 13,
+  "src/lib/accountApi.ts": 14,
   "src/lib/accountCore.ts": 13,
   "src/lib/agent/plan.ts": 14,
   "src/lib/agent/registry.ts": 165,

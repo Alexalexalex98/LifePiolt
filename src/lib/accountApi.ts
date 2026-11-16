@@ -36,6 +36,7 @@ export async function supa(): Promise<SupabaseTransport> {
   if (tr.name !== 'supabase') throw new Error('Server non collegato');
   return tr as SupabaseTransport;
 }
+const friendlyOauth = (e: unknown): string => { const m = e instanceof Error ? e.message : ''; return /not enabled|unsupported provider|provider is not/i.test(m) ? 'Questo accesso non è ancora attivo sul server: usa l\'email per ora.' : msg(e); };
 const msg = (e: unknown) => (e instanceof Error ? e.message : 'Operazione non riuscita');
 
 export async function sendCode(emailRaw: string): Promise<Res> {
@@ -135,14 +136,31 @@ export async function syncTrial(): Promise<void> {
   } catch { /* offline o server non raggiungibile: si usa l'ultimo valore */ }
 }
 
-/** Servizi di accesso attivati (EXPO_PUBLIC_OAUTH_PROVIDERS=google,apple): compaiono solo se li hai configurati nel pannello del server. */
+/** Quali servizi si propongono su questo telefono: iPhone = Apple e Google (Apple è obbligatoria se c'è Google), Android = Google.
+ *  EXPO_PUBLIC_OAUTH_PROVIDERS (es. "google,apple" oppure "none") può restringere o forzare l'elenco. */
 export function oauthProviders(): ('google' | 'apple')[] {
   if (Platform.OS === 'web') return [];
-  return (process.env.EXPO_PUBLIC_OAUTH_PROVIDERS ?? '').split(',').map((x) => x.trim()).filter((x): x is 'google' | 'apple' => x === 'google' || x === 'apple');
+  const env = process.env.EXPO_PUBLIC_OAUTH_PROVIDERS;
+  if (env !== undefined && env.trim() !== '') return env.split(',').map((x) => x.trim()).filter((x): x is 'google' | 'apple' => x === 'google' || x === 'apple');
+  return Platform.OS === 'ios' ? ['apple', 'google'] : ['google'];
+}
+
+/** I servizi che il server ha davvero acceso (lo dice lui, senza dati personali): si mostra il pulsante solo se può funzionare. */
+export async function enabledProviders(): Promise<('google' | 'apple')[]> {
+  const want = oauthProviders(); if (!want.length) return [];
+  try {
+    const c = await loadServerConfig();
+    const url = c.url || process.env.EXPO_PUBLIC_SUPABASE_URL || ''; const key = c.anonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+    if (!url || !key) return [];
+    const r = await fetch(`${url.replace(/\/$/, '')}/auth/v1/settings`, { headers: { apikey: key } });
+    if (!r.ok) return want;
+    const j = (await r.json()) as { external?: Record<string, boolean> };
+    return want.filter((p) => j.external?.[p] === true);
+  } catch { return want; }
 }
 
 /** Accede con Google o Apple: apre il browser di sistema, torna all'app, e dice se il profilo esiste già (come verifyCode). */
-export async function signInWithProvider(provider: 'google' | 'apple'): Promise<Res & { email?: string; existing?: { firstName: string; lastName: string; country: string; city: string } }> {
+export async function signInWithProvider(provider: 'google' | 'apple'): Promise<Res & { email?: string; profile?: { firstName: string; lastName: string; photo: string }; existing?: { firstName: string; lastName: string; country: string; city: string } }> {
   try {
     if ((await backend()) !== 'server') return { ok: false, message: 'Servizio account non attivo.' };
     const WebBrowser = await import('expo-web-browser');
@@ -156,6 +174,7 @@ export async function signInWithProvider(provider: 'google' | 'apple'): Promise<
     await applyTransport();
     const g = await (await supa()).rpc<{ complete?: boolean; nome?: string; cognome?: string; paese?: string; citta?: string }>('account_get');
     const email = (await supa()).account() ?? '';
-    return g?.complete && (g.nome ?? '').trim() ? { ok: true, email, existing: { firstName: g.nome ?? '', lastName: g.cognome ?? '', country: g.paese ?? '', city: g.citta ?? '' } } : { ok: true, email };
-  } catch (e) { return { ok: false, message: msg(e) }; }
+    const profile = await (await supa()).auth.oauthProfile().catch(() => undefined);
+    return g?.complete && (g.nome ?? '').trim() ? { ok: true, email, profile, existing: { firstName: g.nome ?? '', lastName: g.cognome ?? '', country: g.paese ?? '', city: g.citta ?? '' } } : { ok: true, email, profile };
+  } catch (e) { return { ok: false, message: friendlyOauth(e) }; }
 }
