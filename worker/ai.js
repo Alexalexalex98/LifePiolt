@@ -197,6 +197,9 @@ const TRUST_LABEL = (n) => (n >= 3 ? 'fonte molto affidabile' : n >= 2 ? 'fonte 
 const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
 
 const msgs = (system, user, extra = []) => [{ role: 'system', content: system }, ...extra, { role: 'user', content: user }];
+/* Nei 14 giorni di prova Theia, oltre a rispondere, conosce la persona: una sola domanda breve e naturale per volta, mai un interrogatorio. */
+export const PROFILING = ' La persona è nei suoi 14 giorni di prova: dopo aver risposto bene alla richiesta, se ci sta, chiudi con UNA sola domanda breve per conoscerla meglio (obiettivi, routine, sonno, abitudini coi soldi, allenamento, cosa vorrebbe migliorare). Mai più di una domanda, mai se ha fretta o è in difficoltà, mai domande su salute grave, religione, politica o dati sensibili.';
+const sysFor = (b) => (b && b.profile === true ? SYSTEM + PROFILING : SYSTEM);
 const imageMsg = (text, images) => [{ role: 'system', content: SYSTEM }, { role: 'user', content: [{ type: 'text', text }, ...images.map((im) => ({ type: 'image_url', image_url: { url: `data:${im.mime || 'image/jpeg'};base64,${im.data}` } }))] }];
 
 /**
@@ -329,7 +332,7 @@ export function streamChat(b, env, lite, info) {
   (async () => {
     try {
       const { message, history, used, domain, deep } = await prepChat(b, env);
-      const { text } = await streamRun(env, lite ? LITE : SMART, { messages: msgs(SYSTEM, message, history) }, lite ? Math.min(deep ? 900 : LITE_TOKENS, 1500) : (deep ? 2800 : 1500), (d) => { send({ d }); });
+      const { text } = await streamRun(env, lite ? LITE : SMART, { messages: msgs(sysFor(b), message, history) }, lite ? Math.min(deep ? 900 : LITE_TOKENS, 1500) : (deep ? 2800 : 1500), (d) => { send({ d }); });
       await send({ done: true, reply: used.length ? withSources(text, used) : text, ...(domain ? { domain } : {}), ...info });
     } catch (e) {
       await send(e?.quota ? { error: 'Il limite gratuito di oggi dell\'intelligenza artificiale \u00e8 finito: riprova domani.', code: 'quota' } : { error: 'Il servizio AI non ha risposto: riprova tra poco.' });
@@ -343,7 +346,7 @@ async function handle(path, b, env, lite = false) {
   const cap = (n) => (lite ? Math.min(n, LITE_TOKENS) : n);
   if (path === '/chat') {
     const { message, history, used, domain, deep } = await prepChat(b, env);
-    const { text } = await run(env, TEXT, { messages: msgs(SYSTEM, message, history) }, cap(deep ? 2800 : 1500));
+    const { text } = await run(env, TEXT, { messages: msgs(sysFor(b), message, history) }, cap(deep ? 2800 : 1500));
     return { reply: used.length ? withSources(text, used) : text, ...(domain ? { domain } : {}) };
   }
   if (path === '/vision') {
@@ -398,7 +401,7 @@ export async function usage(tok, env, fetcher = fetch, doc = false) {
 }
 /** Tetto alla grandezza di una richiesta (foto e documenti in base64 compresi): oltre, il server non lavora. */
 export const MAX_BODY = 6_000_000;
-const RATE = { free: 15, plus: 30, pro: 60 };
+const RATE = { free: 15, trial: 30, plus: 30, pro: 60 };
 const guestHits = new Map();
 export function guestTooMany(ip, now = Date.now()) {
   const a = (guestHits.get(ip) ?? []).filter((t) => now - t < 60000);
@@ -431,6 +434,7 @@ export default {
     let b;
     if (Number(req.headers.get('content-length') || 0) > MAX_BODY) return json({ error: 'richiesta troppo grande' }, 413);
     try { const raw = await req.text(); if (raw.length > MAX_BODY) return json({ error: 'richiesta troppo grande' }, 413); b = JSON.parse(raw); } catch { return json({ error: 'richiesta non valida' }, 400); }
+    b.profile = info.plan === 'trial' && path === '/chat'; // il client non può chiederlo: lo decide il piano
     if (path === '/chat' && b.stream === true) return streamChat(b, env, lite, info);
     try {
       const out = await handle(path, b, env, lite);

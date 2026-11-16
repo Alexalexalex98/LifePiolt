@@ -199,3 +199,9 @@ test('Google Gemini: senza chiave ma con la parola d\'ordine inoltra al vecchio 
   assert.equal(seen.auth, 'Bearer t');
   assert.equal(seen.body.files[0].data, 'QQ==');
 });
+
+test('prova: il profilo lo decide il piano, non il client; la domanda di conoscenza è una sola', async () => {
+  const { PROFILING } = await import('../worker/ai.js');
+  assert.match(PROFILING, /UNA sola domanda/);
+  assert.match(PROFILING, /14 giorni di prova/);
+});
